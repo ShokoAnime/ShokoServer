@@ -127,13 +127,19 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         public class EpisodeDetails
         {
-            public EpisodeDetails(AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null)
+            public EpisodeDetails(AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null) : this(null, null, episode, anime, series) {}
+
+            public EpisodeDetails(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null)
             {
                 ID = episode.EpisodeID;
                 Title = Episode.GetEpisodeTitle(episode.EpisodeID);
                 Number = episode.EpisodeNumber;
                 Type = Episode.MapAniDBEpisodeType(episode.GetEpisodeTypeEnum());
                 AirDate = (DateTime)episode.GetAirDateAsDate();
+                Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, episode.LengthSeconds);
+                ResumePosition = userRecord?.ResumePositionTimeSpan;
+                Watched = userRecord?.WatchedDate;
+                FileID = file?.VideoLocalID;
                 InCollection = series != null;
                 SeriesID = anime.AnimeID;
                 SeriesTitle = series?.GetSeriesName() ?? anime.PreferredTitle;
@@ -166,6 +172,26 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// </summary>
             /// <value></value>
             public DateTime AirDate { get; set; }
+
+            /// <summary>
+            /// The duration of the episode.
+            /// </summary>
+            public TimeSpan Duration { get; set; }
+
+            /// <summary>
+            /// Where to resume the next playback.
+            /// </summary>
+            public TimeSpan? ResumePosition { get; set; }
+
+            /// <summary>
+            /// If the file/episode is considered watched.
+            /// </summary>
+            public DateTime? Watched { get; set; }
+
+            /// <summary>
+            /// File ID.
+            /// </summary>
+            public int? FileID { get; set; }
 
             /// <summary>
             /// True if the series is available in the user's collection.

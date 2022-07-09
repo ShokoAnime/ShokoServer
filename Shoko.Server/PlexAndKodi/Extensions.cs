@@ -9,6 +9,7 @@ using Shoko.Models.Metro;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 // ReSharper disable FunctionComplexityOverflow
@@ -198,7 +199,7 @@ namespace Shoko.Server.PlexAndKodi
                 case AnimeTypes.AnimeEpisode:
                     if (v.Medias != null)
                     {
-                        VideoLocal_User vl = v.Medias.Select(a => RepoFactory.VideoLocal.GetByID(a.Id))
+                        SVR_VideoLocal_User vl = v.Medias.Select(a => RepoFactory.VideoLocal.GetByID(a.Id))
                             .Where(a => a != null)
                             .Select(a => a.GetUserRecord(userid))
                             .Where(a => a != null)
@@ -213,7 +214,7 @@ namespace Shoko.Server.PlexAndKodi
                     }
                     break;
                 case AnimeTypes.AnimeFile:
-                    VideoLocal_User vl2 = RepoFactory.VideoLocal.GetByID(v.Id)?.GetUserRecord(userid);
+                    SVR_VideoLocal_User vl2 = RepoFactory.VideoLocal.GetByID(v.Id)?.GetUserRecord(userid);
                     if (vl2 != null && vl2.ResumePosition > 0)
                     {
                         v.ViewOffset = vl2.ResumePosition;
