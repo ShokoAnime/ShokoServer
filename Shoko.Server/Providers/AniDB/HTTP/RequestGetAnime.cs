@@ -1,4 +1,5 @@
 ﻿using System;
+using AniDBAPI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Models;
@@ -14,7 +15,7 @@ namespace Shoko.Server.Providers.AniDB.Http
 
         protected override HttpBaseResponse<ResponseGetAnime> ParseResponse(ILogger logger, HttpBaseResponse<string> receivedData)
         {
-            // this won't be called. It 
+            // this won't be called. It is bypassed in the version with a service provider
             throw new NotSupportedException();
         }
 
@@ -27,9 +28,12 @@ namespace Shoko.Server.Providers.AniDB.Http
         /// <exception cref="AniDBBannedException">Will throw if banned. Won't extend ban, so it's safe to use this as a check</exception>
         protected override HttpBaseResponse<ResponseGetAnime> ParseResponse(IServiceProvider provider, HttpBaseResponse<string> receivedData)
         {
-            // TODO move a lot of the interdependent parts to more modular pieces with interfaces
-            // For now, this is just a 1 to 1 logic move
             UpdateAnimeUpdateTime(AnimeID);
+
+            // save a file cache of the response
+            var rawXml = receivedData.Response.Trim();
+            APIUtils.WriteAnimeHTTPToFile(AnimeID, rawXml);
+
             var parser = provider.GetRequiredService<HttpParser>();
             var response = parser.Parse(AnimeID, receivedData.Response);
             return new HttpBaseResponse<ResponseGetAnime> { Code = receivedData.Code, Response = response };

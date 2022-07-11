@@ -14,6 +14,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -602,7 +603,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public List<AniDB_Anime_Tag> GetAnimeTags() => RepoFactory.AniDB_Anime_Tag.GetByAnimeID(AnimeID);
 
-        public List<AniDB_Anime_Relation> GetRelatedAnime()
+        public List<SVR_AniDB_Anime_Relation> GetRelatedAnime()
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -614,7 +615,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public List<AniDB_Recommendation> GetRecommendations(ISessionWrapper session) => RepoFactory.AniDB_Recommendation.GetByAnimeID(session, AnimeID);
 
-        public List<AniDB_Anime_Relation> GetRelatedAnime(ISessionWrapper session) => RepoFactory.AniDB_Anime_Relation.GetByAnimeID(session, AnimeID);
+        public List<SVR_AniDB_Anime_Relation> GetRelatedAnime(ISessionWrapper session) => RepoFactory.AniDB_Anime_Relation.GetByAnimeID(session, AnimeID);
 
         public List<AniDB_Anime_Similar> GetSimilarAnime()
         {
@@ -1425,15 +1426,15 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             if (rels == null) return;
 
 
-            List<AniDB_Anime_Relation> relsToSave = new List<AniDB_Anime_Relation>();
+            List<SVR_AniDB_Anime_Relation> relsToSave = new List<SVR_AniDB_Anime_Relation>();
             List<CommandRequest_GetAnimeHTTP> cmdsToSave = new List<CommandRequest_GetAnimeHTTP>();
 
             foreach (Raw_AniDB_RelatedAnime rawrel in rels)
             {
-                AniDB_Anime_Relation anime_rel = RepoFactory.AniDB_Anime_Relation.GetByAnimeIDAndRelationID(session,
+                SVR_AniDB_Anime_Relation anime_rel = RepoFactory.AniDB_Anime_Relation.GetByAnimeIDAndRelationID(session,
                     rawrel.AnimeID,
                     rawrel.RelatedAnimeID);
-                if (anime_rel == null) anime_rel = new AniDB_Anime_Relation();
+                if (anime_rel == null) anime_rel = new SVR_AniDB_Anime_Relation();
 
                 if (!anime_rel.Populate(rawrel)) continue;
                 relsToSave.Add(anime_rel);
@@ -2018,7 +2019,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             GetTitles().Select(a =>
             {
                 var title = new AnimeTitle
-                    {LanguageCode = a.Language, Language = GetLanguage(a.Language), Title = a.Title};
+                    {LanguageCode = a.Language, Language = a.Language.GetEnum(), Title = a.Title};
                 if (!Enum.TryParse(a.TitleType, true, out TitleType type)) return null;
                 title.Type = type;
                 return title;
@@ -2037,111 +2038,6 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         string IAnime.PreferredTitle => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID)?.GetSeriesName() ?? PreferredTitle;
         bool IAnime.Restricted => Restricted == 1;
-        public static TitleLanguage GetLanguage(string lang)
-        {
-            switch (lang.ToUpper())
-            {
-                case "EN":
-                    return TitleLanguage.English;
-                case "X-JAT":
-                    return TitleLanguage.Romaji;
-                case "JA":
-                    return TitleLanguage.Japanese;
-                case "AR":
-                    return TitleLanguage.Arabic;
-                case "BD":
-                    return TitleLanguage.Bangladeshi;
-                case "BG":
-                    return TitleLanguage.Bulgarian;
-                case "CA":
-                    return TitleLanguage.FrenchCanadian;
-                case "CS":
-                    return TitleLanguage.Czech;
-                case "CZ":
-                    return TitleLanguage.Czech;
-                case "DA":
-                    return TitleLanguage.Danish;
-                case "DK":
-                    return TitleLanguage.Danish;
-                case "DE":
-                    return TitleLanguage.German;
-                case "EL":
-                    return TitleLanguage.Greek;
-                case "ES":
-                    return TitleLanguage.Spanish;
-                case "ET":
-                    return TitleLanguage.Estonian;
-                case "FI":
-                    return TitleLanguage.Finnish;
-                case "FR":
-                    return TitleLanguage.French;
-                case "GL":
-                    return TitleLanguage.Galician;
-                case "GR":
-                    return TitleLanguage.Greek;
-                case "HE":
-                    return TitleLanguage.Hebrew;
-                case "HU":
-                    return TitleLanguage.Hungarian;
-                case "IL":
-                    return TitleLanguage.Hebrew;
-                case "IT":
-                    return TitleLanguage.Italian;
-                case "KO":
-                    return TitleLanguage.Korean;
-                case "LT":
-                    return TitleLanguage.Lithuania;
-                case "MN":
-                    return TitleLanguage.Mongolian;
-                case "MS":
-                    return TitleLanguage.Malaysian;
-                case "MY":
-                    return TitleLanguage.Malaysian;
-                case "NL":
-                    return TitleLanguage.Dutch;
-                case "NO":
-                    return TitleLanguage.Norwegian;
-                case "PL":
-                    return TitleLanguage.Polish;
-                case "PT":
-                    return TitleLanguage.Portuguese;
-                case "PT-BR":
-                    return TitleLanguage.BrazilianPortuguese;
-                case "RO":
-                    return TitleLanguage.Romanian;
-                case "RU":
-                    return TitleLanguage.Russian;
-                case "SK":
-                    return TitleLanguage.Slovak;
-                case "SL":
-                    return TitleLanguage.Slovenian;
-                case "SR":
-                    return TitleLanguage.Serbian;
-                case "SV":
-                    return TitleLanguage.Swedish;
-                case "SE":
-                    return TitleLanguage.Swedish; // Common country vs language code mixup
-                case "TH":
-                    return TitleLanguage.Thai;
-                case "TR":
-                    return TitleLanguage.Turkish;
-                case "UK":
-                    return TitleLanguage.Ukrainian; // Modern ISO code
-                case "UA":
-                    return TitleLanguage.Ukrainian; // Deprecated ISO code
-                case "VI":
-                    return TitleLanguage.Vietnamese;
-                case "ZH":
-                    return TitleLanguage.Chinese;
-                case "X-ZHT":
-                    return TitleLanguage.Pinyin;
-                case "ZH-HANS":
-                    return TitleLanguage.ChineseSimplified;
-                case "ZH-HANT":
-                    return TitleLanguage.ChineseTraditional;
-            }
-
-            return TitleLanguage.Unknown;
-        }
+        IReadOnlyList<IRelatedAnime> IAnime.Relations => RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
     }
 }

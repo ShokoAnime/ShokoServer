@@ -10,7 +10,7 @@ namespace AniDBAPI
         public int AnimeID { get; set; }
         public int CreatorID { get; set; }
         public string CreatorName { get; set; }
-        public string CreatorType { get; set; }
+        public string CreatorType { get; set; }
 
         public Raw_AniDB_Staff() {
             AnimeID = 0;

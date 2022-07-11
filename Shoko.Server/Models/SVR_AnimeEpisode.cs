@@ -7,6 +7,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
@@ -203,10 +204,10 @@ namespace Shoko.Server.Models
             }
         }
 
-        IReadOnlyList<AnimeTitle> IEpisode.Titles => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID)
-            .Select(a => new AnimeTitle
-                {LanguageCode = a.Language, Language = SVR_AniDB_Anime.GetLanguage(a.Language), Title = a.Title})
-            .ToList();
+        IReadOnlyList<AnimeTitle> IEpisode.Titles =>
+            RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID)
+                .Select(a => new AnimeTitle { LanguageCode = a.Language, Language = a.Language.GetEnum(), Title = a.Title })
+                .ToList();
         int IEpisode.EpisodeID => AniDB_EpisodeID;
         int IEpisode.AnimeID => AniDB_Episode?.AnimeID ?? 0;
         int IEpisode.Duration => AniDB_Episode?.LengthSeconds ?? 0;

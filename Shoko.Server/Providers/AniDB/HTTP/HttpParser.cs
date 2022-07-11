@@ -6,7 +6,10 @@ using System.Net;
 using System.Xml;
 using AniDBAPI;
 using Microsoft.Extensions.Logging;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Providers.AniDB.Http.GetAnime;
 
 namespace Shoko.Server.Providers.AniDB.Http
@@ -22,14 +25,29 @@ namespace Shoko.Server.Providers.AniDB.Http
 
         public ResponseGetAnime Parse(int animeId, string input)
         {
-            var rawXml = input.Trim();
-            APIUtils.WriteAnimeHTTPToFile(animeId, rawXml);
-
             var xml = ParseXml(input);
             var anime = ParseAnime(animeId, xml);
+            var titles = ParseTitles(animeId, xml);
             var episodes = ParseEpisodes(animeId, xml);
+            var tags = ParseTags(animeId, xml);
+            var staff = ParseStaffs(animeId, xml);
+            var characters = ParseCharacters(animeId, xml);
+            var relations = ParseRelations(animeId, xml);
+            var resources = ParseResources(animeId, xml);
+            var similar = ParseSimilar(animeId, xml);
 
-            var response = new ResponseGetAnime { Anime = anime, Episodes = episodes };
+            var response = new ResponseGetAnime
+            {
+                Anime = anime,
+                Titles = titles,
+                Episodes = episodes,
+                Tags = tags,
+                Staff = staff,
+                Characters = characters,
+                Relations = relations,
+                Resources = resources,
+                Similar = similar,
+            };
             return response;
         }
 
@@ -40,7 +58,7 @@ namespace Shoko.Server.Providers.AniDB.Http
             return docAnime;
         }
 
-#region ParseAnime
+#region Parse Anime
         private ResponseAnime ParseAnime(int animeID, XmlNode docAnime)
         {
             // most of the general anime data will be overwritten by the UDP command
@@ -84,7 +102,6 @@ namespace Shoko.Server.Providers.AniDB.Http
             anime.URL = TryGetProperty(docAnime, "anime", "url");
             anime.Picname = TryGetProperty(docAnime, "anime", "picture");
 
-            ParseRelatedAnime(docAnime, anime);
             ParseMainTitle(docAnime, anime);
             ParseRatings(docAnime, anime);
 
@@ -176,62 +193,53 @@ namespace Shoko.Server.Providers.AniDB.Http
         {
             var titleItems = docAnime["anime"]["titles"]?.GetElementsByTagName("title");
             if (titleItems == null) return;
+
             foreach (XmlNode node in titleItems)
             {
-                var titleType = node?.Attributes?["type"]?.Value.Trim().ToLower();
-                if (string.IsNullOrEmpty(titleType)) continue;
-                var languageType = node.Attributes["xml:lang"]?.Value.Trim().ToLower();
-                if (string.IsNullOrEmpty(languageType)) continue;
+                if (string.IsNullOrEmpty(node?.Attributes?["xml:lang"]?.Value.Trim().ToLower())) continue;
                 var titleValue = node.InnerText.Trim();
                 if (string.IsNullOrEmpty(titleValue)) continue;
 
-                if (titleType.Trim().ToUpper().Equals("MAIN"))
-                    anime.MainTitle = titleValue.Replace('`', '\'');
+                var titleType = node.Attributes?["type"]?.Value.Trim().ToLower();
+                if (!"main".Equals(titleType)) continue;
+                anime.MainTitle = titleValue.Replace('`', '\'');
             }
-        }
-
-        private static void ParseRelatedAnime(XmlNode docAnime, ResponseAnime anime)
-        {
-            var raItems = docAnime["anime"]["relatedanime"]?.GetElementsByTagName("anime");
-            if (raItems == null) return;
-            anime.RelatedAnimeIdsRAW = string.Empty;
-            anime.RelatedAnimeTypesRAW = string.Empty;
-
-            foreach (XmlNode node in raItems)
-            {
-                if (node?.Attributes?["id"]?.Value == null) continue;
-                if (!int.TryParse(node.Attributes["id"].Value, out var id)) continue;
-                var relType = ConvertRelationTypeTextToEnum(TryGetAttribute(node, "type"));
-
-                if (anime.RelatedAnimeIdsRAW.Length > 0) anime.RelatedAnimeIdsRAW += "'";
-                if (anime.RelatedAnimeTypesRAW.Length > 0) anime.RelatedAnimeTypesRAW += "'";
-
-                anime.RelatedAnimeIdsRAW += id.ToString();
-                anime.RelatedAnimeTypesRAW += relType.ToString();
-            }
-        }
-
-        private static RelationType ConvertRelationTypeTextToEnum(string relType)
-        {
-            var type = relType.Trim().ToLower();
-            return type switch
-            {
-                "sequel" => RelationType.Sequel,
-                "prequel" => RelationType.Prequel,
-                "same setting" => RelationType.SameSetting,
-                "alternative setting" => RelationType.AlternativeSetting,
-                "alternative version" => RelationType.AlternativeVersion,
-                "music video" => RelationType.MusicVideo,
-                "character" => RelationType.SameSetting,
-                "side story" => RelationType.SideStory,
-                "parent story" => RelationType.MainStory,
-                "summary" => RelationType.Summary,
-                "full story" => RelationType.FullStory,
-                _ => RelationType.Other,
-            };
         }
 #endregion
-#region ParseEpisodes
+#region Parse Titles
+        private List<ResponseTitle> ParseTitles(int animeID, XmlDocument docAnime)
+        {
+            var titles = new List<ResponseTitle>();
+
+            var titleItems = docAnime?["anime"]?["titles"]?.GetElementsByTagName("title");
+            if (titleItems == null) return titles;
+            foreach (XmlNode node in titleItems)
+            {
+                try
+                {
+                    var animeTitle = ParseTitle(animeID, node);
+                    titles.Add(animeTitle);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "{Ex}", ex.ToString());
+                }
+            }
+
+            return titles;
+        }
+
+        private static ResponseTitle ParseTitle(int animeID, XmlNode node)
+        {
+            var titleType = AniDBHTTPHelper.TryGetAttribute(node, "type");
+            if (!Enum.TryParse(titleType, true, out TitleType type)) return null;
+            var language = AniDBHTTPHelper.TryGetAttribute(node, "xml:lang");
+            var langEnum = language.GetEnum();
+            var title = node.InnerText.Trim().Replace('`', '\'');
+            return new ResponseTitle { AnimeID = animeID, Title = title, TitleType = type, Language = langEnum };
+        }
+#endregion
+#region Parse Episodes
         private List<ResponseEpisode> ParseEpisodes(int animeID, XmlNode docAnime)
         {
             var episodes = new List<ResponseEpisode>();
@@ -247,7 +255,7 @@ namespace Shoko.Server.Providers.AniDB.Http
                 }
                 catch (Exception exc)
                 {
-                    _logger.LogError(exc, exc.ToString());
+                    _logger.LogError(exc, "{Ex}", exc.ToString());
                 }
             }
 
@@ -342,6 +350,237 @@ namespace Shoko.Server.Providers.AniDB.Http
                 "P" => EpisodeType.Parody,
                 _ => EpisodeType.Episode,
             };
+        }
+#endregion
+#region Parse Tags
+        private List<ResponseTag> ParseTags(int animeID, XmlNode docAnime)
+        {
+            var tags = new List<ResponseTag>();
+
+            var tagItems = docAnime?["anime"]?["tags"]?.GetElementsByTagName("tag");
+            if (tagItems == null) return tags;
+            foreach (XmlNode node in tagItems)
+            {
+                try
+                {
+                    var tag = ParseTag(animeID, node);
+                    if (tag == null) continue;
+                    tags.Add(tag);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "{Ex}", ex.ToString());
+                }
+            }
+
+            return tags;
+        }
+
+        private static ResponseTag ParseTag(int animeID, XmlNode node)
+        {
+            if (!int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out var tagID)) return null;
+            var tagName = AniDBHTTPHelper.TryGetProperty(node, "name")?.Replace('`', '\'');
+            if (string.IsNullOrEmpty(tagName)) return null;
+            var tagDescription = AniDBHTTPHelper.TryGetProperty(node, "description")?.Replace('`', '\'');
+            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "weight"), out var weight);
+            bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "localspoiler"), out var lsp);
+            bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "globalspoiler"), out var gsp);
+
+            return new ResponseTag
+            {
+                AnimeID = animeID,
+                TagID = tagID,
+                TagName = tagName,
+                TagDescription = tagDescription,
+                Weight = weight,
+                LocalSpoiler = lsp,
+                GlobalSpoiler = gsp,
+                Spoiler = lsp || gsp,
+            };
+        }
+#endregion
+#region Parse Staff
+        private List<ResponseStaff> ParseStaffs(int animeID, XmlNode docAnime)
+        {
+            var creators = new List<ResponseStaff>();
+
+            var charItems = docAnime?["anime"]?["creators"]?.GetElementsByTagName("name");
+            if (charItems == null) return creators;
+            foreach (XmlNode node in charItems)
+            {
+                try
+                {
+                    var staff = ParseStaff(animeID, node);
+                    creators.Add(staff);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "{Ex}", ex.ToString());
+                }
+            }
+            return creators;
+        }
+
+        private static ResponseStaff ParseStaff(int animeID, XmlNode node)
+        {
+            if (!int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out var creatorID)) return null;
+            var creatorType = AniDBHTTPHelper.TryGetAttribute(node, "type");
+            var creatorName = node.InnerText.Replace('`', '\'');
+            return new ResponseStaff
+            {
+                AnimeID = animeID,
+                CreatorID = creatorID,
+                CreatorName = creatorName,
+                CreatorType = creatorType,
+            };
+        }
+#endregion
+#region Parse Characters
+        private List<ResponseCharacter> ParseCharacters(int animeID, XmlNode docAnime)
+        {
+            var chars = new List<ResponseCharacter>();
+
+            var charItems = docAnime?["anime"]?["characters"]?.GetElementsByTagName("character");
+            if (charItems == null) return chars;
+            foreach (XmlNode node in charItems)
+            {
+                try
+                {
+                    var chr = ParseCharacter(animeID, node);
+                    chars.Add(chr);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "{Ex}", ex.ToString());
+                }
+            }
+
+            return chars;
+        }
+
+        private static ResponseCharacter ParseCharacter(int animeID, XmlNode node)
+        {
+            if (int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out var charID)) return null;
+            var charType = AniDBHTTPHelper.TryGetAttribute(node, "type");
+            var charName = AniDBHTTPHelper.TryGetProperty(node, "name")?.Replace('`', '\'');
+            var charDescription = AniDBHTTPHelper.TryGetProperty(node, "description")?.Replace('`', '\'');
+            var picName = AniDBHTTPHelper.TryGetProperty(node, "picture");
+            
+            // parse seiyuus
+            var seiyuus = new List<ResponseSeiyuu>();
+            foreach (XmlNode nodeChild in node.ChildNodes)
+            {
+                if (nodeChild?.Name != "seiyuu") continue;
+                if (!int.TryParse(nodeChild.Attributes?["id"]?.Value, out var seiyuuID)) continue;
+                var seiyuuPic = nodeChild.Attributes["picture"]?.Value;
+                var seiyuuName = nodeChild.InnerText.Replace('`', '\'');
+                seiyuus.Add(new ResponseSeiyuu { SeiyuuID = seiyuuID, SeiyuuName = seiyuuName, PicName = seiyuuPic });
+            }
+
+            return new ResponseCharacter
+            {
+                AnimeID = animeID,
+                CharacterID = charID,
+                CharacterType = charType,
+                CharacterName = charName,
+                CharacterDescription = charDescription,
+                PicName = picName,
+                Seiyuus = seiyuus,
+            };
+        }
+#endregion
+#region Parse Resources
+        private List<ResponseResource> ParseResources(int animeID, XmlNode docAnime)
+        {
+            var result = new List<ResponseResource>();
+            var items = docAnime?["anime"]?["resources"]?.GetElementsByTagName("resource");
+            if (items == null) return result;
+            foreach (XmlNode node in items)
+            {
+                try
+                {
+                    foreach (XmlNode child in node.ChildNodes)
+                    {
+                        var resourceID = child["identifier"]?.InnerText ?? child["url"]?.InnerText;
+                        if (!int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "type"), out var typeInt)) continue;
+                        var resource = new ResponseResource { AnimeID = animeID, ResourceID = resourceID, ResourceType = (AniDB_ResourceLinkType)typeInt };
+                        result.Add(resource);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "{Ex}", ex.ToString());
+                }
+            }
+
+            return result;
+        }
+#endregion
+#region Parse Relations
+        private List<ResponseRelation> ParseRelations(int animeID, XmlNode docAnime)
+        {
+            var rels = new List<ResponseRelation>();
+
+            var relItems = docAnime?["anime"]?["relatedanime"]?.GetElementsByTagName("anime");
+            if (relItems == null) return rels;
+            foreach (XmlNode node in relItems)
+            {
+                try
+                {
+                    if (!int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out var id)) continue;
+                    var type = AniDBHTTPHelper.TryGetAttribute(node, "type");
+                    var relationType = type.ToLowerInvariant() switch
+                    {
+                        "prequel" => RelationType.Prequel,
+                        "sequel" => RelationType.Sequel,
+                        "parent story" => RelationType.MainStory,
+                        "side story" => RelationType.SideStory,
+                        "full story" => RelationType.FullStory,
+                        "summary" => RelationType.Summary,
+                        "other" => RelationType.Other,
+                        "alternative setting" => RelationType.AlternativeSetting,
+                        "same setting" => RelationType.SameSetting,
+                        "character" => RelationType.SharedCharacters,
+                        _ => RelationType.Other,
+                    };
+                    var relation = new ResponseRelation { AnimeID = animeID, RelationType = relationType, RelatedAnimeID = id};
+                    rels.Add(relation);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "{Ex}", ex.ToString());
+                }
+            }
+
+            return rels;
+        }
+#endregion
+#region Parse Similar
+        private List<ResponseSimilar> ParseSimilar(int animeID, XmlNode docAnime)
+        {
+            var rels = new List<ResponseSimilar>();
+
+            var simItems = docAnime["anime"]?["similaranime"]?.GetElementsByTagName("anime");
+            if (simItems == null) return rels;
+            foreach (XmlNode node in simItems)
+            {
+                try
+                {
+                    if (!int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out int id)) continue;
+
+                    int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "approval"), out int appr);
+
+                    int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "total"), out int tot);
+                    var sim = new ResponseSimilar { AnimeID = animeID, SimilarAnimeID = id, Approval = appr, Total = tot };
+                    rels.Add(sim);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "{Ex}", ex.ToString());
+                }
+            }
+
+            return rels;
         }
 #endregion
 #region XML Utils

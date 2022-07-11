@@ -38,6 +38,8 @@ namespace Shoko.Plugin.Abstractions.DataModels
         /// The preferred title, according to Shoko's settings, Series Overrides, etc
         /// </summary>
         string PreferredTitle { get; }
+        
+        IReadOnlyList<IRelatedAnime> Relations { get; }
     }
 
     public class EpisodeCounts
@@ -57,6 +59,6 @@ namespace Shoko.Plugin.Abstractions.DataModels
         TVSeries = 2,
         TVSpecial = 3,
         Web = 4,
-        Other = 5
+        Other = 5,
     }
 }
