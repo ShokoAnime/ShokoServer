@@ -21,7 +21,7 @@ namespace Shoko.Server.API.v3.Controllers
     [Authorize]
     public class ActionController : BaseController
     {
-        public ActionController(ILogger<ActionController> logger) : base()
+        public ActionController(ILogger<ActionController> logger)
         {
             Logger = logger;
         }
@@ -37,6 +37,17 @@ namespace Shoko.Server.API.v3.Controllers
         public ActionResult RunImport()
         {
             ShokoServer.RunImport();
+            return Ok();
+        }
+
+        /// <summary>
+        /// Queues a task to import only new files found in the import folder
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("ImportNewFiles")]
+        public ActionResult ImportNewFiles()
+        {
+            Importer.RunImport_NewFiles();
             return Ok();
         }
 
@@ -307,19 +318,6 @@ namespace Shoko.Server.API.v3.Controllers
         public ActionResult UpdateAniDBCalendarData()
         {
             Importer.CheckForCalendarUpdate(true);
-            return Ok();
-        }
-
-        
-        /// <summary>
-        /// Queues a task to import only new files found in the import folder
-        /// </summary>
-        /// <returns></returns>
-        [Authorize("admin")]
-        [HttpGet("ImportNewFiles")]
-        public ActionResult ImportNewFiles()
-        {
-            Importer.RunImport_NewFiles();
             return Ok();
         }
 
