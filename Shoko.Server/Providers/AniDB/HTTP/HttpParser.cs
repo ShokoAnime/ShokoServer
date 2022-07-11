@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Xml;
-using AniDBAPI;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -58,7 +57,7 @@ namespace Shoko.Server.Providers.AniDB.Http
             return docAnime;
         }
 
-#region Parse Anime
+#region Parse Anime Details
         private ResponseAnime ParseAnime(int animeID, XmlNode docAnime)
         {
             // most of the general anime data will be overwritten by the UDP command
@@ -231,9 +230,9 @@ namespace Shoko.Server.Providers.AniDB.Http
 
         private static ResponseTitle ParseTitle(int animeID, XmlNode node)
         {
-            var titleType = AniDBHTTPHelper.TryGetAttribute(node, "type");
+            var titleType = TryGetAttribute(node, "type");
             if (!Enum.TryParse(titleType, true, out TitleType type)) return null;
-            var language = AniDBHTTPHelper.TryGetAttribute(node, "xml:lang");
+            var language = TryGetAttribute(node, "xml:lang");
             var langEnum = language.GetEnum();
             var title = node.InnerText.Trim().Replace('`', '\'');
             return new ResponseTitle { AnimeID = animeID, Title = title, TitleType = type, Language = langEnum };
@@ -268,19 +267,19 @@ namespace Shoko.Server.Providers.AniDB.Http
                 throw new UnexpectedHttpResponseException("Could not get episode ID from XML", HttpStatusCode.OK, node?.ToString());
             // default values
 
-            var epNo = AniDBHTTPHelper.TryGetProperty(node, "epno");
+            var epNo = TryGetProperty(node, "epno");
             var episodeType = GetEpisodeType(epNo);
             var episodeNumber = GetEpisodeNumber(epNo, episodeType);
 
-            var length = AniDBHTTPHelper.TryGetProperty(node, "length");
+            var length = TryGetProperty(node, "length");
             int.TryParse(length, out var lMinutes);
             var secs = lMinutes * 60;
 
             const NumberStyles style = NumberStyles.Number;
             var culture = CultureInfo.CreateSpecificCulture("en-GB");
 
-            decimal.TryParse(AniDBHTTPHelper.TryGetProperty(node, "rating"), style, culture, out var rating);
-            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "rating", "votes"), out var votes);
+            decimal.TryParse(TryGetProperty(node, "rating"), style, culture, out var rating);
+            int.TryParse(TryGetAttribute(node, "rating", "votes"), out var votes);
 
             var titles = node.ChildNodes.Cast<XmlNode>()
                 .Select(nodeChild => new
@@ -296,9 +295,9 @@ namespace Shoko.Server.Providers.AniDB.Http
                 .Where(t => Equals("title", t.nodeChild?.Name) && !string.IsNullOrEmpty(t.nodeChild.InnerText) && !string.IsNullOrEmpty(t.episodeTitle.Language))
                 .Select(t => t.episodeTitle).ToList();
 
-            var dateString = AniDBHTTPHelper.TryGetProperty(node, "airdate");
+            var dateString = TryGetProperty(node, "airdate");
             var airDate = GetDate(dateString, true);
-            var description = AniDBHTTPHelper.TryGetProperty(node, "summary")?.Replace('`', '\'');
+            var description = TryGetProperty(node, "summary")?.Replace('`', '\'');
             
             return new ResponseEpisode
             {
@@ -378,13 +377,13 @@ namespace Shoko.Server.Providers.AniDB.Http
 
         private static ResponseTag ParseTag(int animeID, XmlNode node)
         {
-            if (!int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out var tagID)) return null;
-            var tagName = AniDBHTTPHelper.TryGetProperty(node, "name")?.Replace('`', '\'');
+            if (!int.TryParse(TryGetAttribute(node, "id"), out var tagID)) return null;
+            var tagName = TryGetProperty(node, "name")?.Replace('`', '\'');
             if (string.IsNullOrEmpty(tagName)) return null;
-            var tagDescription = AniDBHTTPHelper.TryGetProperty(node, "description")?.Replace('`', '\'');
-            int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "weight"), out var weight);
-            bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "localspoiler"), out var lsp);
-            bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "globalspoiler"), out var gsp);
+            var tagDescription = TryGetProperty(node, "description")?.Replace('`', '\'');
+            int.TryParse(TryGetAttribute(node, "weight"), out var weight);
+            bool.TryParse(TryGetAttribute(node, "localspoiler"), out var lsp);
+            bool.TryParse(TryGetAttribute(node, "globalspoiler"), out var gsp);
 
             return new ResponseTag
             {
@@ -423,8 +422,8 @@ namespace Shoko.Server.Providers.AniDB.Http
 
         private static ResponseStaff ParseStaff(int animeID, XmlNode node)
         {
-            if (!int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out var creatorID)) return null;
-            var creatorType = AniDBHTTPHelper.TryGetAttribute(node, "type");
+            if (!int.TryParse(TryGetAttribute(node, "id"), out var creatorID)) return null;
+            var creatorType = TryGetAttribute(node, "type");
             var creatorName = node.InnerText.Replace('`', '\'');
             return new ResponseStaff
             {
@@ -460,11 +459,11 @@ namespace Shoko.Server.Providers.AniDB.Http
 
         private static ResponseCharacter ParseCharacter(int animeID, XmlNode node)
         {
-            if (int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out var charID)) return null;
-            var charType = AniDBHTTPHelper.TryGetAttribute(node, "type");
-            var charName = AniDBHTTPHelper.TryGetProperty(node, "name")?.Replace('`', '\'');
-            var charDescription = AniDBHTTPHelper.TryGetProperty(node, "description")?.Replace('`', '\'');
-            var picName = AniDBHTTPHelper.TryGetProperty(node, "picture");
+            if (int.TryParse(TryGetAttribute(node, "id"), out var charID)) return null;
+            var charType = TryGetAttribute(node, "type");
+            var charName = TryGetProperty(node, "name")?.Replace('`', '\'');
+            var charDescription = TryGetProperty(node, "description")?.Replace('`', '\'');
+            var picName = TryGetProperty(node, "picture");
             
             // parse seiyuus
             var seiyuus = new List<ResponseSeiyuu>();
@@ -502,7 +501,7 @@ namespace Shoko.Server.Providers.AniDB.Http
                     foreach (XmlNode child in node.ChildNodes)
                     {
                         var resourceID = child["identifier"]?.InnerText ?? child["url"]?.InnerText;
-                        if (!int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "type"), out var typeInt)) continue;
+                        if (!int.TryParse(TryGetAttribute(node, "type"), out var typeInt)) continue;
                         var resource = new ResponseResource { AnimeID = animeID, ResourceID = resourceID, ResourceType = (AniDB_ResourceLinkType)typeInt };
                         result.Add(resource);
                     }
@@ -527,8 +526,8 @@ namespace Shoko.Server.Providers.AniDB.Http
             {
                 try
                 {
-                    if (!int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out var id)) continue;
-                    var type = AniDBHTTPHelper.TryGetAttribute(node, "type");
+                    if (!int.TryParse(TryGetAttribute(node, "id"), out var id)) continue;
+                    var type = TryGetAttribute(node, "type");
                     var relationType = type.ToLowerInvariant() switch
                     {
                         "prequel" => RelationType.Prequel,
@@ -566,11 +565,11 @@ namespace Shoko.Server.Providers.AniDB.Http
             {
                 try
                 {
-                    if (!int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out int id)) continue;
+                    if (!int.TryParse(TryGetAttribute(node, "id"), out int id)) continue;
 
-                    int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "approval"), out int appr);
+                    int.TryParse(TryGetAttribute(node, "approval"), out int appr);
 
-                    int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "total"), out int tot);
+                    int.TryParse(TryGetAttribute(node, "total"), out int tot);
                     var sim = new ResponseSimilar { AnimeID = animeID, SimilarAnimeID = id, Approval = appr, Total = tot };
                     rels.Add(sim);
                 }
@@ -588,6 +587,19 @@ namespace Shoko.Server.Providers.AniDB.Http
         {
             if (doc == null || string.IsNullOrEmpty(keyName) || string.IsNullOrEmpty(propertyName)) return string.Empty;
             return doc[keyName]?[propertyName]?.InnerText.Trim() ?? string.Empty;
+        }
+
+        private static string TryGetProperty(XmlNode node, string propertyName)
+        {
+            if (node == null || string.IsNullOrEmpty(propertyName)) return string.Empty;
+            return node[propertyName]?.InnerText.Trim() ?? string.Empty;
+        }
+
+        private static string TryGetAttribute(XmlNode parentnode, string nodeName, string attName)
+        {
+            if (parentnode == null || string.IsNullOrEmpty(nodeName) || string.IsNullOrEmpty(attName))
+                return string.Empty;
+            return parentnode[nodeName]?.Attributes[attName]?.Value ?? string.Empty;
         }
 
         private static string TryGetAttribute(XmlNode node, string attName)
