@@ -15,7 +15,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         {
             get
             {
-                return $"MYLIST size={Size}&ed2k={Hash}";
+                return $"MYLISTDEL size={Size}&ed2k={Hash}";
             }
         }
 
