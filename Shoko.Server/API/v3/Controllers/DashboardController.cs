@@ -279,13 +279,13 @@ namespace Shoko.Server.API.v3.Controllers
             if (pageSize <= 0)
                 return episodeList
                     .Where(tuple => seriesDict.Keys.Contains(tuple.Item1.AnimeSeriesID))
-                    .Select(tuple => new Dashboard.EpisodeDetails(tuple.Item3, tuple.Item2, tuple.Item1.AniDB_Episode, animeDict[tuple.Item1.AnimeSeriesID], seriesDict[tuple.Item1.AnimeSeriesID]))
+                    .Select(tuple => new Dashboard.EpisodeDetails(tuple.Item1.AniDB_Episode, animeDict[tuple.Item1.AnimeSeriesID], seriesDict[tuple.Item1.AnimeSeriesID], tuple.Item2, tuple.Item3))
                     .ToList();
             return episodeList
                 .Where(tuple => seriesDict.Keys.Contains(tuple.Item1.AnimeSeriesID))
                 .Skip(pageSize * page)
                 .Take(pageSize)
-                .Select(tuple => new Dashboard.EpisodeDetails(tuple.Item3, tuple.Item2, tuple.Item1.AniDB_Episode, animeDict[tuple.Item1.AnimeSeriesID], seriesDict[tuple.Item1.AnimeSeriesID]))
+                .Select(tuple => new Dashboard.EpisodeDetails(tuple.Item1.AniDB_Episode, animeDict[tuple.Item1.AnimeSeriesID], seriesDict[tuple.Item1.AnimeSeriesID], tuple.Item2, tuple.Item3))
                 .ToList();
         }
 

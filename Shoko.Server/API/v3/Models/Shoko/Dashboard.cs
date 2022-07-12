@@ -127,9 +127,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         public class EpisodeDetails
         {
-            public EpisodeDetails(AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null) : this(null, null, episode, anime, series) {}
-
-            public EpisodeDetails(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null)
+            public EpisodeDetails(AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null, SVR_VideoLocal file = null, SVR_VideoLocal_User userRecord = null)
             {
                 ID = episode.EpisodeID;
                 Title = Episode.GetEpisodeTitle(episode.EpisodeID);
