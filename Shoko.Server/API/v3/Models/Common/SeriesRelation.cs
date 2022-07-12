@@ -56,6 +56,7 @@ namespace Shoko.Server.API.v3.Models.Common
                 "summary" => RelationType.Summary,
                 "other" => RelationType.Other,
                 "alternative setting" => RelationType.AlternativeSetting,
+                "alternative version" => RelationType.AlternativeVersion,
                 "same setting" => RelationType.SameSetting,
                 "character" => RelationType.SharedCharacters,
                 
@@ -87,6 +88,11 @@ namespace Shoko.Server.API.v3.Models.Common
             /// The entries tell different stories in different settings but othwerwise shares some character(s).
             /// </summary>
             SharedCharacters = 3,
+
+            /// <summary>
+            /// The entries tell the same story in the same settings but are made at different times.
+            /// </summary>
+            AlternativeVersion = 4,
 
             /// <summary>
             /// The first story either continues, or expands upon the story of the related entry.
