@@ -8,6 +8,6 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         public DateTime? WatchedDate { get; set; }
         public GetFile_State? State { get; set; }
         public int MyListID { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }

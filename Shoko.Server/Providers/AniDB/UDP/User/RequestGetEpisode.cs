@@ -49,13 +49,14 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                         int viewdate = int.Parse(arrStatus[7]);
                         int updatedate = int.Parse(arrStatus[5]);
                         bool watched = viewdate > 0;
-
+                        DateTime? updatedAt = null;
                         DateTime? watchedDate = null;
-                        DateTime updatedAt = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                        if (updatedate > 0)
+                            updatedAt = DateTime.UnixEpoch
                             .AddSeconds(updatedate)
                             .ToLocalTime();
                         if (watched)
-                            watchedDate = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                            watchedDate = DateTime.UnixEpoch
                                 .AddSeconds(viewdate)
                                 .ToLocalTime();
 
