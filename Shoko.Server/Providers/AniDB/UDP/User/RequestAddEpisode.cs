@@ -5,7 +5,7 @@ using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User
 {
-    public class RequestAddEpisode : UDPBaseRequest<ResponseAddFile>
+    public class RequestAddEpisode : UDPBaseRequest<ResponseMyListFile>
     {
         protected override string BaseCommand
         {
@@ -35,7 +35,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
 
-        protected override UDPBaseResponse<ResponseAddFile> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPBaseResponse<ResponseMyListFile> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -44,15 +44,16 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                 case UDPReturnCode.MYLIST_ENTRY_ADDED:
                 {
                     // We're adding a generic file, so it won't return a MyListID
-                    return new UDPBaseResponse<ResponseAddFile>
+                    return new UDPBaseResponse<ResponseMyListFile>
                     {
                         Code = code,
-                        Response = new ResponseAddFile
+                        Response = new ResponseMyListFile
                         {
                             State = State,
                             IsWatched = IsWatched,
-                            WatchedDate = WatchedDate
-                        }
+                            WatchedDate = WatchedDate,
+                            UpdatedAt = DateTime.Now,
+                        },
                     };
                 }
                 case UDPReturnCode.FILE_ALREADY_IN_MYLIST:
@@ -71,27 +72,29 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                         GetFile_State state = (GetFile_State) int.Parse(arrStatus[6]);
 
                         int viewdate = int.Parse(arrStatus[7]);
+                        int updatedate = int.Parse(arrStatus[5]);
                         bool watched = viewdate > 0;
 
                         DateTime? watchedDate = null;
+                        DateTime updatedAt = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                            .AddSeconds(updatedate)
+                            .ToLocalTime();
                         if (watched)
-                        {
-                            DateTime utcDate = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                            utcDate = utcDate.AddSeconds(viewdate);
+                            watchedDate = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                                .AddSeconds(viewdate)
+                                .ToLocalTime();
 
-                            watchedDate = utcDate.ToLocalTime();
-                        }
-
-                        return new UDPBaseResponse<ResponseAddFile>
+                        return new UDPBaseResponse<ResponseMyListFile>
                         {
                             Code = code,
-                            Response = new ResponseAddFile
+                            Response = new ResponseMyListFile
                             {
                                 MyListID = myListID,
                                 State = state,
                                 IsWatched = watched,
-                                WatchedDate = watchedDate
-                            }
+                                WatchedDate = watchedDate,
+                                UpdatedAt = updatedAt,
+                            },
                         };
                     }
                     break;
