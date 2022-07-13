@@ -93,7 +93,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_DownloadImage: {0}", EntityID);
             string downloadURL = string.Empty;
@@ -405,15 +405,15 @@ namespace Shoko.Server.Commands
 
                 case ImageEntityType.AniDB_Cover:
                     SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
-                    return string.Format(ShokoService.AnidbProcessor.ImageServerUrl, anime.Picname);
+                    return string.Format(ShokoService.AniDBProcessor.ImageServerUrl, anime.Picname);
 
                 case ImageEntityType.AniDB_Character:
                     AniDB_Character chr = req.ImageData as AniDB_Character;
-                    return string.Format(ShokoService.AnidbProcessor.ImageServerUrl, chr.PicName);
+                    return string.Format(ShokoService.AniDBProcessor.ImageServerUrl, chr.PicName);
 
                 case ImageEntityType.AniDB_Creator:
                     AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
-                    return string.Format(ShokoService.AnidbProcessor.ImageServerUrl, creator.PicName);
+                    return string.Format(ShokoService.AniDBProcessor.ImageServerUrl, creator.PicName);
 
                 default:
                     return string.Empty;

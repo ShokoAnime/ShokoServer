@@ -34,7 +34,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             try
             {

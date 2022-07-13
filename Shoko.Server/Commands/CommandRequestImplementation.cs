@@ -47,7 +47,8 @@ namespace Shoko.Server.Commands
         /// <summary>
         /// Inherited classes to provide the implemenation of how to process this command
         /// </summary>
-        public abstract void ProcessCommand();
+        /// <param name="serviceProvider"></param>
+        public abstract void ProcessCommand(IServiceProvider serviceProvider);
 
         public abstract void GenerateCommandID();
 

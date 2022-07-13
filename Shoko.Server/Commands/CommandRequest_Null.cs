@@ -14,7 +14,7 @@ namespace Shoko.Server.Commands
 
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             
         }

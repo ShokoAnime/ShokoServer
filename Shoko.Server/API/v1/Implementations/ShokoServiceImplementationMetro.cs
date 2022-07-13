@@ -56,8 +56,8 @@ namespace Shoko.Server
                 contract.ImagesQueueStateId = (int) ShokoService.CmdProcessorImages.QueueState.queueState;
                 contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
 
-                contract.IsBanned = ShokoService.AnidbProcessor.IsHttpBanned || ShokoService.AnidbProcessor.IsUdpBanned;
-                contract.BanReason = (ShokoService.AnidbProcessor.IsHttpBanned ? ShokoService.AnidbProcessor.HttpBanTime : ShokoService.AnidbProcessor.UdpBanTime).ToString();
+                contract.IsBanned = ShokoService.AniDBProcessor.IsHttpBanned || ShokoService.AniDBProcessor.IsUdpBanned;
+                contract.BanReason = (ShokoService.AniDBProcessor.IsHttpBanned ? ShokoService.AniDBProcessor.HttpBanTime : ShokoService.AniDBProcessor.UdpBanTime).ToString();
             }
             catch (Exception ex)
             {
@@ -1043,7 +1043,7 @@ namespace Shoko.Server
                     if (animeLink == null)
                     {
                         // try getting it from anidb now
-                        animeLink = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(link.RelatedAnimeID,
+                        animeLink = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(link.RelatedAnimeID,
                             false,
                             false);
                     }
@@ -1088,7 +1088,7 @@ namespace Shoko.Server
                     if (animeLink == null)
                     {
                         // try getting it from anidb now
-                        animeLink = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(link.SimilarAnimeID,
+                        animeLink = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(link.SimilarAnimeID,
                             false,
                             false);
                     }
@@ -1194,7 +1194,7 @@ namespace Shoko.Server
         {
             try
             {
-                ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, false);
+                ShokoService.AniDBProcessor.GetAnimeInfoHTTP(animeID, true, false);
             }
             catch (Exception ex)
             {

@@ -60,7 +60,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             CrossRef_File_Episode xref = new CrossRef_File_Episode();
             try

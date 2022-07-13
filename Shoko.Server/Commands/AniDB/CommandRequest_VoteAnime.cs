@@ -39,14 +39,14 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_Vote: {0}", CommandID);
 
 
             try
             {
-                ShokoService.AnidbProcessor.VoteAnime(AnimeID, VoteValue, (AniDBVoteType) VoteType);
+                ShokoService.AniDBProcessor.VoteAnime(AnimeID, VoteValue, (AniDBVoteType) VoteType);
             }
             catch (Exception ex)
             {

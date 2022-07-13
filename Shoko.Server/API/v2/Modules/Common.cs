@@ -666,7 +666,7 @@ namespace Shoko.Server.API.v2.Modules
                 ShokoService.CmdProcessorHasher.Stop();
 
                 RepoFactory.CommandRequest.ClearHasherQueue();
-                ShokoService.CmdProcessorHasher.Init();
+                ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
 
                 return Ok();
             }
@@ -688,7 +688,7 @@ namespace Shoko.Server.API.v2.Modules
                 ShokoService.CmdProcessorGeneral.Stop();
 
                 RepoFactory.CommandRequest.ClearGeneralQueue();
-                ShokoService.CmdProcessorGeneral.Init();
+                ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
 
                 return Ok();
             }
@@ -710,7 +710,7 @@ namespace Shoko.Server.API.v2.Modules
                 ShokoService.CmdProcessorImages.Stop();
 
                 RepoFactory.CommandRequest.ClearImageQueue();
-                ShokoService.CmdProcessorImages.Init();
+                ShokoService.CmdProcessorImages.NotifyOfNewCommand();
 
                 return Ok();
             }

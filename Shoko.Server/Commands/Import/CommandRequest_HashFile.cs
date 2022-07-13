@@ -56,7 +56,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Trace("Checking File For Hashes: {0}", FileName);
 

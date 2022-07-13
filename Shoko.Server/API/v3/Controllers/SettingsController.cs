@@ -64,17 +64,17 @@ namespace Shoko.Server.API.v3.Controllers
             if (string.IsNullOrWhiteSpace(credentials.Username) || string.IsNullOrWhiteSpace(credentials.Password))
                 return BadRequest("AniDB needs both a username and a password");
 
-            ShokoService.AnidbProcessor.ForceLogout();
-            ShokoService.AnidbProcessor.CloseConnections();
+            ShokoService.AniDBProcessor.ForceLogout();
+            ShokoService.AniDBProcessor.CloseConnections();
 
             Thread.Sleep(1000);
 
-            ShokoService.AnidbProcessor.Init(credentials.Username, credentials.Password,
+            ShokoService.AniDBProcessor.Init(credentials.Username, credentials.Password,
                 ServerSettings.Instance.AniDb.ServerAddress,
                 ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
 
-            if (!ShokoService.AnidbProcessor.Login()) return BadRequest("Failed to log in");
-            ShokoService.AnidbProcessor.ForceLogout();
+            if (!ShokoService.AniDBProcessor.Login()) return BadRequest("Failed to log in");
+            ShokoService.AniDBProcessor.ForceLogout();
 
             return Ok();
         }

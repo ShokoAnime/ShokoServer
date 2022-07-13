@@ -262,7 +262,7 @@ namespace AniDBAPI.Commands
 
             // if we get banned pause the command processor for a while
             // so we don't make the ban worse
-            ShokoService.AnidbProcessor.IsUdpBanned = ResponseCode == 555;
+            ShokoService.AniDBProcessor.IsUdpBanned = ResponseCode == 555;
 
             // 598 UNKNOWN COMMAND usually means we had connections issue
             // 506 INVALID SESSION
@@ -270,7 +270,7 @@ namespace AniDBAPI.Commands
             // reset login status to start again
             if (ResponseCode == 598 || ResponseCode == 506 || ResponseCode == 505)
             {
-                ShokoService.AnidbProcessor.IsInvalidSession = true;
+                ShokoService.AniDBProcessor.IsInvalidSession = true;
                 logger.Trace("FORCING Logout because of invalid session");
                 ForceReconnection();
             }
@@ -298,7 +298,7 @@ namespace AniDBAPI.Commands
                         break;
                 }
                 logger.Trace("FORCING Logout because of invalid session");
-                ShokoService.AnidbProcessor.ExtendPause(300, errormsg);
+                ShokoService.AniDBProcessor.ExtendPause(300, errormsg);
             }
         }
 
@@ -311,13 +311,13 @@ namespace AniDBAPI.Commands
         {
             try
             {
-                if (ShokoService.AnidbProcessor != null)
+                if (ShokoService.AniDBProcessor != null)
                 {
                     logger.Info("Forcing reconnection to AniDB");
-                    ShokoService.AnidbProcessor.Dispose();
+                    ShokoService.AniDBProcessor.Dispose();
                     StaticRateLimiter.UDP.EnsureRate();
 
-                    ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username,
+                    ShokoService.AniDBProcessor.Init(ServerSettings.Instance.AniDb.Username,
                         ServerSettings.Instance.AniDb.Password, ServerSettings.Instance.AniDb.ServerAddress,
                         ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
                 }

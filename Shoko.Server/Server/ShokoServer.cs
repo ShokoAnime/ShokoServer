@@ -111,7 +111,7 @@ namespace Shoko.Server.Server
             ServerSettings.ConfigureServices(services);
             services.AddSingleton(ServerSettings.Instance);
             services.AddSingleton(Loader.Instance);
-            services.AddSingleton(ShokoService.AnidbProcessor);
+            services.AddSingleton(ShokoService.AniDBProcessor);
             services.AddSingleton<HttpParser>();
             Loader.Instance.Load(services);
         }
@@ -794,9 +794,9 @@ namespace Shoko.Server.Server
                 Scanner.Instance.Init();
 
                 ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingQueue;
-                ShokoService.CmdProcessorGeneral.Init();
-                ShokoService.CmdProcessorHasher.Init();
-                ShokoService.CmdProcessorImages.Init();
+                ShokoService.CmdProcessorGeneral.Init(ServiceContainer);
+                ShokoService.CmdProcessorHasher.Init(ServiceContainer);
+                ShokoService.CmdProcessorImages.Init(ServiceContainer);
 
                 ServerState.Instance.DatabaseAvailable = true;
 
@@ -1369,7 +1369,7 @@ namespace Shoko.Server.Server
 
         private static void SetupAniDBProcessor()
         {
-            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+            ShokoService.AniDBProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
                 ServerSettings.Instance.AniDb.ServerAddress,
                 ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
         }
@@ -1377,10 +1377,10 @@ namespace Shoko.Server.Server
         public static void AniDBDispose()
         {
             logger.Info("Disposing...");
-            if (ShokoService.AnidbProcessor != null)
+            if (ShokoService.AniDBProcessor != null)
             {
-                ShokoService.AnidbProcessor.ForceLogout();
-                ShokoService.AnidbProcessor.Dispose();
+                ShokoService.AniDBProcessor.ForceLogout();
+                ShokoService.AniDBProcessor.Dispose();
                 Thread.Sleep(1000);
             }
         }

@@ -48,7 +48,7 @@ namespace Shoko.Server.Commands
             FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_UpdateMyListFileStatus: {0}", Hash);
 
@@ -64,10 +64,10 @@ namespace Shoko.Server.Commands
                         if (WatchedDateAsSecs > 0)
                         {
                             DateTime? watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                            ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched, watchedDate);
+                            ShokoService.AniDBProcessor.UpdateMyListFileStatus(serviceProvider, vid, Watched, watchedDate);
                         }
                         else
-                            ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched);
+                            ShokoService.AniDBProcessor.UpdateMyListFileStatus(serviceProvider, vid, Watched);
                     }
                     else
                     {
@@ -80,11 +80,11 @@ namespace Shoko.Server.Commands
                             if (WatchedDateAsSecs > 0)
                             {
                                 DateTime? watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                                ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, episode.AnimeID,
+                                ShokoService.AniDBProcessor.UpdateMyListFileStatus(serviceProvider, vid, episode.AnimeID,
                                     episode.EpisodeNumber, Watched, watchedDate);
                             }
                             else
-                                ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, episode.AnimeID,
+                                ShokoService.AniDBProcessor.UpdateMyListFileStatus(serviceProvider, vid, episode.AnimeID,
                                     episode.EpisodeNumber, Watched);
                         }
                     }

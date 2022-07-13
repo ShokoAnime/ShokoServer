@@ -38,7 +38,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_GetUpdated");
 
@@ -89,7 +89,7 @@ namespace Shoko.Server.Commands
 
                 // get a list of updates from AniDB
                 // startTime will contain the date/time from which the updates apply to
-                ShokoService.AnidbProcessor.GetUpdated(ref animeIDsToUpdate, ref webUpdateTime);
+                ShokoService.AniDBProcessor.GetUpdated(ref animeIDsToUpdate, ref webUpdateTime);
 
                 // now save the update time from AniDB
                 // we will use this next time as a starting point when querying the web cache

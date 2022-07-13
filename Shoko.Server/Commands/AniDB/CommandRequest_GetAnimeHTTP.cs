@@ -47,14 +47,14 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_GetAnimeHTTP: {0}", AnimeID);
 
             try
             {
                 SVR_AniDB_Anime anime =
-                    ShokoService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations, RelDepth, CreateSeriesEntry);
+                    ShokoService.AniDBProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations, RelDepth, CreateSeriesEntry);
 
                 // NOTE - related anime are downloaded when the relations are created
 

@@ -52,7 +52,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Get AniDB file info: {0}", VideoLocalID);
 
@@ -67,7 +67,7 @@ namespace Shoko.Server.Commands
 
                     Raw_AniDB_File fileInfo = null;
                     if (aniFile == null || aniFile.FileSize != vlocal.FileSize || ForceAniDB)
-                        fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vlocal);
+                        fileInfo = ShokoService.AniDBProcessor.GetFileInfo(vlocal);
 
                     if (fileInfo != null)
                     {

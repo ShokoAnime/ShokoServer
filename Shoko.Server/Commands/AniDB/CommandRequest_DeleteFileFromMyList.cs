@@ -39,7 +39,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             if (MyListID > 0)
                 logger.Info("Processing CommandRequest_DeleteFileFromMyList: MyListID: {0}", MyListID);
@@ -53,12 +53,12 @@ namespace Shoko.Server.Commands
                     case AniDBFileDeleteType.Delete:
                         if (MyListID > 0)
                         {
-                            ShokoService.AnidbProcessor.DeleteFileFromMyList(MyListID);
+                            ShokoService.AniDBProcessor.DeleteFileFromMyList(MyListID);
                             logger.Info("Deleting file from list: MyListID: {0}", MyListID);
                         }
                         else
                         {
-                            ShokoService.AnidbProcessor.DeleteFileFromMyList(Hash, FileSize);
+                            ShokoService.AniDBProcessor.DeleteFileFromMyList(Hash, FileSize);
                             logger.Info("Deleting file from list: Hash: {0}", Hash);
                         }
                         break;
@@ -66,7 +66,7 @@ namespace Shoko.Server.Commands
                     case AniDBFileDeleteType.MarkDeleted:
                         if (MyListID > 0)
                         {
-                            ShokoService.AnidbProcessor.MarkFileAsDeleted(MyListID);
+                            ShokoService.AniDBProcessor.MarkFileAsDeleted(MyListID);
                             logger.Info("Marking file as deleted from list: MyListID: {0}", MyListID);
                             break;
                         }
@@ -76,7 +76,7 @@ namespace Shoko.Server.Commands
                     case AniDBFileDeleteType.MarkUnknown:
                         if (MyListID > 0)
                         {
-                            ShokoService.AnidbProcessor.MarkFileAsUnknown(MyListID);
+                            ShokoService.AniDBProcessor.MarkFileAsUnknown(MyListID);
                             logger.Info("Marking file as unknown: MyListID: {0}", MyListID);
                             break;
                         }
@@ -97,7 +97,7 @@ namespace Shoko.Server.Commands
                     case AniDBFileDeleteType.MarkExternalStorage:
                         if (MyListID > 0)
                         {
-                            ShokoService.AnidbProcessor.MarkFileAsRemote(MyListID);
+                            ShokoService.AniDBProcessor.MarkFileAsRemote(MyListID);
                             logger.Info("Moving file to external storage: MyListID: {0}", MyListID);
                             break;
                         }
@@ -106,7 +106,7 @@ namespace Shoko.Server.Commands
                     case AniDBFileDeleteType.MarkDisk:
                         if (MyListID > 0)
                         {
-                            ShokoService.AnidbProcessor.MarkFileAsOnDisk(MyListID);
+                            ShokoService.AniDBProcessor.MarkFileAsOnDisk(MyListID);
                             logger.Info("Moving file to external storage: MyListID: {0}", MyListID);
                             break;
                         }

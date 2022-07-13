@@ -48,7 +48,7 @@ namespace Shoko.Server.Commands
         }
 
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_TraktSearchAnime: {0}", AnimeID);
 

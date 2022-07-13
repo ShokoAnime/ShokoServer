@@ -42,7 +42,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_GetReleaseGroupStatus: {0}", AnimeID);
 
@@ -84,7 +84,7 @@ namespace Shoko.Server.Commands
                     return;
                 }
 
-                GroupStatusCollection grpCol = ShokoService.AnidbProcessor.GetReleaseGroupStatusUDP(AnimeID);
+                GroupStatusCollection grpCol = ShokoService.AniDBProcessor.GetReleaseGroupStatusUDP(AnimeID);
 
                 if (ServerSettings.Instance.AniDb.DownloadReleaseGroups && grpCol != null && grpCol.Groups != null &&
                     grpCol.Groups.Count > 0)

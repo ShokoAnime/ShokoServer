@@ -34,7 +34,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_GetCalendar");
 
@@ -67,7 +67,7 @@ namespace Shoko.Server.Commands
                 sched.LastUpdate = DateTime.Now;
                 RepoFactory.ScheduledUpdate.Save(sched);
 
-                CalendarCollection colCalendars = ShokoService.AnidbProcessor.GetCalendarUDP();
+                CalendarCollection colCalendars = ShokoService.AniDBProcessor.GetCalendarUDP();
                 if (colCalendars?.Calendars == null)
                 {
                     logger.Error("Could not get calendar from AniDB");

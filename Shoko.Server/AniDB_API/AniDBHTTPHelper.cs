@@ -28,7 +28,7 @@ namespace AniDBAPI
         {
             try
             {
-                if (ShokoService.AnidbProcessor.IsHttpBanned)
+                if (ShokoService.AniDBProcessor.IsHttpBanned)
                 {
                     logger.Info("GetAnimeXMLFromAPI: banned, not getting");
                     return null;
@@ -87,7 +87,7 @@ namespace AniDBAPI
         {
             try
             {
-                if (ShokoService.AnidbProcessor.IsHttpBanned)
+                if (ShokoService.AniDBProcessor.IsHttpBanned)
                 {
                     logger.Info("GetMyListXMLFromAPI: banned, not getting");
                     return null;
@@ -114,7 +114,7 @@ namespace AniDBAPI
         {
             try
             {
-                if (ShokoService.AnidbProcessor.IsHttpBanned)
+                if (ShokoService.AniDBProcessor.IsHttpBanned)
                 {
                     logger.Info("GetVotesXMLFromAPI: banned, not getting");
                     return null;
@@ -148,7 +148,7 @@ namespace AniDBAPI
                 if (-1 < index)
                 {
                     logger.Warn("HTTP Banned!");
-                    ShokoService.AnidbProcessor.IsHttpBanned = true;
+                    ShokoService.AniDBProcessor.IsHttpBanned = true;
                     result = true;
                 }
             }

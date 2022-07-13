@@ -458,7 +458,7 @@ namespace Shoko.Server.Databases
         public static void PopulateMyListIDs()
         {
             // Don't bother with no AniDB creds, we assume first run
-            if (!ShokoService.AnidbProcessor.ValidAniDBCredentials()) return;
+            if (!ShokoService.AniDBProcessor.ValidAniDBCredentials()) return;
 
             // Don't even bother on new DBs
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -531,7 +531,7 @@ namespace Shoko.Server.Databases
                     if (getAnimeCmd.Anime == null) continue;
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        ShokoService.AnidbProcessor.SaveResultsForAnimeXML(session, animeID, false, false, getAnimeCmd, 0, false);
+                        ShokoService.AniDBProcessor.SaveResultsForAnimeXML(session, animeID, false, false, getAnimeCmd, 0, false);
                     }
                 }
                 catch (Exception e)

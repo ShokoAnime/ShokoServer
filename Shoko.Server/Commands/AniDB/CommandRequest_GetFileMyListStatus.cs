@@ -35,14 +35,14 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info($"Processing CommandRequest_GetFileMyListStatus: {FileName} ({AniFileID})");
 
 
             try
             {
-                ShokoService.AnidbProcessor.GetMyListFileStatus(AniFileID);
+                ShokoService.AniDBProcessor.GetMyListFileStatus(AniFileID);
             }
             catch (Exception ex)
             {

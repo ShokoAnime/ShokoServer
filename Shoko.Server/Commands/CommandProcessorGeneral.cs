@@ -11,9 +11,9 @@ namespace Shoko.Server.Commands
 {
     public class CommandProcessorGeneral : CommandProcessor
     {
-        public override void Init()
+        public override void Init(IServiceProvider provider)
         {
-            base.Init();
+            base.Init(provider);
             QueueState = new QueueStateStruct
             {
                 queueState = QueueStateEnum.StartingGeneral,
@@ -47,7 +47,7 @@ namespace Shoko.Server.Commands
                 CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral();
                 if (crdb == null)
                 {
-                    if (QueueCount > 0 && !ShokoService.AnidbProcessor.IsHttpBanned && !ShokoService.AnidbProcessor.IsUdpBanned)
+                    if (QueueCount > 0 && !ShokoService.AniDBProcessor.IsHttpBanned && !ShokoService.AniDBProcessor.IsUdpBanned)
                         Logger.Error($"No command returned from database, but there are {QueueCount} commands left");
                     return;
                 }
@@ -71,7 +71,7 @@ namespace Shoko.Server.Commands
                     try
                     {
                         CurrentCommand = crdb;
-                        icr.ProcessCommand();
+                        icr.ProcessCommand(ServiceProvider);
                     }
                     catch (Exception ex)
                     {
