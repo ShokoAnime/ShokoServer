@@ -37,20 +37,25 @@ namespace Shoko.Server.API.v3.Models.Shoko
         public List<Location> Locations { get; set; }
 
         /// <summary>
+        /// Try to fit this file's resolution to something like 1080p, 480p, etc
+        /// </summary>
+        public string RoundedStandardResolution { get; set; }
+
+        /// <summary>
+        /// The duration of the file.
+        /// </summary>
+        public TimeSpan Duration { get; set; }
+
+        /// <summary>
+        /// Where to resume the next playback.
+        /// </summary>
+        public TimeSpan? ResumePosition { get; set; }
+
+        /// <summary>
         /// The last watched date for the current user. Is null if unwatched
         /// </summary>
         [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime? Watched { get; set; }
-
-        /// <summary>
-        /// Number of ticks into the video to resume from
-        /// </summary>
-        public long? ResumePosition { get; set; }
-        
-        /// <summary>
-        /// Try to fit this file's resolution to something like 1080p, 480p, etc
-        /// </summary>
-        public string RoundedStandardResolution { get; set; }
         
         /// <summary>
         /// The file creation date of this file
@@ -62,28 +67,30 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
         public File(SVR_VideoLocal vl) : this(null, vl) {}
         
-        public File(HttpContext ctx, SVR_VideoLocal vl)
+        public File(HttpContext context, SVR_VideoLocal file)
         {
-            ID = vl.VideoLocalID;
-            Size = vl.FileSize;
+            var userID = context?.GetUser()?.JMMUserID ?? 0;
+            var userRecord = file.GetUserRecord(userID);
+            ID = file.VideoLocalID;
+            Size = file.FileSize;
             Hashes = new Hashes
             {
-                ED2K = vl.Hash,
-                MD5 = vl.MD5,
-                CRC32 = vl.CRC32,
-                SHA1 = vl.SHA1
+                ED2K = file.Hash,
+                MD5 = file.MD5,
+                CRC32 = file.CRC32,
+                SHA1 = file.SHA1,
             };
-            RoundedStandardResolution = FileQualityFilter.GetResolution(vl);
-            Locations = vl.Places.Select(a => new Location
+            RoundedStandardResolution = FileQualityFilter.GetResolution(file);
+            Locations = file.Places.Select(a => new Location
             {
                 ImportFolderID = a.ImportFolderID,
                 RelativePath = a.FilePath,
-                Accessible = a.GetFile() != null
+                Accessible = a.GetFile() != null,
             }).ToList();
-            Created = vl.DateTimeCreated;
-            var ur = vl.GetUserRecord(ctx?.GetUser()?.JMMUserID ?? 0);
-            ResumePosition = ur?.ResumePosition ?? 0;
-            Watched = ur?.WatchedDate;
+            Duration = file.DurationTimeSpan;
+            ResumePosition = userRecord?.ResumePositionTimeSpan;
+            Watched = userRecord?.WatchedDate;
+            Created = file.DateTimeCreated;
         }
 
         public static MediaContainer GetMedia(int id)
@@ -337,19 +344,18 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         public class FileUserStats
         {
-            public FileUserStats(VideoLocal_User userStats)
+            public FileUserStats(SVR_VideoLocal_User userStats)
             {
-                ResumePosition = userStats.ResumePosition;
+                ResumePosition = userStats.ResumePositionTimeSpan;
                 WatchedCount = userStats.WatchedCount;
                 LastWatchedAt = userStats.WatchedDate;
                 LastUpdatedAt = userStats.LastUpdated;
             }
 
             /// <summary>
-            /// Number of ticks into the video to resume from. This is reset
-            /// upon completion.
+            /// Where to resume the next playback.
             /// </summary>
-            public long? ResumePosition { get; set; }
+            public TimeSpan? ResumePosition { get; set; }
 
             /// <summary>
             /// Total number of times the file have been watched.

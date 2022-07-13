@@ -25,9 +25,14 @@ namespace Shoko.Server.API.v3.Models.Shoko
         public EpisodeIDs IDs { get; set; }
 
         /// <summary>
-        /// Length of the Episode
+        /// The duration of the episode.
         /// </summary>
         public TimeSpan Duration { get; set; }
+
+        /// <summary>
+        /// Where to resume the next playback.
+        /// </summary>
+        public TimeSpan? ResumePosition { get; set; }
 
         /// <summary>
         /// The Last Watched Date for the current user. If null, it is unwatched
@@ -37,27 +42,35 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
         public Episode() {}
 
-        public Episode(HttpContext ctx, SVR_AnimeEpisode ep)
+        public Episode(HttpContext context, SVR_AnimeEpisode episode)
         {
-            var tvdb = ep.TvDBEpisodes;
+            var userID = context.GetUser()?.JMMUserID ?? 0;
+            var anidbEpisode = episode.AniDB_Episode;
+            var tvdbEpisodes = episode.TvDBEpisodes;
+            var files = episode.GetVideoLocals();
+            var (file, userRecord) = files
+                .Select(file =>
+                {
+                    var userRecord = file.GetUserRecord(userID);
+                    if (userRecord == null)
+                        return (file, null);
+
+                    return (file, userRecord);
+                })
+                .Where(tuple => tuple.Item1 != null)
+                .OrderByDescending(tuple => tuple.Item2.LastUpdated)
+                .FirstOrDefault();
             IDs = new EpisodeIDs
             {
-                ID = ep.AnimeEpisodeID,
-                AniDB = ep.AniDB_EpisodeID,
-                TvDB = tvdb.Select(a => a.Id).ToList()
+                ID = episode.AnimeEpisodeID,
+                AniDB = episode.AniDB_EpisodeID,
+                TvDB = tvdbEpisodes.Select(a => a.Id).ToList(),
             };
-
-            var anidb = ep.AniDB_Episode;
-            if (anidb != null)
-            {
-                Duration = new TimeSpan(0, 0, anidb.LengthSeconds);
-            }
-
-            var uid = ctx.GetUser()?.JMMUserID ?? 0;
-            Watched = ep.GetVideoLocals().Select(v => v.GetUserRecord(uid)?.WatchedDate).Where(v => v.HasValue).OrderByDescending(v => v).FirstOrDefault();
-            Name = GetEpisodeTitle(ep.AniDB_EpisodeID);
-
-            Size = ep.GetVideoLocals().Count;
+            Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, anidbEpisode.LengthSeconds);
+            ResumePosition = userRecord?.ResumePositionTimeSpan;
+            Watched = userRecord?.WatchedDate;
+            Name = GetEpisodeTitle(episode.AniDB_EpisodeID);
+            Size = files.Count;
         }
         
         

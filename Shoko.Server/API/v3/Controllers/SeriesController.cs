@@ -261,7 +261,7 @@ namespace Shoko.Server.API.v3.Controllers
         [NonAction]
         private List<SVR_AniDB_Anime> GetWatchedAnimeForPeriod(SVR_JMMUser user, DateTime? startDate = null, DateTime? endDate = null)
         {
-            IEnumerable<Shoko.Models.Server.VideoLocal_User> userDataQuery = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID);
+            IEnumerable<SVR_VideoLocal_User> userDataQuery = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID);
             if (startDate.HasValue && endDate.HasValue)
                 userDataQuery = userDataQuery
                     .Where(userData => userData.WatchedDate.HasValue && userData.WatchedDate.Value >= startDate.Value && userData.WatchedDate.Value <= endDate.Value);

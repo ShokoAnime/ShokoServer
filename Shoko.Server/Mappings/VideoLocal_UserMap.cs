@@ -1,12 +1,13 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Models.Server;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings
 {
-    public class VideoLocal_UserMap : ClassMap<VideoLocal_User>
+    public class VideoLocal_UserMap : ClassMap<SVR_VideoLocal_User>
     {
         public VideoLocal_UserMap()
         {
+            Table("VideoLocal_User");
             Not.LazyLoad();
             Id(x => x.VideoLocal_UserID);
 
