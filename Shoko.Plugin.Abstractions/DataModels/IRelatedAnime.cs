@@ -25,11 +25,16 @@ public enum RelationType
     /// The entries use the same base story, but is set in alternate settings.
     /// </summary>
     AlternativeSetting = 2,
+    
+    /// <summary>
+    /// The entries tell the same story in the same settings but are made at different times.
+    /// </summary>
+    AlternativeVersion = 3,
 
     /// <summary>
     /// The entries tell different stories in different settings but otherwise shares some character(s).
     /// </summary>
-    SharedCharacters = 3,
+    SharedCharacters = 4,
 
     /// <summary>
     /// The first story either continues, or expands upon the story of the related entry.
