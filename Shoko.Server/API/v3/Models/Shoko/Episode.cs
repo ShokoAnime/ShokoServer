@@ -58,7 +58,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                     return (file, userRecord);
                 })
                 .Where(tuple => tuple.Item1 != null)
-                .OrderByDescending(tuple => tuple.Item2.LastUpdated)
+                .OrderByDescending(tuple => tuple.Item2?.LastUpdated)
                 .FirstOrDefault();
             IDs = new EpisodeIDs
             {
