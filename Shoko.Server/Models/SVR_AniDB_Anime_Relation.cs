@@ -19,6 +19,7 @@ namespace Shoko.Server.Models
                 "summary" => RType.Summary,
                 "other" => RType.Other,
                 "alternative setting" => RType.AlternativeSetting,
+                "alternative version" => RType.AlternativeVersion,
                 "same setting" => RType.SameSetting,
                 "character" => RType.SharedCharacters,
                 _ => RType.Other
