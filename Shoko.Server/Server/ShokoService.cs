@@ -98,7 +98,7 @@ namespace Shoko.Server.Server
             set { lastAniDBPing = value; }
         }
 
-        private static readonly CommandProcessorGeneral _cmdProcessorGeneral;
+        private static readonly CommandProcessorGeneral _cmdProcessorGeneral = new();
 
         public static CommandProcessorGeneral CmdProcessorGeneral
         {
@@ -111,7 +111,7 @@ namespace Shoko.Server.Server
             }
         }
 
-        private static readonly CommandProcessorImages _cmdProcessorImages;
+        private static readonly CommandProcessorImages _cmdProcessorImages = new();
 
         public static CommandProcessorImages CmdProcessorImages
         {
@@ -124,7 +124,7 @@ namespace Shoko.Server.Server
             }
         }
 
-        private static readonly CommandProcessorHasher _cmdProcessorHasher;
+        private static readonly CommandProcessorHasher _cmdProcessorHasher = new();
 
         public static CommandProcessorHasher CmdProcessorHasher
         {
