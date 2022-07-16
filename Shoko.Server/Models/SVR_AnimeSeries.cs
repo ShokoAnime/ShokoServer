@@ -303,22 +303,26 @@ namespace Shoko.Server.Models
             return v;
         }
 
-        private SVR_AnimeSeries_User GetOrCreateUserRecord(int userid)
+        public SVR_AnimeSeries_User GetUserRecord(int userID)
         {
-            SVR_AnimeSeries_User rr = GetUserRecord(userid);
-            if (rr != null)
-                return rr;
-            rr = new SVR_AnimeSeries_User(userid, AnimeSeriesID)
-            {
-                WatchedCount = 0,
-                UnwatchedEpisodeCount = 0,
-                PlayedCount = 0,
-                StoppedCount = 0,
-                WatchedEpisodeCount = 0,
-                WatchedDate = null
-            };
-            RepoFactory.AnimeSeries_User.Save(rr);
-            return rr;
+            return RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, AnimeSeriesID);
+        }
+
+        public SVR_AnimeSeries_User GetOrCreateUserRecord(int userID)
+        {
+            var userRecord = GetUserRecord(userID);
+            if (userRecord != null)
+                return userRecord;
+            userRecord = new SVR_AnimeSeries_User(userID, AnimeSeriesID);
+            RepoFactory.AnimeSeries_User.Save(userRecord);
+            return userRecord;
+        }
+
+        public void TouchUserRecord(int userID)
+        {
+            var serUserRecord = GetOrCreateUserRecord(userID);
+            serUserRecord.LastUpdated = DateTime.Now;
+            RepoFactory.AnimeSeries_User.Save(serUserRecord);
         }
 
         public SVR_AnimeEpisode GetLastEpisodeWatched(int userID)
@@ -347,11 +351,26 @@ namespace Shoko.Server.Models
             return watchedep;
         }
 
-        public SVR_AnimeSeries_User GetUserRecord(int userID)
+        public SVR_AnimeEpisode GetNextUnwatchedEpisode(int userID)
         {
-            return RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, AnimeSeriesID);
+            var episodes = GetAnimeEpisodes();
+            // Skip check if there is an active watch session for the series.
+            if (episodes.Any(episode => episode.GetVideoLocals().Any(file => (file.GetUserRecord(userID)?.ResumePosition ?? 0) > 0)))
+                return null;
+            return episodes
+                .Where(episode =>
+                {
+                    if (!(episode.EpisodeTypeEnum  == EpisodeType.Episode || episode.EpisodeTypeEnum == EpisodeType.Special))
+                        return false;
+                    var episodeUserRecord = episode.GetUserRecord(userID);
+                    if (episodeUserRecord == null)
+                        return true;
+                    return episodeUserRecord.WatchedCount == 0 || !episodeUserRecord.WatchedDate.HasValue;
+                })
+                .OrderBy(a => a.AniDB_Episode.EpisodeType)
+                .ThenBy(a => a.AniDB_Episode.EpisodeNumber)
+                .FirstOrDefault(episode => episode.GetVideoLocals().Count > 0);
         }
-
 
         public SVR_AniDB_Anime GetAnime()
         {
@@ -1060,8 +1079,7 @@ namespace Shoko.Server.Models
             {
                 foreach (SVR_JMMUser juser in RepoFactory.JMMUser.GetAll())
                 {
-                    SVR_AnimeSeries_User userRecord = GetUserRecord(juser.JMMUserID) ??
-                                                      new SVR_AnimeSeries_User(juser.JMMUserID, AnimeSeriesID);
+                    SVR_AnimeSeries_User userRecord = GetOrCreateUserRecord(juser.JMMUserID);
 
                     int unwatchedCount = 0;
                     int watchedCount = 0;

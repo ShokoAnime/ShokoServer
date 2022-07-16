@@ -63,72 +63,13 @@ namespace Shoko.Server
         {
             try
             {
-                // get all the data first
-                // we do this to reduce the amount of database calls, which makes it a lot faster
-                SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
-                if (series == null) return null;
-
-                //List<AnimeEpisode> epList = repEps.GetUnwatchedEpisodes(animeSeriesID, userID);
-                List<SVR_AnimeEpisode> epList = new List<SVR_AnimeEpisode>();
-                Dictionary<int, SVR_AnimeEpisode_User> dictEpUsers = new Dictionary<int, SVR_AnimeEpisode_User>();
-                foreach (
-                    SVR_AnimeEpisode_User userRecord in RepoFactory.AnimeEpisode_User.GetByUserIDAndSeriesID(userID,
-                        animeSeriesID))
-                    dictEpUsers[userRecord.AnimeEpisodeID] = userRecord;
-
-                foreach (SVR_AnimeEpisode animeep in RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID))
-                {
-                    if (!dictEpUsers.ContainsKey(animeep.AnimeEpisodeID))
-                    {
-                        epList.Add(animeep);
-                        continue;
-                    }
-
-                    AnimeEpisode_User usrRec = dictEpUsers[animeep.AnimeEpisodeID];
-                    if (usrRec.WatchedCount == 0 || !usrRec.WatchedDate.HasValue)
-                        epList.Add(animeep);
-                }
-
-                List<AniDB_Episode> aniEpList = RepoFactory.AniDB_Episode.GetByAnimeID(series.AniDB_ID);
-                Dictionary<int, AniDB_Episode> dictAniEps = new Dictionary<int, AniDB_Episode>();
-                foreach (AniDB_Episode aniep in aniEpList)
-                    dictAniEps[aniep.EpisodeID] = aniep;
-
-                List<CL_AnimeEpisode_User> candidateEps = new List<CL_AnimeEpisode_User>();
-                foreach (SVR_AnimeEpisode ep in epList)
-                {
-                    if (dictAniEps.ContainsKey(ep.AniDB_EpisodeID))
-                    {
-                        AniDB_Episode anidbep = dictAniEps[ep.AniDB_EpisodeID];
-                        if (anidbep.EpisodeType == (int) EpisodeType.Episode ||
-                            anidbep.EpisodeType == (int) EpisodeType.Special)
-                        {
-                            SVR_AnimeEpisode_User userRecord = null;
-                            if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
-                                userRecord = dictEpUsers[ep.AnimeEpisodeID];
-
-                            CL_AnimeEpisode_User epContract = ep.GetUserContract(userID);
-                            if (epContract != null)
-                                candidateEps.Add(epContract);
-                        }
-                    }
-                }
-
-                if (candidateEps.Count == 0) return null;
-
-
-                // this will generate a lot of queries when the user doesn have files
-                // for these episodes
-                foreach (CL_AnimeEpisode_User canEp in candidateEps.OrderBy(a => a.EpisodeType)
-                    .ThenBy(a => a.EpisodeNumber))
-                {
-                    // now refresh from the database to get file count
-                    SVR_AnimeEpisode epFresh = RepoFactory.AnimeEpisode.GetByID(canEp.AnimeEpisodeID);
-                    if (epFresh.GetVideoLocals().Count > 0)
-                        return epFresh.GetUserContract(userID);
-                }
-
-                return null;
+                var series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
+                if (series == null)
+                    return null;
+                var episode = series.GetNextUnwatchedEpisode(userID);
+                if (episode == null)
+                    return null;
+                return episode.GetUserContract(userID);
             }
             catch (Exception ex)
             {
@@ -1046,17 +987,7 @@ namespace Shoko.Server
                 SVR_AnimeEpisode_User epUserRecord = ep.GetUserRecord(userID);
 
                 if (epUserRecord == null)
-                {
-                    epUserRecord = new SVR_AnimeEpisode_User
-                    {
-                        PlayedCount = 0,
-                        StoppedCount = 0,
-                        WatchedCount = 0
-                    };
-                }
-                epUserRecord.AnimeEpisodeID = ep.AnimeEpisodeID;
-                epUserRecord.AnimeSeriesID = ep.AnimeSeriesID;
-                epUserRecord.JMMUserID = userID;
+                    epUserRecord = new SVR_AnimeEpisode_User(userID, ep.AnimeEpisodeID, ep.AnimeSeriesID);
                 //epUserRecord.WatchedDate = DateTime.Now;
 
                 switch ((StatCountType) statCountType)
@@ -1077,9 +1008,7 @@ namespace Shoko.Server
                 SVR_AnimeSeries ser = ep.GetAnimeSeries();
                 if (ser == null) return;
 
-                SVR_AnimeSeries_User userRecord = ser.GetUserRecord(userID);
-                if (userRecord == null)
-                    userRecord = new SVR_AnimeSeries_User(userID, ser.AnimeSeriesID);
+                SVR_AnimeSeries_User userRecord = ser.GetOrCreateUserRecord(userID);
 
                 switch ((StatCountType) statCountType)
                 {

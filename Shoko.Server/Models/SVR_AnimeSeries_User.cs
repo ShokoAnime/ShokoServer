@@ -14,6 +14,22 @@ namespace Shoko.Server.Models
         {
         }
 
+        public SVR_AnimeSeries_User(int userID, int seriesID)
+        {
+            JMMUserID = userID;
+            AnimeSeriesID = seriesID;
+            UnwatchedEpisodeCount = 0;
+            WatchedEpisodeCount = 0;
+            WatchedDate = null;
+            PlayedCount = 0;
+            WatchedCount = 0;
+            StoppedCount = 0;
+            LastUpdated = DateTime.Now;
+        }
+
+        public virtual SVR_AnimeSeries AnimeSeries
+            => RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
+
         private DateTime _lastPlexRegen = DateTime.MinValue;
         private Video _plexContract;
 
@@ -81,19 +97,6 @@ namespace Shoko.Server.Models
                 if (change)
                     RepoFactory.GroupFilter.Save(gf);
             }
-        }
-
-
-        public SVR_AnimeSeries_User(int userID, int seriesID)
-        {
-            JMMUserID = userID;
-            AnimeSeriesID = seriesID;
-            UnwatchedEpisodeCount = 0;
-            WatchedEpisodeCount = 0;
-            WatchedDate = null;
-            PlayedCount = 0;
-            WatchedCount = 0;
-            StoppedCount = 0;
         }
     }
 }

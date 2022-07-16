@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -252,7 +252,7 @@ namespace Shoko.Server.Models
 
         public void ToggleWatchedStatus(bool watched, int userID)
         {
-            ToggleWatchedStatus(watched, true, null, true, userID, true, true);
+            ToggleWatchedStatus(watched, true, watched ? DateTime.Now : null, true, userID, true, true);
         }
 
         public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, int userID,

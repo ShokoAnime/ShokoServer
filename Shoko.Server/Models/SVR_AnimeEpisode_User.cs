@@ -11,6 +11,20 @@ namespace Shoko.Server.Models
         public byte[] ContractBlob { get; set; }
         public int ContractSize { get; set; }
 
+        public SVR_AnimeEpisode_User() {}
+
+        public SVR_AnimeEpisode_User(int userID, int episodeID, int seriesID)
+        {
+            JMMUserID = userID;
+            AnimeEpisodeID = episodeID;
+            AnimeSeriesID = seriesID;
+            PlayedCount = 0;
+            StoppedCount = 0;
+            WatchedCount = 0;
+            WatchedDate = null;
+            _contract = null;
+        }
+
 
         public const int CONTRACT_VERSION = 3;
 
