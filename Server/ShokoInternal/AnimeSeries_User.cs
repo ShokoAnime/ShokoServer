@@ -16,7 +16,7 @@ namespace Shoko.Models.Server
         public int PlayedCount { get; set; }
         public int WatchedCount { get; set; }
         public int StoppedCount { get; set; }
-
+        public DateTime LastUpdated { get; set; }
 
         #endregion
 
@@ -33,7 +33,8 @@ namespace Shoko.Models.Server
                 WatchedDate = WatchedDate,
                 PlayedCount = PlayedCount,
                 WatchedCount = WatchedCount,
-                StoppedCount = StoppedCount
+                StoppedCount = StoppedCount,
+                LastUpdated = DateTime.Now,
             };
         }
     }
