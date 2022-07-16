@@ -16,7 +16,7 @@ namespace Shoko.Models.Server
         public int PlayedCount { get; set; }
         public int WatchedCount { get; set; }
         public int StoppedCount { get; set; }
-        public DateTime LastUpdated { get; set; }
+        public DateTime? LastEpisodeUpdate { get; set; }
 
         #endregion
 
@@ -34,7 +34,7 @@ namespace Shoko.Models.Server
                 PlayedCount = PlayedCount,
                 WatchedCount = WatchedCount,
                 StoppedCount = StoppedCount,
-                LastUpdated = DateTime.Now,
+                LastEpisodeUpdate = LastEpisodeUpdate,
             };
         }
     }
