@@ -19,7 +19,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.WatchedCount).Not.Nullable();
             Map(x => x.WatchedDate);
             Map(x => x.WatchedEpisodeCount).Not.Nullable();
-            Map(x => x.LastUpdated).Not.Nullable();
+            Map(x => x.LastEpisodeUpdate).Not.Nullable();
         }
     }
 }

@@ -24,7 +24,7 @@ namespace Shoko.Server.Models
             PlayedCount = 0;
             WatchedCount = 0;
             StoppedCount = 0;
-            LastUpdated = DateTime.Now;
+            LastEpisodeUpdate = null;
         }
 
         public virtual SVR_AnimeSeries AnimeSeries

@@ -617,7 +617,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(88, 2, "ALTER TABLE VideoLocal_User ADD WatchedCount INT NOT NULL DEFAULT 0;"),
             new DatabaseCommand(88, 3, "ALTER TABLE VideoLocal_User ADD LastUpdated datetime NOT NULL DEFAULT CURRENT_TIMESTAMP;"),
             new DatabaseCommand(88, 4, "UPDATE VideoLocal_User SET WatchedCount = 1, LastUpdated = WatchedDate WHERE WatchedDate IS NOT NULL;"),
-            new DatabaseCommand(89, 1, "ALTER TABLE AnimeSeries_User ADD LastUpdated datetime NOT NULL DEFAULT CURRENT_TIMESTAMP;"),
+            new DatabaseCommand(89, 1, "ALTER TABLE AnimeSeries_User ADD LastEpisodeUpdate datetime DEFAULT NULL;"),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

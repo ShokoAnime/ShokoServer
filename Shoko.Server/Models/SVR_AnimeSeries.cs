@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -321,7 +321,7 @@ namespace Shoko.Server.Models
         public void TouchUserRecord(int userID)
         {
             var serUserRecord = GetOrCreateUserRecord(userID);
-            serUserRecord.LastUpdated = DateTime.Now;
+            serUserRecord.LastEpisodeUpdate = DateTime.Now;
             RepoFactory.AnimeSeries_User.Save(serUserRecord);
         }
 

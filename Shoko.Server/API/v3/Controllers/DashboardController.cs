@@ -301,7 +301,7 @@ namespace Shoko.Server.API.v3.Controllers
             var user = HttpContext.GetUser();
             var episodeList = RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID)
                 .Where(record => record.WatchedDate.HasValue)
-                .OrderByDescending(record => record.LastUpdated)
+                .OrderByDescending(record => record.LastEpisodeUpdate)
                 .Select(record => record.AnimeSeries)
                 .Where(series => user.AllowedSeries(series))
                 .Select(series => (series, series.GetNextUnwatchedEpisode(user.JMMUserID)))
