@@ -66,6 +66,8 @@ namespace Shoko.Server.API.v3.Models.Common
             if (type == ImageEntityType.Static)
                 throw new ArgumentException("Static Resources do not use an integer ID");
             
+            RelativeFilepath = GetImagePath(type, id).Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
+            /*
             var imagePath = GetImagePath(type, id);
             if (string.IsNullOrEmpty(imagePath)) {
                 RelativeFilepath = null;
@@ -73,7 +75,6 @@ namespace Shoko.Server.API.v3.Models.Common
                 Height = null;
             }
             // This causes serious IO lag on some systems. Removing until we have better Image data structures
-            /*
             else
             {
                 var info = new MagickImageInfo(imagePath);
