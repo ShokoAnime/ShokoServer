@@ -167,10 +167,12 @@ namespace Shoko.Server
 
             List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches =
                 new List<(AniDB_Episode, TvDB_Episode, MatchRating)>();
+            
+            // 5 is arbitrary. Can be adjusted later
+            var isOVASeries = anime?.AnimeType is (int)AnimeType.OVA or (int)AnimeType.Web or (int)AnimeType.TVSpecial && aniepsNormal.Count > 5;
 
             // Try to match OVAs
-            if ((anime?.AnimeType == (int) AnimeType.OVA || anime?.AnimeType == (int) AnimeType.Movie ||
-                 anime?.AnimeType == (int) AnimeType.TVSpecial) && aniepsNormal.Count > 0 && tvepsSpecial.Count > 0)
+            if (!isOVASeries && anime?.AnimeType is (int)AnimeType.OVA or (int)AnimeType.Movie or (int)AnimeType.TVSpecial && aniepsNormal.Count > 0 && tvepsSpecial.Count > 0)
                 TryToMatchSpeicalsToTvDB(aniepsNormal, tvepsSpecial, ref matches);
 
             // Only try to match normal episodes if this is a series
