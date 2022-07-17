@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -22,7 +23,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             // Don't set the session for pings
         }
 
-        public override UDPBaseResponse<Void> Execute(AniDBUDPConnectionHandler handler)
+        public override UDPBaseResponse<Void> Execute(IUDPConnectionHandler handler)
         {
             UDPBaseResponse<string> rawResponse = handler.CallAniDBUDPDirectly(BaseCommand, false, true, true);
             var factory = handler.ServiceProvider.GetRequiredService<ILoggerFactory>();

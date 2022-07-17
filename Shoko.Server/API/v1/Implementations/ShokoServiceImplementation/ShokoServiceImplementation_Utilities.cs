@@ -1011,13 +1011,15 @@ namespace Shoko.Server
         [HttpDelete("AniDB/MyList/Missing")]
         public void RemoveMissingMyListFiles(List<CL_MissingFile> myListFiles)
         {
-            foreach (CL_MissingFile missingFile in myListFiles)
+            foreach (var missingFile in myListFiles)
             {
-                CommandRequest_DeleteFileFromMyList cmd = new CommandRequest_DeleteFileFromMyList(missingFile.FileID);
+                var vl = RepoFactory.VideoLocal.GetByMyListID(missingFile.FileID);
+                if (vl == null) continue;
+                var cmd = new CommandRequest_DeleteFileFromMyList(vl.Hash, vl.FileSize);
                 cmd.Save();
 
                 // For deletion of files from Trakt, we will rely on the Daily sync
-                // lets also try removing from the users trakt collecion
+                // lets also try removing from the users trakt collection
             }
         }
 

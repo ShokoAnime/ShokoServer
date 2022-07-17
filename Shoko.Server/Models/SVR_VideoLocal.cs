@@ -275,9 +275,7 @@ namespace Shoko.Server.Models
                     if ((watched && ServerSettings.Instance.AniDb.MyList_SetWatched) ||
                         (!watched && ServerSettings.Instance.AniDb.MyList_SetUnwatched))
                     {
-                        CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(
-                            Hash, watched, false,
-                            AniDB.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime()));
+                        var cmd = new CommandRequest_UpdateMyListFileStatus(Hash, watched, false, AniDB.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime()));
                         cmd.Save();
                     }
             }

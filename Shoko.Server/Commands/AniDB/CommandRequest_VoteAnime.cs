@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Globalization;
 using System.Xml;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Commands
@@ -46,11 +49,13 @@ namespace Shoko.Server.Commands
 
             try
             {
-                ShokoService.AniDBProcessor.VoteAnime(AnimeID, VoteValue, (AniDBVoteType) VoteType);
+                var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
+                var vote = new RequestVoteAnime { Temporary = VoteType == (int)AniDBVoteType.AnimeTemp, Value = Convert.ToDouble(VoteValue), AnimeID = AnimeID };
+                vote.Execute(handler);
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_Vote: {0} - {1}", CommandID, ex);
+                logger.Error(ex, "Error processing CommandRequest_Vote: {CommandID} - {Exception}", CommandID, ex);
             }
         }
 

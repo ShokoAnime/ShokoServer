@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Generic
@@ -19,7 +20,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Generic
         // ReSharper disable once StaticMemberInGenericType
         protected static readonly Regex CommandRegex = new("[A-Za-z0-9]+ +\\S", RegexOptions.Compiled | RegexOptions.Singleline);
 
-        public virtual UDPBaseResponse<T> Execute(AniDBUDPConnectionHandler handler)
+        public virtual UDPBaseResponse<T> Execute(IUDPConnectionHandler handler)
         {
             Command = BaseCommand.Trim();
             if (string.IsNullOrEmpty(handler.SessionID) && !handler.Login()) throw new NotLoggedInException();

@@ -9,16 +9,16 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
     /// <summary>
     /// Update a file in the MyList
     /// </summary>
-    public class RequestUpdateFile : UDPBaseRequest<Generic.Void>
+    public class RequestUpdateFile : UDPBaseRequest<Void>
     {
         protected override string BaseCommand
         {
             get
             {
-                string command = $"MYLISTADD lid={MyListID}&state={State}";
+                var command = $"MYLISTADD size={Size}&ed2k={Hash}&state={State}";
                 if (IsWatched)
                 {
-                    DateTime date = WatchedDate ?? DateTime.Now;
+                    var date = WatchedDate ?? DateTime.Now;
                     command += $"&viewed=1&viewdate={Commons.Utils.AniDB.GetAniDBDateAsSeconds(date)}";
                 }
                 else
@@ -32,9 +32,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
             }
         }
 
-        public int MyListID { get; set; }
+        public string Hash { get; set; }
+        public long Size { get; set; }
 
-        public GetFile_State State { get; set; }
+        public MyList_State State { get; set; }
 
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
