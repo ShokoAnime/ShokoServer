@@ -281,10 +281,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// <see cref="Filter"/> or <see cref="Group"/> is irrelevant at this level.
         /// </remarks>
         /// <param name="seriesID">Series ID</param>
-        /// <param name="includeMissing">Include missing episodes in the list.</param>
+        /// <param name="onlyUnwatched">Only show the next unwatched episode.</param>
         /// <returns></returns>
         [HttpGet("Series/{seriesID}/Episode/NextUp")]
-        public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID, [FromQuery] bool includeMissing = false)
+        public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID, [FromQuery] bool onlyUnwatched = false)
         {
             var user = User;
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -293,7 +293,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (!user.AllowedSeries(series))
                 return Forbid(SeriesController.SeriesForbiddenForUser);
 
-            var episode = series.GetNextUnwatchedEpisode(user.JMMUserID);
+            var episode = series.GetNextEpisode(user.JMMUserID, onlyUnwatched);
             if (episode == null)
                 return null;
             

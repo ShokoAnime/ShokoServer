@@ -66,7 +66,7 @@ namespace Shoko.Server
                 var series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                 if (series == null)
                     return null;
-                var episode = series.GetNextUnwatchedEpisode(userID);
+                var episode = series.GetNextEpisode(userID, true);
                 if (episode == null)
                     return null;
                 return episode.GetUserContract(userID);

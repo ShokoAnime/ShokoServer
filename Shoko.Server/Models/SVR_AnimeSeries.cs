@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -351,24 +351,45 @@ namespace Shoko.Server.Models
             return watchedep;
         }
 
-        public SVR_AnimeEpisode GetNextUnwatchedEpisode(int userID)
+        /// <summary>
+        /// Get the next episode for the series for a user.
+        /// </summary>
+        /// <param name="userID">User ID</param>
+        /// <param name="onlyUnwatched">Only check for unwatched episodes.</param>
+        /// <returns></returns>
+        public SVR_AnimeEpisode GetNextEpisode(int userID, bool onlyUnwatched)
         {
-            var episodes = GetAnimeEpisodes();
-            // Skip check if there is an active watch session for the series.
-            if (episodes.Any(episode => episode.GetVideoLocals().Any(file => (file.GetUserRecord(userID)?.ResumePosition ?? 0) > 0)))
+            // Filter the episodes to only normal or special episodes and order them in rising order.
+            var episodes = GetAnimeEpisodes()
+                .Select(episode => (episode, episode.AniDB_Episode))
+                .Where(tuple => tuple.AniDB_Episode.EpisodeType  == (int) EpisodeType.Episode || tuple.AniDB_Episode.EpisodeType == (int) EpisodeType.Special)
+                .OrderBy(tuple => tuple.AniDB_Episode.EpisodeType)
+                .ThenBy(tuple => tuple.AniDB_Episode.EpisodeNumber)
+                .Select(tuple => tuple.episode)
+                .ToList();
+            // Look for active watch sessions and return the episode for the most recent session if found.
+            if (!onlyUnwatched)
+            {
+                var (episode, _) = episodes
+                    .SelectMany(episode => episode.GetVideoLocals().Select(file => (episode, file.GetUserRecord(userID))))
+                    .Where(tuple => tuple.Item2 != null)
+                    .OrderByDescending(tuple => tuple.Item2.LastUpdated)
+                    .FirstOrDefault(tuple => tuple.Item2.ResumePosition > 0);
+                if (episode != null)
+                    return episode;
+            }
+            // Skip check if there is an active watch session for the series and we don't allow active watch sessions.
+            else if (episodes.Any(episode => episode.GetVideoLocals().Any(file => (file.GetUserRecord(userID)?.ResumePosition ?? 0) > 0)))
                 return null;
+            // Find the first episode that's unwatched.
             return episodes
                 .Where(episode =>
                 {
-                    if (!(episode.EpisodeTypeEnum  == EpisodeType.Episode || episode.EpisodeTypeEnum == EpisodeType.Special))
-                        return false;
                     var episodeUserRecord = episode.GetUserRecord(userID);
                     if (episodeUserRecord == null)
                         return true;
                     return episodeUserRecord.WatchedCount == 0 || !episodeUserRecord.WatchedDate.HasValue;
                 })
-                .OrderBy(a => a.AniDB_Episode.EpisodeType)
-                .ThenBy(a => a.AniDB_Episode.EpisodeNumber)
                 .FirstOrDefault(episode => episode.GetVideoLocals().Count > 0);
         }
 
