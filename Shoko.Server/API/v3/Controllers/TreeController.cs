@@ -282,9 +282,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// </remarks>
         /// <param name="seriesID">Series ID</param>
         /// <param name="onlyUnwatched">Only show the next unwatched episode.</param>
+        /// <param name="includeSpecials">Include specials in the search.</param>
         /// <returns></returns>
         [HttpGet("Series/{seriesID}/Episode/NextUp")]
-        public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID, [FromQuery] bool onlyUnwatched = false)
+        public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID, [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true)
         {
             var user = User;
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);

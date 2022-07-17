@@ -356,13 +356,14 @@ namespace Shoko.Server.Models
         /// </summary>
         /// <param name="userID">User ID</param>
         /// <param name="onlyUnwatched">Only check for unwatched episodes.</param>
+        /// <param name="includeSpecials">Include specials when searching.</param>
         /// <returns></returns>
-        public SVR_AnimeEpisode GetNextEpisode(int userID, bool onlyUnwatched)
+        public SVR_AnimeEpisode GetNextEpisode(int userID, bool onlyUnwatched, bool includeSpecials = true)
         {
             // Filter the episodes to only normal or special episodes and order them in rising order.
             var episodes = GetAnimeEpisodes()
                 .Select(episode => (episode, episode.AniDB_Episode))
-                .Where(tuple => tuple.AniDB_Episode.EpisodeType  == (int) EpisodeType.Episode || tuple.AniDB_Episode.EpisodeType == (int) EpisodeType.Special)
+                .Where(tuple => tuple.AniDB_Episode.EpisodeType  == (int) EpisodeType.Episode || (includeSpecials && tuple.AniDB_Episode.EpisodeType == (int) EpisodeType.Special))
                 .OrderBy(tuple => tuple.AniDB_Episode.EpisodeType)
                 .ThenBy(tuple => tuple.AniDB_Episode.EpisodeNumber)
                 .Select(tuple => tuple.episode)

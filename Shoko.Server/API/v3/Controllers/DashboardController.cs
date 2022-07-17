@@ -295,9 +295,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
         /// <param name="page">Page number.</param>
         /// <param name="onlyUnwatched">Only show unwatched episodes.</param>
+        /// <param name="includeSpecials">Include specials in the search.</param>
         /// <returns></returns>
         [HttpGet("NextUpEpisodes")]
-        public List<Dashboard.EpisodeDetails> GetNextUpEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, Int16.MaxValue)] int page = 0, [FromQuery] bool onlyUnwatched = true)
+        public List<Dashboard.EpisodeDetails> GetNextUpEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, Int16.MaxValue)] int page = 0, [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true)
         {
             var user = HttpContext.GetUser();
             var episodeList = RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID)
@@ -305,7 +306,7 @@ namespace Shoko.Server.API.v3.Controllers
                 .OrderByDescending(record => record.LastEpisodeUpdate)
                 .Select(record => record.AnimeSeries)
                 .Where(series => user.AllowedSeries(series))
-                .Select(series => (series, series.GetNextEpisode(user.JMMUserID, onlyUnwatched)))
+                .Select(series => (series, series.GetNextEpisode(user.JMMUserID, onlyUnwatched, includeSpecials)))
                 .Where(tuple => tuple.Item2 != null);
             if (pageSize <= 0)
                 return episodeList
