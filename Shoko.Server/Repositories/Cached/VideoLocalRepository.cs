@@ -523,5 +523,11 @@ namespace Shoko.Server.Repositories.Cached
                 return Ignored.GetMultiple(1);
             }
         }
+
+        public SVR_VideoLocal GetByMyListID(int myListID)
+        {
+            lock (Cache)
+                return Cache.Values.FirstOrDefault(a => a.MyListID == myListID);
+        }
     }
 }

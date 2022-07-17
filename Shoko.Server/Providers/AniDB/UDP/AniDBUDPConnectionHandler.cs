@@ -16,6 +16,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
 {
     public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandler
     {
+        IServiceProvider IUDPConnectionHandler.ServiceProvider => ServiceProvider;
         private readonly IAniDBSocketHandler _socketHandler;
 
         public event EventHandler LoginFailed;

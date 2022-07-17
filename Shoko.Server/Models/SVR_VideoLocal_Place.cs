@@ -226,8 +226,7 @@ namespace Shoko.Server.Models
                 {
                     if (updateMyListStatus)
                     {
-                        CommandRequest_DeleteFileFromMyList cmdDel =
-                            new CommandRequest_DeleteFileFromMyList(v.MyListID);
+                         var cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
                         cmdDel.Save();
                     }
 
@@ -273,8 +272,7 @@ namespace Shoko.Server.Models
             {
                 if (updateMyListStatus)
                 {
-                    CommandRequest_DeleteFileFromMyList cmdDel =
-                        new CommandRequest_DeleteFileFromMyList(v.MyListID);
+                    var cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
                     cmdDel.Save();
                 }
 

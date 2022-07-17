@@ -48,11 +48,11 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                      * {int4 lid}|{int4 fid}|{int4 eid}|{int4 aid}|{int4 gid}|{int4 date}|{int2 state}|{int4 viewdate}|{str storage}|{str source}|{str other}|{int2 filestate}
                      */
                     //file already exists: read 'watched' status
-                    string[] arrResult = receivedData.Split('\n');
+                    var arrResult = receivedData.Split('\n');
                     if (arrResult.Length >= 2)
                     {
-                        string[] arrStatus = arrResult[1].Split('|');
-                        bool hasMyListID = int.TryParse(arrStatus[0], out int myListID);
+                        var arrStatus = arrResult[1].Split('|');
+                        var hasMyListID = int.TryParse(arrStatus[0], out var myListID);
                         if (!hasMyListID) throw new UnexpectedUDPResponseException
                         {
                             Message = "MyListID was not provided. Use AniDBMyList_RequestAddEpisode for generic files.",
@@ -60,11 +60,11 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                             ReturnCode = code
                         };
 
-                        GetFile_State state = (GetFile_State) int.Parse(arrStatus[6]);
+                        var state = (MyList_State) int.Parse(arrStatus[6]);
 
-                        int viewdate = int.Parse(arrStatus[7]);
-                        int updatedate = int.Parse(arrStatus[5]);
-                        bool watched = viewdate > 0;
+                        var viewdate = int.Parse(arrStatus[7]);
+                        var updatedate = int.Parse(arrStatus[5]);
+                        var watched = viewdate > 0;
                         DateTime? updatedAt = null;
                         DateTime? watchedDate = null;
                         if (updatedate > 0)

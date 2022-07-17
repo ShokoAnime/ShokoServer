@@ -17,7 +17,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
             // 222 MYLIST STATS
             // 281|3539|4025|1509124|0|0|0|0|100|100|0|3|5|170|23|0|4001
 
-            ResponseMyListStats stats = new ResponseMyListStats
+            var stats = new ResponseMyListStats
             {
                 Anime = (int) parsedData[0],
                 Episodes = (int) parsedData[1],

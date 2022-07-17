@@ -881,8 +881,7 @@ namespace Shoko.Server
 
                     if (removeMyList)
                     {
-                        var cmdDel =
-                            new CommandRequest_DeleteFileFromMyList(v.MyListID);
+                        var cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
                         cmdDel.Save();
                     }
 
