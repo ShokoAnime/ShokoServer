@@ -49,12 +49,12 @@ namespace Shoko.Server.API.v3.Models.Common
         /// <summary>
         /// Width of the image.
         /// </summary>
-        public int? Width { get; set; }
+        public int? Width { get; set; }
 
         /// <summary>
         /// Height of the image.
         /// </summary>
-        public int? Height { get; set; }
+        public int? Height { get; set; }
 
         /// <summary>
         /// Is it marked as disabled. You must explicitly ask for these, for obvious reasons.
@@ -72,6 +72,8 @@ namespace Shoko.Server.API.v3.Models.Common
                 Width = null;
                 Height = null;
             }
+            // This causes serious IO lag on some systems. Removing until we have better Image data structures
+            /*
             else
             {
                 var info = new MagickImageInfo(imagePath);
@@ -80,7 +82,7 @@ namespace Shoko.Server.API.v3.Models.Common
                     RelativeFilepath = "/" + RelativeFilepath;
                 Width = info.Width;
                 Height = info.Height;
-            }
+            }*/
         }
 
         public Image(string id, ImageEntityType type, bool preferred = false, bool disabled = false)
