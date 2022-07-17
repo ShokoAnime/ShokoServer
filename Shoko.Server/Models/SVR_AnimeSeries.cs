@@ -352,6 +352,31 @@ namespace Shoko.Server.Models
         }
 
         /// <summary>
+        /// Get the most recent activly watched episode for the user.
+        /// </summary>
+        /// <param name="userID">User ID</param>
+        /// <param name="includeSpecials">Include specials when searching.</param>
+        /// <returns></returns>
+        public SVR_AnimeEpisode GetActiveEpisode(int userID, bool includeSpecials = true)
+        {
+            // Filter the episodes to only normal or special episodes and order them in rising order.
+            var episodes = GetAnimeEpisodes()
+                .Select(episode => (episode, episode.AniDB_Episode))
+                .Where(tuple => tuple.AniDB_Episode.EpisodeType  == (int) EpisodeType.Episode || (includeSpecials && tuple.AniDB_Episode.EpisodeType == (int) EpisodeType.Special))
+                .OrderBy(tuple => tuple.AniDB_Episode.EpisodeType)
+                .ThenBy(tuple => tuple.AniDB_Episode.EpisodeNumber)
+                .Select(tuple => tuple.episode)
+                .ToList();
+            // Look for active watch sessions and return the episode for the most recent session if found.
+            var (episode, _) = episodes
+                .SelectMany(episode => episode.GetVideoLocals().Select(file => (episode, file.GetUserRecord(userID))))
+                .Where(tuple => tuple.Item2 != null)
+                .OrderByDescending(tuple => tuple.Item2.LastUpdated)
+                .FirstOrDefault(tuple => tuple.Item2.ResumePosition > 0);
+            return episode;
+        }
+
+        /// <summary>
         /// Get the next episode for the series for a user.
         /// </summary>
         /// <param name="userID">User ID</param>

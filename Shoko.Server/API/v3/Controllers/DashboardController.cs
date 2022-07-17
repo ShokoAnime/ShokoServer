@@ -245,47 +245,27 @@ namespace Shoko.Server.API.v3.Controllers
         /// </summary>
         /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
         /// <param name="page">Page number.</param>
+        /// <param name="includeSpecials">Include specials in the search.</param>
         /// <returns></returns>
         [HttpGet("ContinueWatchingEpisodes")]
-        public List<Dashboard.EpisodeDetails> GetContinueWatchingEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, Int16.MaxValue)] int page = 0)
+        public List<Dashboard.EpisodeDetails> GetContinueWatchingEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, Int16.MaxValue)] int page = 0, [FromQuery] bool includeSpecials = true)
         {
             var user = HttpContext.GetUser();
-            var episodeList = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID)
-                .Where(userRecord => userRecord.WatchedDate == null && userRecord.ResumePosition != 0)
-                .OrderByDescending(userRecord => userRecord.LastUpdated)
-                .Select(userRecord =>
-                {
-                    var file = RepoFactory.VideoLocal.GetByID(userRecord.VideoLocalID);
-                    if (file == null)
-                        return (null, null, null);
-                    var xref = file.EpisodeCrossRefs.OrderBy(xref => xref.EpisodeOrder).ThenBy(xref => xref.Percentage).FirstOrDefault();
-                    if (xref == null)
-                        return (null, null, null);
-                    var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
-                    if (episode == null)
-                        return (null, null, null);
-                    return (episode, file, userRecord);
-                })
-                .Where(tuple => tuple.Item1 != null)
-                .DistinctBy(tuple => tuple.Item1.AnimeSeriesID)
-                .ToList();
-            var seriesDict = episodeList
-                .Select(tuple => tuple.Item1.GetAnimeSeries())
-                .Where(series => series != null && user.AllowedSeries(series))
-                .ToDictionary(series => series.AnimeSeriesID);
-            var animeDict = seriesDict.Values
-                .ToDictionary(series => series.AnimeSeriesID, series => series.GetAnime());
-
+            var episodeList = RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID)
+                .Where(record => record.LastEpisodeUpdate.HasValue)
+                .OrderByDescending(record => record.LastEpisodeUpdate)
+                .Select(record => record.AnimeSeries)
+                .Where(series => user.AllowedSeries(series))
+                .Select(series => (series, series.GetActiveEpisode(user.JMMUserID, includeSpecials)))
+                .Where(tuple => tuple.Item2 != null);
             if (pageSize <= 0)
                 return episodeList
-                    .Where(tuple => seriesDict.Keys.Contains(tuple.Item1.AnimeSeriesID))
-                    .Select(tuple => new Dashboard.EpisodeDetails(tuple.Item1.AniDB_Episode, animeDict[tuple.Item1.AnimeSeriesID], seriesDict[tuple.Item1.AnimeSeriesID], tuple.Item2, tuple.Item3))
+                    .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.Item2, tuple.series))
                     .ToList();
             return episodeList
-                .Where(tuple => seriesDict.Keys.Contains(tuple.Item1.AnimeSeriesID))
                 .Skip(pageSize * page)
                 .Take(pageSize)
-                .Select(tuple => new Dashboard.EpisodeDetails(tuple.Item1.AniDB_Episode, animeDict[tuple.Item1.AnimeSeriesID], seriesDict[tuple.Item1.AnimeSeriesID], tuple.Item2, tuple.Item3))
+                .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.Item2, tuple.series))
                 .ToList();
         }
 
