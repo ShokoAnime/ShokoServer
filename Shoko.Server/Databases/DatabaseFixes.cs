@@ -787,6 +787,7 @@ namespace Shoko.Server.Databases
         public static void FixWatchDates()
         {
             // Reset incorrectly parsed watch dates for anidb file.
+            logger.Debug($"Looking for faulty anidb file entries...");
             var anidbFilesToSave = new List<SVR_AniDB_File>();
             foreach (var anidbFile in RepoFactory.AniDB_File.GetAll())
             {
@@ -797,22 +798,25 @@ namespace Shoko.Server.Databases
                     anidbFilesToSave.Add(anidbFile);
                 }
             }
+            logger.Debug($"Found {anidbFilesToSave.Count} anidb file entries to fix.");
             RepoFactory.AniDB_File.Save(anidbFilesToSave);
             anidbFilesToSave.Clear();
+            logger.Debug($"Looking for faulty episode user records...");
             // Fetch every episode user record stored to both remove orphaned records and to make sure the watch date is correct.
-            var episodeDict = RepoFactory.AnimeEpisode.GetAll().ToDictionary(episode => episode.AnimeEpisodeID, episode => episode.GetVideoLocals());
+            var userDict = RepoFactory.JMMUser.GetAll().ToDictionary(user => user.JMMUserID);
+            var fileListDict = RepoFactory.AnimeEpisode.GetAll().ToDictionary(episode => episode.AnimeEpisodeID, episode => episode.GetVideoLocals());
             var episodesURsToSave = new List<SVR_AnimeEpisode_User>();
             var episodeURsToRemove = new List<SVR_AnimeEpisode_User>();
             foreach (var episodeUserRecord in RepoFactory.AnimeEpisode_User.GetAll())
             {
                 // Remove any unkown episode user records.
-                if (!episodeDict.ContainsKey(episodeUserRecord.AnimeEpisodeID))
+                if (!fileListDict.ContainsKey(episodeUserRecord.AnimeEpisodeID) || !userDict.ContainsKey(episodeUserRecord.JMMUserID))
                 {
                     episodeURsToRemove.Add(episodeUserRecord);
                     continue;
                 }
                 // Fetch the file user record for when a file for the episode was last watched.
-                var fileUserRecord = episodeDict[episodeUserRecord.AnimeEpisodeID]
+                var fileUserRecord = fileListDict[episodeUserRecord.AnimeEpisodeID]
                     .Select(file => file.GetUserRecord(episodeUserRecord.JMMUserID))
                     .Where(record => record != null)
                     .OrderByDescending(record => record.LastUpdated)
@@ -835,10 +839,15 @@ namespace Shoko.Server.Databases
                     episodesURsToSave.Add(episodeUserRecord);
                 }
             }
+            logger.Debug($"Found {episodesURsToSave.Count} episode user records to fix.");
             // Update the client contracts and save the changes to the database.
             RepoFactory.AnimeEpisode_User.Delete(episodeURsToRemove);
             foreach (var episodeUserRecord in episodesURsToSave)
+            {
+                logger.Debug($"Updating episode user contract for user \"{userDict[episodeUserRecord.JMMUserID].Username}\". (UserID={episodeUserRecord.JMMUserID},EpisodeID={episodeUserRecord.AnimeEpisodeID},SeriesID={episodeUserRecord.AnimeSeriesID})");
                 RepoFactory.AnimeEpisode_User.Save(episodeUserRecord);
+            }
+            logger.Debug($"Updating series user records and series stats.");
             // Update all the series and groups to use the new watch dates.
             var seriesList = episodesURsToSave
                 .GroupBy(record => record.AnimeSeriesID)
@@ -853,6 +862,7 @@ namespace Shoko.Server.Databases
                 {
                     var seriesUserRecord = series.GetOrCreateUserRecord(userID);
                     seriesUserRecord.LastEpisodeUpdate = DateTime.Now;
+                    logger.Debug($"Updating series user contract for user \"{userDict[seriesUserRecord.JMMUserID].Username}\". (UserID={seriesUserRecord.JMMUserID},SeriesID={seriesUserRecord.AnimeSeriesID})");
                     RepoFactory.AnimeSeries_User.Save(seriesUserRecord);
                 }
                 // Update the rest of the stats for the series.
