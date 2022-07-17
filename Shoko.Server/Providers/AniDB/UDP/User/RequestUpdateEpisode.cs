@@ -15,10 +15,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         {
             get
             {
-                string command = $"MYLISTADD aid={AnimeID}&epno={EpisodeNumber}&generic=1&state={State}";
+                var command = $"MYLISTADD aid={AnimeID}&epno={EpisodeNumber}&generic=1&state={State}";
                 if (IsWatched)
                 {
-                    DateTime date = WatchedDate ?? DateTime.Now;
+                    var date = WatchedDate ?? DateTime.Now;
                     command += $"&viewed=1&viewdate={Commons.Utils.AniDB.GetAniDBDateAsSeconds(date)}";
                 }
                 else
@@ -36,7 +36,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
 
         public int EpisodeNumber { get; set; }
 
-        public GetFile_State State { get; set; }
+        public MyList_State State { get; set; }
 
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }

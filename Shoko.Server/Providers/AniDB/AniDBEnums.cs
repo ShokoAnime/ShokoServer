@@ -1,4 +1,5 @@
 using System;
+using Shoko.Models.Enums;
 
 namespace Shoko.Server.Providers.AniDB
 {
@@ -328,5 +329,18 @@ namespace Shoko.Server.Providers.AniDB
         /// The related entry summarizes the events of the story in the main entry.
         /// </summary>
         Summary = 42,
+    }
+
+    public static class EnumExtensions
+    {
+        public static MyList_State GetMyList_State(this AniDBFile_State a) =>
+            a switch
+            {
+                AniDBFile_State.Deleted => MyList_State.Deleted,
+                AniDBFile_State.Disk => MyList_State.Disk,
+                AniDBFile_State.Remote => MyList_State.Remote,
+                AniDBFile_State.HDD => MyList_State.HDD,
+                _ => MyList_State.Unknown,
+            };
     }
 }

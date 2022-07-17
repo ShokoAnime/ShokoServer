@@ -246,8 +246,9 @@ namespace Shoko.Server.Commands
                 {
                     foreach (int listID in filesToRemove)
                     {
-                        CommandRequest_DeleteFileFromMyList deleteCommand =
-                            new CommandRequest_DeleteFileFromMyList(listID);
+                        var vl = RepoFactory.VideoLocal.GetByMyListID(listID);
+                        if (vl == null) continue;
+                        var deleteCommand = new CommandRequest_DeleteFileFromMyList(vl.Hash, vl.FileSize);
                         deleteCommand.Save();
                     }
                     logger.Info($"MYLIST Missing Files: {filesToRemove.Count} Added to queue for deletion");

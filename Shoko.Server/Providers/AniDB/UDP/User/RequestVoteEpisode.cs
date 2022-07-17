@@ -32,11 +32,11 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         {
             var code = response.Code;
             var receivedData = response.Response;
-            string[] parts = receivedData.Split('|');
+            var parts = receivedData.Split('|');
             if (parts.Length != 4) throw new UnexpectedUDPResponseException("Incorrect Number of Parts Returned", code, receivedData);
-            if (!int.TryParse(parts[1], out int value)) throw new UnexpectedUDPResponseException("Value should be an int, but it's not", code, receivedData);
-            if (!int.TryParse(parts[2], out int type)) throw new UnexpectedUDPResponseException("Vote type should be an int, but it's not", code, receivedData);
-            if (!int.TryParse(parts[3], out int id)) throw new UnexpectedUDPResponseException("ID should be an int, but it's not", code, receivedData);
+            if (!int.TryParse(parts[1], out var value)) throw new UnexpectedUDPResponseException("Value should be an int, but it's not", code, receivedData);
+            if (!int.TryParse(parts[2], out var type)) throw new UnexpectedUDPResponseException("Vote type should be an int, but it's not", code, receivedData);
+            if (!int.TryParse(parts[3], out var id)) throw new UnexpectedUDPResponseException("ID should be an int, but it's not", code, receivedData);
 
             return new UDPBaseResponse<ResponseVote> {Code = code, Response = new ResponseVote
             {

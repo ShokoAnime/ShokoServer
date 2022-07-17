@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -35,7 +36,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             // Override to prevent attaching our non-existent sessionID
         }
         
-        public override UDPBaseResponse<ResponseLogin> Execute(AniDBUDPConnectionHandler handler)
+        public override UDPBaseResponse<ResponseLogin> Execute(IUDPConnectionHandler handler)
         {
             Command = BaseCommand;
             PreExecute(handler.SessionID);
