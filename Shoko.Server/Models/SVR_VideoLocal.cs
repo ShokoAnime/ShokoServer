@@ -448,8 +448,8 @@ namespace Shoko.Server.Models
             {
                 cl.IsWatched = 1;
                 cl.WatchedDate = userRecord.WatchedDate;
-                cl.ResumePosition = userRecord.ResumePosition;
             }
+            cl.ResumePosition = userRecord?.ResumePosition ?? 0;
 
             try
             {
@@ -507,15 +507,13 @@ namespace Shoko.Server.Models
             {
                 cl.VideoLocal_IsWatched = 0;
                 cl.VideoLocal_WatchedDate = null;
-                cl.VideoLocal_ResumePosition = 0;
             }
             else
             {
                 cl.VideoLocal_IsWatched = 1;
                 cl.VideoLocal_WatchedDate = userRecord.WatchedDate;
             }
-            if (userRecord != null)
-                cl.VideoLocal_ResumePosition = userRecord.ResumePosition;
+            cl.VideoLocal_ResumePosition = userRecord?.ResumePosition ?? 0;
             cl.VideoInfo_AudioBitrate = Media?.AudioStreams.FirstOrDefault()?.BitRate.ToString();
             cl.VideoInfo_AudioCodec =
                 LegacyMediaUtils.TranslateCodec(Media?.AudioStreams.FirstOrDefault());
@@ -607,15 +605,13 @@ namespace Shoko.Server.Models
             {
                 cl.IsWatched = 0;
                 cl.WatchedDate = null;
-                cl.ResumePosition = 0;
             }
             else
             {
                 cl.IsWatched = 1;
                 cl.WatchedDate = userRecord.WatchedDate;
             }
-            if (userRecord != null)
-                cl.ResumePosition = userRecord.ResumePosition;
+            cl.ResumePosition = userRecord?.ResumePosition ?? 0;
             return cl;
         }
 

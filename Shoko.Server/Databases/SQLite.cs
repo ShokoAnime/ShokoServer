@@ -557,6 +557,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(83, 3, "ALTER TABLE VideoLocal_User ADD LastUpdated timestamp NOT NULL DEFAULT '2000-01-01 00:00:00';"),
             new DatabaseCommand(83, 4, "UPDATE VideoLocal_User SET WatchedCount = 1, LastUpdated = WatchedDate WHERE WatchedDate IS NOT NULL;"),
             new DatabaseCommand(84, 1, "ALTER TABLE AnimeSeries_User ADD LastEpisodeUpdate timestamp DEFAULT NULL;"),
+            new DatabaseCommand(84, 2, DatabaseFixes.FixWatchDates),
         };
 
         private static Tuple<bool, string> DropVideoLocal_Media(object connection)
