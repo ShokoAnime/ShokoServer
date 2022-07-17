@@ -122,6 +122,23 @@ namespace Shoko.Server.Models
             return RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, VideoLocalID);
         }
 
+        public SVR_VideoLocal_User GetOrCreateUserRecord(int userID)
+        {
+            var userRecord = GetUserRecord(userID);
+            if (userRecord != null)
+                return userRecord;
+            userRecord = new()
+            {
+                JMMUserID = userID,
+                LastUpdated = DateTime.Now,
+                ResumePosition = 0,
+                VideoLocalID = VideoLocalID,
+                WatchedCount = 0,
+                WatchedDate = null,
+            };
+            RepoFactory.VideoLocalUser.Save(userRecord);
+            return userRecord;
+        }
 
         internal AniDB_ReleaseGroup ReleaseGroup
         {
