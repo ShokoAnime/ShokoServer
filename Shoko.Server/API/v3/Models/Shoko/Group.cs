@@ -74,29 +74,12 @@ namespace Shoko.Server.API.v3.Models.Shoko
             Description = group.Description;
             Sizes = ModelHelper.GenerateSizes(ael, uid);
             Size = group.GetSeries().Count;
-
-            HasCustomName = GetHasCustomName(group);
+            HasCustomName = group.IsManuallyNamed == 1;
 
             Images = imageSeries == null ? new Images() : Series.GetDefaultImages(ctx, imageSeries, randomiseImages);
         }
 
         #endregion
-
-        private bool GetHasCustomName(SVR_AnimeGroup group)
-        {
-            if (group.IsManuallyNamed == 1)
-                return true;
-
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                var groupCalculator = AutoAnimeGroupCalculator.Create(session.Wrap(), AutoGroupExclude.None);
-                int id = group.GetSeries().FirstOrDefault()?.AniDB_ID ?? 0;
-                if (id == 0) return true;
-                var ids = groupCalculator.GetIdsOfAnimeInSameGroup(id);
-                return !ids.Select(aid => RepoFactory.AniDB_Anime.GetByAnimeID(aid)).Where(anime => anime != null)
-                    .Any(anime => anime.GetAllTitles().Contains(group.GroupName));
-            }
-        }
 
         public class GroupIDs : IDs
         {
