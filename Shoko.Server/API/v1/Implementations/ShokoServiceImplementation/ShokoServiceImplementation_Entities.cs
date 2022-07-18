@@ -2206,7 +2206,7 @@ namespace Shoko.Server
                 }
 
                 // make sure the anime exists first
-                var anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, false,
+                var anime = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(animeID, false,
                     ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime);
 
                 if (anime == null)
@@ -2249,7 +2249,7 @@ namespace Shoko.Server
         {
             try
             {
-                var anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, false);
+                var anime = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(animeID, true, false);
 
                 // also find any files for this anime which don't have proper media info data
                 // we can usually tell this if the Resolution == '0x0'
@@ -2283,7 +2283,7 @@ namespace Shoko.Server
         {
             try
             {
-                var anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, false);
+                var anime = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(animeID, true, false);
 
                 // also find any files for this anime which don't have proper media info data
                 // we can usually tell this if the Resolution == '0x0'

@@ -66,7 +66,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Trace($"Processing File: {VideoLocalID}");
 
@@ -162,7 +162,7 @@ namespace Shoko.Server.Commands
                         foreach (var user in RepoFactory.JMMUser.GetAll())
                         {
                             logger.Trace($"Setting watched date for User {user.JMMUserID} and videolocal id {vidLocal.VideoLocalID} to {aniFile.WatchedDate}");
-                            var userRecord = vidLocal.GetUserRecord(user.JMMUserID) ?? new VideoLocal_User
+                            var userRecord = vidLocal.GetUserRecord(user.JMMUserID) ?? new SVR_VideoLocal_User
                             {
                                 JMMUserID = user.JMMUserID,
                                 VideoLocalID = vidLocal.VideoLocalID,
@@ -197,7 +197,7 @@ namespace Shoko.Server.Commands
                             if (watchedVideo == null) continue;
 
                             var watchedRecord = watchedVideo.GetUserRecord(user.JMMUserID);
-                            var userRecord = vidLocal.GetUserRecord(user.JMMUserID) ?? new VideoLocal_User
+                            var userRecord = vidLocal.GetUserRecord(user.JMMUserID) ?? new SVR_VideoLocal_User
                             {
                                 JMMUserID = user.JMMUserID,
                                 VideoLocalID = vidLocal.VideoLocalID,
@@ -262,7 +262,7 @@ namespace Shoko.Server.Commands
                 if (missingEpisodes && !animeRecentlyUpdated)
                 {
                     logger.Debug("Getting Anime record from AniDB....");
-                    anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
+                    anime = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(animeID, true,
                         ServerSettings.Instance.AutoGroupSeries ||
                         ServerSettings.Instance.AniDb.DownloadRelatedAnime);
                 }
@@ -331,11 +331,11 @@ namespace Shoko.Server.Commands
 
             if (ForceAniDB)
             {
-                if (!ShokoService.AnidbProcessor.IsUdpBanned)
+                if (!ShokoService.AniDBProcessor.IsUdpBanned)
                 {
                     // get info from AniDB
                     logger.Debug("Getting AniDB_File record from AniDB....");
-                    Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
+                    Raw_AniDB_File fileInfo = ShokoService.AniDBProcessor.GetFileInfo(vidLocal);
                     if (fileInfo != null)
                     {
                         aniFile ??= new SVR_AniDB_File();

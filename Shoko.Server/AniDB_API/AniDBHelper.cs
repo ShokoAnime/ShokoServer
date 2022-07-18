@@ -653,7 +653,7 @@ namespace Shoko.Server.AniDB_API
         /// <param name="animeID"></param>
         /// <param name="episodeNumber"></param>
         /// <param name="watched"></param>
-        public void UpdateMyListFileStatus(IHash hash, bool watched, DateTime? watchedDate = null)
+        public void UpdateMyListFileStatus(IServiceProvider provider, IHash hash, bool watched, DateTime? watchedDate = null)
         {
             if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
 
@@ -688,7 +688,7 @@ namespace Shoko.Server.AniDB_API
                     CommandRequest_AddFileToMyList addcmd = new CommandRequest_AddFileToMyList(hash.ED2KHash, false);
                     // Initialize private parts
                     addcmd.LoadFromDBCommand(addcmd.ToDatabaseObject());
-                    addcmd.ProcessCommand();
+                    addcmd.ProcessCommand(provider);
                 }
             }
         }
@@ -699,7 +699,7 @@ namespace Shoko.Server.AniDB_API
         /// <param name="animeID"></param>
         /// <param name="episodeNumber"></param>
         /// <param name="watched"></param>
-        public void UpdateMyListFileStatus(IHash hash, int animeID, int episodeNumber, bool watched, DateTime? watchedDate = null)
+        public void UpdateMyListFileStatus(IServiceProvider provider, IHash hash, int animeID, int episodeNumber, bool watched, DateTime? watchedDate = null)
         {
             if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
 
@@ -723,7 +723,7 @@ namespace Shoko.Server.AniDB_API
                     CommandRequest_AddFileToMyList addcmd = new CommandRequest_AddFileToMyList(hash.ED2KHash, false);
                     // Initialize private parts
                     addcmd.LoadFromDBCommand(addcmd.ToDatabaseObject());
-                    addcmd.ProcessCommand();
+                    addcmd.ProcessCommand(provider);
                 }
             }
         }

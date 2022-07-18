@@ -268,19 +268,19 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("anidb/test")]
         public ActionResult TestAniDB()
         {
-            ShokoService.AnidbProcessor.ForceLogout();
-            ShokoService.AnidbProcessor.CloseConnections();
+            ShokoService.AniDBProcessor.ForceLogout();
+            ShokoService.AniDBProcessor.CloseConnections();
 
             Thread.Sleep(1000);
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+            ShokoService.AniDBProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
                 ServerSettings.Instance.AniDb.ServerAddress,
                 ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
 
-            if (!ShokoService.AnidbProcessor.Login()) return APIStatus.BadRequest("Failed to log in");
-            ShokoService.AnidbProcessor.ForceLogout();
+            if (!ShokoService.AniDBProcessor.Login()) return APIStatus.BadRequest("Failed to log in");
+            ShokoService.AniDBProcessor.ForceLogout();
 
             return APIStatus.OK();
         }

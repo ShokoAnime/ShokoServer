@@ -2,15 +2,15 @@
 using System.Linq;
 using NHibernate;
 using NHibernate.Criterion;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct
 {
-    public class AniDB_Anime_RelationRepository : BaseDirectRepository<AniDB_Anime_Relation, int>
+    public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Anime_Relation, int>
     {
-        public AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
+        public SVR_AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -18,17 +18,17 @@ namespace Shoko.Server.Repositories.Direct
             }
         }
 
-        public AniDB_Anime_Relation GetByAnimeIDAndRelationID(ISession session, int animeid, int relatedanimeid)
+        public SVR_AniDB_Anime_Relation GetByAnimeIDAndRelationID(ISession session, int animeid, int relatedanimeid)
         {
-            AniDB_Anime_Relation cr = session
-                .CreateCriteria(typeof(AniDB_Anime_Relation))
+            SVR_AniDB_Anime_Relation cr = session
+                .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
                 .Add(Restrictions.Eq("AnimeID", animeid))
                 .Add(Restrictions.Eq("RelatedAnimeID", relatedanimeid))
-                .UniqueResult<AniDB_Anime_Relation>();
+                .UniqueResult<SVR_AniDB_Anime_Relation>();
             return cr;
         }
 
-        public List<AniDB_Anime_Relation> GetByAnimeID(int id)
+        public List<SVR_AniDB_Anime_Relation> GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -36,14 +36,14 @@ namespace Shoko.Server.Repositories.Direct
             }
         }
 
-        public List<AniDB_Anime_Relation> GetByAnimeID(ISessionWrapper session, int id)
+        public List<SVR_AniDB_Anime_Relation> GetByAnimeID(ISessionWrapper session, int id)
         {
             var cats = session
-                .CreateCriteria(typeof(AniDB_Anime_Relation))
+                .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
                 .Add(Restrictions.Eq("AnimeID", id))
-                .List<AniDB_Anime_Relation>();
+                .List<SVR_AniDB_Anime_Relation>();
 
-            return new List<AniDB_Anime_Relation>(cats);
+            return new List<SVR_AniDB_Anime_Relation>(cats);
         }
 
         /// SELECT AnimeID FROM AniDB_Anime_Relation WHERE (RelationType = 'Prequel' OR RelationType = 'Sequel') AND (AnimeID = 10445 OR RelatedAnimeID = 10445)
@@ -51,11 +51,11 @@ namespace Shoko.Server.Repositories.Direct
         /// SELECT RelatedAnimeID AS AnimeID FROM AniDB_Anime_Relation WHERE (RelationType = 'Prequel' OR RelationType = 'Sequel') AND (AnimeID = 10445 OR RelatedAnimeID = 10445)
         public HashSet<int> GetLinearRelations(ISession session, int id)
         {
-            var cats = (from relation in session.QueryOver<AniDB_Anime_Relation>()
+            var cats = (from relation in session.QueryOver<SVR_AniDB_Anime_Relation>()
                 where (relation.AnimeID == id || relation.RelatedAnimeID == id) &&
                       (relation.RelationType == "Prequel" || relation.RelationType == "Sequel")
                 select relation.AnimeID).Future<int>();
-            var cats2 = (from relation in session.QueryOver<AniDB_Anime_Relation>()
+            var cats2 = (from relation in session.QueryOver<SVR_AniDB_Anime_Relation>()
                 where (relation.AnimeID == id || relation.RelatedAnimeID == id) &&
                       (relation.RelationType == "Prequel" || relation.RelationType == "Sequel")
                 select relation.RelatedAnimeID).Future<int>();

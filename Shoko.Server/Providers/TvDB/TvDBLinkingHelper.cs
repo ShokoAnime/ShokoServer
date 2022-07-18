@@ -167,10 +167,12 @@ namespace Shoko.Server
 
             List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches =
                 new List<(AniDB_Episode, TvDB_Episode, MatchRating)>();
+            
+            // 5 is arbitrary. Can be adjusted later
+            var isOVASeries = anime?.AnimeType is (int)AnimeType.OVA or (int)AnimeType.Web or (int)AnimeType.TVSpecial && aniepsNormal.Count > 5;
 
             // Try to match OVAs
-            if ((anime?.AnimeType == (int) AnimeType.OVA || anime?.AnimeType == (int) AnimeType.Movie ||
-                 anime?.AnimeType == (int) AnimeType.TVSpecial) && aniepsNormal.Count > 0 && tvepsSpecial.Count > 0)
+            if (!isOVASeries && anime?.AnimeType is (int)AnimeType.OVA or (int)AnimeType.Movie or (int)AnimeType.TVSpecial && aniepsNormal.Count > 0 && tvepsSpecial.Count > 0)
                 TryToMatchSpeicalsToTvDB(aniepsNormal, tvepsSpecial, ref matches);
 
             // Only try to match normal episodes if this is a series
@@ -465,7 +467,7 @@ namespace Shoko.Server
                                                 .GetByAnimeID(a.RelatedAnimeID).Any(b =>
                                                     season.Select(c => c.SeriesID).Contains(b.TvDBID))).ToList();
 
-                            List<AniDB_Anime_Relation> allPrequels = new List<AniDB_Anime_Relation>();
+                            List<SVR_AniDB_Anime_Relation> allPrequels = new List<SVR_AniDB_Anime_Relation>();
                             allPrequels.AddRange(relations);
                             HashSet<int> visitedNodes = new HashSet<int> {aniepsNormal[0].AnimeID};
 
@@ -521,7 +523,7 @@ namespace Shoko.Server
                                                 .GetByAnimeID(a.RelatedAnimeID).Any(b =>
                                                     season.Select(c => c.SeriesID).Contains(b.TvDBID))).ToList();
 
-                            List<AniDB_Anime_Relation> allSequels = new List<AniDB_Anime_Relation>();
+                            List<SVR_AniDB_Anime_Relation> allSequels = new List<SVR_AniDB_Anime_Relation>();
                             allSequels.AddRange(relations);
                             HashSet<int> visitedNodes = new HashSet<int> {aniepsNormal[0].AnimeID};
 
@@ -571,7 +573,7 @@ namespace Shoko.Server
             }
         }
 
-        private static void GetAllRelationsByTypeRecursive(List<AniDB_Anime_Relation> allRelations, ref HashSet<int> visitedNodes, ref List<AniDB_Anime_Relation> resultRelations, string type)
+        private static void GetAllRelationsByTypeRecursive(List<SVR_AniDB_Anime_Relation> allRelations, ref HashSet<int> visitedNodes, ref List<SVR_AniDB_Anime_Relation> resultRelations, string type)
         {
             foreach (var relation in allRelations)
             {

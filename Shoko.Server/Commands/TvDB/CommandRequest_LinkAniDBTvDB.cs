@@ -40,7 +40,7 @@ namespace Shoko.Server.Commands.TvDB
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_LinkAniDBTvDB: {0}", animeID);
 

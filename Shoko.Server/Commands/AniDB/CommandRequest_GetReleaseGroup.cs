@@ -36,7 +36,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_GetReleaseGroup: {0}", GroupID);
 
@@ -47,7 +47,7 @@ namespace Shoko.Server.Commands
                 if (ForceRefresh || relGroup == null)
                 {
                     // redownload anime details from http ap so we can get an update character list
-                    ShokoService.AnidbProcessor.GetReleaseGroupUDP(GroupID);
+                    ShokoService.AniDBProcessor.GetReleaseGroupUDP(GroupID);
                 }
             }
             catch (Exception ex)

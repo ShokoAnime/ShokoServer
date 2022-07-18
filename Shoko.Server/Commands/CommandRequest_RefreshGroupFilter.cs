@@ -34,7 +34,7 @@ namespace Shoko.Server.Commands
             extraParams = new[] {GroupFilterID.ToString()}
         };
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             if (GroupFilterID == 0)
             {

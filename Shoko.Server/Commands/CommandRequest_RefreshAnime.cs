@@ -33,7 +33,7 @@ namespace Shoko.Server.Commands
             extraParams = new[] {AnimeID.ToString()}
         };
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
         }

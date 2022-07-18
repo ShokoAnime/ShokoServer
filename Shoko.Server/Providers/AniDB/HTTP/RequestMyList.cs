@@ -2,20 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
-using NLog;
+using Microsoft.Extensions.Logging;
 
 namespace Shoko.Server.Providers.AniDB.Http
 {
     public class RequestMyList : HttpBaseRequest<List<ResponseMyList>>
     {
-        public Logger Logger = LogManager.GetCurrentClassLogger();
 
         protected override string BaseCommand => $"http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=mylist&user={Username}&pass={Password}";
         
-        private string Username { get; set; }
-        private string Password { get; set; }
+        private string Username { get; init; }
+        private string Password { get; init; }
         
-        protected override HttpBaseResponse<List<ResponseMyList>> ParseResponse(HttpBaseResponse<string> data)
+        protected override HttpBaseResponse<List<ResponseMyList>> ParseResponse(ILogger logger, HttpBaseResponse<string> data)
         {
             try
             {
@@ -30,13 +29,13 @@ namespace Shoko.Server.Providers.AniDB.Http
                         var aid = (int?) item.Attribute("aid");
                         var eid = (int?) item.Attribute("eid");
                         var fid = (int?) item.Attribute("fid");
-                        DateTime? updated = (DateTime?) null;
-                        if (DateTime.TryParse(item.Attribute("updated")?.Value, out DateTime tempu)) updated = tempu;
-                        DateTime? viewed = (DateTime?) null;
-                        if (DateTime.TryParse(item.Attribute("viewdate")?.Value, out DateTime tempv)) viewed = tempv;
-                        int? stateI = (int?) item.Element("state");
+                        var updated = (DateTime?) null;
+                        if (DateTime.TryParse(item.Attribute("updated")?.Value, out var tempu)) updated = tempu;
+                        var viewed = (DateTime?) null;
+                        if (DateTime.TryParse(item.Attribute("viewdate")?.Value, out var tempv)) viewed = tempv;
+                        var stateI = (int?) item.Element("state");
                         var state = stateI.HasValue ? (MyList_State) stateI.Value : MyList_State.Unknown;
-                        return new ResponseMyList()
+                        return new ResponseMyList
                         {
                             MyListID = id,
                             AnimeID = aid,
@@ -48,12 +47,12 @@ namespace Shoko.Server.Providers.AniDB.Http
                         };
                     }
                 ).ToList();
-                return new HttpBaseResponse<List<ResponseMyList>>() {Code = data.Code, Response = responses};
+                return new HttpBaseResponse<List<ResponseMyList>> {Code = data.Code, Response = responses};
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, ex.Message);
-                return new HttpBaseResponse<List<ResponseMyList>>() {Code = data.Code, Response = null};
+                logger.LogError(ex, ex.Message);
+                return new HttpBaseResponse<List<ResponseMyList>> {Code = data.Code, Response = null};
             }
         }
     }

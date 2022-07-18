@@ -58,7 +58,7 @@ namespace AniDBAPI
             IsValid = false;
         }
 
-        public bool ProcessEpisodeSource(XmlNode node, int anid)
+        public bool ProcessEpisodeSource(XmlNode node, int animeID)
         {
             if (string.IsNullOrEmpty(node?.Attributes?["id"]?.Value)) return false;
             if (!int.TryParse(node?.Attributes?["id"]?.Value, out int id)) return false;
@@ -72,7 +72,7 @@ namespace AniDBAPI
             AirDate = 0;
             DateTimeUpdated = DateTime.Now;
 
-            AnimeID = anid;
+            AnimeID = animeID;
 
             string epno = AniDBHTTPHelper.TryGetProperty(node, "epno");
             EpisodeType = GetEpisodeType(epno);

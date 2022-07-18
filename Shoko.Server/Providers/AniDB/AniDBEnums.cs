@@ -263,4 +263,70 @@ namespace Shoko.Server.Providers.AniDB
         Web = 4,
         Other = 5,
     }
+    
+    /// <summary>
+    /// Explains how the main entry relates to the related entry.
+    /// </summary>
+    public enum RelationType
+    {
+        /// <summary>
+        /// The relation between the entries cannot be explained in simple terms.
+        /// </summary>
+        Other = 0,
+
+        /// <summary>
+        /// The related entry either continues, or expands upon the story of the main entry.
+        /// </summary>
+        Sequel = 1,
+
+        /// <summary>
+        /// The first story either continues, or expands upon the story of the related entry.
+        /// </summary>
+        Prequel = 2,
+        
+        /// <summary>
+        /// The entries use the same setting, but follow different stories.
+        /// </summary>
+        SameSetting = 3,
+
+        /// <summary>
+        /// The entries use the same base story, but is set in alternate settings.
+        /// </summary>
+        AlternativeSetting = 4,
+
+        /// <summary>
+        /// Remake, basically
+        /// </summary>
+        AlternativeVersion = 5,
+
+        /// <summary>
+        /// It's a music video with featured content or something
+        /// </summary>
+        MusicVideo = 6,
+
+        /// <summary>
+        /// The entries tell different stories in different settings but otherwise shares some character(s).
+        /// </summary>
+        SharedCharacters = 7,
+
+        /// <summary>
+        /// The related entry is the main-story for the main entry, which is a side-story.
+        /// </summary>
+        MainStory = 8,
+
+        /// <summary>
+        /// The related entry is a longer version of the summarized events in the main entry.
+        /// </summary>
+        FullStory = 9,
+
+        /// <summary>
+        /// The related entry is a side-story for the main entry, which is the main-story.
+        /// </summary>
+        SideStory = 41,
+
+        /// <summary>
+        /// The related entry summarizes the events of the story in the main entry.
+        /// </summary>
+        Summary = 42,
+    }
 }

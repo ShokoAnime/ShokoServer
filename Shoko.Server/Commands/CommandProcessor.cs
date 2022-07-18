@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
@@ -16,7 +17,9 @@ namespace Shoko.Server.Commands
     {
         protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         protected readonly BackgroundWorker WorkerCommands = new BackgroundWorker();
+        protected IServiceProvider ServiceProvider;
         private bool _processingCommands;
+        private ConcurrentQueue<ICommandRequest> _commandsToSave = new();
         public DateTime? PauseTime;
 
         protected abstract string QueueType { get; }
@@ -146,8 +149,9 @@ namespace Shoko.Server.Commands
             UpdateQueueCount();
         }
 
-        public virtual void Init()
+        public virtual void Init(IServiceProvider provider)
         {
+            ServiceProvider = provider;
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             _processingCommands = true;

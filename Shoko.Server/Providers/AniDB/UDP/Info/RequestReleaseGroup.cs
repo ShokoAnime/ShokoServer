@@ -1,4 +1,5 @@
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -11,8 +12,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
         
         protected override string BaseCommand => $"GROUP gid={ReleaseGroupID}";
 
-        protected override UDPBaseResponse<ResponseReleaseGroup> ParseResponse(UDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseReleaseGroup> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
         {
+            var code = response.Code;
+            var receivedData = response.Response;
             switch (code)
             {
                 case UDPReturnCode.GROUP:

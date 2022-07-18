@@ -40,7 +40,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_SyncMyList");
 
@@ -187,7 +187,7 @@ namespace Shoko.Server.Commands
 
                             // doesn't matter which anidb user we use
                             int jmmUserID = juser.JMMUserID;
-                            VideoLocal_User userRecord = vl.GetUserRecord(juser.JMMUserID);
+                            SVR_VideoLocal_User userRecord = vl.GetUserRecord(juser.JMMUserID);
                             if (userRecord != null) localStatus = userRecord.WatchedDate.HasValue;
 
                             string action = string.Empty;

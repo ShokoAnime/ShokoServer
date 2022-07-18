@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
@@ -13,8 +14,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
 
         protected override string BaseCommand => $"AUTH user={Username}&pass={Password}&protover=3&client=ommserver&clientver=2&comp=1&imgserver=1&enc=utf-16";
 
-        protected override UDPBaseResponse<ResponseLogin> ParseResponse(UDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseLogin> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
         {
+            var code = response.Code;
+            var receivedData = response.Response;
             int i = receivedData.IndexOf("LOGIN", StringComparison.Ordinal);
             if (i < 0) throw new UnexpectedUDPResponseException(code, receivedData);
             // after response code, before "LOGIN"
@@ -38,8 +41,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             PreExecute(handler.SessionID);
             // LOGIN commands have special needs, so we want to handle this differently
             UDPBaseResponse<string> rawResponse = handler.CallAniDBUDPDirectly(Command, false, true, false, true);
-            var response = ParseResponse(rawResponse.Code, rawResponse.Response);
-            PostExecute(handler.SessionID, response);
+            var factory = handler.ServiceProvider.GetRequiredService<ILoggerFactory>();
+            var logger = factory.CreateLogger(GetType());
+            var response = ParseResponse(logger, rawResponse);
+            PostExecute(logger, handler.SessionID, response);
             return response;
         }
     }

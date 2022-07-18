@@ -49,12 +49,12 @@ namespace Shoko.Server.API.v3.Models.Common
         /// <summary>
         /// Width of the image.
         /// </summary>
-        public int? Width { get; set; }
+        public int? Width { get; set; }
 
         /// <summary>
         /// Height of the image.
         /// </summary>
-        public int? Height { get; set; }
+        public int? Height { get; set; }
 
         /// <summary>
         /// Is it marked as disabled. You must explicitly ask for these, for obvious reasons.
@@ -66,12 +66,15 @@ namespace Shoko.Server.API.v3.Models.Common
             if (type == ImageEntityType.Static)
                 throw new ArgumentException("Static Resources do not use an integer ID");
             
+            RelativeFilepath = GetImagePath(type, id).Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
+            /*
             var imagePath = GetImagePath(type, id);
             if (string.IsNullOrEmpty(imagePath)) {
                 RelativeFilepath = null;
                 Width = null;
                 Height = null;
             }
+            // This causes serious IO lag on some systems. Removing until we have better Image data structures
             else
             {
                 var info = new MagickImageInfo(imagePath);
@@ -80,7 +83,7 @@ namespace Shoko.Server.API.v3.Models.Common
                     RelativeFilepath = "/" + RelativeFilepath;
                 Width = info.Width;
                 Height = info.Height;
-            }
+            }*/
         }
 
         public Image(string id, ImageEntityType type, bool preferred = false, bool disabled = false)

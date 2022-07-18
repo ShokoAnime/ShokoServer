@@ -11,8 +11,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
 
         protected override string BaseCommand => "CALENDAR";
 
-        protected override UDPBaseResponse<ResponseCalendar> ParseResponse(UDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseCalendar> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
         {
+            var code = response.Code;
+            var receivedData = response.Response;
             if (code == UDPReturnCode.CALENDAR_EMPTY)
                 return new UDPBaseResponse<ResponseCalendar> {Response = null, Code = code};
 

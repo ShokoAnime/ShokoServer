@@ -77,7 +77,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
             HasCustomName = GetHasCustomName(group);
 
-            Images = Series.GetDefaultImages(ctx, imageSeries, randomiseImages);
+            Images = imageSeries == null ? new Images() : Series.GetDefaultImages(ctx, imageSeries, randomiseImages);
         }
 
         #endregion

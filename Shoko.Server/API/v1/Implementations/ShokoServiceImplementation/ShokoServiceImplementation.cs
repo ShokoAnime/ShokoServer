@@ -267,7 +267,7 @@ namespace Shoko.Server
                 contract.ImagesQueueStateId = (int) ShokoService.CmdProcessorImages.QueueState.queueState;
                 contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
 
-                var helper = ShokoService.AnidbProcessor;
+                var helper = ShokoService.AniDBProcessor;
                 if (helper.IsHttpBanned)
                 {
                     contract.IsBanned = true;
@@ -558,11 +558,11 @@ namespace Shoko.Server
 
                 if (anidbSettingsChanged)
                 {
-                    ShokoService.AnidbProcessor.ForceLogout();
-                    ShokoService.AnidbProcessor.CloseConnections();
+                    ShokoService.AniDBProcessor.ForceLogout();
+                    ShokoService.AniDBProcessor.CloseConnections();
 
                     Thread.Sleep(1000);
-                    ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+                    ShokoService.AniDBProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
                         ServerSettings.Instance.AniDb.ServerAddress,
                         ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
                 }
@@ -673,7 +673,7 @@ namespace Shoko.Server
                 ShokoService.CmdProcessorHasher.Stop();
 
                 RepoFactory.CommandRequest.ClearHasherQueue();
-                ShokoService.CmdProcessorHasher.Init();
+                ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
             }
             catch (Exception ex)
             {
@@ -689,7 +689,7 @@ namespace Shoko.Server
                 ShokoService.CmdProcessorImages.Stop();
 
                 RepoFactory.CommandRequest.ClearImageQueue();
-                ShokoService.CmdProcessorImages.Init();
+                ShokoService.CmdProcessorImages.NotifyOfNewCommand();
             }
             catch (Exception ex)
             {
@@ -705,7 +705,7 @@ namespace Shoko.Server
                 ShokoService.CmdProcessorGeneral.Stop();
 
                 RepoFactory.CommandRequest.ClearGeneralQueue();
-                ShokoService.CmdProcessorGeneral.Init();
+                ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
             }
             catch (Exception ex)
             {
@@ -721,21 +721,21 @@ namespace Shoko.Server
             try
             {
                 log += "Disposing..." + Environment.NewLine;
-                ShokoService.AnidbProcessor.ForceLogout();
-                ShokoService.AnidbProcessor.CloseConnections();
+                ShokoService.AniDBProcessor.ForceLogout();
+                ShokoService.AniDBProcessor.CloseConnections();
                 Thread.Sleep(1000);
 
                 log += "Init..." + Environment.NewLine;
-                ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+                ShokoService.AniDBProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
                     ServerSettings.Instance.AniDb.ServerAddress,
                     ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
 
                 log += "Login..." + Environment.NewLine;
-                if (ShokoService.AnidbProcessor.Login())
+                if (ShokoService.AniDBProcessor.Login())
                 {
                     log += "Login Success!" + Environment.NewLine;
                     log += "Logout..." + Environment.NewLine;
-                    ShokoService.AnidbProcessor.ForceLogout();
+                    ShokoService.AniDBProcessor.ForceLogout();
                     log += "Logged out" + Environment.NewLine;
                 }
                 else

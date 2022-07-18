@@ -117,11 +117,11 @@ namespace Shoko.Server.Repositories.Direct
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
                     HashSet<int> types = CommandTypesGeneral;
-                    bool noUDP = ShokoService.AnidbProcessor.IsUdpBanned ||
-                                 !ShokoService.AnidbProcessor.ValidAniDBCredentials();
+                    bool noUDP = ShokoService.AniDBProcessor.IsUdpBanned ||
+                                 !ShokoService.AniDBProcessor.ValidAniDBCredentials();
                     // This is called very often, so speed it up as much as possible
                     // We can spare bytes of RAM to speed up the command queue
-                    if (ShokoService.AnidbProcessor.IsHttpBanned && noUDP)
+                    if (ShokoService.AniDBProcessor.IsHttpBanned && noUDP)
                     {
                         types = CommandTypesGeneralFullBan;
                     }
@@ -129,7 +129,7 @@ namespace Shoko.Server.Repositories.Direct
                     {
                         types = CommandTypesGeneralUDPBan;
                     }
-                    else if (ShokoService.AnidbProcessor.IsHttpBanned)
+                    else if (ShokoService.AniDBProcessor.IsHttpBanned)
                     {
                         types = CommandTypesGeneralHTTPBan;
                     }

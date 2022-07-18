@@ -33,7 +33,7 @@ namespace Shoko.Server.API.v2.Modules
             if (System.IO.File.Exists(indexLocation))
             {
                 var index = System.IO.File.ReadAllText(indexLocation);
-                var token = "\"Baka, baka, baka!! They found out I was peeking! Now my research is ruined!\" - Jiraiya";
+                var token = "Web UI was not properly installed";
                 if (!index.Contains(token)) return Unauthorized("If trying to update, use api/webui/update");
             }
             WebUIHelper.GetUrlAndUpdate(WebUILatestStableVersion().version, "stable");

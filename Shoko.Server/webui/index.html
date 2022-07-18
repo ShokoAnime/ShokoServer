@@ -1,15 +1,54 @@
 ﻿<!DOCTYPE html>
 
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
-<head>
-    <meta charset="utf-8" />
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Shoko Server</title>
-</head>
-<body>
-    <h1>Shoko Server is running.</h1>
-    <h2>The WebUI is still in development.</h2>
-	<h3>Replace the contents of the /webui/ folder with <a href="https://github.com/japanesemediamanager/ShokoServer-WebUI/releases">ShokoServer-WebUI</a> if you want to try it.</h3>
-    <h3>You can also try to <a href="/api/webui/install">install it automatically</a>.</h3>
-	<h4>"Baka, baka, baka!! They found out I was peeking! Now my research is ruined!" - Jiraiya</h4>
-</body>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/MaterialDesign-Webfont/6.9.96/css/materialdesignicons.min.css"
+      integrity="sha512-8G2pIpgpIJsq+hXzWgiRCQ1q++YBWoPwTvWS7WqZh9QhCOPzzC6nQC/ZYep1g6H3D2pnlm9yXl5BtyI+c6Whog=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer" />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <style>
+    body {
+      background-color: rgb(226 232 240);
+    }
+
+    h1 {
+      font-size: 3rem !important;
+    }
+  </style>
+
+  <body>
+    <div class="container flex h-screen m-auto">
+      <div class="m-auto bg-slate-900 w-full rounded-xl">
+        <div class="grid grid-cols-4 h-80 h-full text-stone-200">
+          <div
+            class="col-span-2 rounded-tl-xl rounded-bl-xl"
+            style="background-image: url(https://shokoanime.com/assets/images/banners/Banner-1.jpg); background-size: cover"></div>
+          <div class="col-span-2 p-12 text-center">
+            <div class="text-4xl text-stone-200 pb-8">Shoko Server Is Running</div>
+            <div class="text-xl pb-12">
+              However, looks like Web UI was not properly installed. No problem, click the
+              <strong>Install Web UI</strong> button below to have Shoko automatically install it.
+            </div>
+            <a class="bg-blue-500 px-6 py-2.5 text-neutral-50 font-medium rounded shadow-md ml-2 text-lg" href="/api/webui/install">
+              <i class="mdi mdi-download-box-outline mx-2 text-xl"></i><button>Install Web UI</button>
+            </a>
+            <a
+              class="bg-blue-500 px-6 py-2.5 text-neutral-50 font-medium rounded shadow-md ml-2 text-lg"
+              href="https://docs.shokoanime.com"
+              target="_blank">
+              <i class="mdi mdi-book-open-outline mx-2 text-xl"> </i><button>Shoko Docs</button>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
 </html>

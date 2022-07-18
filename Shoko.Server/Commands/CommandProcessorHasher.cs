@@ -23,9 +23,9 @@ namespace Shoko.Server.Commands
             ServerInfo.Instance.HasherQueueRunning = !pauseState;
         }
 
-        public override void Init()
+        public override void Init(IServiceProvider provider)
         {
-            base.Init();
+            base.Init(provider);
             QueueState = new QueueStateStruct
             {
                 queueState = QueueStateEnum.StartingHasher,
@@ -83,7 +83,7 @@ namespace Shoko.Server.Commands
                 try
                 {
                     CurrentCommand = crdb;
-                    icr.ProcessCommand();
+                    icr.ProcessCommand(ServiceProvider);
                 }
                 catch (Exception ex)
                 {

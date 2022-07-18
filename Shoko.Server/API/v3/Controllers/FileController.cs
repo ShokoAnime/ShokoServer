@@ -129,10 +129,7 @@ namespace Shoko.Server.API.v3.Controllers
                 return NotFound(FileNotFoundWithFileID);
 
             var user = HttpContext.GetUser(); 
-            var userStats = file.GetUserRecord(user.JMMUserID);
-            if (userStats == null)
-                return NotFound(FileUserStatsNotFoundWithFileID);
-
+            var userStats = file.GetOrCreateUserRecord(user.JMMUserID);
             return new File.FileUserStats(userStats);
         }
 

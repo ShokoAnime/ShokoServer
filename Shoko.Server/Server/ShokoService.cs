@@ -98,7 +98,7 @@ namespace Shoko.Server.Server
             set { lastAniDBPing = value; }
         }
 
-        private static CommandProcessorGeneral cmdProcessorGeneral = new CommandProcessorGeneral();
+        private static readonly CommandProcessorGeneral _cmdProcessorGeneral = new();
 
         public static CommandProcessorGeneral CmdProcessorGeneral
         {
@@ -106,12 +106,12 @@ namespace Shoko.Server.Server
             {
                 lock (cmdLockGeneral)
                 {
-                    return cmdProcessorGeneral;
+                    return _cmdProcessorGeneral;
                 }
             }
         }
 
-        private static CommandProcessorImages cmdProcessorImages = new CommandProcessorImages();
+        private static readonly CommandProcessorImages _cmdProcessorImages = new();
 
         public static CommandProcessorImages CmdProcessorImages
         {
@@ -119,12 +119,12 @@ namespace Shoko.Server.Server
             {
                 lock (cmdLockImages)
                 {
-                    return cmdProcessorImages;
+                    return _cmdProcessorImages;
                 }
             }
         }
 
-        private static CommandProcessorHasher cmdProcessorHasher = new CommandProcessorHasher();
+        private static readonly CommandProcessorHasher _cmdProcessorHasher = new();
 
         public static CommandProcessorHasher CmdProcessorHasher
         {
@@ -132,17 +132,12 @@ namespace Shoko.Server.Server
             {
                 lock (cmdLockHasher)
                 {
-                    return cmdProcessorHasher;
+                    return _cmdProcessorHasher;
                 }
             }
         }
 
-        private static AniDBHelper anidbProcessor = new AniDBHelper();
-
-        public static AniDBHelper AnidbProcessor
-        {
-            get { return anidbProcessor; }
-        }
+        public static AniDBHelper AniDBProcessor = new();
 
         public static void CancelAndWaitForQueues()
         {

@@ -717,7 +717,7 @@ namespace Shoko.Server
 
                     // try the local database first
                     // if not download the data from AniDB now
-                    SVR_AniDB_Anime anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(aid, false,
+                    SVR_AniDB_Anime anime = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(aid, false,
                         ServerSettings.Instance.AniDb.DownloadRelatedAnime);
                     if (anime != null)
                     {

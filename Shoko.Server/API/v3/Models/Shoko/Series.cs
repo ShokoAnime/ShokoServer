@@ -108,13 +108,13 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
         public static bool RefreshAniDBFromCachedXML(HttpContext ctx, SVR_AniDB_Anime anime)
         {
-            return SSS.ShokoService.AnidbProcessor.UpdateCachedAnimeInfoHTTP(anime);
+            return SSS.ShokoService.AniDBProcessor.UpdateCachedAnimeInfoHTTP(anime);
         }
 
         public static bool QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false)
         {
-            if (immediate && !ShokoService.AnidbProcessor.IsHttpBanned) {
-                var anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, force, downloadRelations, 0, createSeriesEntry);
+            if (immediate && !ShokoService.AniDBProcessor.IsHttpBanned) {
+                var anime = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(animeID, force, downloadRelations, 0, createSeriesEntry);
                 if (anime != null) {
                     return true;
                 }

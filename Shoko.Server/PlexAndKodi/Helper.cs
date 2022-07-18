@@ -197,7 +197,7 @@ namespace Shoko.Server.PlexAndKodi
                 Year = v.DateTimeCreated.Year,
                 Medias = new List<Media>()
             };
-            VideoLocal_User vlr = v.GetUserRecord(userid);
+            SVR_VideoLocal_User vlr = v.GetUserRecord(userid);
             if (vlr?.WatchedDate != null)
                 l.LastViewedAt = vlr.WatchedDate.Value.ToUnixTime();
             if (vlr?.ResumePosition > 0)

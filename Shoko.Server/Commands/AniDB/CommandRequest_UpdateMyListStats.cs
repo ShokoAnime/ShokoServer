@@ -36,7 +36,7 @@ namespace Shoko.Server.Commands.AniDB
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_UpdateMyListStats");
 
@@ -69,7 +69,7 @@ namespace Shoko.Server.Commands.AniDB
                 sched.LastUpdate = DateTime.Now;
                 RepoFactory.ScheduledUpdate.Save(sched);
 
-                ShokoService.AnidbProcessor.UpdateMyListStats();
+                ShokoService.AniDBProcessor.UpdateMyListStats();
             }
             catch (Exception ex)
             {

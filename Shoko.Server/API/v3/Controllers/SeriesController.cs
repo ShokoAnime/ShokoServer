@@ -261,7 +261,7 @@ namespace Shoko.Server.API.v3.Controllers
         [NonAction]
         private List<SVR_AniDB_Anime> GetWatchedAnimeForPeriod(SVR_JMMUser user, DateTime? startDate = null, DateTime? endDate = null)
         {
-            IEnumerable<Shoko.Models.Server.VideoLocal_User> userDataQuery = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID);
+            IEnumerable<SVR_VideoLocal_User> userDataQuery = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID);
             if (startDate.HasValue && endDate.HasValue)
                 userDataQuery = userDataQuery
                     .Where(userData => userData.WatchedDate.HasValue && userData.WatchedDate.Value >= startDate.Value && userData.WatchedDate.Value <= endDate.Value);
@@ -905,7 +905,7 @@ namespace Shoko.Server.API.v3.Controllers
 
                 // try the local database first
                 // if not download the data from AniDB now
-                SVR_AniDB_Anime anime = Server.ShokoService.AnidbProcessor.GetAnimeInfoHTTP(aid, false,
+                SVR_AniDB_Anime anime = Server.ShokoService.AniDBProcessor.GetAnimeInfoHTTP(aid, false,
                     ServerSettings.Instance.AniDb.DownloadRelatedAnime);
                 if (anime != null)
                 {

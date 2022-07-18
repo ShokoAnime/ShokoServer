@@ -45,6 +45,11 @@ namespace Shoko.Server.Models
         /// </summary>
         public long Duration => (long) (Media?.GeneralStream?.Duration * 1000 ?? 0);
 
+        /// <summary>
+        /// Duration as a TimeSpan
+        /// </summary>
+        public TimeSpan DurationTimeSpan => new TimeSpan(0, 0, (int)(Media?.GeneralStream?.Duration ?? 0));
+
         public string VideoResolution => Media?.VideoStream == null ? "0x0" : $"{Media.VideoStream.Width}x{Media.VideoStream.Height}";
 
         public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
@@ -112,11 +117,28 @@ namespace Shoko.Server.Models
         }
 
 
-        public VideoLocal_User GetUserRecord(int userID)
+        public SVR_VideoLocal_User GetUserRecord(int userID)
         {
             return RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, VideoLocalID);
         }
 
+        public SVR_VideoLocal_User GetOrCreateUserRecord(int userID)
+        {
+            var userRecord = GetUserRecord(userID);
+            if (userRecord != null)
+                return userRecord;
+            userRecord = new()
+            {
+                JMMUserID = userID,
+                LastUpdated = DateTime.Now,
+                ResumePosition = 0,
+                VideoLocalID = VideoLocalID,
+                WatchedCount = 0,
+                WatchedDate = null,
+            };
+            RepoFactory.VideoLocalUser.Save(userRecord);
+            return userRecord;
+        }
 
         internal AniDB_ReleaseGroup ReleaseGroup
         {
@@ -147,11 +169,11 @@ namespace Shoko.Server.Models
 
         private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
         {
-            VideoLocal_User vidUserRecord = GetUserRecord(userID);
+            SVR_VideoLocal_User vidUserRecord = GetUserRecord(userID);
             if (watched)
             {
                 if (vidUserRecord == null)
-                    vidUserRecord = new VideoLocal_User()
+                    vidUserRecord = new SVR_VideoLocal_User()
                     {
                         JMMUserID = userID,
                         VideoLocalID = VideoLocalID,
@@ -213,9 +235,9 @@ namespace Shoko.Server.Models
 
         public void SetResumePosition(long resumeposition, int userID)
         {
-            VideoLocal_User vuser = GetUserRecord(userID);
+            SVR_VideoLocal_User vuser = GetUserRecord(userID);
             if (vuser == null)
-                vuser = new VideoLocal_User
+                vuser = new SVR_VideoLocal_User
                 {
                     JMMUserID = userID,
                     VideoLocalID = VideoLocalID,
@@ -306,7 +328,7 @@ namespace Shoko.Server.Models
                     int epPercentWatched = 0;
                     foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
                     {
-                        VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
+                        SVR_VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
                         if (vidUser?.WatchedDate != null)
                             epPercentWatched += filexref.Percentage;
 
@@ -351,7 +373,7 @@ namespace Shoko.Server.Models
                     int epPercentWatched = 0;
                     foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
                     {
-                        VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
+                        SVR_VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
                         if (vidUser?.WatchedDate != null)
                             epPercentWatched += filexref.Percentage;
 
@@ -416,7 +438,7 @@ namespace Shoko.Server.Models
                 VideoLocalID = VideoLocalID,
                 Places = Places.Select(a => a.ToClient()).ToList()
             };
-            VideoLocal_User userRecord = GetUserRecord(userID);
+            SVR_VideoLocal_User userRecord = GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {
                 cl.IsWatched = 0;
@@ -480,7 +502,7 @@ namespace Shoko.Server.Models
             cl.VideoLocal_CRC32 = CRC32;
             cl.VideoLocal_HashSource = HashSource;
 
-            VideoLocal_User userRecord = GetUserRecord(userID);
+            SVR_VideoLocal_User userRecord = GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {
                 cl.VideoLocal_IsWatched = 0;
@@ -580,7 +602,7 @@ namespace Shoko.Server.Models
                 VideoLocalID = VideoLocalID,
                 Places = Places.Select(a => a.ToClient()).ToList()
             };
-            VideoLocal_User userRecord = GetUserRecord(userID);
+            SVR_VideoLocal_User userRecord = GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {
                 cl.IsWatched = 0;

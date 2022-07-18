@@ -28,7 +28,7 @@ namespace AniDBAPI
         {
             try
             {
-                if (ShokoService.AnidbProcessor.IsHttpBanned)
+                if (ShokoService.AniDBProcessor.IsHttpBanned)
                 {
                     logger.Info("GetAnimeXMLFromAPI: banned, not getting");
                     return null;
@@ -87,7 +87,7 @@ namespace AniDBAPI
         {
             try
             {
-                if (ShokoService.AnidbProcessor.IsHttpBanned)
+                if (ShokoService.AniDBProcessor.IsHttpBanned)
                 {
                     logger.Info("GetMyListXMLFromAPI: banned, not getting");
                     return null;
@@ -114,7 +114,7 @@ namespace AniDBAPI
         {
             try
             {
-                if (ShokoService.AnidbProcessor.IsHttpBanned)
+                if (ShokoService.AniDBProcessor.IsHttpBanned)
                 {
                     logger.Info("GetVotesXMLFromAPI: banned, not getting");
                     return null;
@@ -148,7 +148,7 @@ namespace AniDBAPI
                 if (-1 < index)
                 {
                     logger.Warn("HTTP Banned!");
-                    ShokoService.AnidbProcessor.IsHttpBanned = true;
+                    ShokoService.AniDBProcessor.IsHttpBanned = true;
                     result = true;
                 }
             }
@@ -157,7 +157,7 @@ namespace AniDBAPI
 
         public static Raw_AniDB_Anime ProcessAnimeDetails(XmlDocument docAnime, int animeID)
         {
-            // most of the genral anime data will be over written by the UDP command
+            // most of the general anime data will be overwritten by the UDP command
             Raw_AniDB_Anime anime = new Raw_AniDB_Anime
             {
                 AnimeID = animeID

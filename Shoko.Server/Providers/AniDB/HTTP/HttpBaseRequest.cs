@@ -1,3 +1,7 @@
+using System;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
 namespace Shoko.Server.Providers.AniDB.Http
 {
     public abstract class HttpBaseRequest<T> where T : class
@@ -8,19 +12,33 @@ namespace Shoko.Server.Providers.AniDB.Http
         /// </summary>
         protected abstract string BaseCommand { get; }
 
-        protected abstract HttpBaseResponse<T> ParseResponse(HttpBaseResponse<string> receivedData);
+        protected abstract HttpBaseResponse<T> ParseResponse(ILogger logger, HttpBaseResponse<string> receivedData);
+
+        protected virtual HttpBaseResponse<T> ParseResponse(IServiceProvider serviceProvider, HttpBaseResponse<string> receivedData)
+        {
+            var factory = serviceProvider.GetService<ILoggerFactory>();
+            var logger = factory.CreateLogger(GetType());
+            return ParseResponse(logger, receivedData);
+        }
 
         public virtual HttpBaseResponse<T> Execute(AniDBHttpConnectionHandler handler)
         {
             Command = BaseCommand.Trim();
-            HttpBaseResponse<string> rawResponse = handler.GetHttp(Command);
-            var response = ParseResponse(rawResponse);
-            PostExecute(response);
+            var rawResponse = handler.GetHttp(Command);
+            var response = ParseResponse(handler.ServiceProvider, rawResponse);
+            PostExecute(handler.ServiceProvider, response);
             return response;
         }
 
-        protected virtual void PostExecute(HttpBaseResponse<T> response)
+        protected virtual void PostExecute(ILogger logger, HttpBaseResponse<T> response)
         {
+        }
+
+        protected virtual void PostExecute(IServiceProvider provider, HttpBaseResponse<T> response)
+        {
+            var factory = provider.GetService<ILoggerFactory>();
+            var logger = factory.CreateLogger(GetType());
+            PostExecute(logger, response);
         }
     }
 }

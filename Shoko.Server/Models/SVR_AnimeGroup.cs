@@ -1151,7 +1151,7 @@ namespace Shoko.Server.Models
         }
 
         string IGroup.Name => GroupName;
-        public IAnime MainSeries => GetAllSeries().Select(a => a.GetAnime())
+        public IAnime MainSeries => GetDefaultSeries()?.GetAnime() ?? GetAllSeries().Select(a => a.GetAnime())
             .FirstOrDefault(a => a != null && a.GetAllTitles().Contains(GroupName));
         IReadOnlyList<IAnime> IGroup.Series => GetAllSeries().Select(a => a.GetAnime()).Where(a => a != null)
             .OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue).ThenBy(a => a.MainTitle)

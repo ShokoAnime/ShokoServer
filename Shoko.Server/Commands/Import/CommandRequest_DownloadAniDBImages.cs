@@ -63,7 +63,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_DownloadAniDBImages: {0}", AnimeID);
 
@@ -91,7 +91,7 @@ namespace Shoko.Server.Commands
                                 return;
                             }
 
-                            downloadURLs.Add(string.Format(ShokoService.AnidbProcessor.ImageServerUrl, anime.Picname));
+                            downloadURLs.Add(string.Format(ShokoService.AniDBProcessor.ImageServerUrl, anime.Picname));
                             fileNames.Add(anime.PosterPath);
                             break;
 
@@ -111,7 +111,7 @@ namespace Shoko.Server.Commands
 
                             foreach (var chr in chrs)
                             {
-                                downloadURLs.Add(string.Format(ShokoService.AnidbProcessor.ImageServerUrl, chr.PicName));
+                                downloadURLs.Add(string.Format(ShokoService.AniDBProcessor.ImageServerUrl, chr.PicName));
                                 fileNames.Add(chr.GetPosterPath());
                             }
 
@@ -136,7 +136,7 @@ namespace Shoko.Server.Commands
 
                             foreach (var creator in creators)
                             {
-                                downloadURLs.Add(string.Format(ShokoService.AnidbProcessor.ImageServerUrl, creator.PicName));
+                                downloadURLs.Add(string.Format(ShokoService.AniDBProcessor.ImageServerUrl, creator.PicName));
                                 fileNames.Add(creator.GetPosterPath());
                             }
 

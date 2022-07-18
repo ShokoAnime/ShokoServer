@@ -202,13 +202,49 @@ namespace Shoko.Server.API.v3.Controllers
             if (pageSize <= 0)
                 return episodeList
                     .Where(episode => seriesDict.Keys.Contains(episode.AnimeSeriesID))
-                    .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, animeDict[a.AnimeSeriesID], seriesDict[a.AnimeSeriesID]))
+                    .Select(episode =>
+                    {
+                        var animeEpisode = episode.AniDB_Episode;
+                        var anime = animeDict[episode.AnimeSeriesID];
+                        var series = seriesDict[episode.AnimeSeriesID];
+                        var (file, userRecord) = episode.GetVideoLocals()
+                            .Select(file =>
+                            {
+                                var userRecord = file.GetUserRecord(user.JMMUserID);
+                                if (userRecord == null)
+                                    return (file, null);
+
+                                return (file, userRecord);
+                            })
+                            .Where(tuple => tuple.Item1 != null)
+                            .OrderByDescending(tuple => tuple.Item2?.LastUpdated)
+                            .FirstOrDefault();
+                        return new Dashboard.EpisodeDetails(animeEpisode, anime, series, file, userRecord);
+                    })
                     .ToList();
             return episodeList
                 .Where(episode => seriesDict.Keys.Contains(episode.AnimeSeriesID))
                 .Skip(pageSize * page)
                 .Take(pageSize)
-                .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, animeDict[a.AnimeSeriesID], seriesDict[a.AnimeSeriesID]))
+                .Select(episode =>
+                {
+                    var animeEpisode = episode.AniDB_Episode;
+                    var anime = animeDict[episode.AnimeSeriesID];
+                    var series = seriesDict[episode.AnimeSeriesID];
+                    var (file, userRecord) = episode.GetVideoLocals()
+                        .Select(file =>
+                        {
+                            var userRecord = file.GetUserRecord(user.JMMUserID);
+                            if (userRecord == null)
+                                return (file, null);
+
+                            return (file, userRecord);
+                        })
+                        .Where(tuple => tuple.Item1 != null)
+                        .OrderByDescending(tuple => tuple.Item2?.LastUpdated)
+                        .FirstOrDefault();
+                    return new Dashboard.EpisodeDetails(animeEpisode, anime, series, file, userRecord);
+                })
                 .ToList();
         }
 
@@ -251,31 +287,41 @@ namespace Shoko.Server.API.v3.Controllers
         {
             var user = HttpContext.GetUser();
             var episodeList = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID)
-                .Where(userData => userData.WatchedDate == null && userData.ResumePosition != 0)
-                .OrderByDescending(userData => userData.LastUpdated)
-                .Select(userData => RepoFactory.VideoLocal.GetByID(userData.VideoLocalID))
-                .Where(file => file != null)
-                .Select(file => file.EpisodeCrossRefs.OrderBy(xref => xref.EpisodeOrder).ThenBy(xref => xref.Percentage).FirstOrDefault())
-                .Where(xref => xref != null)
-                .Select(xref => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID))
-                .Where(episode => episode != null)
-                .DistinctBy(episode => episode.AnimeSeriesID)
+                .Where(userRecord => userRecord.WatchedDate == null && userRecord.ResumePosition != 0)
+                .OrderByDescending(userRecord => userRecord.LastUpdated)
+                .Select(userRecord =>
+                {
+                    var file = RepoFactory.VideoLocal.GetByID(userRecord.VideoLocalID);
+                    if (file == null)
+                        return (null, null, null);
+                    var xref = file.EpisodeCrossRefs.OrderBy(xref => xref.EpisodeOrder).ThenBy(xref => xref.Percentage).FirstOrDefault();
+                    if (xref == null)
+                        return (null, null, null);
+                    var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
+                    if (episode == null)
+                        return (null, null, null);
+                    return (episode, file, userRecord);
+                })
+                .Where(tuple => tuple.Item1 != null)
+                .DistinctBy(tuple => tuple.Item1.AnimeSeriesID)
                 .ToList();
             var seriesDict = episodeList
-                .Select(episode => episode.GetAnimeSeries())
-                .Where(series => series != null)
+                .Select(tuple => tuple.Item1.GetAnimeSeries())
+                .Where(series => series != null && user.AllowedSeries(series))
                 .ToDictionary(series => series.AnimeSeriesID);
+            var animeDict = seriesDict.Values
+                .ToDictionary(series => series.AnimeSeriesID, series => series.GetAnime());
 
             if (pageSize <= 0)
                 return episodeList
-                    .Where(episode => user.AllowedSeries(seriesDict[episode.AnimeSeriesID]))
-                    .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, seriesDict[a.AnimeSeriesID].GetAnime(), seriesDict[a.AnimeSeriesID]))
+                    .Where(tuple => seriesDict.Keys.Contains(tuple.Item1.AnimeSeriesID))
+                    .Select(tuple => new Dashboard.EpisodeDetails(tuple.Item1.AniDB_Episode, animeDict[tuple.Item1.AnimeSeriesID], seriesDict[tuple.Item1.AnimeSeriesID], tuple.Item2, tuple.Item3))
                     .ToList();
             return episodeList
-                .Where(episode => user.AllowedSeries(seriesDict[episode.AnimeSeriesID]))
+                .Where(tuple => seriesDict.Keys.Contains(tuple.Item1.AnimeSeriesID))
                 .Skip(pageSize * page)
                 .Take(pageSize)
-                .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, seriesDict[a.AnimeSeriesID].GetAnime(), seriesDict[a.AnimeSeriesID]))
+                .Select(tuple => new Dashboard.EpisodeDetails(tuple.Item1.AniDB_Episode, animeDict[tuple.Item1.AnimeSeriesID], seriesDict[tuple.Item1.AnimeSeriesID], tuple.Item2, tuple.Item3))
                 .ToList();
         }
 
@@ -306,7 +352,13 @@ namespace Shoko.Server.API.v3.Controllers
                 {
                     var anime = animeDict[episode.AnimeID];
                     if (seriesDict.TryGetValue(episode.AnimeID, out var series))
-                        return new Dashboard.EpisodeDetails(episode, anime, series);
+                    {
+                        var xref = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID)
+                            .OrderBy(xref => xref.Percentage)
+                            .FirstOrDefault();
+                        var file = xref != null ? RepoFactory.VideoLocal.GetByHash(xref.Hash) : null;
+                        return new Dashboard.EpisodeDetails(episode, anime, series, file);
+                    }
                     return new Dashboard.EpisodeDetails(episode, anime);
                 })
                 .ToList();

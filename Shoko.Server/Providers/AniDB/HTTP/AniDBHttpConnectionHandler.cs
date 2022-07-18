@@ -15,39 +15,46 @@ namespace Shoko.Server.Providers.AniDB.Http
         public override string Type => "HTTP";
         public override UpdateType BanEnum => UpdateType.HTTPBan;
 
-        public AniDBHttpConnectionHandler(ILogger<AniDBHttpConnectionHandler> logger, CommandProcessor queue, HttpRateLimiter rateLimiter) : base(logger, queue, rateLimiter) { }
+        public AniDBHttpConnectionHandler(IServiceProvider provider, CommandProcessor queue, HttpRateLimiter rateLimiter) : base(provider, queue, rateLimiter) { }
 
         public HttpBaseResponse<string> GetHttp(string url)
         {
+            var response = GetHttpDirectly(url);
+
+            return response;
+        }
+
+        public HttpBaseResponse<string> GetHttpDirectly(string url)
+        {
             try
             {
+                if (IsBanned) throw new AniDBBannedException { BanType = UpdateType.HTTPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength) };
                 RateLimiter.EnsureRate();
 
-                HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);
+                var webReq = (HttpWebRequest) WebRequest.Create(url);
                 webReq.Timeout = 20000; // 20 seconds
                 webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
                 webReq.UserAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1";
 
                 webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-                using HttpWebResponse webResponse = (HttpWebResponse) webReq.GetResponse();
+                using var webResponse = (HttpWebResponse) webReq.GetResponse();
                 if (webResponse.StatusCode == HttpStatusCode.OK && webResponse.ContentLength == 0)
                     throw new EndOfStreamException("Response Body was expected, but none returned");
-                
-                using Stream responseStream = webResponse.GetResponseStream();
+
+                using var responseStream = webResponse.GetResponseStream();
                 if (responseStream == null)
                     throw new EndOfStreamException("Response Body was expected, but none returned");
 
-                string charset = webResponse.CharacterSet;
+                var charset = webResponse.CharacterSet;
                 Encoding encoding = null;
                 if (!string.IsNullOrEmpty(charset))
                     encoding = Encoding.GetEncoding(charset);
-                if (encoding == null)
-                    encoding = Encoding.UTF8;
-                StreamReader reader = new StreamReader(responseStream, encoding);
+                encoding ??= Encoding.UTF8;
+                var reader = new StreamReader(responseStream, encoding);
 
-                string output = reader.ReadToEnd();
+                var output = reader.ReadToEnd();
 
-                if (CheckForBan(output)) throw new UnexpectedHttpResponseException("Banned", webResponse.StatusCode, output);
+                if (CheckForBan(output)) throw new AniDBBannedException { BanType = UpdateType.HTTPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength) };
                 return new HttpBaseResponse<string> {Response = output, Code = webResponse.StatusCode};
             }
             catch (Exception ex)
@@ -57,10 +64,10 @@ namespace Shoko.Server.Providers.AniDB.Http
             }
         }
 
-        private bool CheckForBan(string xmlresult)
+        private bool CheckForBan(string xmlResult)
         {
-            if (string.IsNullOrEmpty(xmlresult)) return false;
-            var index = xmlresult.IndexOf(@">banned<", StringComparison.InvariantCultureIgnoreCase);
+            if (string.IsNullOrEmpty(xmlResult)) return false;
+            var index = xmlResult.IndexOf(@">banned<", StringComparison.InvariantCultureIgnoreCase);
             if (index <= -1) return false;
             IsBanned = true;
             return true;

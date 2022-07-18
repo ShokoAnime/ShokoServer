@@ -1,9 +1,9 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Server.API.v3.Models.Common
 {
@@ -56,67 +56,12 @@ namespace Shoko.Server.API.v3.Models.Common
                 "summary" => RelationType.Summary,
                 "other" => RelationType.Other,
                 "alternative setting" => RelationType.AlternativeSetting,
+                "alternative version" => RelationType.AlternativeVersion,
                 "same setting" => RelationType.SameSetting,
                 "character" => RelationType.SharedCharacters,
                 
                 _ => RelationType.Other,
             };
-        }
-
-        /// <summary>
-        /// Explains how the main entry relates to the related entry.
-        /// </summary>
-        public enum RelationType
-        {
-            /// <summary>
-            /// The relation between the entries cannot be explained in simple terms.
-            /// </summary>
-            Other = 0,
-
-            /// <summary>
-            /// The entries use the same setting, but follow different stories.
-            /// </summary>
-            SameSetting = 1,
-
-            /// <summary>
-            /// The entries use the same base story, but is set in alternate settings.
-            /// </summary>
-            AlternativeSetting = 2,
-
-            /// <summary>
-            /// The entries tell different stories in different settings but othwerwise shares some character(s).
-            /// </summary>
-            SharedCharacters = 3,
-
-            /// <summary>
-            /// The first story either continues, or expands upon the story of the related entry.
-            /// </summary>
-            Prequel = 20,
-
-            /// <summary>
-            /// The related entry is the main-story for the main entry, which is a side-story.
-            /// </summary>
-            MainStory = 21,
-
-            /// <summary>
-            /// The related entry is a longer version of the summerized events in the main entry.
-            /// </summary>
-            FullStory = 22,
-
-            /// <summary>
-            /// The related entry either continues, or expands upon the story of the main entry.
-            /// </summary>
-            Sequel = 40,
-
-            /// <summary>
-            /// The related entry is a side-story for the main entry, which is the main-story.
-            /// </summary>
-            SideStory = 41,
-
-            /// <summary>
-            /// The related entry summerizes the events of the story in the main entry.
-            /// </summary>
-            Summary = 42,
         }
 
         /// <summary>
@@ -143,16 +88,16 @@ namespace Shoko.Server.API.v3.Models.Common
         /// </summary>
         /// <param name="type">The relation to reverse.</param>
         /// <returns>The reversed relation.</returns>
-        public static SeriesRelation.RelationType Reverse(this SeriesRelation.RelationType type)
+        public static RelationType Reverse(this RelationType type)
         {
-            return (type) switch
+            return type switch
             {
-                SeriesRelation.RelationType.Prequel => SeriesRelation.RelationType.Sequel,
-                SeriesRelation.RelationType.Sequel => SeriesRelation.RelationType.Prequel,
-                SeriesRelation.RelationType.MainStory => SeriesRelation.RelationType.SideStory,
-                SeriesRelation.RelationType.SideStory => SeriesRelation.RelationType.MainStory,
-                SeriesRelation.RelationType.FullStory => SeriesRelation.RelationType.Summary,
-                SeriesRelation.RelationType.Summary => SeriesRelation.RelationType.FullStory,
+                RelationType.Prequel => RelationType.Sequel,
+                RelationType.Sequel => RelationType.Prequel,
+                RelationType.MainStory => RelationType.SideStory,
+                RelationType.SideStory => RelationType.MainStory,
+                RelationType.FullStory => RelationType.Summary,
+                RelationType.Summary => RelationType.FullStory,
                 _ => type,
             };
         }

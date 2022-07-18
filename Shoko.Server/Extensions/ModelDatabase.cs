@@ -149,16 +149,9 @@ namespace Shoko.Server.Extensions
             return RepoFactory.AniDB_Episode.GetByEpisodeID(cross.EpisodeID);
         }
 
-        public static VideoLocal_User GetVideoLocalUserRecord(this CrossRef_File_Episode cross, int userID)
+        public static SVR_VideoLocal_User GetVideoLocalUserRecord(this CrossRef_File_Episode cross, int userID)
         {
-            SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHash(cross.Hash);
-            if (vid != null)
-            {
-                VideoLocal_User vidUser = vid.GetUserRecord(userID);
-                if (vidUser != null) return vidUser;
-            }
-
-            return null;
+            return RepoFactory.VideoLocal.GetByHash(cross.Hash)?.GetUserRecord(userID);
         }
 
         public static SVR_ImportFolder GetImportFolder1(this DuplicateFile duplicatefile) => RepoFactory.ImportFolder

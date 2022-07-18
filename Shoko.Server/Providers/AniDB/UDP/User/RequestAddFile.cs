@@ -9,7 +9,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
     /// Add a file to MyList. If it doesn't exist, it will return the MyListID for future updates.
     /// If it exists, it will return the current status on AniDB. 
     /// </summary>
-    public class RequestAddFile : UDPBaseRequest<ResponseAddFile>
+    public class RequestAddFile : UDPBaseRequest<ResponseMyListFile>
     {
         // These are dependent on context
         protected override string BaseCommand
@@ -40,8 +40,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
         
-        protected override UDPBaseResponse<ResponseAddFile> ParseResponse(UDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseMyListFile> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
         {
+            var code = response.Code;
+            var receivedData = response.Response;
             switch (code)
             {
                 case UDPReturnCode.MYLIST_ENTRY_ADDED:
@@ -54,15 +56,16 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                     if (arrResult.Length >= 2)
                     {
                         int.TryParse(arrResult[1], out int myListID);
-                        return new UDPBaseResponse<ResponseAddFile>
+                        return new UDPBaseResponse<ResponseMyListFile>
                         {
                             Code = code,
-                            Response = new ResponseAddFile
+                            Response = new ResponseMyListFile
                             {
                                 MyListID = myListID,
                                 State = State,
                                 IsWatched = IsWatched,
-                                WatchedDate = WatchedDate
+                                WatchedDate = WatchedDate,
+                                UpdatedAt = DateTime.Now,
                             }
                         };
                     }
@@ -85,32 +88,34 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                             Response = receivedData,
                             ReturnCode = code
                         };
-                        
 
                         GetFile_State state = (GetFile_State) int.Parse(arrStatus[6]);
 
                         int viewdate = int.Parse(arrStatus[7]);
+                        int updatedate = int.Parse(arrStatus[5]);
                         bool watched = viewdate > 0;
-
+                        DateTime? updatedAt = null;
                         DateTime? watchedDate = null;
+                        if (updatedate > 0)
+                            updatedAt = DateTime.UnixEpoch
+                            .AddSeconds(updatedate)
+                            .ToLocalTime();
                         if (watched)
-                        {
-                            DateTime utcDate = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                            utcDate = utcDate.AddSeconds(viewdate);
+                            watchedDate = DateTime.UnixEpoch
+                                .AddSeconds(viewdate)
+                                .ToLocalTime();
 
-                            watchedDate = utcDate.ToLocalTime();
-                        }
-
-                        return new UDPBaseResponse<ResponseAddFile>
+                        return new UDPBaseResponse<ResponseMyListFile>
                         {
                             Code = code,
-                            Response = new ResponseAddFile
+                            Response = new ResponseMyListFile
                             {
                                 MyListID = myListID,
                                 State = state,
                                 IsWatched = watched,
-                                WatchedDate = watchedDate
-                            }
+                                WatchedDate = watchedDate,
+                                UpdatedAt = updatedAt,
+                            },
                         };
                     }
                     break;

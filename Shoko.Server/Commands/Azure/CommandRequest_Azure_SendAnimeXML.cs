@@ -38,7 +38,7 @@ namespace Shoko.Server.Commands.Azure
             GenerateCommandID();
         }
 
-        public override void ProcessCommand()
+        public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             try
             {
