@@ -274,6 +274,33 @@ namespace Shoko.Server.API.v3.Controllers
                 .ToList();
         }
 
+        /// <summary>
+        /// Get the next <see cref="Episode"/> for the <see cref="Series"/> with <paramref name="seriesID"/>.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="Filter"/> or <see cref="Group"/> is irrelevant at this level.
+        /// </remarks>
+        /// <param name="seriesID">Series ID</param>
+        /// <param name="onlyUnwatched">Only show the next unwatched episode.</param>
+        /// <param name="includeSpecials">Include specials in the search.</param>
+        /// <returns></returns>
+        [HttpGet("Series/{seriesID}/Episode/NextUp")]
+        public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID, [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true)
+        {
+            var user = User;
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null)
+                return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
+            if (!user.AllowedSeries(series))
+                return Forbid(SeriesController.SeriesForbiddenForUser);
+
+            var episode = series.GetNextEpisode(user.JMMUserID, onlyUnwatched);
+            if (episode == null)
+                return null;
+            
+            return new Episode(HttpContext, episode);
+        }
+
         #endregion
         #region Episode
 

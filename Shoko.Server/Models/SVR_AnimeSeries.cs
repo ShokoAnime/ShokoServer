@@ -303,22 +303,26 @@ namespace Shoko.Server.Models
             return v;
         }
 
-        private SVR_AnimeSeries_User GetOrCreateUserRecord(int userid)
+        public SVR_AnimeSeries_User GetUserRecord(int userID)
         {
-            SVR_AnimeSeries_User rr = GetUserRecord(userid);
-            if (rr != null)
-                return rr;
-            rr = new SVR_AnimeSeries_User(userid, AnimeSeriesID)
-            {
-                WatchedCount = 0,
-                UnwatchedEpisodeCount = 0,
-                PlayedCount = 0,
-                StoppedCount = 0,
-                WatchedEpisodeCount = 0,
-                WatchedDate = null
-            };
-            RepoFactory.AnimeSeries_User.Save(rr);
-            return rr;
+            return RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, AnimeSeriesID);
+        }
+
+        public SVR_AnimeSeries_User GetOrCreateUserRecord(int userID)
+        {
+            var userRecord = GetUserRecord(userID);
+            if (userRecord != null)
+                return userRecord;
+            userRecord = new SVR_AnimeSeries_User(userID, AnimeSeriesID);
+            RepoFactory.AnimeSeries_User.Save(userRecord);
+            return userRecord;
+        }
+
+        public void TouchUserRecord(int userID)
+        {
+            var serUserRecord = GetOrCreateUserRecord(userID);
+            serUserRecord.LastEpisodeUpdate = DateTime.Now;
+            RepoFactory.AnimeSeries_User.Save(serUserRecord);
         }
 
         public SVR_AnimeEpisode GetLastEpisodeWatched(int userID)
@@ -347,11 +351,73 @@ namespace Shoko.Server.Models
             return watchedep;
         }
 
-        public SVR_AnimeSeries_User GetUserRecord(int userID)
+        /// <summary>
+        /// Get the most recent activly watched episode for the user.
+        /// </summary>
+        /// <param name="userID">User ID</param>
+        /// <param name="includeSpecials">Include specials when searching.</param>
+        /// <returns></returns>
+        public SVR_AnimeEpisode GetActiveEpisode(int userID, bool includeSpecials = true)
         {
-            return RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, AnimeSeriesID);
+            // Filter the episodes to only normal or special episodes and order them in rising order.
+            var episodes = GetAnimeEpisodes()
+                .Select(episode => (episode, episode.AniDB_Episode))
+                .Where(tuple => tuple.AniDB_Episode.EpisodeType  == (int) EpisodeType.Episode || (includeSpecials && tuple.AniDB_Episode.EpisodeType == (int) EpisodeType.Special))
+                .OrderBy(tuple => tuple.AniDB_Episode.EpisodeType)
+                .ThenBy(tuple => tuple.AniDB_Episode.EpisodeNumber)
+                .Select(tuple => tuple.episode)
+                .ToList();
+            // Look for active watch sessions and return the episode for the most recent session if found.
+            var (episode, _) = episodes
+                .SelectMany(episode => episode.GetVideoLocals().Select(file => (episode, file.GetUserRecord(userID))))
+                .Where(tuple => tuple.Item2 != null)
+                .OrderByDescending(tuple => tuple.Item2.LastUpdated)
+                .FirstOrDefault(tuple => tuple.Item2.ResumePosition > 0);
+            return episode;
         }
 
+        /// <summary>
+        /// Get the next episode for the series for a user.
+        /// </summary>
+        /// <param name="userID">User ID</param>
+        /// <param name="onlyUnwatched">Only check for unwatched episodes.</param>
+        /// <param name="includeSpecials">Include specials when searching.</param>
+        /// <returns></returns>
+        public SVR_AnimeEpisode GetNextEpisode(int userID, bool onlyUnwatched, bool includeSpecials = true)
+        {
+            // Filter the episodes to only normal or special episodes and order them in rising order.
+            var episodes = GetAnimeEpisodes()
+                .Select(episode => (episode, episode.AniDB_Episode))
+                .Where(tuple => tuple.AniDB_Episode.EpisodeType  == (int) EpisodeType.Episode || (includeSpecials && tuple.AniDB_Episode.EpisodeType == (int) EpisodeType.Special))
+                .OrderBy(tuple => tuple.AniDB_Episode.EpisodeType)
+                .ThenBy(tuple => tuple.AniDB_Episode.EpisodeNumber)
+                .Select(tuple => tuple.episode)
+                .ToList();
+            // Look for active watch sessions and return the episode for the most recent session if found.
+            if (!onlyUnwatched)
+            {
+                var (episode, _) = episodes
+                    .SelectMany(episode => episode.GetVideoLocals().Select(file => (episode, file.GetUserRecord(userID))))
+                    .Where(tuple => tuple.Item2 != null)
+                    .OrderByDescending(tuple => tuple.Item2.LastUpdated)
+                    .FirstOrDefault(tuple => tuple.Item2.ResumePosition > 0);
+                if (episode != null)
+                    return episode;
+            }
+            // Skip check if there is an active watch session for the series and we don't allow active watch sessions.
+            else if (episodes.Any(episode => episode.GetVideoLocals().Any(file => (file.GetUserRecord(userID)?.ResumePosition ?? 0) > 0)))
+                return null;
+            // Find the first episode that's unwatched.
+            return episodes
+                .Where(episode =>
+                {
+                    var episodeUserRecord = episode.GetUserRecord(userID);
+                    if (episodeUserRecord == null)
+                        return true;
+                    return episodeUserRecord.WatchedCount == 0 || !episodeUserRecord.WatchedDate.HasValue;
+                })
+                .FirstOrDefault(episode => episode.GetVideoLocals().Count > 0);
+        }
 
         public SVR_AniDB_Anime GetAnime()
         {
@@ -1060,8 +1126,7 @@ namespace Shoko.Server.Models
             {
                 foreach (SVR_JMMUser juser in RepoFactory.JMMUser.GetAll())
                 {
-                    SVR_AnimeSeries_User userRecord = GetUserRecord(juser.JMMUserID) ??
-                                                      new SVR_AnimeSeries_User(juser.JMMUserID, AnimeSeriesID);
+                    SVR_AnimeSeries_User userRecord = GetOrCreateUserRecord(juser.JMMUserID);
 
                     int unwatchedCount = 0;
                     int watchedCount = 0;

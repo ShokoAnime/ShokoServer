@@ -783,5 +783,91 @@ namespace Shoko.Server.Databases
                 }
             }
         }
+
+        public static void FixWatchDates()
+        {
+            // Reset incorrectly parsed watch dates for anidb file.
+            logger.Debug($"Looking for faulty anidb file entries...");
+            var anidbFilesToSave = new List<SVR_AniDB_File>();
+            foreach (var anidbFile in RepoFactory.AniDB_File.GetAll())
+            {
+                if (anidbFile.WatchedDate.HasValue && anidbFile.WatchedDate.Value.ToUniversalTime().Equals(DateTime.UnixEpoch))
+                {
+                    anidbFile.WatchedDate = null;
+                    anidbFile.IsWatched = 0;
+                    anidbFilesToSave.Add(anidbFile);
+                }
+            }
+            logger.Debug($"Found {anidbFilesToSave.Count} anidb file entries to fix.");
+            RepoFactory.AniDB_File.Save(anidbFilesToSave);
+            anidbFilesToSave.Clear();
+            logger.Debug($"Looking for faulty episode user records...");
+            // Fetch every episode user record stored to both remove orphaned records and to make sure the watch date is correct.
+            var userDict = RepoFactory.JMMUser.GetAll().ToDictionary(user => user.JMMUserID);
+            var fileListDict = RepoFactory.AnimeEpisode.GetAll().ToDictionary(episode => episode.AnimeEpisodeID, episode => episode.GetVideoLocals());
+            var episodesURsToSave = new List<SVR_AnimeEpisode_User>();
+            var episodeURsToRemove = new List<SVR_AnimeEpisode_User>();
+            foreach (var episodeUserRecord in RepoFactory.AnimeEpisode_User.GetAll())
+            {
+                // Remove any unkown episode user records.
+                if (!fileListDict.ContainsKey(episodeUserRecord.AnimeEpisodeID) || !userDict.ContainsKey(episodeUserRecord.JMMUserID))
+                {
+                    episodeURsToRemove.Add(episodeUserRecord);
+                    continue;
+                }
+                // Fetch the file user record for when a file for the episode was last watched.
+                var fileUserRecord = fileListDict[episodeUserRecord.AnimeEpisodeID]
+                    .Select(file => file.GetUserRecord(episodeUserRecord.JMMUserID))
+                    .Where(record => record != null)
+                    .OrderByDescending(record => record.LastUpdated)
+                    .FirstOrDefault(record => record.WatchedDate.HasValue);
+                if (fileUserRecord != null)
+                {
+                    // Check if the episode user record contains the same date and only update it if it does not.
+                    if (!episodeUserRecord.WatchedDate.HasValue || !episodeUserRecord.WatchedDate.Value.Equals(fileUserRecord.WatchedDate.Value))
+                    {
+                        episodeUserRecord.WatchedDate = fileUserRecord.WatchedDate;
+                        if (episodeUserRecord.WatchedCount == 0)
+                            episodeUserRecord.WatchedCount++;
+                        episodesURsToSave.Add(episodeUserRecord);
+                    }
+                }
+                // We couldn't find a watched date for any of the files, so make sure the episode user record is also marked as unwatched.
+                else if (episodeUserRecord.WatchedDate.HasValue)
+                {
+                    episodeUserRecord.WatchedDate = null;
+                    episodesURsToSave.Add(episodeUserRecord);
+                }
+            }
+            logger.Debug($"Found {episodesURsToSave.Count} episode user records to fix.");
+            // Update the client contracts and save the changes to the database.
+            RepoFactory.AnimeEpisode_User.Delete(episodeURsToRemove);
+            foreach (var episodeUserRecord in episodesURsToSave)
+            {
+                logger.Debug($"Updating episode user contract for user \"{userDict[episodeUserRecord.JMMUserID].Username}\". (UserID={episodeUserRecord.JMMUserID},EpisodeID={episodeUserRecord.AnimeEpisodeID},SeriesID={episodeUserRecord.AnimeSeriesID})");
+                RepoFactory.AnimeEpisode_User.Save(episodeUserRecord);
+            }
+            logger.Debug($"Updating series user records and series stats.");
+            // Update all the series and groups to use the new watch dates.
+            var seriesList = episodesURsToSave
+                .GroupBy(record => record.AnimeSeriesID)
+                .Select(records => (RepoFactory.AnimeSeries.GetByID(records.Key), records.Select(record => record.JMMUserID).Distinct()));
+            foreach (var (series, userIDs) in seriesList)
+            {
+                // No idea why we would have episode entries for a deleted series, but just in case.
+                if (series == null)
+                    continue;
+                // Update the timestamp for when an episode for the series was last partially or fully watched.
+                foreach (var userID in userIDs)
+                {
+                    var seriesUserRecord = series.GetOrCreateUserRecord(userID);
+                    seriesUserRecord.LastEpisodeUpdate = DateTime.Now;
+                    logger.Debug($"Updating series user contract for user \"{userDict[seriesUserRecord.JMMUserID].Username}\". (UserID={seriesUserRecord.JMMUserID},SeriesID={seriesUserRecord.AnimeSeriesID})");
+                    RepoFactory.AnimeSeries_User.Save(seriesUserRecord);
+                }
+                // Update the rest of the stats for the series.
+                series.UpdateStats(true, true, true);
+            }
+        }
     }
 }
