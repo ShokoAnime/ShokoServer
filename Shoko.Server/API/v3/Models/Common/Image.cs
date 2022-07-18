@@ -66,7 +66,7 @@ namespace Shoko.Server.API.v3.Models.Common
             if (type == ImageEntityType.Static)
                 throw new ArgumentException("Static Resources do not use an integer ID");
             
-            RelativeFilepath = GetImagePath(type, id).Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
+            RelativeFilepath = GetImagePath(type, id)?.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
             /*
             var imagePath = GetImagePath(type, id);
             if (string.IsNullOrEmpty(imagePath)) {
