@@ -8,14 +8,14 @@ using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Connection
 {
-    public class RequestLogin : UDPBaseRequest<ResponseLogin>
+    public class RequestLogin : UDPRequest<ResponseLogin>
     {
         public string Username { get; set; }
         public string Password { get; set; }
 
         protected override string BaseCommand => $"AUTH user={Username}&pass={Password}&protover=3&client=ommserver&clientver=2&comp=1&imgserver=1&enc=utf-16";
 
-        protected override UDPBaseResponse<ResponseLogin> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<ResponseLogin> ParseResponse(ILogger logger, UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -25,7 +25,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             string sessionID = receivedData.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries).Skip(1).FirstOrDefault();
             if (string.IsNullOrWhiteSpace(sessionID)) throw new UnexpectedUDPResponseException(code, receivedData);
             string imageServer = receivedData.Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
-            return new UDPBaseResponse<ResponseLogin>
+            return new UDPResponse<ResponseLogin>
             {
                 Response = new ResponseLogin {SessionID = sessionID, ImageServer = imageServer}, Code = code
             };
@@ -36,12 +36,12 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             // Override to prevent attaching our non-existent sessionID
         }
         
-        public override UDPBaseResponse<ResponseLogin> Execute(IUDPConnectionHandler handler)
+        public override UDPResponse<ResponseLogin> Execute(IUDPConnectionHandler handler)
         {
             Command = BaseCommand;
             PreExecute(handler.SessionID);
             // LOGIN commands have special needs, so we want to handle this differently
-            UDPBaseResponse<string> rawResponse = handler.CallAniDBUDPDirectly(Command, false, true, false, true);
+            UDPResponse<string> rawResponse = handler.CallAniDBUDPDirectly(Command, false, true, false, true);
             var factory = handler.ServiceProvider.GetRequiredService<ILoggerFactory>();
             var logger = factory.CreateLogger(GetType());
             var response = ParseResponse(logger, rawResponse);

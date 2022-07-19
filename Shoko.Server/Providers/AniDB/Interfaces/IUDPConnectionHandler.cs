@@ -14,7 +14,7 @@ namespace Shoko.Server.Providers.AniDB.Interfaces
         bool Login();
         void ForceLogout();
         void ForceReconnection();
-        UDPBaseResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode=true, bool disableLogging=false, bool isPing=false, bool returnFullResponse=false);
-        UDPBaseResponse<string> CallAniDBUDP(string command, bool needsUnicode = true, bool disableLogging = false, bool isPing = false);
+        UDPResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode=true, bool disableLogging=false, bool isPing=false, bool returnFullResponse=false);
+        UDPResponse<string> CallAniDBUDP(string command, bool needsUnicode = true, bool disableLogging = false, bool isPing = false);
     }
 }

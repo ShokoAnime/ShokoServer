@@ -1274,7 +1274,7 @@ namespace Shoko.Server.Renamer
                 {
                     bool isCensored = false;
                     if (aniFile != null)
-                        isCensored = aniFile.IsCensored == 1;
+                        isCensored = aniFile.IsCensored ?? false;
 
                     if (!isCensored)
                     {
@@ -1873,7 +1873,7 @@ namespace Shoko.Server.Renamer
             if (action.Trim().Contains(Constants.FileRenameTag.Censored))
             {
                 string censored = "cen";
-                if (aniFile?.IsCensored == 0)
+                if (aniFile?.IsCensored ?? false)
                     censored = "unc";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.Censored, censored);
             }

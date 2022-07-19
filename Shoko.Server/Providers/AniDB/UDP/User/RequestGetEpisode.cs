@@ -5,28 +5,32 @@ using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User
 {
-    public class RequestGetEpisode : UDPBaseRequest<ResponseMyListFile>
+    public class RequestGetEpisode : UDPRequest<ResponseMyListFile>
     {
         protected override string BaseCommand
         {
             get
             {
-                return $"MYLIST aid={AnimeID}&epno={EpisodeNumber}";
+                var type = "";
+                if (EpisodeType != EpisodeType.Episode)
+                    type = EpisodeType.ToString()[..1];
+                return $"MYLIST aid={AnimeID}&epno={type+EpisodeNumber}";
             }
         }
 
         public int AnimeID { get; set; }
 
         public int EpisodeNumber { get; set; }
+        public EpisodeType EpisodeType { get; set; } = EpisodeType.Episode;
 
-        protected override UDPBaseResponse<ResponseMyListFile> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<ResponseMyListFile> ParseResponse(ILogger logger, UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
             switch (code)
             {
                 case UDPReturnCode.NO_SUCH_ENTRY:
-                    return new UDPBaseResponse<ResponseMyListFile>
+                    return new UDPResponse<ResponseMyListFile>
                     {
                         Code = code,
                         Response = null,
@@ -60,7 +64,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                                 .AddSeconds(viewdate)
                                 .ToLocalTime();
 
-                        return new UDPBaseResponse<ResponseMyListFile>
+                        return new UDPResponse<ResponseMyListFile>
                         {
                             Code = code,
                             Response = new ResponseMyListFile

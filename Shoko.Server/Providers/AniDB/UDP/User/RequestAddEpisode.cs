@@ -5,13 +5,16 @@ using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User
 {
-    public class RequestAddEpisode : UDPBaseRequest<ResponseMyListFile>
+    public class RequestAddEpisode : UDPRequest<ResponseMyListFile>
     {
         protected override string BaseCommand
         {
             get
             {
-                var command = $"MYLISTADD aid={AnimeID}&epno={EpisodeNumber}&generic=1&state={State}";
+                var type = "";
+                if (EpisodeType != EpisodeType.Episode)
+                    type = EpisodeType.ToString()[..1];
+                var command = $"MYLISTADD aid={AnimeID}&epno={type+EpisodeNumber}&generic=1&state={State}";
                 if (IsWatched)
                 {
                     var date = WatchedDate ?? DateTime.Now;
@@ -29,13 +32,14 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         public int AnimeID { get; set; }
 
         public int EpisodeNumber { get; set; }
+        public EpisodeType EpisodeType { get; set; } = EpisodeType.Episode;
 
         public MyList_State State { get; set; }
 
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
 
-        protected override UDPBaseResponse<ResponseMyListFile> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<ResponseMyListFile> ParseResponse(ILogger logger, UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -44,7 +48,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                 case UDPReturnCode.MYLIST_ENTRY_ADDED:
                 {
                     // We're adding a generic file, so it won't return a MyListID
-                    return new UDPBaseResponse<ResponseMyListFile>
+                    return new UDPResponse<ResponseMyListFile>
                     {
                         Code = code,
                         Response = new ResponseMyListFile
@@ -85,7 +89,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                                 .AddSeconds(viewdate)
                                 .ToLocalTime();
 
-                        return new UDPBaseResponse<ResponseMyListFile>
+                        return new UDPResponse<ResponseMyListFile>
                         {
                             Code = code,
                             Response = new ResponseMyListFile
