@@ -318,7 +318,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             var images = new Images();
             AddAniDBPoster(ctx, images, animeID);
             AddTvDBImages(ctx, images, animeID, includeDisabled);
-            AddMovieDBImages(ctx, images, animeID, includeDisabled);
+            // AddMovieDBImages(ctx, images, animeID, includeDisabled);
             return images;
         }
 
