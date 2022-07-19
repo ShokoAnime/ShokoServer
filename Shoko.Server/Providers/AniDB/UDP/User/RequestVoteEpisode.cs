@@ -9,7 +9,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
     /// <summary>
     /// Vote for an anime
     /// </summary>
-    public class RequestVoteEpisode : UDPBaseRequest<ResponseVote>
+    public class RequestVoteEpisode : UDPRequest<ResponseVote>
     {
         /// <summary>
         /// EpisodeID to vote on
@@ -28,7 +28,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         /// </summary>
         protected override string BaseCommand => $"VOTE type=6&id={EpisodeID}&value={AniDBValue}";
 
-        protected override UDPBaseResponse<ResponseVote> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<ResponseVote> ParseResponse(ILogger logger, UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -38,7 +38,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
             if (!int.TryParse(parts[2], out var type)) throw new UnexpectedUDPResponseException("Vote type should be an int, but it's not", code, receivedData);
             if (!int.TryParse(parts[3], out var id)) throw new UnexpectedUDPResponseException("ID should be an int, but it's not", code, receivedData);
 
-            return new UDPBaseResponse<ResponseVote> {Code = code, Response = new ResponseVote
+            return new UDPResponse<ResponseVote> {Code = code, Response = new ResponseVote
             {
                 EntityName = parts[0],
                 Value = value,

@@ -525,7 +525,7 @@ namespace Shoko.Server.Models
                 cl.AniDB_MD5 = anifile.MD5;
                 cl.AniDB_SHA1 = anifile.SHA1;
                 cl.AniDB_File_FileVersion = anifile.FileVersion;
-                cl.AniDB_File_IsCensored = anifile.IsCensored;
+                cl.AniDB_File_IsCensored = anifile.IsCensored ?? false ? 1 : 0;
                 cl.AniDB_File_IsChaptered = anifile.IsChaptered;
                 cl.AniDB_File_IsDeprecated = anifile.IsDeprecated;
                 cl.AniDB_File_InternalVersion = anifile.InternalVersion;

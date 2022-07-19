@@ -9,7 +9,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
     /// Add a file to MyList. If it doesn't exist, it will return the MyListID for future updates.
     /// If it exists, it will return the current status on AniDB.
     /// </summary>
-    public class RequestGetFile : UDPBaseRequest<ResponseMyListFile>
+    public class RequestGetFile : UDPRequest<ResponseMyListFile>
     {
         // These are dependent on context
         protected override string BaseCommand
@@ -30,14 +30,14 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
 
         public DateTime? WatchedDate { get; set; }
 
-        protected override UDPBaseResponse<ResponseMyListFile> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<ResponseMyListFile> ParseResponse(ILogger logger, UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
             switch (code)
             {
                 case UDPReturnCode.NO_SUCH_ENTRY:
-                    return new UDPBaseResponse<ResponseMyListFile>
+                    return new UDPResponse<ResponseMyListFile>
                     {
                         Code = code,
                         Response = null,
@@ -76,7 +76,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                                 .AddSeconds(viewdate)
                                 .ToLocalTime();
 
-                        return new UDPBaseResponse<ResponseMyListFile>
+                        return new UDPResponse<ResponseMyListFile>
                         {
                             Code = code,
                             Response = new ResponseMyListFile

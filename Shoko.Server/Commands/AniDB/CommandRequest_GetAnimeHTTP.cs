@@ -73,7 +73,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_GetAnimeHTTP: {0} - {1}", AnimeID, ex);
+                logger.Error(ex, "Error processing CommandRequest_GetAnimeHTTP: {AnimeID} - {Ex}", AnimeID, ex);
             }
         }
 

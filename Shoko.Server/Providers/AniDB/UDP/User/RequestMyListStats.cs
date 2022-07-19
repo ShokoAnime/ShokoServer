@@ -4,10 +4,10 @@ using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User
 {
-    public class RequestMyListStats : UDPBaseRequest<ResponseMyListStats>
+    public class RequestMyListStats : UDPRequest<ResponseMyListStats>
     {
         protected override string BaseCommand => "MYLISTSTATS";
-        protected override UDPBaseResponse<ResponseMyListStats> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<ResponseMyListStats> ParseResponse(ILogger logger, UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -37,7 +37,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                 Reviews = (int) parsedData[15],
                 ViewedLength = parsedData[16]
             };
-            return new UDPBaseResponse<ResponseMyListStats>{Code = code, Response = stats};
+            return new UDPResponse<ResponseMyListStats>{Code = code, Response = stats};
         }
     }
 }

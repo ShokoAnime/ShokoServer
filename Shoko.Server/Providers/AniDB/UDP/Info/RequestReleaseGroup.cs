@@ -5,14 +5,14 @@ using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Info
 {
-    public class RequestReleaseGroup : UDPBaseRequest<ResponseReleaseGroup>
+    public class RequestReleaseGroup : UDPRequest<ResponseReleaseGroup>
     {
         public int ReleaseGroupID { get; set; }
 
         
         protected override string BaseCommand => $"GROUP gid={ReleaseGroupID}";
 
-        protected override UDPBaseResponse<ResponseReleaseGroup> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<ResponseReleaseGroup> ParseResponse(ILogger logger, UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -52,7 +52,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                     var url = parts[9];
                     var pic = parts[10];
 
-                    return new UDPBaseResponse<ResponseReleaseGroup>() {Code = code, Response = new ResponseReleaseGroup
+                    return new UDPResponse<ResponseReleaseGroup>() {Code = code, Response = new ResponseReleaseGroup
                     {
                         ID = gid,
                         Rating = rating,
@@ -69,7 +69,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                 }
                 case UDPReturnCode.NO_SUCH_GROUP:
                 {
-                    return new UDPBaseResponse<ResponseReleaseGroup>() {Code = code, Response = null};
+                    return new UDPResponse<ResponseReleaseGroup>() {Code = code, Response = null};
                 }
                 default: throw new UnexpectedUDPResponseException(code, receivedData);
             }

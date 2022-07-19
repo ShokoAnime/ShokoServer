@@ -14,24 +14,25 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
     /// Get File Info. Getting the file info will only return any data if the hashes match
     /// If there is MyList info, it will also return that
     /// </summary>
-    public class RequestGetFile : UDPBaseRequest<ResponseGetFile>
+    public class RequestGetFile : UDPRequest<ResponseGetFile>
     {
         // These are dependent on context
         protected override string BaseCommand
         {
             get
             {
-                StringBuilder commandText = new StringBuilder("FILE size=");
-                commandText.Append(FileData.FileSize);
+                var commandText = new StringBuilder("FILE size=");
+                commandText.Append(Size);
                 commandText.Append("&ed2k=");
-                commandText.Append(FileData.ED2KHash);
+                commandText.Append(Hash);
                 commandText.Append($"&fmask={_fByte1}{_fByte2}{_fByte3}{_fByte4}{_fByte5}");
                 commandText.Append($"&amask={_aByte1}{_aByte2}{_aByte3}{_aByte4}");
                 return commandText.ToString();
             }
         }
-        
-        public IHash FileData { get; set; }
+
+        public string Hash { get; set; }
+        public long Size { get; set; }
 
         // https://wiki.anidb.net/UDP_API_Definition#FILE:_Retrieve_File_Data
         // these are all bitmasks, so byte literals make it easier to see what the values mean
@@ -47,7 +48,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
 
         private static string PadByte(byte b) => b.ToString("X").PadLeft(2, '0');
 
-        protected override UDPBaseResponse<ResponseGetFile> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<ResponseGetFile> ParseResponse(ILogger logger, UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -59,20 +60,20 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                     // fileid |anime|episode|group|MyListID |other eps|deprecated|state|quality|source|audio lang|sub lang|file description|filename                                                                                                    |mylist state|mylist filestate|viewcount|view date
                     // 2442444|14360|225455 |8482 |291278112|         |    0     |4097 |  high |  www | japanese | english|                |Magia Record: Mahou Shoujo Madoka Magica Gaiden - 03 - Sorry for Making You My Friend - [Doki](a076b874).mkv|   3        |         0      |     1   |1584060577
                     // we don't want to remove empty parts or change the layout here. Some will be empty, but we want consistent indexing
-                    string[] parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
+                    var parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
                     if (parts.Length != 18) throw new UnexpectedUDPResponseException("There were the wrong number of data columns", code, receivedData);
                     // parse out numbers into temp vars
-                    if (!int.TryParse(parts[0], out int fid)) throw new UnexpectedUDPResponseException("File ID was not an int", code, receivedData);
-                    if (!int.TryParse(parts[1], out int aid)) throw new UnexpectedUDPResponseException("Anime ID was not an int", code, receivedData);
+                    if (!int.TryParse(parts[0], out var fid)) throw new UnexpectedUDPResponseException("File ID was not an int", code, receivedData);
+                    if (!int.TryParse(parts[1], out var aid)) throw new UnexpectedUDPResponseException("Anime ID was not an int", code, receivedData);
                     // It can be possible that a file is added with an unknown group, though I've never seen it before
-                    bool hasGroup = int.TryParse(parts[3], out int gid);
+                    var hasGroup = int.TryParse(parts[3], out var gid);
                     int? groupID = hasGroup ? gid : null;
                     // save mylist and partial episode mapping 'til later
 
                     // cheap but fast
-                    bool deprecated = parts[6].Equals("1");
-                    GetFile_State state = Enum.Parse<GetFile_State>(parts[7]);
-                    int version = 1;
+                    var deprecated = parts[6].Equals("1");
+                    var state = Enum.Parse<GetFile_State>(parts[7]);
+                    var version = 1;
                     if (state.HasFlag(GetFile_State.IsV2)) version = 2;
                     if (state.HasFlag(GetFile_State.IsV3)) version = 3;
                     if (state.HasFlag(GetFile_State.IsV4)) version = 4;
@@ -80,30 +81,43 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
 
                     bool? censored = state.HasFlag(GetFile_State.Uncensored) ? false : state.HasFlag(GetFile_State.Censored) ? true : null;
                     bool? crc = state.HasFlag(GetFile_State.CRCMatch) ? true : state.HasFlag(GetFile_State.CRCErr) ? false : null;
-                    bool chaptered = state.HasFlag(GetFile_State.Chaptered);
+                    var chaptered = state.HasFlag(GetFile_State.Chaptered);
                     var quality = ParseQuality(parts[8]);
                     var source = ParseSource(parts[9]);
                     var description = parts[12];
                     var filename = parts[13];
                     
                     // episode xrefs
-                    List<ResponseGetFile.EpisodeXRef> xrefs = new List<ResponseGetFile.EpisodeXRef>();
-                    if (int.TryParse(parts[2], out int eid))
+                    var xrefs = new List<ResponseGetFile.EpisodeXRef>();
+                    if (int.TryParse(parts[2], out var eid))
                     {
                         xrefs.Add(new ResponseGetFile.EpisodeXRef
                         {
                             EpisodeID = eid,
-                            Percentage = 100
+                            Percentage = 100,
                         });
+                    }
+                    else
+                    {
+                        var eps = parts[2].Split('\'');
+                        foreach (var ep in eps)
+                        {
+                            if (!int.TryParse(ep.Trim(), out var epid)) continue;
+                            xrefs.Add(new ResponseGetFile.EpisodeXRef
+                            {
+                                EpisodeID = epid,
+                                Percentage = (byte) Math.Round(100D / eps.Length),
+                            });
+                        }
                     }
                     if (!string.IsNullOrEmpty(parts[5]))
                     {
-                        string[] xrefStrings = parts[5].Split('\'');
+                        var xrefStrings = parts[5].Split('\'');
                         var tempXrefs = xrefStrings.Batch(2).Select(
                             a =>
                             {
-                                if (!int.TryParse(a[0], out int epid)) return null;
-                                if (!byte.TryParse(a[1], out byte per)) return null;
+                                if (!int.TryParse(a[0], out var epid)) return null;
+                                if (!byte.TryParse(a[1], out var per)) return null;
                                 return new ResponseGetFile.EpisodeXRef {EpisodeID = epid, Percentage = per};
                             }
                         ).Where(a => a != null).ToArray();
@@ -124,10 +138,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                     // mylist
                     var myList = ParseMyList(parts);
 
-                    return new UDPBaseResponse<ResponseGetFile>()
+                    return new UDPResponse<ResponseGetFile>
                     {
                         Code = code,
-                        Response = new ResponseGetFile()
+                        Response = new ResponseGetFile
                         {
                             FileID = fid,
                             AnimeID = aid,
@@ -144,70 +158,62 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                             EpisodeIDs = xrefs,
                             AudioLanguages = alangs,
                             SubtitleLanguages = slangs,
-                            MyList = myList
-                        }
+                            MyList = myList,
+                        },
                     };
                 }
                 case UDPReturnCode.NO_SUCH_FILE:
-                    return new UDPBaseResponse<ResponseGetFile>() {Code = code, Response = null};
+                    return new UDPResponse<ResponseGetFile> {Code = code, Response = null};
             }
             throw new UnexpectedUDPResponseException(code, receivedData);
         }
 
         private static GetFile_Quality ParseQuality(string qualityString)
         {
-            switch (qualityString.Replace(" ", "").ToLower())
+            return qualityString.Replace(" ", "").ToLower() switch
             {
-                case "veryhigh":
-                    return GetFile_Quality.VeryHigh;
-                case "high":
-                    return GetFile_Quality.High;
-                case "med":
-                case "medium":
-                    return GetFile_Quality.Medium;
-                case "low":
-                    return GetFile_Quality.Low;
-                case "verylow":
-                    return GetFile_Quality.VeryLow;
-                case "corrupted":
-                    return GetFile_Quality.Corrupted;
-                case "eyecancer":
-                    return GetFile_Quality.EyeCancer;
-                default:
-                    return GetFile_Quality.Unknown;
-            }
+                "veryhigh" => GetFile_Quality.VeryHigh,
+                "high" => GetFile_Quality.High,
+                "med" => GetFile_Quality.Medium,
+                "medium" => GetFile_Quality.Medium,
+                "low" => GetFile_Quality.Low,
+                "verylow" => GetFile_Quality.VeryLow,
+                "corrupted" => GetFile_Quality.Corrupted,
+                "eyecancer" => GetFile_Quality.EyeCancer,
+                _ => GetFile_Quality.Unknown,
+            };
         }
         
         private static GetFile_Source ParseSource(string sourceString)
         {
-            switch (sourceString.Replace("-", "").ToLower())
+            return sourceString.Replace("-", "").ToLower() switch
             {
-                case "tv": return GetFile_Source.TV;
-                case "www": return GetFile_Source.Web;
-                case "dvd": return GetFile_Source.DVD;
-                case "bluray": return GetFile_Source.BluRay;
-                case "vhs": return GetFile_Source.VHS;
-                case "hkdvd": return GetFile_Source.HKDVD;
-                case "hddvd": return GetFile_Source.HDDVD;
-                case "hdtv": return GetFile_Source.HDTV;
-                case "dtv": return GetFile_Source.DTV;
-                case "camcorder": return GetFile_Source.Camcorder;
-                case "vcd": return GetFile_Source.VCD;
-                case "svcd": return GetFile_Source.SVCD;
-                case "ld": return GetFile_Source.LaserDisc;
-                default: return GetFile_Source.Unknown;
-            }
+                "tv" => GetFile_Source.TV,
+                "www" => GetFile_Source.Web,
+                "dvd" => GetFile_Source.DVD,
+                "bluray" => GetFile_Source.BluRay,
+                "vhs" => GetFile_Source.VHS,
+                "hkdvd" => GetFile_Source.HKDVD,
+                "hddvd" => GetFile_Source.HDDVD,
+                "hdtv" => GetFile_Source.HDTV,
+                "dtv" => GetFile_Source.DTV,
+                "camcorder" => GetFile_Source.Camcorder,
+                "vcd" => GetFile_Source.VCD,
+                "svcd" => GetFile_Source.SVCD,
+                "ld" => GetFile_Source.LaserDisc,
+                _ => GetFile_Source.Unknown,
+            };
         }
 
-        private static ResponseGetFile.MyListInfo ParseMyList(string[] parts)
+        private static ResponseGetFile.MyListInfo ParseMyList(IReadOnlyList<string> parts)
         {
-            if (!int.TryParse(parts[4], out int myListID)) return null;
+            if (!int.TryParse(parts[4], out var myListID)) return null;
             var mylistState = Enum.Parse<MyList_State>(parts[14]);
             var mylistFileState = Enum.Parse<MyList_FileState>(parts[15]);
             DateTime? viewDate = null;
-            if (int.TryParse(parts[16], out int viewCount))
+            if (int.TryParse(parts[16], out var viewCount))
             {
-                if (long.TryParse(parts[17], out long viewTime))
+                if (long.TryParse(parts[17], out var viewTime))
                 {
                     // they store in seconds to save space
                     viewDate = DateTime.UnixEpoch.AddMilliseconds(viewTime * 1000L);
@@ -215,7 +221,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
             }
             else viewCount = 0;
 
-            return new ResponseGetFile.MyListInfo()
+            return new ResponseGetFile.MyListInfo
             {
                 MyListID = myListID,
                 State = mylistState,

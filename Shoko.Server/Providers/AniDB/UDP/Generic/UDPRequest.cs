@@ -6,7 +6,7 @@ using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Generic
 {
-    public abstract class UDPBaseRequest<T> where T : class
+    public abstract class UDPRequest<T> where T : class
     {
         protected string Command { get; set; } = string.Empty;
         /// <summary>
@@ -14,13 +14,13 @@ namespace Shoko.Server.Providers.AniDB.UDP.Generic
         /// </summary>
         protected abstract string BaseCommand { get; }
 
-        protected abstract UDPBaseResponse<T> ParseResponse(ILogger logger, UDPBaseResponse<string> response);
+        protected abstract UDPResponse<T> ParseResponse(ILogger logger, UDPResponse<string> response);
 
         // Muting the warning, I read up, and it's the intended result here
         // ReSharper disable once StaticMemberInGenericType
         protected static readonly Regex CommandRegex = new("[A-Za-z0-9]+ +\\S", RegexOptions.Compiled | RegexOptions.Singleline);
 
-        public virtual UDPBaseResponse<T> Execute(IUDPConnectionHandler handler)
+        public virtual UDPResponse<T> Execute(IUDPConnectionHandler handler)
         {
             Command = BaseCommand.Trim();
             if (string.IsNullOrEmpty(handler.SessionID) && !handler.Login()) throw new NotLoggedInException();
@@ -41,7 +41,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Generic
                 Command += $" s={sessionID}";
         }
 
-        protected virtual void PostExecute(ILogger logger, string sessionID, UDPBaseResponse<T> response)
+        protected virtual void PostExecute(ILogger logger, string sessionID, UDPResponse<T> response)
         {
         }
     }

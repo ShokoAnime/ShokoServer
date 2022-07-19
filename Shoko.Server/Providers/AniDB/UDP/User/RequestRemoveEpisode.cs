@@ -5,21 +5,25 @@ using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Void;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User
 {
-    public class RequestRemoveEpisode : UDPBaseRequest<Void>
+    public class RequestRemoveEpisode : UDPRequest<Void>
     {
         protected override string BaseCommand
         {
             get
             {
-                return $"MYLISTDEL aid={AnimeID}&epno={EpisodeNumber}";
+                var type = "";
+                if (EpisodeType != EpisodeType.Episode)
+                    type = EpisodeType.ToString()[..1];
+                return $"MYLISTDEL aid={AnimeID}&epno={type+EpisodeNumber}";
             }
         }
 
         public int AnimeID { get; set; }
 
         public int EpisodeNumber { get; set; }
+        public EpisodeType EpisodeType { get; set; } = EpisodeType.Episode;
 
-        protected override UDPBaseResponse<Void> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<Void> ParseResponse(ILogger logger, UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -27,7 +31,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
             {
                 case UDPReturnCode.MYLIST_ENTRY_DELETED:
                 case UDPReturnCode.NO_SUCH_MYLIST_ENTRY:
-                    return new UDPBaseResponse<Void> { Code = code };
+                    return new UDPResponse<Void> { Code = code };
             }
             throw new UnexpectedUDPResponseException(code, receivedData);
         }
