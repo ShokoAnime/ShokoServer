@@ -400,6 +400,7 @@ namespace Shoko.Server.Tasks
                 else if (!animeGroup.DefaultAnimeSeriesID.HasValue && animeGroup.IsManuallyNamed == 0 && mainAnimeId == series.AniDB_ID)
                 {
                     animeGroup.GroupName = series.GetSeriesName();
+                    RepoFactory.AnimeGroup.Save(animeGroup, true, true);
                 }
             }
             else // We're not auto grouping (e.g. we're doing group per series)
