@@ -37,8 +37,8 @@ namespace Shoko.Server.Models
             {
                 WatchedDate = GetVideoLocals()
                     .Select(file => file.GetUserRecord(userID))
-                    .Where(file => file.WatchedDate.HasValue)
-                    .OrderBy(file => file.WatchedDate)
+                    .Where(record => record != null && record.WatchedDate.HasValue)
+                    .OrderBy(record => record.WatchedDate)
                     .FirstOrDefault()?.WatchedDate,
             };
             if (session != null)
