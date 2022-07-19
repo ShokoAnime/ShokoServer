@@ -6,16 +6,16 @@ using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Connection
 {
-    public class RequestPing : UDPBaseRequest<Void>
+    public class RequestPing : UDPRequest<Void>
     {
         protected override string BaseCommand => "PING";
 
-        protected override UDPBaseResponse<Void> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<Void> ParseResponse(ILogger logger, UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
             if (code != UDPReturnCode.PONG) throw new UnexpectedUDPResponseException(code, receivedData);
-            return new UDPBaseResponse<Void> {Code = code};
+            return new UDPResponse<Void> {Code = code};
         }
 
         protected override void PreExecute(string sessionID)
@@ -23,9 +23,9 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             // Don't set the session for pings
         }
 
-        public override UDPBaseResponse<Void> Execute(IUDPConnectionHandler handler)
+        public override UDPResponse<Void> Execute(IUDPConnectionHandler handler)
         {
-            UDPBaseResponse<string> rawResponse = handler.CallAniDBUDPDirectly(BaseCommand, false, true, true);
+            UDPResponse<string> rawResponse = handler.CallAniDBUDPDirectly(BaseCommand, false, true, true);
             var factory = handler.ServiceProvider.GetRequiredService<ILoggerFactory>();
             var logger = factory.CreateLogger(GetType());
             var response = ParseResponse(logger, rawResponse);

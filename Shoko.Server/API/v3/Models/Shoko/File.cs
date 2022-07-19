@@ -137,7 +137,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 ReleaseDate = anidb.File_ReleaseDate == 0 ? null : Commons.Utils.AniDB.GetAniDBDateAsDate(anidb.File_ReleaseDate);
                 Version = anidb.FileVersion;
                 IsDeprecated = anidb.IsDeprecated == 1;
-                IsCensored = anidb.IsCensored == 1;
+                IsCensored = anidb.IsCensored ?? false;
                 Chaptered = anidb.IsChaptered == 1;
                 Duration = (new TimeSpan(0, 0, anidb.File_LengthSeconds));
                 Resolution = anidb.File_VideoResolution;

@@ -45,6 +45,8 @@ namespace Shoko.Server.Models
             }
         }
 
+        public string FileName => Path.GetFileName(FilePath);
+
         public SVR_VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
         private static Logger logger = LogManager.GetCurrentClassLogger();

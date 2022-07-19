@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Xml;
 using AniDBAPI;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP.Generic;
+using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
@@ -55,7 +59,7 @@ namespace Shoko.Server.Commands
         public override void ProcessCommand(IServiceProvider serviceProvider)
         {
             logger.Info("Get AniDB file info: {0}", VideoLocalID);
-
+            var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
 
             try
             {
@@ -63,22 +67,26 @@ namespace Shoko.Server.Commands
                 if (vlocal == null) return;
                 lock (vlocal)
                 {
-                    SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
-
-                    Raw_AniDB_File fileInfo = null;
+                    var aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
+                    
+                    UDPResponse<ResponseGetFile> response = null;
                     if (aniFile == null || aniFile.FileSize != vlocal.FileSize || ForceAniDB)
-                        fileInfo = ShokoService.AniDBProcessor.GetFileInfo(vlocal);
+                    {
+                        var request = new RequestGetFile { Hash = vlocal.Hash, Size = vlocal.FileSize };
+                        response = request.Execute(handler);
+                    }
 
-                    if (fileInfo != null)
+                    if (response != null)
                     {
                         // save to the database
                         aniFile ??= new SVR_AniDB_File();
 
-                        SVR_AniDB_File.Populate(aniFile, fileInfo);
+                        SVR_AniDB_File.Populate(aniFile, response.Response);
+                        
 
                         RepoFactory.AniDB_File.Save(aniFile, false);
-                        aniFile.CreateLanguages();
-                        aniFile.CreateCrossEpisodes(vlocal.FileName);
+                        aniFile.CreateLanguages(response.Response);
+                        aniFile.CreateCrossEpisodes(vlocal.FileName, response.Response);
 
                         SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
                         if (anime != null) RepoFactory.AniDB_Anime.Save(anime);

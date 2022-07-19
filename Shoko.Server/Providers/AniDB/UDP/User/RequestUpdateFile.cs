@@ -9,7 +9,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
     /// <summary>
     /// Update a file in the MyList
     /// </summary>
-    public class RequestUpdateFile : UDPBaseRequest<Void>
+    public class RequestUpdateFile : UDPRequest<Void>
     {
         protected override string BaseCommand
         {
@@ -40,7 +40,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
 
-        protected override UDPBaseResponse<Void> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<Void> ParseResponse(ILogger logger, UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -48,7 +48,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
             {
                 case UDPReturnCode.MYLIST_ENTRY_EDITED:
                 case UDPReturnCode.NO_SUCH_MYLIST_ENTRY:
-                    return new UDPBaseResponse<Void> {Code = code};
+                    return new UDPResponse<Void> {Code = code};
             }
             throw new UnexpectedUDPResponseException(code, receivedData);
         }

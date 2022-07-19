@@ -138,7 +138,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
                 return false;
             }
 
-            UDPBaseResponse<ResponseLogin> response;
+            UDPResponse<ResponseLogin> response;
             try
             {
                 RequestLogin login = new RequestLogin
@@ -151,7 +151,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             catch (Exception e)
             {
                 Logger.LogError($"Unable to login to AniDB: {e}");
-                response = new UDPBaseResponse<ResponseLogin>();
+                response = new UDPResponse<ResponseLogin>();
             }
 
             switch (response.Code)
@@ -184,7 +184,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
         /// <param name="disableLogging">Some commands have sensitive data</param>
         /// <param name="isPing">is it a ping command</param>
         /// <returns></returns>
-        public UDPBaseResponse<string> CallAniDBUDP(string command, bool needsUnicode = true,
+        public UDPResponse<string> CallAniDBUDP(string command, bool needsUnicode = true,
             bool disableLogging = false, bool isPing = false)
         {
             // Steps:
@@ -207,7 +207,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             return CallAniDBUDPDirectly(command, needsUnicode, disableLogging, isPing);
         }
 
-        public UDPBaseResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode=true, bool disableLogging=false,
+        public UDPResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode=true, bool disableLogging=false,
             bool isPing=false, bool returnFullResponse=false)
         {
             // 1. Call AniDB
@@ -312,8 +312,8 @@ namespace Shoko.Server.Providers.AniDB.UDP
                 }
             }
 
-            if (returnFullResponse) return new UDPBaseResponse<string> {Code = status, Response = decodedString};
-            return new UDPBaseResponse<string> {Code = status, Response = decodedParts[1].Trim()};
+            if (returnFullResponse) return new UDPResponse<string> {Code = status, Response = decodedString};
+            return new UDPResponse<string> {Code = status, Response = decodedParts[1].Trim()};
         }
         
         public void ForceReconnection()

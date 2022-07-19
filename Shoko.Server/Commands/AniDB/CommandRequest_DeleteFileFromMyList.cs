@@ -52,7 +52,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                UDPBaseRequest<Void> request;
+                UDPRequest<Void> request;
                 switch (ServerSettings.Instance.AniDb.MyList_DeleteType)
                 {
                     case AniDBFileDeleteType.Delete:
@@ -60,23 +60,19 @@ namespace Shoko.Server.Commands
                         logger.Info("Deleting file from list: Hash: {Hash}", Hash);
                         request.Execute(handler);
                         break;
-
                     case AniDBFileDeleteType.MarkDeleted:
                         request = new RequestUpdateFile { Hash = Hash, Size = FileSize, State = MyList_State.Deleted };
                         logger.Info("Marking file as deleted from list: Hash: {Hash}", Hash);
                         request.Execute(handler);
                         break;
-
                     case AniDBFileDeleteType.MarkUnknown:
                         request = new RequestUpdateFile { Hash = Hash, Size = FileSize, State = MyList_State.Deleted };
                         logger.Info("Marking file as unknown: Hash: {Hash}", Hash);
                         request.Execute(handler);
                         break;
-
                     case AniDBFileDeleteType.DeleteLocalOnly:
                         logger.Info("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", Hash);
                         break;
-
                     case AniDBFileDeleteType.MarkExternalStorage:
                         request = new RequestUpdateFile { Hash = Hash, Size = FileSize, State = MyList_State.Remote };
                         logger.Info("Moving file to external storage: Hash: {Hash}", Hash);
