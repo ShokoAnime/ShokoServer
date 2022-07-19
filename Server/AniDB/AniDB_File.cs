@@ -34,7 +34,7 @@ namespace Shoko.Models.Server
         public string FileName { get; set; }
         public long FileSize { get; set; }
         public int FileVersion { get; set; }
-        public int IsCensored { get; set; }
+        public bool? IsCensored { get; set; }
         public int IsDeprecated { get; set; }
         public int InternalVersion { get; set; }
         public int IsChaptered { get; set; }
