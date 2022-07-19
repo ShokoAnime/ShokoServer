@@ -201,11 +201,11 @@ namespace Shoko.Server.API.v3.Controllers
 
             if (pageSize <= 0)
                 return episodeList
-                    .Where(episode => seriesDict.Keys.Contains(episode.AnimeSeriesID))
+                    .Where(episode => seriesDict.ContainsKey(episode.AnimeSeriesID))
                     .Select(episode => GetEpisodeDetailsForSeriesAndEpisode(user, episode, seriesDict[episode.AnimeSeriesID], animeDict[episode.AnimeSeriesID]))
                     .ToList();
             return episodeList
-                .Where(episode => seriesDict.Keys.Contains(episode.AnimeSeriesID))
+                .Where(episode => seriesDict.ContainsKey(episode.AnimeSeriesID))
                 .Skip(pageSize * page)
                 .Take(pageSize)
                 .Select(episode => GetEpisodeDetailsForSeriesAndEpisode(user, episode, seriesDict[episode.AnimeSeriesID], animeDict[episode.AnimeSeriesID]))
@@ -335,13 +335,13 @@ namespace Shoko.Server.API.v3.Controllers
                 .Select(episode => RepoFactory.AniDB_Anime.GetByAnimeID(episode.AnimeID))
                 .Distinct()
                 .ToDictionary(anime => anime.AnimeID);
-            var seriesDict = episodeList
-                .Select(episode => RepoFactory.AnimeSeries.GetByAnimeID(episode.AnimeID))
+            var seriesDict = animeDict.Values
+                .Select(anime => RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID))
                 .Where(series => series != null)
                 .Distinct()
                 .ToDictionary(anime => anime.AniDB_ID);
             return episodeList
-                .Where(episode => user.AllowedAnime(animeDict[episode.AnimeID]) && (showAll || seriesDict.Keys.Contains(episode.AnimeID)))
+                .Where(episode => user.AllowedAnime(animeDict[episode.AnimeID]) && (showAll || seriesDict.ContainsKey(episode.AnimeID)))
                 .OrderBy(episode => episode.GetAirDateAsDate())
                 .Select(episode =>
                 {
