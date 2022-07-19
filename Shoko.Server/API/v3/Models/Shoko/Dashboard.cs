@@ -141,7 +141,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 Title = Episode.GetEpisodeTitle(episode.EpisodeID);
                 Number = episode.EpisodeNumber;
                 Type = Episode.MapAniDBEpisodeType(episode.GetEpisodeTypeEnum());
-                AirDate = (DateTime)episode.GetAirDateAsDate();
+                AirDate = episode.GetAirDateAsDate();
                 Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, episode.LengthSeconds);
                 ResumePosition = userRecord?.ResumePositionTimeSpan;
                 Watched = userRecord?.WatchedDate;
@@ -174,7 +174,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// Air Date.
             /// </summary>
             /// <value></value>
-            public DateTime AirDate { get; set; }
+            public DateTime? AirDate { get; set; }
 
             /// <summary>
             /// The duration of the episode.
