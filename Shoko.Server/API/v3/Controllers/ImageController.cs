@@ -59,5 +59,38 @@ namespace Shoko.Server.API.v3.Controllers
 
             return File(buffer, Mime.GetMimeMapping(fileName) ?? "image/png");
         }
+
+        /// <summary>
+        /// Returns a random image for the <paramref name="imageType"/>.
+        /// </summary>
+        /// <param name="imageType">Poster, Fanart, Banner, Thumb, Static</param>
+        /// <returns>200 on found, 400/404 if the type or source are invalid, and 404 if the id is not found</returns>
+        [HttpGet("Random/{imageType}")]
+        [ProducesResponseType(typeof(FileStreamResult), 200), ProducesResponseType(404)]
+        public ActionResult GetRandomImageForType([FromRoute] Image.ImageType imageType)
+        {
+            if (imageType == Image.ImageType.Static)
+                return BadRequest("Unsupported image type for random image.");
+
+            var source = Image.GetRandomImageSource(imageType);
+            var sourceType = Image.GetImageTypeFromSourceAndType(source, imageType) ?? ImageEntityType.None;
+            if (sourceType == ImageEntityType.None)
+                return InternalError("Could not generate a valid image type to fetch.");
+
+            // Try trwice more if it failes to get an image on the first try.
+            string path = null;
+            int retry = 0;
+            do {
+                var id = Image.GetRandomImageID(sourceType);
+                if (!id.HasValue) continue;
+                path = Image.GetImagePath(sourceType, id.Value);
+            }
+            while (string.IsNullOrEmpty(path) && retry++ < 10);
+
+            if (string.IsNullOrEmpty(path))
+                return NotFound("The requested resource does not exist.");
+
+            return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
+        }
     }
 }
