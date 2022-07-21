@@ -179,10 +179,9 @@ namespace Shoko.Server.API.v3.Controllers
                 return BadRequest("Could not get Episode with ID: " + episodeID);
 
             var playbackPositionTicks = resumePosition ?? 0;
-            var watchedTillCompletion = watched ?? false;
             if (playbackPositionTicks >= file.Duration)
             {
-                watchedTillCompletion = true;
+                watched = true;
                 playbackPositionTicks = 0;
             }
 
@@ -210,7 +209,8 @@ namespace Shoko.Server.API.v3.Controllers
                     break;
             }
 
-            file.ToggleWatchedStatus(watchedTillCompletion, User.JMMUserID);
+            if (watched.HasValue)
+                file.ToggleWatchedStatus(watched.HasValue, User.JMMUserID);
             file.SetResumePosition(playbackPositionTicks, User.JMMUserID);
 
             return NoContent();
