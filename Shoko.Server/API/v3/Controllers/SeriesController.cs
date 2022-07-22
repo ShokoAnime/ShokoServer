@@ -13,6 +13,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.AniDB_API.Titles;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
@@ -53,27 +54,26 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get a paginated list of all <see cref="Series"/> available to the current <see cref="User"/>.
         /// </summary>
-        /// <param name="page">The page index.</param>
         /// <param name="pageSize">The page size.</param>
+        /// <param name="page">The page index.</param>
+        /// <param name="startsWith">Search only for series with a main title that start with the given query.</param>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<List<Series>> GetAllSeries([FromQuery] int page = 0, [FromQuery] int pageSize = 50)
+        public ActionResult<ListResult<Series>> GetAllSeries([FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(0, int.MaxValue)] int page = 0, [FromQuery] string startsWith = "")
         {
-            var series = RepoFactory.AnimeSeries.GetAll()
-                .Where(a => User.AllowedSeries(a))
-                .OrderBy(a => a.GetSeriesName());
+            startsWith = startsWith.ToLowerInvariant();
+            var user = User;
+            return RepoFactory.AnimeSeries.GetAll()
+                .Select(series => (series, series.GetSeriesName().ToLowerInvariant()))
+                .Where(tuple => {
+                    var (series, seriesName) = tuple;
+                    if (!string.IsNullOrEmpty(startsWith) && !seriesName.ToLowerInvariant().StartsWith(startsWith))
+                        return false;
 
-            if (pageSize <= 0)
-                return series
-                    .Select(a => new Series(HttpContext, a))
-                    .ToList();
-
-            if (page <= 0) page = 0;
-            return series
-                .Skip(page * pageSize)
-                .Take(pageSize)
-                .Select(a => new Series(HttpContext, a))
-                .ToList();
+                    return user.AllowedSeries(series);
+                })
+                .OrderBy(a => a.Item2)
+                .ToListResult(tuple => new Series(HttpContext, tuple.series), page, pageSize);
         }
 
         /// <summary>
@@ -196,7 +196,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="approval">Minumum approval percentage for similar animes.</param>
         /// <returns></returns>
         [HttpGet("AniDB/RecommendedForYou")]
-        public ActionResult<List<Series.AniDBRecommendedForYou>> GetAnimeRecommendedForYou(
+        public ActionResult<ListResult<Series.AniDBRecommendedForYou>> GetAnimeRecommendedForYou(
             [FromQuery] [Range(0, 100)] int pageSize = 30,
             [FromQuery] [Range(0, int.MaxValue)] int page = 0,
             [FromQuery] bool showAll = false,
@@ -217,10 +217,10 @@ namespace Shoko.Server.API.v3.Controllers
                     return BadRequest("Start date cannot be newer than the end date.");
             }
 
-            var user = HttpContext.GetUser();
+            var user = User;
             var watchedAnimeList =  GetWatchedAnimeForPeriod(user, startDate, endDate);
             var unwatchedAnimeDict = GetUnwatchedAnime(user, showAll, !startDate.HasValue && !endDate.HasValue ? watchedAnimeList : null);
-            var recommendations = watchedAnimeList
+            return watchedAnimeList
                 .SelectMany(anime => 
                 {
                     if (approval.HasValue)
@@ -238,15 +238,8 @@ namespace Shoko.Server.API.v3.Controllers
                         SimilarTo = similarToCount,
                     };
                 })
-                .OrderByDescending(e => e.SimilarTo);
-
-            if (pageSize <= 0)
-                return recommendations
-                    .ToList();
-            return recommendations
-                .Skip(pageSize * page)
-                .Take(pageSize)
-                .ToList();
+                .OrderByDescending(e => e.SimilarTo)
+                .ToListResult(page, pageSize);
         }
 
         /// <summary>
@@ -487,7 +480,8 @@ namespace Shoko.Server.API.v3.Controllers
                 .Select(xref => RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID))
                 .ToList();
 
-            if (seriesList.Any(series => !User.AllowedSeries(series)))
+            var user = User;
+            if (seriesList.Any(series => !user.AllowedSeries(series)))
                 return Forbid(SeriesForbiddenForUser);
 
             return seriesList
@@ -827,15 +821,14 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("Search/{query}")]
         public ActionResult<IEnumerable<SeriesSearchResult>> Search([FromRoute] string query, [FromQuery] bool fuzzy = true, [FromQuery] int limit = int.MaxValue)
         {
+            var user = User;
             SorensenDice search = new SorensenDice();
             query = query.ToLowerInvariant();
             query = query.Replace("+", " ");
 
             List<SeriesSearchResult> seriesList = new List<SeriesSearchResult>();
             ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
-                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
-                            !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
-                                .FindInEnumerable(User.GetHideCategories()))
+                .Where(series => user.AllowedSeries(series))
                 .AsParallel();
 
             HashSet<string> languages = new HashSet<string>{"en", "x-jat"};
@@ -981,14 +974,13 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("StartsWith/{query}")]
         public ActionResult<List<SeriesSearchResult>> StartsWith([FromRoute] string query, [FromQuery] int limit = int.MaxValue)
         {
+            var user = User;
             query = query.ToLowerInvariant();
 
             List<SeriesSearchResult> seriesList = new List<SeriesSearchResult>();
             ConcurrentDictionary<SVR_AnimeSeries, string> tempSeries = new ConcurrentDictionary<SVR_AnimeSeries, string>();
             ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
-                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
-                            !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
-                                .FindInEnumerable(User.GetHideCategories()))
+                .Where(series => user.AllowedSeries(series))
                 .AsParallel();
 
             #region Search_TitlesOnly
@@ -1015,8 +1007,9 @@ namespace Shoko.Server.API.v3.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("PathEndsWith/{*path}")]
-        public ActionResult<List<Series>> GetSeries([FromRoute] string path)
+        public ActionResult<List<Series>> GetSeries([FromRoute] string path)
         {
+            var user = User;
             var query = path;
             if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
             if (query.Contains("%")) query = Uri.UnescapeDataString(query);
@@ -1027,7 +1020,7 @@ namespace Shoko.Server.API.v3.Controllers
                     .EndsWith(query, StringComparison.OrdinalIgnoreCase))
                 .SelectMany(a => a.VideoLocal.GetAnimeEpisodes()).Select(a => a.GetAnimeSeries())
                 .Distinct()
-                .Where(ser => ser == null || User.AllowedSeries(ser)).Select(a => new Series(HttpContext, a)).ToList();
+                .Where(ser => ser == null || user.AllowedSeries(ser)).Select(a => new Series(HttpContext, a)).ToList();
         }
 
         #region Helpers

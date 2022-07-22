@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -30,11 +32,11 @@ namespace Shoko.Server.API.v3.Controllers
         /// this endpoint.
         /// </remarks>
         /// <param name="filterID"><see cref="Filter"/> ID</param>
-        /// <param name="page">The page index.</param>
         /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
+        /// <param name="page">The page index.</param>
         /// <returns></returns>
         [HttpGet("Filter/{filterID}/Filter")]
-        public ActionResult<List<Filter>> GetSubFilters(int filterID, [FromQuery] int page = 0, [FromQuery] int pageSize = 50)
+        public ActionResult<List<Filter>> GetSubFilters([FromRoute] int filterID, [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
         {
             var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
             if (groupFilter == null)
@@ -60,11 +62,11 @@ namespace Shoko.Server.API.v3.Controllers
         /// Get a paginated list of all the top-level <see cref="Group"/>s for the <see cref="Filter"/> with the given <paramref name="filterID"/>.
         /// </summary>
         /// <param name="filterID"><see cref="Filter"/> ID</param>
-        /// <param name="page">The page index.</param>
         /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
+        /// <param name="page">The page index.</param>
         /// <returns></returns>
         [HttpGet("Filter/{filterID}/Group")]
-        public ActionResult<List<Group>> GetFilteredGroups([FromRoute] int filterID, [FromQuery] int page = 0, [FromQuery] int pageSize = 0)
+        public ActionResult<ListResult<Group>> GetFilteredGroups([FromRoute] int filterID, [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
         {
             // Return the top level groups with no filter.
             IEnumerable<SVR_AnimeGroup> groups;
@@ -82,7 +84,7 @@ namespace Shoko.Server.API.v3.Controllers
 
                 // Fast path when user is not in the filter
                 if (!groupFilter.GroupsIds.TryGetValue(User.JMMUserID, out var groupIds))
-                    return new List<Group>();
+                    return new ListResult<Group>();
 
                 groups = groupIds
                     .Select(group => RepoFactory.AnimeGroup.GetByID(group))
@@ -90,14 +92,8 @@ namespace Shoko.Server.API.v3.Controllers
                     .OrderByGroupFilter(groupFilter);
             }
 
-            if (pageSize > 0)
-                groups = groups
-                    .Skip(page > 0 ? page * pageSize : 0)
-                    .Take(pageSize);
-
             return groups
-                .Select(group => new Group(HttpContext, group))
-                .ToList();
+                .ToListResult(group => new Group(HttpContext, group), page, pageSize);
         }
 
         /// <summary>
