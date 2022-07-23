@@ -13,7 +13,7 @@ namespace Shoko.Server.API.v3.Controllers
     [Authorize]
     public class FolderController : BaseController
     {
-        [HttpGet("drives")]
+        [HttpGet("Drives")]
         public ActionResult<IEnumerable<Drive>> GetDrives()
         {
             return  DriveInfo.GetDrives().Select(d =>
@@ -41,8 +41,8 @@ namespace Shoko.Server.API.v3.Controllers
                 };
             }).ToList();
         }
-        
-        [HttpGet("")]
+
+        [HttpGet]
         public ActionResult<IEnumerable<Folder>> GetFolder([FromQuery] string path)
         {
             if (!Directory.Exists(path)) return NotFound("Directory not found");

@@ -124,7 +124,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// This will work after init
         /// </summary>
         /// <returns></returns>
-        [HttpGet("status")]
+        [HttpGet("Status")]
         public ServerStatus GetServerStatus()
         {
             TimeSpan? uptime = ShokoServer.UpTime;
@@ -163,7 +163,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// Gets whether anything is actively using the API
         /// </summary>
         /// <returns></returns>
-        [HttpGet("inuse")]
+        [HttpGet("InUse")]
         public bool ApiInUse()
         {
             return ServerState.Instance.ApiInUse;
@@ -174,7 +174,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// </summary>
         /// <returns></returns>
         [Authorize("init")]
-        [HttpGet("defaultuser")]
+        [HttpGet("DefaultUser")]
         public ActionResult<Credentials> GetDefaultUserCredentials()
         {
             return new Credentials
@@ -189,7 +189,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// </summary>
         /// <returns></returns>
         [Authorize("init")]
-        [HttpPost("defaultuser")]
+        [HttpPost("DefaultUser")]
         public ActionResult SetDefaultUserCredentials(Credentials credentials)
         {
             try
@@ -208,7 +208,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// Starts the server, or does nothing
         /// </summary>
         /// <returns></returns>
-        [HttpGet("startserver")]
+        [HttpGet("StartServer")]
         public ActionResult StartServer()
         {
             if (ServerState.Instance.ServerOnline) return BadRequest("Already Running");
@@ -230,7 +230,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// </summary>
         /// <returns>200 if connection successful, 400 otherwise</returns>
         [Authorize("init")]
-        [HttpGet("database/test")]
+        [HttpGet("Database/Test")]
         public ActionResult TestDatabaseConnection()
         {
             if (ServerSettings.Instance.Database.Type == Constants.DatabaseType.MySQL && new MySQL().TestConnection())
@@ -250,7 +250,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// </summary>
         /// <returns>List of strings that may be passed as sqlserver_databaseserver</returns>
         [Authorize("init")]
-        [HttpGet("database/sqlserverinstance")]
+        [HttpGet("Database/SQLServerInstance")]
         public ActionResult<List<string>> GetMSSQLInstances()
         {
             List<string> instances = new List<string>();
