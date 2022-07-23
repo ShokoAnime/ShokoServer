@@ -66,7 +66,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="imageType">Poster, Fanart, Banner, Thumb, Static</param>
         /// <returns>200 on found, 400/404 if the type or source are invalid, and 404 if the id is not found</returns>
         [HttpGet("Random/{imageType}")]
-        [ProducesResponseType(typeof(FileStreamResult), 200), ProducesResponseType(404)]
+        [ProducesResponseType(typeof(FileStreamResult), 200), ProducesResponseType(400), ProducesResponseType(500)]
         public ActionResult GetRandomImageForType([FromRoute] Image.ImageType imageType)
         {
             if (imageType == Image.ImageType.Static)
@@ -77,18 +77,12 @@ namespace Shoko.Server.API.v3.Controllers
             if (sourceType == ImageEntityType.None)
                 return InternalError("Could not generate a valid image type to fetch.");
 
-            // Try trwice more if it failes to get an image on the first try.
-            string path = null;
-            int retry = 0;
-            do {
-                var id = Image.GetRandomImageID(sourceType);
-                if (!id.HasValue) continue;
-                path = Image.GetImagePath(sourceType, id.Value);
-            }
-            while (string.IsNullOrEmpty(path) && retry++ < 10);
-
+            var id = Image.GetRandomImageID(sourceType);
+            if (!id.HasValue)
+                return InternalError("Unable to find a random image to send.");
+            var path = Image.GetImagePath(sourceType, id.Value);
             if (string.IsNullOrEmpty(path))
-                return NotFound("The requested resource does not exist.");
+                return InternalError("Unable to load image from disk.");
 
             return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
         }
