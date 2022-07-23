@@ -47,7 +47,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 {
                     Username = Username,
                     JMMUserID = ID,
-                    Password = Password,
+                    Password = Digest.Hash(Password),
                     HideCategories = string.Join(',', TagBlacklist),
                     IsAdmin = IsAdmin ? 1 : 0,
                     IsTraktUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.Trakt) ? 1 : 0,
