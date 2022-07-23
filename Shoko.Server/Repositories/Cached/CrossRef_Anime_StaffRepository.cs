@@ -34,18 +34,17 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            var list = Cache.Values.Where(animeStaff => animeStaff.RoleID != null && Roles.ContainsKey(animeStaff.Role))
-                .ToList();
-            int i = 0;
-            foreach (var animeStaff in list)
+            var list = Cache.Values.Where(animeStaff => animeStaff.RoleID != null && Roles.ContainsKey(animeStaff.Role) && Roles[animeStaff.Role].ToString().Contains("_")).ToList();
+            for (var index = 0; index < list.Count; index++)
             {
+                var animeStaff = list[index];
                 animeStaff.Role = Roles[animeStaff.Role].ToString().Replace("_", " ");
                 Save(animeStaff);
-                i++;
-                if (i % 10 == 0)
+                if (index % 10 == 0)
                     ServerState.Instance.ServerStartingStatus = string.Format(
-                        Resources.Database_Validating, typeof(CrossRef_Anime_Staff).Name,
-                        $" DbRegen - {i}/{list.Count}");
+                        Resources.Database_Validating, nameof(CrossRef_Anime_Staff),
+                        $" DbRegen - {index}/{list.Count}"
+                    );
             }
         }
 
