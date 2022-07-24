@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;
@@ -26,6 +28,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// <summary>
         /// This is a list of services that the user is set to use. AniDB, Trakt, and Plex, for example
         /// </summary>
+        [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
         public List<CommunitySites> CommunitySites { get; set; }
         
         /// <summary>
