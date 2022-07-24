@@ -2,6 +2,7 @@
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -34,7 +35,7 @@ namespace Shoko.Server.Commands
             extraParams = new[] {GroupFilterID.ToString()}
         };
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
             if (GroupFilterID == 0)
             {

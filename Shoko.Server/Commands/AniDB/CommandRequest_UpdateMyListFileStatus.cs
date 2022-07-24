@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,6 +6,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -15,7 +15,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.AniDB
 {
     [Serializable]
     [Command(CommandRequestType.AniDB_UpdateWatchedUDP)]
@@ -35,6 +35,8 @@ namespace Shoko.Server.Commands
             extraParams = new[] {FullFileName}
         };
 
+        public override CommandConflict ConflictBehavior { get; } = CommandConflict.Replace;
+
         public CommandRequest_UpdateMyListFileStatus()
         {
         }
@@ -52,7 +54,7 @@ namespace Shoko.Server.Commands
             FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_UpdateMyListFileStatus: {Hash}", Hash);
             var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using NLog;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 

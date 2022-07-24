@@ -3,6 +3,7 @@ using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Server;
@@ -40,7 +41,7 @@ namespace Shoko.Server.Commands.TvDB
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_LinkAniDBTvDB: {0}", animeID);
 
