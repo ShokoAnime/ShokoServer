@@ -3,6 +3,7 @@ using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -36,7 +37,7 @@ namespace Shoko.Server.Commands.AniDB
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_UpdateMyListStats");
 

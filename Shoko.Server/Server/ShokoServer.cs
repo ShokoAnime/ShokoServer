@@ -34,6 +34,7 @@ using Shoko.Server.AniDB_API;
 using Shoko.Server.API;
 using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Commands;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;

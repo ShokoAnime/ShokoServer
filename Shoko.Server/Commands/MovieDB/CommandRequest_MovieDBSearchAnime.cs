@@ -7,6 +7,7 @@ using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
@@ -46,7 +47,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_MovieDBSearchAnime: {0}", AnimeID);
 

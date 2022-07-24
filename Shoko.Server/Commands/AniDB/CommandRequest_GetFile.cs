@@ -1,18 +1,19 @@
 ﻿using System;
 using System.Xml;
-using AniDBAPI;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.AniDB
 {
     [Serializable]
     [Command(CommandRequestType.AniDB_GetFileUDP)]
@@ -22,6 +23,7 @@ namespace Shoko.Server.Commands
         public bool ForceAniDB { get; set; }
 
         private SVR_VideoLocal vlocal;
+        public SVR_AniDB_File Result;
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
 
@@ -56,48 +58,42 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Get AniDB file info: {0}", VideoLocalID);
+            logger.Info("Get AniDB file info: {VideoLocalID}", VideoLocalID);
             var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
 
-            try
+            if (handler.IsBanned) throw new AniDBBannedException { BanType = UpdateType.UDPBan, BanExpires = handler.BanTime?.AddHours(handler.BanTimerResetLength) };
+            vlocal ??= RepoFactory.VideoLocal.GetByID(VideoLocalID);
+            if (vlocal == null) return;
+            lock (vlocal)
             {
-                if (vlocal == null) vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
-                if (vlocal == null) return;
-                lock (vlocal)
+                var aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
+                
+                UDPResponse<ResponseGetFile> response = null;
+                if (aniFile == null || aniFile.FileSize != vlocal.FileSize || ForceAniDB)
                 {
-                    var aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
-                    
-                    UDPResponse<ResponseGetFile> response = null;
-                    if (aniFile == null || aniFile.FileSize != vlocal.FileSize || ForceAniDB)
-                    {
-                        var request = new RequestGetFile { Hash = vlocal.Hash, Size = vlocal.FileSize };
-                        response = request.Execute(handler);
-                    }
-
-                    if (response != null)
-                    {
-                        // save to the database
-                        aniFile ??= new SVR_AniDB_File();
-
-                        SVR_AniDB_File.Populate(aniFile, response.Response);
-                        
-
-                        RepoFactory.AniDB_File.Save(aniFile, false);
-                        aniFile.CreateLanguages(response.Response);
-                        aniFile.CreateCrossEpisodes(vlocal.FileName, response.Response);
-
-                        SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
-                        if (anime != null) RepoFactory.AniDB_Anime.Save(anime);
-                        SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
-                        series.UpdateStats(true, true, true);
-                    }
+                    var request = new RequestGetFile { Hash = vlocal.Hash, Size = vlocal.FileSize };
+                    response = request.Execute(handler);
                 }
-            }
-            catch (Exception ex)
-            {
-                logger.Error("Error processing CommandRequest_GetFile: {0} - {1}", VideoLocalID, ex);
+
+                if (response != null)
+                {
+                    // save to the database
+                    aniFile ??= new SVR_AniDB_File();
+
+                    SVR_AniDB_File.Populate(aniFile, response.Response);
+
+                    RepoFactory.AniDB_File.Save(aniFile, false);
+                    aniFile.CreateLanguages(response.Response);
+                    aniFile.CreateCrossEpisodes(vlocal.FileName, response.Response);
+
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
+                    if (anime != null) RepoFactory.AniDB_Anime.Save(anime);
+                    SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
+                    series.UpdateStats(true, true, true);
+                    Result = RepoFactory.AniDB_File.GetByFileID(aniFile.FileID);
+                }
             }
         }
 
@@ -119,16 +115,14 @@ namespace Shoko.Server.Commands
             DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (CommandDetails.Trim().Length > 0)
-            {
-                XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(CommandDetails);
+            if (CommandDetails.Trim().Length <= 0) return true;
+            var docCreator = new XmlDocument();
+            docCreator.LoadXml(CommandDetails);
 
-                // populate the fields
-                VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "VideoLocalID"));
-                ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "ForceAniDB"));
-                vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
-            }
+            // populate the fields
+            VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", nameof(VideoLocalID)));
+            ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", nameof(ForceAniDB)));
+            vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
             return true;
         }
@@ -137,13 +131,13 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest
+            var cq = new CommandRequest
             {
                 CommandID = CommandID,
                 CommandType = CommandType,
                 Priority = Priority,
                 CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
+                DateTimeUpdated = DateTime.Now,
             };
             return cq;
         }

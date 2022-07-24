@@ -3,6 +3,7 @@ using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Server;
 
@@ -35,7 +36,7 @@ namespace Shoko.Server.Commands
         }
 
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_TraktUpdateInfo: {0}", TraktID);
 
