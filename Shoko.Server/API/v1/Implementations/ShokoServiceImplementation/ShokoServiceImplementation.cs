@@ -14,6 +14,7 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Commands;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;

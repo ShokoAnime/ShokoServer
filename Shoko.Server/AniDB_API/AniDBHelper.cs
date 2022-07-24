@@ -17,6 +17,7 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.Commands;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;

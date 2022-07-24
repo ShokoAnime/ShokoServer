@@ -6,18 +6,14 @@ using System.Xml.Serialization;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Exceptions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandAttribute : Attribute
-    {
-        public CommandRequestType RequestType { get; }
-
-        public CommandAttribute(CommandRequestType requestType) => RequestType = requestType;
-    }
 
     public abstract class CommandRequestImplementation : ICommandRequest
     {
@@ -44,17 +40,35 @@ namespace Shoko.Server.Commands
         [XmlIgnore]
         public DateTime DateTimeUpdated { get; set; }
 
+        [XmlIgnore]
+        public bool BubbleExceptions = false;
+
         /// <summary>
         /// Inherited classes to provide the implemenation of how to process this command
         /// </summary>
         /// <param name="serviceProvider"></param>
-        public abstract void ProcessCommand(IServiceProvider serviceProvider);
+        protected abstract void Process(IServiceProvider serviceProvider);
+
+        public void ProcessCommand(IServiceProvider serviceProvider)
+        {
+            try
+            {
+                Process(serviceProvider);
+            }
+            catch (Exception e)
+            {
+                if (BubbleExceptions)
+                    throw;
+                logger.Error(e, "Error processing {Type}: {CommandDetails} - {Exception}", GetType().Name, CommandID, e);
+            }
+        }
 
         public abstract void GenerateCommandID();
 
         public abstract bool LoadFromDBCommand(CommandRequest cq);
         public abstract CommandRequestPriority DefaultPriority { get; }
         public abstract QueueStateStruct PrettyDescription { get; }
+        public virtual CommandConflict ConflictBehavior { get; } = CommandConflict.Ignore;
 
         public abstract CommandRequest ToDatabaseObject();
 
@@ -75,21 +89,24 @@ namespace Shoko.Server.Commands
             return sb.ToString();
         }
 
-        public void Save()
+        public void Save(bool force = false)
         {
-            CommandRequest crTemp = RepoFactory.CommandRequest.GetByCommandID(CommandID);
+            var commandID = CommandID + (force ? "_Forced" : "");
+            var crTemp = RepoFactory.CommandRequest.GetByCommandID(commandID);
             if (crTemp != null)
             {
-                // we will always mylist watched state changes
-                // this is because the user may be toggling the status in the client, and we need to process
-                // them all in the order they were requested
-                if (CommandType == (int) CommandRequestType.AniDB_UpdateWatchedUDP)
-                    RepoFactory.CommandRequest.Delete(crTemp);
-                else
-                    return;
+                switch (ConflictBehavior)
+                {
+                    case CommandConflict.Replace: RepoFactory.CommandRequest.Delete(crTemp);
+                        break;
+                    case CommandConflict.Ignore: return;
+                    case CommandConflict.Error:
+                    default: throw new CommandExistsException {CommandID = commandID};
+                }
             }
 
-            CommandRequest cri = ToDatabaseObject();
+            var cri = ToDatabaseObject();
+            cri.CommandID = commandID;
             RepoFactory.CommandRequest.Save(cri);
 
             switch (CommandRequestRepository.GetQueueIndex(cri))

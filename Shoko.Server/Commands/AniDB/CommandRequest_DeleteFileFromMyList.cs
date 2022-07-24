@@ -5,6 +5,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
@@ -14,7 +15,7 @@ using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Void;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.AniDB
 {
     [Serializable]
     [Command(CommandRequestType.AniDB_DeleteFileUDP)]
@@ -44,7 +45,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
             var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
             // there will be a road bump the first time we start up, as some people may have requests with MyListID. I don't care. It'll get there.

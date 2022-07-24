@@ -11,5 +11,6 @@ namespace Shoko.Server.Commands
         bool LoadFromDBCommand(CommandRequest cq);
         CommandRequestPriority DefaultPriority { get; }
         QueueStateStruct PrettyDescription { get; }
+        CommandConflict ConflictBehavior { get; }
     }
 }
