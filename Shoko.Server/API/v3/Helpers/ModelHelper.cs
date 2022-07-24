@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Enums;
@@ -8,6 +9,48 @@ namespace Shoko.Server.API.v3.Helpers
 {
     public static class ModelHelper
     {
+        public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable, int page, int pageSize)
+        {
+            var total = enumerable.Count();
+            if (pageSize <= 0)
+                return new ListResult<T>
+                {
+                    Total = total,
+                    List = enumerable
+                        .ToList(),
+                };
+            return new ListResult<T>
+            {
+                Total = total,
+                List = enumerable
+                    .Skip(pageSize * page)
+                    .Take(pageSize)
+                    .ToList(),
+            };
+        }
+
+        public static ListResult<U> ToListResult<T, U>(this IEnumerable<T> enumerable, Func<T, U> mapper, int page, int pageSize)
+        {
+            var total = enumerable.Count();
+            if (pageSize <= 0)
+                return new ListResult<U>
+                {
+                    Total = total,
+                    List = enumerable
+                        .Select(mapper)
+                        .ToList(),
+                };
+            return new ListResult<U>
+            {
+                Total = total,
+                List = enumerable
+                    .Skip(pageSize * page)
+                    .Take(pageSize)
+                    .Select(mapper)
+                    .ToList(),
+            };
+        }
+        
         public static (int, EpisodeType?, string) GetEpisodeNumberAndTypeFromInput(string input)
         {
             EpisodeType? episodeType = null;

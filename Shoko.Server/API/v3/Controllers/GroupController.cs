@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -25,37 +28,29 @@ namespace Shoko.Server.API.v3.Controllers
         #endregion
         #region Metadata
         #region Get Many
+
         /// <summary>
         /// Get a list of all groups available to the current user
         /// </summary>
         /// <param name="page">The page index.</param>
         /// <param name="pageSize">The page size.</param>
         /// <param name="topLevelOnly">Only list the top level groups if set.</param>
+        /// <param name="startsWith">Search only for groups that start with the given query.</param>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<List<Group>> GetAllGroups([FromQuery] int page = 0, [FromQuery] int pageSize = 50, bool topLevelOnly = false)
+        public ActionResult<ListResult<Group>> GetAllGroups([FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(0, int.MaxValue)] int page = 0, [FromQuery] bool topLevelOnly = false, [FromQuery] string startsWith = "")
         {
-            var groups = RepoFactory.AnimeGroup.GetAll()
-                .Where(group =>
-                {
-                    if (topLevelOnly && group.AnimeGroupParentID.HasValue)
+            startsWith = startsWith.ToLowerInvariant();
+            var user = User;
+            return (topLevelOnly ? RepoFactory.AnimeGroup.GetAllTopLevelGroups() : RepoFactory.AnimeGroup.GetAll())
+                .Where(group => {
+                    if (!string.IsNullOrEmpty(startsWith) && !group.GroupName.ToLowerInvariant().StartsWith(startsWith))
                         return false;
 
-                    return User.AllowedGroup(group);
+                    return user.AllowedGroup(group);
                 })
-                .OrderBy(group => group.GroupName);
-
-            if (pageSize <= 0)
-                return groups
-                    .Select(g => new Group(HttpContext, g))
-                    .ToList();
-
-            if (page <= 0) page = 0;
-            return groups
-                .Skip(page * pageSize)
-                .Take(pageSize)
-                .Select(g => new Group(HttpContext, g))
-                .ToList();
+                .OrderBy(group => group.GroupName)
+                .ToListResult(group => new Group(HttpContext, group), page, pageSize);
         }
 
         #endregion
