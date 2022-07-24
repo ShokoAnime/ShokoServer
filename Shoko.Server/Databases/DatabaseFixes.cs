@@ -840,13 +840,8 @@ namespace Shoko.Server.Databases
                 }
             }
             logger.Debug($"Found {episodesURsToSave.Count} episode user records to fix.");
-            // Update the client contracts and save the changes to the database.
             RepoFactory.AnimeEpisode_User.Delete(episodeURsToRemove);
-            foreach (var episodeUserRecord in episodesURsToSave)
-            {
-                logger.Debug($"Updating episode user contract for user \"{userDict[episodeUserRecord.JMMUserID].Username}\". (UserID={episodeUserRecord.JMMUserID},EpisodeID={episodeUserRecord.AnimeEpisodeID},SeriesID={episodeUserRecord.AnimeSeriesID})");
-                RepoFactory.AnimeEpisode_User.Save(episodeUserRecord);
-            }
+            RepoFactory.AnimeEpisode_User.Save(episodesURsToSave);
             logger.Debug($"Updating series user records and series stats.");
             // Update all the series and groups to use the new watch dates.
             var seriesList = episodesURsToSave

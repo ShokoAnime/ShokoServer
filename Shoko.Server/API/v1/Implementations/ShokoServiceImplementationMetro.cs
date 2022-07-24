@@ -692,17 +692,11 @@ namespace Shoko.Server
                         if (dictAniEps.ContainsKey(ep.AniDB_EpisodeID))
                         {
                             AniDB_Episode anidbep = dictAniEps[ep.AniDB_EpisodeID];
-                            if (anidbep.EpisodeType == (int) EpisodeType.Episode ||
-                                anidbep.EpisodeType == (int) EpisodeType.Special)
+                            if (anidbep.EpisodeType == (int) EpisodeType.Episode || anidbep.EpisodeType == (int) EpisodeType.Special)
                             {
-                                SVR_AnimeEpisode_User userRecord = null;
-                                if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
-                                {
-                                    userRecord = dictEpUsers[ep.AnimeEpisodeID];
-                                    CL_AnimeEpisode_User epContract = userRecord.Contract;
-                                    if (epContract != null)
-                                        candidateEps.Add(epContract);
-                                }
+                                // The episode list have already been filtered to only episodes with a user record
+                                // So just add the candidate to the list.
+                                candidateEps.Add(ep.GetUserContract(jmmuserID));
                             }
                         }
                     }

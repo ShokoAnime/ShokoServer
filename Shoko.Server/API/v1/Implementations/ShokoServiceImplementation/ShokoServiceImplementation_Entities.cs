@@ -480,24 +480,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.AnimeEpisode_User.GetLastWatchedEpisodeForSeries(animeSeriesID, jmmuserID)?.Contract;
-                /*
-                                using (var session = JMMService.SessionFactory.OpenSession())
-                                {
-                                    AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                                    JMMUserRepository repUsers = new JMMUserRepository();
-
-                                    JMMUser user = repUsers.GetByID(session, jmmuserID);
-                                    if (user == null) return null;
-
-                                    List<AnimeEpisode_User> userRecords = repEpUser.GetLastWatchedEpisodeForSeries(session, animeSeriesID, jmmuserID);
-                                    if (userRecords == null || userRecords.Count == 0) return null;
-
-                                    AnimeEpisode ep = repEps.GetByID(session, userRecords[0].AnimeEpisodeID);
-                                    if (ep == null) return null;
-
-                                    return ep.ToContract(session, jmmuserID);
-                                }*/
+                return RepoFactory.AnimeEpisode_User.GetLastWatchedEpisodeForSeries(animeSeriesID, jmmuserID)?.GetAnimeEpisode()?.GetUserContract(jmmuserID);
             }
             catch (Exception ex)
             {

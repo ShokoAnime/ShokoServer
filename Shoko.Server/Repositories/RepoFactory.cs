@@ -156,7 +156,6 @@ namespace Shoko.Server.Repositories
         {
             AniDB_Anime.GetAll().ForEach(a => a.CollectContractMemory());
             VideoLocal.GetAll().ForEach(a => a.CollectContractMemory());
-            AnimeEpisode_User.GetAll().ForEach(a => a.CollectContractMemory());
             AnimeSeries.GetAll().ForEach(a => a.CollectContractMemory());
             AnimeSeries_User.GetAll().ForEach(a => a.CollectContractMemory());
             AnimeGroup.GetAll().ForEach(a => a.CollectContractMemory());

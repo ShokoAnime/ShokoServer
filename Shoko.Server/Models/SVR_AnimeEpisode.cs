@@ -143,7 +143,35 @@ namespace Shoko.Server.Models
 
         public CL_AnimeEpisode_User GetUserContract(int userID, ISessionWrapper session = null)
         {
-            return GetOrCreateUserRecord(userID, session).Contract;
+            var anidbEpisode = AniDB_Episode;
+            var seriesUserRecord = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, AnimeSeriesID);
+            var episodeUserRecord = GetOrCreateUserRecord(userID, session);
+            var contract = new CL_AnimeEpisode_User
+            {
+                AniDB_EpisodeID = AniDB_EpisodeID,
+                AnimeEpisodeID = AnimeEpisodeID,
+                AnimeSeriesID = AnimeSeriesID,
+                DateTimeCreated = DateTimeCreated,
+                DateTimeUpdated = DateTimeUpdated,
+                PlayedCount = episodeUserRecord.PlayedCount,
+                StoppedCount = episodeUserRecord.StoppedCount,
+                WatchedCount = episodeUserRecord.WatchedCount,
+                WatchedDate = episodeUserRecord.WatchedDate,
+                AniDB_EnglishName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, "EN")
+                    .FirstOrDefault()?.Title,
+                AniDB_RomajiName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, "X-JAT")
+                    .FirstOrDefault()?.Title,
+                AniDB_AirDate = anidbEpisode.GetAirDateAsDate(),
+                AniDB_LengthSeconds = anidbEpisode.LengthSeconds,
+                AniDB_Rating = anidbEpisode.Rating,
+                AniDB_Votes = anidbEpisode.Votes,
+                EpisodeNumber = anidbEpisode.EpisodeNumber,
+                Description = anidbEpisode.Description,
+                EpisodeType = anidbEpisode.EpisodeType,
+                UnwatchedEpCountSeries = seriesUserRecord?.UnwatchedEpisodeCount ?? 0,
+                LocalFileCount = GetVideoLocals().Count,
+            };
+            return contract;
         }
 
         public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, int userID,
