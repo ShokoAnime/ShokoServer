@@ -375,10 +375,10 @@ namespace Shoko.Server.API.v3.Controllers
             if (!user.AllowedSeries(series))
                 return Forbid(SeriesController.SeriesForbiddenForUser);
 
-            var episode = series.GetNextEpisode(user.JMMUserID, onlyUnwatched);
+            var episode = series.GetNextEpisode(user.JMMUserID, onlyUnwatched, includeSpecials);
             if (episode == null)
                 return null;
-            
+
             return new Episode(HttpContext, episode);
         }
 
