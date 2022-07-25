@@ -238,9 +238,49 @@ namespace Shoko.Server.API.v3.Controllers
             return (recursive ? group.GetAllSeries() : group.GetSeries())
                 .Where(a => User.AllowedSeries(a))
                 .OrderBy(OrderByAirDate)
-                .Select(series => new Series(HttpContext, series))
+                .Select(series => new Series(HttpContext, series, randomImages))
                 .Where(series => series.Size > 0 || includeMissing)
                 .ToList();
+        }
+
+        /// <summary>
+        /// Get the main <see cref="Series"/> in a <see cref="Group"/>.
+        /// </summary>
+        /// <remarks>
+        /// It will return 1) the default series or 2) the earliest running
+        /// series if the group contains a series, or nothing if the group is
+        /// empty.
+        /// </remarks>
+        /// <param name="groupID"><see cref="Group"/> ID</param>
+        /// <param name="recursive">Look for the main series among all the <see cref="Series"/> within the <see cref="Group"/></param>
+        /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
+        /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
+        /// <returns></returns>
+        [HttpGet("Group/{groupID}/MainSeries")]
+        public ActionResult<Series> GetMainSeriesInGroup([FromRoute] int groupID, [FromQuery] bool recursive = true, [FromQuery] bool includeMissing = false, [FromQuery] bool randomImages = false)
+        {
+            // Check if the group exists.
+            var group = RepoFactory.AnimeGroup.GetByID(groupID);
+            if (group == null)
+                return NotFound(GroupController.GroupNotFound);
+
+            // Check if a default series is set.
+            var defaultSeries = group.GetDefaultSeries();
+            if (defaultSeries != null)
+                return new Series(HttpContext, defaultSeries, randomImages);
+
+            // Find the earliest series.
+            var series = (recursive ? group.GetAllSeries() : group.GetSeries())
+                .Where(a => User.AllowedSeries(a))
+                .OrderBy(OrderByAirDate)
+                .Select(series => new Series(HttpContext, series, randomImages))
+                .Where(series => series.Size > 0 || includeMissing)
+                .FirstOrDefault();
+            if (series != null)
+                return series;
+
+            // The group is empty.
+            return null;
         }
 
         #endregion
