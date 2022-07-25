@@ -365,7 +365,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="onlyUnwatched">Only show the next unwatched episode.</param>
         /// <param name="includeSpecials">Include specials in the search.</param>
         /// <returns></returns>
-        [HttpGet("Series/{seriesID}/Episode/NextUp")]
+        [HttpGet("Series/{seriesID}/NextUpEpisode")]
         public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID, [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true)
         {
             var user = User;
