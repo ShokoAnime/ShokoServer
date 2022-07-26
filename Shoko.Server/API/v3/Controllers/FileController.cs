@@ -698,7 +698,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("Recent")]
-        public ActionResult<ListResult<File.FileDetailed>> GetRecentFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        public ActionResult<ListResult<File.FileDetailed>> GetRecentFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             return RepoFactory.VideoLocal.GetMostRecentlyAdded(-1, 0, User.JMMUserID)
                 .ToListResult(file => new File.FileDetailed(HttpContext, file), page, pageSize);
@@ -711,7 +711,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("Ignored")]
-        public ActionResult<ListResult<File>> GetIgnoredFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        public ActionResult<ListResult<File>> GetIgnoredFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             return RepoFactory.VideoLocal.GetIgnoredVideos()
                 .ToListResult(file => new File(HttpContext, file), page, pageSize);
@@ -724,7 +724,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("Duplicates")]
-        public ActionResult<ListResult<File>> GetExactDuplicateFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        public ActionResult<ListResult<File>> GetExactDuplicateFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             return RepoFactory.VideoLocal.GetExactDuplicateVideos()
                 .ToListResult(file => new File(HttpContext, file), page, pageSize);
@@ -737,7 +737,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("Linked")]
-        public ActionResult<ListResult<File.FileDetailed>> GetManuellyLinkedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        public ActionResult<ListResult<File.FileDetailed>> GetManuellyLinkedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             return RepoFactory.VideoLocal.GetManuallyLinkedVideos()
                 .ToListResult(file => new File.FileDetailed(HttpContext, file), page, pageSize);
@@ -751,7 +751,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("Unrecognized")]
-        public ActionResult<ListResult<File>> GetUnrecognizedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        public ActionResult<ListResult<File>> GetUnrecognizedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             return RepoFactory.VideoLocal.GetVideosWithoutEpisode()
                 .ToListResult(file => new File(HttpContext, file), page, pageSize);

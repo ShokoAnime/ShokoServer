@@ -23,7 +23,7 @@ namespace Shoko.Server.API.v3.Helpers
             {
                 Total = total,
                 List = enumerable
-                    .Skip(pageSize * page)
+                    .Skip(pageSize * (page - 1))
                     .Take(pageSize)
                     .ToList(),
             };
@@ -44,7 +44,7 @@ namespace Shoko.Server.API.v3.Helpers
             {
                 Total = total,
                 List = enumerable
-                    .Skip(pageSize * page)
+                    .Skip(pageSize * (page - 1))
                     .Take(pageSize)
                     .Select(mapper)
                     .ToList(),

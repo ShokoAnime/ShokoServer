@@ -127,7 +127,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("WithMultipleFiles")]
-        public ActionResult<ListResult<Episode>> GetSoftDuplicatesForEpisode([FromQuery] bool ignoreVariations = true, [FromQuery] bool onlyFinishedSeries = false, [FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        public ActionResult<ListResult<Episode>> GetSoftDuplicatesForEpisode([FromQuery] bool ignoreVariations = true, [FromQuery] bool onlyFinishedSeries = false, [FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(ignoreVariations);
             if (onlyFinishedSeries)
@@ -150,7 +150,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("WithNoFiles")]
-        public ActionResult<ListResult<Episode>> GetMissingEpisodes([FromQuery] bool includeSpecials = false, [FromQuery] bool onlyFinishedSeries = false, [FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        public ActionResult<ListResult<Episode>> GetMissingEpisodes([FromQuery] bool includeSpecials = false, [FromQuery] bool onlyFinishedSeries = false, [FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetEpisodesWithNoFiles(includeSpecials);
             if (onlyFinishedSeries)

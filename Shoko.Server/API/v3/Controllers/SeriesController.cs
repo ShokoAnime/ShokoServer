@@ -59,7 +59,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="startsWith">Search only for series with a main title that start with the given query.</param>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<ListResult<Series>> GetAllSeries([FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(0, int.MaxValue)] int page = 0, [FromQuery] string startsWith = "")
+        public ActionResult<ListResult<Series>> GetAllSeries([FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] string startsWith = "")
         {
             startsWith = startsWith.ToLowerInvariant();
             var user = User;
@@ -198,7 +198,7 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("AniDB/RecommendedForYou")]
         public ActionResult<ListResult<Series.AniDBRecommendedForYou>> GetAnimeRecommendedForYou(
             [FromQuery] [Range(0, 100)] int pageSize = 30,
-            [FromQuery] [Range(0, int.MaxValue)] int page = 0,
+            [FromQuery] [Range(1, int.MaxValue)] int page = 1,
             [FromQuery] bool showAll = false,
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,

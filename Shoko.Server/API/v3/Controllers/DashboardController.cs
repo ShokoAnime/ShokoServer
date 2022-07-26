@@ -183,7 +183,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("RecentlyAddedEpisodes")]
-        public List<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes([FromQuery] [Range(0, 100)] int pageSize = 30, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        public List<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes([FromQuery] [Range(0, 100)] int pageSize = 30, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             var user = HttpContext.GetUser();
             var episodeList = RepoFactory.VideoLocal.GetAll()
@@ -206,7 +206,7 @@ namespace Shoko.Server.API.v3.Controllers
                     .ToList();
             return episodeList
                 .Where(episode => seriesDict.ContainsKey(episode.AnimeSeriesID))
-                .Skip(pageSize * page)
+                .Skip(pageSize * (page - 1))
                 .Take(pageSize)
                 .Select(episode => GetEpisodeDetailsForSeriesAndEpisode(user, episode, seriesDict[episode.AnimeSeriesID], animeDict[episode.AnimeSeriesID]))
                 .ToList();
@@ -219,7 +219,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("RecentlyAddedSeries")]
-        public List<Series> GetRecentlyAddedSeries([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        public List<Series> GetRecentlyAddedSeries([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             var user = HttpContext.GetUser();
             var seriesList = RepoFactory.VideoLocal.GetAll()
@@ -234,7 +234,7 @@ namespace Shoko.Server.API.v3.Controllers
                     .Select(a => new Series(HttpContext, a))
                     .ToList();
             return seriesList
-                .Skip(pageSize * page)
+                .Skip(pageSize * (page - 1))
                 .Take(pageSize)
                 .Select(a => new Series(HttpContext, a))
                 .ToList();
@@ -263,7 +263,7 @@ namespace Shoko.Server.API.v3.Controllers
                     .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.Item2, tuple.series))
                     .ToList();
             return episodeList
-                .Skip(pageSize * page)
+                .Skip(pageSize * (page - 1))
                 .Take(pageSize)
                 .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.Item2, tuple.series))
                 .ToList();
@@ -293,7 +293,7 @@ namespace Shoko.Server.API.v3.Controllers
                     .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.Item2, tuple.series))
                     .ToList();
             return episodeList
-                .Skip(pageSize * page)
+                .Skip(pageSize * (page - 1))
                 .Take(pageSize)
                 .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.Item2, tuple.series))
                 .ToList();

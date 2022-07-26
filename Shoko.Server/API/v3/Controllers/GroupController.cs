@@ -38,7 +38,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="startsWith">Search only for groups that start with the given query.</param>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<ListResult<Group>> GetAllGroups([FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(0, int.MaxValue)] int page = 0, [FromQuery] bool topLevelOnly = false, [FromQuery] string startsWith = "")
+        public ActionResult<ListResult<Group>> GetAllGroups([FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool topLevelOnly = false, [FromQuery] string startsWith = "")
         {
             startsWith = startsWith.ToLowerInvariant();
             var user = User;

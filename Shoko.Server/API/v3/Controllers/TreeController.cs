@@ -36,7 +36,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">The page index.</param>
         /// <returns></returns>
         [HttpGet("Filter/{filterID}/Filter")]
-        public ActionResult<List<Filter>> GetSubFilters([FromRoute] int filterID, [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        public ActionResult<List<Filter>> GetSubFilters([FromRoute] int filterID, [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
             if (groupFilter == null)
@@ -66,7 +66,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">The page index.</param>
         /// <returns></returns>
         [HttpGet("Filter/{filterID}/Group")]
-        public ActionResult<ListResult<Group>> GetFilteredGroups([FromRoute] int filterID, [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        public ActionResult<ListResult<Group>> GetFilteredGroups([FromRoute] int filterID, [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             // Return the top level groups with no filter.
             IEnumerable<SVR_AnimeGroup> groups;

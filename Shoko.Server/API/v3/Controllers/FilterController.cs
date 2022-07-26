@@ -28,7 +28,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="pageSize"></param>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<ListResult<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false, [FromQuery] bool includeInvisible = false, [FromQuery] [Range(0, 100)] int pageSize = 10, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        public ActionResult<ListResult<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false, [FromQuery] bool includeInvisible = false, [FromQuery] [Range(0, 100)] int pageSize = 10, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             return RepoFactory.GroupFilter.GetTopLevel()
                 .Where(filter =>
