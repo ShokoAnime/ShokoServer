@@ -344,12 +344,42 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         public class FileUserStats
         {
+            public FileUserStats()
+            {
+                ResumePosition = TimeSpan.Zero;
+                WatchedCount = 0;
+                LastWatchedAt = null;
+                LastUpdatedAt = DateTime.Now;
+            }
+
             public FileUserStats(SVR_VideoLocal_User userStats)
             {
                 ResumePosition = userStats.ResumePositionTimeSpan;
                 WatchedCount = userStats.WatchedCount;
                 LastWatchedAt = userStats.WatchedDate;
                 LastUpdatedAt = userStats.LastUpdated;
+            }
+
+            public FileUserStats MergeWithExisting(SVR_VideoLocal_User existing, SVR_VideoLocal file = null)
+            {
+                // Get the file assosiated with the user entry.
+                if (file == null)
+                    file = existing.GetVideoLocal();
+
+                // Update the last updated field. It's needed for calculating the correct series user stats after setting the watch state.
+                existing.LastUpdated = LastUpdatedAt;
+                RepoFactory.VideoLocalUser.Save(existing);
+
+                // Sync the watch date and aggregate the data up to the episode if needed.
+                file.ToggleWatchedStatus(LastWatchedAt.HasValue, true, LastWatchedAt, true, existing.JMMUserID, true, true);
+
+                // Update the rest of the data. The watch count have been bumped when toggling the watch state, so set it to it's intended value.
+                existing.WatchedCount = WatchedCount;
+                existing.ResumePositionTimeSpan = ResumePosition;
+                RepoFactory.VideoLocalUser.Save(existing);
+
+                // Return a new representation
+                return new(existing);
             }
 
             /// <summary>

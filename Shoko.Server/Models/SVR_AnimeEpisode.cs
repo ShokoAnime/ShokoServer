@@ -130,9 +130,6 @@ namespace Shoko.Server.Models
                 epUserRecord.WatchedDate = null;
                 RepoFactory.AnimeEpisode_User.Save(epUserRecord);
             }
-
-            // Make sure to touch the series user record, so the last updated timestamp is updated.
-            GetAnimeSeries().TouchUserRecord(userID);
         }
 
 

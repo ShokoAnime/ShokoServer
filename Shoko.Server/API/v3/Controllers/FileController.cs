@@ -131,8 +131,34 @@ namespace Shoko.Server.API.v3.Controllers
                 return NotFound(FileNotFoundWithFileID);
 
             var user = HttpContext.GetUser(); 
-            var userStats = file.GetOrCreateUserRecord(user.JMMUserID);
+            var userStats = file.GetUserRecord(user.JMMUserID);
+
+            if (userStats == null)
+                return NotFound(FileUserStatsNotFoundWithFileID);
+
             return new File.FileUserStats(userStats);
+        }
+
+        /// <summary>
+        /// Put a <see cref="File.FileUserStats"/> object down for the <see cref="File"/> with the given <paramref name="fileID"/>.
+        /// </summary>
+        /// <param name="fileID">Shoko file ID</param>
+        /// <param name="fileUserStats">The new and/or update file stats to put for the file.</param>
+        /// <returns>The new and/or updated user stats.</returns>
+        [HttpPut("{fileID}/UserStats")]
+        public ActionResult<File.FileUserStats> PutFileUserStats([FromRoute] int fileID, [FromBody] File.FileUserStats fileUserStats)
+        {
+            // Make sure the file exists.
+            var file = RepoFactory.VideoLocal.GetByID(fileID);
+            if (file == null)
+                return NotFound(FileNotFoundWithFileID);
+
+            // Get the user data.
+            var user = HttpContext.GetUser(); 
+            var userStats = file.GetOrCreateUserRecord(user.JMMUserID);
+
+            // Merge with the existing entry and return an updated version of the stats.
+            return fileUserStats.MergeWithExisting(userStats, file);
         }
 
         /// <summary>

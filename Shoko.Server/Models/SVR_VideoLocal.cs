@@ -127,15 +127,7 @@ namespace Shoko.Server.Models
             var userRecord = GetUserRecord(userID);
             if (userRecord != null)
                 return userRecord;
-            userRecord = new()
-            {
-                JMMUserID = userID,
-                LastUpdated = DateTime.Now,
-                ResumePosition = 0,
-                VideoLocalID = VideoLocalID,
-                WatchedCount = 0,
-                WatchedDate = null,
-            };
+            userRecord = new(userID, VideoLocalID);
             RepoFactory.VideoLocalUser.Save(userRecord);
             return userRecord;
         }
@@ -173,15 +165,12 @@ namespace Shoko.Server.Models
             if (watched)
             {
                 if (vidUserRecord == null)
-                    vidUserRecord = new SVR_VideoLocal_User()
-                    {
-                        JMMUserID = userID,
-                        VideoLocalID = VideoLocalID,
-                    };
+                    vidUserRecord = new(userID, VideoLocalID);
                 vidUserRecord.WatchedDate = DateTime.Now;
                 vidUserRecord.WatchedCount++;
 
-                if (watchedDate.HasValue && updateWatchedDate) vidUserRecord.WatchedDate = watchedDate.Value;
+                if (watchedDate.HasValue && updateWatchedDate)
+                    vidUserRecord.WatchedDate = watchedDate.Value;
 
                 vidUserRecord.LastUpdated = DateTime.Now;
                 RepoFactory.VideoLocalUser.Save(vidUserRecord);
@@ -235,19 +224,10 @@ namespace Shoko.Server.Models
 
         public void SetResumePosition(long resumeposition, int userID)
         {
-            SVR_VideoLocal_User vuser = GetUserRecord(userID);
-            if (vuser == null)
-                vuser = new SVR_VideoLocal_User
-                {
-                    JMMUserID = userID,
-                    VideoLocalID = VideoLocalID,
-                    ResumePosition = resumeposition
-                };
-            else
-                vuser.ResumePosition = resumeposition;
-
-            vuser.LastUpdated = DateTime.Now;
-            RepoFactory.VideoLocalUser.Save(vuser);
+            SVR_VideoLocal_User userRecord = GetOrCreateUserRecord(userID);
+            userRecord.ResumePosition = resumeposition;
+            userRecord.LastUpdated = DateTime.Now;
+            RepoFactory.VideoLocalUser.Save(userRecord);
         }
 
         public void ToggleWatchedStatus(bool watched, int userID)

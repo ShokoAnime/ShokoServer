@@ -318,13 +318,6 @@ namespace Shoko.Server.Models
             return userRecord;
         }
 
-        public void TouchUserRecord(int userID)
-        {
-            var serUserRecord = GetOrCreateUserRecord(userID);
-            serUserRecord.LastEpisodeUpdate = DateTime.Now;
-            RepoFactory.AnimeSeries_User.Save(serUserRecord);
-        }
-
         public SVR_AnimeEpisode GetLastEpisodeWatched(int userID)
         {
             SVR_AnimeEpisode watchedep = null;
@@ -1131,6 +1124,7 @@ namespace Shoko.Server.Models
                     int unwatchedCount = 0;
                     int watchedCount = 0;
                     int watchedEpisodeCount = 0;
+                    DateTime? lastEpisodeUpdate = null;
                     DateTime? watchedDate = null;
 
                     object lck = new object();
@@ -1140,6 +1134,11 @@ namespace Shoko.Server.Models
                         ep =>
                         {
                             SVR_AnimeEpisode_User epUserRecord = ep.GetUserRecord(juser.JMMUserID);
+                            DateTime? lastUpdated = ep.GetVideoLocals()
+                                .Select(file => file.GetUserRecord(juser.JMMUserID))
+                                .Where(record => record != null)
+                                .OrderByDescending(record => record.LastUpdated)
+                                .FirstOrDefault()?.LastUpdated;
 
                             if (epUserRecord?.WatchedDate == null)
                             {
@@ -1149,10 +1148,11 @@ namespace Shoko.Server.Models
 
                             lock (lck)
                             {
-                                if (watchedDate == null)
+                                if (watchedDate == null || (epUserRecord.WatchedDate.HasValue &&  epUserRecord.WatchedDate.Value > watchedDate.Value))
                                     watchedDate = epUserRecord.WatchedDate;
-                                else if (epUserRecord.WatchedDate > watchedDate)
-                                    watchedDate = epUserRecord.WatchedDate;
+
+                                if (lastEpisodeUpdate == null || (lastUpdated.HasValue && lastUpdated.Value > lastEpisodeUpdate.Value))
+                                    lastEpisodeUpdate = lastUpdated;
                             }
 
                             Interlocked.Increment(ref watchedEpisodeCount);
@@ -1162,6 +1162,7 @@ namespace Shoko.Server.Models
                     userRecord.WatchedEpisodeCount = watchedEpisodeCount;
                     userRecord.WatchedCount = watchedCount;
                     userRecord.WatchedDate = watchedDate;
+                    userRecord.LastEpisodeUpdate = lastEpisodeUpdate;
                     RepoFactory.AnimeSeries_User.Save(userRecord);
                 }
             }
