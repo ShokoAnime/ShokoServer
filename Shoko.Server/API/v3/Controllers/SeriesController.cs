@@ -965,6 +965,7 @@ namespace Shoko.Server.API.v3.Controllers
                                 Source = "AniDB",
                             }
                         ).ToList() : null,
+                        ShokoID = series?.AnimeSeriesID,
                     };
                 })
                 .ToListResult(pageSize, page);
