@@ -331,6 +331,16 @@ namespace Shoko.Server.Providers.AniDB
         Summary = 42,
     }
 
+    public enum Group_CompletionStatus
+    {
+        Ongoing = 1,
+        Stalled = 2,
+        Complete = 3,
+        Dropped = 4,
+        Finished = 5,
+        SpecialsOnly = 6,
+    }
+
     public static class EnumExtensions
     {
         public static MyList_State GetMyList_State(this AniDBFile_State a) =>

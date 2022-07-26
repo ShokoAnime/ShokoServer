@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using System.Xml;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Server;
 
 namespace AniDBAPI.Commands
 {
@@ -124,11 +127,17 @@ namespace AniDBAPI.Commands
 
             logger.Info("Trying to load " + AnimeID + " anime data from cache.");
             logger.Trace($"Getting anime info: Force: {ForceFromAniDB}  CacheOnly: {CacheOnly}");
+            var xmlUtils = ShokoServer.ServiceContainer.GetRequiredService<HttpXmlUtils>();
             if (CacheOnly || !ForceFromAniDB)
             {
                 logger.Trace("Trying to load Anime HTTP info from cache file...");
-                docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
-                
+                var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
+                if (!string.IsNullOrEmpty(rawXml))
+                {
+                    docAnime = new XmlDocument();
+                    docAnime.LoadXml(rawXml);
+                }
+
 
                 if (docAnime == null && !CacheOnly)
                 {
@@ -144,7 +153,12 @@ namespace AniDBAPI.Commands
                 if (docAnime == null)
                 {
                     logger.Trace("Can't download " + AnimeID + ". Banned or not found. Trying to load from cache anyway.");
-                    docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
+                    var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
+                    if (!string.IsNullOrEmpty(rawXml))
+                    {
+                        docAnime = new XmlDocument();
+                        docAnime.LoadXml(rawXml);
+                    }
                 }
             }
 

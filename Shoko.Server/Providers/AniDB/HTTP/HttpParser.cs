@@ -25,7 +25,9 @@ namespace Shoko.Server.Providers.AniDB.Http
         public ResponseGetAnime Parse(int animeId, string input)
         {
             var xml = ParseXml(input);
+            if (xml == null) return null;
             var anime = ParseAnime(animeId, xml);
+            if (anime == null) return null;
             var titles = ParseTitles(animeId, xml);
             var episodes = ParseEpisodes(animeId, xml);
             var tags = ParseTags(animeId, xml);

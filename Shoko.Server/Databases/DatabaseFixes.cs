@@ -6,6 +6,7 @@ using System.Threading;
 using System.Xml;
 using AniDBAPI;
 using AniDBAPI.Commands;
+using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
@@ -15,6 +16,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
@@ -343,8 +345,11 @@ namespace Shoko.Server.Databases
                         Resources.Database_Validating,
                         $"Generating Episode Info for {anime.MainTitle}",
                         $" {count}/{animeIDs.Count}");
-                    XmlDocument docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
-                    if (docAnime == null) continue;
+                    var xmlUtils = ShokoServer.ServiceContainer.GetRequiredService<HttpXmlUtils>();
+                    var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
+                    if (string.IsNullOrEmpty(rawXml)) continue;
+                    var docAnime = new XmlDocument();
+                    docAnime.LoadXml(rawXml);
                     logger.Info($"{anime.MainTitle} has a proper HTTP cache. Attempting to regenerate info from it.");
 
                     var rawEpisodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
@@ -613,9 +618,12 @@ namespace Shoko.Server.Databases
                 i++;
                 try
                 {
-                    var xmlDocument = APIUtils.LoadAnimeHTTPFromFile(anime.AnimeID);
-                    if (xmlDocument == null) continue;
-                    var resourceLinks = AniDBHTTPHelper.ProcessResources(xmlDocument, anime.AnimeID);
+                    var xmlUtils = ShokoServer.ServiceContainer.GetRequiredService<HttpXmlUtils>();
+                    var rawXml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID);
+                    if (string.IsNullOrEmpty(rawXml)) continue;
+                    var docAnime = new XmlDocument();
+                    docAnime.LoadXml(rawXml);
+                    var resourceLinks = AniDBHTTPHelper.ProcessResources(docAnime, anime.AnimeID);
                     anime.CreateResources(resourceLinks);
                 }
                 catch (Exception e)

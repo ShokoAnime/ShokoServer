@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 
@@ -73,5 +74,31 @@ namespace Shoko.Server.Extensions
 
         public static bool EqualsInvariantIgnoreCase(this string value1, string value2) =>
             value1.Equals(value2, StringComparison.InvariantCultureIgnoreCase);
+        
+        public static string SplitCamelCaseToWords(this string strInput)
+        {
+            var strOutput = new StringBuilder();
+            int intCurrentCharPos;
+            var intLastCharPos = strInput.Length - 1;
+            for (intCurrentCharPos = 0; intCurrentCharPos <= intLastCharPos; intCurrentCharPos++)
+            {
+                var chrCurrentInputChar = strInput[intCurrentCharPos];
+                var chrPreviousInputChar = chrCurrentInputChar;
+
+                if (intCurrentCharPos > 0)
+                {
+                    chrPreviousInputChar = strInput[intCurrentCharPos - 1];
+                }
+
+                if (char.IsUpper(chrCurrentInputChar) && char.IsLower(chrPreviousInputChar))
+                {
+                    strOutput.Append(' ');
+                }
+
+                strOutput.Append(chrCurrentInputChar);
+            }
+
+            return strOutput.ToString();
+        }
     }
 }

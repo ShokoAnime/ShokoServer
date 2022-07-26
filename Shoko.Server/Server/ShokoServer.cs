@@ -42,6 +42,7 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Plugin;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Http;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP;
@@ -104,7 +105,7 @@ namespace Shoko.Server.Server
 
         public static List<UserCulture> userLanguages = new List<UserCulture>();
 
-        public static IServiceProvider ServiceContainer => webHost.Services;
+        public static IServiceProvider ServiceContainer => webHost?.Services;
         
         private Mutex mutex;
         private const string SentryDsn = "https://47df427564ab42f4be998e637b3ec45a@o330862.ingest.sentry.io/1851880";
@@ -116,6 +117,8 @@ namespace Shoko.Server.Server
             services.AddSingleton(Loader.Instance);
             services.AddSingleton(ShokoService.AniDBProcessor);
             services.AddSingleton<HttpParser>();
+            services.AddSingleton<HttpAnimeCreator>();
+            services.AddSingleton<HttpXmlUtils>();
             services.AddSingleton<IHttpConnectionHandler, AniDBHttpConnectionHandler>();
             services.AddSingleton<IUDPConnectionHandler, AniDBUDPConnectionHandler>();
             Loader.Instance.Load(services);
@@ -1531,15 +1534,6 @@ namespace Shoko.Server.Server
         public static void RunWorkSetupDB() => workerSetupDB.RunWorkerAsync();
 
         #region Tests
-
-        private static void ReviewsTest()
-        {
-            CommandRequest_GetReviews cmd = new CommandRequest_GetReviews(7525, true);
-            cmd.Save();
-
-            //CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(7727, false);
-            //cmd.Save();
-        }
 
         private static void HashTest()
         {

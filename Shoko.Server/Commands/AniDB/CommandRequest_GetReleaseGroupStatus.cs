@@ -1,14 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
-using AniDBAPI;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -45,60 +46,88 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_GetReleaseGroupStatus: {0}", AnimeID);
+            logger.Info("Processing CommandRequest_GetReleaseGroupStatus: {AnimeID}", AnimeID);
+            var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
 
             try
             {
                 // only get group status if we have an associated series
-                SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+                var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
                 if (series == null) return;
 
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 // don't get group status if the anime has already ended more than 50 days ago
-                bool skip = false;
-                if (!ForceRefresh)
+                if (ShouldSkip(anime))
                 {
-                    if (anime.EndDate.HasValue)
-                    {
-                        if (anime.EndDate.Value < DateTime.Now)
-                        {
-                            TimeSpan ts = DateTime.Now - anime.EndDate.Value;
-                            if (ts.TotalDays > 50)
-                            {
-                                // don't skip if we have never downloaded this info before
-                                List<AniDB_GroupStatus> grpStatuses =
-                                    RepoFactory.AniDB_GroupStatus.GetByAnimeID(AnimeID);
-                                if (grpStatuses != null && grpStatuses.Count > 0)
-                                {
-                                    skip = true;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (skip)
-                {
-                    logger.Info("Skipping group status command because anime has already ended: {0}", anime);
+                    logger.Info("Skipping group status command because anime has already ended: {AnimeID}", AnimeID);
                     return;
                 }
 
-                GroupStatusCollection grpCol = ShokoService.AniDBProcessor.GetReleaseGroupStatusUDP(AnimeID);
+                var request = new RequestReleaseGroupStatus { AnimeID = AnimeID };
+                var response = request.Execute(handler);
+                if (response.Response == null) return;
 
-                if (ServerSettings.Instance.AniDb.DownloadReleaseGroups && grpCol != null && grpCol.Groups != null &&
-                    grpCol.Groups.Count > 0)
+                var maxEpisode = response.Response.Max(a => a.LastEpisodeNumber);
+
+                // delete existing records
+                RepoFactory.AniDB_GroupStatus.DeleteForAnime(AnimeID);
+
+                // save the records
+                var toSave = response.Response.Select(
+                    raw => new AniDB_GroupStatus
+                    {
+                        AnimeID = raw.AnimeID,
+                        GroupID = raw.GroupID,
+                        GroupName = raw.GroupName,
+                        CompletionState = (int) raw.CompletionState,
+                        LastEpisodeNumber = raw.LastEpisodeNumber,
+                        // TODO DB Migration
+                        Rating = (int)(raw.Rating * 100),
+                        Votes = raw.Votes,
+                        EpisodeRange = string.Join(',', raw.ReleasedEpisodes),
+                    }
+                ).ToArray();
+                RepoFactory.AniDB_GroupStatus.Save(toSave);
+
+                if (maxEpisode > 0)
                 {
-                    grpCol.Groups.DistinctBy(a => a.GroupID)
-                        .Select(a => new CommandRequest_GetReleaseGroup(a.GroupID, false)).ForEach(a => a.Save());
+                    // update the anime with a record of the latest subbed episode
+                    anime.LatestEpisodeNumber = maxEpisode;
+                    RepoFactory.AniDB_Anime.Save(anime, false);
+
+                    // check if we have this episode in the database
+                    // if not get it now by updating the anime record
+                    var eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(AnimeID, maxEpisode);
+                    if (eps.Count == 0)
+                    {
+                        var crAnime = new CommandRequest_GetAnimeHTTP(AnimeID, true, false, false);
+                        crAnime.Save();
+                    }
+                    // update the missing episode stats on groups and children
+                    series.QueueUpdateStats();
                 }
+
+                if (ServerSettings.Instance.AniDb.DownloadReleaseGroups && response is { Response: { Count: > 0 } })
+                    response.Response.DistinctBy(a => a.GroupID).Select(a => new CommandRequest_GetReleaseGroup(a.GroupID, false)).ForEach(a => a.Save());
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_GetReleaseGroupStatus: {0} - {1}", AnimeID,
-                    ex);
+                logger.Error(ex, "Error processing CommandRequest_GetReleaseGroupStatus: {AnimeID} - {Ex}", AnimeID, ex);
             }
+        }
+
+        private bool ShouldSkip(SVR_AniDB_Anime anime)
+        {
+            if (ForceRefresh) return false;
+            if (!anime.EndDate.HasValue) return false;
+            if (anime.EndDate.Value >= DateTime.Now) return false;
+            var ts = DateTime.Now - anime.EndDate.Value;
+            if (!(ts.TotalDays > 50)) return false;
+            // don't skip if we have never downloaded this info before
+            var grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(AnimeID);
+            return grpStatuses is { Count: > 0 };
         }
 
         public override void GenerateCommandID()
@@ -117,7 +146,7 @@ namespace Shoko.Server.Commands.AniDB
             // read xml to get parameters
             if (CommandDetails.Trim().Length > 0)
             {
-                XmlDocument docCreator = new XmlDocument();
+                var docCreator = new XmlDocument();
                 docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
@@ -133,7 +162,7 @@ namespace Shoko.Server.Commands.AniDB
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest
+            var cq = new CommandRequest
             {
                 CommandID = CommandID,
                 CommandType = CommandType,

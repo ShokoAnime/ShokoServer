@@ -168,7 +168,7 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                PopulateAnimeForFile(vidLocal, animeIDs);
+                PopulateAnimeForFile(provider, vidLocal, animeIDs);
 
                 // We do this inside, as the info will not be available as needed otherwise
                 var videoLocals =
@@ -227,7 +227,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private static void PopulateAnimeForFile(SVR_VideoLocal vidLocal, Dictionary<int, bool> animeIDs)
+        private static void PopulateAnimeForFile(IServiceProvider provider, SVR_VideoLocal vidLocal, Dictionary<int, bool> animeIDs)
         {
             foreach (var kV in animeIDs)
             {
@@ -251,18 +251,14 @@ namespace Shoko.Server.Commands
                 if (missingEpisodes && !animeRecentlyUpdated)
                 {
                     logger.Debug("Getting Anime record from AniDB....");
-                    try
+                    // this should detect and handle a ban, which will leave Result null, and defer
+                    var animeCommand = new CommandRequest_GetAnimeHTTP
                     {
-                        anime = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(
-                            animeID, true,
-                            ServerSettings.Instance.AutoGroupSeries ||
-                            ServerSettings.Instance.AniDb.DownloadRelatedAnime
-                        );
-                    }
-                    catch (AniDBBannedException)
-                    {
-                        // ignore
-                    }
+                        AnimeID = animeID, ForceRefresh = true, DownloadRelations = ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime, CreateSeriesEntry = true,
+                    };
+
+                    animeCommand.ProcessCommand(provider);
+                    anime = animeCommand.Result;
                 }
 
                 // create the group/series/episode records if needed

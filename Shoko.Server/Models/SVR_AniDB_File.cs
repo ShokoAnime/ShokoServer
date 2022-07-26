@@ -67,26 +67,6 @@ namespace Shoko.Server.Models
             }
         }
 
-
-        public static void Populate(SVR_AniDB_File anidbfile, ResponseGetFile fileInfo)
-        {
-            anidbfile.AnimeID = fileInfo.AnimeID;
-
-            anidbfile.DateTimeUpdated = DateTime.Now;
-            anidbfile.File_Description = fileInfo.Description;
-            anidbfile.File_Source = fileInfo.Source.ToString();
-            anidbfile.FileID = fileInfo.FileID;
-            anidbfile.FileName = fileInfo.Filename;
-            anidbfile.GroupID = fileInfo.GroupID ?? 0;
-
-            anidbfile.FileVersion = fileInfo.Version;
-            // TODO AniDB migration
-            anidbfile.IsCensored = fileInfo.Censored;
-            anidbfile.IsDeprecated = fileInfo.Deprecated ? 1 : 0;
-            anidbfile.IsChaptered = fileInfo.Chaptered ? 1 : 0;
-            anidbfile.InternalVersion = 3;
-        }
-
         public static void PopulateHashes(SVR_AniDB_File file, IHashes hashes)
         {
             file.CRC = hashes.CRC ?? "";

@@ -7,9 +7,11 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using System.Xml;
 using AniDBAPI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
@@ -18,6 +20,7 @@ using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -288,16 +291,21 @@ namespace Shoko.Server.API.v2.Modules
                     var animeID = allAnime[i];
                     if (i % 10 == 1) logger.Info($"Checking anime {i + 1}/{allAnime.Count} for XML file");
 
-                    var xml = APIUtils.LoadAnimeHTTPFromFile(animeID);
-                    if (xml == null)
+                    var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
+                    var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
+                    
+                    if (rawXml == null)
                     {
                         CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false, false);
                         cmd.Save();
                         updatedAnime++;
                         continue;
                     }
+                    
+                    var docAnime = new XmlDocument();
+                    docAnime.LoadXml(rawXml);
 
-                    var rawAnime = AniDBHTTPHelper.ProcessAnimeDetails(xml, animeID);
+                    var rawAnime = AniDBHTTPHelper.ProcessAnimeDetails(docAnime, animeID);
                     if (rawAnime == null)
                     {
                         CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false, false);

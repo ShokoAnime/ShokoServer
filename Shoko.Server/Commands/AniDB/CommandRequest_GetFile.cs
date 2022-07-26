@@ -82,7 +82,21 @@ namespace Shoko.Server.Commands.AniDB
                     // save to the database
                     aniFile ??= new SVR_AniDB_File();
 
-                    SVR_AniDB_File.Populate(aniFile, response.Response);
+                    aniFile.AnimeID = response.Response.AnimeID;
+
+                    aniFile.DateTimeUpdated = DateTime.Now;
+                    aniFile.File_Description = response.Response.Description;
+                    aniFile.File_Source = response.Response.Source.ToString();
+                    aniFile.FileID = response.Response.FileID;
+                    aniFile.FileName = response.Response.Filename;
+                    aniFile.GroupID = response.Response.GroupID ?? 0;
+
+                    aniFile.FileVersion = response.Response.Version;
+                    // TODO AniDB migration
+                    aniFile.IsCensored = response.Response.Censored;
+                    aniFile.IsDeprecated = response.Response.Deprecated ? 1 : 0;
+                    aniFile.IsChaptered = response.Response.Chaptered ? 1 : 0;
+                    aniFile.InternalVersion = 3;
 
                     RepoFactory.AniDB_File.Save(aniFile, false);
                     aniFile.CreateLanguages(response.Response);

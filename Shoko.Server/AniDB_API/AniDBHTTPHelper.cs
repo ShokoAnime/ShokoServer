@@ -1,13 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Net;
+using System.Text;
 using System.Threading;
 using System.Xml;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Properties;
 using Shoko.Server;
+using Shoko.Server.AniDB_API;
 using Shoko.Server.AniDB_API.Raws;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -45,7 +51,7 @@ namespace AniDBAPI
                 string msg = string.Format(Resources.AniDB_GettingAnimeXML, animeID)+"; prevUpdate: "+prevUpdate;
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
-                string rawXML = APIUtils.DownloadWebPage(uri);
+                string rawXML = DownloadWebPage(uri);
 
                 // Putting this here for no chance of error. It is ALWAYS created or updated when AniDB is called!
                 if (anime == null)
@@ -64,7 +70,8 @@ namespace AniDBAPI
                 XmlDocument docAnime = null;
                 if (rawXML.Trim().Length > 0 && !CheckForBan(rawXML))
                 {
-                    APIUtils.WriteAnimeHTTPToFile(animeID, rawXML);
+                    var xmlUtils = ShokoServer.ServiceContainer.GetRequiredService<HttpXmlUtils>();
+                    xmlUtils.WriteAnimeHTTPToFile(animeID, rawXML);
 
                     docAnime = new XmlDocument();
                     docAnime.LoadXml(rawXML);
@@ -96,7 +103,7 @@ namespace AniDBAPI
                 ShokoService.LastAniDBHTTPMessage = DateTime.Now;
 
                 string uri = string.Format(MyListURL, username, password);
-                string rawXML = APIUtils.DownloadWebPage(uri);
+                string rawXML = DownloadWebPage(uri);
 
                 if (0 == rawXML.Trim().Length || CheckForBan(rawXML))
                     rawXML = null;
@@ -123,7 +130,7 @@ namespace AniDBAPI
                 ShokoService.LastAniDBHTTPMessage = DateTime.Now;
 
                 string uri = string.Format(VotesURL, username, password);
-                string rawXML = APIUtils.DownloadWebPage(uri);
+                string rawXML = DownloadWebPage(uri);
                 XmlDocument docAnime = null;
                 if (0 < rawXML.Trim().Length && !CheckForBan(rawXML))
                 {
@@ -659,6 +666,46 @@ namespace AniDBAPI
         {
             if (node == null || string.IsNullOrEmpty(attName)) return string.Empty;
             return node.Attributes?[attName]?.Value ?? string.Empty;
+        }
+        
+        public static string DownloadWebPage(string url)
+        {
+            try
+            {
+                StaticRateLimiter.HTTP.EnsureRate();
+
+                var webReq = (HttpWebRequest) WebRequest.Create(url);
+                webReq.Timeout = 20000; // 20 seconds
+                webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
+                webReq.UserAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1";
+
+                webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                using (var webResponse = (HttpWebResponse) webReq.GetResponse())
+                {
+                    if (webResponse.StatusCode == HttpStatusCode.OK && webResponse.ContentLength == 0)
+                        throw new Exception("Response Body was expected, but none returned");
+                    using (var responseStream = webResponse.GetResponseStream())
+                    {
+                        if (responseStream == null)
+                            throw new Exception("Response Body was expected, but none returned");
+                        var charset = webResponse.CharacterSet;
+                        Encoding encoding = null;
+                        if (!string.IsNullOrEmpty(charset))
+                            encoding = Encoding.GetEncoding(charset);
+                        if (encoding == null)
+                            encoding = Encoding.UTF8;
+                        var reader = new StreamReader(responseStream, encoding);
+
+                        var output = reader.ReadToEnd();
+                        return output;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in APIUtils.DownloadWebPage: {0}", ex);
+                return string.Empty;
+            }
         }
     }
 }

@@ -86,9 +86,9 @@ namespace Shoko.Server.Commands.AniDB
                         break;
                 }
             }
-            catch (Exception ex)
+            catch (AniDBBannedException ex)
             {
-                logger.Error(ex, "Error processing CommandRequest_AddFileToMyList: Hash: {Hash} - {Exception}", Hash, ex);
+                logger.Error(ex, "Error processing {Type}: Hash: {Hash} - {Exception}", GetType().Name, Hash, ex);
             }
         }
 
@@ -136,6 +136,7 @@ namespace Shoko.Server.Commands.AniDB
 
             if (Hash.Trim().Length > 0)
                 return true;
+
             return false;
         }
 

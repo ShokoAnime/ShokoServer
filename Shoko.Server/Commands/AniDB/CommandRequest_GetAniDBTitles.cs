@@ -10,6 +10,7 @@ namespace Shoko.Server.Commands.AniDB
 {
     [Serializable]
     [Command(CommandRequestType.AniDB_GetTitles)]
+    [Obsolete("Use the xml from the site")]
     public class CommandRequest_GetAniDBTitles : CommandRequestImplementation
     {
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
