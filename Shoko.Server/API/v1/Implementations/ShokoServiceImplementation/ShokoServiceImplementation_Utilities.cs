@@ -746,9 +746,7 @@ namespace Shoko.Server
                 else
                 {
                     // title search so look at the web cache
-                    List<AniDBRaw_AnimeTitle_Anime> titles = AniDB_TitleHelper.Instance.SearchTitle(HttpUtility.UrlDecode(titleQuery));
-
-                    foreach (AniDBRaw_AnimeTitle_Anime tit in titles)
+                    foreach (var tit in AniDB_TitleHelper.Instance.SearchTitle(HttpUtility.UrlDecode(titleQuery)))
                     {
                         CL_AnimeSearch res = new CL_AnimeSearch
                         {

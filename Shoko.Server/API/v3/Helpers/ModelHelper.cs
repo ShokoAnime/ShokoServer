@@ -9,6 +9,17 @@ namespace Shoko.Server.API.v3.Helpers
 {
     public static class ModelHelper
     {
+        public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable)
+        {
+            var total = enumerable.Count();
+            return new ListResult<T>
+            {
+                Total = total,
+                List = enumerable
+                    .ToList(),
+            };
+        }
+
         public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable, int page, int pageSize)
         {
             var total = enumerable.Count();
