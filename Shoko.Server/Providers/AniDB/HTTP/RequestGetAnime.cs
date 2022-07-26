@@ -28,11 +28,12 @@ namespace Shoko.Server.Providers.AniDB.Http
         /// <exception cref="AniDBBannedException">Will throw if banned. Won't extend ban, so it's safe to use this as a check</exception>
         protected override HttpBaseResponse<ResponseGetAnime> ParseResponse(IServiceProvider provider, HttpBaseResponse<string> receivedData)
         {
+            var xmlUtils = provider.GetRequiredService<HttpXmlUtils>();
             UpdateAnimeUpdateTime(AnimeID);
 
             // save a file cache of the response
             var rawXml = receivedData.Response.Trim();
-            APIUtils.WriteAnimeHTTPToFile(AnimeID, rawXml);
+            xmlUtils.WriteAnimeHTTPToFile(AnimeID, rawXml);
 
             var parser = provider.GetRequiredService<HttpParser>();
             var response = parser.Parse(AnimeID, receivedData.Response);

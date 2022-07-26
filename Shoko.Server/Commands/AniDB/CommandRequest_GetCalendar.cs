@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Xml;
-using AniDBAPI;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
-using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -38,27 +39,24 @@ namespace Shoko.Server.Commands.AniDB
         protected override void Process(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_GetCalendar");
+            var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
 
             try
             {
                 // we will always assume that an anime was downloaded via http first
 
-                ScheduledUpdate sched =
+                var sched =
                     RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
                 if (sched == null)
                 {
-                    sched = new ScheduledUpdate
-                    {
-                        UpdateType = (int)ScheduledUpdateType.AniDBCalendar,
-                        UpdateDetails = string.Empty
-                    };
+                    sched = new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBCalendar, UpdateDetails = string.Empty };
                 }
                 else
                 {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Calendar_UpdateFrequency);
+                    var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Calendar_UpdateFrequency);
 
                     // if we have run this in the last 12 hours and are not forcing it, then exit
-                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+                    var tsLastRun = DateTime.Now - sched.LastUpdate;
                     if (tsLastRun.TotalHours < freqHours)
                     {
                         if (!ForceRefresh) return;
@@ -66,50 +64,59 @@ namespace Shoko.Server.Commands.AniDB
                 }
 
                 sched.LastUpdate = DateTime.Now;
+
+                var request = new RequestCalendar();
+                var response = request.Execute(handler);
                 RepoFactory.ScheduledUpdate.Save(sched);
 
-                CalendarCollection colCalendars = ShokoService.AniDBProcessor.GetCalendarUDP();
-                if (colCalendars?.Calendars == null)
+                if (response.Response?.Next25Anime != null)
                 {
-                    logger.Error("Could not get calendar from AniDB");
-                    return;
+                    foreach (var cal in response.Response.Next25Anime)
+                    {
+                        GetAnime(cal);
+                    }
                 }
-                foreach (Calendar cal in colCalendars.Calendars)
+
+                if (response.Response?.Previous25Anime == null) return;
+                foreach (var cal in response.Response.Previous25Anime)
                 {
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
-                    var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
-                    if (anime != null && update != null)
-                    {
-                        // don't update if the local data is less 2 days old
-                        TimeSpan ts = DateTime.Now - update.UpdatedAt;
-                        if (ts.TotalDays >= 2)
-                        {
-                            CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false, false);
-                            cmdAnime.Save();
-                        }
-                        else
-                        {
-                            // update the release date even if we don't update the anime record
-                            if (anime.AirDate != cal.ReleaseDate)
-                            {
-                                anime.AirDate = cal.ReleaseDate;
-                                RepoFactory.AniDB_Anime.Save(anime);
-                                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
-                                if (ser != null)
-                                    RepoFactory.AnimeSeries.Save(ser, true, false);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false, false);
-                        cmdAnime.Save();
-                    }
+                    GetAnime(cal);
                 }
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "Error processing CommandRequest_GetCalendar: " + ex);
+            }
+        }
+
+        private static void GetAnime(ResponseCalendar.CalendarEntry cal)
+        {
+            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
+            var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
+            if (anime != null && update != null)
+            {
+                // don't update if the local data is less 2 days old
+                var ts = DateTime.Now - update.UpdatedAt;
+                if (ts.TotalDays >= 2)
+                {
+                    var cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false, false);
+                    cmdAnime.Save();
+                }
+                else
+                {
+                    // update the release date even if we don't update the anime record
+                    if (anime.AirDate == cal.ReleaseDate) return;
+                    anime.AirDate = cal.ReleaseDate;
+                    RepoFactory.AniDB_Anime.Save(anime);
+                    var ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+                    if (ser != null)
+                        RepoFactory.AnimeSeries.Save(ser, true, false);
+                }
+            }
+            else
+            {
+                var cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false, false);
+                cmdAnime.Save();
             }
         }
 
@@ -129,7 +136,7 @@ namespace Shoko.Server.Commands.AniDB
             // read xml to get parameters
             if (CommandDetails.Trim().Length > 0)
             {
-                XmlDocument docCreator = new XmlDocument();
+                var docCreator = new XmlDocument();
                 docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
@@ -144,7 +151,7 @@ namespace Shoko.Server.Commands.AniDB
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest
+            var cq = new CommandRequest
             {
                 CommandID = CommandID,
                 CommandType = CommandType,

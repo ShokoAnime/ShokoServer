@@ -1,11 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Xml;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
-using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP.Generic;
+using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -42,113 +44,107 @@ namespace Shoko.Server.Commands.AniDB
         protected override void Process(IServiceProvider serviceProvider)
         {
             logger.Info("Processing CommandRequest_GetUpdated");
+            var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
 
             try
             {
-                List<int> animeIDsToUpdate = new List<int>();
-
                 // check the automated update table to see when the last time we ran this command
-                ScheduledUpdate sched =
-                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
+                var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
                 if (sched != null)
                 {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Anime_UpdateFrequency);
+                    var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Anime_UpdateFrequency);
 
                     // if we have run this in the last 12 hours and are not forcing it, then exit
-                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+                    var tsLastRun = DateTime.Now - sched.LastUpdate;
                     if (tsLastRun.TotalHours < freqHours)
                     {
                         if (!ForceRefresh) return;
                     }
                 }
 
-
-                long webUpdateTime = 0;
-                long webUpdateTimeNew = 0;
+                DateTime webUpdateTime;
                 if (sched == null)
                 {
                     // if this is the first time, lets ask for last 3 days
-                    DateTime localTime = DateTime.Now.AddDays(-3);
-                    DateTime utcTime = localTime.ToUniversalTime();
-                    webUpdateTime = long.Parse(Commons.Utils.AniDB.AniDBDate(utcTime));
-                    webUpdateTimeNew = long.Parse(Commons.Utils.AniDB.AniDBDate(DateTime.Now.ToUniversalTime()));
+                    webUpdateTime = DateTime.UtcNow.AddDays(-3);
 
-                    sched = new ScheduledUpdate
-                    {
-                        UpdateType = (int)ScheduledUpdateType.AniDBUpdates
-                    };
+                    sched = new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBUpdates };
                 }
                 else
                 {
-                    logger.Trace("Last anidb info update was : {0}", sched.UpdateDetails);
-                    webUpdateTime = long.Parse(sched.UpdateDetails);
-                    webUpdateTimeNew = long.Parse(Commons.Utils.AniDB.AniDBDate(DateTime.Now.ToUniversalTime()));
+                    logger.Trace("Last AniDB info update was : {UpdateDetails}", sched.UpdateDetails);
+                    webUpdateTime = DateTime.UnixEpoch.AddSeconds(long.Parse(sched.UpdateDetails));
 
-                    logger.Info(
-                        $"{Utils.FormatSecondsToDisplayTime(int.Parse((webUpdateTimeNew - webUpdateTime).ToString()))} since last UPDATED command");
+                    logger.Info($"{DateTime.UtcNow - webUpdateTime:g} since last UPDATED command");
                 }
 
-                // get a list of updates from AniDB
-                // startTime will contain the date/time from which the updates apply to
-                ShokoService.AniDBProcessor.GetUpdated(ref animeIDsToUpdate, ref webUpdateTime);
+                var (response, countAnime, countSeries) = Update(webUpdateTime, handler, sched, 0, 0);
 
-                // now save the update time from AniDB
-                // we will use this next time as a starting point when querying the web cache
-                sched.LastUpdate = DateTime.Now;
-                sched.UpdateDetails = webUpdateTimeNew.ToString();
-                RepoFactory.ScheduledUpdate.Save(sched);
+                while (response?.Response?.Count > 200)
+                    (response, countAnime, countSeries) = Update(response.Response.LastUpdated, handler, sched, countAnime, countSeries);
 
-                if (animeIDsToUpdate.Count == 0)
-                {
-                    logger.Info("No anime to be updated");
-                    return;
-                }
-
-
-                int countAnime = 0;
-                int countSeries = 0;
-                foreach (int animeID in animeIDsToUpdate)
-                {
-                    // update the anime from HTTP
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                    if (anime == null)
-                    {
-                        logger.Trace("No local record found for Anime ID: {0}, so skipping...", animeID);
-                        continue;
-                    }
-
-                    logger.Info("Updating CommandRequest_GetUpdated: {0} ", animeID);
-
-                    var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
-
-                    // but only if it hasn't been recently updated
-                    TimeSpan ts = DateTime.Now - update.UpdatedAt;
-                    if (ts.TotalHours > 4)
-                    {
-                        CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(animeID, true, false, false);
-                        cmdAnime.Save();
-                        countAnime++;
-                    }
-
-                    // update the group status
-                    // this will allow us to determine which anime has missing episodes
-                    // so we wonly get by an amime where we also have an associated series
-                    SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-                    if (ser != null)
-                    {
-                        CommandRequest_GetReleaseGroupStatus cmdStatus =
-                            new CommandRequest_GetReleaseGroupStatus(animeID, true);
-                        cmdStatus.Save();
-                        countSeries++;
-                    }
-                }
-
-                logger.Info("Updating {0} anime records, and {1} group status records", countAnime, countSeries);
+                logger.Info("Updating {Count} anime records, and {CountSeries} group status records", countAnime, countSeries);
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_GetUpdated: {0}", ex);
+                logger.Error(ex, "Error processing CommandRequest_GetUpdated: {Ex}", ex);
             }
+        }
+
+        private static (UDPResponse<ResponseUpdatedAnime> response, int countAnime, int countSeries) Update(DateTime webUpdateTime, IUDPConnectionHandler handler, ScheduledUpdate sched, int countAnime, int countSeries)
+        {
+            // get a list of updates from AniDB
+            // startTime will contain the date/time from which the updates apply to
+            var request = new RequestUpdatedAnime { LastUpdated = webUpdateTime };
+            var response = request.Execute(handler);
+            if (response == null) return (null, countAnime, countSeries);
+            var animeIDsToUpdate = response.Response.AnimeIDs;
+
+            // now save the update time from AniDB
+            // we will use this next time as a starting point when querying the web cache
+            sched.LastUpdate = DateTime.Now;
+            sched.UpdateDetails = ((int)(response.Response.LastUpdated - DateTime.UnixEpoch).TotalSeconds).ToString();
+            RepoFactory.ScheduledUpdate.Save(sched);
+
+            if (animeIDsToUpdate.Count == 0)
+            {
+                logger.Info("No anime to be updated");
+                return (response, countAnime, countSeries);
+            }
+
+            foreach (var animeID in animeIDsToUpdate)
+            {
+                // update the anime from HTTP
+                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                if (anime == null)
+                {
+                    logger.Trace("No local record found for Anime ID: {AnimeID}, so skipping...", animeID);
+                    continue;
+                }
+
+                logger.Info("Updating CommandRequest_GetUpdated: {AnimeID} ", animeID);
+                var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+
+                // but only if it hasn't been recently updated
+                var ts = DateTime.Now - update.UpdatedAt;
+                if (ts.TotalHours > 4)
+                {
+                    var cmdAnime = new CommandRequest_GetAnimeHTTP(animeID, true, false, false);
+                    cmdAnime.Save();
+                    countAnime++;
+                }
+
+                // update the group status
+                // this will allow us to determine which anime has missing episodes
+                // so we only get by an anime where we also have an associated series
+                var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                if (ser == null) continue;
+                var cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID, true);
+                cmdStatus.Save();
+                countSeries++;
+            }
+
+            return (response, countAnime, countSeries);
         }
 
         public override void GenerateCommandID()
@@ -167,7 +163,7 @@ namespace Shoko.Server.Commands.AniDB
             // read xml to get parameters
             if (CommandDetails.Trim().Length > 0)
             {
-                XmlDocument docCreator = new XmlDocument();
+                var docCreator = new XmlDocument();
                 docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
@@ -181,7 +177,7 @@ namespace Shoko.Server.Commands.AniDB
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest
+            var cq = new CommandRequest
             {
                 CommandID = CommandID,
                 CommandType = CommandType,

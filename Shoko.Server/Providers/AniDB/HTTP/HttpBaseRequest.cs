@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 
 namespace Shoko.Server.Providers.AniDB.Http
 {
@@ -21,7 +22,7 @@ namespace Shoko.Server.Providers.AniDB.Http
             return ParseResponse(logger, receivedData);
         }
 
-        public virtual HttpBaseResponse<T> Execute(AniDBHttpConnectionHandler handler)
+        public virtual HttpBaseResponse<T> Execute(IHttpConnectionHandler handler)
         {
             Command = BaseCommand.Trim();
             var rawResponse = handler.GetHttp(Command);

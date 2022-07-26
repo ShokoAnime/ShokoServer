@@ -1094,7 +1094,7 @@ namespace Shoko.Server.AniDB_API
             lock (lockAniDBConnections)
             {
                 getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
-                getAnimeCmd.Init(animeID, false, !skip, animeRecentlyUpdated);
+                getAnimeCmd.Init(animeID, createSeriesEntry, !skip, animeRecentlyUpdated);
                 var result = getAnimeCmd.Process();
                 if (result == AniDBUDPResponseCode.Banned_555 || result == AniDBUDPResponseCode.NoSuchAnime)
                 {

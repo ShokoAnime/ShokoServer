@@ -102,11 +102,18 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                         var eps = parts[2].Split('\'');
                         foreach (var ep in eps)
                         {
-                            if (!int.TryParse(ep.Trim(), out var epid)) continue;
+                            var percent = (byte)Math.Round(100D / eps.Length);
+                            if (!int.TryParse(ep.Trim(), out var epid))
+                            {
+                                var epParts = ep.Trim().Split(',');
+                                if (epParts.Length < 2) continue;
+                                if (!int.TryParse(epParts[0].Trim(), out epid)) continue;
+                                percent = byte.Parse(epParts[1]);
+                            }
                             xrefs.Add(new ResponseGetFile.EpisodeXRef
                             {
                                 EpisodeID = epid,
-                                Percentage = (byte) Math.Round(100D / eps.Length),
+                                Percentage = percent,
                             });
                         }
                     }

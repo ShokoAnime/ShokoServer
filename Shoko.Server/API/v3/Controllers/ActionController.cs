@@ -1,14 +1,17 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml;
 using AniDBAPI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -211,15 +214,19 @@ namespace Shoko.Server.API.v3.Controllers
                     var animeID = allAnime[i];
                     if (i % 10 == 1) Logger.LogInformation($"Checking anime {i + 1}/{allAnime.Count} for XML file");
 
-                    var xml = APIUtils.LoadAnimeHTTPFromFile(animeID);
-                    if (xml == null)
+                    var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
+                    var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
+                    
+                    if (rawXml == null)
                     {
                         Series.QueueAniDBRefresh(animeID, true, false, false);
                         updatedAnime++;
                         continue;
                     }
 
-                    var rawAnime = AniDBHTTPHelper.ProcessAnimeDetails(xml, animeID);
+                    var docAnime = new XmlDocument();
+                    docAnime.LoadXml(rawXml);
+                    var rawAnime = AniDBHTTPHelper.ProcessAnimeDetails(docAnime, animeID);
                     if (rawAnime == null)
                     {
                         Series.QueueAniDBRefresh(animeID, true, false, false);

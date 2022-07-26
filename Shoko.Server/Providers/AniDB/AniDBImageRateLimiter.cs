@@ -2,12 +2,11 @@
 using System.Threading;
 using NLog;
 
-namespace Shoko.Server.AniDB_API
+namespace Shoko.Server.Providers.AniDB
 {
     public sealed class AniDbImageRateLimiter
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        private static readonly AniDbImageRateLimiter instance = new AniDbImageRateLimiter();
 
         // Short Term rate
         private static int ShortDelay = 150;
@@ -20,7 +19,7 @@ namespace Shoko.Server.AniDB_API
             _requestWatch.Start();
         }
 
-        public static AniDbImageRateLimiter Instance => instance;
+        public static readonly AniDbImageRateLimiter Instance = new();
 
         private AniDbImageRateLimiter()
         {
@@ -33,7 +32,7 @@ namespace Shoko.Server.AniDB_API
 
         public void EnsureRate()
         {
-            lock (instance)
+            lock (Instance)
             {
                 long delay = _requestWatch.ElapsedMilliseconds;
 

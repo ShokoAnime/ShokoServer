@@ -1,9 +1,11 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
@@ -23,6 +25,8 @@ namespace Shoko.Server.Commands
 
         protected override void WorkerCommands_DoWork(object sender, DoWorkEventArgs e)
         {
+            var udpHandler = ServiceProvider.GetRequiredService<IUDPConnectionHandler>();
+            var httpHandler = ServiceProvider.GetRequiredService<IHttpConnectionHandler>();
             while (true)
             {
                 if (WorkerCommands.CancellationPending)
@@ -47,7 +51,7 @@ namespace Shoko.Server.Commands
                 CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral();
                 if (crdb == null)
                 {
-                    if (QueueCount > 0 && !ShokoService.AniDBProcessor.IsHttpBanned && !ShokoService.AniDBProcessor.IsUdpBanned)
+                    if (QueueCount > 0 && !httpHandler.IsBanned && !udpHandler.IsBanned)
                         Logger.Error($"No command returned from database, but there are {QueueCount} commands left");
                     return;
                 }
