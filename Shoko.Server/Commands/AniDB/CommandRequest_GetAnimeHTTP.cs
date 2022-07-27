@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Xml;
-using AniDBAPI;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using Shoko.Commons.Queue;
@@ -26,6 +25,7 @@ namespace Shoko.Server.Commands.AniDB
     {
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
+        public bool CacheOnly { get; set; }
         public bool DownloadRelations { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority2;
@@ -66,7 +66,7 @@ namespace Shoko.Server.Commands.AniDB
             {
                 var handler = serviceProvider.GetRequiredService<IHttpConnectionHandler>();
                 var parser = serviceProvider.GetRequiredService<HttpParser>();
-                var animeCreator = serviceProvider.GetRequiredService<HttpAnimeCreator>();
+                var animeCreator = serviceProvider.GetRequiredService<AnimeCreator>();
                 var xmlUtils = serviceProvider.GetRequiredService<HttpXmlUtils>();
 
                 if (handler.IsBanned) throw new AniDBBannedException { BanType = UpdateType.HTTPBan, BanExpires = handler.BanTime?.AddHours(handler.BanTimerResetLength) };
@@ -83,7 +83,7 @@ namespace Shoko.Server.Commands.AniDB
                     var ts = DateTime.Now - update.UpdatedAt;
                     if (ts.TotalHours < 4) animeRecentlyUpdated = true;
                 }
-                if (!animeRecentlyUpdated)
+                if (!animeRecentlyUpdated && !CacheOnly)
                 {
                     if (ForceRefresh)
                         skip = false;
@@ -111,6 +111,22 @@ namespace Shoko.Server.Commands.AniDB
 
                 anime ??= new SVR_AniDB_Anime();
                 animeCreator.CreateAnime(session, response, anime, 0);
+
+                var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+                // conditionally create AnimeSeries if it doesn't exist
+                if (series == null && CreateSeriesEntry) {
+                    series = anime.CreateAnimeSeriesAndGroup(sessionWrapper);
+                }
+
+                // create AnimeEpisode records for all episodes in this anime only if we have a series
+                if (series != null)
+                {
+                    series.CreateAnimeEpisodes(session, anime);
+                    RepoFactory.AnimeSeries.Save(series, true, false);
+                }
+
+                SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
+
                 Result = anime;
 
                 ProcessRelations(session, response, handler, animeCreator);
@@ -123,7 +139,7 @@ namespace Shoko.Server.Commands.AniDB
             }
         }
 
-        private void ProcessRelations(ISession session, ResponseGetAnime response, IHttpConnectionHandler handler, HttpAnimeCreator animeCreator)
+        private void ProcessRelations(ISession session, ResponseGetAnime response, IHttpConnectionHandler handler, AnimeCreator animeCreator)
         {
             if (!DownloadRelations) return;
             if (ServerSettings.Instance.AniDb.MaxRelationDepth <= 0) return;
@@ -132,7 +148,7 @@ namespace Shoko.Server.Commands.AniDB
             ProcessRelationsRecursive(session, response, handler, animeCreator, RelDepth + 1);
         }
 
-        private void ProcessRelationsRecursive(ISession session, ResponseGetAnime response, IHttpConnectionHandler handler, HttpAnimeCreator animeCreator, int depth)
+        private void ProcessRelationsRecursive(ISession session, ResponseGetAnime response, IHttpConnectionHandler handler, AnimeCreator animeCreator, int depth)
         {
             if (depth > ServerSettings.Instance.AniDb.MaxRelationDepth) return;
             foreach (var relation in response.Relations)
@@ -196,6 +212,8 @@ namespace Shoko.Server.Commands.AniDB
                     RelDepth = depth;
                 if (bool.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(CreateSeriesEntry)), out var create))
                     CreateSeriesEntry = create;
+                if (bool.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(CacheOnly)), out var cache))
+                    CacheOnly = cache;
             }
 
             return true;

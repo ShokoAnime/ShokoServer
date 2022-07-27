@@ -16,7 +16,6 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -487,12 +486,12 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
         /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
         [HttpPost("AniDB/{anidbID}/Refresh")]
-        public ActionResult<bool> RefreshAnidbByAnidbID([FromRoute] int anidbID, [FromQuery] bool force = false, [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null, [FromQuery] bool immediate = false)
+        public ActionResult<bool> RefreshAniDBByAniDBID([FromRoute] int anidbID, [FromQuery] bool force = false, [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null, [FromQuery] bool immediate = false)
         {
             if (!createSeriesEntry.HasValue)
                 createSeriesEntry = ServerSettings.Instance.AniDb.AutomaticallyImportSeries;
 
-            return Series.QueueAniDBRefresh(anidbID, force, downloadRelations, createSeriesEntry.Value, immediate);
+            return Series.QueueAniDBRefresh(HttpContext, anidbID, force, downloadRelations, createSeriesEntry.Value, immediate);
         }
 
         /// <summary>
@@ -505,7 +504,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
         /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
         [HttpPost("{seriesID}/AniDB/Refresh")]
-        public ActionResult<bool> RefreshAnidbBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false, [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null, [FromQuery] bool immediate = false)
+        public ActionResult<bool> RefreshAniDBBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false, [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null, [FromQuery] bool immediate = false)
         {
             if (!createSeriesEntry.HasValue)
                 createSeriesEntry = ServerSettings.Instance.AniDb.AutomaticallyImportSeries;
@@ -520,7 +519,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (anidb == null)
                 return InternalError(AnidbNotFoundForSeriesID);
 
-            return Series.QueueAniDBRefresh(anidb.AnimeID, force, downloadRelations, createSeriesEntry.Value, immediate);
+            return Series.QueueAniDBRefresh(HttpContext, anidb.AnimeID, force, downloadRelations, createSeriesEntry.Value, immediate);
         }
 
         /// <summary>
@@ -529,7 +528,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="seriesID">Shoko ID</param>
         /// <returns>True if the refresh is done, otherwise false if it failed.</returns>
         [HttpPost("{seriesID}/AniDB/Refresh/ForceFromXML")]
-        public ActionResult<bool> RefreshAnidbFromXML([FromRoute] int seriesID)
+        public ActionResult<bool> RefreshAniDBFromXML([FromRoute] int seriesID)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (series == null)

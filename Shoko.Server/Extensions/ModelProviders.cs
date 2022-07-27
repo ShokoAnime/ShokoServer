@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Xml;
 using AniDBAPI;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
@@ -14,6 +15,7 @@ using Shoko.Models.TvDB;
 using Shoko.Server.AniDB_API.Raws;
 using Shoko.Server.LZ4;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
@@ -645,22 +647,21 @@ namespace Shoko.Server.Extensions
         public static Azure_AnimeCharacter ToContractAzure(this AniDB_Character character,
             AniDB_Anime_Character charRel)
         {
-            Azure_AnimeCharacter contract = new Azure_AnimeCharacter
+            var handler = ShokoServer.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+            var contract = new Azure_AnimeCharacter
             {
                 CharID = character.CharID,
                 CharName = character.CharName,
                 CharKanjiName = character.CharKanjiName,
                 CharDescription = character.CharDescription,
                 CharType = charRel.CharType,
-                CharImageURL = string.Format(ShokoService.AniDBProcessor.ImageServerUrl, character.PicName)
+                CharImageURL = string.Format(handler.CdnUrl, character.PicName),
             };
-            AniDB_Seiyuu seiyuu = character.GetSeiyuu();
-            if (seiyuu != null)
-            {
-                contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
-                contract.SeiyuuName = seiyuu.SeiyuuName;
-                contract.SeiyuuImageURL = string.Format(ShokoService.AniDBProcessor.ImageServerUrl, seiyuu.PicName);
-            }
+            var seiyuu = character.GetSeiyuu();
+            if (seiyuu == null) return contract;
+            contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
+            contract.SeiyuuName = seiyuu.SeiyuuName;
+            contract.SeiyuuImageURL = string.Format(handler.CdnUrl, seiyuu.PicName);
 
             return contract;
         }

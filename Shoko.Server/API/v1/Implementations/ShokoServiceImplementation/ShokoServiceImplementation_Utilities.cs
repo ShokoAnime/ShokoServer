@@ -11,6 +11,7 @@ using AniDBAPI;
 using AniDBAPI.Commands;
 using F23.StringSimilarity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Client;
@@ -21,6 +22,8 @@ using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Http;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -706,33 +709,38 @@ namespace Shoko.Server
         [HttpGet("AniDB/Anime/Search/{titleQuery}")]
         public List<CL_AnimeSearch> OnlineAnimeTitleSearch(string titleQuery)
         {
-            List<CL_AnimeSearch> retTitles = new List<CL_AnimeSearch>();
-
+            var retTitles = new List<CL_AnimeSearch>();
 
             try
             {
                 // check if it is a title search or an ID search
-                if (int.TryParse(titleQuery, out int aid))
+                if (int.TryParse(titleQuery, out var aid))
                 {
                     // user is direct entering the anime id
 
                     // try the local database first
                     // if not download the data from AniDB now
-                    SVR_AniDB_Anime anime = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(aid, false,
-                        ServerSettings.Instance.AniDb.DownloadRelatedAnime);
+                    var command = new CommandRequest_GetAnimeHTTP
+                    {
+                        AnimeID = aid,
+                        BubbleExceptions = true,
+                        ForceRefresh = false,
+                        DownloadRelations = ServerSettings.Instance.AniDb.DownloadRelatedAnime,
+                    };
+                    command.ProcessCommand(HttpContext.RequestServices);
+                    var anime = command.Result;
+
                     if (anime != null)
                     {
-                        CL_AnimeSearch res = new CL_AnimeSearch
+                        var res = new CL_AnimeSearch
                         {
                             AnimeID = anime.AnimeID,
                             MainTitle = anime.MainTitle,
-                            Titles =
-                            new HashSet<string>(anime.AllTitles.Split(new[] { '|' },
-                                StringSplitOptions.RemoveEmptyEntries))
+                            Titles = new HashSet<string>(anime.AllTitles.Split(new[] {'|'}, StringSplitOptions.RemoveEmptyEntries)),
                         };
 
                         // check for existing series and group details
-                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+                        var ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
                         if (ser != null)
                         {
                             res.SeriesExists = true;
@@ -749,7 +757,7 @@ namespace Shoko.Server
                     // title search so look at the web cache
                     foreach (var tit in AniDB_TitleHelper.Instance.SearchTitle(HttpUtility.UrlDecode(titleQuery)))
                     {
-                        CL_AnimeSearch res = new CL_AnimeSearch
+                        var res = new CL_AnimeSearch
                         {
                             AnimeID = tit.AnimeID,
                             MainTitle = tit.Titles.FirstOrDefault(a =>
@@ -759,7 +767,7 @@ namespace Shoko.Server
                         };
 
                         // check for existing series and group details
-                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(tit.AnimeID);
+                        var ser = RepoFactory.AnimeSeries.GetByAnimeID(tit.AnimeID);
                         if (ser != null)
                         {
                             res.SeriesExists = true;

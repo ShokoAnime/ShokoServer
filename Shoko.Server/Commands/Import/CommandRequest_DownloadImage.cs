@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Xml;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
@@ -17,6 +18,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -212,7 +214,7 @@ namespace Shoko.Server.Commands
                 List<string> downloadURLs = new List<string>();
 
                 string fileNameTemp = GetFileName(req);
-                string downloadURLTemp = GetFileURL(req);
+                string downloadURLTemp = GetFileURL(serviceProvider, req);
 
                 fileNames.Add(fileNameTemp);
                 downloadURLs.Add(downloadURLTemp);
@@ -376,8 +378,9 @@ namespace Shoko.Server.Commands
             }
         }
 
-        public static string GetFileURL(ImageDownloadRequest req)
+        public static string GetFileURL(IServiceProvider provider, ImageDownloadRequest req)
         {
+            IUDPConnectionHandler handler;
             switch (req.ImageType)
             {
                 case ImageEntityType.TvDB_Episode:
@@ -406,15 +409,18 @@ namespace Shoko.Server.Commands
 
                 case ImageEntityType.AniDB_Cover:
                     SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
-                    return string.Format(ShokoService.AniDBProcessor.ImageServerUrl, anime.Picname);
+                    handler = provider.GetRequiredService<IUDPConnectionHandler>();
+                    return string.Format(handler.CdnUrl, anime.Picname);
 
                 case ImageEntityType.AniDB_Character:
                     AniDB_Character chr = req.ImageData as AniDB_Character;
-                    return string.Format(ShokoService.AniDBProcessor.ImageServerUrl, chr.PicName);
+                    handler = provider.GetRequiredService<IUDPConnectionHandler>();
+                    return string.Format(handler.CdnUrl, chr.PicName);
 
                 case ImageEntityType.AniDB_Creator:
                     AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
-                    return string.Format(ShokoService.AniDBProcessor.ImageServerUrl, creator.PicName);
+                    handler = provider.GetRequiredService<IUDPConnectionHandler>();
+                    return string.Format(handler.CdnUrl, creator.PicName);
 
                 default:
                     return string.Empty;
