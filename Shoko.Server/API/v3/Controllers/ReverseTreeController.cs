@@ -59,10 +59,11 @@ namespace Shoko.Server.API.v3.Controllers
         /// Trying to get the parent of a top-level <see cref="Group"/> is an user error and will throw a complaint.
         /// </remarks>
         /// <param name="groupID"><see cref="Group"/> ID</param>
+        /// <param name="webui">Include extra data for the web ui.</param>
         /// <param name="topLevel">Always get the top-level <see cref="Group"/></param>
         /// <returns></returns>
         [HttpGet("Group/{groupID}/Parent")]
-        public ActionResult<Group> GetGroupFromGroup([FromRoute] int groupID, [FromQuery] bool topLevel = false)
+        public ActionResult<Group> GetGroupFromGroup([FromRoute] int groupID, [FromQuery] bool webui = false, [FromQuery] bool topLevel = false)
         {
             var group = RepoFactory.AnimeGroup.GetByID(groupID);
             if (group == null)
@@ -77,7 +78,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (parentGroup == null)
                 return InternalError("No parent Group entry for the given groupID");
 
-            return new Group(HttpContext, parentGroup);
+            return new Group(HttpContext, parentGroup, includeWebUIData: webui);
         }
 
         /// <summary>
@@ -89,10 +90,11 @@ namespace Shoko.Server.API.v3.Controllers
         /// <paramref name="topLevel"/> is set to <code>true</code>.
         /// </remarks>
         /// <param name="seriesID"><see cref="Series"/> ID</param>
+        /// <param name="webui">Include extra data for the web ui.</param>
         /// <param name="topLevel">Always get the top-level <see cref="Group"/></param>
         /// <returns></returns>
         [HttpGet("Series/{seriesID}/Group")]
-        public ActionResult<Group> GetGroupFromSeries([FromRoute] int seriesID, [FromQuery] bool topLevel = false)
+        public ActionResult<Group> GetGroupFromSeries([FromRoute] int seriesID, [FromQuery] bool webui = false, [FromQuery] bool topLevel = false)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (series == null)
@@ -104,16 +106,17 @@ namespace Shoko.Server.API.v3.Controllers
             if (group == null)
                 return InternalError("No Group entry for the Series");
 
-            return new Group(HttpContext, group);
+            return new Group(HttpContext, group, includeWebUIData: webui);
         }
 
         /// <summary>
         /// Get the <see cref="Series"/> for the <see cref="Episode"/> with the given <paramref name="episodeID"/>.
         /// </summary>
         /// <param name="episodeID"><see cref="Episode"/> ID</param>
+        /// <param name="webui">Include extra data for the web ui.</param>
         /// <returns></returns>
         [HttpGet("Episode/{episodeID}/Series")]
-        public ActionResult<Series> GetSeriesFromEpisode([FromRoute] int episodeID)
+        public ActionResult<Series> GetSeriesFromEpisode([FromRoute] int episodeID, [FromQuery] bool webui = false)
         {
             var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
             if (episode == null)
@@ -125,16 +128,17 @@ namespace Shoko.Server.API.v3.Controllers
             if (!User.AllowedSeries(series))
                 return Forbid(EpisodeController.EpisodeForbiddenForUser);
 
-            return new Series(HttpContext, series);
+            return new Series(HttpContext, series, includeWebUIData: webui);
         }
 
         /// <summary>
         /// Get the <see cref="Episode"/>s for the <see cref="File"/> with the given <paramref name="fileID"/>.
         /// </summary>
         /// <param name="fileID"><see cref="File"/> ID</param>
+        /// <param name="webui">Include extra data for the web ui.</param>
         /// <returns></returns>
         [HttpGet("File/{fileID}/Episode")]
-        public ActionResult<List<Episode>> GetEpisodeFromFile([FromRoute] int fileID)
+        public ActionResult<List<Episode>> GetEpisodeFromFile([FromRoute] int fileID, [FromQuery] bool webui = false)
         {
             var file = RepoFactory.VideoLocal.GetByID(fileID);
             if (file == null)
@@ -145,7 +149,7 @@ namespace Shoko.Server.API.v3.Controllers
                 return Forbid(FileController.FileForbiddenForUser);
 
             return episodes
-                .Select(a => new Episode(HttpContext, a))
+                .Select(a => new Episode(HttpContext, a, webui))
                 .ToList();
         }
     }

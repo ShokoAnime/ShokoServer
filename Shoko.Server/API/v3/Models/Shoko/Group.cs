@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 using Shoko.Commons.Extensions;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
@@ -50,11 +51,17 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         public Images Images { get; set; }
 
+        /// <summary>
+        /// Web UI spesific data.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public WebUIExtra WebUI { get; set; }
+
         #region Constructors
 
         public Group() { }
 
-        public Group(HttpContext ctx, SVR_AnimeGroup group, bool randomiseImages = false)
+        public Group(HttpContext ctx, SVR_AnimeGroup group, bool randomiseImages = false, bool includeWebUIData = false)
         {
             var random = ctx.Items["Random"] as Random;
             int uid = ctx.GetUser()?.JMMUserID ?? 0;
@@ -99,6 +106,10 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// itself.
             /// </summary>
             public int TopLevelGroup { get; set; }
+        }
+        
+        public class WebUIExtra
+        {
         }
 
         /// <summary>

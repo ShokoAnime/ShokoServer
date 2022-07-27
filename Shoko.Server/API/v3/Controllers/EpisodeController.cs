@@ -28,15 +28,16 @@ namespace Shoko.Server.API.v3.Controllers
         /// Get an Episode by Shoko ID
         /// </summary>
         /// <param name="episodeID">Shoko ID</param>
+        /// <param name="webui">Include extra data for the web ui.</param>
         /// <returns></returns>
         [HttpGet("{episodeID}")]
-        public ActionResult<Episode> GetEpisode([FromRoute] int episodeID)
+        public ActionResult<Episode> GetEpisode([FromRoute] int episodeID, [FromQuery] bool webui = false)
         {
             var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
             if (episode == null)
                 return NotFound(EpisodeNotFoundWithEpisodeID);
 
-            return new Episode(HttpContext, episode);
+            return new Episode(HttpContext, episode, webui);
         }
 
         /// <summary>

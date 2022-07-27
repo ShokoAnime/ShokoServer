@@ -41,15 +41,16 @@ namespace Shoko.Server.API.v3.Controllers
         /// Get File Details
         /// </summary>
         /// <param name="fileID">Shoko VideoLocalID</param>
+        /// <param name="webui">Include extra data for the web ui.</param>
         /// <returns></returns>
         [HttpGet("{fileID}")]
-        public ActionResult<File> GetFile([FromRoute] int fileID)
+        public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery] bool webui = false)
         {
             var file = RepoFactory.VideoLocal.GetByID(fileID);
             if (file == null)
                 return NotFound(FileNotFoundWithFileID);
 
-            return new File(HttpContext, file);
+            return new File(HttpContext, file, webui);
         }
 
         /// <summary>

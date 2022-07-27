@@ -32,22 +32,31 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get a list of all groups available to the current user
         /// </summary>
-        /// <param name="page">The page index.</param>
         /// <param name="pageSize">The page size.</param>
+        /// <param name="page">The page index.</param>
+        /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
+        /// <param name="randomImages">Randomise images shown for the main <see cref="Series"/> within the <see cref="Group"/>.</param>
+        /// <param name="webui">Include extra data for the web ui.</param>
         /// <param name="topLevelOnly">Only list the top level groups if set.</param>
         /// <param name="startsWith">Search only for groups that start with the given query.</param>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<ListResult<Group>> GetAllGroups([FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool topLevelOnly = false, [FromQuery] string startsWith = "")
+        public ActionResult<ListResult<Group>> GetAllGroups([FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeMissing = false, [FromQuery] bool randomImages = false, [FromQuery] bool webui = false, [FromQuery] bool topLevelOnly = true, [FromQuery] string startsWith = "")
         {
             startsWith = startsWith.ToLowerInvariant();
             var user = User;
-            return (topLevelOnly ? RepoFactory.AnimeGroup.GetAllTopLevelGroups() : RepoFactory.AnimeGroup.GetAll())
+            return RepoFactory.AnimeGroup.GetAll()
                 .Where(group => {
+                    if (topLevelOnly && group.AnimeGroupParentID.HasValue)
+                        return false;
+
                     if (!string.IsNullOrEmpty(startsWith) && !group.GroupName.ToLowerInvariant().StartsWith(startsWith))
                         return false;
 
-                    return user.AllowedGroup(group);
+                    if (!user.AllowedGroup(group))
+                        return false;
+
+                    return includeMissing || group.GetAllSeries().Sum(s => s.GetAnimeEpisodes().Sum(e => e.GetVideoLocals().Count)) > 0;
                 })
                 .OrderBy(group => group.GroupName)
                 .ToListResult(group => new Group(HttpContext, group), page, pageSize);

@@ -61,11 +61,17 @@ namespace Shoko.Server.API.v3.Models.Shoko
         [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime Updated { get; set; }
 
+        /// <summary>
+        /// Web UI spesific data.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public WebUIExtra WebUI { get; set; }
+
         #region Constructors and Helper Methods
 
         public Series() {}
 
-        public Series(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false)
+        public Series(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false, bool includeWebUIData = true)
         {
             int uid = ctx.GetUser()?.JMMUserID ?? 0;
 
@@ -85,6 +91,12 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
             Created = ser.DateTimeCreated;
             Updated = ser.DateTimeUpdated;
+
+            if (includeWebUIData)
+                this.WebUI = new WebUIExtra
+                {
+                    AniDB = new AniDB(ctx, ser.GetAnime()),
+                };
         }
 
         private void AddBasicAniDBInfo(HttpContext ctx, SVR_AnimeSeries ser)
@@ -386,6 +398,14 @@ namespace Shoko.Server.API.v3.Models.Shoko
         }
 
         #endregion
+
+        public class WebUIExtra
+        {
+            /// <summary>
+            /// The <see cref="AniDB"/> data.
+            /// </summary>
+            public AniDB AniDB { get; set; }
+        }
 
         /// <summary>
         /// The AniDB Data model for series

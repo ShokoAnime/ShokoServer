@@ -57,9 +57,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="pageSize">The page size.</param>
         /// <param name="page">The page index.</param>
         /// <param name="startsWith">Search only for series with a main title that start with the given query.</param>
+        /// <param name="webui">Include extra data for the web ui.</param>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<ListResult<Series>> GetAllSeries([FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] string startsWith = "")
+        public ActionResult<ListResult<Series>> GetAllSeries([FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] string startsWith = "", [FromQuery] bool webui = false)
         {
             startsWith = startsWith.ToLowerInvariant();
             var user = User;
@@ -73,16 +74,17 @@ namespace Shoko.Server.API.v3.Controllers
                     return user.AllowedSeries(series);
                 })
                 .OrderBy(a => a.Item2)
-                .ToListResult(tuple => new Series(HttpContext, tuple.series), page, pageSize);
+                .ToListResult(tuple => new Series(HttpContext, tuple.series, includeWebUIData: webui), page, pageSize);
         }
 
         /// <summary>
         /// Get the series with ID
         /// </summary>
         /// <param name="seriesID">Shoko ID</param>
+        /// <param name="webui">Include extra data for the web ui.</param>
         /// <returns></returns>
         [HttpGet("{seriesID}")]
-        public ActionResult<Series> GetSeries([FromRoute] int seriesID)
+        public ActionResult<Series> GetSeries([FromRoute] int seriesID, [FromQuery] bool webui = false)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (series == null)
@@ -90,7 +92,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (!User.AllowedSeries(series))
                 return Forbid(SeriesForbiddenForUser);
 
-            return new Series(HttpContext, series);
+            return new Series(HttpContext, series, includeWebUIData: webui);
         }
 
         /// <summary>
@@ -341,9 +343,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// Get a Series from the AniDB ID
         /// </summary>
         /// <param name="anidbID">AniDB ID</param>
+        /// <param name="webui">Include extra data for the web ui.</param>
         /// <returns></returns>
         [HttpGet("AniDB/{anidbID}/Series")]
-        public ActionResult<Series> GetSeriesByAnidbID([FromRoute] int anidbID)
+        public ActionResult<Series> GetSeriesByAnidbID([FromRoute] int anidbID, [FromQuery] bool webui = false)
         {
             var series = RepoFactory.AnimeSeries.GetByAnimeID(anidbID);
             if (series == null)
@@ -351,7 +354,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (!User.AllowedSeries(series))
                 return Forbid(SeriesForbiddenForUser);
 
-            return new Series(HttpContext, series);
+            return new Series(HttpContext, series, includeWebUIData: webui);
         }
 
         /// <summary>
@@ -469,9 +472,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// Get a Series from the TvDB ID
         /// </summary>
         /// <param name="tvdbID">TvDB ID</param>
+        /// <param name="webui">Include extra data for the web ui.</param>
         /// <returns></returns>
         [HttpGet("TvDB/{tvdbID}/Series")]
-        public ActionResult<List<Series>> GetSeriesByTvdbID([FromRoute] int tvdbID)
+        public ActionResult<List<Series>> GetSeriesByTvdbID([FromRoute] int tvdbID, [FromQuery] bool webui = false)
         {
             var tvdb = RepoFactory.TvDB_Series.GetByTvDBID(tvdbID);
             if (tvdb == null)
@@ -485,7 +489,7 @@ namespace Shoko.Server.API.v3.Controllers
                 return Forbid(SeriesForbiddenForUser);
 
             return seriesList
-                .Select(series => new Series(HttpContext, series))
+                .Select(series => new Series(HttpContext, series, includeWebUIData: webui))
                 .ToList();
         }
 

@@ -40,9 +40,15 @@ namespace Shoko.Server.API.v3.Models.Shoko
         [Required]
         public DateTime? Watched { get; set; }
 
+        /// <summary>
+        /// Web UI spesific data.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public WebUIExtra WebUI { get; set; }
+
         public Episode() {}
 
-        public Episode(HttpContext context, SVR_AnimeEpisode episode)
+        public Episode(HttpContext context, SVR_AnimeEpisode episode, bool includeWebUIData = false)
         {
             var userID = context.GetUser()?.JMMUserID ?? 0;
             var anidbEpisode = episode.AniDB_Episode;
@@ -71,6 +77,11 @@ namespace Shoko.Server.API.v3.Models.Shoko
             Watched = userRecord?.WatchedDate;
             Name = GetEpisodeTitle(episode.AniDB_EpisodeID);
             Size = files.Count;
+            if (includeWebUIData)
+                WebUI = new WebUIExtra
+                {
+                    AniDB = new AniDB(anidbEpisode),
+                };
         }
         
         
@@ -131,6 +142,11 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
             //var cmdVote = new CommandRequest_VoteAnimeEpisode(ep.AniDB_EpisodeID, voteType, vote.GetRating());
             //cmdVote.Save();
+        }
+        
+        public class WebUIExtra
+        {
+            public AniDB AniDB { get; set; }
         }
 
         /// <summary>

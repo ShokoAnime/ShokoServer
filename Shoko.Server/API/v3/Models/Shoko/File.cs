@@ -63,11 +63,17 @@ namespace Shoko.Server.API.v3.Models.Shoko
         [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime Created { get; set; }
 
+        /// <summary>
+        /// Web UI spesific data.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public WebUIExtra WebUI { get; set; }
+
         public File() {}
 
         public File(SVR_VideoLocal vl) : this(null, vl) {}
         
-        public File(HttpContext context, SVR_VideoLocal file)
+        public File(HttpContext context, SVR_VideoLocal file, bool includeWebUIData = false)
         {
             var userID = context?.GetUser()?.JMMUserID ?? 0;
             var userRecord = file.GetUserRecord(userID);
@@ -91,6 +97,15 @@ namespace Shoko.Server.API.v3.Models.Shoko
             ResumePosition = userRecord?.ResumePositionTimeSpan;
             Watched = userRecord?.WatchedDate;
             Created = file.DateTimeCreated;
+
+            if (includeWebUIData)
+            {
+                var anidbFile = file.GetAniDBFile();
+                WebUI = new WebUIExtra
+                {
+                    AniDB = anidbFile != null ? new AniDB(anidbFile) : null,
+                };
+            }
         }
 
         public static MediaContainer GetMedia(int id)
@@ -116,6 +131,11 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// </summary>
             [JsonRequired]
             public bool Accessible { get; set; }
+        }
+        
+        public class WebUIExtra
+        {
+            public AniDB AniDB { get; set; }
         }
 
         /// <summary>
@@ -260,6 +280,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 public int ID { get; set; }
             }
         }
+
         /// <summary>
         /// A more detailed model to prevent too many requests for getting xrefs for many files
         /// </summary>
@@ -280,6 +301,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 /// </summary>
                 public int ID { get; set; }
             }
+
             public class SeriesXRefs
             {
                 /// <summary>
@@ -301,9 +323,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
             public FileDetailed() {}
 
-            public FileDetailed(SVR_VideoLocal vl) : this(null, vl) {}
-
-            public FileDetailed(HttpContext ctx, SVR_VideoLocal vl) : base(ctx, vl)
+            public FileDetailed(HttpContext ctx, SVR_VideoLocal vl, bool includeWebUIData = false) : base(ctx, vl, includeWebUIData)
             {
                 var episodes = vl.GetAnimeEpisodes();
                 if (episodes.Count == 0) return;
