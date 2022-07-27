@@ -1,10 +1,10 @@
-using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Server;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers
@@ -64,17 +64,10 @@ namespace Shoko.Server.API.v3.Controllers
             if (string.IsNullOrWhiteSpace(credentials.Username) || string.IsNullOrWhiteSpace(credentials.Password))
                 return BadRequest("AniDB needs both a username and a password");
 
-            ShokoService.AniDBProcessor.ForceLogout();
-            ShokoService.AniDBProcessor.CloseConnections();
+            var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
+            handler.ForceLogout();
 
-            Thread.Sleep(1000);
-
-            ShokoService.AniDBProcessor.Init(credentials.Username, credentials.Password,
-                ServerSettings.Instance.AniDb.ServerAddress,
-                ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
-
-            if (!ShokoService.AniDBProcessor.Login()) return BadRequest("Failed to log in");
-            ShokoService.AniDBProcessor.ForceLogout();
+            if (!handler.TestLogin(credentials.Username, credentials.Password)) return BadRequest("Failed to log in");
 
             return Ok();
         }

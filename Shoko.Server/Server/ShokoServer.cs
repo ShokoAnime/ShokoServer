@@ -115,9 +115,8 @@ namespace Shoko.Server.Server
             ServerSettings.ConfigureServices(services);
             services.AddSingleton(ServerSettings.Instance);
             services.AddSingleton(Loader.Instance);
-            services.AddSingleton(ShokoService.AniDBProcessor);
             services.AddSingleton<HttpParser>();
-            services.AddSingleton<HttpAnimeCreator>();
+            services.AddSingleton<AnimeCreator>();
             services.AddSingleton<HttpXmlUtils>();
             services.AddSingleton<IHttpConnectionHandler, AniDBHttpConnectionHandler>();
             services.AddSingleton<IUDPConnectionHandler, AniDBUDPConnectionHandler>();

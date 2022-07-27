@@ -25,11 +25,11 @@ using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.AniDB_API
 {
-    public class HttpAnimeCreator
+    public class AnimeCreator
     {
-        private readonly ILogger<HttpAnimeCreator> _logger;
+        private readonly ILogger<AnimeCreator> _logger;
 
-        public HttpAnimeCreator(ILogger<HttpAnimeCreator> logger)
+        public AnimeCreator(ILogger<AnimeCreator> logger)
         {
             _logger = logger;
         }

@@ -3,21 +3,23 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.AniDB_API.Titles;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
+using AnimeType = Shoko.Models.Enums.AnimeType;
 using RelationType = Shoko.Plugin.Abstractions.DataModels.RelationType;
 
 // ReSharper disable UnusedMember.Local
@@ -117,19 +119,51 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
         public static bool RefreshAniDBFromCachedXML(HttpContext ctx, SVR_AniDB_Anime anime)
         {
-            return SSS.ShokoService.AniDBProcessor.UpdateCachedAnimeInfoHTTP(anime);
-        }
-
-        public static bool QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false)
-        {
-            if (immediate && !ShokoService.AniDBProcessor.IsHttpBanned) {
-                var anime = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(animeID, force, downloadRelations, 0, createSeriesEntry);
-                if (anime != null) {
-                    return true;
-                }
+            try
+            {
+                var command = new CommandRequest_GetAnimeHTTP
+                {
+                    AnimeID = anime.AnimeID,
+                    DownloadRelations = false,
+                    ForceRefresh = false,
+                    CacheOnly = true,
+                    CreateSeriesEntry = true,
+                    BubbleExceptions = true,
+                };
+                command.ProcessCommand(ctx.RequestServices);
+            }
+            catch
+            {
+                return false;
             }
 
-            var command = new CommandRequest_GetAnimeHTTP(animeID, force, downloadRelations, createSeriesEntry);
+            return true;
+        }
+
+        public static bool QueueAniDBRefresh(HttpContext ctx, int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false)
+        {
+            var command = new CommandRequest_GetAnimeHTTP
+            {
+                AnimeID = animeID,
+                DownloadRelations = downloadRelations,
+                ForceRefresh = force,
+                CreateSeriesEntry = createSeriesEntry,
+                BubbleExceptions = immediate,
+            };
+            var handler = ctx.RequestServices.GetRequiredService<IHttpConnectionHandler>();
+            if (immediate && !handler.IsBanned) {
+                try
+                {
+                    command.ProcessCommand(ctx.RequestServices);
+                }
+                catch
+                {
+                    return false;
+                }
+
+                return command.Result != null;
+            }
+
             command.Save();
             return false;
         }
@@ -440,9 +474,9 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 Relation = null;
             }
 
-            public AniDB(AniDBRaw_AnimeTitle_Anime result,bool includeTitles) : this(result, null, includeTitles) { }
+            public AniDB(ResponseAniDBTitles.Anime result, bool includeTitles) : this(result, null, includeTitles) { }
 
-            public AniDB(AniDBRaw_AnimeTitle_Anime result, SVR_AnimeSeries series = null, bool includeTitles = false)
+            public AniDB(ResponseAniDBTitles.Anime result, SVR_AnimeSeries series = null, bool includeTitles = false)
             {
                 if (series == null)
                     series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
@@ -451,7 +485,9 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 ID = result.AnimeID;
                 ShokoID = series?.AnimeSeriesID;
                 Type = Series.GetAniDBSeriesType(anime?.AnimeType);
-                Title = series?.GetSeriesName() ?? anime?.PreferredTitle ?? result.MainTitle;
+                Title = series?.GetSeriesName() ?? anime?.PreferredTitle ?? result.Titles.FirstOrDefault(
+                    a => a.TitleLanguage.Equals("x-jat", StringComparison.InvariantCultureIgnoreCase) && a.TitleType.Equals("main", StringComparison.InvariantCultureIgnoreCase)
+                )?.Title ?? result.Titles.FirstOrDefault()?.Title;
                 Titles = includeTitles ? result.Titles.Select(title => new Title
                     {
                         Language = title.TitleLanguage,
@@ -462,7 +498,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                     }
                 ).ToList() : null;
                 Description = anime?.Description;
-                Restricted = anime != null ? anime.Restricted == 1 : false;
+                Restricted = anime is { Restricted: 1 };
                 EpisodeCount = anime?.EpisodeCount;
                 Poster = GetAniDBPoster(result.AnimeID);
             }
@@ -471,111 +507,80 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
             public AniDB(SVR_AniDB_Anime_Relation relation, SVR_AnimeSeries series = null, bool includeTitles = true)
             {
-                if (series == null)
-                    series = RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID);
+                series ??= RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID);
                 ID = relation.RelatedAnimeID;
                 ShokoID = series?.AnimeSeriesID;
-                if (RepoFactory.AniDB_Anime.TryGetByAnimeID(relation.RelatedAnimeID, out var anime))
-                {
-                    Type = GetAniDBSeriesType(anime.AnimeType);
-                    Title = series?.GetSeriesName() ?? anime.PreferredTitle;
-                    Titles = includeTitles ? anime.GetTitles().Select(title => new Title
-                        {
-                            Name = title.Title,
-                            Language = title.Language,
-                            Type = title.TitleType,
-                            Default = string.Equals(title.Title, Title),
-                            Source = "AniDB",
-                        }
-                    ).ToList() : null;
-                    Description = anime.Description;
-                    Restricted = anime.Restricted == 1;
-                    EpisodeCount = anime.EpisodeCountNormal;
-                }
-                else if (AniDB_TitleHelper.Instance.TrySearchAnimeID(relation.RelatedAnimeID, out var result))
-                {
-                    Type = SeriesType.Unknown;
-                    Title = result.MainTitle;
-                    Titles = includeTitles ? result.Titles.Select(title => new Title
-                        {
-                            Language = title.TitleLanguage,
-                            Name = title.Title,
-                            Type = title.TitleType,
-                            Default = string.Equals(title.Title, Title),
-                            Source = "AniDB",
-                        }
-                    ).ToList() : null;
-                    Description = null;
-                    // If the other anime is present we assume they're of the same kind. Be it restricted or unrestricted.
-                    if (RepoFactory.AniDB_Anime.TryGetByAnimeID(relation.AnimeID, out anime))
-                        Restricted = anime.Restricted == 1;
-                    else
-                        Restricted = false;
-                }
-                else 
-                {
-                    Type = SeriesType.Unknown;
-                    Titles = includeTitles ? new() : null;
-                    Restricted = false;
-                }
+                SetTitles(relation, series, includeTitles);
                 Poster = GetAniDBPoster(relation.RelatedAnimeID);
                 Rating = null;
                 UserApproval = null;
                 Relation = SeriesRelation.GetRelationTypeFromAnidbRelationType(relation.RelationType);
             }
 
+            private void SetTitles(AniDB_Anime_Relation relation, SVR_AnimeSeries series, bool includeTitles)
+            {
+                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(relation.RelatedAnimeID);
+                if (anime is not null)
+                {
+                    Type = GetAniDBSeriesType(anime.AnimeType);
+                    Title = series?.GetSeriesName() ?? anime.PreferredTitle;
+                    Titles = includeTitles
+                        ? anime.GetTitles().Select(
+                            title => new Title
+                            {
+                                Name = title.Title,
+                                Language = title.Language,
+                                Type = title.TitleType,
+                                Default = string.Equals(title.Title, Title),
+                                Source = "AniDB",
+                            }
+                        ).ToList()
+                        : null;
+                    Description = anime.Description;
+                    Restricted = anime.Restricted == 1;
+                    EpisodeCount = anime.EpisodeCountNormal;
+                    return;
+                }
+
+                var result = AniDBTitleHelper.Instance.SearchAnimeID(relation.RelatedAnimeID);
+                if (result != null)
+                {
+                    Type = SeriesType.Unknown;
+                    Title = result.Titles.FirstOrDefault(
+                        a => a.TitleLanguage.Equals("x-jat", StringComparison.InvariantCultureIgnoreCase) && a.TitleType.Equals("main", StringComparison.InvariantCultureIgnoreCase)
+                    )?.Title ?? result.Titles.FirstOrDefault()?.Title;
+                    Titles = includeTitles
+                        ? result.Titles.Select(
+                            title => new Title
+                            {
+                                Language = title.TitleLanguage,
+                                Name = title.Title,
+                                Type = title.TitleType,
+                                Default = string.Equals(title.Title, Title),
+                                Source = "AniDB",
+                            }
+                        ).ToList()
+                        : null;
+                    Description = null;
+                    // If the other anime is present we assume they're of the same kind. Be it restricted or unrestricted.
+                    anime = RepoFactory.AniDB_Anime.GetByAnimeID(relation.AnimeID);
+                    Restricted = anime is not null && anime.Restricted == 1;
+                    return;
+                }
+
+                Type = SeriesType.Unknown;
+                Titles = includeTitles ? new List<Title>() : null;
+                Restricted = false;
+            }
+
             public AniDB(AniDB_Anime_Similar similar, bool includeTitles) : this(similar, null, includeTitles) { }
 
             public AniDB(AniDB_Anime_Similar similar, SVR_AnimeSeries series = null, bool includeTitles = true)
             {
-                if (series == null)
-                    series = RepoFactory.AnimeSeries.GetByAnimeID(similar.SimilarAnimeID);
+                series ??= RepoFactory.AnimeSeries.GetByAnimeID(similar.SimilarAnimeID);
                 ID = similar.SimilarAnimeID;
                 ShokoID = series?.AnimeSeriesID;
-                if (RepoFactory.AniDB_Anime.TryGetByAnimeID(similar.SimilarAnimeID, out var anime))
-                {
-                    Type = GetAniDBSeriesType(anime.AnimeType);
-                    Title = series?.GetSeriesName() ?? anime.PreferredTitle;
-                    Titles = includeTitles ? anime.GetTitles().Select(title => new Title
-                        {
-                            Name = title.Title,
-                            Language = title.Language,
-                            Type = title.TitleType,
-                            Default = string.Equals(title.Title, Title),
-                            Source = "AniDB",
-                        }
-                    ).ToList() : null;
-                    Description = anime.Description;
-                    Restricted = anime.Restricted == 1;
-                }
-                else if (AniDB_TitleHelper.Instance.TrySearchAnimeID(similar.SimilarAnimeID, out var result))
-                {
-                    Type = SeriesType.Unknown;
-                    Title = result.MainTitle;
-                    Titles = includeTitles ? result.Titles.Select(title => new Title
-                        {
-                            Language = title.TitleLanguage,
-                            Name = title.Title,
-                            Type = title.TitleType,
-                            Default = string.Equals(title.Title, Title),
-                            Source = "AniDB",
-                        }
-                    ).ToList() : null;
-                    Description = null;
-                    // If the other anime is present we assume they're of the same kind. Be it restricted or unrestricted.
-                    if (RepoFactory.AniDB_Anime.TryGetByAnimeID(similar.AnimeID, out anime))
-                        Restricted = anime.Restricted == 1;
-                    else
-                        Restricted = false;
-                }
-                else
-                {
-                    Type = SeriesType.Unknown;
-                    Title = null;
-                    Titles = includeTitles ? new() : null;
-                    Description = null;
-                    Restricted = false;
-                }
+                SetTitles(similar, series, includeTitles);
                 Poster = GetAniDBPoster(similar.AnimeID);
                 Rating = null;
                 UserApproval = new Rating
@@ -587,6 +592,63 @@ namespace Shoko.Server.API.v3.Models.Shoko
                     Type = "User Approval",
                 };
                 Relation = null;
+                Restricted = false;
+            }
+
+            private void SetTitles(AniDB_Anime_Similar similar, SVR_AnimeSeries series, bool includeTitles)
+            {
+                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(similar.SimilarAnimeID);
+                if (anime is not null)
+                {
+                    Type = GetAniDBSeriesType(anime.AnimeType);
+                    Title = series?.GetSeriesName() ?? anime.PreferredTitle;
+                    Titles = includeTitles
+                        ? anime.GetTitles().Select(
+                            title => new Title
+                            {
+                                Name = title.Title,
+                                Language = title.Language,
+                                Type = title.TitleType,
+                                Default = string.Equals(title.Title, Title),
+                                Source = "AniDB",
+                            }
+                        ).ToList()
+                        : null;
+                    Description = anime.Description;
+                    Restricted = anime.Restricted == 1;
+                    return;
+                }
+
+                var result = AniDBTitleHelper.Instance.SearchAnimeID(similar.SimilarAnimeID);
+                if (result != null)
+                {
+                    Type = SeriesType.Unknown;
+                    Title = result.Titles.FirstOrDefault(
+                        a => a.TitleLanguage.Equals("x-jat", StringComparison.InvariantCultureIgnoreCase) && a.TitleType.Equals("main", StringComparison.InvariantCultureIgnoreCase)
+                    )?.Title ?? result.Titles.FirstOrDefault()?.Title;
+                    Titles = includeTitles
+                        ? result.Titles.Select(
+                            title => new Title
+                            {
+                                Language = title.TitleLanguage,
+                                Name = title.Title,
+                                Type = title.TitleType,
+                                Default = string.Equals(title.Title, Title),
+                                Source = "AniDB",
+                            }
+                        ).ToList()
+                        : null;
+                    Description = null;
+                    // If the other anime is present we assume they're of the same kind. Be it restricted or unrestricted.
+                    anime = RepoFactory.AniDB_Anime.GetByAnimeID(similar.AnimeID);
+                    Restricted = anime is not null && anime.Restricted == 1;
+                    return;
+                }
+
+                Type = SeriesType.Unknown;
+                Title = null;
+                Titles = includeTitles ? new List<Title>() : null;
+                Description = null;
                 Restricted = false;
             }
 

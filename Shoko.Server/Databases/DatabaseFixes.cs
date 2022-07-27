@@ -13,6 +13,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
@@ -462,56 +463,7 @@ namespace Shoko.Server.Databases
 
         public static void PopulateMyListIDs()
         {
-            // Don't bother with no AniDB creds, we assume first run
-            if (!ShokoService.AniDBProcessor.ValidAniDBCredentials()) return;
-
-            // Don't even bother on new DBs
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                var result = session.CreateSQLQuery("SELECT COUNT(VideoLocalID) FROM VideoLocal").UniqueResult();
-                long vlCount = result is int ? (int) result : result is long ? (long) result : 0;
-                if (vlCount == 0) return;
-            }
-
-            // Get the list from AniDB
-            AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
-            cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
-            AniDBUDPResponseCode ev = cmd.Process();
-            if (ev != AniDBUDPResponseCode.GotMyListHTTP)
-            {
-                logger.Warn("AniDB did not return a successful code: " + ev);
-                return;
-            }
-            // Add missing files on AniDB
-            var onlineFiles = cmd.MyListItems.ToLookup(a => a.FileID);
-            var dictAniFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
-
-            var list = RepoFactory.VideoLocal.GetAll().Where(a => !string.IsNullOrEmpty(a.Hash)).ToList();
-            int count = 0;
-            foreach (SVR_VideoLocal vid in list)
-            {
-                count++;
-                if (count % 10 == 0)
-                {
-                    ServerState.Instance.ServerStartingStatus = string.Format(
-                        Resources.Database_Validating, "Populating MyList IDs (this will help solve MyList issues)",
-                        $" {count}/{list.Count}");
-                }
-
-                // Does it have a linked AniFile
-                if (!dictAniFiles.Contains(vid.Hash)) continue;
-
-                int fileID = dictAniFiles[vid.Hash].FirstOrDefault()?.FileID ?? 0;
-                if (fileID == 0) continue;
-                // Is it in MyList
-                if (!onlineFiles.Contains(fileID)) continue;
-
-                Raw_AniDB_MyListFile file = onlineFiles[fileID].FirstOrDefault(a => a != null && a.ListID != 0);
-                if (file == null || vid.MyListID != 0) continue;
-
-                vid.MyListID = file.ListID;
-                RepoFactory.VideoLocal.Save(vid);
-            }
+            // nah
         }
 
         public static void RefreshAniDBInfoFromXML()
@@ -528,16 +480,15 @@ namespace Shoko.Server.Databases
                 i++;
                 try
                 {
-                    var getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
-                    getAnimeCmd.Init(animeID, false, false, true);
-                    var result = getAnimeCmd.Process();
-                    if (result == AniDBUDPResponseCode.Banned_555 || result == AniDBUDPResponseCode.NoSuchAnime)
-                        continue;
-                    if (getAnimeCmd.Anime == null) continue;
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    var command = new CommandRequest_GetAnimeHTTP
                     {
-                        ShokoService.AniDBProcessor.SaveResultsForAnimeXML(session, animeID, false, false, getAnimeCmd, 0, false);
-                    }
+                        CacheOnly = true,
+                        DownloadRelations = false,
+                        AnimeID = animeID,
+                        CreateSeriesEntry = false,
+                        BubbleExceptions = true,
+                    };
+                    command.ProcessCommand(ShokoServer.ServiceContainer);
                 }
                 catch (Exception e)
                 {

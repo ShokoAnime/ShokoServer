@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Xml;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
@@ -17,6 +18,7 @@ using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -74,6 +76,7 @@ namespace Shoko.Server.Commands
                     ImageEntityType.AniDB_Character,
                     ImageEntityType.AniDB_Creator
                 };
+                IUDPConnectionHandler handler = null;
                 foreach (var entityTypeEnum in types)
                 {
                     var downloadUrls = new List<string>();
@@ -88,7 +91,8 @@ namespace Shoko.Server.Commands
                                 return;
                             }
 
-                            downloadUrls.Add(string.Format(ShokoService.AniDBProcessor.ImageServerUrl, anime.Picname));
+                            handler ??= serviceProvider.GetRequiredService<IUDPConnectionHandler>();
+                            downloadUrls.Add(string.Format(handler.CdnUrl, anime.Picname));
                             fileNames.Add(anime.PosterPath);
                             break;
 
@@ -106,9 +110,10 @@ namespace Shoko.Server.Commands
                                 return;
                             }
 
+                            handler ??= serviceProvider.GetRequiredService<IUDPConnectionHandler>();
                             foreach (var chr in chrs)
                             {
-                                downloadUrls.Add(string.Format(ShokoService.AniDBProcessor.ImageServerUrl, chr.PicName));
+                                downloadUrls.Add(string.Format(handler.CdnUrl, chr.PicName));
                                 fileNames.Add(chr.GetPosterPath());
                             }
 
@@ -131,9 +136,10 @@ namespace Shoko.Server.Commands
                                 return;
                             }
 
+                            handler ??= serviceProvider.GetRequiredService<IUDPConnectionHandler>();
                             foreach (var creator in creators)
                             {
-                                downloadUrls.Add(string.Format(ShokoService.AniDBProcessor.ImageServerUrl, creator.PicName));
+                                downloadUrls.Add(string.Format(handler.CdnUrl, creator.PicName));
                                 fileNames.Add(creator.GetPosterPath());
                             }
 

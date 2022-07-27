@@ -219,7 +219,7 @@ namespace Shoko.Server.API.v3.Controllers
                     
                     if (rawXml == null)
                     {
-                        Series.QueueAniDBRefresh(animeID, true, false, false);
+                        Series.QueueAniDBRefresh(HttpContext, animeID, true, false, false);
                         updatedAnime++;
                         continue;
                     }
@@ -229,7 +229,7 @@ namespace Shoko.Server.API.v3.Controllers
                     var rawAnime = AniDBHTTPHelper.ProcessAnimeDetails(docAnime, animeID);
                     if (rawAnime == null)
                     {
-                        Series.QueueAniDBRefresh(animeID, true, false, false);
+                        Series.QueueAniDBRefresh(HttpContext, animeID, true, false, false);
                         updatedAnime++;
                     }
                 }

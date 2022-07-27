@@ -17,7 +17,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
     public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandler
     {
         IServiceProvider IUDPConnectionHandler.ServiceProvider => ServiceProvider;
-        private readonly IAniDBSocketHandler _socketHandler;
+        private IAniDBSocketHandler _socketHandler;
 
         public event EventHandler LoginFailed;
 
@@ -26,9 +26,14 @@ namespace Shoko.Server.Providers.AniDB.UDP
         public override UpdateType BanEnum => UpdateType.UDPBan;
 
         public string SessionID { get; set; }
+
+        private string _cdnDomain = Constants.URLS.AniDB_Images_Domain;
+
+        public string CdnUrl => string.Format(Constants.URLS.AniDB_Images, _cdnDomain);
+
         private ServerSettings Settings { get; set; }
 
-        private Timer _PulseTimer;
+        private Timer _pulseTimer;
 
         private bool _isInvalidSession;
         public bool IsInvalidSession
@@ -63,9 +68,8 @@ namespace Shoko.Server.Providers.AniDB.UDP
         private DateTime LastMessage =>
             LastAniDBMessageNonPing < LastAniDBPing ? LastAniDBPing : LastAniDBMessageNonPing;
 
-        public AniDBUDPConnectionHandler(IServiceProvider provider, CommandProcessor queue, AniDBSocketHandler socketHandler, ServerSettings settings, UDPRateLimiter rateLimiter) : base(provider, queue, rateLimiter)
+        public AniDBUDPConnectionHandler(IServiceProvider provider, CommandProcessor queue, ServerSettings settings, UDPRateLimiter rateLimiter) : base(provider, queue, rateLimiter)
         {
-            _socketHandler = socketHandler;
             Settings = settings;
             InitInternal();
         }
@@ -75,31 +79,51 @@ namespace Shoko.Server.Providers.AniDB.UDP
             CloseConnections();
         }
 
+        public bool Init(string username, string password, string serverName, ushort serverPort, ushort clientPort)
+        {
+            if (!ValidAniDBCredentials(username, password)) return false;
+            SetCredentials(username, password);
+            Settings.AniDb.ServerAddress = serverName;
+            Settings.AniDb.ServerPort = serverPort;
+            Settings.AniDb.ClientPort = clientPort;
+            
+            InitInternal();
+            return true;
+        }
+
         private void InitInternal()
         {
+            if (_socketHandler != null)
+            {
+                _socketHandler.Dispose();
+                _socketHandler = null;
+            }
+
+            _socketHandler = new AniDBSocketHandler(Settings.AniDb.ServerAddress, Settings.AniDb.ServerPort, Settings.AniDb.ClientPort);
             _isLoggedOn = false;
 
             IsNetworkAvailable = _socketHandler.TryConnection();
 
-            _PulseTimer = new Timer {Interval = 5000, Enabled = true, AutoReset = true};
-            _PulseTimer.Elapsed += PulseTimerElapsed;
+            _pulseTimer = new Timer {Interval = 5000, Enabled = true, AutoReset = true};
+            _pulseTimer.Elapsed += PulseTimerElapsed;
 
-            Logger.LogInformation("starting logout timer...");
-            _PulseTimer.Start();
+            Logger.LogInformation("starting ping timer...");
+            _pulseTimer.Start();
         }
 
-        private void CloseConnections()
+        public void CloseConnections()
         {
-            _PulseTimer?.Stop();
-            _PulseTimer = null;
+            _pulseTimer?.Stop();
+            _pulseTimer = null;
             if (_socketHandler == null) return;
             Logger.LogInformation("AniDB UDP Socket Disposing...");
             _socketHandler.Dispose();
+            _socketHandler = null;
         }
 
-        void PulseTimerElapsed(object sender, ElapsedEventArgs e)
+        private void PulseTimerElapsed(object sender, ElapsedEventArgs e)
         {
-            TimeSpan tsAniDBUDPTemp = DateTime.Now - LastMessage;
+            var tsAniDBUDPTemp = DateTime.Now - LastMessage;
             if (ExtendPauseSecs.HasValue && tsAniDBUDPTemp.TotalSeconds >= ExtendPauseSecs.Value)
                 ResetBanTimer();
 
@@ -108,16 +132,16 @@ namespace Shoko.Server.Providers.AniDB.UDP
             // don't ping when anidb is taking a long time to respond
             if (_socketHandler.IsLocked) return;
 
-            TimeSpan tsAniDBNonPing = DateTime.Now - LastAniDBMessageNonPing;
-            TimeSpan tsPing = DateTime.Now - LastAniDBPing;
-            TimeSpan tsAniDBUDP = DateTime.Now - LastMessage;
+            var tsAniDBNonPing = DateTime.Now - LastAniDBMessageNonPing;
+            var tsPing = DateTime.Now - LastAniDBPing;
+            var tsAniDBUDP = DateTime.Now - LastMessage;
 
             // if we haven't sent a command for 45 seconds, send a ping just to keep the connection alive
             if (tsAniDBUDP.TotalSeconds >= Constants.PingFrequency &&
                 tsPing.TotalSeconds >= Constants.PingFrequency &&
                 !IsBanned && !ExtendPauseSecs.HasValue)
             {
-                RequestPing ping = new RequestPing();
+                var ping = new RequestPing();
                 ping.Execute(this);
             }
 
@@ -128,6 +152,11 @@ namespace Shoko.Server.Providers.AniDB.UDP
         }
 
         public bool Login()
+        {
+            return Login(Settings.AniDb.Username, Settings.AniDb.Password);
+        }
+
+        private bool Login(string username, string password)
         {
             // check if we are already logged in
             if (_isLoggedOn) return true;
@@ -141,10 +170,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             UDPResponse<ResponseLogin> response;
             try
             {
-                RequestLogin login = new RequestLogin
-                {
-                    Username = Settings.AniDb.Username, Password = Settings.AniDb.Password
-                };
+                var login = new RequestLogin { Username = username, Password = password };
                 // Never give Execute a null SessionID, except here
                 response = login.Execute(this);
             }
@@ -164,6 +190,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
                     break;
                 case UDPReturnCode.LOGIN_ACCEPTED:
                     SessionID = response.Response.SessionID;
+                    _cdnDomain = response.Response.ImageServer;
                     _isLoggedOn = true;
                     IsInvalidSession = false;
                     return true;
@@ -214,33 +241,33 @@ namespace Shoko.Server.Providers.AniDB.UDP
             // 2. Decode the response, converting Unicode and decompressing, as needed
             // 3. Check for an Error Response
             // 4. Return a pretty response object, with a parsed return code and trimmed string
-            Encoding encoding = Encoding.ASCII;
+            var encoding = Encoding.ASCII;
             if (needsUnicode) encoding = new UnicodeEncoding(true, false);
 
             RateLimiter.EnsureRate();
-            DateTime start = DateTime.Now;
+            var start = DateTime.Now;
 
             if (!disableLogging)
             {
-                string msg = $"AniDB UDP Call: (Using {(needsUnicode ? "Unicode" : "ASCII")}) {command}";
+                var msg = $"AniDB UDP Call: (Using {(needsUnicode ? "Unicode" : "ASCII")}) {command}";
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
             }
 
-            byte[] sendByteAdd = encoding.GetBytes(command);
+            var sendByteAdd = encoding.GetBytes(command);
             StampLastMessage(isPing);
             var byReceivedAdd = _socketHandler.Send(sendByteAdd);
             StampLastMessage(isPing);
 
             // decode
-            string decodedString = GetEncoding(byReceivedAdd).GetString(byReceivedAdd, 0, byReceivedAdd.Length);
+            var decodedString = GetEncoding(byReceivedAdd).GetString(byReceivedAdd, 0, byReceivedAdd.Length);
             if (decodedString[0] == 0xFEFF) // remove BOM
                 decodedString = decodedString[1..];
 
             // there should be 2 newline characters in each response
             // the first is after the command .e.g "220 FILE"
             // the second is at the end of the data
-            string[] decodedParts = decodedString.Split('\n');
-            bool truncated = decodedString.Count(a => a == '\n') != 2;
+            var decodedParts = decodedString.Split('\n');
+            var truncated = decodedString.Count(a => a == '\n') != 2;
 
             // If the parts don't have at least 2 items, then we don't have a valid response
             // parts[0] => 200 FILE
@@ -250,30 +277,30 @@ namespace Shoko.Server.Providers.AniDB.UDP
 
             if (truncated)
             {
-                TimeSpan ts = DateTime.Now - start;
-                string msg = decodedParts.Length > 0
+                var ts = DateTime.Now - start;
+                var msg = decodedParts.Length > 0
                     ? $"UDP_RESPONSE_TRUNC in {ts.TotalMilliseconds}ms - {decodedParts[1]}"
                     : $"UDP_RESPONSE_TRUNC in {ts.TotalMilliseconds}ms - {decodedString}";
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
             }
             else
             {
-                TimeSpan ts = DateTime.Now - start;
-                string msg = $"UDP_RESPONSE in {ts.TotalMilliseconds} ms - {decodedParts} ";
+                var ts = DateTime.Now - start;
+                var msg = $"UDP_RESPONSE in {ts.TotalMilliseconds} ms - {decodedParts} ";
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
             }
 
-            string[] firstLineParts = decodedParts[0].Split(' ', 2);
+            var firstLineParts = decodedParts[0].Split(' ', 2);
             // If we don't have 2 parts of the first line, then it's not in the expected
             // 200 FILE
             // Format
             if (firstLineParts.Length != 2) throw new UnexpectedUDPResponseException {Response = decodedString};
 
             // Can't parse the code
-            if (!int.TryParse(firstLineParts[0], out int code))
+            if (!int.TryParse(firstLineParts[0], out var code))
                 throw new UnexpectedUDPResponseException {Response = decodedString};
 
-            UDPReturnCode status = (UDPReturnCode) code;
+            var status = (UDPReturnCode) code;
 
             // if we get banned pause the command processor for a while
             // so we don't make the ban worse
@@ -375,9 +402,17 @@ namespace Shoko.Server.Providers.AniDB.UDP
         public void ForceLogout()
         {
             if (!_isLoggedOn) return;
-            RequestLogout req = new RequestLogout();
+            var req = new RequestLogout();
             req.Execute(this);
             _isLoggedOn = false;
+        }
+
+        public bool TestLogin(string username, string password)
+        {
+            if (!ValidAniDBCredentials(username, password)) return false;
+            var result = Login(username, password);
+            if (result) ForceLogout();
+            return result;
         }
 
         public bool SetCredentials(string username, string password)

@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NHibernate.Criterion;
 using NLog;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Direct
@@ -114,36 +115,35 @@ namespace Shoko.Server.Repositories.Direct
         {
             try
             {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                var types = CommandTypesGeneral;
+                var udpHandler = ShokoServer.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+                var httpHandler = ShokoServer.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
+                var noUDP = udpHandler.IsBanned || !udpHandler.IsNetworkAvailable;
+                // This is called very often, so speed it up as much as possible
+                // We can spare bytes of RAM to speed up the command queue
+                if (httpHandler.IsBanned && noUDP)
                 {
-                    HashSet<int> types = CommandTypesGeneral;
-                    bool noUDP = ShokoService.AniDBProcessor.IsUdpBanned ||
-                                 !ShokoService.AniDBProcessor.ValidAniDBCredentials();
-                    // This is called very often, so speed it up as much as possible
-                    // We can spare bytes of RAM to speed up the command queue
-                    if (ShokoService.AniDBProcessor.IsHttpBanned && noUDP)
-                    {
-                        types = CommandTypesGeneralFullBan;
-                    }
-                    else if (noUDP)
-                    {
-                        types = CommandTypesGeneralUDPBan;
-                    }
-                    else if (ShokoService.AniDBProcessor.IsHttpBanned)
-                    {
-                        types = CommandTypesGeneralHTTPBan;
-                    }
-                    //don't need all rows, just first
-                    CommandRequest cr = session.QueryOver<CommandRequest>()
-                        .WhereRestrictionOn(field => field.CommandType)
-                        .IsIn(types.ToArray())
-                        .OrderBy(r => r.Priority).Asc
-                        .ThenBy(r => r.DateTimeUpdated).Asc
-                        .Take(1)
-                        .SingleOrDefault<CommandRequest>();
-
-                    return cr;
+                    types = CommandTypesGeneralFullBan;
                 }
+                else if (noUDP)
+                {
+                    types = CommandTypesGeneralUDPBan;
+                }
+                else if (httpHandler.IsBanned)
+                {
+                    types = CommandTypesGeneralHTTPBan;
+                }
+                //don't need all rows, just first
+                var cr = session.QueryOver<CommandRequest>()
+                    .WhereRestrictionOn(field => field.CommandType)
+                    .IsIn(types.ToArray())
+                    .OrderBy(r => r.Priority).Asc
+                    .ThenBy(r => r.DateTimeUpdated).Asc
+                    .Take(1)
+                    .SingleOrDefault<CommandRequest>();
+
+                return cr;
             }
             catch (Exception e)
             {
@@ -157,7 +157,7 @@ namespace Shoko.Server.Repositories.Direct
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 // This is used to clear the queue, we don't need order
-                List<CommandRequest> crs = session.QueryOver<CommandRequest>()
+                var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesGeneral.ToArray())
                     .List<CommandRequest>().ToList();
 
@@ -171,7 +171,7 @@ namespace Shoko.Server.Repositories.Direct
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    IList<CommandRequest> crs = session.QueryOver<CommandRequest>()
+                    var crs = session.QueryOver<CommandRequest>()
                         .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesHasher.ToArray())
                         .OrderBy(cr => cr.Priority).Asc
                         .ThenBy(cr => cr.DateTimeUpdated).Asc
@@ -193,7 +193,7 @@ namespace Shoko.Server.Repositories.Direct
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                List<CommandRequest> crs = session.QueryOver<CommandRequest>()
+                var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesHasher.ToArray())
                     .OrderBy(cr => cr.Priority).Asc
                     .ThenBy(cr => cr.DateTimeUpdated).Asc
@@ -209,7 +209,7 @@ namespace Shoko.Server.Repositories.Direct
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    IList<CommandRequest> crs = session.QueryOver<CommandRequest>()
+                    var crs = session.QueryOver<CommandRequest>()
                         .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesImages.ToArray())
                         .OrderBy(cr => cr.Priority).Asc
                         .ThenBy(cr => cr.DateTimeUpdated).Asc
@@ -231,7 +231,7 @@ namespace Shoko.Server.Repositories.Direct
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                List<CommandRequest> crs = session.QueryOver<CommandRequest>()
+                var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesImages.ToArray())
                     .OrderBy(cr => cr.Priority).Asc
                     .ThenBy(cr => cr.DateTimeUpdated).Asc
@@ -245,7 +245,7 @@ namespace Shoko.Server.Repositories.Direct
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                int crs = session.QueryOver<CommandRequest>()
+                var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(f => f.CommandType)
                     .IsIn(CommandTypesGeneral.ToArray())
                     .RowCount();
@@ -258,7 +258,7 @@ namespace Shoko.Server.Repositories.Direct
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                int crs = session.QueryOver<CommandRequest>()
+                var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesHasher.ToArray())
                     .RowCount();
 
@@ -270,7 +270,7 @@ namespace Shoko.Server.Repositories.Direct
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                int crs = session.QueryOver<CommandRequest>()
+                var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesImages.ToArray())
                     .RowCount();
 
@@ -282,7 +282,7 @@ namespace Shoko.Server.Repositories.Direct
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                List<CommandRequest> crs = session.QueryOver<CommandRequest>()
+                var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(types)
                     .OrderBy(cr => cr.Priority).Asc
                     .ThenBy(cr => cr.DateTimeUpdated).Asc

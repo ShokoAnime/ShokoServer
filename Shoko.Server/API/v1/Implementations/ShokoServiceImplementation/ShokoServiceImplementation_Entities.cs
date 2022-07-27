@@ -2095,7 +2095,7 @@ namespace Shoko.Server
         [HttpPost("Series/CreateFromAnime/{animeID}/{userID}/{animeGroupID?}/{forceOverwrite}")]
         public CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID, bool forceOverwrite)
         {
-            CL_Response<CL_AnimeSeries_User> response = new CL_Response<CL_AnimeSeries_User>
+            var response = new CL_Response<CL_AnimeSeries_User>
             {
                 Result = null,
                 ErrorMessage = string.Empty
@@ -2104,7 +2104,7 @@ namespace Shoko.Server
             {
                 if (animeGroupID.HasValue && animeGroupID.Value > 0)
                 {
-                    SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID.Value);
+                    var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID.Value);
                     if (grp == null)
                     {
                         response.ErrorMessage = "Could not find the specified group";
@@ -2113,7 +2113,7 @@ namespace Shoko.Server
                 }
 
                 // make sure a series doesn't already exists for this anime
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                 if (ser != null && !forceOverwrite)
                 {
                     response.ErrorMessage = "A series already exists for this anime";
@@ -2121,8 +2121,16 @@ namespace Shoko.Server
                 }
 
                 // make sure the anime exists first
-                var anime = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(animeID, false,
-                    ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime);
+                var command = new CommandRequest_GetAnimeHTTP
+                {
+                    AnimeID = animeID,
+                    ForceRefresh = false,
+                    DownloadRelations = ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime,
+                    CreateSeriesEntry = true,
+                    BubbleExceptions = true,
+                };
+                command.ProcessCommand(HttpContext.RequestServices);
+                var anime = command.Result;
 
                 if (anime == null)
                 {
@@ -2130,22 +2138,15 @@ namespace Shoko.Server
                     return response;
                 }
 
-                logger.Debug("Creating groups, series and episodes....");
-                ser = anime.CreateAnimeSeriesAndGroup(ser, animeGroupID);
-
-                ser.CreateAnimeEpisodes(anime);
+                ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
 
                 // check if we have any group status data for this associated anime
                 // if not we will download it now
                 if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
                 {
-                    CommandRequest_GetReleaseGroupStatus cmdStatus =
-                        new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
+                    var cmdStatus = new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
                     cmdStatus.Save();
                 }
-
-                // update stats, skip the missing and watched stats. We don't have any files for this series yet!
-                ser.UpdateStats(false, false, true);
 
                 response.Result = ser.GetUserContract(userID);
                 return response;
@@ -2164,24 +2165,31 @@ namespace Shoko.Server
         {
             try
             {
-                var anime = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(animeID, true, false);
+                var command = new CommandRequest_GetAnimeHTTP
+                {
+                    AnimeID = animeID,
+                    ForceRefresh = true,
+                    DownloadRelations = false,
+                    BubbleExceptions = true,
+                };
+                command.ProcessCommand(HttpContext.RequestServices);
 
                 // also find any files for this anime which don't have proper media info data
                 // we can usually tell this if the Resolution == '0x0'
-                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
+                foreach (var vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
-                    AniDB_File aniFile = vid.GetAniDBFile();
+                    var aniFile = vid.GetAniDBFile();
                     if (aniFile == null) continue;
 
                     if (!aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
                         continue;
 
-                    CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
+                    var cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
                     cmd.Save();
                 }
 
                 // update group status information
-                CommandRequest_GetReleaseGroupStatus cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID,
+                var cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID,
                     true);
                 cmdStatus.Save();
             }
@@ -2198,11 +2206,19 @@ namespace Shoko.Server
         {
             try
             {
-                var anime = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(animeID, true, false);
+                var command = new CommandRequest_GetAnimeHTTP
+                {
+                    AnimeID = animeID,
+                    ForceRefresh = true,
+                    DownloadRelations = false,
+                    BubbleExceptions = true,
+                };
+                command.ProcessCommand(HttpContext.RequestServices);
+                var anime = command.Result;
 
                 // also find any files for this anime which don't have proper media info data
                 // we can usually tell this if the Resolution == '0x0'
-                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
+                foreach (var vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
                     AniDB_File aniFile = vid.GetAniDBFile();
                     if (aniFile == null) continue;
@@ -2210,12 +2226,12 @@ namespace Shoko.Server
                     if (!aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
                         continue;
 
-                    CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
+                    var cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
                     cmd.Save();
                 }
 
                 // update group status information
-                CommandRequest_GetReleaseGroupStatus cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID,
+                var cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID,
                     true);
                 cmdStatus.Save();
 
