@@ -11,8 +11,8 @@ namespace Shoko.Server.Providers.AniDB.Http
 
         protected override string BaseCommand => $"http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=mylist&user={Username}&pass={Password}";
         
-        private string Username { get; init; }
-        private string Password { get; init; }
+        public string Username { private get; init; }
+        public string Password { private get; init; }
         
         protected override HttpBaseResponse<List<ResponseMyList>> ParseResponse(ILogger logger, HttpBaseResponse<string> data)
         {

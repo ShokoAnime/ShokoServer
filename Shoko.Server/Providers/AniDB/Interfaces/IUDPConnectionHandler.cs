@@ -5,8 +5,9 @@ namespace Shoko.Server.Providers.AniDB.Interfaces
 {
     public interface IUDPConnectionHandler : IConnectionHandler
     {
+        event EventHandler<AniDBStateUpdate> AniDBStateUpdate;
         string SessionID { get; }
-        string CdnUrl { get; }
+        string ImageServerUrl { get; }
         IServiceProvider ServiceProvider { get; }
         bool IsNetworkAvailable { get; }
         event EventHandler LoginFailed;

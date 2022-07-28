@@ -29,7 +29,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
 
         private string _cdnDomain = Constants.URLS.AniDB_Images_Domain;
 
-        public string CdnUrl => string.Format(Constants.URLS.AniDB_Images, _cdnDomain);
+        public string ImageServerUrl => string.Format(Constants.URLS.AniDB_Images, _cdnDomain);
 
         private ServerSettings Settings { get; set; }
 

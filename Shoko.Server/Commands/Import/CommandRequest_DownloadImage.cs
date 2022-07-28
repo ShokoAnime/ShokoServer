@@ -410,17 +410,17 @@ namespace Shoko.Server.Commands
                 case ImageEntityType.AniDB_Cover:
                     SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
                     handler = provider.GetRequiredService<IUDPConnectionHandler>();
-                    return string.Format(handler.CdnUrl, anime.Picname);
+                    return string.Format(handler.ImageServerUrl, anime.Picname);
 
                 case ImageEntityType.AniDB_Character:
                     AniDB_Character chr = req.ImageData as AniDB_Character;
                     handler = provider.GetRequiredService<IUDPConnectionHandler>();
-                    return string.Format(handler.CdnUrl, chr.PicName);
+                    return string.Format(handler.ImageServerUrl, chr.PicName);
 
                 case ImageEntityType.AniDB_Creator:
                     AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
                     handler = provider.GetRequiredService<IUDPConnectionHandler>();
-                    return string.Format(handler.CdnUrl, creator.PicName);
+                    return string.Format(handler.ImageServerUrl, creator.PicName);
 
                 default:
                     return string.Empty;

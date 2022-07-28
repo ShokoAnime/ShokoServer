@@ -65,7 +65,7 @@ namespace Shoko.Server.Commands.AniDB
             try
             {
                 var handler = serviceProvider.GetRequiredService<IHttpConnectionHandler>();
-                var parser = serviceProvider.GetRequiredService<HttpParser>();
+                var parser = serviceProvider.GetRequiredService<HttpAnimeParser>();
                 var animeCreator = serviceProvider.GetRequiredService<AnimeCreator>();
                 var xmlUtils = serviceProvider.GetRequiredService<HttpXmlUtils>();
 

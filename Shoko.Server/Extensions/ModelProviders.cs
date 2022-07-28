@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Xml;
-using AniDBAPI;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Models.Azure;
@@ -12,7 +11,6 @@ using Shoko.Models.Metro;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
-using Shoko.Server.AniDB_API.Raws;
 using Shoko.Server.LZ4;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -504,120 +502,8 @@ namespace Shoko.Server.Extensions
             response.Language = string.Intern("en");
         }
 
-        public static bool Populate(this AniDB_Anime_Character character, Raw_AniDB_Character rawChar)
-        {
-            if (rawChar == null) return false;
-            if (rawChar.AnimeID <= 0 || rawChar.CharID <= 0 || string.IsNullOrEmpty(rawChar.CharType)) return false;
-            character.CharID = rawChar.CharID;
-            character.AnimeID = rawChar.AnimeID;
-            character.CharType = rawChar.CharType;
-            character.EpisodeListRaw = rawChar.EpisodeListRaw;
-
-            return true;
-        }
-
-        public static bool Populate(this AniDB_Anime_Relation rel, Raw_AniDB_RelatedAnime rawRel)
-        {
-            if (rawRel == null) return false;
-            if (rawRel.AnimeID <= 0 || rawRel.RelatedAnimeID <= 0 || string.IsNullOrEmpty(rawRel.RelationType))
-                return false;
-            rel.AnimeID = rawRel.AnimeID;
-            rel.RelatedAnimeID = rawRel.RelatedAnimeID;
-            rel.RelationType = rawRel.RelationType;
-
-            return true;
-        }
-
-        public static bool Populate(this AniDB_Anime_Similar similar, Raw_AniDB_SimilarAnime rawSim)
-        {
-            if (rawSim == null) return false;
-            if (rawSim.AnimeID <= 0 || rawSim.Approval < 0 || rawSim.SimilarAnimeID <= 0 || rawSim.Total < 0)
-                return false;
-            similar.AnimeID = rawSim.AnimeID;
-            similar.Approval = rawSim.Approval;
-            similar.Total = rawSim.Total;
-            similar.SimilarAnimeID = rawSim.SimilarAnimeID;
-
-            return true;
-        }
-
-        public static bool Populate(this AniDB_Anime_Tag tag, Raw_AniDB_Tag rawTag)
-        {
-            if (rawTag == null) return false;
-            if (rawTag.AnimeID <= 0 || rawTag.TagID <= 0) return false;
-            tag.AnimeID = rawTag.AnimeID;
-            tag.TagID = rawTag.TagID;
-            tag.Approval = 100;
-            tag.Weight = rawTag.Weight;
-
-            return true;
-        }
-
-        public static bool Populate(this AniDB_Anime_Title title, Raw_AniDB_Anime_Title rawTitle)
-        {
-            if (rawTitle == null) return false;
-            if (rawTitle.AnimeID <= 0 || string.IsNullOrEmpty(rawTitle.Title) ||
-                string.IsNullOrEmpty(rawTitle.Language) || string.IsNullOrEmpty(rawTitle.TitleType)) return false;
-            title.AnimeID = rawTitle.AnimeID;
-            title.Language = rawTitle.Language;
-            title.Title = rawTitle.Title;
-            title.TitleType = rawTitle.TitleType;
-
-            return true;
-        }
-
-        private static bool Populate(this AniDB_Character character, Raw_AniDB_Character rawChar)
-        {
-            if (rawChar == null) return false;
-            if (rawChar.CharID <= 0 || string.IsNullOrEmpty(rawChar.CharName)) return false;
-            character.CharID = rawChar.CharID;
-            character.CharDescription = rawChar.CharDescription ?? string.Empty;
-            character.CharKanjiName = rawChar.CharKanjiName ?? string.Empty;
-            character.CharName = rawChar.CharName;
-            character.PicName = rawChar.PicName ?? string.Empty;
-            character.CreatorListRaw = rawChar.CreatorListRaw ?? string.Empty;
-
-            return true;
-        }
-
-        public static bool PopulateFromHTTP(this AniDB_Character character, Raw_AniDB_Character rawChar)
-        {
-            if (character.CharID != 0)
-            {
-                // only update the fields that come from HTTP API
-                if (string.IsNullOrEmpty(rawChar?.CharName)) return false;
-                character.CharDescription = rawChar.CharDescription ?? string.Empty;
-                character.CharName = rawChar.CharName;
-                character.CreatorListRaw = rawChar.CreatorListRaw ?? string.Empty;
-                character.PicName = rawChar.PicName ?? string.Empty;
-
-                return true;
-            }
-            
-            //a new object
-            return character.Populate(rawChar);
-        }
-
-        public static bool PopulateFromUDP(this AniDB_Character character, Raw_AniDB_Character rawChar)
-        {
-            if (character.CharID != 0)
-            {
-                if (string.IsNullOrEmpty(rawChar?.CharKanjiName) || string.IsNullOrEmpty(rawChar.CharName))
-                    return false;
-                // only update the fields that com from UDP API
-                character.CharKanjiName = rawChar.CharKanjiName;
-                character.CharName = rawChar.CharName;
-                //this.CreatorListRaw = rawChar.CreatorListRaw;
-
-                return true;
-            }
-            
-            //a new object
-            return character.Populate(rawChar);
-        }
-
         public static Metro_AniDB_Character ToContractMetro(this AniDB_Character character,
-            AniDB_Anime_Character charRel)
+                                                            AniDB_Anime_Character charRel)
         {
             Metro_AniDB_Character contract = new Metro_AniDB_Character
             {
@@ -655,123 +541,15 @@ namespace Shoko.Server.Extensions
                 CharKanjiName = character.CharKanjiName,
                 CharDescription = character.CharDescription,
                 CharType = charRel.CharType,
-                CharImageURL = string.Format(handler.CdnUrl, character.PicName),
+                CharImageURL = string.Format(handler.ImageServerUrl, character.PicName),
             };
             var seiyuu = character.GetSeiyuu();
             if (seiyuu == null) return contract;
             contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
             contract.SeiyuuName = seiyuu.SeiyuuName;
-            contract.SeiyuuImageURL = string.Format(handler.CdnUrl, seiyuu.PicName);
+            contract.SeiyuuImageURL = string.Format(handler.ImageServerUrl, seiyuu.PicName);
 
             return contract;
-        }
-
-        public static void Populate(this AniDB_Episode episode, Raw_AniDB_Episode epInfo)
-        {
-            episode.AirDate = epInfo.AirDate;
-            episode.AnimeID = epInfo.AnimeID;
-            episode.DateTimeUpdated = DateTime.Now;
-            episode.EpisodeID = epInfo.EpisodeID;
-            episode.EpisodeNumber = epInfo.EpisodeNumber;
-            episode.EpisodeType = epInfo.EpisodeType;
-            episode.LengthSeconds = epInfo.LengthSeconds;
-            episode.Rating = epInfo.Rating.ToString(CultureInfo.InvariantCulture);
-            episode.Votes = epInfo.Votes.ToString(CultureInfo.InvariantCulture);
-            episode.Description = epInfo.Description ?? string.Empty;
-        }
-
-        public static void Populate(this AniDB_GroupStatus grpstatus, Raw_AniDB_GroupStatus raw)
-        {
-            grpstatus.AnimeID = raw.AnimeID;
-            grpstatus.GroupID = raw.GroupID;
-            grpstatus.GroupName = raw.GroupName;
-            grpstatus.CompletionState = raw.CompletionState;
-            grpstatus.LastEpisodeNumber = raw.LastEpisodeNumber;
-            grpstatus.Rating = raw.Rating;
-            grpstatus.Votes = raw.Votes;
-            grpstatus.EpisodeRange = raw.EpisodeRange;
-        }
-
-        public static void Populate(this AniDB_MylistStats stats, Raw_AniDB_MyListStats raw)
-        {
-            stats.Animes = raw.Animes;
-            stats.Episodes = raw.Episodes;
-            stats.Files = raw.Files;
-            stats.SizeOfFiles = raw.SizeOfFiles;
-            stats.AddedAnimes = raw.AddedAnimes;
-            stats.AddedEpisodes = raw.AddedEpisodes;
-            stats.AddedFiles = raw.AddedFiles;
-            stats.AddedGroups = raw.AddedGroups;
-            stats.LeechPct = raw.LeechPct;
-            stats.GloryPct = raw.GloryPct;
-            stats.ViewedPct = raw.ViewedPct;
-            stats.MylistPct = raw.MylistPct;
-            stats.ViewedMylistPct = raw.ViewedMylistPct;
-            stats.EpisodesViewed = raw.EpisodesViewed;
-            stats.Votes = raw.Votes;
-            stats.Reviews = raw.Reviews;
-            stats.ViewiedLength = raw.ViewiedLength;
-        }
-
-        public static void Populate(this AniDB_Recommendation recommendation, Raw_AniDB_Recommendation rawRec)
-        {
-            recommendation.AnimeID = rawRec.AnimeID;
-            recommendation.UserID = rawRec.UserID;
-            recommendation.RecommendationText = rawRec.RecommendationText;
-
-            recommendation.RecommendationType = (int) AniDBRecommendationType.Recommended;
-
-            if (rawRec.RecommendationTypeText.Equals("recommended", StringComparison.InvariantCultureIgnoreCase))
-                recommendation.RecommendationType = (int) AniDBRecommendationType.Recommended;
-
-            if (rawRec.RecommendationTypeText.Equals("for fans", StringComparison.InvariantCultureIgnoreCase))
-                recommendation.RecommendationType = (int) AniDBRecommendationType.ForFans;
-
-            if (rawRec.RecommendationTypeText.Equals("must see", StringComparison.InvariantCultureIgnoreCase))
-                recommendation.RecommendationType = (int) AniDBRecommendationType.MustSee;
-        }
-
-        public static void Populate(this AniDB_ReleaseGroup releasegroup, Raw_AniDB_Group raw)
-        {
-            releasegroup.GroupID = raw.GroupID;
-            releasegroup.Rating = raw.Rating;
-            releasegroup.Votes = raw.Votes;
-            releasegroup.AnimeCount = raw.AnimeCount;
-            releasegroup.FileCount = raw.FileCount;
-            releasegroup.GroupName = raw.GroupName;
-            releasegroup.GroupNameShort = raw.GroupNameShort;
-            releasegroup.IRCChannel = raw.IRCChannel;
-            releasegroup.IRCServer = raw.IRCServer;
-            releasegroup.URL = raw.URL;
-            releasegroup.Picname = raw.Picname;
-        }
-
-        public static void Populate(this AniDB_Review review, Raw_AniDB_Review rawReview)
-        {
-            review.ReviewID = rawReview.ReviewID;
-            review.AuthorID = rawReview.AuthorID;
-            review.RatingAnimation = rawReview.RatingAnimation;
-            review.RatingSound = rawReview.RatingSound;
-            review.RatingStory = rawReview.RatingStory;
-            review.RatingCharacter = rawReview.RatingCharacter;
-            review.RatingValue = rawReview.RatingValue;
-            review.RatingEnjoyment = rawReview.RatingEnjoyment;
-            review.ReviewText = rawReview.ReviewText;
-        }
-
-        public static bool Populate(this AniDB_Tag tag, Raw_AniDB_Tag rawTag)
-        {
-            if (rawTag == null) return false;
-            if (rawTag.TagID <= 0 || string.IsNullOrEmpty(rawTag.TagName)) return false;
-            tag.TagID = rawTag.TagID;
-            tag.GlobalSpoiler = rawTag.GlobalSpoiler;
-            tag.LocalSpoiler = rawTag.LocalSpoiler;
-            tag.Spoiler = 0;
-            tag.TagCount = 0;
-            tag.TagDescription = rawTag.TagDescription ?? string.Empty;
-            tag.TagName = rawTag.TagName;
-
-            return true;
         }
 
         public static void PopulateManually(this CrossRef_File_Episode cross, SVR_VideoLocal vid, SVR_AnimeEpisode ep)

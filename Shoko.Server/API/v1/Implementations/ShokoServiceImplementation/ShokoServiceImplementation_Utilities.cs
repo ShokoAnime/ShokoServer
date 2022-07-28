@@ -7,8 +7,6 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
-using AniDBAPI;
-using AniDBAPI.Commands;
 using F23.StringSimilarity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,13 +15,13 @@ using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.AniDB_API.Titles;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Http;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -755,7 +753,7 @@ namespace Shoko.Server
                 else
                 {
                     // title search so look at the web cache
-                    foreach (var tit in AniDB_TitleHelper.Instance.SearchTitle(HttpUtility.UrlDecode(titleQuery)))
+                    foreach (var tit in AniDBTitleHelper.Instance.SearchTitle(HttpUtility.UrlDecode(titleQuery)))
                     {
                         var res = new CL_AnimeSearch
                         {
@@ -915,24 +913,23 @@ namespace Shoko.Server
 
             try
             {
-                AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
-                cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
-                AniDBUDPResponseCode ev = cmd.Process();
-                if (ev == AniDBUDPResponseCode.GotMyListHTTP)
+                var handler = HttpContext.RequestServices.GetRequiredService<IHttpConnectionHandler>();
+                var request = new RequestMyList { Username = ServerSettings.Instance.AniDb.Username, Password = ServerSettings.Instance.AniDb.Password };
+                var response = request.Execute(handler);
+                if (response.Response != null)
                 {
-                    foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
+                    foreach (var myitem in response.Response)
                     {
                         // let's check if the file on AniDB actually exists in the user's local collection
                         string hash = string.Empty;
 
-                        AniDB_File anifile = RepoFactory.AniDB_File.GetByFileID(myitem.FileID);
+                        AniDB_File anifile = myitem.FileID == null ? null : RepoFactory.AniDB_File.GetByFileID(myitem.FileID.Value);
                         if (anifile != null)
                             hash = anifile.Hash;
                         else
                         {
                             // look for manually linked files
-                            List<CrossRef_File_Episode> xrefs =
-                                RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
+                            List<CrossRef_File_Episode> xrefs = myitem.EpisodeID == null ? null : RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID.Value);
                             foreach (CrossRef_File_Episode xref in xrefs)
                             {
                                 if (xref.CrossRefSource != (int)CrossRefSource.AniDB)
@@ -966,45 +963,45 @@ namespace Shoko.Server
                         {
                             // this means we can't find the file
                             SVR_AniDB_Anime anime = null;
-                            if (animeCache.ContainsKey(myitem.AnimeID))
-                                anime = animeCache[myitem.AnimeID];
-                            else
+                            if (myitem.AnimeID != null)
                             {
-                                anime = RepoFactory.AniDB_Anime.GetByAnimeID(myitem.AnimeID);
-                                animeCache[myitem.AnimeID] = anime;
+                                if (animeCache.ContainsKey(myitem.AnimeID.Value))
+                                    anime = animeCache[myitem.AnimeID.Value];
+                                else
+                                {
+                                    anime = RepoFactory.AniDB_Anime.GetByAnimeID(myitem.AnimeID.Value);
+                                    animeCache[myitem.AnimeID.Value] = anime;
+                                }
+
+                                SVR_AnimeSeries ser = null;
+                                if (animeSeriesCache.ContainsKey(myitem.AnimeID.Value))
+                                    ser = animeSeriesCache[myitem.AnimeID.Value];
+                                else
+                                {
+                                    ser = RepoFactory.AnimeSeries.GetByAnimeID(myitem.AnimeID.Value);
+                                    animeSeriesCache[myitem.AnimeID.Value] = ser;
+                                }
+
+
+                                CL_MissingFile missingFile = new CL_MissingFile { AnimeID = myitem.AnimeID.Value, AnimeTitle = "Data Missing" };
+                                if (anime != null) missingFile.AnimeTitle = anime.MainTitle;
+                                missingFile.EpisodeID = myitem.EpisodeID ?? 0;
+                                AniDB_Episode ep = myitem.EpisodeID == null ? null : RepoFactory.AniDB_Episode.GetByEpisodeID(myitem.EpisodeID.Value);
+                                missingFile.EpisodeNumber = -1;
+                                missingFile.EpisodeType = 1;
+                                if (ep != null)
+                                {
+                                    missingFile.EpisodeNumber = ep.EpisodeNumber;
+                                    missingFile.EpisodeType = ep.EpisodeType;
+                                }
+
+                                missingFile.FileID = myitem.FileID ?? 0;
+
+                                if (ser == null) missingFile.AnimeSeries = null;
+                                else missingFile.AnimeSeries = ser.GetUserContract(userID);
+
+                                contracts.Add(missingFile);
                             }
-
-                            SVR_AnimeSeries ser = null;
-                            if (animeSeriesCache.ContainsKey(myitem.AnimeID))
-                                ser = animeSeriesCache[myitem.AnimeID];
-                            else
-                            {
-                                ser = RepoFactory.AnimeSeries.GetByAnimeID(myitem.AnimeID);
-                                animeSeriesCache[myitem.AnimeID] = ser;
-                            }
-
-
-                            CL_MissingFile missingFile = new CL_MissingFile
-                            {
-                                AnimeID = myitem.AnimeID,
-                                AnimeTitle = "Data Missing"
-                            };
-                            if (anime != null) missingFile.AnimeTitle = anime.MainTitle;
-                            missingFile.EpisodeID = myitem.EpisodeID;
-                            AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(myitem.EpisodeID);
-                            missingFile.EpisodeNumber = -1;
-                            missingFile.EpisodeType = 1;
-                            if (ep != null)
-                            {
-                                missingFile.EpisodeNumber = ep.EpisodeNumber;
-                                missingFile.EpisodeType = ep.EpisodeType;
-                            }
-                            missingFile.FileID = myitem.FileID;
-
-                            if (ser == null) missingFile.AnimeSeries = null;
-                            else missingFile.AnimeSeries = ser.GetUserContract(userID);
-
-                            contracts.Add(missingFile);
                         }
                     }
                 }

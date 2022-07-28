@@ -115,7 +115,7 @@ namespace Shoko.Server.Server
             ServerSettings.ConfigureServices(services);
             services.AddSingleton(ServerSettings.Instance);
             services.AddSingleton(Loader.Instance);
-            services.AddSingleton<HttpParser>();
+            services.AddSingleton<HttpAnimeParser>();
             services.AddSingleton<AnimeCreator>();
             services.AddSingleton<HttpXmlUtils>();
             services.AddSingleton<IHttpConnectionHandler, AniDBHttpConnectionHandler>();
@@ -1376,20 +1376,21 @@ namespace Shoko.Server.Server
 
         private static void SetupAniDBProcessor()
         {
-            ShokoService.AniDBProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+            var handler = ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+            handler.Init(
+                ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
                 ServerSettings.Instance.AniDb.ServerAddress,
-                ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
+                ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort
+            );
         }
 
-        public static void AniDBDispose()
+        private static void AniDBDispose()
         {
-            logger.Info("Disposing...");
-            if (ShokoService.AniDBProcessor != null)
-            {
-                ShokoService.AniDBProcessor.ForceLogout();
-                ShokoService.AniDBProcessor.Dispose();
-                Thread.Sleep(1000);
-            }
+            logger.Info("AniDB Handler Disposing...");
+            var handler = ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+            
+            handler.ForceLogout();
+            handler.CloseConnections();
         }
 
         public static int OnHashProgress(string fileName, int percentComplete)

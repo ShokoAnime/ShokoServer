@@ -1195,25 +1195,7 @@ namespace Shoko.Server
 
         public static void CheckForMyListStatsUpdate(bool forceRefresh)
         {
-            if (ServerSettings.Instance.AniDb.MyListStats_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
-                return;
-            var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.MyListStats_UpdateFrequency);
-
-            var sched =
-                RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
-            if (sched != null)
-            {
-                // if we have run this in the last 24 hours and are not forcing it, then exit
-                var tsLastRun = DateTime.Now - sched.LastUpdate;
-                Logger.Trace("Last AniDB MyList Stats Update: {0} minutes ago", tsLastRun.TotalMinutes);
-                if (tsLastRun.TotalHours < freqHours)
-                {
-                    if (!forceRefresh) return;
-                }
-            }
-
-            var cmd = new CommandRequest_UpdateMyListStats(forceRefresh);
-            cmd.Save();
+            // Obsolete. Noop
         }
 
         public static void CheckForMyListSyncUpdate(bool forceRefresh)

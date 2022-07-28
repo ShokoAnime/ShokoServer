@@ -92,7 +92,7 @@ namespace Shoko.Server.Commands
                             }
 
                             handler ??= serviceProvider.GetRequiredService<IUDPConnectionHandler>();
-                            downloadUrls.Add(string.Format(handler.CdnUrl, anime.Picname));
+                            downloadUrls.Add(string.Format(handler.ImageServerUrl, anime.Picname));
                             fileNames.Add(anime.PosterPath);
                             break;
 
@@ -113,7 +113,7 @@ namespace Shoko.Server.Commands
                             handler ??= serviceProvider.GetRequiredService<IUDPConnectionHandler>();
                             foreach (var chr in chrs)
                             {
-                                downloadUrls.Add(string.Format(handler.CdnUrl, chr.PicName));
+                                downloadUrls.Add(string.Format(handler.ImageServerUrl, chr.PicName));
                                 fileNames.Add(chr.GetPosterPath());
                             }
 
@@ -139,7 +139,7 @@ namespace Shoko.Server.Commands
                             handler ??= serviceProvider.GetRequiredService<IUDPConnectionHandler>();
                             foreach (var creator in creators)
                             {
-                                downloadUrls.Add(string.Format(handler.CdnUrl, creator.PicName));
+                                downloadUrls.Add(string.Format(handler.ImageServerUrl, creator.PicName));
                                 fileNames.Add(creator.GetPosterPath());
                             }
 
