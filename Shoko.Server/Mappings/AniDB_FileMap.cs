@@ -15,10 +15,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.Anime_GroupNameShort).Not.Nullable();
             Map(x => x.AnimeID).Not.Nullable();
             Map(x => x.DateTimeUpdated).Not.Nullable();
-            Map(x => x.Episode_Rating).Not.Nullable();
-            Map(x => x.Episode_Votes).Not.Nullable();
             Map(x => x.File_Description).Not.Nullable();
-            Map(x => x.File_LengthSeconds).Not.Nullable();
             Map(x => x.File_ReleaseDate).Not.Nullable();
             Map(x => x.File_Source).Not.Nullable();
             Map(x => x.FileID).Not.Nullable();

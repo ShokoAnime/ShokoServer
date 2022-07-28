@@ -139,7 +139,6 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 IsDeprecated = anidb.IsDeprecated;
                 IsCensored = anidb.IsCensored ?? false;
                 Chaptered = anidb.IsChaptered;
-                Duration = (new TimeSpan(0, 0, anidb.File_LengthSeconds));
                 OriginalFileName = anidb.FileName;
                 FileSize = anidb.FileSize;
                 Description = anidb.File_Description;

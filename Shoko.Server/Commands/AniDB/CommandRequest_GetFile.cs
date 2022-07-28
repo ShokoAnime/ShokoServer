@@ -71,7 +71,7 @@ namespace Shoko.Server.Commands.AniDB
                 var aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
                 
                 UDPResponse<ResponseGetFile> response = null;
-                if (aniFile == null || aniFile.FileSize != vlocal.FileSize || ForceAniDB)
+                if (aniFile == null || ForceAniDB)
                 {
                     var request = new RequestGetFile { Hash = vlocal.Hash, Size = vlocal.FileSize };
                     response = request.Execute(handler);
@@ -81,7 +81,7 @@ namespace Shoko.Server.Commands.AniDB
                 {
                     // save to the database
                     aniFile ??= new SVR_AniDB_File();
-
+                    aniFile.FileSize = vlocal.FileSize;
                     aniFile.AnimeID = response.Response.AnimeID;
 
                     aniFile.DateTimeUpdated = DateTime.Now;
