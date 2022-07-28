@@ -20,6 +20,7 @@ namespace Shoko.Models.Server
         public int MissingEpisodeCountGroups { get; set; }
         public int OverrideDescription { get; set; }
         public int? DefaultAnimeSeriesID { get; set; }
+        public int? MainAniDBAnimeID { get; set; }
 #endregion
 
 
