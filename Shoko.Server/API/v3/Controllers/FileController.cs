@@ -78,15 +78,15 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
-        /// Get the AniDB details for file with Shoko ID
+        /// Get the <see cref="File.AniDB"/> using the <paramref name="fileID"/>.
         /// </summary>
         /// <remarks>
         /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
         /// </remarks>
-        /// <param name="fileID">Shoko ID</param>
+        /// <param name="fileID">Shoko File ID</param>
         /// <returns></returns>
         [HttpGet("{fileID}/AniDB")]
-        public ActionResult<File.AniDB> GetFileAniDBDetails([FromRoute] int fileID)
+        public ActionResult<File.AniDB> GetFileAnidbByFileID([FromRoute] int fileID)
         {
             var file = RepoFactory.VideoLocal.GetByID(fileID);
             if (file == null)
@@ -94,9 +94,49 @@ namespace Shoko.Server.API.v3.Controllers
 
             var anidb = file.GetAniDBFile();
             if (anidb == null)
-                return BadRequest(AnidbNotFoundForFileID);
+                return NotFound(AnidbNotFoundForFileID);
 
             return new File.AniDB(anidb);
+        }
+
+        /// <summary>
+        /// Get the <see cref="File.AniDB"/> using the <paramref name="anidbFileID"/>.
+        /// </summary>
+        /// <remarks>
+        /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
+        /// </remarks>
+        /// <param name="anidbFileID">AniDB File ID</param>
+        /// <returns></returns>
+        [HttpGet("AniDB/{anidbFileID}")]
+        public ActionResult<File.AniDB> GetFileAnidbByAnidbFileID([FromRoute] int anidbFileID)
+        {
+            var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
+            if (anidb == null)
+                return NotFound(AnidbNotFoundForFileID);
+
+            return new File.AniDB(anidb);
+        }
+
+        /// <summary>
+        /// Get the <see cref="File.AniDB"/>for file using the <paramref name="anidbFileID"/>.
+        /// </summary>
+        /// <remarks>
+        /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
+        /// </remarks>
+        /// <param name="anidbFileID">AniDB File ID</param>
+        /// <returns></returns>
+        [HttpGet("AniDB/{anidbFileID}/File")]
+        public ActionResult<File> GetFileByAnidbFileID([FromRoute] int anidbFileID)
+        {
+            var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
+            if (anidb == null)
+                return NotFound(FileNotFoundWithFileID);
+
+            var file = RepoFactory.VideoLocal.GetByHash(anidb.Hash);
+            if (file == null)
+                return NotFound(AnidbNotFoundForFileID);
+
+            return new File(HttpContext, file);
         }
 
         /// <summary>
