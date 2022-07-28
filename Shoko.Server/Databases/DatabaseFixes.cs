@@ -652,19 +652,6 @@ namespace Shoko.Server.Databases
         {
             // Reset incorrectly parsed watch dates for anidb file.
             logger.Debug($"Looking for faulty anidb file entries...");
-            var anidbFilesToSave = new List<SVR_AniDB_File>();
-            foreach (var anidbFile in RepoFactory.AniDB_File.GetAll())
-            {
-                if (anidbFile.WatchedDate.HasValue && anidbFile.WatchedDate.Value.ToUniversalTime().Equals(DateTime.UnixEpoch))
-                {
-                    anidbFile.WatchedDate = null;
-                    anidbFile.IsWatched = 0;
-                    anidbFilesToSave.Add(anidbFile);
-                }
-            }
-            logger.Debug($"Found {anidbFilesToSave.Count} anidb file entries to fix.");
-            RepoFactory.AniDB_File.Save(anidbFilesToSave);
-            anidbFilesToSave.Clear();
             logger.Debug($"Looking for faulty episode user records...");
             // Fetch every episode user record stored to both remove orphaned records and to make sure the watch date is correct.
             var userDict = RepoFactory.JMMUser.GetAll().ToDictionary(user => user.JMMUserID);

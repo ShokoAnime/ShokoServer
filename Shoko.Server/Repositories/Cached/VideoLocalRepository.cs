@@ -411,15 +411,6 @@ namespace Shoko.Server.Repositories.Cached
                     .ToList();
         }
 
-
-        public List<SVR_VideoLocal> GetByAniDBResolution(string res)
-        {
-            return RepoFactory.AniDB_File.GetByResolution(res)
-                .Select(a => GetByHash(a.Hash))
-                .Where(a => a != null)
-                .ToList();
-        }
-
         public List<SVR_VideoLocal> GetByInternalVersion(int iver)
         {
             return RepoFactory.AniDB_File.GetByInternalVersion(iver)

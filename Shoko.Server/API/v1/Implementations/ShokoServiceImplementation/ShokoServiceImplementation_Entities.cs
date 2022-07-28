@@ -2174,20 +2174,6 @@ namespace Shoko.Server
                 };
                 command.ProcessCommand(HttpContext.RequestServices);
 
-                // also find any files for this anime which don't have proper media info data
-                // we can usually tell this if the Resolution == '0x0'
-                foreach (var vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
-                {
-                    var aniFile = vid.GetAniDBFile();
-                    if (aniFile == null) continue;
-
-                    if (!aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
-                        continue;
-
-                    var cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
-                    cmd.Save();
-                }
-
                 // update group status information
                 var cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID,
                     true);
@@ -2215,20 +2201,6 @@ namespace Shoko.Server
                 };
                 command.ProcessCommand(HttpContext.RequestServices);
                 var anime = command.Result;
-
-                // also find any files for this anime which don't have proper media info data
-                // we can usually tell this if the Resolution == '0x0'
-                foreach (var vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
-                {
-                    AniDB_File aniFile = vid.GetAniDBFile();
-                    if (aniFile == null) continue;
-
-                    if (!aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
-                        continue;
-
-                    var cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
-                    cmd.Save();
-                }
 
                 // update group status information
                 var cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID,

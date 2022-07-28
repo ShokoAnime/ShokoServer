@@ -43,9 +43,6 @@ namespace Shoko.Server.Extensions
             Azure_FileHash_Request r = new Azure_FileHash_Request
             {
                 ED2K = anifile.Hash,
-                CRC32 = anifile.CRC,
-                MD5 = anifile.MD5,
-                SHA1 = anifile.SHA1,
                 FileSize = anifile.FileSize,
                 Username = Constants.AnonWebCacheUsername,
                 AuthGUID = string.Empty

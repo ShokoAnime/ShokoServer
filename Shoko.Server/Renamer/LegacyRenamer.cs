@@ -95,14 +95,14 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                bool notCondition = false;
+                var notCondition = false;
                 if (test.Substring(0, 1).Equals("!"))
                 {
                     notCondition = true;
                     test = test.Substring(1, test.Length - 1);
                 }
 
-                if (!int.TryParse(test, out int animeID)) return false;
+                if (!int.TryParse(test, out var animeID)) return false;
 
                 if (notCondition)
                     return animeID != episodes[0].AnimeID;
@@ -125,14 +125,14 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                bool notCondition = false;
+                var notCondition = false;
                 if (test.Substring(0, 1).Equals("!"))
                 {
                     notCondition = true;
                     test = test.Substring(1, test.Length - 1);
                 }
 
-                int groupID = 0;
+                var groupID = 0;
 
                 //Leave groupID at 0 if "unknown".
                 if (!test.Equals("unknown", StringComparison.OrdinalIgnoreCase))
@@ -163,10 +163,10 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                bool notCondition = !string.IsNullOrEmpty(test) && test.Substring(0, 1).Equals("!");
+                var notCondition = !string.IsNullOrEmpty(test) && test.Substring(0, 1).Equals("!");
 
                 // for a file to be manually linked it must NOT have an anifile, but does need episodes attached
-                bool manuallyLinked = false;
+                var manuallyLinked = false;
                 if (aniFile == null)
                 {
                     manuallyLinked = true;
@@ -197,9 +197,9 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                bool notCondition = !string.IsNullOrEmpty(test) && test.Substring(0, 1).Equals("!");
+                var notCondition = !string.IsNullOrEmpty(test) && test.Substring(0, 1).Equals("!");
 
-                bool epsLinked = (aniFile == null && episodes != null && episodes.Count > 0);
+                var epsLinked = (aniFile == null && episodes != null && episodes.Count > 0);
 
                 if (notCondition)
                     return !epsLinked;
@@ -222,7 +222,7 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                bool notCondition = false;
+                var notCondition = false;
                 if (test.Substring(0, 1).Equals("!"))
                 {
                     notCondition = true;
@@ -250,7 +250,7 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                bool notCondition = false;
+                var notCondition = false;
                 if (test.Substring(0, 1).Equals("!"))
                 {
                     notCondition = true;
@@ -290,14 +290,14 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                ProcessNumericalOperators(ref test, out bool notCondition, out bool greaterThan, out bool greaterThanEqual,
-                    out bool lessThan, out bool lessThanEqual);
+                ProcessNumericalOperators(ref test, out var notCondition, out var greaterThan, out var greaterThanEqual,
+                    out var lessThan, out var lessThanEqual);
 
                 if (aniFile == null) return false;
 
-                if (!int.TryParse(test, out int version)) return false;
+                if (!int.TryParse(test, out var version)) return false;
 
-                bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
+                var hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
                 if (!hasFileVersionOperator)
                 {
@@ -341,14 +341,14 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                ProcessNumericalOperators(ref test, out bool notCondition, out bool greaterThan, out bool greaterThanEqual,
-                    out bool lessThan, out bool lessThanEqual);
+                ProcessNumericalOperators(ref test, out var notCondition, out var greaterThan, out var greaterThanEqual,
+                    out var lessThan, out var lessThanEqual);
 
-                if (!int.TryParse(test, out int testBitDepth)) return false;
+                if (!int.TryParse(test, out var testBitDepth)) return false;
 
                 if (vid.Media?.VideoStream == null) return false;
 
-                bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
+                var hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
                 if (!hasFileVersionOperator)
                 {
@@ -382,26 +382,20 @@ namespace Shoko.Server.Renamer
             }
         }
 
-        private static bool EvaluateTestW(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestW(string test, SVR_VideoLocal vid)
         {
             try
             {
-                ProcessNumericalOperators(ref test, out bool notCondition, out bool greaterThan, out bool greaterThanEqual,
-                    out bool lessThan, out bool lessThanEqual);
+                ProcessNumericalOperators(ref test, out var notCondition, out var greaterThan, out var greaterThanEqual,
+                    out var lessThan, out var lessThanEqual);
 
                 if (vid == null) return false;
 
-                if (!int.TryParse(test, out int testWidth)) return false;
+                if (!int.TryParse(test, out var testWidth)) return false;
 
-                int width = 0;
+                var width = Utils.GetVideoWidth(vid.VideoResolution);
 
-                if (aniFile != null)
-                    width = Utils.GetVideoWidth(aniFile.File_VideoResolution);
-
-                if (width == 0)
-                    width = Utils.GetVideoWidth(vid.VideoResolution);
-
-                bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
+                var hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
                 if (!hasFileVersionOperator)
                 {
@@ -435,25 +429,20 @@ namespace Shoko.Server.Renamer
             }
         }
 
-        private static bool EvaluateTestU(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestU(string test, SVR_VideoLocal vid)
         {
             try
             {
-                ProcessNumericalOperators(ref test, out bool notCondition, out bool greaterThan, out bool greaterThanEqual,
-                    out bool lessThan, out bool lessThanEqual);
+                ProcessNumericalOperators(ref test, out var notCondition, out var greaterThan, out var greaterThanEqual,
+                    out var lessThan, out var lessThanEqual);
 
                 if (vid == null) return false;
 
-                if (!int.TryParse(test, out int testHeight)) return false;
+                if (!int.TryParse(test, out var testHeight)) return false;
 
-                int height = 0;
-                if (aniFile != null)
-                    height = Utils.GetVideoHeight(aniFile.File_VideoResolution);
+                var height = Utils.GetVideoHeight(vid.VideoResolution);
 
-                if (height == 0)
-                    height = Utils.GetVideoHeight(vid.VideoResolution);
-
-                bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
+                var hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
                 if (!hasFileVersionOperator)
                 {
@@ -492,7 +481,7 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                bool notCondition = false;
+                var notCondition = false;
                 if (test.Substring(0, 1).Equals("!"))
                 {
                     notCondition = true;
@@ -501,7 +490,7 @@ namespace Shoko.Server.Renamer
 
                 if (aniFile == null) return false;
 
-                bool hasSource = !string.IsNullOrEmpty(aniFile.File_Source);
+                var hasSource = !string.IsNullOrEmpty(aniFile.File_Source);
                 if (
                     test.Trim()
                         .Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase) &&
@@ -524,92 +513,18 @@ namespace Shoko.Server.Renamer
             }
         }
 
-        private static bool EvaluateTestC(string test, SVR_AniDB_File aniFile)
-        {
-            try
-            {
-                bool notCondition = false;
-                if (test.Substring(0, 1).Equals("!"))
-                {
-                    notCondition = true;
-                    test = test.Substring(1, test.Length - 1);
-                }
-
-                if (aniFile == null) return false;
-
-                // Video codecs
-                bool hasSource = !string.IsNullOrEmpty(aniFile.File_VideoCodec);
-                if (
-                    test.Trim()
-                        .Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase) &&
-                    !hasSource)
-                {
-                    return !notCondition;
-                }
-
-
-                if (test.Trim().Equals(aniFile.File_VideoCodec, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    return !notCondition;
-                }
-                return notCondition;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return false;
-            }
-        }
-
-        private static bool EvaluateTestJ(string test, SVR_AniDB_File aniFile)
-        {
-            try
-            {
-                bool notCondition = false;
-                if (test.Substring(0, 1).Equals("!"))
-                {
-                    notCondition = true;
-                    test = test.Substring(1, test.Length - 1);
-                }
-
-                if (aniFile == null) return false;
-
-                // Audio codecs
-                bool hasSource = !string.IsNullOrEmpty(aniFile.File_AudioCodec);
-                if (
-                    test.Trim()
-                        .Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase) &&
-                    !hasSource)
-                {
-                    return !notCondition;
-                }
-
-
-                if (test.Trim().Equals(aniFile.File_AudioCodec, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    return !notCondition;
-                }
-                return notCondition;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return false;
-            }
-        }
-
         private static bool EvaluateTestT(string test, SVR_AniDB_Anime anime)
         {
             try
             {
-                bool notCondition = false;
+                var notCondition = false;
                 if (test.Substring(0, 1).Equals("!"))
                 {
                     notCondition = true;
                     test = test.Substring(1, test.Length - 1);
                 }
 
-                bool hasType = !string.IsNullOrEmpty(anime.GetAnimeTypeRAW());
+                var hasType = !string.IsNullOrEmpty(anime.GetAnimeTypeRAW());
                 if (
                     test.Trim()
                         .Equals(Constants.FileRenameReserved.Unknown, StringComparison.InvariantCultureIgnoreCase) &&
@@ -636,12 +551,12 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                ProcessNumericalOperators(ref test, out bool notCondition, out bool greaterThan, out bool greaterThanEqual,
-                    out bool lessThan, out bool lessThanEqual);
+                ProcessNumericalOperators(ref test, out var notCondition, out var greaterThan, out var greaterThanEqual,
+                    out var lessThan, out var lessThanEqual);
 
-                if (!int.TryParse(test, out int testYear)) return false;
+                if (!int.TryParse(test, out var testYear)) return false;
 
-                bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
+                var hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
                 if (!hasFileVersionOperator)
                 {
@@ -679,12 +594,12 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                ProcessNumericalOperators(ref test, out bool notCondition, out bool greaterThan, out bool greaterThanEqual,
-                    out bool lessThan, out bool lessThanEqual);
+                ProcessNumericalOperators(ref test, out var notCondition, out var greaterThan, out var greaterThanEqual,
+                    out var lessThan, out var lessThanEqual);
 
-                if (!int.TryParse(test, out int testEpNumber)) return false;
+                if (!int.TryParse(test, out var testEpNumber)) return false;
 
-                bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
+                var hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
                 if (!hasFileVersionOperator)
                 {
@@ -722,14 +637,14 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                bool notCondition = false;
+                var notCondition = false;
                 if (test.Substring(0, 1).Equals("!"))
                 {
                     notCondition = true;
                     test = test.Substring(1, test.Length - 1);
                 }
 
-                string epType = string.Empty;
+                var epType = string.Empty;
                 switch (episodes[0].GetEpisodeTypeEnum())
                 {
                     case EpisodeType.Episode:
@@ -815,12 +730,12 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                ProcessNumericalOperators(ref test, out bool notCondition, out bool greaterThan, out bool greaterThanEqual,
-                    out bool lessThan, out bool lessThanEqual);
+                ProcessNumericalOperators(ref test, out var notCondition, out var greaterThan, out var greaterThanEqual,
+                    out var lessThan, out var lessThanEqual);
 
-                if (!int.TryParse(test, out int epCount)) return false;
+                if (!int.TryParse(test, out var epCount)) return false;
 
-                bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
+                var hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
                 if (!hasFileVersionOperator)
                 {
@@ -869,7 +784,7 @@ namespace Shoko.Server.Renamer
         {
             try
             {
-                bool notCondition = false;
+                var notCondition = false;
                 if (test.Substring(0, 1).Equals("!"))
                 {
                     notCondition = true;
@@ -883,7 +798,7 @@ namespace Shoko.Server.Renamer
 
                 // Test if Anime ID exists
 
-                string tagAnimeID = Constants.FileRenameTag.AnimeID.Substring(1,
+                var tagAnimeID = Constants.FileRenameTag.AnimeID.Substring(1,
                     Constants.FileRenameTag.AnimeID.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeID, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -903,7 +818,7 @@ namespace Shoko.Server.Renamer
 
                 // Test if Group ID exists
 
-                string tagGroupID = Constants.FileRenameTag.GroupID.Substring(1,
+                var tagGroupID = Constants.FileRenameTag.GroupID.Substring(1,
                     Constants.FileRenameTag.GroupID.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagGroupID, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -923,7 +838,7 @@ namespace Shoko.Server.Renamer
 
                 // Test if Original File Nameexists
 
-                string tagOriginalFileName = Constants.FileRenameTag.OriginalFileName.Substring(1,
+                var tagOriginalFileName = Constants.FileRenameTag.OriginalFileName.Substring(1,
                     Constants.FileRenameTag.OriginalFileName.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagOriginalFileName, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -944,7 +859,7 @@ namespace Shoko.Server.Renamer
                 #region Test if Episode Number exists
 
                 // Test if Episode Number exists
-                string tagEpisodeNumber = Constants.FileRenameTag.EpisodeNumber.Substring(1,
+                var tagEpisodeNumber = Constants.FileRenameTag.EpisodeNumber.Substring(1,
                     Constants.FileRenameTag.EpisodeNumber.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagEpisodeNumber, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -961,7 +876,7 @@ namespace Shoko.Server.Renamer
                 #region Test file version
 
                 // Test if Group Short Name exists - yes it always does
-                string tagFileVersion = Constants.FileRenameTag.FileVersion.Substring(1,
+                var tagFileVersion = Constants.FileRenameTag.FileVersion.Substring(1,
                     Constants.FileRenameTag.FileVersion.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagFileVersion, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -978,7 +893,7 @@ namespace Shoko.Server.Renamer
                 #region Test if ED2K Upper exists
 
                 // Test if Group Short Name exists - yes it always does
-                string tagED2KUpper = Constants.FileRenameTag.ED2KUpper.Substring(1,
+                var tagED2KUpper = Constants.FileRenameTag.ED2KUpper.Substring(1,
                     Constants.FileRenameTag.ED2KUpper.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagED2KUpper, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -990,7 +905,7 @@ namespace Shoko.Server.Renamer
                 #region Test if ED2K Lower exists
 
                 // Test if Group Short Name exists - yes it always does
-                string tagED2KLower = Constants.FileRenameTag.ED2KLower.Substring(1,
+                var tagED2KLower = Constants.FileRenameTag.ED2KLower.Substring(1,
                     Constants.FileRenameTag.ED2KLower.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagED2KLower, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -1001,7 +916,7 @@ namespace Shoko.Server.Renamer
 
                 #region Test if English title exists
 
-                string tagAnimeNameEnglish = Constants.FileRenameTag.AnimeNameEnglish.Substring(1,
+                var tagAnimeNameEnglish = Constants.FileRenameTag.AnimeNameEnglish.Substring(1,
                     Constants.FileRenameTag.AnimeNameEnglish.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -1020,7 +935,7 @@ namespace Shoko.Server.Renamer
 
                 #region Test if Kanji title exists
 
-                string tagAnimeNameKanji = Constants.FileRenameTag.AnimeNameKanji.Substring(1,
+                var tagAnimeNameKanji = Constants.FileRenameTag.AnimeNameKanji.Substring(1,
                     Constants.FileRenameTag.AnimeNameKanji.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeNameKanji, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -1042,7 +957,7 @@ namespace Shoko.Server.Renamer
 
                 #region Test if Romaji title exists
 
-                string tagAnimeNameRomaji = Constants.FileRenameTag.AnimeNameRomaji.Substring(1,
+                var tagAnimeNameRomaji = Constants.FileRenameTag.AnimeNameRomaji.Substring(1,
                     Constants.FileRenameTag.AnimeNameRomaji.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -1064,7 +979,7 @@ namespace Shoko.Server.Renamer
 
                 #region Test if episode name (english) exists
 
-                string tagEpisodeNameEnglish = Constants.FileRenameTag.EpisodeNameEnglish.Substring(1,
+                var tagEpisodeNameEnglish = Constants.FileRenameTag.EpisodeNameEnglish.Substring(1,
                     Constants.FileRenameTag.EpisodeNameEnglish.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagEpisodeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -1081,7 +996,7 @@ namespace Shoko.Server.Renamer
 
                 #region Test if episode name (romaji) exists
 
-                string tagEpisodeNameRomaji = Constants.FileRenameTag.EpisodeNameRomaji.Substring(1,
+                var tagEpisodeNameRomaji = Constants.FileRenameTag.EpisodeNameRomaji.Substring(1,
                     Constants.FileRenameTag.EpisodeNameRomaji.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagEpisodeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -1099,7 +1014,7 @@ namespace Shoko.Server.Renamer
                 #region Test if group name short exists
 
                 // Test if Group Short Name exists - yes it always does
-                string tagGroupShortName = Constants.FileRenameTag.GroupShortName.Substring(1,
+                var tagGroupShortName = Constants.FileRenameTag.GroupShortName.Substring(1,
                     Constants.FileRenameTag.GroupShortName.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagGroupShortName, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -1115,7 +1030,7 @@ namespace Shoko.Server.Renamer
                 #region Test if group name long exists
 
                 // Test if Group Short Name exists - yes it always does
-                string tagGroupLongName = Constants.FileRenameTag.GroupLongName.Substring(1,
+                var tagGroupLongName = Constants.FileRenameTag.GroupLongName.Substring(1,
                     Constants.FileRenameTag.GroupLongName.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagGroupLongName, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -1131,13 +1046,11 @@ namespace Shoko.Server.Renamer
                 #region Test if CRC Lower exists
 
                 // Test if Group Short Name exists - yes it always does
-                string tagCRCLower = Constants.FileRenameTag.CRCLower.Substring(1,
+                var tagCRCLower = Constants.FileRenameTag.CRCLower.Substring(1,
                     Constants.FileRenameTag.CRCLower.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagCRCLower, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    string crc = vid.CRC32;
-                    if (string.IsNullOrEmpty(crc) && aniFile != null)
-                        crc = aniFile.CRC;
+                    var crc = vid.CRC32;
 
                     if (string.IsNullOrEmpty(crc))
                     {
@@ -1151,13 +1064,11 @@ namespace Shoko.Server.Renamer
                 #region Test if CRC Upper exists
 
                 // Test if Group Short Name exists - yes it always does
-                string tagCRCUpper = Constants.FileRenameTag.CRCUpper.Substring(1,
+                var tagCRCUpper = Constants.FileRenameTag.CRCUpper.Substring(1,
                     Constants.FileRenameTag.CRCUpper.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagCRCUpper, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    string crc = vid.CRC32;
-                    if (string.IsNullOrEmpty(crc) && aniFile != null)
-                        crc = aniFile.CRC;
+                    var crc = vid.CRC32;
 
                     if (string.IsNullOrEmpty(crc))
                     {
@@ -1170,7 +1081,7 @@ namespace Shoko.Server.Renamer
 
                 #region Test file has an audio track
 
-                string tagDubLanguage = Constants.FileRenameTag.DubLanguage.Substring(1,
+                var tagDubLanguage = Constants.FileRenameTag.DubLanguage.Substring(1,
                     Constants.FileRenameTag.DubLanguage.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagDubLanguage, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -1185,7 +1096,7 @@ namespace Shoko.Server.Renamer
 
                 #region Test file has a subtitle track
 
-                string tagSubLanguage = Constants.FileRenameTag.SubLanguage.Substring(1,
+                var tagSubLanguage = Constants.FileRenameTag.SubLanguage.Substring(1,
                     Constants.FileRenameTag.SubLanguage.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagSubLanguage, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -1200,13 +1111,11 @@ namespace Shoko.Server.Renamer
 
                 #region Test if Video resolution exists
 
-                string tagVidRes = Constants.FileRenameTag.Resolution.Substring(1,
+                var tagVidRes = Constants.FileRenameTag.Resolution.Substring(1,
                     Constants.FileRenameTag.Resolution.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagVidRes, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    string vidRes = string.Empty;
-                    if (aniFile != null)
-                        vidRes = aniFile.File_VideoResolution;
+                    var vidRes = string.Empty;
 
                     if (string.IsNullOrEmpty(vidRes) && vid != null)
                         vidRes = vid.VideoResolution;
@@ -1222,41 +1131,33 @@ namespace Shoko.Server.Renamer
 
                 #region Test file has a video codec defined
 
-                string tagVideoCodec = Constants.FileRenameTag.VideoCodec.Substring(1,
+                var tagVideoCodec = Constants.FileRenameTag.VideoCodec.Substring(1,
                     Constants.FileRenameTag.VideoCodec.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagVideoCodec, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (string.IsNullOrEmpty(aniFile?.File_VideoCodec))
-                    {
-                        return notCondition;
-                    }
-                    return !notCondition;
+                    return notCondition;
                 }
 
                 #endregion
 
                 #region Test file has an audio codec defined
 
-                string tagAudioCodec = Constants.FileRenameTag.AudioCodec.Substring(1,
+                var tagAudioCodec = Constants.FileRenameTag.AudioCodec.Substring(1,
                     Constants.FileRenameTag.AudioCodec.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAudioCodec, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (string.IsNullOrEmpty(aniFile?.File_AudioCodec))
-                    {
-                        return notCondition;
-                    }
-                    return !notCondition;
+                    return notCondition;
                 }
 
                 #endregion
 
                 #region Test file has Video Bit Depth defined
 
-                string tagVideoBitDepth = Constants.FileRenameTag.VideoBitDepth.Substring(1,
+                var tagVideoBitDepth = Constants.FileRenameTag.VideoBitDepth.Substring(1,
                     Constants.FileRenameTag.VideoBitDepth.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagVideoBitDepth, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    bool bitDepthExists = vid?.Media?.VideoStream != null && vid.Media?.VideoStream?.BitDepth != 0;
+                    var bitDepthExists = vid?.Media?.VideoStream != null && vid.Media?.VideoStream?.BitDepth != 0;
                     if (!bitDepthExists)
                     {
                         return notCondition;
@@ -1268,11 +1169,11 @@ namespace Shoko.Server.Renamer
 
                 #region Test if censored
 
-                string tagCensored = Constants.FileRenameTag.Censored.Substring(1,
+                var tagCensored = Constants.FileRenameTag.Censored.Substring(1,
                     Constants.FileRenameTag.Censored.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagCensored, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    bool isCensored = false;
+                    var isCensored = false;
                     if (aniFile != null)
                         isCensored = aniFile.IsCensored ?? false;
 
@@ -1287,12 +1188,12 @@ namespace Shoko.Server.Renamer
 
                 #region Test if Deprecated
 
-                string tagDeprecated = Constants.FileRenameTag.Deprecated.Substring(1,
+                var tagDeprecated = Constants.FileRenameTag.Deprecated.Substring(1,
                     Constants.FileRenameTag.Deprecated.Length - 1); // remove % at the front
                 if (!test.Trim().Equals(tagDeprecated, StringComparison.InvariantCultureIgnoreCase)) return false;
-                bool isDeprecated = false;
+                var isDeprecated = false;
                 if (aniFile != null)
-                    isDeprecated = aniFile.IsDeprecated == 1;
+                    isDeprecated = aniFile.IsDeprecated;
 
                 if (!isDeprecated)
                 {
@@ -1316,22 +1217,22 @@ namespace Shoko.Server.Renamer
             if (sourceFolder == null) throw new Exception("*Unable to get import folder");
             var place = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(
                 args.FileInfo.FilePath.Replace(sourceFolder.ImportFolderLocation, ""), sourceFolder.ImportFolderID);
-            SVR_VideoLocal vid = place?.VideoLocal;
-            string[] lines = script.Split(Environment.NewLine.ToCharArray());
+            var vid = place?.VideoLocal;
+            var lines = script.Split(Environment.NewLine.ToCharArray());
 
-            string newFileName = string.Empty;
+            var newFileName = string.Empty;
 
 
-            List<AniDB_Episode> episodes = new List<AniDB_Episode>();
+            var episodes = new List<AniDB_Episode>();
             SVR_AniDB_Anime anime;
 
             if (vid == null) throw new Exception("*Error: Unable to access file");
 
             // get all the data so we don't need to get multiple times
-            SVR_AniDB_File aniFile = vid.GetAniDBFile();
+            var aniFile = vid.GetAniDBFile();
             if (aniFile == null)
             {
-                List<SVR_AnimeEpisode> animeEps = vid.GetAnimeEpisodes();
+                var animeEps = vid.GetAnimeEpisodes();
                 if (animeEps.Count == 0) throw new Exception("*Error: Unable to get episode for file");
 
                 episodes.AddRange(animeEps.Select(a => a.AniDB_Episode).OrderBy(a => a.EpisodeType).ThenBy(a => a.EpisodeNumber));
@@ -1348,13 +1249,13 @@ namespace Shoko.Server.Renamer
                 if (anime == null) throw new Exception("*Error: Unable to get anime for file");
             }
 
-            foreach (string line in lines)
+            foreach (var line in lines)
             {
-                string thisLine = line.Trim();
+                var thisLine = line.Trim();
                 if (thisLine.Length == 0) continue;
 
                 // remove all comments from this line
-                int comPos = thisLine.IndexOf("//", StringComparison.Ordinal);
+                var comPos = thisLine.IndexOf("//", StringComparison.Ordinal);
                 if (comPos >= 0)
                 {
                     thisLine = thisLine.Substring(0, comPos);
@@ -1364,14 +1265,14 @@ namespace Shoko.Server.Renamer
                 // check if this line has no tests (applied to all files)
                 if (thisLine.StartsWith(Constants.FileRenameReserved.Do, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    string action = GetAction(thisLine);
+                    var action = GetAction(thisLine);
                     PerformActionOnFileName(ref newFileName, action, vid, aniFile, episodes, anime);
                 }
                 else if (EvaluateTest(thisLine, vid, aniFile, episodes, anime))
                 {
                     // if the line has passed the tests, then perform the action
 
-                    string action = GetAction(thisLine);
+                    var action = GetAction(thisLine);
 
                     // if the action is fail, we don't want to rename
                     if (action.ToUpper()
@@ -1385,9 +1286,9 @@ namespace Shoko.Server.Renamer
 
             if (string.IsNullOrEmpty(newFileName)) throw new Exception("*Error: the new filename is empty (script error)");
 
-            string pathToVid = place.FilePath;
+            var pathToVid = place.FilePath;
             if (string.IsNullOrEmpty(pathToVid)) throw new Exception("*Error: Unable to get the file's old filename");
-            string ext =
+            var ext =
                 Path.GetExtension(pathToVid); //Prefer VideoLocal_Place as this is more accurate.
             if (string.IsNullOrEmpty(ext))
                 throw new Exception("*Error: Unable to get the file's extension"); // fail if we get a blank extension, something went wrong.
@@ -1400,11 +1301,11 @@ namespace Shoko.Server.Renamer
             SVR_AniDB_File aniFile, List<AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             // find the first test
-            int posStart = action.IndexOf(" ", StringComparison.Ordinal);
+            var posStart = action.IndexOf(" ", StringComparison.Ordinal);
             if (posStart < 0) return;
 
-            string actionType = action.Substring(0, posStart);
-            string parameter = action.Substring(posStart + 1, action.Length - posStart - 1);
+            var actionType = action.Substring(0, posStart);
+            var parameter = action.Substring(posStart + 1, action.Length - posStart - 1);
 
 
             // action is to add the the new file name
@@ -1423,21 +1324,21 @@ namespace Shoko.Server.Renamer
             {
                 action = action.Trim();
 
-                int posStart1 = action.IndexOf("'", 0, StringComparison.Ordinal);
+                var posStart1 = action.IndexOf("'", 0, StringComparison.Ordinal);
                 if (posStart1 < 0) return;
 
-                int posEnd1 = action.IndexOf("'", posStart1 + 1, StringComparison.Ordinal);
+                var posEnd1 = action.IndexOf("'", posStart1 + 1, StringComparison.Ordinal);
                 if (posEnd1 < 0) return;
 
-                string toReplace = action.Substring(posStart1 + 1, posEnd1 - posStart1 - 1);
+                var toReplace = action.Substring(posStart1 + 1, posEnd1 - posStart1 - 1);
 
-                int posStart2 = action.IndexOf("'", posEnd1 + 1, StringComparison.Ordinal);
+                var posStart2 = action.IndexOf("'", posEnd1 + 1, StringComparison.Ordinal);
                 if (posStart2 < 0) return;
 
-                int posEnd2 = action.IndexOf("'", posStart2 + 1, StringComparison.Ordinal);
+                var posEnd2 = action.IndexOf("'", posStart2 + 1, StringComparison.Ordinal);
                 if (posEnd2 < 0) return;
 
-                string replaceWith = action.Substring(posStart2 + 1, posEnd2 - posStart2 - 1);
+                var replaceWith = action.Substring(posStart2 + 1, posEnd2 - posStart2 - 1);
 
                 newFileName = newFileName.Replace(toReplace, replaceWith);
             }
@@ -1513,7 +1414,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNumber.ToLower()))
             {
-                string prefix = string.Empty;
+                var prefix = string.Empty;
                 int epCount;
 
                 if (episodes[0].GetEpisodeTypeEnum() == EpisodeType.Credits) prefix = "C";
@@ -1538,10 +1439,10 @@ namespace Shoko.Server.Renamer
                         break;
                 }
 
-                int zeroPadding = Math.Max(epCount.ToString().Length, 2);
+                var zeroPadding = Math.Max(epCount.ToString().Length, 2);
 
                 // normal episode
-                string episodeNumber = prefix + episodes[0].EpisodeNumber.ToString().PadLeft(zeroPadding, '0');
+                var episodeNumber = prefix + episodes[0].EpisodeNumber.ToString().PadLeft(zeroPadding, '0');
 
                 if (episodes.Count > 1)
                     episodeNumber += "-" +
@@ -1574,9 +1475,9 @@ namespace Shoko.Server.Renamer
                         break;
                 }
 
-                int zeroPadding = epCount.ToString().Length;
+                var zeroPadding = epCount.ToString().Length;
 
-                string episodeNumber = epCount.ToString().PadLeft(zeroPadding, '0');
+                var episodeNumber = epCount.ToString().PadLeft(zeroPadding, '0');
 
                 newFileName = newFileName.Replace(Constants.FileRenameTag.Episodes, episodeNumber);
             }
@@ -1611,7 +1512,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.GroupShortName.ToLower()))
             {
-                string subgroup = aniFile?.Anime_GroupNameShort ?? "Unknown";
+                var subgroup = aniFile?.Anime_GroupNameShort ?? "Unknown";
                 if (subgroup.Equals("raw", StringComparison.InvariantCultureIgnoreCase)) subgroup = "Unknown";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.GroupShortName, subgroup);
             }
@@ -1650,9 +1551,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.CRCUpper))
             {
-                string crc = vid.CRC32;
-                if (string.IsNullOrEmpty(crc) && aniFile != null)
-                    crc = aniFile.CRC;
+                var crc = vid.CRC32;
 
                 if (!string.IsNullOrEmpty(crc))
                 {
@@ -1667,9 +1566,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.CRCLower))
             {
-                string crc = vid.CRC32;
-                if (string.IsNullOrEmpty(crc) && aniFile != null)
-                    crc = aniFile.CRC;
+                var crc = vid.CRC32;
 
                 if (!string.IsNullOrEmpty(crc))
                 {
@@ -1712,8 +1609,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.VideoCodec))
             {
-                newFileName = newFileName.Replace(Constants.FileRenameTag.VideoCodec,
-                    aniFile?.File_VideoCodec ?? vid?.Media?.VideoStream?.CodecID);
+                newFileName = newFileName.Replace(Constants.FileRenameTag.VideoCodec, vid?.Media?.VideoStream?.CodecID);
             }
 
             #endregion
@@ -1722,8 +1618,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.AudioCodec))
             {
-                newFileName = newFileName.Replace(Constants.FileRenameTag.AudioCodec,
-                    aniFile?.File_AudioCodec ?? vid?.Media?.AudioStreams.FirstOrDefault()?.CodecID);
+                newFileName = newFileName.Replace(Constants.FileRenameTag.AudioCodec, vid?.Media?.AudioStreams.FirstOrDefault()?.CodecID);
             }
 
             #endregion
@@ -1760,24 +1655,9 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.Resolution))
             {
-                string res = string.Empty;
-                bool hasResolution = true;
-                if (aniFile != null)
-                {
-                    res = aniFile.File_VideoResolution;
-                    if (aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
-                        hasResolution = false;
-                    if (aniFile.File_VideoResolution.Equals(Constants.FileRenameReserved.Unknown,
-                        StringComparison.InvariantCultureIgnoreCase)) hasResolution = false;
-                }
-                else
-                    hasResolution = false;
-
-                if (!hasResolution)
-                {
-                    // try the video info
-                    if (vid != null) res = vid.VideoResolution;
-                }
+                var res = string.Empty;
+                // try the video info
+                if (vid != null) res = vid.VideoResolution;
 
                 newFileName = newFileName.Replace(Constants.FileRenameTag.Resolution, res.Trim());
             }
@@ -1788,26 +1668,10 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.VideoHeight))
             {
-                string res = string.Empty;
-                bool hasResolution = true;
-                if (aniFile != null)
-                {
-                    res = aniFile.File_VideoResolution;
-                    if (aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
-                        hasResolution = false;
-                    if (aniFile.File_VideoResolution.Equals(Constants.FileRenameReserved.Unknown,
-                        StringComparison.InvariantCultureIgnoreCase)) hasResolution = false;
-                }
-                else
-                    hasResolution = false;
-
-                if (!hasResolution)
-                {
-                    // try the video info
-                    if (vid != null) res = vid.VideoResolution;
-                }
-                res = res.Trim();
-                string[] reses = res.Split('x');
+                var res = string.Empty;
+                // try the video info
+                if (vid != null) res = vid.VideoResolution;
+                var reses = res.Split('x');
                 if (reses.Length > 1) res = reses[1];
 
                 newFileName = newFileName.Replace(Constants.FileRenameTag.VideoHeight, res);
@@ -1859,8 +1723,8 @@ namespace Shoko.Server.Renamer
                 // remove the extension first
                 if (aniFile != null)
                 {
-                    string ext = Path.GetExtension(aniFile.FileName);
-                    string partial = aniFile.FileName.Substring(0, aniFile.FileName.Length - ext.Length);
+                    var ext = Path.GetExtension(aniFile.FileName);
+                    var partial = aniFile.FileName.Substring(0, aniFile.FileName.Length - ext.Length);
 
                     newFileName = newFileName.Replace(Constants.FileRenameTag.OriginalFileName, partial);
                 }
@@ -1872,7 +1736,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.Censored))
             {
-                string censored = "cen";
+                var censored = "cen";
                 if (aniFile?.IsCensored ?? false)
                     censored = "unc";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.Censored, censored);
@@ -1884,8 +1748,8 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.Deprecated))
             {
-                string depr = "New";
-                if (aniFile?.IsDeprecated == 1)
+                var depr = "New";
+                if (aniFile?.IsDeprecated ?? false)
                     depr = "DEPR";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.Deprecated, depr);
             }
@@ -1896,10 +1760,10 @@ namespace Shoko.Server.Renamer
         private static string GetAction(string line)
         {
             // find the first test
-            int posStart = line.IndexOf("DO ", StringComparison.Ordinal);
+            var posStart = line.IndexOf("DO ", StringComparison.Ordinal);
             if (posStart < 0) return string.Empty;
 
-            string action = line.Substring(posStart + 3, line.Length - posStart - 3);
+            var action = line.Substring(posStart + 3, line.Length - posStart - 3);
             return action;
         }
 
@@ -1909,35 +1773,35 @@ namespace Shoko.Server.Renamer
         {
             line = line.Trim();
             // determine if this line has a test
-            foreach (char c in validTests)
+            foreach (var c in validTests)
             {
-                string prefix = $"IF {c}(";
+                var prefix = $"IF {c}(";
                 if (!line.ToUpper().StartsWith(prefix)) continue;
                 // find the first test
-                int posStart = line.IndexOf('(');
-                int posEnd = line.IndexOf(')');
-                int posStartOrig = posStart;
+                var posStart = line.IndexOf('(');
+                var posEnd = line.IndexOf(')');
+                var posStartOrig = posStart;
 
                 if (posEnd < posStart) return false;
 
-                string condition = line.Substring(posStart + 1, posEnd - posStart - 1);
-                bool passed = EvaluateTest(c, condition, vid, aniFile, episodes, anime);
+                var condition = line.Substring(posStart + 1, posEnd - posStart - 1);
+                var passed = EvaluateTest(c, condition, vid, aniFile, episodes, anime);
 
                 // check for OR's and AND's
                 while (posStart > 0)
                 {
                     posStart = line.IndexOf(';', posStart);
                     if (posStart <= 0) continue;
-                    string thisLineRemainder = line.Substring(posStart + 1, line.Length - posStart - 1).Trim();
+                    var thisLineRemainder = line.Substring(posStart + 1, line.Length - posStart - 1).Trim();
                     // remove any spacing
                     //char thisTest = line.Substring(posStart + 1, 1).ToCharArray()[0];
-                    char thisTest = thisLineRemainder.Substring(0, 1).ToCharArray()[0];
+                    var thisTest = thisLineRemainder.Substring(0, 1).ToCharArray()[0];
 
-                    int posStartNew = thisLineRemainder.IndexOf('(');
-                    int posEndNew = thisLineRemainder.IndexOf(')');
+                    var posStartNew = thisLineRemainder.IndexOf('(');
+                    var posEndNew = thisLineRemainder.IndexOf(')');
                     condition = thisLineRemainder.Substring(posStartNew + 1, posEndNew - posStartNew - 1);
 
-                    bool thisPassed = EvaluateTest(thisTest, condition, vid, aniFile, episodes, anime);
+                    var thisPassed = EvaluateTest(thisTest, condition, vid, aniFile, episodes, anime);
 
                     if (!passed || !thisPassed) return false;
 
@@ -1952,17 +1816,17 @@ namespace Shoko.Server.Renamer
                 {
                     posStart = line.IndexOf(',', posStart);
                     if (posStart <= 0) continue;
-                    string thisLineRemainder =
+                    var thisLineRemainder =
                         line.Substring(posStart + 1, line.Length - posStart - 1).Trim();
                     // remove any spacing
                     //char thisTest = line.Substring(posStart + 1, 1).ToCharArray()[0];
-                    char thisTest = thisLineRemainder.Substring(0, 1).ToCharArray()[0];
+                    var thisTest = thisLineRemainder.Substring(0, 1).ToCharArray()[0];
 
-                    int posStartNew = thisLineRemainder.IndexOf('(');
-                    int posEndNew = thisLineRemainder.IndexOf(')');
+                    var posStartNew = thisLineRemainder.IndexOf('(');
+                    var posEndNew = thisLineRemainder.IndexOf(')');
                     condition = thisLineRemainder.Substring(posStartNew + 1, posEndNew - posStartNew - 1);
 
-                    bool thisPassed = EvaluateTest(thisTest, condition, vid, aniFile, episodes, anime);
+                    var thisPassed = EvaluateTest(thisTest, condition, vid, aniFile, episodes, anime);
 
                     if (thisPassed) return true;
 
@@ -2006,15 +1870,15 @@ namespace Shoko.Server.Renamer
                 case 'X':
                     return EvaluateTestX(testCondition, anime);
                 case 'C':
-                    return EvaluateTestC(testCondition, aniFile);
+                    return false;
                 case 'J':
-                    return EvaluateTestJ(testCondition, aniFile);
+                    return false;
                 case 'I':
                     return EvaluateTestI(testCondition, vid, aniFile, episodes, anime);
                 case 'W':
-                    return EvaluateTestW(testCondition, vid, aniFile);
+                    return EvaluateTestW(testCondition, vid);
                 case 'U':
-                    return EvaluateTestU(testCondition, vid, aniFile);
+                    return EvaluateTestU(testCondition, vid);
                 case 'M':
                     return EvaluateTestM(testCondition, aniFile, episodes);
                 case 'N':
@@ -2028,7 +1892,7 @@ namespace Shoko.Server.Renamer
         {
             
             SVR_ImportFolder destFolder = null;
-            foreach (SVR_ImportFolder fldr in RepoFactory.ImportFolder.GetAll())
+            foreach (var fldr in RepoFactory.ImportFolder.GetAll())
             {
                 if (!fldr.FolderIsDropDestination) continue;
                 if (fldr.FolderIsDropSource) continue;
@@ -2053,29 +1917,29 @@ namespace Shoko.Server.Renamer
                 break;
             }
 
-            IList<IEpisode> xrefs = args.EpisodeInfo;
+            var xrefs = args.EpisodeInfo;
             if (xrefs.Count == 0) return (null, "No xrefs");
-            IEpisode xref = xrefs.FirstOrDefault(a => a != null);
+            var xref = xrefs.FirstOrDefault(a => a != null);
             if (xref == null) return (null, "No xrefs");
 
             // find the series associated with this episode
-            SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+            var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
             if (series == null) return (null, "Series not Found");
 
             // sort the episodes by air date, so that we will move the file to the location of the latest episode
-            List<SVR_AnimeEpisode> allEps = series.GetAnimeEpisodes()
+            var allEps = series.GetAnimeEpisodes()
                 .OrderByDescending(a => a.AniDB_Episode.AirDate)
                 .ToList();
 
-            foreach (SVR_AnimeEpisode ep in allEps)
+            foreach (var ep in allEps)
             {
                 // check if this episode belongs to more than one anime
                 // if it does we will ignore it
-                List<CrossRef_File_Episode> fileEpXrefs =
+                var fileEpXrefs =
                     RepoFactory.CrossRef_File_Episode.GetByEpisodeID(ep.AniDB_EpisodeID);
                 int? animeID = null;
-                bool crossOver = false;
-                foreach (CrossRef_File_Episode fileEpXref in fileEpXrefs)
+                var crossOver = false;
+                foreach (var fileEpXref in fileEpXrefs)
                 {
                     if (!animeID.HasValue)
                         animeID = fileEpXref.AnimeID;
@@ -2087,15 +1951,15 @@ namespace Shoko.Server.Renamer
                 }
                 if (crossOver) continue;
 
-                foreach (SVR_VideoLocal vid in ep.GetVideoLocals()
+                foreach (var vid in ep.GetVideoLocals()
                     .Where(a => a.Places.Any(b => b.ImportFolder.IsDropSource == 0)).ToList())
                 {
                     if (vid.ED2KHash == args.FileInfo.Hashes.ED2K) continue;
 
-                    SVR_VideoLocal_Place place = vid.Places.FirstOrDefault();
-                    string thisFileName = place?.FilePath;
+                    var place = vid.Places.FirstOrDefault();
+                    var thisFileName = place?.FilePath;
                     if (thisFileName == null) continue;
-                    string folderName = Path.GetDirectoryName(thisFileName);
+                    var folderName = Path.GetDirectoryName(thisFileName);
 
                     var dstImportFolder = place.ImportFolder;
                     if (dstImportFolder == null) continue;

@@ -173,8 +173,8 @@ namespace Shoko.Server.API.v3.Controllers
             {
                 var list = allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
                     .Where(_tuple => _tuple.anidb != null)
-                    .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
-                    .Where(_tuple => _tuple.vid.Media?.MenuStreams.Any() != (_tuple.anidb.IsChaptered == 1))
+                    .Where(_tuple => !_tuple.anidb.IsDeprecated)
+                    .Where(_tuple => _tuple.vid.Media?.MenuStreams.Any() != _tuple.anidb.IsChaptered)
                     .Select(_tuple => _tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
                     .Where(path => !string.IsNullOrEmpty(path)).ToList();
                 int index = 0;

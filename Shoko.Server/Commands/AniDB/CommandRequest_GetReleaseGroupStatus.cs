@@ -83,8 +83,7 @@ namespace Shoko.Server.Commands.AniDB
                         GroupName = raw.GroupName,
                         CompletionState = (int) raw.CompletionState,
                         LastEpisodeNumber = raw.LastEpisodeNumber,
-                        // TODO DB Migration
-                        Rating = (int)(raw.Rating * 100),
+                        Rating = raw.Rating,
                         Votes = raw.Votes,
                         EpisodeRange = string.Join(',', raw.ReleasedEpisodes),
                     }

@@ -6,7 +6,6 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
-using Shoko.Server.Models;
 using Shoko.Server.Plex;
 using Shoko.Server.Plex.Collection;
 using Shoko.Server.Plex.Libraries;
@@ -59,12 +58,12 @@ namespace Shoko.Server.Commands.Plex
                             lastWatched = FromUnixTime((long) episode.LastViewedAt);
                         }
 
-                        SVR_VideoLocal video = animeEpisode.GetVideoLocals()?.FirstOrDefault();
+                        var video = animeEpisode.GetVideoLocals()?.FirstOrDefault();
                         if (video == null) continue;
                         var alreadyWatched = animeEpisode.GetVideoLocals()
-                                 .Where(x => x.GetAniDBFile() != null)
-                                 .Any(x => x.GetAniDBFile().IsWatched > 0);
-                        
+                            .Select(a => a.GetUserRecord(_jmmuser.JMMUserID))
+                            .Any(x => x.WatchedDate is not null || x.WatchedCount > 0);
+
                         if (!alreadyWatched && userRecord != null)
                             alreadyWatched = userRecord.IsWatched();
 

@@ -237,7 +237,6 @@ namespace Shoko.Server.AniDB_API
                 if (rawtitle.AnimeID <= 0) continue;
                 var title = new AniDB_Anime_Title();
                 title.AnimeID = rawtitle.AnimeID;
-                // TODO db migration
                 title.Language = rawtitle.Language.GetString();
                 title.Title = rawtitle.Title;
                 title.TitleType = rawtitle.TitleType.ToString();

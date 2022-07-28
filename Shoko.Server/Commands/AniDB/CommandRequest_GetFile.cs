@@ -94,8 +94,8 @@ namespace Shoko.Server.Commands.AniDB
                     aniFile.FileVersion = response.Response.Version;
                     // TODO AniDB migration
                     aniFile.IsCensored = response.Response.Censored;
-                    aniFile.IsDeprecated = response.Response.Deprecated ? 1 : 0;
-                    aniFile.IsChaptered = response.Response.Chaptered ? 1 : 0;
+                    aniFile.IsDeprecated = response.Response.Deprecated;
+                    aniFile.IsChaptered = response.Response.Chaptered;
                     aniFile.InternalVersion = 3;
 
                     RepoFactory.AniDB_File.Save(aniFile, false);

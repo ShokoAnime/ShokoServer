@@ -149,23 +149,6 @@ namespace Shoko.Server.Commands
                             else animeIDs.Add(xref.AnimeID, ep == null);
                         }
                     }
-                    
-                    // check watched settings
-                    logger.Trace($"ReadWatched: {ServerSettings.Instance.AniDb.MyList_ReadWatched} File Watched: {aniFile.IsWatched}");
-                    if (ServerSettings.Instance.AniDb.MyList_ReadWatched && aniFile.IsWatched > 0)
-                    {
-                        foreach (var user in RepoFactory.JMMUser.GetAll())
-                        {
-                            logger.Trace($"Setting watched date for User {user.JMMUserID} and videolocal id {vidLocal.VideoLocalID} to {aniFile.WatchedDate}");
-                            var userRecord = vidLocal.GetOrCreateUserRecord(user.JMMUserID);
-
-                            userRecord.WatchedCount++;
-                            userRecord.WatchedDate = aniFile.WatchedDate ?? DateTime.Now;
-
-                            userRecord.LastUpdated = DateTime.Now;
-                            RepoFactory.VideoLocalUser.Save(userRecord);
-                        }
-                    }
                 }
 
                 PopulateAnimeForFile(provider, vidLocal, animeIDs);
@@ -220,7 +203,11 @@ namespace Shoko.Server.Commands
                 // Add this file to the users list
                 if (ServerSettings.Instance.AniDb.MyList_AddFiles && !SkipMyList && vidLocal.MyListID <= 0)
                 {
-                    new CommandRequest_AddFileToMyList(vidLocal.ED2KHash).Save();
+                    new CommandRequest_AddFileToMyList
+                    {
+                        Hash = vidLocal.ED2KHash,
+                        ReadStates = true,
+                    }.Save();
                 }
 
                 return aniFile;
