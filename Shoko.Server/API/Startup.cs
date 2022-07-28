@@ -168,7 +168,7 @@ namespace Shoko.Server.API
                 .AddNewtonsoftJson(json =>
                 {
                     json.SerializerSettings.MaxDepth = 10;
-                    json.SerializerSettings.ContractResolver = new OmitEmptyEnumerableResolver
+                    json.SerializerSettings.ContractResolver = new DefaultContractResolver
                     {
                         NamingStrategy = new DefaultNamingStrategy()
                     };
