@@ -9,6 +9,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -187,6 +188,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// First Listed Air Date. This may not be when it aired, but an early release date
             /// </summary>
+            [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
             public DateTime? AirDate { get; set; }
 
             /// <summary>
@@ -262,6 +264,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// Air Date. Unfortunately, the TvDB air date doesn't necessarily conform to a specific timezone, so it can be a day off. If you see one that's wrong, please fix it on TvDB. You have the ID here in this model for easy lookup.
             /// </summary>
+            [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
             public DateTime? AirDate { get; set; }
 
             /// <summary>

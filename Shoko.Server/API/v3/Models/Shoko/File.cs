@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
+using Shoko.Server.API.Converters;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -169,6 +170,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// The file's release date. This is probably not filled in
             /// </summary>
+            [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
             public DateTime? ReleaseDate { get; set; }
             
             /// <summary>

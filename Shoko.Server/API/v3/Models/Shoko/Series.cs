@@ -8,6 +8,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Commands;
@@ -464,11 +465,13 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// Air date (2013-02-27, shut up avael). Anything without an air date is going to be missing a lot of info.
             /// </summary>
             [Required]
+            [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
             public DateTime? AirDate { get; set; }
 
             /// <summary>
             /// End date, can be omitted. Omitted means that it's still airing (2013-02-27)
             /// </summary>
+            [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
             public DateTime? EndDate { get; set; }
 
             /// <summary>
@@ -585,11 +588,13 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// Air date (2013-02-27, shut up avael)
             /// </summary>
+            [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
             public DateTime? AirDate { get; set; }
 
             /// <summary>
             /// End date, can be null. Null means that it's still airing (2013-02-27)
             /// </summary>
+            [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
             public DateTime? EndDate { get; set; }
 
             /// <summary>

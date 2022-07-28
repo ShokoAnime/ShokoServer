@@ -4,6 +4,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -174,6 +175,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// Air Date.
             /// </summary>
             /// <value></value>
+            [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
             public DateTime? AirDate { get; set; }
 
             /// <summary>
