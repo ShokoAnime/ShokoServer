@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 86;
+        public int RequiredVersion { get; } = 87;
 
 
         public void BackupDatabase(string fullfilename)
@@ -562,8 +562,78 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(86, 1, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractSize;"),
             new DatabaseCommand(86, 2, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractBlob;"),
             new DatabaseCommand(86, 3, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractVersion;"),
+            new DatabaseCommand(87, 1, DropAniDB_FileColumns),
+            new DatabaseCommand(87, 2, AlterAniDB_GroupStatus),
         };
 
+        private static Tuple<bool, string> AlterAniDB_GroupStatus(object connection)
+        {
+            try
+            {
+                var myConn = (SQLiteConnection) connection;
+                var commands = new List<string>
+                {
+                    "ALTER TABLE AniDB_GroupStatus RENAME TO AniDB_GroupStatus_old;",
+                    "CREATE TABLE AniDB_GroupStatus ( AniDB_GroupStatusID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, GroupID int NOT NULL, GroupName text NOT NULL, CompletionState int NOT NULL, LastEpisodeNumber int NOT NULL, Rating decimal(3,3) NOT NULL, Votes int NOT NULL, EpisodeRange text NOT NULL ); ",
+                    "CREATE INDEX IX_AniDB_GroupStatus_AnimeID on AniDB_GroupStatus(AnimeID);",
+                    "CREATE UNIQUE INDEX UIX_AniDB_GroupStatus_AnimeID_GroupID ON AniDB_GroupStatus(AnimeID, GroupID);",
+                    "INSERT INTO AniDB_GroupStatus (AnimeID, GroupID, GroupName, CompletionState, LastEpisodeNumber, Rating, Votes, EpisodeRange) SELECT AnimeID, GroupID, GroupName, CompletionState, LastEpisodeNumber, CAST(Rating AS decimal(5,3)) / 100, Votes, EpisodeRange FROM AniDB_GroupStatus_old",
+                    "DROP TABLE AniDB_GroupStatus_old",
+                };
+
+                foreach (var command in commands)
+                {
+                    ((SQLite) DatabaseFactory.Instance).Execute(myConn, command);
+                }
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+            return new Tuple<bool, string>(true, null);
+        }
+
+        private static Tuple<bool, string> DropAniDB_FileColumns(object connection)
+        {
+            try
+            {
+                var myConn = (SQLiteConnection) connection;
+                var indexCommands = new List<string>
+                {
+                    "CREATE UNIQUE INDEX UIX_AniDB_File_Hash on AniDB_File(Hash, FileSize);",
+                    "CREATE UNIQUE INDEX UIX_AniDB_File_FileID ON AniDB_File(FileID);",
+                    "CREATE INDEX IX_AniDB_File_File_Source on AniDB_File(File_Source);",
+                };
+                var createCommand =
+                    "CREATE TABLE AniDB_File ( AniDB_FileID INTEGER PRIMARY KEY AUTOINCREMENT, FileID int NOT NULL, Hash text NOT NULL, AnimeID int NOT NULL, GroupID int NOT NULL, File_Source text NOT NULL, File_Description text NOT NULL, File_ReleaseDate int NOT NULL, DateTimeUpdated timestamp NOT NULL, FileName text NOT NULL, FileSize INTEGER NOT NULL,  FileVersion int NULL, InternalVersion int NULL, IsDeprecated int NOT NULL, IsCensored int NULL, IsChaptered INT NOT NULL);";
+
+                ((SQLite)DatabaseFactory.Instance).DropColumns(
+                    myConn, "AniDB_File",
+                    new List<string>
+                    {
+                        "File_AudioCodec",
+                        "File_VideoCodec",
+                        "File_VideoResolution",
+                        "File_FileExtension",
+                        "File_LengthSeconds",
+                        "Anime_GroupName",
+                        "Anime_GroupNameShort",
+                        "Episode_Rating",
+                        "Episode_Votes",
+                        "IsWatched",
+                        "WatchedDate",
+                        "CRC",
+                        "MD5",
+                        "SHA1"
+                    }, createCommand, indexCommands
+                );
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+            return new Tuple<bool, string>(true, null);
+        }
         private static Tuple<bool, string> DropVideoLocal_Media(object connection)
         {
             try

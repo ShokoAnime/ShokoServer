@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 90;
+        public int RequiredVersion { get; } = 92;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -623,6 +623,9 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(91, 1, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractSize;"),
             new DatabaseCommand(91, 2, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractBlob;"),
             new DatabaseCommand(91, 3, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractVersion;"),
+            new DatabaseCommand(92, 1, "ALTER TABLE AniDB_File DROP COLUMN File_AudioCodec, File_VideoCodec, File_VideoResolution, File_FileExtension, File_LengthSeconds, Anime_GroupName, Anime_GroupNameShort, Episode_Rating, Episode_Votes, IsWatched, WatchedDate, CRC, MD5, SHA1"),
+            new DatabaseCommand(92, 2, "ALTER TABLE AniDB_File Alter COLUMN IsCensored bit NULL; ALTER TABLE AniDB_File ALTER COLUMN IsDeprecated bit not null; ALTER TABLE AniDB_File ALTER COLUMN IsChaptered bit not null"),
+            new DatabaseCommand(92, 3, "ALTER TABLE AniDB_GroupStatus Alter COLUMN Rating decimal(3,3) NULL; UPDATE AniDB_GroupStatus SET Rating = Rating / 100 WHERE Rating > 10"),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
