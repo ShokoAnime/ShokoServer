@@ -11,7 +11,7 @@ namespace Shoko.Models.Server
         public string GroupName { get; set; }
         public int CompletionState { get; set; }
         public int LastEpisodeNumber { get; set; }
-        public int Rating { get; set; }
+        public decimal Rating { get; set; }
         public int Votes { get; set; }
         public string EpisodeRange { get; set; }
         #endregion
