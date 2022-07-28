@@ -294,6 +294,35 @@ namespace Shoko.Server.Models
             return RepoFactory.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);
         }
 
+        /// <summary>
+        /// Get the main series for the group.
+        /// </summary>
+        public SVR_AnimeSeries GetMainSeries()
+        {
+            SVR_AnimeSeries series = null;
+
+            // User overridden main series.
+            if (DefaultAnimeSeriesID.HasValue)
+            {
+                series = RepoFactory.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);
+                if (series != null)
+                    return series;
+            }
+
+            // Auto selected main series.
+            if (MainAniDBAnimeID.HasValue)
+            {
+                series = RepoFactory.AnimeSeries.GetByAnimeID(MainAniDBAnimeID.Value);
+                if (series != null)
+                    return series;
+            }
+
+            // Earliest airing series.
+            return GetAllSeries()
+                .OrderByAirDate()
+                .FirstOrDefault();
+        }
+
         public List<SVR_AnimeSeries> GetSeries()
         {
             List<SVR_AnimeSeries> seriesList = RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID);
@@ -1151,8 +1180,7 @@ namespace Shoko.Server.Models
         }
 
         string IGroup.Name => GroupName;
-        public IAnime MainSeries => GetDefaultSeries()?.GetAnime() ?? GetAllSeries().Select(a => a.GetAnime())
-            .FirstOrDefault(a => a != null && a.GetAllTitles().Contains(GroupName));
+        public IAnime MainSeries => GetMainSeries()?.GetAnime();
         IReadOnlyList<IAnime> IGroup.Series => GetAllSeries().Select(a => a.GetAnime()).Where(a => a != null)
             .OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue).ThenBy(a => a.MainTitle)
             .Cast<IAnime>().ToList();

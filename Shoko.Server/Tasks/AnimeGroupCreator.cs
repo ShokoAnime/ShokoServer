@@ -397,9 +397,12 @@ namespace Shoko.Server.Tasks
                     animeGroup = CreateAnimeGroup(mainSeries, mainAnimeId, DateTime.Now);
                     RepoFactory.AnimeGroup.Save(animeGroup, true, true);
                 }
+                // Update the auto-refreshed details if the main series changed.
                 else if (!animeGroup.DefaultAnimeSeriesID.HasValue && animeGroup.IsManuallyNamed == 0 && mainAnimeId == series.AniDB_ID)
                 {
-                    animeGroup.GroupName = series.GetSeriesName();
+                    animeGroup.GroupName = animeGroup.SortName = series.GetSeriesName();
+                    animeGroup.Description = series.GetAnime().Description;
+                    animeGroup.MainAniDBAnimeID = mainAnimeId;
                     RepoFactory.AnimeGroup.Save(animeGroup, true, true);
                 }
             }

@@ -61,16 +61,17 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
         public Group(HttpContext ctx, SVR_AnimeGroup group, bool randomiseImages = false)
         {
-            var random = ctx.Items["Random"] as Random;
-            int uid = ctx.GetUser()?.JMMUserID ?? 0;
             var subGroupCount = group.GetChildGroups().Count;
+            int userID = ctx.GetUser()?.JMMUserID ?? 0;
             var allSeries = group.GetAllSeries(skipSorting: true);
-            var imageSeries = randomiseImages ? allSeries.GetRandomElement(random) : group.GetDefaultSeries() ?? allSeries.FirstOrDefault();
-            List<SVR_AnimeEpisode> ael = allSeries.SelectMany(a => a.GetAnimeEpisodes()).ToList();
+            var mainSeries = group.GetMainSeries();
+            var episodes = allSeries.SelectMany(a => a.GetAnimeEpisodes()).ToList();
 
             IDs = new GroupIDs { ID = group.AnimeGroupID };
             if (group.DefaultAnimeSeriesID != null)
                 IDs.DefaultSeries = group.DefaultAnimeSeriesID.Value;
+            if (mainSeries != null)
+                IDs.MainSeries = mainSeries.AnimeSeriesID;
             if (group.AnimeGroupParentID.HasValue)
                 IDs.ParentGroup = group.AnimeGroupParentID.Value;
             IDs.TopLevelGroup = group.TopLevelAnimeGroup.AnimeGroupID;
@@ -78,11 +79,11 @@ namespace Shoko.Server.API.v3.Models.Shoko
             Name = group.GroupName;
             SortName = group.SortName;
             Description = group.Description;
-            Sizes = ModelHelper.GenerateGroupSizes(allSeries, ael, subGroupCount, uid);
+            Sizes = ModelHelper.GenerateGroupSizes(allSeries, episodes, subGroupCount, userID);
             Size = group.GetSeries().Count;
             HasCustomName = group.IsManuallyNamed == 1;
 
-            Images = imageSeries == null ? new Images() : Series.GetDefaultImages(ctx, imageSeries, randomiseImages);
+            Images = mainSeries == null ? new Images() : Series.GetDefaultImages(ctx, mainSeries, randomiseImages);
         }
 
         #endregion
@@ -93,6 +94,12 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// The ID of the Default Series, if it has one.
             /// </summary>
             public int? DefaultSeries { get; set; }
+
+            /// <summary>
+            /// The ID of the main series for the group, unless the group is empty.
+            /// </summary>
+            /// <value></value>
+            public int? MainSeries { get; set; }
 
             /// <summary>
             /// The ID of the direct parent group, if it has one.
