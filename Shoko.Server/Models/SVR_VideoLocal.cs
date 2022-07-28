@@ -258,20 +258,6 @@ namespace Shoko.Server.Models
             // now lets find all the associated AniDB_File record if there is one
             if (user.IsAniDBUser == 1)
             {
-                SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(Hash);
-                if (aniFile != null)
-                {
-                    aniFile.IsWatched = mywatched;
-
-                    if (watched)
-                        aniFile.WatchedDate = watchedDate ?? DateTime.Now;
-                    else
-                        aniFile.WatchedDate = null;
-
-
-                    RepoFactory.AniDB_File.Save(aniFile, false);
-                }
-
                 if (updateOnline)
                     if ((watched && ServerSettings.Instance.AniDb.MyList_SetWatched) ||
                         (!watched && ServerSettings.Instance.AniDb.MyList_SetUnwatched))
@@ -510,25 +496,18 @@ namespace Shoko.Server.Models
                 cl.AniDB_Anime_GroupName = anifile.Anime_GroupName;
                 cl.AniDB_Anime_GroupNameShort = anifile.Anime_GroupNameShort;
                 cl.AniDB_AnimeID = anifile.AnimeID;
-                cl.AniDB_CRC = anifile.CRC;
                 cl.AniDB_Episode_Rating = anifile.Episode_Rating;
                 cl.AniDB_Episode_Votes = anifile.Episode_Votes;
-                cl.AniDB_File_AudioCodec = anifile.File_AudioCodec;
                 cl.AniDB_File_Description = anifile.File_Description;
-                cl.AniDB_File_FileExtension = anifile.File_FileExtension;
                 cl.AniDB_File_LengthSeconds = anifile.File_LengthSeconds;
                 cl.AniDB_File_ReleaseDate = anifile.File_ReleaseDate;
                 cl.AniDB_File_Source = anifile.File_Source;
-                cl.AniDB_File_VideoCodec = anifile.File_VideoCodec;
-                cl.AniDB_File_VideoResolution = anifile.File_VideoResolution;
                 cl.AniDB_FileID = anifile.FileID;
                 cl.AniDB_GroupID = anifile.GroupID;
-                cl.AniDB_MD5 = anifile.MD5;
-                cl.AniDB_SHA1 = anifile.SHA1;
                 cl.AniDB_File_FileVersion = anifile.FileVersion;
                 cl.AniDB_File_IsCensored = anifile.IsCensored ?? false ? 1 : 0;
-                cl.AniDB_File_IsChaptered = anifile.IsChaptered;
-                cl.AniDB_File_IsDeprecated = anifile.IsDeprecated;
+                cl.AniDB_File_IsChaptered = anifile.IsChaptered ? 1 : 0;
+                cl.AniDB_File_IsDeprecated = anifile.IsDeprecated ? 1 : 0;
                 cl.AniDB_File_InternalVersion = anifile.InternalVersion;
 
                 // languages

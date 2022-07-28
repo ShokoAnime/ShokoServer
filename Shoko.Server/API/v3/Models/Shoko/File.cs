@@ -136,18 +136,14 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 };
                 ReleaseDate = anidb.File_ReleaseDate == 0 ? null : Commons.Utils.AniDB.GetAniDBDateAsDate(anidb.File_ReleaseDate);
                 Version = anidb.FileVersion;
-                IsDeprecated = anidb.IsDeprecated == 1;
+                IsDeprecated = anidb.IsDeprecated;
                 IsCensored = anidb.IsCensored ?? false;
-                Chaptered = anidb.IsChaptered == 1;
+                Chaptered = anidb.IsChaptered;
                 Duration = (new TimeSpan(0, 0, anidb.File_LengthSeconds));
-                Resolution = anidb.File_VideoResolution;
-                VideoCodec = anidb.File_VideoCodec;
                 OriginalFileName = anidb.FileName;
                 FileSize = anidb.FileSize;
                 Description = anidb.File_Description;
                 Updated = anidb.DateTimeUpdated;
-                AudioCodecs = anidb.File_AudioCodec.Split(new[] {'\'', '`', '"'}, StringSplitOptions.RemoveEmptyEntries)
-                    .ToList();
                 AudioLanguages = anidb.Languages.Select(a => a.LanguageName).ToList();
                 SubLanguages = anidb.Subtitles.Select(a => a.LanguageName).ToList();
             }
@@ -186,7 +182,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// Mostly applicable to hentai, but on occasion a TV release is censored enough to earn this.
             /// </summary>
-            public bool IsCensored { get; set; }
+            public bool? IsCensored { get; set; }
 
             /// <summary>
             /// The original FileName. Useful for when you obtained from a shady source or when you renamed it without thinking. 
@@ -204,19 +200,9 @@ namespace Shoko.Server.API.v3.Models.Shoko
             public TimeSpan Duration { get; set; }
             
             /// <summary>
-            /// The reported resolution in 1920x1080 format. Not modelled further because there's no point
-            /// </summary>
-            public string Resolution { get; set; }
-            
-            /// <summary>
             /// Any comments that were added to the file, such as something wrong with it.
             /// </summary>
             public string Description { get; set; }
-
-            /// <summary>
-            /// The reported audio codecs. This may be very wrong on large files with lots of audio tracks, as AniDB's API has a hard limit on data
-            /// </summary>
-            public List<string> AudioCodecs { get; set; }
             
             /// <summary>
             /// The audio languages
@@ -227,11 +213,6 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// Sub languages
             /// </summary>
             public List<string> SubLanguages { get; set; }
-
-            /// <summary>
-            /// The reported Video Codec. Technically, there is a possibility of this needing a list, but it should only have one video track. 
-            /// </summary>
-            public string VideoCodec { get; set; }
             
             /// <summary>
             /// Does the file have chapters. This may be wrong, since it was only added in AVDump2 (a more recent version at that)

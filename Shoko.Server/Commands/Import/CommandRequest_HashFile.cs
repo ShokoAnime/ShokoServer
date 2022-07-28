@@ -589,51 +589,6 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private void FillHashesAgainstAniDBRepo(SVR_VideoLocal v)
-        {
-            if (!string.IsNullOrEmpty(v.ED2KHash))
-            {
-                SVR_AniDB_File f = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
-                if (f != null)
-                {
-                    if (!string.IsNullOrEmpty(f.CRC))
-                        v.CRC32 = f.CRC.ToUpperInvariant();
-                    if (!string.IsNullOrEmpty(f.SHA1))
-                        v.SHA1 = f.SHA1.ToUpperInvariant();
-                    if (!string.IsNullOrEmpty(f.MD5))
-                        v.MD5 = f.MD5.ToUpperInvariant();
-                    return;
-                }
-            }
-            if (!string.IsNullOrEmpty(v.SHA1))
-            {
-                SVR_AniDB_File f = RepoFactory.AniDB_File.GetBySHA1(v.SHA1);
-                if (f != null)
-                {
-                    if (!string.IsNullOrEmpty(f.CRC))
-                        v.CRC32 = f.CRC.ToUpperInvariant();
-                    if (!string.IsNullOrEmpty(f.Hash))
-                        v.ED2KHash = f.Hash.ToUpperInvariant();
-                    if (!string.IsNullOrEmpty(f.MD5))
-                        v.MD5 = f.MD5.ToUpperInvariant();
-                    return;
-                }
-            }
-            if (!string.IsNullOrEmpty(v.MD5))
-            {
-                SVR_AniDB_File f = RepoFactory.AniDB_File.GetByMD5(v.MD5);
-                if (f != null)
-                {
-                    if (!string.IsNullOrEmpty(f.CRC))
-                        v.CRC32 = f.CRC.ToUpperInvariant();
-                    if (!string.IsNullOrEmpty(f.Hash))
-                        v.ED2KHash = f.Hash.ToUpperInvariant();
-                    if (!string.IsNullOrEmpty(f.SHA1))
-                        v.SHA1 = f.SHA1.ToUpperInvariant();
-                }
-            }
-        }
-
         private void FillHashesAgainstWebCache(SVR_VideoLocal v)
         {
             if (!ServerSettings.Instance.WebCache.Enabled) return;
@@ -696,8 +651,6 @@ namespace Shoko.Server.Commands
         {
             if (string.IsNullOrEmpty(v.CRC32) || string.IsNullOrEmpty(v.MD5) || string.IsNullOrEmpty(v.SHA1))
                 FillHashesAgainstVideoLocalRepo(v);
-            if (string.IsNullOrEmpty(v.CRC32) || string.IsNullOrEmpty(v.MD5) || string.IsNullOrEmpty(v.SHA1))
-                FillHashesAgainstAniDBRepo(v);
             if (string.IsNullOrEmpty(v.CRC32) || string.IsNullOrEmpty(v.MD5) || string.IsNullOrEmpty(v.SHA1))
                 FillHashesAgainstWebCache(v);
         }

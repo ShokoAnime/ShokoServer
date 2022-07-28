@@ -33,6 +33,9 @@ namespace Shoko.Server.Models
         [XmlIgnore]
         public List<CrossRef_File_Episode> EpisodeCrossRefs => RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
 
+        public string Anime_GroupName => RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID)?.Name;
+        public string Anime_GroupNameShort => RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID)?.ShortName;
+
 
         public string SubtitlesRAW
         {
@@ -63,14 +66,6 @@ namespace Shoko.Server.Models
                 }
                 return ret;
             }
-        }
-
-        public static void PopulateHashes(SVR_AniDB_File file, IHashes hashes)
-        {
-            file.CRC = hashes.CRC ?? "";
-            file.MD5 = hashes.MD5;
-            file.SHA1 = hashes.SHA1;
-            file.Hash = hashes.ED2K;
         }
 
         public void CreateLanguages(ResponseGetFile response)
@@ -256,8 +251,15 @@ namespace Shoko.Server.Models
 
         int IAniDBFile.AniDBFileID => FileID;
 
-        IReleaseGroup IAniDBFile.ReleaseGroup => new AniDB_ReleaseGroup
-            {GroupName = Anime_GroupName, GroupNameShort = Anime_GroupNameShort};
+        IReleaseGroup IAniDBFile.ReleaseGroup
+        {
+            get
+            {
+                var group = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID);
+                if (group == null) return null;
+                return new AniDB_ReleaseGroup { GroupName = group.Name, GroupNameShort = group.ShortName };
+            }
+        }
 
         string IAniDBFile.Source => File_Source;
         string IAniDBFile.Description => File_Description;
@@ -267,8 +269,6 @@ namespace Shoko.Server.Models
         bool IAniDBFile.Censored => IsCensored ?? false;
         AniDBMediaData IAniDBFile.MediaInfo => new AniDBMediaData
         {
-            VideoCodec = File_VideoCodec,
-            AudioCodecs = File_AudioCodec.Split("'", StringSplitOptions.RemoveEmptyEntries),
             AudioLanguages = Languages.Select(a => GetLanguage(a.LanguageName)).ToList(),
             SubLanguages = Subtitles.Select(a => GetLanguage(a.LanguageName)).ToList()
         };

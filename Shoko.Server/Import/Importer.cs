@@ -148,21 +148,6 @@ namespace Shoko.Server
                         queueState = QueueStateEnum.CheckingFile,
                         extraParams = new[] {v.FileName}
                     };
-                    var file = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
-                    if (file != null)
-                    {
-                        if (!string.IsNullOrEmpty(file.CRC) && !string.IsNullOrEmpty(file.SHA1) &&
-                            !string.IsNullOrEmpty(file.MD5))
-                        {
-                            v.CRC32 = file.CRC;
-                            v.MD5 = file.MD5;
-                            v.SHA1 = file.SHA1;
-                            RepoFactory.VideoLocal.Save(v, false);
-                            missfiles.Remove(v);
-                            withfiles.Add(v);
-                            continue;
-                        }
-                    }
                     var ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
                     if (ls != null)
                     {
@@ -975,20 +960,7 @@ namespace Shoko.Server
             {
                 if (missingInfo)
                 {
-                    var vids = RepoFactory.VideoLocal.GetByAniDBResolution("0x0");
-
-                    foreach (var vid in vids)
-                    {
-                        if (!vidsToUpdate.Contains(vid.VideoLocalID))
-                            vidsToUpdate.Add(vid.VideoLocalID);
-                    }
-
-                    vids = RepoFactory.VideoLocal.GetWithMissingChapters();
-                    foreach (var vid in vids)
-                    {
-                        if (!vidsToUpdate.Contains(vid.VideoLocalID))
-                            vidsToUpdate.Add(vid.VideoLocalID);
-                    }
+                    vidsToUpdate.AddRange(RepoFactory.VideoLocal.GetWithMissingChapters().Where(vid => !vidsToUpdate.Contains(vid.VideoLocalID)).Select(a => a.VideoLocalID));
                 }
 
                 if (outOfDate)
