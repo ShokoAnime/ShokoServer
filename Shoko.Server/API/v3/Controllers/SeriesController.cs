@@ -968,7 +968,7 @@ namespace Shoko.Server.API.v3.Controllers
                         ShokoID = series?.AnimeSeriesID,
                     };
                 })
-                .ToListResult(pageSize, page);
+                .ToListResult(page, pageSize);
         }
 
         /// <summary>
