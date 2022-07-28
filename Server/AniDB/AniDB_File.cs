@@ -12,11 +12,8 @@ namespace Shoko.Models.Server
         public int AnimeID { get; set; }
         public int GroupID { get; set; }
         public string File_Source { get; set; }
-        public int File_LengthSeconds { get; set; }
         public string File_Description { get; set; }
         public int File_ReleaseDate { get; set; }
-        public int Episode_Rating { get; set; }
-        public int Episode_Votes { get; set; }
         public DateTime DateTimeUpdated { get; set; }
         public string FileName { get; set; }
         public long FileSize { get; set; }
