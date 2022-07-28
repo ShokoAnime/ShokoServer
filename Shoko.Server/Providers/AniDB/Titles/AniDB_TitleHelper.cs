@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -9,9 +9,9 @@ using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-namespace Shoko.Server.AniDB_API.Titles
+namespace Shoko.Server.Providers.AniDB.Titles
 {
-    public class AniDB_TitleHelper
+    public class AniDBTitleHelper
     {
         // ensure that it doesn't try to download at the same time
         private static readonly object AccessLock = new();
@@ -24,13 +24,13 @@ namespace Shoko.Server.AniDB_API.Titles
         private static readonly string CacheFilePathBak =
             Path.Combine(ServerSettings.ApplicationPath, "anime-titles.xml") + ".bak";
 
-        private AniDBRaw_AnimeTitles _cache;
+        private ResponseAniDBTitles _cache;
 
-        private static AniDB_TitleHelper _instance;
+        private static AniDBTitleHelper _instance;
 
-        public static AniDB_TitleHelper Instance => _instance ??= new AniDB_TitleHelper();
+        public static AniDBTitleHelper Instance => _instance ??= new AniDBTitleHelper();
 
-        public AniDBRaw_AnimeTitle_Anime SearchAnimeID(int animeID)
+        public ResponseAniDBTitles.Anime SearchAnimeID(int animeID)
         {
             try
             {
@@ -45,24 +45,7 @@ namespace Shoko.Server.AniDB_API.Titles
             return null;
         }
 
-        public bool TrySearchAnimeID(int animeID, out AniDBRaw_AnimeTitle_Anime anime)
-        {
-            try
-            {
-                if (_cache == null) CreateCache();
-                anime = _cache?.Animes
-                    .FirstOrDefault(a => a.AnimeID == animeID);
-                return anime != null;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                anime = null;
-                return false;
-            }
-        }
-
-        public IEnumerable<AniDBRaw_AnimeTitle_Anime> SearchTitle(string query)
+        public IEnumerable<ResponseAniDBTitles.Anime> SearchTitle(string query)
         {
             try
             {
@@ -82,7 +65,7 @@ namespace Shoko.Server.AniDB_API.Titles
                 Console.WriteLine(e);
             }
 
-            return new List<AniDBRaw_AnimeTitle_Anime>();
+            return new List<ResponseAniDBTitles.Anime>();
         }
 
         private void CreateCache()
@@ -125,8 +108,8 @@ namespace Shoko.Server.AniDB_API.Titles
         {
             // Load the file
             using var stream = new FileStream(CacheFilePath, FileMode.Open);
-            XmlSerializer serializer = new XmlSerializer(typeof(AniDBRaw_AnimeTitles));
-            if (serializer.Deserialize(stream) is AniDBRaw_AnimeTitles rawData)
+            XmlSerializer serializer = new XmlSerializer(typeof(ResponseAniDBTitles));
+            if (serializer.Deserialize(stream) is ResponseAniDBTitles rawData)
             {
                 _cache = rawData;
             }

@@ -1199,7 +1199,11 @@ namespace Shoko.Server
         {
             try
             {
-                ShokoService.AniDBProcessor.GetAnimeInfoHTTP(animeID, true, false);
+                var command = new CommandRequest_GetAnimeHTTP
+                {
+                    BubbleExceptions = true, ForceRefresh = true, DownloadRelations = false, AnimeID = animeID, CreateSeriesEntry = false,
+                };
+                command.ProcessCommand(HttpContext.RequestServices);
             }
             catch (Exception ex)
             {

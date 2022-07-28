@@ -1,5 +1,4 @@
 ﻿using System;
-using AniDBAPI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Models;
@@ -35,7 +34,7 @@ namespace Shoko.Server.Providers.AniDB.Http
             var rawXml = receivedData.Response.Trim();
             xmlUtils.WriteAnimeHTTPToFile(AnimeID, rawXml);
 
-            var parser = provider.GetRequiredService<HttpParser>();
+            var parser = provider.GetRequiredService<HttpAnimeParser>();
             var response = parser.Parse(AnimeID, receivedData.Response);
             return new HttpBaseResponse<ResponseGetAnime> { Code = receivedData.Code, Response = response };
         }

@@ -3,14 +3,15 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
 using Shoko.Commons.Properties;
 using Shoko.Models.Azure;
 using Shoko.Server.Commands;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -30,7 +31,6 @@ namespace Shoko.Server
                 if (_instance == null)
                 {
                     _instance = new ServerInfo();
-                    _instance.Init();
                 }
 
                 return _instance;
@@ -49,12 +49,7 @@ namespace Shoko.Server
         {
             ImportFolders = new AsyncObservableCollection<SVR_ImportFolder>();
             AdminMessages = new AsyncObservableCollection<Azure_AdminMessage>();
-        }
-
-        private void Init()
-        {
-            //RefreshImportFolders();
-
+            
             ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += CmdProcessorGeneral_OnQueueCountChangedEvent;
             ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += CmdProcessorGeneral_OnQueueStateChangedEvent;
 
@@ -64,8 +59,27 @@ namespace Shoko.Server
             ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += CmdProcessorImages_OnQueueCountChangedEvent;
             ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += CmdProcessorImages_OnQueueStateChangedEvent;
 
-            // TODO Hook into AniDBConnectionHandler
-            //AniDBConnectionHandler.Instance.AniDBStateUpdate += OnAniDBStateUpdate;
+            var http = ShokoServer.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
+            var udp = ShokoServer.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+            http.AniDBStateUpdate += OnAniDBStateUpdate;
+            udp.AniDBStateUpdate += OnAniDBStateUpdate;
+        }
+
+        ~ServerInfo()
+        {
+            ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent -= CmdProcessorGeneral_OnQueueCountChangedEvent;
+            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent -= CmdProcessorGeneral_OnQueueStateChangedEvent;
+
+            ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent -= CmdProcessorHasher_OnQueueCountChangedEvent;
+            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent -= CmdProcessorHasher_OnQueueStateChangedEvent;
+
+            ShokoService.CmdProcessorImages.OnQueueCountChangedEvent -= CmdProcessorImages_OnQueueCountChangedEvent;
+            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent -= CmdProcessorImages_OnQueueStateChangedEvent;
+
+            var http = ShokoServer.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
+            var udp = ShokoServer.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+            http.AniDBStateUpdate -= OnAniDBStateUpdate;
+            udp.AniDBStateUpdate -= OnAniDBStateUpdate;
         }
 
         private void OnAniDBStateUpdate(object sender, AniDBStateUpdate e)

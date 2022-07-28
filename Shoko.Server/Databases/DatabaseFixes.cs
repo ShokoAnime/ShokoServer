@@ -4,8 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml;
-using AniDBAPI;
-using AniDBAPI.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
@@ -323,49 +321,7 @@ namespace Shoko.Server.Databases
 
         public static void FixAniDB_EpisodesWithMissingTitles()
         {
-            logger.Info("Checking for Episodes with Missing Titles");
-            var episodes = RepoFactory.AniDB_Episode.GetAll()
-                .Where(a => !RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.EpisodeID).Any() &&
-                            RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null).ToList();
-            var animeIDs = episodes.Select(a => a.AnimeID).Distinct().OrderBy(a => a).ToList();
-            int count = 0;
-            logger.Info($"There are {episodes.Count} episodes in {animeIDs.Count} anime with missing titles. Attempting to fill them from HTTP cache");
-            foreach (int animeID in animeIDs)
-            {
-                count++;
-                try
-                {
-                    var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                    if (anime == null)
-                    {
-                        logger.Info($"Anime {animeID} is missing it's AniDB_Anime record. That's a problem. Try importing a file for the anime.");
-                        continue;
-                    }
-
-                    ServerState.Instance.ServerStartingStatus = string.Format(
-                        Resources.Database_Validating,
-                        $"Generating Episode Info for {anime.MainTitle}",
-                        $" {count}/{animeIDs.Count}");
-                    var xmlUtils = ShokoServer.ServiceContainer.GetRequiredService<HttpXmlUtils>();
-                    var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
-                    if (string.IsNullOrEmpty(rawXml)) continue;
-                    var docAnime = new XmlDocument();
-                    docAnime.LoadXml(rawXml);
-                    logger.Info($"{anime.MainTitle} has a proper HTTP cache. Attempting to regenerate info from it.");
-
-                    var rawEpisodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
-                    anime.CreateEpisodes(rawEpisodes);
-                    logger.Info($"Recreating Episodes for {anime.MainTitle}");
-                    SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
-                    if (series == null) continue;
-                    series.CreateAnimeEpisodes(anime);
-                }
-                catch (Exception e)
-                {
-                    logger.Error($"Error Populating Episode Titles for Anime ({animeID}): {e}");
-                }
-            }
-            logger.Info("Finished Filling Episode Titles from Cache.");
+            // Deprecated. It's been a while since this was relevant
         }
 
         public static void FixDuplicateTraktLinks()
@@ -558,58 +514,7 @@ namespace Shoko.Server.Databases
 
         public static void PopulateResourceLinks()
         {
-            int i = 0;
-            var animes = RepoFactory.AniDB_Anime.GetAll().ToList();
-            foreach (var anime in animes)
-            {
-                if (i % 10 == 0)
-                    ServerState.Instance.ServerStartingStatus = string.Format(
-                        Resources.Database_Validating, "Populating Resource Links from Cache",
-                        $" {i}/{animes.Count}");
-                i++;
-                try
-                {
-                    var xmlUtils = ShokoServer.ServiceContainer.GetRequiredService<HttpXmlUtils>();
-                    var rawXml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID);
-                    if (string.IsNullOrEmpty(rawXml)) continue;
-                    var docAnime = new XmlDocument();
-                    docAnime.LoadXml(rawXml);
-                    var resourceLinks = AniDBHTTPHelper.ProcessResources(docAnime, anime.AnimeID);
-                    anime.CreateResources(resourceLinks);
-                }
-                catch (Exception e)
-                {
-                    logger.Error(
-                        $"There was an error Populating Resource Links for AniDB_Anime {anime.AnimeID}, Update the Series' AniDB Info for a full stack: {e.Message}");
-                }
-            }
-
-
-            using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
-            {
-                i = 0;
-                var batches = animes.Batch(50).ToList();
-                foreach (var animeBatch in batches)
-                {
-                    i++;
-                    ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
-                        "Saving AniDB_Anime batch ", $"{i}/{batches.Count}");
-                    try
-                    {
-                        using (var transaction = session.BeginTransaction())
-                        {
-                            foreach (var anime in animeBatch)
-                                RepoFactory.AniDB_Anime.SaveWithOpenTransaction(session.Wrap(), anime);
-                            transaction.Commit();
-                        }
-
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Error($"There was an error saving anime while Populating Resource Links: {e}");
-                    }
-                }
-            }
+            // deprecated
         }
 
         public static void PopulateTagWeight()

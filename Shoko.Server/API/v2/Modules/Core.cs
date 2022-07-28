@@ -8,7 +8,6 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Xml;
-using AniDBAPI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +20,7 @@ using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -202,26 +202,25 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         /// <summary>
-        /// Test AniDB Creditentials
+        /// Test AniDB Credentials
         /// </summary>
         /// <returns></returns>
         [HttpGet("anidb/test")]
         public ActionResult TestAniDB()
         {
-            ShokoService.AniDBProcessor.ForceLogout();
-            ShokoService.AniDBProcessor.CloseConnections();
-
-            Thread.Sleep(1000);
+            var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
+            handler.ForceLogout();
+            handler.CloseConnections();
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-            ShokoService.AniDBProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+            handler.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
                 ServerSettings.Instance.AniDb.ServerAddress,
                 ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
 
-            if (ShokoService.AniDBProcessor.Login())
+            if (handler.Login())
             {
-                ShokoService.AniDBProcessor.ForceLogout();
+                handler.ForceLogout();
                 return APIStatus.OK();
             }
 
@@ -278,6 +277,7 @@ namespace Shoko.Server.API.v2.Modules
             return APIStatus.OK();
         }
 
+        [Obsolete]
         [HttpGet("anidb/updatemissingcache")]
         public ActionResult UpdateMissingAniDBXML()
         {
@@ -293,25 +293,11 @@ namespace Shoko.Server.API.v2.Modules
 
                     var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
                     var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
-                    
-                    if (rawXml == null)
-                    {
-                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false, false);
-                        cmd.Save();
-                        updatedAnime++;
-                        continue;
-                    }
-                    
-                    var docAnime = new XmlDocument();
-                    docAnime.LoadXml(rawXml);
 
-                    var rawAnime = AniDBHTTPHelper.ProcessAnimeDetails(docAnime, animeID);
-                    if (rawAnime == null)
-                    {
-                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false, false);
-                        cmd.Save();
-                        updatedAnime++;
-                    }
+                    if (rawXml != null) continue;
+                    var cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false, false);
+                    cmd.Save();
+                    updatedAnime++;
                 }
                 logger.Info($"Updating {updatedAnime} anime");
             }

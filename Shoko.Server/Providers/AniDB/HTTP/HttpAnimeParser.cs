@@ -13,11 +13,11 @@ using Shoko.Server.Providers.AniDB.Http.GetAnime;
 
 namespace Shoko.Server.Providers.AniDB.Http
 {
-    public class HttpParser
+    public class HttpAnimeParser
     {
-        private readonly ILogger<HttpParser> _logger;
+        private readonly ILogger<HttpAnimeParser> _logger;
 
-        public HttpParser(ILogger<HttpParser> logger)
+        public HttpAnimeParser(ILogger<HttpAnimeParser> logger)
         {
             _logger = logger;
         }

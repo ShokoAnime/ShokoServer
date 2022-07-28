@@ -137,8 +137,6 @@ namespace Shoko.Server.Server
             }
         }
 
-        public static AniDBHelper AniDBProcessor = new();
-
         public static void CancelAndWaitForQueues()
         {
             CmdProcessorGeneral.Stop();

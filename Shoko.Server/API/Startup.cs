@@ -131,7 +131,7 @@ namespace Shoko.Server.API
             });
 
             services.AddSingleton<QueueEmitter>();
-            services.AddSingleton<LegacyAniDBEmitter>();
+            services.AddSingleton<AniDBEmitter>();
             services.AddSingleton<LoggingEmitter>();
             services.AddSingleton<ShokoEventEmitter>();
 
@@ -260,7 +260,7 @@ namespace Shoko.Server.API
             app.UseEndpoints(conf =>
             {
                 conf.MapHub<QueueHub>("/signalr/events");
-                conf.MapHub<LegacyAniDBHub>("/signalr/anidb");
+                conf.MapHub<AniDBHub>("/signalr/anidb");
                 conf.MapHub<LoggingHub>("/signalr/logging");
                 conf.MapHub<ShokoEventHub>("/signalr/shoko");
             });
