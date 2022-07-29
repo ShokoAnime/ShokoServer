@@ -78,10 +78,11 @@ namespace Shoko.Server.Models
         public static IList<string> GetAllReleaseGroups()
         {
             string query =
-                @"SELECT Anime_GroupName
-FROM AniDB_File
-GROUP BY Anime_GroupName
-ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
+                @"SELECT g.Anime_GroupName
+FROM AniDB_File a
+INNER JOIN AniDB_ReleaseGroup g ON a.GroupID = g.GroupID
+GROUP BY g.Anime_GroupName
+ORDER BY count(DISTINCT a.AnimeID) DESC, Anime_GroupName ASC";
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 IList<string> result = session.CreateSQLQuery(query).List<string>();
