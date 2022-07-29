@@ -16,7 +16,7 @@ namespace Shoko.Server.Providers.AniDB.Http
         public override string Type => "HTTP";
         public override UpdateType BanEnum => UpdateType.HTTPBan;
 
-        public AniDBHttpConnectionHandler(IServiceProvider provider, CommandProcessor queue, HttpRateLimiter rateLimiter) : base(provider, queue, rateLimiter) { }
+        public AniDBHttpConnectionHandler(IServiceProvider provider, CommandProcessorGeneral queue, HttpRateLimiter rateLimiter) : base(provider, queue, rateLimiter) { }
 
         public HttpBaseResponse<string> GetHttp(string url)
         {
@@ -60,7 +60,7 @@ namespace Shoko.Server.Providers.AniDB.Http
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, ex.Message);
+                Logger.LogError(ex, "{Message}", ex.Message);
                 return null;
             }
         }

@@ -50,6 +50,7 @@ using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
+using Shoko.Server.Settings.DI;
 using Shoko.Server.UI;
 using Shoko.Server.Utilities;
 using Trinet.Core.IO.Ntfs;
@@ -113,11 +114,17 @@ namespace Shoko.Server.Server
         internal static void ConfigureServices(IServiceCollection services)
         {
             ServerSettings.ConfigureServices(services);
+            // THIS IS BAD AND NOT WORKING
             services.AddSingleton(ServerSettings.Instance);
+            
+            services.AddSingleton<SettingsProvider>();
             services.AddSingleton(Loader.Instance);
             services.AddSingleton<HttpAnimeParser>();
             services.AddSingleton<AnimeCreator>();
             services.AddSingleton<HttpXmlUtils>();
+            services.AddSingleton<UDPRateLimiter>();
+            services.AddSingleton<HttpRateLimiter>();
+            services.AddSingleton(ShokoService.CmdProcessorGeneral);
             services.AddSingleton<IHttpConnectionHandler, AniDBHttpConnectionHandler>();
             services.AddSingleton<IUDPConnectionHandler, AniDBUDPConnectionHandler>();
             Loader.Instance.Load(services);
