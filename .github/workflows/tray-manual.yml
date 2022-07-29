@@ -1,4 +1,4 @@
-name: Build Tray Service
+name: Build Tray Service (Manual)
 
 on:
   workflow_dispatch:
@@ -23,7 +23,8 @@ jobs:
     name: Shoko Tray Service build
 
     steps:
-      - uses: actions/checkout@master
+      - name: Pull
+        uses: actions/checkout@master
         with:
           submodules: recursive
           ref: "${{ github.event.inputs.ref }}"
