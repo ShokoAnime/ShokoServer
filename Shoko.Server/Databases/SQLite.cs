@@ -575,7 +575,9 @@ namespace Shoko.Server.Databases
                 {
                     "ALTER TABLE AniDB_GroupStatus RENAME TO AniDB_GroupStatus_old;",
                     "CREATE TABLE AniDB_GroupStatus ( AniDB_GroupStatusID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, GroupID int NOT NULL, GroupName text NOT NULL, CompletionState int NOT NULL, LastEpisodeNumber int NOT NULL, Rating decimal(6,2) NOT NULL, Votes int NOT NULL, EpisodeRange text NOT NULL ); ",
+                    "DROP INDEX IX_AniDB_GroupStatus_AnimeID;",
                     "CREATE INDEX IX_AniDB_GroupStatus_AnimeID on AniDB_GroupStatus(AnimeID);",
+                    "DROP INDEX UIX_AniDB_GroupStatus_AnimeID_GroupID;",
                     "CREATE UNIQUE INDEX UIX_AniDB_GroupStatus_AnimeID_GroupID ON AniDB_GroupStatus(AnimeID, GroupID);",
                     "INSERT INTO AniDB_GroupStatus (AnimeID, GroupID, GroupName, CompletionState, LastEpisodeNumber, Rating, Votes, EpisodeRange) SELECT AnimeID, GroupID, GroupName, CompletionState, LastEpisodeNumber, CAST(Rating AS decimal(5,3)) / 100, Votes, EpisodeRange FROM AniDB_GroupStatus_old",
                     "DROP TABLE AniDB_GroupStatus_old",
