@@ -444,8 +444,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
             public AniDB(SVR_AniDB_Anime anime, SVR_AnimeSeries series = null, bool includeTitles = true)
             {
-                if (series == null)
-                    series = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+                series ??= RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
                 ID = anime.AnimeID;
                 ShokoID = series?.AnimeSeriesID;
                 Type = GetAniDBSeriesType(anime.AnimeType);
