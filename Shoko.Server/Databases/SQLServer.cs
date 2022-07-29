@@ -79,7 +79,7 @@ namespace Shoko.Server.Databases
         public override string GetConnectionString()
         {
             return
-                $"Server={ServerSettings.Instance.Database.Hostname};Database={ServerSettings.Instance.Database.Schema};UID={ServerSettings.Instance.Database.Username};PWD={ServerSettings.Instance.Database.Password};";
+                $"data source={ServerSettings.Instance.Database.Hostname};Initial Catalog={ServerSettings.Instance.Database.Schema};user id={ServerSettings.Instance.Database.Username};password={ServerSettings.Instance.Database.Password};persist security info=True;user id=sa;password=D3@dsoul;MultipleActiveResultSets=True";
         }
 
         public ISessionFactory CreateSessionFactory()
@@ -624,9 +624,16 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(91, 2, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractBlob;"),
             new DatabaseCommand(91, 3, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractVersion;"),
             new DatabaseCommand(92, 1, "ALTER TABLE AniDB_File DROP COLUMN File_AudioCodec, File_VideoCodec, File_VideoResolution, File_FileExtension, File_LengthSeconds, Anime_GroupName, Anime_GroupNameShort, Episode_Rating, Episode_Votes, IsWatched, WatchedDate, CRC, MD5, SHA1"),
-            new DatabaseCommand(92, 2, "ALTER TABLE AniDB_File Alter COLUMN IsCensored bit NULL; ALTER TABLE AniDB_File ALTER COLUMN IsDeprecated bit not null; ALTER TABLE AniDB_File ALTER COLUMN IsChaptered bit not null"),
-            new DatabaseCommand(92, 3, "ALTER TABLE AniDB_GroupStatus Alter COLUMN Rating decimal(3,3) NULL; UPDATE AniDB_GroupStatus SET Rating = Rating / 100 WHERE Rating > 10"),
+            new DatabaseCommand(92, 2, DropDefaultOnChaptered),
+            new DatabaseCommand(92, 3, "ALTER TABLE AniDB_File Alter COLUMN IsCensored bit NULL; ALTER TABLE AniDB_File ALTER COLUMN IsDeprecated bit not null; ALTER TABLE AniDB_File ALTER COLUMN IsChaptered bit not null"),
+            new DatabaseCommand(92, 4, "ALTER TABLE AniDB_GroupStatus Alter COLUMN Rating decimal(6,2) NULL; UPDATE AniDB_GroupStatus SET Rating = Rating / 100 WHERE Rating > 10"),
         };
+
+        private static Tuple<bool, string> DropDefaultOnChaptered(object connection)
+        {
+            DropDefaultConstraint("AniDB_File", "IsChaptered");
+            return Tuple.Create<bool, string>(true, null);
+        }
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
         {
@@ -650,25 +657,37 @@ namespace Shoko.Server.Databases
 
         private static void DropColumnWithDefaultConstraint(string table, string column)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
-            {
-                using (var trans = session.BeginTransaction())
-                {
-                    string query = $@"DECLARE @ConstraintName nvarchar(200)
-SELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS
-WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
-AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns
-                        WHERE NAME = N'{column}'
-                        AND object_id = OBJECT_ID(N'{table}'))
-IF @ConstraintName IS NOT NULL
-EXEC('ALTER TABLE {table} DROP CONSTRAINT ' + @ConstraintName)";
-                    session.CreateSQLQuery(query).ExecuteUpdate();
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            using var trans = session.BeginTransaction();
+            var query = $@"SELECT Name FROM SYS.DEFAULT_CONSTRAINTS
+                        WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
+                          AND PARENT_COLUMN_ID = (
+                            SELECT column_id FROM sys.columns
+                            WHERE NAME = N'{column}' AND object_id = OBJECT_ID(N'{table}')
+                            )";
+            var name = session.CreateSQLQuery(query).UniqueResult<string>();
+            query = $@"ALTER TABLE {table} DROP CONSTRAINT {name}";
+            session.CreateSQLQuery(query).ExecuteUpdate();
 
-                    query = $@"ALTER TABLE {table} DROP COLUMN {column}";
-                    session.CreateSQLQuery(query).ExecuteUpdate();
-                    trans.Commit();
-                }
-            }
+            query = $@"ALTER TABLE {table} DROP COLUMN {column}";
+            session.CreateSQLQuery(query).ExecuteUpdate();
+            trans.Commit();
+        }
+
+        private static void DropDefaultConstraint(string table, string column)
+        {
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            using var trans = session.BeginTransaction();
+            var query = $@"SELECT Name FROM SYS.DEFAULT_CONSTRAINTS
+                        WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
+                          AND PARENT_COLUMN_ID = (
+                            SELECT column_id FROM sys.columns
+                            WHERE NAME = N'{column}' AND object_id = OBJECT_ID(N'{table}')
+                            )";
+            var name = session.CreateSQLQuery(query).UniqueResult<string>();
+            query = $@"ALTER TABLE {table} DROP CONSTRAINT {name}";
+            session.CreateSQLQuery(query).ExecuteUpdate();
+            trans.Commit();
         }
 
         protected override Tuple<bool, string> ExecuteCommand(SqlConnection connection, string command)

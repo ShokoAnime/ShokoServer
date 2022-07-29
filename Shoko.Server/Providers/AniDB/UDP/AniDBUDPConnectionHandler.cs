@@ -9,7 +9,7 @@ using Shoko.Server.Providers.AniDB.UDP.Connection;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
+using Shoko.Server.Settings.DI;
 using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Providers.AniDB.UDP
@@ -31,7 +31,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
 
         public string ImageServerUrl => string.Format(Constants.URLS.AniDB_Images, _cdnDomain);
 
-        private ServerSettings Settings { get; set; }
+        private SettingsProvider SettingsProvider { get; set; }
 
         private Timer _pulseTimer;
 
@@ -68,9 +68,9 @@ namespace Shoko.Server.Providers.AniDB.UDP
         private DateTime LastMessage =>
             LastAniDBMessageNonPing < LastAniDBPing ? LastAniDBPing : LastAniDBMessageNonPing;
 
-        public AniDBUDPConnectionHandler(IServiceProvider provider, CommandProcessor queue, ServerSettings settings, UDPRateLimiter rateLimiter) : base(provider, queue, rateLimiter)
+        public AniDBUDPConnectionHandler(IServiceProvider provider, CommandProcessorGeneral queue, SettingsProvider settings, UDPRateLimiter rateLimiter) : base(provider, queue, rateLimiter)
         {
-            Settings = settings;
+            SettingsProvider = settings;
             InitInternal();
         }
 
@@ -83,9 +83,10 @@ namespace Shoko.Server.Providers.AniDB.UDP
         {
             if (!ValidAniDBCredentials(username, password)) return false;
             SetCredentials(username, password);
-            Settings.AniDb.ServerAddress = serverName;
-            Settings.AniDb.ServerPort = serverPort;
-            Settings.AniDb.ClientPort = clientPort;
+            var settings = SettingsProvider.Settings;
+            settings.AniDb.ServerAddress = serverName;
+            settings.AniDb.ServerPort = serverPort;
+            settings.AniDb.ClientPort = clientPort;
             
             InitInternal();
             return true;
@@ -99,7 +100,8 @@ namespace Shoko.Server.Providers.AniDB.UDP
                 _socketHandler = null;
             }
 
-            _socketHandler = new AniDBSocketHandler(Settings.AniDb.ServerAddress, Settings.AniDb.ServerPort, Settings.AniDb.ClientPort);
+            var settings = SettingsProvider.Settings;
+            _socketHandler = new AniDBSocketHandler(settings.AniDb.ServerAddress, settings.AniDb.ServerPort, settings.AniDb.ClientPort);
             _isLoggedOn = false;
 
             IsNetworkAvailable = _socketHandler.TryConnection();
@@ -123,37 +125,45 @@ namespace Shoko.Server.Providers.AniDB.UDP
 
         private void PulseTimerElapsed(object sender, ElapsedEventArgs e)
         {
-            var tsAniDBUDPTemp = DateTime.Now - LastMessage;
-            if (ExtendPauseSecs.HasValue && tsAniDBUDPTemp.TotalSeconds >= ExtendPauseSecs.Value)
-                ResetBanTimer();
-
-            if (!_isLoggedOn) return;
-
-            // don't ping when anidb is taking a long time to respond
-            if (_socketHandler.IsLocked) return;
-
-            var tsAniDBNonPing = DateTime.Now - LastAniDBMessageNonPing;
-            var tsPing = DateTime.Now - LastAniDBPing;
-            var tsAniDBUDP = DateTime.Now - LastMessage;
-
-            // if we haven't sent a command for 45 seconds, send a ping just to keep the connection alive
-            if (tsAniDBUDP.TotalSeconds >= Constants.PingFrequency &&
-                tsPing.TotalSeconds >= Constants.PingFrequency &&
-                !IsBanned && !ExtendPauseSecs.HasValue)
+            try
             {
-                var ping = new RequestPing();
-                ping.Execute(this);
+                var tsAniDBUDPTemp = DateTime.Now - LastMessage;
+                if (ExtendPauseSecs.HasValue && tsAniDBUDPTemp.TotalSeconds >= ExtendPauseSecs.Value)
+                    ResetBanTimer();
+
+                if (!_isLoggedOn) return;
+
+                // don't ping when anidb is taking a long time to respond
+                if (_socketHandler.IsLocked) return;
+
+                var tsAniDBNonPing = DateTime.Now - LastAniDBMessageNonPing;
+                var tsPing = DateTime.Now - LastAniDBPing;
+                var tsAniDBUDP = DateTime.Now - LastMessage;
+
+                // if we haven't sent a command for 45 seconds, send a ping just to keep the connection alive
+                if (tsAniDBUDP.TotalSeconds >= Constants.PingFrequency &&
+                    tsPing.TotalSeconds >= Constants.PingFrequency &&
+                    !IsBanned && !ExtendPauseSecs.HasValue)
+                {
+                    var ping = new RequestPing();
+                    ping.Execute(this);
+                }
+
+                if (tsAniDBNonPing.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
+                {
+                    ForceLogout();
+                }
             }
-
-            if (tsAniDBNonPing.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
+            catch (Exception exception)
             {
-                ForceLogout();
+                Logger.LogError(exception, "{Message}", exception);
             }
         }
 
         public bool Login()
         {
-            return Login(Settings.AniDb.Username, Settings.AniDb.Password);
+            var settings = SettingsProvider.Settings;
+            return Login(settings.AniDb.Username, settings.AniDb.Password);
         }
 
         private bool Login(string username, string password)
@@ -418,16 +428,18 @@ namespace Shoko.Server.Providers.AniDB.UDP
         public bool SetCredentials(string username, string password)
         {
             if (!ValidAniDBCredentials(username, password)) return false;
-            Settings.AniDb.Username = username;
-            Settings.AniDb.Password = password;
-            Settings.SaveSettings();
+            var settings = SettingsProvider.Settings;
+            settings.AniDb.Username = username;
+            settings.AniDb.Password = password;
+            settings.SaveSettings();
             return true;
         }
 
         public bool ValidAniDBCredentials(string user = null, string pass = null)
         {
-            user ??= Settings.AniDb.Username;
-            pass ??= Settings.AniDb.Password;
+            var settings = SettingsProvider.Settings;
+            user ??= settings.AniDb.Username;
+            pass ??= settings.AniDb.Password;
             if (string.IsNullOrEmpty(user)) return false;
             if (string.IsNullOrEmpty(pass)) return false;
             return true;

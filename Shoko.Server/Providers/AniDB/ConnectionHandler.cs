@@ -91,7 +91,7 @@ namespace Shoko.Server.Providers.AniDB
             }
         }
 
-        public ConnectionHandler(IServiceProvider provider, CommandProcessor queue, AniDBRateLimiter rateLimiter)
+        public ConnectionHandler(IServiceProvider provider, CommandProcessorGeneral queue, AniDBRateLimiter rateLimiter)
         {
             var factory = provider.GetService<ILoggerFactory>();
             ServiceProvider = provider;

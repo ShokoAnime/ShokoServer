@@ -67,8 +67,9 @@ namespace Shoko.Server.Databases
             {
                 AllVersions = RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey);
             }
-            catch //First Time
+            catch (Exception e) //First Time
             {
+                Logger.Error(e, "There was an error setting up the database: {Message}", e.ToString());
                 AllVersions = new Dictionary<string, Dictionary<string, Versions>>();
             }
             Fixes = new List<DatabaseCommand>();
