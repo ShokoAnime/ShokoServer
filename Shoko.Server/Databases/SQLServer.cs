@@ -79,7 +79,7 @@ namespace Shoko.Server.Databases
         public override string GetConnectionString()
         {
             return
-                $"data source={ServerSettings.Instance.Database.Hostname};Initial Catalog={ServerSettings.Instance.Database.Schema};user id={ServerSettings.Instance.Database.Username};password={ServerSettings.Instance.Database.Password};persist security info=True;user id=sa;password=D3@dsoul;MultipleActiveResultSets=True";
+                $"data source={ServerSettings.Instance.Database.Hostname};Initial Catalog={ServerSettings.Instance.Database.Schema};user id={ServerSettings.Instance.Database.Username};password={ServerSettings.Instance.Database.Password};persist security info=True;MultipleActiveResultSets=True";
         }
 
         public ISessionFactory CreateSessionFactory()
