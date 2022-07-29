@@ -71,9 +71,10 @@ namespace Shoko.Server.Repositories
             lock (globalDBLock)
             {
                 // the only containers that support chapters (and will have data on anidb)
+                // < 0 instead of = -1 to avoid any issues with bit data types
                 List<SVR_AniDB_File> list = DatabaseFactory.SessionFactory.OpenSession()
                     .CreateSQLQuery(
-                        @"SELECT FileID FROM AniDB_File WHERE IsChaptered = -1 AND (File_FileExtension = 'mkv' OR File_FileExtension = 'ogm')")
+                        @"SELECT FileID FROM AniDB_File WHERE IsChaptered IS NULL OR IsChaptered < 0 AND (FileName LIKE '%.mkv' OR FileName LIKE '%.ogm')")
                     .List<int>()
                     .Select(GetByFileID)
                     .ToList();
