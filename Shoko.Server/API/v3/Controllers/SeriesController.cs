@@ -884,12 +884,13 @@ namespace Shoko.Server.API.v3.Controllers
         /// Search the title dump for the given query or directly using the anidb id.
         /// </summary>
         /// <param name="query">Query to search for</param>
+        /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
         /// <param name="includeTitles">Include titles in the results.</param>
         /// <param name="pageSize">The page size.</param>
         /// <param name="page">The page index.</param>
         /// <returns></returns>
         [HttpGet("AniDB/Search/{query}")]
-        public ActionResult<ListResult<Series.AniDBSearchResult>> AnidbSearch([FromRoute] string query, [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        public ActionResult<ListResult<Series.AniDBSearchResult>> AnidbSearch([FromRoute] string query, [FromQuery] bool? local = null, [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             // We're searching using the anime ID, so first check the local db then the title cache for a match.
             if (int.TryParse(query, out int animeID))
@@ -951,10 +952,16 @@ namespace Shoko.Server.API.v3.Controllers
                 .Select(result =>
                 {
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
-                    var mainTitle = series?.GetSeriesName() ?? (result.Titles.FirstOrDefault(a => a.TitleLanguage == "x-jat" && a.TitleType == "main") ?? result.Titles.FirstOrDefault())?.Title;
+                    if (local.HasValue && series == null == local.Value)
+                        return null;
+
+                    var anime = series != null ? series.GetAnime() : RepoFactory.AniDB_Anime.GetByAnimeID(result.AnimeID);
+                    int? episodeCount = anime != null ? RepoFactory.AniDB_Episode.GetByAnimeID(result.AnimeID).Where(episode => episode.GetEpisodeTypeEnum() == Shoko.Models.Enums.EpisodeType.Episode).Count() : null;
+                    string mainTitle = series?.GetSeriesName() ?? (result.Titles.FirstOrDefault(a => a.TitleLanguage == "x-jat" && a.TitleType == "main") ?? result.Titles.FirstOrDefault())?.Title;
                     return new Series.AniDBSearchResult
                     {
                         ID = result.AnimeID,
+                        Type = anime != null ? Series.GetAniDBSeriesType(anime.AnimeType) : SeriesType.Unknown,
                         Title = mainTitle,
                         Titles = includeTitles ? result.Titles.Select(title => new Title
                             {
@@ -966,8 +973,10 @@ namespace Shoko.Server.API.v3.Controllers
                             }
                         ).ToList() : null,
                         ShokoID = series?.AnimeSeriesID,
+                        EpisodeCount = episodeCount,
                     };
                 })
+                .Where(result => result != null)
                 .ToListResult(page, pageSize);
         }
 

@@ -255,7 +255,10 @@ namespace Shoko.Server.API.v3.Models.Shoko
             return tags;
         }
 
-        private static SeriesType GetAniDBSeriesType(AnimeType animeType)
+        public static SeriesType GetAniDBSeriesType(int animeType)
+            => GetAniDBSeriesType((AnimeType)animeType);
+
+        public static SeriesType GetAniDBSeriesType(AnimeType animeType)
         {
             switch (animeType)
             {
@@ -519,7 +522,19 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// </summary>
             [Required]
             public int ID { get; set; }
-            
+
+            /// <summary>
+            /// Shoko ID if the series is available locally.
+            /// </summary>
+            public int? ShokoID { get; set; }
+
+            /// <summary>
+            /// Series type. Series, OVA, Movie, etc
+            /// </summary>
+            [Required]
+            [JsonConverter(typeof(StringEnumConverter))]
+            public SeriesType Type { get; set; }
+
             /// <summary>
             /// Main Title. Either the shoko name of the series if
             /// it's available locally, or the first "x-jat" or "main" title for
@@ -532,12 +547,12 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// There should always be at least one of these, since name will be valid
             /// </summary>
             [Required]
-            public List<Title> Titles { get; set; }
-            
+            public List<Title> Titles { get; set; }
+
             /// <summary>
-            /// Shoko ID if the series is available locally.
+            /// Number of <see cref="EpisodeType.Normal"/> episodes contained within the series if it's known.
             /// </summary>
-            public int? ShokoID { get; set; }
+            public int? EpisodeCount { get; set; }
         }
 
         /// <summary>
