@@ -959,7 +959,7 @@ namespace Shoko.Server.API.v3.Controllers
                     return new Series.AniDBSearchResult
                     {
                         ID = result.AnimeID,
-                        Type = anime != null ? Series.GetAniDBSeriesType(anime.AnimeType) : SeriesType.Unknown,
+                        Type = Series.GetAniDBSeriesType(anime?.AnimeType),
                         Title = mainTitle,
                         Titles = includeTitles ? result.Titles.Select(title => new Title
                             {
