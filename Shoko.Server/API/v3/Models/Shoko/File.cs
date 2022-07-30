@@ -127,7 +127,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             public AniDB(SVR_AniDB_File anidb)
             {
                 ID = anidb.FileID;
-                Source = anidb.File_Source;
+                Source = ParseFileSource(anidb.File_Source);
                 ReleaseGroup = new AniDB.AniDBReleaseGroup
                 {
                     ID = anidb.GroupID,
@@ -160,7 +160,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// Blu-ray, DVD, LD, TV, etc
             /// </summary>
-            public string Source { get; set; }
+            public FileSource Source { get; set; }
 
             /// <summary>
             /// The Release Group. This is usually set, but sometimes is set as "raw/unknown"
@@ -533,5 +533,43 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 public int[] fileIDs { get; set; }
             }
         }
+
+        public static FileSource ParseFileSource(string source)
+        {
+            if (string.IsNullOrEmpty(source))
+                return FileSource.Unknown;
+            return source.Replace("-", "").ToLower() switch
+            {
+                "tv" => FileSource.TV,
+                "dtv" => FileSource.TV,
+                "hdtv" => FileSource.TV,
+                "dvd" => FileSource.DVD,
+                "hkdvd" => FileSource.DVD,
+                "hddvd" => FileSource.DVD,
+                "bluray" => FileSource.BluRay,
+                "www" => FileSource.Web,
+                "vhs" => FileSource.VHS,
+                "vcd" => FileSource.VCD,
+                "svcd" => FileSource.VCD,
+                "ld" => FileSource.LaserDisc,
+                "camcorder" => FileSource.Camera,
+                _ => FileSource.Unknown,
+            };
+        }
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum FileSource
+    {
+        Unknown = 0,
+        Other = 1,
+        TV = 2,
+        DVD = 3,
+        BluRay = 4,
+        Web = 5,
+        VHS = 6,
+        VCD = 7,
+        LaserDisc = 8,
+        Camera = 9,
     }
 }
