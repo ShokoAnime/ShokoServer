@@ -50,6 +50,11 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         public Images Images { get; set; }
 
+        /// <summary>
+        /// Sizes object, has totals
+        /// </summary>
+        public GroupSizes Sizes { get; set; }
+
         #region Constructors
 
         public Group() { }
@@ -72,7 +77,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             Name = group.GroupName;
             SortName = group.SortName;
             Description = group.Description;
-            Sizes = ModelHelper.GenerateSizes(ael, uid);
+            Sizes = ModelHelper.GenerateGroupSizes(allSeries, ael, uid);
             Size = group.GetSeries().Count;
             HasCustomName = group.IsManuallyNamed == 1;
 
@@ -197,6 +202,43 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 [Required]
                 public int[] SeriesIDs { get; set; }
             }
+        }
+    }
+
+    /// <summary>
+    /// Downloaded, Watched, Total, etc
+    /// </summary>
+    public class GroupSizes : SeriesSizes
+    {
+        public GroupSizes() : base()
+        {
+            SeriesTypes = new();
+        }
+
+        public GroupSizes(SeriesSizes sizes)
+        {
+            FileSources = sizes.FileSources;
+            Local = sizes.Local;
+            Watched = sizes.Watched;
+            Total = sizes.Total;
+            SeriesTypes = new();
+        }
+
+        /// <summary>
+        /// Count of the different series types within the group.
+        /// </summary>
+        [Required]
+        public SeriesTypeCounts SeriesTypes { get; set; }
+
+        public class SeriesTypeCounts
+        {
+            public int Unknown;
+            public int Other;
+            public int TV;
+            public int TVSpecial;
+            public int Web;
+            public int Movie;
+            public int OVA;
         }
     }
 }

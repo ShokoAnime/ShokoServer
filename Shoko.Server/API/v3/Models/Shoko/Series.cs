@@ -51,6 +51,11 @@ namespace Shoko.Server.API.v3.Models.Shoko
         public List<Resource> Links { get; set; }
 
         /// <summary>
+        /// Sizes object, has totals
+        /// </summary>
+        public SeriesSizes Sizes { get; set; }
+
+        /// <summary>
         /// The time when the series was created, during the process of the first file being added
         /// </summary>
         [JsonConverter(typeof(IsoDateTimeConverter))]
@@ -80,7 +85,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             Images = GetDefaultImages(ctx, ser, randomiseImages);
 
             Name = ser.GetSeriesName();
-            Sizes = ModelHelper.GenerateSizes(ael, uid);
+            Sizes = ModelHelper.GenerateSeriesSizes(ael, uid);
             Size = Sizes.Local.Credits + Sizes.Local.Episodes + Sizes.Local.Others + Sizes.Local.Parodies +
                    Sizes.Local.Specials + Sizes.Local.Trailers;
 
@@ -255,8 +260,8 @@ namespace Shoko.Server.API.v3.Models.Shoko
             return tags;
         }
 
-        public static SeriesType GetAniDBSeriesType(int animeType)
-            => GetAniDBSeriesType((AnimeType)animeType);
+        public static SeriesType GetAniDBSeriesType(int? animeType)
+            => animeType.HasValue ? GetAniDBSeriesType((AnimeType)animeType.Value) : SeriesType.Unknown;
 
         public static SeriesType GetAniDBSeriesType(AnimeType animeType)
         {
@@ -780,5 +785,71 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// Original Video Animations, AKA standalone releases that don't air on TV or the web.
         /// </summary>
         OVA = 6,
+    }
+
+    /// <summary>
+    /// Downloaded, Watched, Total, etc
+    /// </summary>
+    public class SeriesSizes
+    {
+        
+        public SeriesSizes() : base()
+        {
+            FileSources = new();
+            Total = new();
+            Local = new();
+            Watched = new();
+        }
+
+        /// <summary>
+        /// Counts of each file source type available within the local colleciton
+        /// </summary>
+        [Required]
+        public FileSourceCounts FileSources { get; set; }
+
+        /// <summary>
+        /// What is downloaded and available
+        /// </summary>
+        [Required]
+        public EpisodeTypeCounts Local { get; set; }
+
+        /// <summary>
+        /// What is local and watched.
+        /// </summary>
+        public EpisodeTypeCounts Watched { get; set; }
+
+        /// <summary>
+        /// Total count of each type
+        /// </summary>
+        [Required]
+        public EpisodeTypeCounts Total { get; set; }
+
+        /// <summary>
+        /// Lists the count of each type of episode.
+        /// </summary>
+        public class EpisodeTypeCounts
+        {
+            public int Unknown { get; set; }
+            public int Episodes { get; set; }
+            public int Specials { get; set; }
+            public int Credits { get; set; }
+            public int Trailers { get; set; }
+            public int Parodies { get; set; }
+            public int Others { get; set; }
+        }
+
+        public class FileSourceCounts
+        {
+            public int Unknown;
+            public int Other;
+            public int TV;
+            public int DVD;
+            public int BluRay;
+            public int Web;
+            public int VHS;
+            public int VCD;
+            public int LaserDisc;
+            public int Camera;
+        }
     }
 }
