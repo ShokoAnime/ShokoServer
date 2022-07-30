@@ -67,7 +67,7 @@ namespace Shoko.Server.API.v3.Helpers
                     .ToList(),
             };
         }
-        
+
         public static (int, EpisodeType?, string) GetEpisodeNumberAndTypeFromInput(string input)
         {
             EpisodeType? episodeType = null;
@@ -94,20 +94,13 @@ namespace Shoko.Server.API.v3.Helpers
             }
             return (episodeNumber, episodeType, null);
         }
-        
-        public static int GetTotalEpisodesForType(List<SVR_AnimeEpisode> ael, EpisodeType episodeType)
+
+        public static int GetTotalEpisodesForType(List<SVR_AnimeEpisode> episodeList, EpisodeType episodeType)
         {
-            var sizes = Helpers.ModelHelper.GenerateSizes(ael, 0);
-            return episodeType switch
-            {
-                EpisodeType.Episode => sizes.Total.Episodes,
-                EpisodeType.Special => sizes.Total.Specials,
-                EpisodeType.Credits => sizes.Total.Credits,
-                EpisodeType.Trailer => sizes.Total.Trailers,
-                EpisodeType.Parody => sizes.Total.Parodies,
-                EpisodeType.Other => sizes.Total.Others,
-                _ => 0,
-            };
+            return episodeList
+                .Select(episode => episode.AniDB_Episode)
+                .Where(anidbEpisode => anidbEpisode != null && (EpisodeType)anidbEpisode.EpisodeType == episodeType)
+                .Count();
         }
 
         public static SeriesSizes GenerateSeriesSizes(List<SVR_AnimeEpisode> episodeList, int userID)
