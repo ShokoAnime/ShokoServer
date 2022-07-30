@@ -127,11 +127,10 @@ namespace Shoko.Server.API.v3.Controllers
                 return Forbid(SeriesForbiddenForUser);
             
             // TODO: Replace with a more generic implementation capable of suplying relations from more than just AniDB.
-            var seriesRelations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(series.AniDB_ID);
-            return seriesRelations
-                .Select(relation => KeyValuePair.Create(relation, RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID)))
-                .Where(tuple => tuple.Value != null)
-                .Select(tuple => new SeriesRelation(HttpContext, tuple.Key, series, tuple.Value))
+            return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(series.AniDB_ID)
+                .Select(relation =>(relation, relatedSeries: RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID)))
+                .Where(tuple => tuple.relatedSeries != null)
+                .Select(tuple => new SeriesRelation(HttpContext, tuple.relation, series, tuple.relatedSeries))
                 .ToList();
         }
         
@@ -177,9 +176,8 @@ namespace Shoko.Server.API.v3.Controllers
             if (anidb == null)
                 return InternalError(AnidbNotFoundForSeriesID);
 
-            var anidbRelations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidb.AnimeID);
-            return anidbRelations
-                .Select(relation => new SeriesRelation(HttpContext, relation))
+            return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidb.AnimeID)
+                .Select(relation => new SeriesRelation(HttpContext, relation, series))
                 .ToList();
         }
 
