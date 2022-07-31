@@ -20,7 +20,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 97;
+        public int RequiredVersion { get; } = 98;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>
@@ -642,6 +642,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(96, 1, "ALTER TABLE AnimeSeries_User ADD LastEpisodeUpdate datetime DEFAULT NULL;"),
             new DatabaseCommand(96, 2, DatabaseFixes.FixWatchDates),
             new DatabaseCommand(97, 1, "ALTER TABLE AnimeGroup ADD MainAniDBAnimeID INT DEFAULT NULL;"),
+            new DatabaseCommand(98, 1, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractSize, DROP COLUMN ContractBlob, DROP COLUMN ContractVersion;"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

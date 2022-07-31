@@ -620,6 +620,9 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(89, 1, "ALTER TABLE AnimeSeries_User ADD LastEpisodeUpdate datetime DEFAULT NULL;"),
             new DatabaseCommand(89, 2, DatabaseFixes.FixWatchDates),
             new DatabaseCommand(90, 1, "ALTER TABLE AnimeGroup ADD MainAniDBAnimeID INT DEFAULT NULL;"),
+            new DatabaseCommand(91, 1, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractSize;"),
+            new DatabaseCommand(91, 2, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractBlob;"),
+            new DatabaseCommand(91, 3, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractVersion;"),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

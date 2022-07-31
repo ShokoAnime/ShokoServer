@@ -7,10 +7,6 @@ namespace Shoko.Server.Models
 {
     public class SVR_AnimeEpisode_User : AnimeEpisode_User
     {
-        public int ContractVersion { get; set; }
-        public byte[] ContractBlob { get; set; }
-        public int ContractSize { get; set; }
-
         public SVR_AnimeEpisode_User() {}
 
         public SVR_AnimeEpisode_User(int userID, int episodeID, int seriesID)

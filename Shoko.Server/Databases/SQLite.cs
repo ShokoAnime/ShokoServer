@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 85;
+        public int RequiredVersion { get; } = 86;
 
 
         public void BackupDatabase(string fullfilename)
@@ -559,6 +559,9 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(84, 1, "ALTER TABLE AnimeSeries_User ADD LastEpisodeUpdate timestamp DEFAULT NULL;"),
             new DatabaseCommand(84, 2, DatabaseFixes.FixWatchDates),
             new DatabaseCommand(85, 1, "ALTER TABLE AnimeGroup ADD MainAniDBAnimeID INT DEFAULT NULL;"),
+            new DatabaseCommand(86, 1, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractSize;"),
+            new DatabaseCommand(86, 2, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractBlob;"),
+            new DatabaseCommand(86, 3, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractVersion;"),
         };
 
         private static Tuple<bool, string> DropVideoLocal_Media(object connection)
