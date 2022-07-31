@@ -50,6 +50,11 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         public Images Images { get; set; }
 
+        /// <summary>
+        /// Sizes object, has totals
+        /// </summary>
+        public GroupSizes Sizes { get; set; }
+
         #region Constructors
 
         public Group() { }
@@ -72,31 +77,14 @@ namespace Shoko.Server.API.v3.Models.Shoko
             Name = group.GroupName;
             SortName = group.SortName;
             Description = group.Description;
-            Sizes = ModelHelper.GenerateSizes(ael, uid);
+            Sizes = ModelHelper.GenerateGroupSizes(allSeries, ael, uid);
             Size = group.GetSeries().Count;
-
-            HasCustomName = GetHasCustomName(group);
+            HasCustomName = group.IsManuallyNamed == 1;
 
             Images = imageSeries == null ? new Images() : Series.GetDefaultImages(ctx, imageSeries, randomiseImages);
         }
 
         #endregion
-
-        private bool GetHasCustomName(SVR_AnimeGroup group)
-        {
-            if (group.IsManuallyNamed == 1)
-                return true;
-
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                var groupCalculator = AutoAnimeGroupCalculator.Create(session.Wrap(), AutoGroupExclude.None);
-                int id = group.GetSeries().FirstOrDefault()?.AniDB_ID ?? 0;
-                if (id == 0) return true;
-                var ids = groupCalculator.GetIdsOfAnimeInSameGroup(id);
-                return !ids.Select(aid => RepoFactory.AniDB_Anime.GetByAnimeID(aid)).Where(anime => anime != null)
-                    .Any(anime => anime.GetAllTitles().Contains(group.GroupName));
-            }
-        }
 
         public class GroupIDs : IDs
         {
@@ -214,6 +202,43 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 [Required]
                 public int[] SeriesIDs { get; set; }
             }
+        }
+    }
+
+    /// <summary>
+    /// Downloaded, Watched, Total, etc
+    /// </summary>
+    public class GroupSizes : SeriesSizes
+    {
+        public GroupSizes() : base()
+        {
+            SeriesTypes = new();
+        }
+
+        public GroupSizes(SeriesSizes sizes)
+        {
+            FileSources = sizes.FileSources;
+            Local = sizes.Local;
+            Watched = sizes.Watched;
+            Total = sizes.Total;
+            SeriesTypes = new();
+        }
+
+        /// <summary>
+        /// Count of the different series types within the group.
+        /// </summary>
+        [Required]
+        public SeriesTypeCounts SeriesTypes { get; set; }
+
+        public class SeriesTypeCounts
+        {
+            public int Unknown;
+            public int Other;
+            public int TV;
+            public int TVSpecial;
+            public int Web;
+            public int Movie;
+            public int OVA;
         }
     }
 }

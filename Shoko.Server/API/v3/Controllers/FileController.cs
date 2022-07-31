@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -9,6 +10,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
@@ -76,15 +78,15 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
-        /// Get the AniDB details for file with Shoko ID
+        /// Get the <see cref="File.AniDB"/> using the <paramref name="fileID"/>.
         /// </summary>
         /// <remarks>
         /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
         /// </remarks>
-        /// <param name="fileID">Shoko ID</param>
+        /// <param name="fileID">Shoko File ID</param>
         /// <returns></returns>
         [HttpGet("{fileID}/AniDB")]
-        public ActionResult<File.AniDB> GetFileAniDBDetails([FromRoute] int fileID)
+        public ActionResult<File.AniDB> GetFileAnidbByFileID([FromRoute] int fileID)
         {
             var file = RepoFactory.VideoLocal.GetByID(fileID);
             if (file == null)
@@ -92,9 +94,49 @@ namespace Shoko.Server.API.v3.Controllers
 
             var anidb = file.GetAniDBFile();
             if (anidb == null)
-                return BadRequest(AnidbNotFoundForFileID);
+                return NotFound(AnidbNotFoundForFileID);
 
             return new File.AniDB(anidb);
+        }
+
+        /// <summary>
+        /// Get the <see cref="File.AniDB"/> using the <paramref name="anidbFileID"/>.
+        /// </summary>
+        /// <remarks>
+        /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
+        /// </remarks>
+        /// <param name="anidbFileID">AniDB File ID</param>
+        /// <returns></returns>
+        [HttpGet("AniDB/{anidbFileID}")]
+        public ActionResult<File.AniDB> GetFileAnidbByAnidbFileID([FromRoute] int anidbFileID)
+        {
+            var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
+            if (anidb == null)
+                return NotFound(AnidbNotFoundForFileID);
+
+            return new File.AniDB(anidb);
+        }
+
+        /// <summary>
+        /// Get the <see cref="File.AniDB"/>for file using the <paramref name="anidbFileID"/>.
+        /// </summary>
+        /// <remarks>
+        /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
+        /// </remarks>
+        /// <param name="anidbFileID">AniDB File ID</param>
+        /// <returns></returns>
+        [HttpGet("AniDB/{anidbFileID}/File")]
+        public ActionResult<File> GetFileByAnidbFileID([FromRoute] int anidbFileID)
+        {
+            var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
+            if (anidb == null)
+                return NotFound(FileNotFoundWithFileID);
+
+            var file = RepoFactory.VideoLocal.GetByHash(anidb.Hash);
+            if (file == null)
+                return NotFound(AnidbNotFoundForFileID);
+
+            return new File(HttpContext, file);
         }
 
         /// <summary>
@@ -129,8 +171,34 @@ namespace Shoko.Server.API.v3.Controllers
                 return NotFound(FileNotFoundWithFileID);
 
             var user = HttpContext.GetUser(); 
-            var userStats = file.GetOrCreateUserRecord(user.JMMUserID);
+            var userStats = file.GetUserRecord(user.JMMUserID);
+
+            if (userStats == null)
+                return NotFound(FileUserStatsNotFoundWithFileID);
+
             return new File.FileUserStats(userStats);
+        }
+
+        /// <summary>
+        /// Put a <see cref="File.FileUserStats"/> object down for the <see cref="File"/> with the given <paramref name="fileID"/>.
+        /// </summary>
+        /// <param name="fileID">Shoko file ID</param>
+        /// <param name="fileUserStats">The new and/or update file stats to put for the file.</param>
+        /// <returns>The new and/or updated user stats.</returns>
+        [HttpPut("{fileID}/UserStats")]
+        public ActionResult<File.FileUserStats> PutFileUserStats([FromRoute] int fileID, [FromBody] File.FileUserStats fileUserStats)
+        {
+            // Make sure the file exists.
+            var file = RepoFactory.VideoLocal.GetByID(fileID);
+            if (file == null)
+                return NotFound(FileNotFoundWithFileID);
+
+            // Get the user data.
+            var user = HttpContext.GetUser(); 
+            var userStats = file.GetOrCreateUserRecord(user.JMMUserID);
+
+            // Merge with the existing entry and return an updated version of the stats.
+            return fileUserStats.MergeWithExisting(userStats, file);
         }
 
         /// <summary>
@@ -179,10 +247,9 @@ namespace Shoko.Server.API.v3.Controllers
                 return BadRequest("Could not get Episode with ID: " + episodeID);
 
             var playbackPositionTicks = resumePosition ?? 0;
-            var watchedTillCompletion = watched ?? false;
             if (playbackPositionTicks >= file.Duration)
             {
-                watchedTillCompletion = true;
+                watched = true;
                 playbackPositionTicks = 0;
             }
 
@@ -210,7 +277,8 @@ namespace Shoko.Server.API.v3.Controllers
                     break;
             }
 
-            file.ToggleWatchedStatus(watchedTillCompletion, User.JMMUserID);
+            if (watched.HasValue)
+                file.ToggleWatchedStatus(watched.HasValue, User.JMMUserID);
             file.SetResumePosition(playbackPositionTicks, User.JMMUserID);
 
             return NoContent();
@@ -686,7 +754,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <returns></returns>
         [HttpGet("Recent/{limit:int?}")]
         [Obsolete]
-        public List<File.FileDetailed> GetRecentFilesObselete([FromRoute] int limit = 100)
+        public ActionResult<ListResult<File.FileDetailed>> GetRecentFilesObselete([FromRoute] [Range(0, 1000)] int limit = 100)
             => GetRecentFiles(limit);
 
         /// <summary>
@@ -696,13 +764,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("Recent")]
-        public List<File.FileDetailed> GetRecentFiles([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        public ActionResult<ListResult<File.FileDetailed>> GetRecentFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
-            if (pageSize <= 0) pageSize = -1;
-            if (page <= 0) page = 0;
-            var skip = pageSize == -1 ? 0 : pageSize * page;
-            return RepoFactory.VideoLocal.GetMostRecentlyAdded(pageSize, skip, User.JMMUserID)
-                .Select(file => new File.FileDetailed(HttpContext, file)).ToList();
+            return RepoFactory.VideoLocal.GetMostRecentlyAdded(-1, 0, User.JMMUserID)
+                .ToListResult(file => new File.FileDetailed(HttpContext, file), page, pageSize);
         }
 
         /// <summary>
@@ -712,13 +777,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("Ignored")]
-        public List<File> GetIgnoredFiles([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        public ActionResult<ListResult<File>> GetIgnoredFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
-            if (pageSize <= 0)
-                return RepoFactory.VideoLocal.GetIgnoredVideos().Select(a => new File(HttpContext, a)).ToList();
-            if (page <= 0) page = 0;
-            return RepoFactory.VideoLocal.GetIgnoredVideos().Skip(pageSize * page).Take(pageSize)
-                .Select(a => new File(HttpContext, a)).ToList();
+            return RepoFactory.VideoLocal.GetIgnoredVideos()
+                .ToListResult(file => new File(HttpContext, file), page, pageSize);
         }
 
         /// <summary>
@@ -728,13 +790,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("Duplicates")]
-        public List<File> GetExactDuplicateFiles([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        public ActionResult<ListResult<File>> GetExactDuplicateFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
-            if (pageSize <= 0)
-                return RepoFactory.VideoLocal.GetExactDuplicateVideos().Select(a => new File(HttpContext, a)).ToList();
-            if (page <= 0) page = 0;
-            return RepoFactory.VideoLocal.GetExactDuplicateVideos().Skip(pageSize * page).Take(pageSize)
-                .Select(a => new File(HttpContext, a)).ToList();
+            return RepoFactory.VideoLocal.GetExactDuplicateVideos()
+                .ToListResult(file => new File(HttpContext, file), page, pageSize);
         }
 
         /// <summary>
@@ -744,13 +803,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("Linked")]
-        public List<File.FileDetailed> GetManuellyLinkedFiles([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        public ActionResult<ListResult<File.FileDetailed>> GetManuellyLinkedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
-            if (pageSize <= 0)
-                return RepoFactory.VideoLocal.GetManuallyLinkedVideos().Select(a => new File.FileDetailed(HttpContext, a)).ToList();
-            if (page <= 0) page = 0;
-            return RepoFactory.VideoLocal.GetManuallyLinkedVideos().Skip(pageSize * page).Take(pageSize)
-                .Select(a => new File.FileDetailed(HttpContext, a)).ToList();
+            return RepoFactory.VideoLocal.GetManuallyLinkedVideos()
+                .ToListResult(file => new File.FileDetailed(HttpContext, file), page, pageSize);
         }
 
         /// <summary>
@@ -761,13 +817,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("Unrecognized")]
-        public List<File> GetUnrecognizedFiles([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        public ActionResult<ListResult<File>> GetUnrecognizedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
-            if (pageSize <= 0)
-                return RepoFactory.VideoLocal.GetVideosWithoutEpisode().Select(a => new File(HttpContext, a)).ToList();
-            if (page <= 0) page = 0;
-            return RepoFactory.VideoLocal.GetVideosWithoutEpisode().Skip(pageSize * page).Take(pageSize)
-                .Select(a => new File(HttpContext, a)).ToList();
+            return RepoFactory.VideoLocal.GetVideosWithoutEpisode()
+                .ToListResult(file => new File(HttpContext, file), page, pageSize);
         }
     }
 }

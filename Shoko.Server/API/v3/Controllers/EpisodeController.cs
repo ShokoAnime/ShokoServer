@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
@@ -125,7 +127,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("WithMultipleFiles")]
-        public List<Episode> GetSoftDuplicatesForEpisode([FromQuery] bool ignoreVariations = true, [FromQuery] bool onlyFinishedSeries = false, [FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        public ActionResult<ListResult<Episode>> GetSoftDuplicatesForEpisode([FromQuery] bool ignoreVariations = true, [FromQuery] bool onlyFinishedSeries = false, [FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(ignoreVariations);
             if (onlyFinishedSeries)
@@ -135,11 +137,8 @@ namespace Shoko.Server.API.v3.Controllers
                 enumerable = enumerable.Where(episode => (dictSeriesFinishedAiring.TryGetValue(episode.AnimeSeriesID, out var finishedAiring) && finishedAiring));
             }
 
-            if (pageSize <= 0)
-                return enumerable.Select(a => new Episode(HttpContext, a)).ToList();
-            if (page <= 0) page = 0;
-            return enumerable.Skip(pageSize * page).Take(pageSize)
-                .Select(a => new Episode(HttpContext, a)).ToList();
+            return enumerable
+                .ToListResult(episode => new Episode(HttpContext, episode), page, pageSize);
         }
 
         /// <summary>
@@ -151,7 +150,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("WithNoFiles")]
-        public List<Episode> GetMissingEpisodes([FromQuery] bool includeSpecials = false, [FromQuery] bool onlyFinishedSeries = false, [FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        public ActionResult<ListResult<Episode>> GetMissingEpisodes([FromQuery] bool includeSpecials = false, [FromQuery] bool onlyFinishedSeries = false, [FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetEpisodesWithNoFiles(includeSpecials);
             if (onlyFinishedSeries)
@@ -160,12 +159,9 @@ namespace Shoko.Server.API.v3.Controllers
                     .ToDictionary(a => a.AnimeSeriesID, a => a.GetAnime().GetFinishedAiring());
                 enumerable = enumerable.Where(episode => (dictSeriesFinishedAiring.TryGetValue(episode.AnimeSeriesID, out var finishedAiring) && finishedAiring));
             }
-
-            if (pageSize <= 0)
-                return enumerable.Select(a => new Episode(HttpContext, a)).ToList();
-            if (page <= 0) page = 0;
-            return enumerable.Skip(pageSize * page).Take(pageSize)
-                .Select(a => new Episode(HttpContext, a)).ToList();
+            
+            return enumerable
+                .ToListResult(episode => new Episode(HttpContext, episode), page, pageSize);
         }
     }
 }

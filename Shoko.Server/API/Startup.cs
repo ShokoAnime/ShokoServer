@@ -138,14 +138,13 @@ namespace Shoko.Server.API
             services.AddCors(options =>
             {
                 options.AddDefaultPolicy(
-			builder =>
+			        builder =>
                         {
                 		builder
                 		.AllowAnyOrigin()
                 		.AllowAnyMethod()
                 		.AllowAnyHeader();
             		});
-
             });
 
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
@@ -169,13 +168,13 @@ namespace Shoko.Server.API
                 .AddNewtonsoftJson(json =>
                 {
                     json.SerializerSettings.MaxDepth = 10;
-                    json.SerializerSettings.ContractResolver = new OmitEmptyEnumerableResolver
+                    json.SerializerSettings.ContractResolver = new DefaultContractResolver
                     {
                         NamingStrategy = new DefaultNamingStrategy()
                     };
                     json.SerializerSettings.NullValueHandling = NullValueHandling.Include;
                     json.SerializerSettings.DefaultValueHandling = DefaultValueHandling.Populate;
-                    json.SerializerSettings.DateFormatString = "yyyy-MM-dd";
+                    // json.SerializerSettings.DateFormatString = "yyyy-MM-dd";
                 });
 
             foreach (Type type in Loader.Instance.Plugins.Keys)
@@ -184,7 +183,6 @@ namespace Shoko.Server.API
                 if (assembly == Assembly.GetCallingAssembly()) continue; //Skip the current assembly, this is implicitly added by ASP.
                 mvc.AddApplicationPart(assembly).AddControllersAsServices();
             }
-
 
             services.AddApiVersioning(o =>
             {

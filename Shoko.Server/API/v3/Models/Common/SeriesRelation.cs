@@ -4,6 +4,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3.Models.Common
 {
@@ -13,12 +15,17 @@ namespace Shoko.Server.API.v3.Models.Common
     public class SeriesRelation
     {
         /// <summary>
-        /// Relation IDs.
+        /// The IDs of the series.
         /// </summary>
         public RelationIDs IDs;
 
         /// <summary>
-        /// The relation between <see cref="RelationIDs.Series"/> and <see cref="RelationIDs.RelatedSeries"/>.
+        /// The IDs of the related series.
+        /// </summary>
+        public RelationIDs RelatedIDs;
+
+        /// <summary>
+        /// The relation between <see cref="SeriesRelation.IDs"/> and <see cref="SeriesRelation.RelatedIDs"/>.
         /// </summary>
         [Required]
         [JsonConverter(typeof(StringEnumConverter))]
@@ -30,16 +37,22 @@ namespace Shoko.Server.API.v3.Models.Common
         [Required]
         public string Source { get; set; }
 
-        public SeriesRelation(HttpContext context, AniDB_Anime_Relation relation)
+        public SeriesRelation(HttpContext context, AniDB_Anime_Relation relation, AnimeSeries series = null, AnimeSeries relatedSeries = null)
         {
-            IDs = new RelationIDs { ID = relation.AniDB_Anime_RelationID, Series = relation.AnimeID, RelatedSeries = relation.RelatedAnimeID };
-            Type = GetRelationTypeFromAnidbRelationType(relation.RelationType);
-            Source = "AniDB";
-        }
-
-        public SeriesRelation(HttpContext context, AniDB_Anime_Relation relation, AnimeSeries series, AnimeSeries relatedSeries)
-        {
-            IDs = new RelationIDs { ID = relation.AniDB_Anime_RelationID, Series = series.AnimeSeriesID, RelatedSeries = relatedSeries.AnimeSeriesID };
+            if (series == null)
+                series = RepoFactory.AnimeSeries.GetByAnimeID(relation.AnimeID);
+            if (relatedSeries == null)
+                relatedSeries = RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID);
+            IDs = new()
+            {
+                AniDB = relation.AnimeID,
+                Shoko = series?.AnimeSeriesID,
+            };
+            RelatedIDs = new()
+            {
+                AniDB = relation.RelatedAnimeID,
+                Shoko = relatedSeries?.AnimeSeriesID,
+            };
             Type = GetRelationTypeFromAnidbRelationType(relation.RelationType);
             Source = "AniDB";
         }
@@ -67,17 +80,17 @@ namespace Shoko.Server.API.v3.Models.Common
         /// <summary>
         /// Relation IDs.
         /// </summary>
-        public class RelationIDs : IDs
+        public class RelationIDs
         {
             /// <summary>
-            /// The ID of the main entry in this relation.
+            /// The ID of the <see cref="Series"/> entry.
             /// </summary>
-            public int Series { get; set; }
+            public int? Shoko { get; set; }
 
             /// <summary>
-            /// The ID of the related entry in this relation.
+            /// The ID of the <see cref="Series.AniDB"/> entry.
             /// </summary>
-            public int RelatedSeries { get; set; }
+            public int? AniDB { get; set; }
         }
     }
 

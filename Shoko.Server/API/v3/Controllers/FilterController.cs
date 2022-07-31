@@ -1,10 +1,12 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -26,9 +28,9 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="pageSize"></param>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<List<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false, [FromQuery] bool includeInvisible = false, [FromQuery] int page = 0, [FromQuery] int pageSize = 10)
+        public ActionResult<ListResult<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false, [FromQuery] bool includeInvisible = false, [FromQuery] [Range(0, 100)] int pageSize = 10, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
-            var groupFilters = RepoFactory.GroupFilter.GetTopLevel()
+            return RepoFactory.GroupFilter.GetTopLevel()
                 .Where(filter =>
                 {
                     if (filter.InvisibleInClients != 0 && !includeInvisible)
@@ -37,19 +39,8 @@ namespace Shoko.Server.API.v3.Controllers
                         return true;
                     return ((GroupFilterType)filter.FilterType).HasFlag(GroupFilterType.Directory);
                 })
-                .OrderBy(filter => filter.GroupFilterName);
-
-            if (pageSize <= 0)
-                return groupFilters
-                    .Select(filter => new Filter(HttpContext, filter))
-                    .ToList();
-
-            if (page <= 0) page = 0;
-            return groupFilters
-                .Skip(page * pageSize)
-                .Take(pageSize)
-                .Select(filter => new Filter(HttpContext, filter))
-                .ToList();
+                .OrderBy(filter => filter.GroupFilterName)
+                .ToListResult(filter => new Filter(HttpContext, filter), page, pageSize);
         }
 
         /// <summary>

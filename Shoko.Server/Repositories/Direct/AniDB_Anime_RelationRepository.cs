@@ -36,11 +36,29 @@ namespace Shoko.Server.Repositories.Direct
             }
         }
 
+        public List<SVR_AniDB_Anime_Relation> GetByAnimeID(IEnumerable<int> ids)
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                return GetByAnimeID(session.Wrap(), ids);
+            }
+        }
+
         public List<SVR_AniDB_Anime_Relation> GetByAnimeID(ISessionWrapper session, int id)
         {
             var cats = session
                 .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
                 .Add(Restrictions.Eq("AnimeID", id))
+                .List<SVR_AniDB_Anime_Relation>();
+
+            return new List<SVR_AniDB_Anime_Relation>(cats);
+        }
+
+        public List<SVR_AniDB_Anime_Relation> GetByAnimeID(ISessionWrapper session, IEnumerable<int> ids)
+        {
+            var cats = session
+                .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
+                .Add(Restrictions.In("AnimeID", ids.ToArray()))
                 .List<SVR_AniDB_Anime_Relation>();
 
             return new List<SVR_AniDB_Anime_Relation>(cats);

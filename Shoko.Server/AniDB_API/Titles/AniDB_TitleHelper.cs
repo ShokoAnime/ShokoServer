@@ -30,21 +30,35 @@ namespace Shoko.Server.AniDB_API.Titles
 
         public static AniDB_TitleHelper Instance => _instance ??= new AniDB_TitleHelper();
 
-        public List<AniDBRaw_AnimeTitle_Anime> SearchTitle(string query)
+        public AniDBRaw_AnimeTitle_Anime SearchAnimeID(int animeID)
+        {
+            try
+            {
+                if (_cache == null) CreateCache();
+                return _cache?.Animes
+                    .FirstOrDefault(a => a.AnimeID == animeID);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+            return null;
+        }
+
+        public IEnumerable<AniDBRaw_AnimeTitle_Anime> SearchTitle(string query)
         {
             try
             {
                 if (_cache == null) CreateCache();
                 if (_cache != null)
-                {
-                    List<AniDBRaw_AnimeTitle_Anime> results = SeriesSearch.SearchCollection(query, _cache.Animes,
-                        anime => anime.Titles.Where(a =>
-                                a.TitleLanguage.Equals("en") || a.TitleLanguage.Equals("x-jat") ||
-                                ServerSettings.Instance.LanguagePreference.Contains(a.TitleLanguage))
+                    return SeriesSearch.SearchCollection(
+                        query, _cache.Animes,
+                        anime => anime.Titles
+                            .Where(a => a.TitleLanguage.Equals("en") || a.TitleLanguage.Equals("x-jat") || ServerSettings.Instance.LanguagePreference.Contains(a.TitleLanguage))
                             .Select(a => a.Title)
-                            .ToList()).Select(a => a.Result).ToList();
-                    return results;
-                }
+                            .ToList()
+                        )
+                        .Select(a => a.Result);
             }
             catch (Exception e)
             {

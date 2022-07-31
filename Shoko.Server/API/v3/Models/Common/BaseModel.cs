@@ -15,10 +15,5 @@ namespace Shoko.Server.API.v3.Models.Common
         /// </summary>
         [Required]
         public int Size { get; set; }
-        
-        /// <summary>
-        /// Sizes object, has totals
-        /// </summary>
-        public Sizes Sizes { get; set; }
     }
 }

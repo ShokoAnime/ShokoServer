@@ -15,7 +15,7 @@ namespace Shoko.Server.Repositories.Cached
         private PocoIndex<int, CrossRef_Anime_Staff, int?> RoleIDs;
         private PocoIndex<int, CrossRef_Anime_Staff, StaffRoleType> RoleTypes;
 
-        private static readonly Dictionary<string, CharacterAppearanceType> Roles =
+        public static readonly Dictionary<string, CharacterAppearanceType> Roles =
             new Dictionary<string, CharacterAppearanceType>
             {
                 {"main character in", CharacterAppearanceType.Main_Character},
@@ -34,18 +34,18 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            var list = Cache.Values.Where(animeStaff => animeStaff.RoleID != null && Roles.ContainsKey(animeStaff.Role))
+            var list = Cache.Values.Where(animeStaff => animeStaff.RoleID != null && !string.IsNullOrEmpty(animeStaff.Role) && Roles.ContainsKey(animeStaff.Role) && Roles[animeStaff.Role].ToString().Contains("_"))
                 .ToList();
-            int i = 0;
-            foreach (var animeStaff in list)
+            for (var index = 0; index < list.Count; index++)
             {
+                var animeStaff = list[index];
                 animeStaff.Role = Roles[animeStaff.Role].ToString().Replace("_", " ");
                 Save(animeStaff);
-                i++;
-                if (i % 10 == 0)
+                if (index % 10 == 0)
                     ServerState.Instance.ServerStartingStatus = string.Format(
-                        Resources.Database_Validating, typeof(CrossRef_Anime_Staff).Name,
-                        $" DbRegen - {i}/{list.Count}");
+                        Resources.Database_Validating, nameof(CrossRef_Anime_Staff),
+                        $" DbRegen - {index}/{list.Count}"
+                    );
             }
         }
 

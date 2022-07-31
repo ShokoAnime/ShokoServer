@@ -388,13 +388,18 @@ namespace Shoko.Server.Tasks
                     .Select(s => RepoFactory.AnimeGroup.GetByID(s.AnimeGroupID))
                     .FirstOrDefault(s => s != null);
 
+                int mainAnimeId = grpCalculator.GetGroupAnimeId(series.AniDB_ID);
                 if (animeGroup == null)
                 {
                     // No existing group was found, so create a new one
-                    int mainAnimeId = grpCalculator.GetGroupAnimeId(series.AniDB_ID);
                     SVR_AnimeSeries mainSeries = _animeSeriesRepo.GetByAnimeID(mainAnimeId);
 
                     animeGroup = CreateAnimeGroup(mainSeries, mainAnimeId, DateTime.Now);
+                    RepoFactory.AnimeGroup.Save(animeGroup, true, true);
+                }
+                else if (!animeGroup.DefaultAnimeSeriesID.HasValue && animeGroup.IsManuallyNamed == 0 && mainAnimeId == series.AniDB_ID)
+                {
+                    animeGroup.GroupName = series.GetSeriesName();
                     RepoFactory.AnimeGroup.Save(animeGroup, true, true);
                 }
             }

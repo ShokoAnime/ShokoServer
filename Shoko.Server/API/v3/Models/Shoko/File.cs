@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
+using Shoko.Server.API.Converters;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -126,7 +127,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             public AniDB(SVR_AniDB_File anidb)
             {
                 ID = anidb.FileID;
-                Source = anidb.File_Source;
+                Source = ParseFileSource(anidb.File_Source);
                 ReleaseGroup = new AniDB.AniDBReleaseGroup
                 {
                     ID = anidb.GroupID,
@@ -159,7 +160,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// Blu-ray, DVD, LD, TV, etc
             /// </summary>
-            public string Source { get; set; }
+            public FileSource Source { get; set; }
 
             /// <summary>
             /// The Release Group. This is usually set, but sometimes is set as "raw/unknown"
@@ -169,6 +170,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// The file's release date. This is probably not filled in
             /// </summary>
+            [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
             public DateTime? ReleaseDate { get; set; }
             
             /// <summary>
@@ -344,12 +346,42 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         public class FileUserStats
         {
+            public FileUserStats()
+            {
+                ResumePosition = TimeSpan.Zero;
+                WatchedCount = 0;
+                LastWatchedAt = null;
+                LastUpdatedAt = DateTime.Now;
+            }
+
             public FileUserStats(SVR_VideoLocal_User userStats)
             {
                 ResumePosition = userStats.ResumePositionTimeSpan;
                 WatchedCount = userStats.WatchedCount;
                 LastWatchedAt = userStats.WatchedDate;
                 LastUpdatedAt = userStats.LastUpdated;
+            }
+
+            public FileUserStats MergeWithExisting(SVR_VideoLocal_User existing, SVR_VideoLocal file = null)
+            {
+                // Get the file assosiated with the user entry.
+                if (file == null)
+                    file = existing.GetVideoLocal();
+
+                // Update the last updated field. It's needed for calculating the correct series user stats after setting the watch state.
+                existing.LastUpdated = LastUpdatedAt;
+                RepoFactory.VideoLocalUser.Save(existing);
+
+                // Sync the watch date and aggregate the data up to the episode if needed.
+                file.ToggleWatchedStatus(LastWatchedAt.HasValue, true, LastWatchedAt, true, existing.JMMUserID, true, true);
+
+                // Update the rest of the data. The watch count have been bumped when toggling the watch state, so set it to it's intended value.
+                existing.WatchedCount = WatchedCount;
+                existing.ResumePositionTimeSpan = ResumePosition;
+                RepoFactory.VideoLocalUser.Save(existing);
+
+                // Return a new representation
+                return new(existing);
             }
 
             /// <summary>
@@ -501,5 +533,43 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 public int[] fileIDs { get; set; }
             }
         }
+
+        public static FileSource ParseFileSource(string source)
+        {
+            if (string.IsNullOrEmpty(source))
+                return FileSource.Unknown;
+            return source.Replace("-", "").ToLower() switch
+            {
+                "tv" => FileSource.TV,
+                "dtv" => FileSource.TV,
+                "hdtv" => FileSource.TV,
+                "dvd" => FileSource.DVD,
+                "hkdvd" => FileSource.DVD,
+                "hddvd" => FileSource.DVD,
+                "bluray" => FileSource.BluRay,
+                "www" => FileSource.Web,
+                "vhs" => FileSource.VHS,
+                "vcd" => FileSource.VCD,
+                "svcd" => FileSource.VCD,
+                "ld" => FileSource.LaserDisc,
+                "camcorder" => FileSource.Camera,
+                _ => FileSource.Unknown,
+            };
+        }
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum FileSource
+    {
+        Unknown = 0,
+        Other = 1,
+        TV = 2,
+        DVD = 3,
+        BluRay = 4,
+        Web = 5,
+        VHS = 6,
+        VCD = 7,
+        LaserDisc = 8,
+        Camera = 9,
     }
 }

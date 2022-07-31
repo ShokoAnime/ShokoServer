@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -127,15 +127,7 @@ namespace Shoko.Server.Models
             var userRecord = GetUserRecord(userID);
             if (userRecord != null)
                 return userRecord;
-            userRecord = new()
-            {
-                JMMUserID = userID,
-                LastUpdated = DateTime.Now,
-                ResumePosition = 0,
-                VideoLocalID = VideoLocalID,
-                WatchedCount = 0,
-                WatchedDate = null,
-            };
+            userRecord = new(userID, VideoLocalID);
             RepoFactory.VideoLocalUser.Save(userRecord);
             return userRecord;
         }
@@ -173,15 +165,12 @@ namespace Shoko.Server.Models
             if (watched)
             {
                 if (vidUserRecord == null)
-                    vidUserRecord = new SVR_VideoLocal_User()
-                    {
-                        JMMUserID = userID,
-                        VideoLocalID = VideoLocalID,
-                    };
+                    vidUserRecord = new(userID, VideoLocalID);
                 vidUserRecord.WatchedDate = DateTime.Now;
                 vidUserRecord.WatchedCount++;
 
-                if (watchedDate.HasValue && updateWatchedDate) vidUserRecord.WatchedDate = watchedDate.Value;
+                if (watchedDate.HasValue && updateWatchedDate)
+                    vidUserRecord.WatchedDate = watchedDate.Value;
 
                 vidUserRecord.LastUpdated = DateTime.Now;
                 RepoFactory.VideoLocalUser.Save(vidUserRecord);
@@ -235,24 +224,15 @@ namespace Shoko.Server.Models
 
         public void SetResumePosition(long resumeposition, int userID)
         {
-            SVR_VideoLocal_User vuser = GetUserRecord(userID);
-            if (vuser == null)
-                vuser = new SVR_VideoLocal_User
-                {
-                    JMMUserID = userID,
-                    VideoLocalID = VideoLocalID,
-                    ResumePosition = resumeposition
-                };
-            else
-                vuser.ResumePosition = resumeposition;
-
-            vuser.LastUpdated = DateTime.Now;
-            RepoFactory.VideoLocalUser.Save(vuser);
+            SVR_VideoLocal_User userRecord = GetOrCreateUserRecord(userID);
+            userRecord.ResumePosition = resumeposition;
+            userRecord.LastUpdated = DateTime.Now;
+            RepoFactory.VideoLocalUser.Save(userRecord);
         }
 
         public void ToggleWatchedStatus(bool watched, int userID)
         {
-            ToggleWatchedStatus(watched, true, null, true, userID, true, true);
+            ToggleWatchedStatus(watched, true, watched ? DateTime.Now : null, true, userID, true, true);
         }
 
         public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, int userID,
@@ -448,8 +428,8 @@ namespace Shoko.Server.Models
             {
                 cl.IsWatched = 1;
                 cl.WatchedDate = userRecord.WatchedDate;
-                cl.ResumePosition = userRecord.ResumePosition;
             }
+            cl.ResumePosition = userRecord?.ResumePosition ?? 0;
 
             try
             {
@@ -507,15 +487,13 @@ namespace Shoko.Server.Models
             {
                 cl.VideoLocal_IsWatched = 0;
                 cl.VideoLocal_WatchedDate = null;
-                cl.VideoLocal_ResumePosition = 0;
             }
             else
             {
                 cl.VideoLocal_IsWatched = 1;
                 cl.VideoLocal_WatchedDate = userRecord.WatchedDate;
             }
-            if (userRecord != null)
-                cl.VideoLocal_ResumePosition = userRecord.ResumePosition;
+            cl.VideoLocal_ResumePosition = userRecord?.ResumePosition ?? 0;
             cl.VideoInfo_AudioBitrate = Media?.AudioStreams.FirstOrDefault()?.BitRate.ToString();
             cl.VideoInfo_AudioCodec =
                 LegacyMediaUtils.TranslateCodec(Media?.AudioStreams.FirstOrDefault());
@@ -607,15 +585,13 @@ namespace Shoko.Server.Models
             {
                 cl.IsWatched = 0;
                 cl.WatchedDate = null;
-                cl.ResumePosition = 0;
             }
             else
             {
                 cl.IsWatched = 1;
                 cl.WatchedDate = userRecord.WatchedDate;
             }
-            if (userRecord != null)
-                cl.ResumePosition = userRecord.ResumePosition;
+            cl.ResumePosition = userRecord?.ResumePosition ?? 0;
             return cl;
         }
 

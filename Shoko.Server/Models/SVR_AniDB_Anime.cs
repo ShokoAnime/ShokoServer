@@ -21,6 +21,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -1209,12 +1210,15 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                                 staff.StaffID, StaffRoleType.Seiyuu);
                             if (xrefAnimeStaff == null)
                             {
+                                var role = rawchar.CharType;
+                                if (CrossRef_Anime_StaffRepository.Roles.ContainsKey(role))
+                                    role = CrossRef_Anime_StaffRepository.Roles[role].ToString().Replace("_", " ");
                                 xrefAnimeStaff = new CrossRef_Anime_Staff
                                 {
                                     AniDB_AnimeID = AnimeID,
                                     Language = "Japanese",
                                     RoleType = (int) StaffRoleType.Seiyuu,
-                                    Role = rawchar.CharType,
+                                    Role = role,
                                     RoleID = character.CharacterID,
                                     StaffID = staff.StaffID,
                                 };
@@ -1312,12 +1316,15 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                         staff.StaffID, roleType);
                     if (xrefAnimeStaff == null)
                     {
+                        var role = rawStaff.CreatorType;
+                        if (CrossRef_Anime_StaffRepository.Roles.ContainsKey(role))
+                            role = CrossRef_Anime_StaffRepository.Roles[role].ToString().Replace("_", " ");
                         xrefAnimeStaff = new CrossRef_Anime_Staff
                         {
                             AniDB_AnimeID = AnimeID,
                             Language = "Japanese",
                             RoleType = (int) roleType,
-                            Role = rawStaff.CreatorType,
+                            Role = role,
                             RoleID = null,
                             StaffID = staff.StaffID,
                         };

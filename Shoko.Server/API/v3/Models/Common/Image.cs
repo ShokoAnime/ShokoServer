@@ -1,8 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using ImageMagick;
+using System.IO;
+using System.Linq;
+// using ImageMagick;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
@@ -66,7 +70,7 @@ namespace Shoko.Server.API.v3.Models.Common
             if (type == ImageEntityType.Static)
                 throw new ArgumentException("Static Resources do not use an integer ID");
             
-            RelativeFilepath = GetImagePath(type, id).Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
+            RelativeFilepath = GetImagePath(type, id)?.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
             /*
             var imagePath = GetImagePath(type, id);
             if (string.IsNullOrEmpty(imagePath)) {
@@ -391,6 +395,113 @@ namespace Shoko.Server.API.v3.Models.Common
             }
 
             return path;
+        }
+
+        private static List<ImageSource> BannerImageSources = new List<ImageSource>()
+        {
+            ImageSource.TvDB,
+        };
+
+        private static List<ImageSource> PosterImageSources = new List<ImageSource>()
+        {
+            ImageSource.AniDB,
+            // ImageSource.TMDB,
+            ImageSource.TvDB,
+        };
+
+        // There is only one thumbnail provider atm.
+        private static List<ImageSource> ThumbImageSources = new List<ImageSource>()
+        {
+            ImageSource.TvDB,
+        };
+
+        // TMDB is too unreliable atm, so we will only use TvDB for now.
+        private static List<ImageSource> FanartImageSources = new List<ImageSource>()
+        {
+            ImageSource.TvDB,
+            // ImageSource.TMDB,
+        };
+
+        private static List<ImageSource> CharacterImageSources = new List<ImageSource>()
+        {
+            // ImageSource.AniDB,
+            ImageSource.Shoko,
+        };
+
+        private static List<ImageSource> StaffImageSources = new List<ImageSource>()
+        {
+            // ImageSource.AniDB,
+            ImageSource.Shoko,
+        };
+        
+        private static List<ImageSource> StaticImageSources = new List<ImageSource>()
+        {
+            ImageSource.Shoko,
+        };
+
+        internal static ImageSource GetRandomImageSource(ImageType imageType)
+        {
+            var sourceList = imageType switch
+            {
+                ImageType.Poster => PosterImageSources,
+                ImageType.Banner => BannerImageSources,
+                ImageType.Thumb => ThumbImageSources,
+                ImageType.Fanart => FanartImageSources,
+                ImageType.Character => CharacterImageSources,
+                ImageType.Staff => StaffImageSources,
+                _ => StaticImageSources,
+            };
+
+            return sourceList.GetRandomElement();
+        }
+
+        internal static int? GetRandomImageID(ImageEntityType imageType)
+        {
+            return imageType switch
+            {
+                ImageEntityType.AniDB_Cover => RepoFactory.AniDB_Anime.GetAll()
+                        .Where(a => a?.PosterPath != null && !a.GetAllTags().Contains("18 restricted"))
+                        .GetRandomElement()?.AnimeID,
+                ImageEntityType.AniDB_Character => RepoFactory.AniDB_Anime.GetAll()
+                        .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
+                        .SelectMany(a => a.GetAnimeCharacters()).Select(a => a.GetCharacter()).Where(a => a != null)
+                        .GetRandomElement()?.AniDB_CharacterID,
+                // This will likely be slow
+                ImageEntityType.AniDB_Creator => RepoFactory.AniDB_Anime.GetAll()
+                        .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
+                        .SelectMany(a => a.GetAnimeCharacters())
+                        .SelectMany(a => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(a.CharID))
+                        .Select(a => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(a.SeiyuuID)).Where(a => a != null)
+                        .GetRandomElement()?.AniDB_SeiyuuID,
+                // TvDB doesn't allow H content, so we get to skip the check!
+                ImageEntityType.TvDB_Banner => RepoFactory.TvDB_ImageWideBanner.GetAll()
+                        .GetRandomElement()?.TvDB_ImageWideBannerID,
+                // TvDB doesn't allow H content, so we get to skip the check!
+                ImageEntityType.TvDB_Cover => RepoFactory.TvDB_ImagePoster.GetAll()
+                        .GetRandomElement()?.TvDB_ImagePosterID,
+                // TvDB doesn't allow H content, so we get to skip the check!
+                ImageEntityType.TvDB_Episode => RepoFactory.TvDB_Episode.GetAll()
+                        .GetRandomElement()?.Id,
+                // TvDB doesn't allow H content, so we get to skip the check!
+                ImageEntityType.TvDB_FanArt => RepoFactory.TvDB_ImageFanart.GetAll()
+                        .GetRandomElement()?.TvDB_ImageFanartID,
+                ImageEntityType.MovieDB_FanArt => RepoFactory.MovieDB_Fanart.GetAll()
+                        .GetRandomElement()?.MovieDB_FanartID,
+                ImageEntityType.MovieDB_Poster => RepoFactory.MovieDB_Poster.GetAll()
+                        .GetRandomElement()?.MovieDB_PosterID,
+                ImageEntityType.Character => RepoFactory.AniDB_Anime.GetAll()
+                        .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
+                        .SelectMany(a => RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
+                        .Where(a => a.RoleType == (int) StaffRoleType.Seiyuu && a.RoleID.HasValue)
+                        .Select(a => RepoFactory.AnimeCharacter.GetByID(a.RoleID.Value))
+                        .GetRandomElement()?.CharacterID,
+                ImageEntityType.Staff => RepoFactory.AniDB_Anime.GetAll()
+                        .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
+                        .SelectMany(a => RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
+                        .Select(a => RepoFactory.AnimeStaff.GetByID(a.StaffID))
+                        .GetRandomElement()?.StaffID,
+                _ => null,
+            };
         }
 
         /// <summary>

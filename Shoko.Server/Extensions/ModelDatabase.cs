@@ -69,7 +69,7 @@ namespace Shoko.Server.Extensions
             RepoFactory.AnimeEpisode.Save(existingEp);
 
             // We might have removed our AnimeEpisode_User records when wiping out AnimeEpisodes, recreate them if there's watched files
-            var vlUsers = existingEp?.GetVideoLocals()
+            var vlUsers = existingEp.GetVideoLocals()
                 .SelectMany(a => RepoFactory.VideoLocalUser.GetByVideoLocalID(a.VideoLocalID)).ToList();
             
             // get the list of unique users
@@ -84,17 +84,14 @@ namespace Shoko.Server.Extensions
                     var vlUser = vlUsers.Where(a => a.JMMUserID == uid && a.WatchedDate != null)
                         .MaxBy(a => a.WatchedDate).FirstOrDefault();
                     // create or update the record
-                    var epUser = RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(uid, existingEp.AnimeEpisodeID);
+                    var epUser = existingEp.GetUserRecord(uid);
                     if (epUser == null)
                     {
-                        epUser = new SVR_AnimeEpisode_User
+                        epUser = new SVR_AnimeEpisode_User(uid, existingEp.AnimeEpisodeID, animeSeriesID)
                         {
-                            JMMUserID = uid,
                             WatchedDate = vlUser?.WatchedDate,
                             PlayedCount = vlUser != null ? 1 : 0,
                             WatchedCount = vlUser != null ? 1 : 0,
-                            AnimeSeriesID = animeSeriesID,
-                            AnimeEpisodeID = existingEp.AnimeEpisodeID
                         };
                         RepoFactory.AnimeEpisode_User.Save(epUser);
                     }

@@ -8,6 +8,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Commands;
@@ -50,6 +51,11 @@ namespace Shoko.Server.API.v3.Models.Shoko
         public List<Resource> Links { get; set; }
 
         /// <summary>
+        /// Sizes object, has totals
+        /// </summary>
+        public SeriesSizes Sizes { get; set; }
+
+        /// <summary>
         /// The time when the series was created, during the process of the first file being added
         /// </summary>
         [JsonConverter(typeof(IsoDateTimeConverter))]
@@ -79,7 +85,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             Images = GetDefaultImages(ctx, ser, randomiseImages);
 
             Name = ser.GetSeriesName();
-            Sizes = ModelHelper.GenerateSizes(ael, uid);
+            Sizes = ModelHelper.GenerateSeriesSizes(ael, uid);
             Size = Sizes.Local.Credits + Sizes.Local.Episodes + Sizes.Local.Others + Sizes.Local.Parodies +
                    Sizes.Local.Specials + Sizes.Local.Trailers;
 
@@ -254,7 +260,10 @@ namespace Shoko.Server.API.v3.Models.Shoko
             return tags;
         }
 
-        private static SeriesType GetAniDBSeriesType(AnimeType animeType)
+        public static SeriesType GetAniDBSeriesType(int? animeType)
+            => animeType.HasValue ? GetAniDBSeriesType((AnimeType)animeType.Value) : SeriesType.Unknown;
+
+        public static SeriesType GetAniDBSeriesType(AnimeType animeType)
         {
             switch (animeType)
             {
@@ -318,7 +327,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             var images = new Images();
             AddAniDBPoster(ctx, images, animeID);
             AddTvDBImages(ctx, images, animeID, includeDisabled);
-            AddMovieDBImages(ctx, images, animeID, includeDisabled);
+            // AddMovieDBImages(ctx, images, animeID, includeDisabled);
             return images;
         }
 
@@ -464,11 +473,13 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// Air date (2013-02-27, shut up avael). Anything without an air date is going to be missing a lot of info.
             /// </summary>
             [Required]
+            [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
             public DateTime? AirDate { get; set; }
 
             /// <summary>
             /// End date, can be omitted. Omitted means that it's still airing (2013-02-27)
             /// </summary>
+            [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
             public DateTime? EndDate { get; set; }
 
             /// <summary>
@@ -516,7 +527,19 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// </summary>
             [Required]
             public int ID { get; set; }
-            
+
+            /// <summary>
+            /// Shoko ID if the series is available locally.
+            /// </summary>
+            public int? ShokoID { get; set; }
+
+            /// <summary>
+            /// Series type. Series, OVA, Movie, etc
+            /// </summary>
+            [Required]
+            [JsonConverter(typeof(StringEnumConverter))]
+            public SeriesType Type { get; set; }
+
             /// <summary>
             /// Main Title. Either the shoko name of the series if
             /// it's available locally, or the first "x-jat" or "main" title for
@@ -529,12 +552,12 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// There should always be at least one of these, since name will be valid
             /// </summary>
             [Required]
-            public List<Title> Titles { get; set; }
-            
+            public List<Title> Titles { get; set; }
+
             /// <summary>
-            /// Shoko ID if the series is available locally.
+            /// Number of <see cref="EpisodeType.Normal"/> episodes contained within the series if it's known.
             /// </summary>
-            public int? ShokoID { get; set; }
+            public int? EpisodeCount { get; set; }
         }
 
         /// <summary>
@@ -585,11 +608,13 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// Air date (2013-02-27, shut up avael)
             /// </summary>
+            [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
             public DateTime? AirDate { get; set; }
 
             /// <summary>
             /// End date, can be null. Null means that it's still airing (2013-02-27)
             /// </summary>
+            [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
             public DateTime? EndDate { get; set; }
 
             /// <summary>
@@ -760,5 +785,71 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// Original Video Animations, AKA standalone releases that don't air on TV or the web.
         /// </summary>
         OVA = 6,
+    }
+
+    /// <summary>
+    /// Downloaded, Watched, Total, etc
+    /// </summary>
+    public class SeriesSizes
+    {
+        
+        public SeriesSizes() : base()
+        {
+            FileSources = new();
+            Total = new();
+            Local = new();
+            Watched = new();
+        }
+
+        /// <summary>
+        /// Counts of each file source type available within the local colleciton
+        /// </summary>
+        [Required]
+        public FileSourceCounts FileSources { get; set; }
+
+        /// <summary>
+        /// What is downloaded and available
+        /// </summary>
+        [Required]
+        public EpisodeTypeCounts Local { get; set; }
+
+        /// <summary>
+        /// What is local and watched.
+        /// </summary>
+        public EpisodeTypeCounts Watched { get; set; }
+
+        /// <summary>
+        /// Total count of each type
+        /// </summary>
+        [Required]
+        public EpisodeTypeCounts Total { get; set; }
+
+        /// <summary>
+        /// Lists the count of each type of episode.
+        /// </summary>
+        public class EpisodeTypeCounts
+        {
+            public int Unknown { get; set; }
+            public int Episodes { get; set; }
+            public int Specials { get; set; }
+            public int Credits { get; set; }
+            public int Trailers { get; set; }
+            public int Parodies { get; set; }
+            public int Others { get; set; }
+        }
+
+        public class FileSourceCounts
+        {
+            public int Unknown;
+            public int Other;
+            public int TV;
+            public int DVD;
+            public int BluRay;
+            public int Web;
+            public int VHS;
+            public int VCD;
+            public int LaserDisc;
+            public int Camera;
+        }
     }
 }

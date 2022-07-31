@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -60,8 +61,11 @@ namespace Shoko.Server.Commands.Plex
                         SVR_VideoLocal video = animeEpisode.GetVideoLocals()?.FirstOrDefault();
                         if (video == null) continue;
                         var alreadyWatched = animeEpisode.GetVideoLocals()
-                            .Where(x => x.GetAniDBFile() != null)
-                            .Any(x => x.GetAniDBFile().IsWatched > 0);
+                                 .Where(x => x.GetAniDBFile() != null)
+                                 .Any(x => x.GetAniDBFile().IsWatched > 0);
+                        
+                        if (!alreadyWatched && userRecord != null)
+                            alreadyWatched = userRecord.IsWatched();
 
                         if (alreadyWatched && !isWatched) episode.Scrobble();
 
