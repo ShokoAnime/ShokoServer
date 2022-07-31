@@ -88,7 +88,7 @@
     <!-- This needs to be explicit because of dep BS -->
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="5.0.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.1" />
-    <PackageReference Include="System.Data.Sqlite" Version="1.0.113.1" />
+    <PackageReference Include="System.Data.Sqlite" Version="1.0.116" />
     <PackageReference Include="System.Diagnostics.EventLog" Version="5.0.0" />
     <PackageReference Include="System.Drawing.Common" Version="5.0.0" />
     <!-- This needs to be explicit because of https://github.com/MySqlBackupNET/MySqlBackup.Net/issues/61 -->
