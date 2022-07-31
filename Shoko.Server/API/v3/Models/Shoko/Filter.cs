@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v3.Models.Common;
@@ -122,17 +124,20 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// Condition Type. What it does
             /// </summary>
+            [JsonConverter(typeof(StringEnumConverter))]
             public GroupFilterConditionType Type { get; set; }
 
             /// <summary>
             /// Condition Operator, how it applies
             /// </summary>
+            [JsonConverter(typeof(StringEnumConverter))]
             public GroupFilterOperator Operator { get; set; }
 
             /// <summary>
             /// The actual value to compare
             /// </summary>
             public string Parameter { get; set; }
+
             public Condition(GroupFilterCondition condition)
             {
                 ID = condition.GroupFilterConditionID;
@@ -151,12 +156,14 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// The sorting type. What it is sorted on
             /// </summary>
+            [JsonConverter(typeof(StringEnumConverter))]
             public GroupFilterSorting Type { get; set; }
 
             /// <summary>
             /// Assumed Ascending unless this is specified. You must set this if you want highest rating, for example
             /// </summary>
             public bool Descending { get; set; }
+
             public SortingCriteria(GroupFilterSortingCriteria criteria)
             {
                 Type = criteria.SortType;
