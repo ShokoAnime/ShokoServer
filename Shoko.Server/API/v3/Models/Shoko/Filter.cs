@@ -43,7 +43,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// <summary>
         /// This determines whether to hide the filter in API queries. Things with this need to be explicitly asked for
         /// </summary>
-        public bool HideInAPI { get; set; }
+        public bool Hidden { get; set; }
 
         public Filter() {}
 
@@ -63,7 +63,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             // It's never null, just marked Nullable for some reason
             Locked = gf.Locked != null && gf.Locked.Value == 1;
 
-            HideInAPI = gf.InvisibleInClients == 1;
+            Hidden = gf.InvisibleInClients == 1;
         }
 
         /// <summary>
@@ -202,7 +202,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                     FilterType = Directory ? (int) (GroupFilterType.UserDefined | GroupFilterType.Directory) : (int) GroupFilterType.UserDefined,
                     ApplyToSeries = ApplyAtSeriesLevel ? 1 : 0,
                     GroupFilterName = Name,
-                    InvisibleInClients = HideInAPI ? 1 : 0,
+                    InvisibleInClients = Hidden ? 1 : 0,
                     ParentGroupFilterID = ParentID == 0 ? (int?) null : ParentID,
                     // Conditions
                     BaseCondition = (int) (Conditions.InvertLogic
