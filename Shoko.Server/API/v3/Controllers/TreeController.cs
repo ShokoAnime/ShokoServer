@@ -34,9 +34,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="filterID"><see cref="Filter"/> ID</param>
         /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
         /// <param name="page">The page index.</param>
+        /// <param name="showHidden">Show hidden filters</param>
         /// <returns></returns>
         [HttpGet("Filter/{filterID}/Filter")]
-        public ActionResult<List<Filter>> GetSubFilters([FromRoute] int filterID, [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        public ActionResult<ListResult<Filter>> GetSubFilters([FromRoute] int filterID, [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool showHidden = false)
         {
             var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
             if (groupFilter == null)
@@ -45,17 +46,10 @@ namespace Shoko.Server.API.v3.Controllers
             if (!((GroupFilterType)groupFilter.FilterType).HasFlag(GroupFilterType.Directory))
                 return BadRequest("Filter contains no sub-filters.");
 
-            IEnumerable<SVR_GroupFilter> subGroupFilters = RepoFactory.GroupFilter.GetByParentID(filterID)
-                .OrderBy(OrderByName);
-
-            if (pageSize > 0)
-                subGroupFilters = subGroupFilters
-                    .Skip(page > 0 ? page * pageSize : 0)
-                    .Take(pageSize);
-
-            return subGroupFilters
-                .Select(f => new Filter(HttpContext, f))
-                .ToList();
+            return RepoFactory.GroupFilter.GetByParentID(filterID)
+                .Where(filter => showHidden || filter.InvisibleInClients != 1)
+                .OrderBy(OrderByName)
+                .ToListResult(filter => new Filter(HttpContext, filter), page, pageSize);
         }
 
         /// <summary>
