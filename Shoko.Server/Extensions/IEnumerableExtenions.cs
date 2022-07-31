@@ -22,5 +22,25 @@ namespace Shoko.Server.Extensions
 
             return null;
         }
+
+        public static IOrderedEnumerable<SVR_AnimeGroup> OrderByName(this IEnumerable<SVR_AnimeGroup> enumerable)
+        {
+            return enumerable.OrderBy(OrderByName);
+        }
+
+        public static IOrderedEnumerable<SVR_GroupFilter> OrderByName(this IEnumerable<SVR_GroupFilter> enumerable)
+        {
+            return enumerable.OrderBy(OrderByName);
+        }
+
+        private static string OrderByName(SVR_AnimeGroup group)
+        {
+            return group.SortName;
+        }
+
+        private static string OrderByName(SVR_GroupFilter group)
+        {
+            return group.GroupFilterName;
+        }
     }
 }
