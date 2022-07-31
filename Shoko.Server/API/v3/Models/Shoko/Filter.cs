@@ -47,7 +47,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
         public Filter(HttpContext ctx, SVR_GroupFilter gf)
         {
-            IDs = new FilterIDs { ID = gf.GroupFilterID, ParentFilter = gf.ParentGroupFilterID ?? 0 };
+            IDs = new FilterIDs { ID = gf.GroupFilterID, ParentFilter = gf.ParentGroupFilterID };
             Name = gf.GroupFilterName;
             SVR_JMMUser user = ctx.GetUser();
             Directory = ((GroupFilterType) gf.FilterType).HasFlag(GroupFilterType.Directory);
@@ -89,7 +89,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// The <see cref="IDs.ID"/> of the parent <see cref="Filter"/>, if it has one.
             /// </summary>
-            public int ParentFilter { get; set; }
+            public int? ParentFilter { get; set; }
         }
 
         public class FilterConditions
