@@ -217,6 +217,38 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         #endregion
+        #region Get Relations
+
+        /// <summary>
+        /// Get all relations to locally available series within the group.
+        /// </summary>
+        /// <param name="groupID">Shoko Group ID</param>
+        /// <param name="recursive">Show relations for all series within the group, even for series within sub-groups.</param>
+        /// <returns></returns>
+        [HttpGet("{groupID}/Relations")]
+        public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute] int groupID, [FromQuery] bool recursive = false, [FromQuery] bool external = false)
+        {
+            var group = RepoFactory.AnimeGroup.GetByID(groupID);
+            if (group == null)
+                return NotFound(GroupNotFound);
+            var user = User;
+            if (!user.AllowedGroup(group))
+                return Forbid(GroupForbiddenForUser);
+            var seriesDict = (recursive ? group.GetAllSeries() : group.GetSeries())
+                .ToDictionary(series => series.AniDB_ID);
+            var animeIds = seriesDict.Values
+                .Select(series => series.AniDB_ID)
+                .ToHashSet();
+
+            // TODO: Replace with a more generic implementation capable of suplying relations from more than just AniDB.
+            return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(animeIds)
+                .Select(relation =>(relation, relatedSeries: RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID)))
+                .Where(tuple => tuple.relatedSeries != null && animeIds.Contains(tuple.relatedSeries.AniDB_ID))
+                .Select(tuple => new SeriesRelation(HttpContext, tuple.relation, seriesDict[tuple.relation.AnimeID], tuple.relatedSeries))
+                .ToList();
+        }
+
+        #endregion
         #endregion
         #region Delete
 
