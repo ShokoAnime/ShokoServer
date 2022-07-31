@@ -212,6 +212,8 @@ namespace Shoko.Server.API.v3.Controllers
             var group = RepoFactory.AnimeGroup.GetByID(groupID);
             if (group == null)
                 return NotFound(GroupNotFound);
+            if (!User.AllowedGroup(group))
+                return Forbid(GroupForbiddenForUser);
 
             return new Group(HttpContext, group);
         }
