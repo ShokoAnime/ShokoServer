@@ -1312,7 +1312,6 @@ namespace Shoko.Server.Server
                         o.Release = Utils.GetApplicationVersion();
                         o.Dsn = SentryDsn;
                     })
-
                 .Build();
         }
 

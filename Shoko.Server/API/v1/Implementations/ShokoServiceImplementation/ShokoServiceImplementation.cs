@@ -28,9 +28,8 @@ namespace Shoko.Server
 {
     [EmitEmptyEnumerableInsteadOfNull]
     [ApiController, Route("/v1"), ApiExplorerSettings(IgnoreApi = true)]
-    public partial class ShokoServiceImplementation : Controller, IShokoServer, IHttpContextAccessor
+    public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
-        public new HttpContext HttpContext { get; set; }
         //TODO Split this file into subfiles with partial class, Move #region functionality from the interface to those subfiles
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -275,13 +274,13 @@ namespace Shoko.Server
                 if (http.IsBanned)
                 {
                     contract.IsBanned = true;
-                    contract.BanReason = http.BanTime.ToString();
+                    contract.BanReason = http.BanTime?.ToString();
                     contract.BanOrigin = @"HTTP";
                 }
                 else if (udp.IsBanned)
                 {
                     contract.IsBanned = true;
-                    contract.BanReason = udp.BanTime.ToString();
+                    contract.BanReason = udp.BanTime?.ToString();
                     contract.BanOrigin = @"UDP";
                 }
                 else

@@ -163,7 +163,19 @@ namespace Shoko.Server.Providers.AniDB.UDP
         public bool Login()
         {
             var settings = SettingsProvider.Settings;
-            return Login(settings.AniDb.Username, settings.AniDb.Password);
+            if (Login(settings.AniDb.Username, settings.AniDb.Password)) return true;
+
+            try
+            {
+                ForceLogout();
+                return Login(settings.AniDb.Username, settings.AniDb.Password);
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "{Message}", e);
+            }
+
+            return false;
         }
 
         private bool Login(string username, string password)
