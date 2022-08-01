@@ -20,7 +20,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.FileName).Not.Nullable();
             Map(x => x.FileSize).Not.Nullable();
             Map(x => x.FileVersion).Not.Nullable();
-            Map(x => x.IsCensored).Not.Nullable();
+            Map(x => x.IsCensored).Nullable();
             Map(x => x.IsDeprecated).Not.Nullable();
             Map(x => x.IsChaptered).Not.Nullable();
             Map(x => x.InternalVersion).Not.Nullable();
