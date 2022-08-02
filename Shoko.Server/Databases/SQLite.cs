@@ -31,14 +31,11 @@ namespace Shoko.Server.Databases
             File.Copy(GetDatabaseFilePath(), fullfilename);
         }
 
-        public static string GetDatabasePath()
-        {
-            return ServerSettings.Instance.Database.MySqliteDirectory;
-        }
+        private static string DatabasePath => ServerSettings.Instance.Database.MySqliteDirectory;
 
-        public static string GetDatabaseFilePath()
+        private static string GetDatabaseFilePath()
         {
-            string dbName = Path.Combine(GetDatabasePath(), ServerSettings.Instance.Database.SQLite_DatabaseFile);
+            string dbName = Path.Combine(DatabasePath, ServerSettings.Instance.Database.SQLite_DatabaseFile);
             return dbName;
         }
 
@@ -76,8 +73,8 @@ namespace Shoko.Server.Databases
         {
             if (DatabaseAlreadyExists()) return;
 
-            if (!Directory.Exists(GetDatabasePath()))
-                Directory.CreateDirectory(GetDatabasePath());
+            if (!Directory.Exists(DatabasePath))
+                Directory.CreateDirectory(DatabasePath);
 
             if (!File.Exists(GetDatabaseFilePath()))
                 SQLiteConnection.CreateFile(GetDatabaseFilePath());
