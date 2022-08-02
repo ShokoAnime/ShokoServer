@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using ICSharpCode.SharpZipLib.Zip.Compression;
+using Microsoft.Extensions.Logging;
 using NLog;
 using Shoko.Server.Providers.AniDB.Interfaces;
 
@@ -11,17 +12,18 @@ namespace Shoko.Server.Providers
     {
         private IPEndPoint _localIpEndPoint;
         private IPEndPoint _remoteIpEndPoint;
-        private Socket _aniDBSocket;
-        private string _serverHost;
-        private ushort _serverPort;
-        private ushort _clientPort;
-        private Logger Logger;
+        private readonly Socket _aniDBSocket;
+        private readonly string _serverHost;
+        private readonly ushort _serverPort;
+        private readonly ushort _clientPort;
+        private readonly ILogger<AniDBSocketHandler> _logger;
+        private static readonly object Lock = new();
         private bool Locked { get; set; }
         public bool IsLocked => Locked;
 
-        public AniDBSocketHandler(string host, ushort serverPort, ushort clientPort)
+        public AniDBSocketHandler(ILoggerFactory loggerFactory, string host, ushort serverPort, ushort clientPort)
         {
-            Logger = LogManager.GetLogger(nameof(AniDBSocketHandler));
+            _logger = loggerFactory.CreateLogger<AniDBSocketHandler>();
             _aniDBSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             _serverHost = host;
             _serverPort = serverPort;
@@ -30,38 +32,41 @@ namespace Shoko.Server.Providers
 
         public byte[] Send(byte[] payload)
         {
-            // this doesn't need to be bigger than 1400, but meh, better safe than sorry
-            byte[] result = new byte[1600];
-            Locked = true;
-
-            try
+            lock (Lock)
             {
-                _aniDBSocket.SendTo(payload, _remoteIpEndPoint);
-                EndPoint temp = _remoteIpEndPoint;
-                int received = _aniDBSocket.ReceiveFrom(result, ref temp);
+                // this doesn't need to be bigger than 1400, but meh, better safe than sorry
+                var result = new byte[1600];
+                Locked = true;
 
-                if (received > 2 && result[0] == 0 && result[1] == 0)
+                try
                 {
-                    //deflate
-                    byte[] buff = new byte[65536];
-                    byte[] input = new byte[received - 2];
-                    Array.Copy(result, 2, input, 0, received - 2);
-                    Inflater inf = new Inflater(false);
-                    inf.SetInput(input);
-                    inf.Inflate(buff);
-                    result = buff;
-                    received = (int) inf.TotalOut;
+                    _aniDBSocket.SendTo(payload, _remoteIpEndPoint);
+                    EndPoint temp = _remoteIpEndPoint;
+                    var received = _aniDBSocket.ReceiveFrom(result, ref temp);
+
+                    if (received > 2 && result[0] == 0 && result[1] == 0)
+                    {
+                        //deflate
+                        var buff = new byte[65536];
+                        var input = new byte[received - 2];
+                        Array.Copy(result, 2, input, 0, received - 2);
+                        var inf = new Inflater(false);
+                        inf.SetInput(input);
+                        inf.Inflate(buff);
+                        result = buff;
+                        received = (int)inf.TotalOut;
+                    }
+
+                    Array.Resize(ref result, received);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "{Ex}", e);
                 }
 
-                Array.Resize(ref result, received);
+                Locked = false;
+                return result;
             }
-            catch (Exception e)
-            {
-                Logger.Error(e);
-            }
-
-            Locked = false;
-            return result;
         }
         
         public bool TryConnection()
@@ -73,55 +78,61 @@ namespace Shoko.Server.Providers
             {
                 _localIpEndPoint = new IPEndPoint(IPAddress.Any, _clientPort);
 
+                // we use bind() here (normally only for servers, not clients) instead of connect() because of this:
+                /*
+                 * Local Port
+                 *  A client should select a fixed local port >1024 at install time and reuse it for local UDP Sockets. If the API sees too many different UDP Ports from one IP within ~1 hour it will ban the IP. (So make sure you're reusing your UDP ports also for testing/debugging!)
+                 *  The local port may be hardcoded, however, an option to manually specify another port should be offered.
+                 */
                 _aniDBSocket.Bind(_localIpEndPoint);
                 _aniDBSocket.ReceiveTimeout = 30000; // 30 seconds
 
-                Logger.Info("Bound to local address: {0} - Port: {1} ({2})", _localIpEndPoint,
+                _logger.LogInformation("Bound to local address: {Local} - Port: {ClientPort} ({Family})", _localIpEndPoint,
                     _clientPort, _localIpEndPoint.AddressFamily);
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, $"Could not bind to local port: {ex}");
+                _logger.LogError(ex, "Could not bind to local port: {Ex}", ex);
                 return false;
             }
 
             try
             {
-                IPHostEntry remoteHostEntry = Dns.GetHostEntry(_serverHost);
+                var remoteHostEntry = Dns.GetHostEntry(_serverHost);
                 _remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], _serverPort);
 
-                Logger.Info($"Bound to remote address: {_remoteIpEndPoint.Address} : {_remoteIpEndPoint.Port}");
+                _logger.LogInformation("Bound to remote address: {Address} : {Port}", _remoteIpEndPoint.Address, _remoteIpEndPoint.Port);
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, $"Could not bind to remote port: {ex}");
+                _logger.LogError(ex, "Could not bind to remote port: {Ex}", ex);
                 return false;
             }
 
             return true;
         }
 
-
         public void Dispose()
         {
-            if (_aniDBSocket == null) return;
-            try
+            lock (Lock)
             {
-                _aniDBSocket.Shutdown(SocketShutdown.Both);
-                if (_aniDBSocket.Connected)
+                GC.SuppressFinalize(this);
+                if (_aniDBSocket == null) return;
+                try
                 {
-                    _aniDBSocket.Disconnect(false);
+                    _aniDBSocket.Shutdown(SocketShutdown.Both);
+                    // should not be the case
+                    if (_aniDBSocket.Connected) _aniDBSocket.Disconnect(false);
                 }
-            }
-            catch (SocketException ex)
-            {
-                Logger.Error($"Failed to Shutdown and Disconnect the connection to AniDB: {ex}");
-            }
-            finally
-            {
-                Logger.Info("Closing AniDB Connection...");
-                _aniDBSocket.Close();
-                Logger.Info("Closed AniDB Connection");
+                catch (SocketException ex)
+                {
+                    _logger.LogError(ex, "Failed to Shutdown and Disconnect the connection to AniDB: {@Ex}", ex);
+                }
+                finally
+                {
+                    _aniDBSocket.Close();
+                    _logger.LogInformation("Closed AniDB Connection");
+                }
             }
         }
     }
