@@ -337,6 +337,8 @@ namespace Shoko.Server.Server
             if (!SetupNetHosts()) return false;
 
             Analytics.PostEvent("Server", "StartupFinished");
+            // for log readability, this will simply init the singleton
+            ServiceContainer.GetService<IUDPConnectionHandler>();
             return true;
         }
 
@@ -740,6 +742,11 @@ namespace Shoko.Server.Server
         public void RestartAniDBSocket()
         {
             AniDBDispose();
+            SetupAniDBProcessor();
+        }
+
+        public void StartAniDBSocket()
+        {
             SetupAniDBProcessor();
         }
 
@@ -1392,9 +1399,7 @@ namespace Shoko.Server.Server
 
         private static void AniDBDispose()
         {
-            logger.Info("AniDB Handler Disposing...");
             var handler = ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
-            
             handler.ForceLogout();
             handler.CloseConnections();
         }
