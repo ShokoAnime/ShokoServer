@@ -363,6 +363,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
         public void ForceLogout()
         {
             if (!_isLoggedOn) return;
+            Logger.LogTrace("Logging Out");
             try
             {
                 var req = new RequestLogout();
@@ -373,6 +374,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
                 // ignore
             }
             _isLoggedOn = false;
+            SessionID = null;
         }
 
         public void CloseConnections()
@@ -414,6 +416,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
                 return false;
             }
 
+            Logger.LogTrace("Logging in");
             UDPResponse<ResponseLogin> response;
             try
             {
