@@ -3,10 +3,9 @@ using System.Net;
 using System.Net.Sockets;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using Microsoft.Extensions.Logging;
-using NLog;
 using Shoko.Server.Providers.AniDB.Interfaces;
 
-namespace Shoko.Server.Providers
+namespace Shoko.Server.Providers.AniDB.UDP
 {
     public class AniDBSocketHandler : IAniDBSocketHandler
     {
@@ -120,7 +119,7 @@ namespace Shoko.Server.Providers
                 if (_aniDBSocket == null) return;
                 try
                 {
-                    _aniDBSocket.Shutdown(SocketShutdown.Both);
+                    if (_aniDBSocket.Connected) _aniDBSocket.Shutdown(SocketShutdown.Both);
                     // should not be the case
                     if (_aniDBSocket.Connected) _aniDBSocket.Disconnect(false);
                 }

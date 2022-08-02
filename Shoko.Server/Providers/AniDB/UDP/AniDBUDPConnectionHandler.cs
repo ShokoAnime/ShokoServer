@@ -77,19 +77,20 @@ namespace Shoko.Server.Providers.AniDB.UDP
 
         ~AniDBUDPConnectionHandler()
         {
+            Logger.LogInformation("Disposing AniDBUDPConnectionHandler...");
             CloseConnections();
         }
 
         public bool Init(string username, string password, string serverName, ushort serverPort, ushort clientPort)
         {
-            if (!ValidAniDBCredentials(username, password)) return false;
-            SetCredentials(username, password);
             var settings = SettingsProvider.Settings;
             settings.AniDb.ServerAddress = serverName;
             settings.AniDb.ServerPort = serverPort;
             settings.AniDb.ClientPort = clientPort;
-            
             InitInternal();
+
+            if (!ValidAniDBCredentials(username, password)) return false;
+            SetCredentials(username, password);
             return true;
         }
 
@@ -185,7 +186,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             // check if we are already logged in
             if (_isLoggedOn) return true;
 
-            if (!ValidAniDBCredentials())
+            if (!ValidAniDBCredentials(username, password))
             {
                 LoginFailed?.Invoke(this, null);
                 return false;
@@ -426,8 +427,15 @@ namespace Shoko.Server.Providers.AniDB.UDP
         public void ForceLogout()
         {
             if (!_isLoggedOn) return;
-            var req = new RequestLogout();
-            req.Execute(this);
+            try
+            {
+                var req = new RequestLogout();
+                req.Execute(this);
+            }
+            catch
+            {
+                // ignore
+            }
             _isLoggedOn = false;
         }
 
@@ -449,11 +457,8 @@ namespace Shoko.Server.Providers.AniDB.UDP
             return true;
         }
 
-        public bool ValidAniDBCredentials(string user = null, string pass = null)
+        public bool ValidAniDBCredentials(string user, string pass)
         {
-            var settings = SettingsProvider.Settings;
-            user ??= settings.AniDb.Username;
-            pass ??= settings.AniDb.Password;
             if (string.IsNullOrEmpty(user)) return false;
             if (string.IsNullOrEmpty(pass)) return false;
             return true;
