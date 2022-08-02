@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Text;
 using System.Timers;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Commands;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -101,7 +102,8 @@ namespace Shoko.Server.Providers.AniDB.UDP
             }
 
             var settings = SettingsProvider.Settings;
-            _socketHandler = new AniDBSocketHandler(settings.AniDb.ServerAddress, settings.AniDb.ServerPort, settings.AniDb.ClientPort);
+            var logFactory = ServiceProvider.GetRequiredService<ILoggerFactory>();
+            _socketHandler = new AniDBSocketHandler(logFactory, settings.AniDb.ServerAddress, settings.AniDb.ServerPort, settings.AniDb.ClientPort);
             _isLoggedOn = false;
 
             IsNetworkAvailable = _socketHandler.TryConnection();
