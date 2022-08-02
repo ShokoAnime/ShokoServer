@@ -22,7 +22,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
 
         public event EventHandler LoginFailed;
 
-        public override int BanTimerResetLength => 12;
+        public override double BanTimerResetLength => 1.5D;
         public override string Type => "UDP";
         public override UpdateType BanEnum => UpdateType.UDPBan;
 
@@ -220,6 +220,13 @@ namespace Shoko.Server.Providers.AniDB.UDP
             var byReceivedAdd = _socketHandler.Send(sendByteAdd);
             StampLastMessage(isPing);
 
+            if (byReceivedAdd.All(a => a == 0))
+            {
+                // we are probably banned or have lost connection. We can't tell the difference, so we're assuming ban
+                IsBanned = true;
+                throw new AniDBBannedException { BanType = UpdateType.UDPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength) };
+            }
+
             // decode
             var decodedString = GetEncoding(byReceivedAdd).GetString(byReceivedAdd, 0, byReceivedAdd.Length);
             if (decodedString[0] == 0xFEFF) // remove BOM
@@ -256,11 +263,11 @@ namespace Shoko.Server.Providers.AniDB.UDP
             // If we don't have 2 parts of the first line, then it's not in the expected
             // 200 FILE
             // Format
-            if (firstLineParts.Length != 2) throw new UnexpectedUDPResponseException {Response = decodedString};
+            if (firstLineParts.Length != 2) throw new UnexpectedUDPResponseException { Response = decodedString };
 
             // Can't parse the code
             if (!int.TryParse(firstLineParts[0], out var code))
-                throw new UnexpectedUDPResponseException {Response = decodedString};
+                throw new UnexpectedUDPResponseException { Response = decodedString };
 
             var status = (UDPReturnCode) code;
 

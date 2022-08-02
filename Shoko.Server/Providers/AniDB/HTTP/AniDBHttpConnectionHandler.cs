@@ -11,7 +11,7 @@ namespace Shoko.Server.Providers.AniDB.Http
     public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHandler
     {
         IServiceProvider IHttpConnectionHandler.ServiceProvider => ServiceProvider;
-        public override int BanTimerResetLength => 12;
+        public override double BanTimerResetLength => 12;
 
         public override string Type => "HTTP";
         public override UpdateType BanEnum => UpdateType.HTTPBan;

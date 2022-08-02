@@ -13,7 +13,7 @@ namespace Shoko.Server.Providers.AniDB
         internal IServiceProvider ServiceProvider { get; set; }
         protected CommandProcessor GeneralQueue { get; set; }
         protected AniDBRateLimiter RateLimiter { get; set; }
-        public abstract int BanTimerResetLength { get; }
+        public abstract double BanTimerResetLength { get; }
         public abstract string Type { get; }
         public abstract UpdateType BanEnum { get; }
         
