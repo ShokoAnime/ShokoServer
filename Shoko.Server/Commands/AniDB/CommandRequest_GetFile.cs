@@ -81,6 +81,7 @@ namespace Shoko.Server.Commands.AniDB
                 {
                     // save to the database
                     aniFile ??= new SVR_AniDB_File();
+                    aniFile.Hash = vlocal.Hash;
                     aniFile.FileSize = vlocal.FileSize;
                     aniFile.AnimeID = response.Response.AnimeID;
 
