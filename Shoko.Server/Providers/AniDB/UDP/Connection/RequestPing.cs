@@ -25,7 +25,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
 
         public override UDPResponse<Void> Execute(IUDPConnectionHandler handler)
         {
-            UDPResponse<string> rawResponse = handler.CallAniDBUDPDirectly(BaseCommand, false, true, true);
+            var rawResponse = handler.CallAniDBUDPDirectly(BaseCommand, true, true, true);
             var factory = handler.ServiceProvider.GetRequiredService<ILoggerFactory>();
             var logger = factory.CreateLogger(GetType());
             var response = ParseResponse(logger, rawResponse);
