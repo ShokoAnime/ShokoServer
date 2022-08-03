@@ -211,8 +211,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
 
             if (!disableLogging)
             {
-                var msg = $"AniDB UDP Call: (Using {(needsUnicode ? "Unicode" : "ASCII")}) {command}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
+                Logger.LogTrace("AniDB UDP Call: (Using {Unicode}) {Command}", needsUnicode ? "Unicode" : "ASCII", command);
             }
 
             var sendByteAdd = encoding.GetBytes(command);
@@ -247,16 +246,12 @@ namespace Shoko.Server.Providers.AniDB.UDP
             if (truncated)
             {
                 var ts = DateTime.Now - start;
-                var msg = decodedParts.Length > 0
-                    ? $"UDP_RESPONSE_TRUNC in {ts.TotalMilliseconds}ms - {decodedParts[1]}"
-                    : $"UDP_RESPONSE_TRUNC in {ts.TotalMilliseconds}ms - {decodedString}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
+                Logger.LogTrace("AniDB Response Truncated: Received in {Time:ss.ffff}s\n{DecodedString}", ts, decodedString);
             }
             else
             {
                 var ts = DateTime.Now - start;
-                var msg = $"UDP_RESPONSE in {ts.TotalMilliseconds} ms - {decodedParts} ";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
+                Logger.LogTrace("AniDB Response: Received in {Time:ss.ffff}s\n{DecodedPart1}\n{DecodedPart2}", ts, decodedParts[0], decodedParts[1]);
             }
 
             var firstLineParts = decodedParts[0].Split(' ', 2);

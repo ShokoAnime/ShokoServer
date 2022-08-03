@@ -159,10 +159,10 @@ namespace Shoko.Server.Server
                 target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.log";
             }
 
-#if DEBUG
             // Disable blackhole http info logs
             LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Microsoft.AspNetCore"))?.DisableLoggingForLevel(LogLevel.Info);
             LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Shoko.Server.API.Authentication"))?.DisableLoggingForLevel(LogLevel.Info);
+#if DEBUG
             // Enable debug logging
             LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Contains(target))?.EnableLoggingForLevel(LogLevel.Debug);
 #endif
@@ -173,6 +173,12 @@ namespace Shoko.Server.Server
                     AsyncTargetWrapperOverflowAction.Discard);
             LogManager.Configuration.AddTarget("signalr", signalrTarget);
             LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Info, signalrTarget));
+            var consoleTarget = (ColoredConsoleTarget) LogManager.Configuration.FindTargetByName("console");
+            if (consoleTarget != null)
+            {
+                consoleTarget.Layout = "${date:format=HH\\:mm\\:ss}| ${logger:shortname=true} --- ${message}";
+            }
+
             LogManager.ReconfigExistingLoggers();
         }
 
