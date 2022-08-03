@@ -41,7 +41,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             Command = BaseCommand;
             PreExecute(handler.SessionID);
             // LOGIN commands have special needs, so we want to handle this differently
-            UDPResponse<string> rawResponse = handler.CallAniDBUDPDirectly(Command, false, true, false, true);
+            UDPResponse<string> rawResponse = handler.CallAniDBUDPDirectly(Command, true, true, false, true);
             var factory = handler.ServiceProvider.GetRequiredService<ILoggerFactory>();
             var logger = factory.CreateLogger(GetType());
             var response = ParseResponse(logger, rawResponse);
