@@ -226,8 +226,10 @@ namespace Shoko.Server.Providers.AniDB.UDP
                 throw new AniDBBannedException { BanType = UpdateType.UDPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength) };
             }
 
+            var receivedEncoding = GetEncoding(byReceivedAdd);
+            if (needsUnicode == Equals(receivedEncoding, Encoding.ASCII)) throw new MismatchedEncodingException();
             // decode
-            var decodedString = GetEncoding(byReceivedAdd).GetString(byReceivedAdd, 0, byReceivedAdd.Length);
+            var decodedString = receivedEncoding.GetString(byReceivedAdd, 0, byReceivedAdd.Length);
             if (decodedString[0] == 0xFEFF) // remove BOM
                 decodedString = decodedString[1..];
 
