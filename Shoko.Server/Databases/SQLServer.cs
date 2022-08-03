@@ -56,17 +56,12 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
-                {
-                    var query = "select 1";
-
-                    var command = new SqlCommand(query, connection);
-
-                    connection.Open();
-
-                    command.ExecuteScalar();
-                    return true;
-                }
+                using var connection = new SqlConnection(GetTestConnectionString());
+                const string query = "select 1";
+                var command = new SqlCommand(query, connection);
+                connection.Open();
+                command.ExecuteScalar();
+                return true;
             }
             catch
             {
@@ -75,6 +70,10 @@ namespace Shoko.Server.Databases
             return false;
         }
 
+        public override string GetTestConnectionString()
+        {
+            return $"data source={ServerSettings.Instance.Database.Hostname};Initial Catalog=master;user id={ServerSettings.Instance.Database.Username};password={ServerSettings.Instance.Database.Password};persist security info=True;MultipleActiveResultSets=True";
+        }
 
         public override string GetConnectionString()
         {
@@ -84,16 +83,11 @@ namespace Shoko.Server.Databases
 
         public ISessionFactory CreateSessionFactory()
         {
-            string connectionstring = $@"data source={ServerSettings.Instance.Database.Hostname};initial catalog={
-                    ServerSettings.Instance.Database.Schema
-                };persist security info=True;user id={
-                    ServerSettings.Instance.Database.Username
-                };password={ServerSettings.Instance.Database.Password}";
             // SQL Server batching on Mono is busted atm.
             // Fixed in https://github.com/mono/corefx/commit/6e65509a17da898933705899677c22eae437d68a
             // but waiting for release
             return Fluently.Configure()
-                .Database(MsSqlConfiguration.MsSql2008.ConnectionString(connectionstring))
+                .Database(MsSqlConfiguration.MsSql2008.ConnectionString(GetConnectionString()))
                 .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
                 .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
                 {
@@ -112,16 +106,10 @@ namespace Shoko.Server.Databases
 
         public bool DatabaseAlreadyExists()
         {
-            long count;
-            string cmd = $"Select count(*) from sysdatabases where name = '{ServerSettings.Instance.Database.Schema}'";
-            using (SqlConnection tmpConn =
-                new SqlConnection(
-                    $"Server={ServerSettings.Instance.Database.Hostname};User ID={ServerSettings.Instance.Database.Username};Password={ServerSettings.Instance.Database.Password};database={"master"}")
-            )
-            {
-                tmpConn.Open();
-                count = ExecuteScalar(tmpConn, cmd);
-            }
+            var cmd = $"Select count(*) from sysdatabases where name = '{ServerSettings.Instance.Database.Schema}'";
+            using var tmpConn = new SqlConnection(GetTestConnectionString());
+            tmpConn.Open();
+            var count = ExecuteScalar(tmpConn, cmd);
 
             // if the Versions already exists, it means we have done this already
             if (count > 0) return true;
@@ -134,11 +122,21 @@ namespace Shoko.Server.Databases
         {
             if (DatabaseAlreadyExists()) return;
 
-            ServerConnection conn = new ServerConnection(ServerSettings.Instance.Database.Hostname,
-                ServerSettings.Instance.Database.Username, ServerSettings.Instance.Database.Password);
-            Microsoft.SqlServer.Management.Smo.Server srv = new Microsoft.SqlServer.Management.Smo.Server(conn);
-            Database db = new Database(srv, ServerSettings.Instance.Database.Schema);
-            db.Create();
+            var cmd = $"CREATE DATABASE {ServerSettings.Instance.Database.Schema}";
+            using var connection = new SqlConnection(GetTestConnectionString());
+            var command = new SqlCommand(cmd, connection);
+            connection.Open();
+            command.ExecuteNonQuery();
+        }
+
+        public override bool HasVersionsTable()
+        {
+            const string cmd = "SELECT Count(1) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Versions'";
+            using var connection = new SqlConnection(GetConnectionString());
+            var command = new SqlCommand(cmd, connection);
+            connection.Open();
+            var count = (int) command.ExecuteScalar();
+            return count > 0;
         }
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>

@@ -876,6 +876,23 @@ namespace Shoko.Server.Databases
                 $"Server={ServerSettings.Instance.Database.Hostname};Database={ServerSettings.Instance.Database.Schema};User ID={ServerSettings.Instance.Database.Username};Password={ServerSettings.Instance.Database.Password};Default Command Timeout=3600";
         }
 
+        public override string GetTestConnectionString()
+        {
+            return
+                $"Server={ServerSettings.Instance.Database.Hostname};Database=mysql;User ID={ServerSettings.Instance.Database.Username};Password={ServerSettings.Instance.Database.Password};Default Command Timeout=3600";
+        }
+
+        public override bool HasVersionsTable()
+        {
+            var connStr = GetConnectionString();
+
+            const string sql = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'Versions'";
+            using var conn = new MySqlConnection(connStr);
+            var com = new MySqlCommand(sql, conn);
+            conn.Open();
+            var count = (int) com.ExecuteScalar();
+            return count > 0;
+        }
 
         public ISessionFactory CreateSessionFactory()
         {
@@ -898,23 +915,20 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                string connStr =
-                    $"Server={ServerSettings.Instance.Database.Hostname};User ID={ServerSettings.Instance.Database.Username};Password={ServerSettings.Instance.Database.Password}";
+                var connStr = GetConnectionString();
 
-                string sql =
+                var sql =
                     $"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{ServerSettings.Instance.Database.Schema}'";
                 Logger.Trace(sql);
 
-                using (MySqlConnection conn = new MySqlConnection(connStr))
+                using var conn = new MySqlConnection(connStr);
+                conn.Open();
+                var rows = ExecuteReader(conn, sql);
+                if (rows.Count > 0)
                 {
-                    conn.Open();
-                    ArrayList rows = ExecuteReader(conn, sql);
-                    if (rows.Count > 0)
-                    {
-                        string db = (string) ((object[]) rows[0])[0];
-                        Logger.Trace("Found db already exists: {0}", db);
-                        return true;
-                    }
+                    var db = (string) ((object[]) rows[0])[0];
+                    Logger.Trace("Found db already exists: {DB}", db);
+                    return true;
                 }
             }
             catch (Exception ex)
