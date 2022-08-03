@@ -43,7 +43,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             {
                 rawResponse = handler.CallAniDBUDPDirectly(Command, true, true, false, true);
             }
-            catch (NotLoggedInException)
+            catch (MismatchedEncodingException)
             {
                 rawResponse = handler.CallAniDBUDPDirectly(Command, false, true, false, true);
             }
