@@ -25,10 +25,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             var sessionID = receivedData.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries).Skip(1).FirstOrDefault();
             if (string.IsNullOrWhiteSpace(sessionID)) throw new UnexpectedUDPResponseException(code, receivedData);
             var imageServer = receivedData.Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
-            return new UDPResponse<ResponseLogin>
-            {
-                Response = new ResponseLogin {SessionID = sessionID, ImageServer = imageServer}, Code = code
-            };
+            return new UDPResponse<ResponseLogin> { Response = new ResponseLogin { SessionID = sessionID, ImageServer = imageServer }, Code = code };
         }
 
         protected override void PreExecute(string sessionID)
@@ -41,7 +38,16 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             Command = BaseCommand;
             PreExecute(handler.SessionID);
             // LOGIN commands have special needs, so we want to handle this differently
-            var rawResponse = handler.CallAniDBUDPDirectly(Command, true, true, false, true);
+            UDPResponse<string> rawResponse;
+            try
+            {
+                rawResponse = handler.CallAniDBUDPDirectly(Command, true, true, false, true);
+            }
+            catch (NotLoggedInException)
+            {
+                rawResponse = handler.CallAniDBUDPDirectly(Command, false, true, false, true);
+            }
+
             var factory = handler.ServiceProvider.GetRequiredService<ILoggerFactory>();
             var logger = factory.CreateLogger(GetType());
             var response = ParseResponse(logger, rawResponse);
