@@ -246,12 +246,12 @@ namespace Shoko.Server.Providers.AniDB.UDP
             if (truncated)
             {
                 var ts = DateTime.Now - start;
-                Logger.LogTrace("AniDB Response Truncated: Received in {Time:ss.ffff}s\n{DecodedString}", ts, decodedString);
+                Logger.LogTrace("AniDB Response Truncated: Received in {Time:ss'.'ffff}s\n{DecodedString}", ts, decodedString);
             }
             else
             {
                 var ts = DateTime.Now - start;
-                Logger.LogTrace("AniDB Response: Received in {Time:ss.ffff}s\n{DecodedPart1}\n{DecodedPart2}", ts, decodedParts[0], decodedParts[1]);
+                Logger.LogTrace("AniDB Response: Received in {Time:ss'.'ffff}s\n{DecodedPart1}\n{DecodedPart2}", ts, decodedParts[0], decodedParts[1]);
             }
 
             var firstLineParts = decodedParts[0].Split(' ', 2);
