@@ -75,10 +75,13 @@ namespace Shoko.Server.Databases
 
         public override bool HasVersionsTable()
         {
-            var myConn = new SQLiteConnection(GetConnectionString());
+            using var myConn = new SQLiteConnection(GetConnectionString());
+            myConn.Open();
             const string sql = "SELECT COUNT(name) FROM sqlite_master WHERE type='table' AND name='Versions'";
             var cmd = new SQLiteCommand(sql, myConn);
-            var count = (int)cmd.ExecuteScalar();
+            var count = (long)cmd.ExecuteScalar();
+            myConn.Close();
+
             return count > 0;
         }
 
