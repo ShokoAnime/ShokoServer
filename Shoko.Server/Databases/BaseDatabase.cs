@@ -47,6 +47,7 @@ namespace Shoko.Server.Databases
         protected abstract void Execute(T connection, string command);
         protected abstract long ExecuteScalar(T connection, string command);
         protected abstract ArrayList ExecuteReader(T connection, string command);
+        public abstract string GetTestConnectionString();
         public abstract string GetConnectionString();
 
         public virtual bool TestConnection()
@@ -54,6 +55,8 @@ namespace Shoko.Server.Databases
             // For SQLite, we assume connection succeeds
             return true;
         }
+
+        public abstract bool HasVersionsTable();
 
         protected abstract void ConnectionWrapper(string connectionstring, Action<T> action);
 
@@ -65,11 +68,11 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                AllVersions = RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey);
+                AllVersions = HasVersionsTable() ? RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey) : new Dictionary<string, Dictionary<string, Versions>>();
             }
             catch (Exception e) //First Time
             {
-                Logger.Error(e, "There was an error setting up the database: {Message}", e.ToString());
+                Logger.Error(e, "There was an error setting up the database: {Message}", e);
                 AllVersions = new Dictionary<string, Dictionary<string, Versions>>();
             }
             Fixes = new List<DatabaseCommand>();

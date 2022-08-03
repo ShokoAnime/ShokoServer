@@ -44,6 +44,11 @@ namespace Shoko.Server.Databases
             return $@"data source={GetDatabaseFilePath()};useutf16encoding=True";
         }
 
+        public override string GetTestConnectionString()
+        {
+            return GetConnectionString();
+        }
+
         public ISessionFactory CreateSessionFactory()
         {
             return Fluently.Configure()
@@ -68,6 +73,14 @@ namespace Shoko.Server.Databases
             return false;
         }
 
+        public override bool HasVersionsTable()
+        {
+            var myConn = new SQLiteConnection(GetConnectionString());
+            const string sql = "SELECT COUNT(name) FROM sqlite_master WHERE type='table' AND name='Versions'";
+            var cmd = new SQLiteCommand(sql, myConn);
+            var count = (int)cmd.ExecuteScalar();
+            return count > 0;
+        }
 
         public void CreateDatabase()
         {
