@@ -103,10 +103,10 @@ namespace Shoko.Server.Commands.AniDB
                     aniFile.CreateLanguages(response.Response);
                     aniFile.CreateCrossEpisodes(vlocal.FileName, response.Response);
 
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
+                    var anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
                     if (anime != null) RepoFactory.AniDB_Anime.Save(anime);
-                    SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
-                    series.UpdateStats(true, true, true);
+                    var series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
+                    series?.UpdateStats(true, true, true);
                     Result = RepoFactory.AniDB_File.GetByFileID(aniFile.FileID);
                 }
             }
