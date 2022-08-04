@@ -890,7 +890,7 @@ namespace Shoko.Server.Databases
             using var conn = new MySqlConnection(connStr);
             var com = new MySqlCommand(sql, conn);
             conn.Open();
-            var count = (int) com.ExecuteScalar();
+            var count = (long) com.ExecuteScalar();
             return count > 0;
         }
 
