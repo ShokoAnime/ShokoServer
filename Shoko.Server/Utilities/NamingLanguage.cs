@@ -1,4 +1,4 @@
-﻿namespace Shoko.Server.Utilities
+namespace Shoko.Server.Utilities
 {
     public class NamingLanguage
     {
@@ -7,6 +7,11 @@
         public string LanguageDescription
         {
             get { return Languages.GetLanguageDescription(Language.Trim().ToUpper()); }
+        }
+
+        public bool IsLatin
+        {
+            get { return Languages.IsLatinLanguage(Language.Trim().ToUpper()); }
         }
 
         public NamingLanguage()
@@ -22,5 +27,7 @@
         {
             return string.Format("{0} - ({1})", Language, LanguageDescription);
         }
+
+
     }
 }

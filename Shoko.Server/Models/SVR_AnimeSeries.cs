@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -21,6 +21,7 @@ using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Models
 {
@@ -1313,6 +1314,8 @@ namespace Shoko.Server.Models
 
             foreach (SVR_AnimeSeries series in allseries)
             {
+                bool forceAscii = Languages.PreferredNamingLanguages.ContainsOnlyLatin();
+
                 List<(CrossRef_Anime_Staff, AnimeStaff)> staff = RepoFactory.CrossRef_Anime_Staff
                     .GetByAnimeID(series.AniDB_ID).Select(a => (a, RepoFactory.AnimeStaff.GetByID(a.StaffID))).ToList();
 
@@ -1321,7 +1324,7 @@ namespace Shoko.Server.Models
                     {
                         if (fuzzy)
                         {
-                            if (!animeStaff.Item2.Name.FuzzyMatches(search)) continue;
+                            if (!animeStaff.Item2.Name.FuzzyMatches(search, forceAscii)) continue;
                         }
                         else
                         {

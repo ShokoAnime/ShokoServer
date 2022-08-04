@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities
@@ -242,6 +242,35 @@ namespace Shoko.Server.Utilities
                     return "Chinese (zh-hant)";
                 default:
                     return language;
+            }
+        }
+        public static bool IsLatinLanguage(string language)
+        {
+            switch (language.Trim().ToUpper())
+            {
+                case "JA":
+                case "AR":
+                case "BD":
+                case "BG":
+                case "EL":
+                case "GR":
+                case "HE":
+                case "HU":
+                case "IL":
+                case "KO":
+                case "MN":
+                case "RU":
+                case "SR":
+                case "TH":
+                case "UK":
+                case "UA":
+                case "ZH":
+                case "ZH-HANS":
+                case "ZH-HANT":
+                    return false;
+                default:
+                    return true;
+
             }
         }
 

@@ -10,6 +10,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {
@@ -593,6 +594,7 @@ namespace Shoko.Server
         {
             // Will try to compare the Titles for the first and last episodes of the series
             // This is very inacurrate, but may fix the situations with pre-screenings
+            bool forceAscii = Languages.PreferredNamingLanguages.ContainsOnlyLatin();
 
             // first ep
             var aniepstart = aniepsNormal.FirstOrDefault();
@@ -611,7 +613,7 @@ namespace Shoko.Server
                 string tvstart = epsInSeason.FirstOrDefault()?.EpisodeName;
                 if (string.IsNullOrEmpty(tvstart)) continue;
                 // fuzzy match
-                if (anistart.FuzzyMatches(tvstart))
+                if (anistart.FuzzyMatches(tvstart, forceAscii))
                 {
                     temp.AddRange(epsInSeason);
                     continue;
@@ -620,7 +622,7 @@ namespace Shoko.Server
                 string tvend = epsInSeason.LastOrDefault()?.EpisodeName;
                 if (string.IsNullOrEmpty(tvend)) continue;
                 // fuzzy match
-                if (aniend.FuzzyMatches(tvend))
+                if (aniend.FuzzyMatches(tvend, forceAscii))
                 {
                     temp.AddRange(epsInSeason);
                 }
@@ -655,6 +657,8 @@ namespace Shoko.Server
             ref List<TvDB_Episode> tvepsNormal,
             ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches, bool fuzzy)
         {
+            bool forceAscii = Languages.PreferredNamingLanguages.ContainsOnlyLatin();
+
             foreach (var aniep in aniepsNormal.ToList())
             {
                 string anititle = aniep.GetEnglishTitle();
@@ -668,7 +672,7 @@ namespace Shoko.Server
                     // fuzzy match
                     if (fuzzy)
                     {
-                        if (!anititle.FuzzyMatches(tvtitle)) continue;
+                        if (!anititle.FuzzyMatches(tvtitle, forceAscii)) continue;
                     }
                     else
                     {
@@ -685,6 +689,8 @@ namespace Shoko.Server
 
         private static void CorrectMatchRatings(ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
         {
+            bool forceAscii = Languages.PreferredNamingLanguages.ContainsOnlyLatin();
+
             for (int index = 0; index < matches.Count; index++)
             {
                 var match = matches[index];
@@ -707,7 +713,7 @@ namespace Shoko.Server
                 var aniTitle = match.Item1.GetEnglishTitle();
                 var tvTitle = match.Item2.EpisodeName;
                 // this method returns false if either is null
-                bool titlesMatch = aniTitle.FuzzyMatches(tvTitle);
+                bool titlesMatch = aniTitle.FuzzyMatches(tvTitle, forceAscii);
 
                 matches[index] = titlesMatch
                     ? (match.Item1, match.Item2, MatchRating.Good)

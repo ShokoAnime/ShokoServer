@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -2686,9 +2686,12 @@ namespace Shoko.Server.API.v2.Modules
             double dist = double.MaxValue;
 
             if (string.IsNullOrEmpty(a.GroupName)) return;
+
+            bool forceAscii = Languages.PreferredNamingLanguages.ContainsOnlyLatin();
+
             int k = Math.Max(Math.Min((int)(a.GroupName.Length / 6D), (int)(query.Length / 6D)), 1);
             if (query.Length <= 4 || a.GroupName.Length <= 4) k = 0;
-            var result = Misc.DiceFuzzySearch(a.GroupName, query, k, a);
+            var result = Misc.DiceFuzzySearch(a.GroupName, query, k, a, forceAscii);
             if (result.Index == -1) return;
             if (result.Distance < dist)
             {

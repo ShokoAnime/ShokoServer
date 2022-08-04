@@ -47,6 +47,8 @@ namespace Shoko.Server.Utilities
             if (!(grouping?.SelectMany(a => a.GetAllTitles()).Any() ?? false)) return null;
             SearchResult<List<SVR_AnimeSeries>> dist = null;
 
+            bool forceAscii = Languages.PreferredNamingLanguages.ContainsOnlyLatin();
+
             foreach (SVR_AnimeSeries item in grouping)
             {
                 foreach (string title in item.GetAllTitles())
@@ -56,7 +58,7 @@ namespace Shoko.Server.Utilities
                     if (query.Length <= 4 || title.Length <= 4) k = 0;
 
                     Misc.SearchInfo<IGrouping<int, SVR_AnimeSeries>> result =
-                        Misc.DiceFuzzySearch(title, query, k, grouping);
+                        Misc.DiceFuzzySearch(title, query, k, grouping, forceAscii);
                     if (result.Index == -1) continue;
                     SearchResult<List<SVR_AnimeSeries>> searchGrouping = new SearchResult<List<SVR_AnimeSeries>>
                     {
@@ -106,6 +108,8 @@ namespace Shoko.Server.Utilities
         public static List<SearchResult<T>> SearchCollection<T>(string query, IEnumerable<T> list, Func<T, List<string>> selector)
         {
             var parallelList = list.ToList().AsParallel();
+            bool forceAscii = Languages.PreferredNamingLanguages.ContainsOnlyLatin();
+
             List<SearchResult<T>> results = parallelList.Select(a =>
             {
                 List<string> titles = selector(a);
@@ -117,7 +121,7 @@ namespace Shoko.Server.Utilities
                     if (query.Length <= 4 || title.Length <= 4) k = 0;
 
                     Misc.SearchInfo<T> result =
-                        Misc.DiceFuzzySearch(title, query, k, a);
+                        Misc.DiceFuzzySearch(title, query, k, a, forceAscii);
                     if (result.Index == -1) continue;
                     SearchResult<T> searchGrouping = new SearchResult<T>
                     {
@@ -271,10 +275,12 @@ namespace Shoko.Server.Utilities
         private static List<SearchResult<SVR_AnimeSeries>> SearchTagsFuzzy(string query, int limit, SVR_JMMUser user, ParallelQuery<AniDB_Tag> allTags)
         {
             List<SearchResult<SVR_AnimeSeries>> series = new List<SearchResult<SVR_AnimeSeries>>();
+            bool forceAscii = Languages.PreferredNamingLanguages.ContainsOnlyLatin();
+
             IEnumerable<Misc.SearchInfo<CustomTag>> customTags = RepoFactory.CustomTag.GetAll().Select(a =>
             {
                 if (user.GetHideCategories().Contains(a.TagName)) return null;
-                Misc.SearchInfo<CustomTag> tag = Misc.DiceFuzzySearch(a.TagName, query, 0, a);
+                Misc.SearchInfo<CustomTag> tag = Misc.DiceFuzzySearch(a.TagName, query, 0, a, forceAscii);
                 if (tag.Index == -1 || tag.Result == null) return null;
                 return tag;
             }).Where(a => a != null).OrderBy(a => a.Distance);
@@ -303,7 +309,7 @@ namespace Shoko.Server.Utilities
 
             var tags = allTags.Select(tag =>
             {
-                var result = Misc.DiceFuzzySearch(tag.TagName, query, 0, tag);
+                var result = Misc.DiceFuzzySearch(tag.TagName, query, 0, tag, forceAscii);
                 if (result.Index == -1 || result.Result == null) return null;
                 return result;
             }).Where(a => a != null).OrderBy(a => a.Distance);

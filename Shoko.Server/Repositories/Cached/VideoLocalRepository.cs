@@ -15,6 +15,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -276,10 +277,12 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal> GetByName(string fileName)
         {
+            bool forceAscii = Languages.PreferredNamingLanguages.ContainsOnlyLatin();
+
             lock (Cache)
             {
                 return Cache.Values.Where(p => p.Places.Any(
-                        a => a.FilePath.FuzzyMatches(fileName)))
+                        a => a.FilePath.FuzzyMatches(fileName, forceAscii)))
                     .ToList();
             }
         }
