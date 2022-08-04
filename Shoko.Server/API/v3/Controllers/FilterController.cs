@@ -35,8 +35,8 @@ namespace Shoko.Server.API.v3.Controllers
                 {
                     if (!showHidden && filter.InvisibleInClients == 1)
                         return false;
-                    if (!includeEmpty && filter.GroupsIds.ContainsKey(User.JMMUserID) && filter.GroupsIds[User.JMMUserID].Count == 0)
-                        return false;
+                    if (filter.GroupsIds.ContainsKey(User.JMMUserID) && filter.GroupsIds[User.JMMUserID].Count > 0 || includeEmpty)
+                        return true;
                     return ((GroupFilterType)filter.FilterType).HasFlag(GroupFilterType.Directory);
                 })
                 .OrderBy(filter => filter.GroupFilterName)
