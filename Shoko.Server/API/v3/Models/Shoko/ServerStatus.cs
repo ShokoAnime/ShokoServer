@@ -1,3 +1,4 @@
+using System;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.API.v3.Models.Shoko
@@ -17,7 +18,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// <summary>
         /// Uptime in hh:mm:ss or null if not started. Uses hours may be greater than a day.
         /// </summary>
-        public string Uptime { get; set; }
+        public TimeSpan? Uptime { get; set; }
 
         public enum StartupState
         {

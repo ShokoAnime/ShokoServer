@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v3.Models.Common;
@@ -41,13 +43,13 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// <summary>
         /// This determines whether to hide the filter in API queries. Things with this need to be explicitly asked for
         /// </summary>
-        public bool HideInAPI { get; set; }
+        public bool Hidden { get; set; }
 
         public Filter() {}
 
         public Filter(HttpContext ctx, SVR_GroupFilter gf)
         {
-            IDs = new FilterIDs { ID = gf.GroupFilterID, ParentFilter = gf.ParentGroupFilterID ?? 0 };
+            IDs = new FilterIDs { ID = gf.GroupFilterID, ParentFilter = gf.ParentGroupFilterID };
             Name = gf.GroupFilterName;
             SVR_JMMUser user = ctx.GetUser();
             Directory = ((GroupFilterType) gf.FilterType).HasFlag(GroupFilterType.Directory);
@@ -61,7 +63,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             // It's never null, just marked Nullable for some reason
             Locked = gf.Locked != null && gf.Locked.Value == 1;
 
-            HideInAPI = gf.InvisibleInClients == 1;
+            Hidden = gf.InvisibleInClients == 1;
         }
 
         /// <summary>
@@ -89,7 +91,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// The <see cref="IDs.ID"/> of the parent <see cref="Filter"/>, if it has one.
             /// </summary>
-            public int ParentFilter { get; set; }
+            public int? ParentFilter { get; set; }
         }
 
         public class FilterConditions
@@ -122,17 +124,20 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// Condition Type. What it does
             /// </summary>
+            [JsonConverter(typeof(StringEnumConverter))]
             public GroupFilterConditionType Type { get; set; }
 
             /// <summary>
             /// Condition Operator, how it applies
             /// </summary>
+            [JsonConverter(typeof(StringEnumConverter))]
             public GroupFilterOperator Operator { get; set; }
 
             /// <summary>
             /// The actual value to compare
             /// </summary>
             public string Parameter { get; set; }
+
             public Condition(GroupFilterCondition condition)
             {
                 ID = condition.GroupFilterConditionID;
@@ -151,12 +156,14 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// The sorting type. What it is sorted on
             /// </summary>
+            [JsonConverter(typeof(StringEnumConverter))]
             public GroupFilterSorting Type { get; set; }
 
             /// <summary>
             /// Assumed Ascending unless this is specified. You must set this if you want highest rating, for example
             /// </summary>
             public bool Descending { get; set; }
+
             public SortingCriteria(GroupFilterSortingCriteria criteria)
             {
                 Type = criteria.SortType;
@@ -195,7 +202,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                     FilterType = Directory ? (int) (GroupFilterType.UserDefined | GroupFilterType.Directory) : (int) GroupFilterType.UserDefined,
                     ApplyToSeries = ApplyAtSeriesLevel ? 1 : 0,
                     GroupFilterName = Name,
-                    InvisibleInClients = HideInAPI ? 1 : 0,
+                    InvisibleInClients = Hidden ? 1 : 0,
                     ParentGroupFilterID = ParentID == 0 ? (int?) null : ParentID,
                     // Conditions
                     BaseCondition = (int) (Conditions.InvertLogic

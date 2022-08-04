@@ -128,9 +128,6 @@ namespace Shoko.Server.API.v3.Controllers
         public ServerStatus GetServerStatus()
         {
             TimeSpan? uptime = ShokoServer.UpTime;
-            string uptimemsg = uptime == null
-                ? null
-                : $"{(int) uptime.Value.TotalHours:00}:{uptime.Value.Minutes:00}:{uptime.Value.Seconds:00}";
 
             string message = null;
             ServerStatus.StartupState state = ServerStatus.StartupState.Waiting;
@@ -153,7 +150,7 @@ namespace Shoko.Server.API.v3.Controllers
             {
                 State = state,
                 StartupMessage = message,
-                Uptime = uptimemsg,
+                Uptime = uptime,
                 DatabaseBlocked = ServerState.Instance.DatabaseBlocked
             };
             return status;

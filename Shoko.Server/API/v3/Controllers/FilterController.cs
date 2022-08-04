@@ -22,21 +22,21 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get All <see cref="Filter"/>s
         /// </summary>
-        /// <param name="includeEmpty"></param>
-        /// <param name="includeInvisible"></param>
-        /// <param name="page"></param>
-        /// <param name="pageSize"></param>
+        /// <param name="includeEmpty">Include empty filters.</param>
+        /// <param name="showHidden">Show hidden filters.</param>
+        /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
+        /// <param name="page">The page index.</param>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<ListResult<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false, [FromQuery] bool includeInvisible = false, [FromQuery] [Range(0, 100)] int pageSize = 10, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        public ActionResult<ListResult<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false, [FromQuery] bool showHidden = false, [FromQuery] [Range(0, 100)] int pageSize = 10, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             return RepoFactory.GroupFilter.GetTopLevel()
                 .Where(filter =>
                 {
-                    if (filter.InvisibleInClients != 0 && !includeInvisible)
+                    if (!(showHidden || filter.InvisibleInClients != 1))
                         return false;
-                    if (filter.GroupsIds.ContainsKey(User.JMMUserID) && filter.GroupsIds[User.JMMUserID].Count > 0 || includeEmpty)
-                        return true;
+                    if (!(includeEmpty || filter.GroupsIds.ContainsKey(User.JMMUserID) && filter.GroupsIds[User.JMMUserID].Count > 0))
+                        return false;
                     return ((GroupFilterType)filter.FilterType).HasFlag(GroupFilterType.Directory);
                 })
                 .OrderBy(filter => filter.GroupFilterName)
