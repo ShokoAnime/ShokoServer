@@ -33,9 +33,9 @@ namespace Shoko.Server.API.v3.Controllers
             return RepoFactory.GroupFilter.GetTopLevel()
                 .Where(filter =>
                 {
-                    if (!(showHidden || filter.InvisibleInClients != 1))
+                    if (!showHidden && filter.InvisibleInClients == 1)
                         return false;
-                    if (!(includeEmpty || filter.GroupsIds.ContainsKey(User.JMMUserID) && filter.GroupsIds[User.JMMUserID].Count > 0))
+                    if (!includeEmpty && filter.GroupsIds.ContainsKey(User.JMMUserID) filter.GroupsIds[User.JMMUserID].Count == 0))
                         return false;
                     return ((GroupFilterType)filter.FilterType).HasFlag(GroupFilterType.Directory);
                 })
