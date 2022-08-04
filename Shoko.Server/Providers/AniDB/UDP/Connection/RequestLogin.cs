@@ -41,11 +41,11 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             UDPResponse<string> rawResponse;
             try
             {
-                rawResponse = handler.CallAniDBUDPDirectly(Command, true, true, false, true);
-            }
-            catch (MismatchedEncodingException)
-            {
                 rawResponse = handler.CallAniDBUDPDirectly(Command, false, true, false, true);
+            }
+            catch (NotLoggedInException)
+            {
+                rawResponse = handler.CallAniDBUDPDirectly(Command, true, true, false, true);
             }
 
             var factory = handler.ServiceProvider.GetRequiredService<ILoggerFactory>();
