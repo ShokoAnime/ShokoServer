@@ -330,7 +330,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="fileID">VideoLocal ID</param>
         /// <param name="value">Thew new ignore value.</param>
         /// <returns></returns>
-        [HttpPatch("{fileID}/Ignore")]
+        [HttpPut("{fileID}/Ignore")]
         public ActionResult IgnoreFile([FromRoute] int fileID, [FromQuery] bool value = true)
         {
             var file = RepoFactory.VideoLocal.GetByID(fileID);
