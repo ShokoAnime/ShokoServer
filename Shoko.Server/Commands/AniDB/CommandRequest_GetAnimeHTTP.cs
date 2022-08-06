@@ -81,7 +81,7 @@ namespace Shoko.Server.Commands.AniDB
                 if (anime != null && update != null)
                 {
                     var ts = DateTime.Now - update.UpdatedAt;
-                    if (ts.TotalHours < 4) animeRecentlyUpdated = true;
+                    if (ts.TotalHours < ServerSettings.Instance.AniDb.MinimumHoursToRedownloadAnimeInfo) animeRecentlyUpdated = true;
                 }
                 if (!animeRecentlyUpdated && !CacheOnly)
                 {
@@ -153,15 +153,27 @@ namespace Shoko.Server.Commands.AniDB
             if (depth > ServerSettings.Instance.AniDb.MaxRelationDepth) return;
             foreach (var relation in response.Relations)
             {
-                if (RepoFactory.AniDB_Anime.GetByAnimeID(relation.RelatedAnimeID) != null) continue;
-                if (ServerSettings.Instance.AutoGroupSeries && !handler.IsBanned)
+                var relatedAnime = RepoFactory.AniDB_Anime.GetByAnimeID(relation.RelatedAnimeID);
+                var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(relation.RelatedAnimeID);
+                
+                var animeRecentlyUpdated = false;
+                if (relatedAnime != null && update != null)
+                {
+                    var ts = DateTime.Now - update.UpdatedAt;
+                    if (ts.TotalHours < ServerSettings.Instance.AniDb.MinimumHoursToRedownloadAnimeInfo) animeRecentlyUpdated = true;
+                }
+
+                var download = !animeRecentlyUpdated && !CacheOnly;
+
+                // we only want to pull right now if we are grouping, and not if it was recently or banned
+                if (download && ServerSettings.Instance.AutoGroupSeries && !handler.IsBanned)
                 {
                     try
                     {
                         var relationRequest = new RequestGetAnime { AnimeID = relation.RelatedAnimeID };
                         var relationResponse = relationRequest.Execute(handler);
-                        var anime = new SVR_AniDB_Anime();
-                        animeCreator.CreateAnime(session, relationResponse.Response, anime, depth);
+                        relatedAnime ??= new SVR_AniDB_Anime();
+                        animeCreator.CreateAnime(session, relationResponse.Response, relatedAnime, depth);
                         // we just downloaded depth, so the next recursion is depth + 1
                         if (depth + 1 > ServerSettings.Instance.AniDb.MaxRelationDepth) return;
                         ProcessRelationsRecursive(session, relationResponse.Response, handler, animeCreator, depth + 1);
