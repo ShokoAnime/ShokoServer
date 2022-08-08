@@ -324,7 +324,7 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("AniDBCalendar")]
         public List<Dashboard.EpisodeDetails> GetAniDBCalendarInDays([FromQuery] int numberOfDays = 7, [FromQuery] bool showAll = false)
         {
-            SVR_JMMUser user = HttpContext.GetUser();
+            var user = HttpContext.GetUser();
             var episodeList = RepoFactory.AniDB_Episode.GetForDate(DateTime.Today, DateTime.Today.AddDays(numberOfDays)).ToList();
             var animeDict = episodeList
                 .Select(episode => RepoFactory.AniDB_Anime.GetByAnimeID(episode.AnimeID))
