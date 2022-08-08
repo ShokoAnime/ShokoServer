@@ -463,6 +463,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 Description = anime?.Description;
                 Restricted = anime != null ? anime.Restricted == 1 : false;
                 EpisodeCount = anime?.EpisodeCount;
+                Poster = GetAniDBPoster(anime.AnimeID);
             }
 
             public AniDB(SVR_AniDB_Anime_Relation relation, bool includeTitles) : this(relation, null, includeTitles) { }
