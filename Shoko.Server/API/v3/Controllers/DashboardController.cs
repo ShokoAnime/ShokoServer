@@ -188,12 +188,11 @@ namespace Shoko.Server.API.v3.Controllers
             var user = HttpContext.GetUser();
             var episodeList = RepoFactory.VideoLocal.GetAll()
                 .OrderByDescending(f => f.DateTimeCreated)
-                .SelectMany(file => file.GetAnimeEpisodes())
-                .DistinctBy(episode => episode.AnimeEpisodeID)
-                .ToList();
+                .SelectMany(file => file.GetAnimeEpisodes().Select(episode => (file, episode)))
+                .DistinctBy(tuple => tuple.episode.AnimeEpisodeID);
             var seriesDict = episodeList
-                .DistinctBy(episode => episode.AnimeSeriesID)
-                .Select(episode => episode.GetAnimeSeries())
+                .DistinctBy(tuple => tuple.episode.AnimeSeriesID)
+                .Select(tuple => tuple.episode.GetAnimeSeries())
                 .Where(series => series != null && user.AllowedSeries(series))
                 .ToDictionary(series => series.AnimeSeriesID);
             var animeDict = seriesDict.Values
@@ -201,14 +200,14 @@ namespace Shoko.Server.API.v3.Controllers
 
             if (pageSize <= 0)
                 return episodeList
-                    .Where(episode => seriesDict.ContainsKey(episode.AnimeSeriesID))
-                    .Select(episode => GetEpisodeDetailsForSeriesAndEpisode(user, episode, seriesDict[episode.AnimeSeriesID], animeDict[episode.AnimeSeriesID]))
+                    .Where(tuple => seriesDict.ContainsKey(tuple.episode.AnimeSeriesID))
+                    .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, seriesDict[tuple.episode.AnimeSeriesID], animeDict[tuple.episode.AnimeSeriesID], tuple.file))
                     .ToList();
             return episodeList
-                .Where(episode => seriesDict.ContainsKey(episode.AnimeSeriesID))
+                .Where(tuple => seriesDict.ContainsKey(tuple.episode.AnimeSeriesID))
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
-                .Select(episode => GetEpisodeDetailsForSeriesAndEpisode(user, episode, seriesDict[episode.AnimeSeriesID], animeDict[episode.AnimeSeriesID]))
+                .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, seriesDict[tuple.episode.AnimeSeriesID], animeDict[tuple.episode.AnimeSeriesID], tuple.file))
                 .ToList();
         }
 
@@ -300,22 +299,19 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         [NonAction]
-        public Dashboard.EpisodeDetails GetEpisodeDetailsForSeriesAndEpisode(SVR_JMMUser user, SVR_AnimeEpisode episode, SVR_AnimeSeries series, SVR_AniDB_Anime anime = null)
+        public Dashboard.EpisodeDetails GetEpisodeDetailsForSeriesAndEpisode(SVR_JMMUser user, SVR_AnimeEpisode episode, SVR_AnimeSeries series, SVR_AniDB_Anime anime = null, SVR_VideoLocal file = null)
         {
+            SVR_VideoLocal_User userRecord = null;
             var animeEpisode = episode.AniDB_Episode;
             if (anime == null)
                 anime = series.GetAnime();
-            var (file, userRecord) = episode.GetVideoLocals()
-                .Select(file =>
-                {
-                    var userRecord = file.GetUserRecord(user.JMMUserID);
-                    if (userRecord == null)
-                        return (file, null);
-
-                    return (file, userRecord);
-                })
-                .Where(tuple => tuple.Item1 != null)
-                .OrderByDescending(tuple => tuple.Item2?.LastUpdated)
+            if (file != null)
+                userRecord = file.GetUserRecord(user.JMMUserID);
+            else
+                (file, userRecord) = episode.GetVideoLocals()
+                    .Select(file => (file, userRecord: file.GetUserRecord(user.JMMUserID)))
+                    .OrderByDescending(tuple => tuple.userRecord?.LastUpdated)
+                    .ThenByDescending(tuple => tuple.file.DateTimeCreated)
                 .FirstOrDefault();
             return new Dashboard.EpisodeDetails(animeEpisode, anime, series, file, userRecord);
         }
