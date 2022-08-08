@@ -64,15 +64,15 @@ namespace Shoko.Server.API.v3.Controllers
             startsWith = startsWith.ToLowerInvariant();
             var user = User;
             return RepoFactory.AnimeSeries.GetAll()
-                .Select(series => (series, series.GetSeriesName().ToLowerInvariant()))
+                .Select(series => (series, seriesName: series.GetSeriesName().ToLowerInvariant()))
                 .Where(tuple => {
                     var (series, seriesName) = tuple;
-                    if (!string.IsNullOrEmpty(startsWith) && !seriesName.ToLowerInvariant().StartsWith(startsWith))
+                    if (!string.IsNullOrEmpty(startsWith) && !seriesName.StartsWith(startsWith))
                         return false;
 
                     return user.AllowedSeries(series);
                 })
-                .OrderBy(a => a.Item2)
+                .OrderBy(a => a.seriesName)
                 .ToListResult(tuple => new Series(HttpContext, tuple.series), page, pageSize);
         }
 
