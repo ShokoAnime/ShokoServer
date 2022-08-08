@@ -11,6 +11,14 @@ namespace Shoko.Server.API.v3.Models.Common
     /// </summary>
     public class Vote
     {
+        public Vote(int value, int maxValue = 10) : this((decimal)value, maxValue) { }
+
+        public Vote(decimal value, int maxValue = 10)
+        {
+            Value = value;
+            MaxValue = maxValue;
+        }
+
         /// <summary>
         /// The normalised user-submitted rating in the range [0, <paramref name="maxValue" />].
         /// </summary>
@@ -22,12 +30,14 @@ namespace Shoko.Server.API.v3.Models.Common
         /// <summary>
         /// The user-submitted rating relative to <see cref="Vote.MaxValue" />.
         /// </summary>
+        [Range(0, int.MaxValue)]
         [Required]
         public decimal Value { get; set; }
 
         /// <summary>
         /// Max allowed value for the user-submitted rating. Assumes 10 if not set.
         /// </summary>
+        [Range(0, int.MaxValue)]
         [DefaultValue(10)]
         public int MaxValue { get; set; }
 

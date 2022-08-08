@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Serialization;
 
 namespace Shoko.Server.AniDB_API.Titles
@@ -12,6 +13,15 @@ namespace Shoko.Server.AniDB_API.Titles
     
     public class AniDBRaw_AnimeTitle_Anime
     {
+        [XmlIgnore]
+        public virtual string MainTitle
+        {
+            get
+            {
+                return (Titles.FirstOrDefault(t => t.TitleLanguage == "x-jat" && t.TitleType == "main") ?? Titles.FirstOrDefault()).Title;
+            }
+        }
+
         [XmlAttribute(DataType = "int", AttributeName = "aid")]
         public int AnimeID { get; set; }
 

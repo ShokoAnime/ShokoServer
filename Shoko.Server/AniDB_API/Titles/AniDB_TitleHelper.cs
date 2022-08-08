@@ -45,6 +45,23 @@ namespace Shoko.Server.AniDB_API.Titles
             return null;
         }
 
+        public bool TrySearchAnimeID(int animeID, out AniDBRaw_AnimeTitle_Anime anime)
+        {
+            try
+            {
+                if (_cache == null) CreateCache();
+                anime = _cache?.Animes
+                    .FirstOrDefault(a => a.AnimeID == animeID);
+                return anime != null;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                anime = null;
+                return false;
+            }
+        }
+
         public IEnumerable<AniDBRaw_AnimeTitle_Anime> SearchTitle(string query)
         {
             try
