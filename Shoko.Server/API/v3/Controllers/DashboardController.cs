@@ -188,8 +188,7 @@ namespace Shoko.Server.API.v3.Controllers
             var user = HttpContext.GetUser();
             var episodeList = RepoFactory.VideoLocal.GetAll()
                 .OrderByDescending(f => f.DateTimeCreated)
-                .SelectMany(file => file.GetAnimeEpisodes().Select(episode => (file, episode)))
-                .DistinctBy(tuple => tuple.episode.AnimeEpisodeID);
+                .SelectMany(file => file.GetAnimeEpisodes().Select(episode => (file, episode)));
             var seriesDict = episodeList
                 .DistinctBy(tuple => tuple.episode.AnimeSeriesID)
                 .Select(tuple => tuple.episode.GetAnimeSeries())
