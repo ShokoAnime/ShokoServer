@@ -198,7 +198,7 @@ namespace Shoko.Server.API.v3.Helpers
             return sizes;
         }
 
-        public static GroupSizes GenerateGroupSizes(List<SVR_AnimeSeries> seriesList, List<SVR_AnimeEpisode> episodeList, int userID)
+        public static GroupSizes GenerateGroupSizes(List<SVR_AnimeSeries> seriesList, List<SVR_AnimeEpisode> episodeList, int subGroups, int userID)
         {
             var sizes = new GroupSizes(GenerateSeriesSizes(episodeList, userID));
             foreach (var series in seriesList)

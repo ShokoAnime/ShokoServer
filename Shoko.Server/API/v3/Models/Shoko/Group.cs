@@ -63,6 +63,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
         {
             var random = ctx.Items["Random"] as Random;
             int uid = ctx.GetUser()?.JMMUserID ?? 0;
+            var subGroupCount = group.GetChildGroups().Count;
             var allSeries = group.GetAllSeries(skipSorting: true);
             var imageSeries = randomiseImages ? allSeries.GetRandomElement(random) : group.GetDefaultSeries() ?? allSeries.FirstOrDefault();
             List<SVR_AnimeEpisode> ael = allSeries.SelectMany(a => a.GetAnimeEpisodes()).ToList();
@@ -77,7 +78,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             Name = group.GroupName;
             SortName = group.SortName;
             Description = group.Description;
-            Sizes = ModelHelper.GenerateGroupSizes(allSeries, ael, uid);
+            Sizes = ModelHelper.GenerateGroupSizes(allSeries, ael, subGroupCount, uid);
             Size = group.GetSeries().Count;
             HasCustomName = group.IsManuallyNamed == 1;
 
@@ -212,6 +213,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
     {
         public GroupSizes() : base()
         {
+            SubGroups = 0;
             SeriesTypes = new();
         }
 
@@ -222,6 +224,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             Watched = sizes.Watched;
             Total = sizes.Total;
             SeriesTypes = new();
+            SubGroups = 0;
         }
 
         /// <summary>
@@ -229,6 +232,12 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         [Required]
         public SeriesTypeCounts SeriesTypes { get; set; }
+
+        /// <summary>
+        /// Number of direct sub-groups within the group.
+        /// </summary>
+        /// <value></value>
+        public int SubGroups { get; set;}
 
         public class SeriesTypeCounts
         {
