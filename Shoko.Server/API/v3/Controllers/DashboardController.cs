@@ -254,16 +254,16 @@ namespace Shoko.Server.API.v3.Controllers
                 .OrderByDescending(record => record.LastEpisodeUpdate)
                 .Select(record => record.AnimeSeries)
                 .Where(series => user.AllowedSeries(series))
-                .Select(series => (series, series.GetActiveEpisode(user.JMMUserID, includeSpecials)))
-                .Where(tuple => tuple.Item2 != null);
+                .Select(series => (series, episode: series.GetActiveEpisode(user.JMMUserID, includeSpecials)))
+                .Where(tuple => tuple.episode != null);
             if (pageSize <= 0)
                 return episodeList
-                    .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.Item2, tuple.series))
+                    .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series))
                     .ToList();
             return episodeList
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
-                .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.Item2, tuple.series))
+                .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series))
                 .ToList();
         }
 
@@ -284,16 +284,16 @@ namespace Shoko.Server.API.v3.Controllers
                 .OrderByDescending(record => record.LastEpisodeUpdate)
                 .Select(record => record.AnimeSeries)
                 .Where(series => user.AllowedSeries(series))
-                .Select(series => (series, series.GetNextEpisode(user.JMMUserID, onlyUnwatched, includeSpecials)))
-                .Where(tuple => tuple.Item2 != null);
+                .Select(series => (series, episode: series.GetNextEpisode(user.JMMUserID, onlyUnwatched, includeSpecials)))
+                .Where(tuple => tuple.episode != null);
             if (pageSize <= 0)
                 return episodeList
-                    .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.Item2, tuple.series))
+                    .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series))
                     .ToList();
             return episodeList
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
-                .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.Item2, tuple.series))
+                .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series))
                 .ToList();
         }
 
