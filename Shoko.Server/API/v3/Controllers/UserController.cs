@@ -49,6 +49,16 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
+        /// Get the current <see cref="User"/>.
+        /// </summary>
+        /// <returns>The user.</returns>
+        [HttpGet("Current")]
+        public ActionResult<User> GetCurrentUser()
+        {
+            return new User(User);
+        }
+
+        /// <summary>
         /// Patch a User with JSON Patch.
         /// </summary>
         /// <param name="userID">User ID</param>
