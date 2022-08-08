@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -19,18 +21,18 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// Pretty Self-explanatory. It's the Username of the user
         /// </summary>
         public string Username { get; set; }
-        
+
         /// <summary>
         /// Is the user an admin. Admins can perform all operations, including modification of users
         /// </summary>
         public bool IsAdmin { get; set; }
-        
+
         /// <summary>
         /// This is a list of services that the user is set to use. AniDB, Trakt, and Plex, for example
         /// </summary>
         [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
         public List<CommunitySites> CommunitySites { get; set; }
-        
+
         /// <summary>
         /// This is also called 'Hide Categories'. The current political atmosphere made me salty enough to call it what it is: a blacklist.
         /// Tags that are here are not visible to the user. Any series with any of these tags will not be shown in any context
@@ -61,10 +63,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             }
         }
 
-        public User()
-        {
-            
-        }
+        public User() { }
 
         public User(SVR_JMMUser user)
         {
@@ -77,7 +76,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             if (!string.IsNullOrEmpty(user.PlexToken)) CommunitySites.Add(global::Shoko.Models.Enums.CommunitySites.Plex);
             TagBlacklist = user.GetHideCategories().ToList();
         }
-        
+
         public SVR_JMMUser MergeServerModel(SVR_JMMUser existing)
         {
             var user = new SVR_JMMUser
@@ -109,6 +108,34 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// The token for authentication with the Plex Server API
             /// </summary>
             public string PlexToken { get; set; }
+        }
+
+        #nullable enable
+        public class Input
+        {
+            public class ChangePasswordBody
+            {
+                public ChangePasswordBody()
+                {
+                    Password = "";
+                    RevokeAPIKeys = true;
+                }
+
+                /// <summary>
+                /// Password
+                /// </summary>
+                /// <value></value>
+                [MaxLength(1024, ErrorMessage = "Password cannot be longer than 1024 characters. Why the fuck do you need more than 1024 characters in your password?")]
+                [Required(ErrorMessage = "Password is required", AllowEmptyStrings = true)]
+                public string Password { get; set; }
+
+                /// <summary>
+                /// Revoke all previous active API keys for the user.
+                /// </summary>
+                /// <value></value>
+                [DefaultValue(true)]
+                public bool RevokeAPIKeys { get; set; }
+            }
         }
     }
 }
