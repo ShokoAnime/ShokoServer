@@ -592,7 +592,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="imageType">Poster, Banner, Fanart</param>
         /// <param name="body">The body containing the source and id used to set.</param>
         /// <returns></returns>
-        [HttpPatch("{seriesID}/Images/{imageType}")]
+        [HttpPut("{seriesID}/Images/{imageType}")]
         public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute] int seriesID, [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
