@@ -143,7 +143,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="seriesID">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{seriesID}/AniDB")]
-        public ActionResult<Series.AniDB> GetSeriesAnidbBySeriesID([FromRoute] int seriesID)
+        public ActionResult<Series.AniDBWithDate> GetSeriesAnidbBySeriesID([FromRoute] int seriesID)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (series == null)
@@ -155,7 +155,53 @@ namespace Shoko.Server.API.v3.Controllers
             if (anidb == null)
                 return InternalError(AnidbNotFoundForSeriesID);
 
-            return new Series.AniDB(HttpContext, anidb);
+            return new Series.AniDBWithDate(HttpContext, anidb, series);
+        }
+
+        /// <summary>
+        /// Get all similar <see cref="Series.AniDB"/> entries for the <paramref name="seriesID"/>.
+        /// </summary>
+        /// <param name="seriesID">Shoko ID</param>
+        /// <returns></returns>
+        [HttpGet("{seriesID}/AniDB/Similar")]
+        public ActionResult<List<Series.AniDB>> GetAnidbSimilarBySeriesID([FromRoute] int seriesID)
+        {
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
+
+            var anidb = series.GetAnime();
+            if (anidb == null)
+                return InternalError(AnidbNotFoundForSeriesID);
+
+            return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(anidb.AnimeID)
+                .Select(similar => new Series.AniDB(similar))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Get all similar <see cref="Series.AniDB"/> entries for the <paramref name="seriesID"/>.
+        /// </summary>
+        /// <param name="seriesID">Shoko ID</param>
+        /// <returns></returns>
+        [HttpGet("{seriesID}/AniDB/Related")]
+        public ActionResult<List<Series.AniDB>> GetAnidbRelatedBySeriesID([FromRoute] int seriesID)
+        {
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
+
+            var anidb = series.GetAnime();
+            if (anidb == null)
+                return InternalError(AnidbNotFoundForSeriesID);
+
+            return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidb.AnimeID)
+                .Select(relation => new Series.AniDB(relation))
+                .ToList();
         }
 
         /// <summary>
@@ -228,11 +274,11 @@ namespace Shoko.Server.API.v3.Controllers
                 .GroupBy(anime => anime.SimilarAnimeID)
                 .Select(similarTo =>
                 {
-                    var anime = unwatchedAnimeDict[similarTo.Key];
+                    var (anime, series) = unwatchedAnimeDict[similarTo.Key];
                     var similarToCount = similarTo.Count();
                     return new Series.AniDBRecommendedForYou()
                     {
-                        Anime = new Series.AniDB(HttpContext, anime),
+                        Anime = new Series.AniDBWithDate(HttpContext, anime, series),
                         SimilarTo = similarToCount,
                     };
                 })
@@ -280,7 +326,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="watchedAnime">Optional. Re-use an existing list of the watched anime.</param>
         /// <returns>The unwatched anime for the user.</returns>
         [NonAction]
-        private Dictionary<int, SVR_AniDB_Anime> GetUnwatchedAnime(SVR_JMMUser user, bool showAll, IEnumerable<SVR_AniDB_Anime> watchedAnime = null)
+        private Dictionary<int, (SVR_AniDB_Anime, SVR_AnimeSeries)> GetUnwatchedAnime(SVR_JMMUser user, bool showAll, IEnumerable<SVR_AniDB_Anime> watchedAnime = null)
         {
             // Get all watched series (reuse if date is not set)
             var watchedSeriesSet = (watchedAnime ?? GetWatchedAnimeForPeriod(user))
@@ -290,11 +336,11 @@ namespace Shoko.Server.API.v3.Controllers
             if (showAll)
                 return RepoFactory.AniDB_Anime.GetAll()
                     .Where(anime => user.AllowedAnime(anime) && !watchedSeriesSet.Contains(anime.AnimeID))
-                    .ToDictionary(anime => anime.AnimeID);
+                    .ToDictionary<SVR_AniDB_Anime, int, (SVR_AniDB_Anime, SVR_AnimeSeries)>(anime => anime.AnimeID, anime => (anime, null));
 
             return RepoFactory.AnimeSeries.GetAll()
                 .Where(series => user.AllowedSeries(series) && !watchedSeriesSet.Contains(series.AniDB_ID))
-                .ToDictionary(series => series.AniDB_ID, series => series.GetAnime());
+                .ToDictionary(series => series.AniDB_ID, series => (series.GetAnime(), series));
         }
 
         #endregion
@@ -305,7 +351,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="anidbID">AniDB ID</param>
         /// <returns></returns>
         [HttpGet("AniDB/{anidbID}")]
-        public ActionResult<Series.AniDB> GetSeriesAnidbByAnidbID([FromRoute] int anidbID)
+        public ActionResult<Series.AniDBWithDate> GetSeriesAnidbByAnidbID([FromRoute] int anidbID)
         {
             var anidb = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
             if (anidb == null)
@@ -313,7 +359,45 @@ namespace Shoko.Server.API.v3.Controllers
             if (!User.AllowedAnime(anidb))
                 return Forbid(AnidbForbiddenForUser);
 
-            return new Series.AniDB(HttpContext, anidb);
+            return new Series.AniDBWithDate(HttpContext, anidb);
+        }
+
+        /// <summary>
+        /// Get all similar <see cref="Series.AniDB"/> entries for the <paramref name="anidbID"/>.
+        /// </summary>
+        /// <param name="anidbID">AniDB ID</param>
+        /// <returns></returns>
+        [HttpGet("AniDB/{anidbID}/Similar")]
+        public ActionResult<List<Series.AniDB>> GetAnidbSimilarByAnidbID([FromRoute] int anidbID)
+        {
+            var anidb = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
+            if (anidb == null)
+                return NotFound(AnidbNotFoundForAnidbID);
+            if (!User.AllowedAnime(anidb))
+                return Forbid(AnidbForbiddenForUser);
+
+            return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(anidbID)
+                .Select(similar => new Series.AniDB(similar))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Get all related <see cref="Series.AniDB"/> entries for the <paramref name="anidbID"/>.
+        /// </summary>
+        /// <param name="anidbID">AniDB ID</param>
+        /// <returns></returns>
+        [HttpGet("AniDB/{anidbID}/Related")]
+        public ActionResult<List<Series.AniDB>> GetAnidbRelatedByAnidbID([FromRoute] int anidbID)
+        {
+            var anidb = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
+            if (anidb == null)
+                return NotFound(AnidbNotFoundForAnidbID);
+            if (!User.AllowedAnime(anidb))
+                return Forbid(AnidbForbiddenForUser);
+
+            return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidbID)
+                .Select(relation => new Series.AniDB(relation))
+                .ToList();
         }
 
         /// <summary>
@@ -888,61 +972,21 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">The page index.</param>
         /// <returns></returns>
         [HttpGet("AniDB/Search/{query}")]
-        public ActionResult<ListResult<Series.AniDBSearchResult>> AnidbSearch([FromRoute] string query, [FromQuery] bool? local = null, [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        public ActionResult<ListResult<Series.AniDB>> AnidbSearch([FromRoute] string query, [FromQuery] bool? local = null, [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         {
             // We're searching using the anime ID, so first check the local db then the title cache for a match.
             if (int.TryParse(query, out int animeID))
             {
                 var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime != null)
-                {
-                    var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-                    var mainTitle = series?.GetSeriesName() ?? anime.MainTitle;
-                    return new Series.AniDBSearchResult[1]
-                    {
-                        new Series.AniDBSearchResult
-                        {
-                            ID = anime.AnimeID,
-                            Title =  mainTitle,
-                            Titles = includeTitles ? anime.GetTitles().Select(title => new Title
-                                {
-                                    Language = title.Language,
-                                    Name = title.Title,
-                                    Type = title.TitleType,
-                                    Default = string.Equals(title.Title, mainTitle),
-                                    Source = "AniDB",
-                                }
-                            ).ToList() : null,
-                            ShokoID = series?.AnimeSeriesID,
-                        },
-                    }.ToListResult();
-                }
+                    return new ListResult<Series.AniDB>(1, new() { new Series.AniDB(anime, includeTitles) });
 
                 // Check the title cache for a match.
                 var result = AniDB_TitleHelper.Instance.SearchAnimeID(animeID);
                 if (result != null)
-                {
-                    var mainTitle = (result.Titles.FirstOrDefault(a => a.TitleLanguage == "x-jat" && a.TitleType == "main") ?? result.Titles.FirstOrDefault());
-                    return new Series.AniDBSearchResult[1]
-                    {
-                        new Series.AniDBSearchResult
-                        {
-                            ID = result.AnimeID,
-                            Title = mainTitle.Title,
-                            Titles = includeTitles ? result.Titles.Select(title => new Title
-                                {
-                                    Language = title.TitleLanguage,
-                                    Name = title.Title,
-                                    Type = title.TitleType,
-                                    Default = title == mainTitle,
-                                    Source = "AniDB",
-                                }
-                            ).ToList() : null,
-                        },
-                    }.ToListResult();
-                }
+                    return new ListResult<Series.AniDB>(1, new() { new Series.AniDB(result, includeTitles) });
 
-                return new ListResult<Series.AniDBSearchResult>();
+                return new ListResult<Series.AniDB>();
             }
 
             // Search the title cache for anime matching the query.
@@ -953,26 +997,7 @@ namespace Shoko.Server.API.v3.Controllers
                     if (local.HasValue && series == null == local.Value)
                         return null;
 
-                    var anime = series != null ? series.GetAnime() : RepoFactory.AniDB_Anime.GetByAnimeID(result.AnimeID);
-                    int? episodeCount = anime != null ? RepoFactory.AniDB_Episode.GetByAnimeID(result.AnimeID).Where(episode => episode.GetEpisodeTypeEnum() == Shoko.Models.Enums.EpisodeType.Episode).Count() : null;
-                    string mainTitle = series?.GetSeriesName() ?? (result.Titles.FirstOrDefault(a => a.TitleLanguage == "x-jat" && a.TitleType == "main") ?? result.Titles.FirstOrDefault())?.Title;
-                    return new Series.AniDBSearchResult
-                    {
-                        ID = result.AnimeID,
-                        Type = Series.GetAniDBSeriesType(anime?.AnimeType),
-                        Title = mainTitle,
-                        Titles = includeTitles ? result.Titles.Select(title => new Title
-                            {
-                                Language = title.TitleLanguage,
-                                Name = title.Title,
-                                Type = title.TitleType,
-                                Default = title.Title == mainTitle,
-                                Source = "AniDB",
-                            }
-                        ).ToList() : null,
-                        ShokoID = series?.AnimeSeriesID,
-                        EpisodeCount = episodeCount,
-                    };
+                    return new Series.AniDB(result, series, includeTitles);
                 })
                 .Where(result => result != null)
                 .ToListResult(page, pageSize);

@@ -109,6 +109,14 @@ namespace Shoko.Server.Repositories
             }
         }
 
+        public bool TryGetByAnimeID(int id, out SVR_AniDB_Anime anime)
+        {
+            lock (Cache)
+            {
+                anime = Animes.GetOne(id);
+                return anime != null;
+            }
+        }
 
         public SVR_AniDB_Anime GetByAnimeID(int id)
         {
