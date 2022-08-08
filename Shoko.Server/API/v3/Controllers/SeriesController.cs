@@ -138,6 +138,47 @@ namespace Shoko.Server.API.v3.Controllers
         #region AniDB
 
         /// <summary>
+        /// Get a paginated list of all <see cref="Series.AniDB"/> available to the current <see cref="User"/>.
+        /// </summary>
+        /// <param name="pageSize">The page size.</param>
+        /// <param name="page">The page index.</param>
+        /// <param name="startsWith">Search only for anime with a main title that start with the given query.</param>
+        /// <returns></returns>
+        [HttpGet("AniDB")]
+        public ActionResult<ListResult<Series.AniDBWithDate>> GetAllAnime([FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] string startsWith = "")
+        {
+            startsWith = startsWith.ToLowerInvariant();
+            var user = User;
+            return RepoFactory.AniDB_Anime.GetAll()
+                .Select(anime => (anime, animeTitle: anime.PreferredTitle.ToLowerInvariant()))
+                .Where(tuple => {
+                    var (anime, animeTitle) = tuple;
+                    if (!string.IsNullOrEmpty(startsWith) && !animeTitle.StartsWith(startsWith))
+                        return false;
+
+                    return user.AllowedAnime(anime);
+                })
+                .OrderBy(a => a.animeTitle)
+                .ToListResult(tuple => new Series.AniDBWithDate(HttpContext, tuple.anime), page, pageSize);
+        }
+
+        /// <summary>
+        /// Get a paginated list of all AniDB <see cref="SeriesRelation"/>s.
+        /// </summary>
+        /// <param name="pageSize">The page size.</param>
+        /// <param name="page">The page index.</param>
+        /// <returns></returns>
+        [HttpGet("AniDB/Relations")]
+        public ActionResult<ListResult<SeriesRelation>> GetAnidbRelations([FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        {
+            var user = User;
+            return RepoFactory.AniDB_Anime_Relation.GetAll()
+                .OrderBy(a => a.AnimeID)
+                .ThenBy(a => a.RelatedAnimeID)
+                .ToListResult(relation => new SeriesRelation(HttpContext, relation), page, pageSize);
+        }
+
+        /// <summary>
         /// Get AniDB Info for series with ID
         /// </summary>
         /// <param name="seriesID">Shoko ID</param>
