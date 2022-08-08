@@ -228,7 +228,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="recursive">Show relations for all series within the group, even for series within sub-groups.</param>
         /// <returns></returns>
         [HttpGet("{groupID}/Relations")]
-        public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute] int groupID, [FromQuery] bool recursive = false, [FromQuery] bool external = false)
+        public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute] int groupID, [FromQuery] bool recursive = false)
         {
             var group = RepoFactory.AnimeGroup.GetByID(groupID);
             if (group == null)
