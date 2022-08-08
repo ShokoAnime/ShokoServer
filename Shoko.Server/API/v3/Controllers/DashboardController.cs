@@ -246,7 +246,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="includeSpecials">Include specials in the search.</param>
         /// <returns></returns>
         [HttpGet("ContinueWatchingEpisodes")]
-        public List<Dashboard.EpisodeDetails> GetContinueWatchingEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, Int16.MaxValue)] int page = 0, [FromQuery] bool includeSpecials = true)
+        public List<Dashboard.EpisodeDetails> GetContinueWatchingEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, int.MaxValue)] int page = 0, [FromQuery] bool includeSpecials = true)
         {
             var user = HttpContext.GetUser();
             var episodeList = RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID)
@@ -276,7 +276,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="includeSpecials">Include specials in the search.</param>
         /// <returns></returns>
         [HttpGet("NextUpEpisodes")]
-        public List<Dashboard.EpisodeDetails> GetNextUpEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, Int16.MaxValue)] int page = 0, [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true)
+        public List<Dashboard.EpisodeDetails> GetNextUpEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, int.MaxValue)] int page = 0, [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true)
         {
             var user = HttpContext.GetUser();
             var episodeList = RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID)
