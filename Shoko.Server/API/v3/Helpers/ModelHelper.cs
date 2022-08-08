@@ -229,6 +229,7 @@ namespace Shoko.Server.API.v3.Helpers
                         break;
                 }
             }
+            sizes.SubGroups = subGroups;
             return sizes;
         }
     }
