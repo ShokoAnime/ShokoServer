@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -130,10 +129,6 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                         ).Where(a => a != null).ToArray();
                         if (tempXrefs.Length > 0)
                             xrefs.AddRange(tempXrefs);
-                    }
-                    else
-                    {
-                        xrefs = new List<ResponseGetFile.EpisodeXRef>();
                     }
                     
                     // audio languages

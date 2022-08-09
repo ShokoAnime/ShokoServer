@@ -15,7 +15,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         {
             get
             {
-                var command = $"MYLISTADD size={Size}&ed2k={Hash}&state={State}";
+                var command = $"MYLISTADD size={Size}&ed2k={Hash}&state={(int)State}";
                 if (IsWatched)
                 {
                     var date = WatchedDate ?? DateTime.Now;

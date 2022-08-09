@@ -14,7 +14,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                 var type = "";
                 if (EpisodeType != EpisodeType.Episode)
                     type = EpisodeType.ToString()[..1];
-                var command = $"MYLISTADD aid={AnimeID}&epno={type+EpisodeNumber}&generic=1&state={State}";
+                var command = $"MYLISTADD aid={AnimeID}&epno={type+EpisodeNumber}&generic=1&state={(int)State}";
                 if (IsWatched)
                 {
                     var date = WatchedDate ?? DateTime.Now;
@@ -22,7 +22,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                 }
                 else
                 {
-                    command += "viewed=0";
+                    command += "&viewed=0";
                 }
 
                 return command;
