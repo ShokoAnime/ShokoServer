@@ -17,7 +17,6 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 using RelationType = Shoko.Plugin.Abstractions.DataModels.RelationType;
