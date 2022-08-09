@@ -7,18 +7,6 @@ namespace Shoko.Server.Models
     public class SVR_AniDB_Anime_Title : AniDB_Anime_Title
     {
         /// <summary>
-        /// The local id for the row.
-        /// </summary>
-        /// <value></value>
-        public new int AniDB_Anime_TitleID { get; set; }
-
-        /// <summary>
-        /// The AniDB anime id for which the title belongs to.
-        /// </summary>
-        /// <value></value>
-        public new int AnimeID { get; set; }
-
-        /// <summary>
         /// The title type.
         /// </summary>
         /// <value></value>
@@ -42,14 +30,8 @@ namespace Shoko.Server.Models
             }
             set
             {
-                Language = value.GetEnum();
+                Language = value.GetTitleLanguage();
             }
         }
-
-        /// <summary>
-        /// The actual title.
-        /// </summary>
-        /// <value></value>
-        public new string Title { get; set; }
     }
 }

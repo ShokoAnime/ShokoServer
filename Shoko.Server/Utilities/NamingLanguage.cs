@@ -35,7 +35,7 @@ namespace Shoko.Server.Utilities
 
         public NamingLanguage(string language)
         {
-            Language = language.GetEnum();
+            Language = language.GetTitleLanguage();
         }
 
         public override string ToString()

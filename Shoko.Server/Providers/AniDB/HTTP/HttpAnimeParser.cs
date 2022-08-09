@@ -235,7 +235,7 @@ namespace Shoko.Server.Providers.AniDB.Http
             var titleType = TryGetAttribute(node, "type");
             if (!Enum.TryParse(titleType, true, out TitleType type)) return null;
             var language = TryGetAttribute(node, "xml:lang");
-            var langEnum = language.GetEnum();
+            var langEnum = language.GetTitleLanguage();
             var title = node.InnerText.Trim().Replace('`', '\'');
             return new ResponseTitle { Title = title, TitleType = type, Language = langEnum };
         }
@@ -289,7 +289,7 @@ namespace Shoko.Server.Providers.AniDB.Http
                             nodeChild,
                             episodeTitle = new ResponseTitle
                             {
-                                Language = nodeChild?.Attributes?["xml:lang"]?.Value?.GetEnum() ?? TitleLanguage.Unknown,
+                                Language = nodeChild?.Attributes?["xml:lang"]?.Value?.GetTitleLanguage() ?? TitleLanguage.Unknown,
                                 Title = nodeChild?.InnerText.Trim().Replace('`', '\''),
                                 TitleType = TitleType.None,
                             },

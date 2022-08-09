@@ -4,7 +4,7 @@ namespace Shoko.Plugin.Abstractions.Extensions;
 
 public static class LanguageExtensions
 {
-    public static TitleLanguage GetEnum(this string lang)
+    public static TitleLanguage GetTitleLanguage(this string lang)
     {
         return lang.ToUpper() switch
         {
