@@ -32,7 +32,6 @@ namespace Shoko.Models.Server
         public DateTime DateTimeUpdated { get; set; }
         public DateTime DateTimeDescUpdated { get; set; }
         public int ImageEnabled { get; set; }
-        public string AwardList { get; set; }
         public int Restricted { get; set; }
         public int? AnimePlanetID { get; set; }
         public int? ANNID { get; set; }
@@ -79,7 +78,6 @@ namespace Shoko.Models.Server
                 DateTimeUpdated = DateTimeUpdated,
                 DateTimeDescUpdated = DateTimeDescUpdated,
                 ImageEnabled = ImageEnabled,
-                AwardList = AwardList,
                 Restricted = Restricted,
                 AnimePlanetID = AnimePlanetID,
                 ANNID = ANNID,

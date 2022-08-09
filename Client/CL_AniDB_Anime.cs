@@ -46,7 +46,6 @@ namespace Shoko.Models.Client
             DateTimeUpdated = obj.DateTimeUpdated;
             DateTimeDescUpdated = obj.DateTimeDescUpdated;
             ImageEnabled = obj.ImageEnabled;
-            AwardList = obj.AwardList;
             Restricted = obj.Restricted;
             AnimePlanetID = obj.AnimePlanetID;
             ANNID = obj.ANNID;
