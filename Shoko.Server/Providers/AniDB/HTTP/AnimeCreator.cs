@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -145,7 +145,6 @@ namespace Shoko.Server.AniDB_API
             anime.TempVoteCount = animeInfo.TempVoteCount;
             anime.URL = animeInfo.URL;
             anime.VoteCount = animeInfo.VoteCount;
-            anime.AwardList = "";
             return true;
         }
 

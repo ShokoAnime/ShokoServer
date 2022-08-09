@@ -648,6 +648,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(99, 3, "ALTER TABLE `AniDB_GroupStatus` MODIFY `Rating` decimal(6,2) NULL; UPDATE `AniDB_GroupStatus` SET `Rating` = `Rating` / 100 WHERE `Rating` > 10"),
             new DatabaseCommand(99, 4, "ALTER TABLE `AniDB_Character` DROP COLUMN CreatorListRaw;"),
             new DatabaseCommand(99, 5, "ALTER TABLE `AniDB_Anime_Character` DROP COLUMN EpisodeListRaw;"),
+            new DatabaseCommand(99, 6, "ALTER TABLE `AniDB_Anime` DROP COLUMN AwardList;"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
