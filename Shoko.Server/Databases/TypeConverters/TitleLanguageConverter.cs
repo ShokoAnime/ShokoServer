@@ -42,7 +42,7 @@ namespace Shoko.Server.Databases.TypeConverters
             {
                 case null: return TitleLanguage.Unknown;
                 case int i: return (TitleLanguage)i;
-                case string s: s.GetEnum();
+                case string s: s.GetTitleLanguage();
                     break;
             }
 

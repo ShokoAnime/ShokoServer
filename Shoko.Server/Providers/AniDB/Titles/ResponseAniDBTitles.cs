@@ -49,7 +49,7 @@ namespace Shoko.Server.Providers.AniDB.Titles
                     }
                     set
                     {
-                        Language = value.GetEnum();
+                        Language = value.GetTitleLanguage();
                     }
                 }
             }
