@@ -1317,7 +1317,7 @@ namespace Shoko.Server.Server
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
-                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                    logging.SetMinimumLevel(ServerSettings.Instance.LogWebRequests ? Microsoft.Extensions.Logging.LogLevel.Trace : Microsoft.Extensions.Logging.LogLevel.Warning);
                 }).UseNLog()
                 .UseSentry(
                     o =>
