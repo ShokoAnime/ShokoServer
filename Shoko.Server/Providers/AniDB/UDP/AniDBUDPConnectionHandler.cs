@@ -235,7 +235,8 @@ namespace Shoko.Server.Providers.AniDB.UDP
             // the first is after the command .e.g "220 FILE"
             // the second is at the end of the data
             var decodedParts = decodedString.Split('\n');
-            var truncated = decodedString.Count(a => a == '\n') != 2;
+            var truncated = decodedString.Count(a => a == '\n') < 2 || !decodedString.EndsWith('\n');
+            var decodedResponse = string.Join('\n', decodedString.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Skip(1)); 
 
             // If the parts don't have at least 2 items, then we don't have a valid response
             // parts[0] => 200 FILE
@@ -251,7 +252,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             else
             {
                 var ts = DateTime.Now - start;
-                Logger.LogTrace("AniDB Response: Received in {Time:ss'.'ffff}s\n{DecodedPart1}\n{DecodedPart2}", ts, decodedParts[0], decodedParts[1]);
+                Logger.LogTrace("AniDB Response: Received in {Time:ss'.'ffff}s\n{DecodedPart1}\n{DecodedPart2}", ts, decodedParts[0], decodedResponse);
             }
 
             var firstLineParts = decodedParts[0].Split(' ', 2);
@@ -301,7 +302,8 @@ namespace Shoko.Server.Providers.AniDB.UDP
             }
 
             if (returnFullResponse) return new UDPResponse<string> {Code = status, Response = decodedString};
-            return new UDPResponse<string> {Code = status, Response = decodedParts[1].Trim()};
+            // things like group status have more than 2 lines, so rebuild the data from the original string. split, remove empty, and skip the code
+            return new UDPResponse<string> { Code = status, Response = decodedResponse };
         }
         
         public void ForceReconnection()

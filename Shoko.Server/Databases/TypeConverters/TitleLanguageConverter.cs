@@ -30,6 +30,7 @@ namespace Shoko.Server.Databases.TypeConverters
             {
                 case "System.String":
                 case "System.Int32":
+                case "System.Int64":
                     return true;
                 default:
                     return false;
@@ -38,15 +39,14 @@ namespace Shoko.Server.Databases.TypeConverters
 
         public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
         {
-            switch (value)
+            return value switch
             {
-                case null: return TitleLanguage.Unknown;
-                case int i: return (TitleLanguage)i;
-                case string s: s.GetTitleLanguage();
-                    break;
-            }
-
-            throw new ArgumentException("DestinationType must be string or int");
+                null => TitleLanguage.Unknown,
+                long i => i,
+                int i => i,
+                string s => s.GetTitleLanguage(),
+                _ => throw new ArgumentException("DestinationType must be string or int")
+            };
         }
 
         /// <summary>
@@ -63,13 +63,17 @@ namespace Shoko.Server.Databases.TypeConverters
         /// <exception cref="T:System.NotSupportedException">The conversion could not be performed.</exception>
         public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
         {
-            if(value==null) throw new ArgumentNullException(nameof(value), @"Value can't be null");
+            if(value == null) throw new ArgumentNullException(nameof(value), @"Value can't be null");
 
             if(value is not TitleLanguage t) throw new ArgumentException(@"Value isn't of type TitleLanguage", nameof(value));
 
-            if (!"System.String".Equals(destinationType.FullName) && !"System.Int32".Equals(destinationType.FullName)) throw new ArgumentException("DestinationType must be string or int");
-
-            return t.GetString().ToLowerInvariant();
+            return destinationType.FullName switch
+            {
+                "System.String" => t.GetString().ToLowerInvariant(),
+                "System.Int32" => t,
+                "System.Int64" => t,
+                _ => throw new ArgumentException("DestinationType must be string or int")
+            };
         }
 
 
@@ -200,7 +204,7 @@ namespace Shoko.Server.Databases.TypeConverters
         /// The SQL types for the columns mapped by this type.
         /// </summary>
         /// <value></value>
-        public SqlType[] SqlTypes => new[] { NHibernateUtil.String.SqlType};
+        public SqlType[] SqlTypes => new[] { NHibernateUtil.String.SqlType };
 
         /// <summary>
         /// Determines whether the specified <see cref="System.Object"/> is equal to this instance.
