@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
@@ -36,7 +35,6 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
         public override UDPResponse<ResponseLogin> Execute(IUDPConnectionHandler handler)
         {
             Command = BaseCommand;
-            PreExecute(handler.SessionID);
             // LOGIN commands have special needs, so we want to handle this differently
             UDPResponse<string> rawResponse;
             try
@@ -48,10 +46,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
                 rawResponse = handler.CallAniDBUDPDirectly(Command, true, true, false, true);
             }
 
-            var factory = handler.ServiceProvider.GetRequiredService<ILoggerFactory>();
-            var logger = factory.CreateLogger(GetType());
-            var response = ParseResponse(logger, rawResponse);
-            PostExecute(logger, handler.SessionID, response);
+            var response = ParseResponse(null, rawResponse);
             return response;
         }
     }

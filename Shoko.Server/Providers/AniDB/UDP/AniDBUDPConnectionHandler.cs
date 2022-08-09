@@ -410,7 +410,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
         private bool Login(string username, string password)
         {
             // check if we are already logged in
-            if (_isLoggedOn) return true;
+            if (IsLoggedOn) return true;
 
             if (!ValidAniDBCredentials(username, password))
             {
@@ -435,6 +435,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             switch (response.Code)
             {
                 case UDPReturnCode.LOGIN_FAILED:
+                    SessionID = null;
                     IsInvalidSession = true;
                     IsLoggedOn = false;
                     Logger.LogError("AniDB Login Failed: invalid credentials");
@@ -443,10 +444,11 @@ namespace Shoko.Server.Providers.AniDB.UDP
                 case UDPReturnCode.LOGIN_ACCEPTED:
                     SessionID = response.Response.SessionID;
                     _cdnDomain = response.Response.ImageServer;
-                    _isLoggedOn = true;
+                    IsLoggedOn = true;
                     IsInvalidSession = false;
                     return true;
                 default:
+                    SessionID = null;
                     IsLoggedOn = false;
                     IsInvalidSession = true;
                     break;

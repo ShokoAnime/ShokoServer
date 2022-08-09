@@ -128,9 +128,10 @@ namespace Shoko.Server.Commands
                 {
                     // check if we have the episode info
                     // if we don't, we will need to re-download the anime info (which also has episode info)
-                    if (aniFile.EpisodeCrossRefs.Count == 0)
+                    var xrefs = aniFile.EpisodeCrossRefs;
+                    if (xrefs.Count == 0)
                     {
-                        aniFile.Episodes.Select(a => a.AnimeID).Distinct().ForEach(animeID =>
+                        xrefs.Select(a => a.AnimeID).Distinct().ForEach(animeID =>
                         {
                             if (animeIDs.ContainsKey(animeID)) animeIDs[animeID] = true;
                             else animeIDs.Add(animeID, true);
@@ -141,7 +142,7 @@ namespace Shoko.Server.Commands
                     }
                     else
                     {
-                        foreach (var xref in aniFile.EpisodeCrossRefs)
+                        foreach (var xref in xrefs)
                         {
                             var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
 

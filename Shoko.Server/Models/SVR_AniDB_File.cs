@@ -28,7 +28,7 @@ namespace Shoko.Server.Models
         public List<int> EpisodeIDs => RepoFactory.CrossRef_File_Episode.GetByHash(Hash).Select(crossref => crossref.EpisodeID).ToList();
 
         [XmlIgnore]
-        public List<AniDB_Episode> Episodes => RepoFactory.CrossRef_File_Episode.GetByHash(Hash).Where(crossref => crossref.GetEpisode() != null).Select(crossref => crossref.GetEpisode()).ToList();
+        public List<AniDB_Episode> Episodes => RepoFactory.CrossRef_File_Episode.GetByHash(Hash).Select(crossref => crossref.GetEpisode()).Where(ep => ep != null).ToList();
 
         [XmlIgnore]
         public List<CrossRef_File_Episode> EpisodeCrossRefs => RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
