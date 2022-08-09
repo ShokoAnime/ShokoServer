@@ -646,6 +646,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(99, 1, "ALTER TABLE `AniDB_File` DROP `File_AudioCodec`, DROP `File_VideoCodec`, DROP `File_VideoResolution`, DROP `File_FileExtension`, DROP `File_LengthSeconds`, DROP `Anime_GroupName`, DROP `Anime_GroupNameShort`, DROP `Episode_Rating`, DROP `Episode_Votes`, DROP `IsWatched`, DROP `WatchedDate`, DROP `CRC`, DROP `MD5`, DROP `SHA1`"),
             new DatabaseCommand(99, 2, "ALTER TABLE `AniDB_File` MODIFY `IsCensored` bit NULL; ALTER TABLE `AniDB_File` MODIFY `IsDeprecated` bit not null; ALTER TABLE `AniDB_File` MODIFY `IsChaptered` bit not null"),
             new DatabaseCommand(99, 3, "ALTER TABLE `AniDB_GroupStatus` MODIFY `Rating` decimal(6,2) NULL; UPDATE `AniDB_GroupStatus` SET `Rating` = `Rating` / 100 WHERE `Rating` > 10"),
+            new DatabaseCommand(99, 4, "ALTER TABLE `AniDB_Character` DROP COLUMN CreatorListRaw;"),
+            new DatabaseCommand(99, 5, "ALTER TABLE `AniDB_Anime_Character` DROP COLUMN EpisodeListRaw;"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

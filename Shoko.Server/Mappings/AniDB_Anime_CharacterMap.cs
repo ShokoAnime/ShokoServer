@@ -13,7 +13,6 @@ namespace Shoko.Server.Mappings
             Map(x => x.AnimeID).Not.Nullable();
             Map(x => x.CharID).Not.Nullable();
             Map(x => x.CharType).Not.Nullable();
-            Map(x => x.EpisodeListRaw).CustomType("StringClob");
         }
     }
 }

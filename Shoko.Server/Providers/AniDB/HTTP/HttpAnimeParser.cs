@@ -461,7 +461,7 @@ namespace Shoko.Server.Providers.AniDB.Http
 
         private static ResponseCharacter ParseCharacter(int animeID, XmlNode node)
         {
-            if (int.TryParse(TryGetAttribute(node, "id"), out var charID)) return null;
+            if (!int.TryParse(TryGetAttribute(node, "id"), out var charID)) return null;
             var charType = TryGetAttribute(node, "type");
             var charName = TryGetProperty(node, "name")?.Replace('`', '\'');
             var charDescription = TryGetProperty(node, "description")?.Replace('`', '\'');
