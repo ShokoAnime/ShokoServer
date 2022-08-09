@@ -482,7 +482,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
                 ID = result.AnimeID;
                 ShokoID = series?.AnimeSeriesID;
-                Type = Series.GetAniDBSeriesType(anime?.AnimeType);
+                Type = GetAniDBSeriesType(anime?.AnimeType);
                 Title = series?.GetSeriesName() ?? anime?.PreferredTitle ?? result.Titles.FirstOrDefault(
                     a => a.TitleLanguage.Equals("x-jat", StringComparison.InvariantCultureIgnoreCase) && a.TitleType.Equals("main", StringComparison.InvariantCultureIgnoreCase)
                 )?.Title ?? result.Titles.FirstOrDefault()?.Title;
