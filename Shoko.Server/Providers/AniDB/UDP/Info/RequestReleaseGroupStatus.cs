@@ -50,7 +50,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                     // remove the header info
                     var sDetails = response.Response.Split('\n');
 
-                    if (sDetails.Length <= 2) throw new UnexpectedUDPResponseException(code, receivedData);
+                    if (sDetails.Length <= 2) throw new UnexpectedUDPResponseException("The number of lines was less than expected", code, receivedData);
 
                     // first item will be the status command, and last will be empty
                     foreach (var t in sDetails)
@@ -68,9 +68,9 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                                     var range = a.Split('-');
                                     if (range.Length != 2) return Array.Empty<string>();
                                     if (int.TryParse(range[0], out var start) && int.TryParse(range[1], out var end))
-                                        return Enumerable.Range(start, end - start).Select(b => b.ToString());
+                                        return Enumerable.Range(start, end - start + 1).Select(b => b.ToString());
                                     if (int.TryParse(range[0][1..], out start) && int.TryParse(range[1][1..], out end))
-                                        return Enumerable.Range(start, end - start).Select(b => range[0][0] + b.ToString());
+                                        return Enumerable.Range(start, end - start + 1).Select(b => range[0][0] + b.ToString());
                                     return Array.Empty<string>();
                                 }
                             ).ToList();
