@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml;
+using System.Xml.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using Shoko.Commons.Queue;
@@ -39,6 +40,8 @@ namespace Shoko.Server.Commands.AniDB
         public int RelDepth { get; set; }
 
         public bool CreateSeriesEntry { get; set; }
+        
+        [XmlIgnore]
         public SVR_AniDB_Anime Result { get; set; }
 
         public CommandRequest_GetAnimeHTTP()
