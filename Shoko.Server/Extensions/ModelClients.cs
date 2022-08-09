@@ -79,7 +79,7 @@ namespace Shoko.Server.Extensions
                 AniDB_CharacterID = c.AniDB_CharacterID,
                 CharID = c.CharID,
                 PicName = c.PicName,
-                CreatorListRaw = c.CreatorListRaw,
+                CreatorListRaw = c.CreatorListRaw ?? "",
                 CharName = c.CharName,
                 CharKanjiName = c.CharKanjiName,
                 CharDescription = c.CharDescription

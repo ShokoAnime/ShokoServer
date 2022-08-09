@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -61,52 +61,52 @@ namespace Shoko.Server.AniDB_API
             RepoFactory.AniDB_Anime.Save(anime, generateTvDBMatches: false);
 
             taskTimer.Stop();
-            _logger.LogTrace("PopulateAnime in : {Time:ss.ffff}", taskTimer.Elapsed);
+            _logger.LogTrace("PopulateAnime in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
             CreateEpisodes(response.Episodes, anime);
             taskTimer.Stop();
-            _logger.LogTrace("CreateEpisodes in : {Time:ss.ffff}", taskTimer.Elapsed);
+            _logger.LogTrace("CreateEpisodes in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
             CreateTitles(response.Titles, anime);
             taskTimer.Stop();
-            _logger.LogTrace("CreateTitles in : {Time:ss.ffff}", taskTimer.Elapsed);
+            _logger.LogTrace("CreateTitles in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
             CreateTags(response.Tags, anime);
             taskTimer.Stop();
-            _logger.LogTrace("CreateTags in : {Time:ss.ffff}", taskTimer.Elapsed);
+            _logger.LogTrace("CreateTags in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
             CreateCharacters(session, response.Characters, anime);
             taskTimer.Stop();
-            _logger.LogTrace("CreateCharacters in : {Time:ss.ffff}", taskTimer.Elapsed);
+            _logger.LogTrace("CreateCharacters in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
             CreateStaff(session, response.Staff, anime);
             taskTimer.Stop();
-            _logger.LogTrace("CreateStaff in : {Time:ss.ffff}", taskTimer.Elapsed);
+            _logger.LogTrace("CreateStaff in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
             CreateResources(response.Resources, anime);
             taskTimer.Stop();
-            _logger.LogTrace("CreateResources in : {Time:ss.ffff}", taskTimer.Elapsed);
+            _logger.LogTrace("CreateResources in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
             CreateRelations(session, response.Relations, anime);
             taskTimer.Stop();
-            _logger.LogTrace("CreateRelations in : {Time:ss.ffff}", taskTimer.Elapsed);
+            _logger.LogTrace("CreateRelations in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
             CreateSimilarAnime(session, response.Similar, anime);
             taskTimer.Stop();
-            _logger.LogTrace("CreateSimilarAnime in : {Time:ss.ffff}", taskTimer.Elapsed);
+            _logger.LogTrace("CreateSimilarAnime in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
             RepoFactory.AniDB_Anime.Save(anime);
             totalTimer.Stop();
-            _logger.LogTrace("TOTAL TIME in : {Time:ss.ffff}", totalTimer.Elapsed);
+            _logger.LogTrace("TOTAL TIME in : {Time}", totalTimer.Elapsed);
             _logger.LogTrace("------------------------------------------------");
             return true;
         }
@@ -145,6 +145,7 @@ namespace Shoko.Server.AniDB_API
             anime.TempVoteCount = animeInfo.TempVoteCount;
             anime.URL = animeInfo.URL;
             anime.VoteCount = animeInfo.VoteCount;
+            anime.AwardList = "";
             return true;
         }
 

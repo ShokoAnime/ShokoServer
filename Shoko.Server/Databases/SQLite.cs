@@ -577,6 +577,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(86, 3, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractVersion;"),
             new DatabaseCommand(87, 1, DropAniDB_FileColumns),
             new DatabaseCommand(87, 2, AlterAniDB_GroupStatus),
+            new DatabaseCommand(87, 3, "ALTER TABLE AniDB_Character DROP COLUMN CreatorListRaw;"),
+            new DatabaseCommand(87, 4, "ALTER TABLE AniDB_Anime_Character DROP COLUMN EpisodeListRaw;"),
         };
 
         private static Tuple<bool, string> AlterAniDB_GroupStatus(object connection)
