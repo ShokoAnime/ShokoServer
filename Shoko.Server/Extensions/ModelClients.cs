@@ -44,7 +44,6 @@ namespace Shoko.Server.Extensions
                 DateTimeUpdated = anime.GetDateTimeUpdated(),
                 DateTimeDescUpdated = anime.DateTimeDescUpdated,
                 ImageEnabled = anime.ImageEnabled,
-                AwardList = anime.AwardList,
                 Restricted = anime.Restricted,
                 AnimePlanetID = anime.AnimePlanetID,
                 ANNID = anime.ANNID,

@@ -28,7 +28,6 @@ namespace Shoko.Server.Mappings
             Map(x => x.WikipediaJP_ID);
             Map(x => x.CrunchyrollID);
             Map(x => x.AvgReviewRating).Not.Nullable();
-            Map(x => x.AwardList).Not.Nullable();
             Map(x => x.BeginYear).Not.Nullable();
             Map(x => x.DateTimeDescUpdated).Not.Nullable();
             Map(x => x.DateTimeUpdated).Not.Nullable();

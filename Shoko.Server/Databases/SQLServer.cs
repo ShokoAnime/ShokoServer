@@ -627,6 +627,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(92, 4, "ALTER TABLE AniDB_GroupStatus Alter COLUMN Rating decimal(6,2) NULL; UPDATE AniDB_GroupStatus SET Rating = Rating / 100 WHERE Rating > 10"),
             new DatabaseCommand(92, 5, "ALTER TABLE AniDB_Character DROP COLUMN CreatorListRaw;"),
             new DatabaseCommand(92, 6, "ALTER TABLE AniDB_Anime_Character DROP COLUMN EpisodeListRaw;"),
+            new DatabaseCommand(92, 7, "ALTER TABLE AniDB_Anime DROP COLUMN AwardList;"),
         };
 
         private static Tuple<bool, string> DropDefaultOnChaptered(object connection)
