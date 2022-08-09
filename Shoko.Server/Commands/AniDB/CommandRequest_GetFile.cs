@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml;
+using System.Xml.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -23,6 +24,7 @@ namespace Shoko.Server.Commands.AniDB
         public bool ForceAniDB { get; set; }
 
         private SVR_VideoLocal vlocal;
+        [XmlIgnore]
         public SVR_AniDB_File Result;
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
@@ -77,38 +79,35 @@ namespace Shoko.Server.Commands.AniDB
                     response = request.Execute(handler);
                 }
 
-                if (response != null)
-                {
-                    // save to the database
-                    aniFile ??= new SVR_AniDB_File();
-                    aniFile.Hash = vlocal.Hash;
-                    aniFile.FileSize = vlocal.FileSize;
-                    aniFile.AnimeID = response.Response.AnimeID;
+                if (response == null) return;
+                // save to the database
+                aniFile ??= new SVR_AniDB_File();
+                aniFile.Hash = vlocal.Hash;
+                aniFile.FileSize = vlocal.FileSize;
+                aniFile.AnimeID = response.Response.AnimeID;
 
-                    aniFile.DateTimeUpdated = DateTime.Now;
-                    aniFile.File_Description = response.Response.Description;
-                    aniFile.File_Source = response.Response.Source.ToString();
-                    aniFile.FileID = response.Response.FileID;
-                    aniFile.FileName = response.Response.Filename;
-                    aniFile.GroupID = response.Response.GroupID ?? 0;
+                aniFile.DateTimeUpdated = DateTime.Now;
+                aniFile.File_Description = response.Response.Description;
+                aniFile.File_Source = response.Response.Source.ToString();
+                aniFile.FileID = response.Response.FileID;
+                aniFile.FileName = response.Response.Filename;
+                aniFile.GroupID = response.Response.GroupID ?? 0;
 
-                    aniFile.FileVersion = response.Response.Version;
-                    // TODO AniDB migration
-                    aniFile.IsCensored = response.Response.Censored;
-                    aniFile.IsDeprecated = response.Response.Deprecated;
-                    aniFile.IsChaptered = response.Response.Chaptered;
-                    aniFile.InternalVersion = 3;
+                aniFile.FileVersion = response.Response.Version;
+                aniFile.IsCensored = response.Response.Censored;
+                aniFile.IsDeprecated = response.Response.Deprecated;
+                aniFile.IsChaptered = response.Response.Chaptered;
+                aniFile.InternalVersion = 3;
 
-                    RepoFactory.AniDB_File.Save(aniFile, false);
-                    aniFile.CreateLanguages(response.Response);
-                    aniFile.CreateCrossEpisodes(vlocal.FileName, response.Response);
+                RepoFactory.AniDB_File.Save(aniFile, false);
+                aniFile.CreateLanguages(response.Response);
+                aniFile.CreateCrossEpisodes(vlocal.FileName, response.Response);
 
-                    var anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
-                    if (anime != null) RepoFactory.AniDB_Anime.Save(anime);
-                    var series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
-                    series?.UpdateStats(true, true, true);
-                    Result = RepoFactory.AniDB_File.GetByFileID(aniFile.FileID);
-                }
+                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
+                if (anime != null) RepoFactory.AniDB_Anime.Save(anime);
+                var series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
+                series?.UpdateStats(true, true, true);
+                Result = RepoFactory.AniDB_File.GetByFileID(aniFile.FileID);
             }
         }
 

@@ -331,8 +331,8 @@ namespace Shoko.Server.Commands
             }
 
             if (aniFile == null) return null;
-            // get Anime IDs from the file for processing
-            aniFile.Episodes.Select(a => a.AnimeID).Distinct().ForEach(animeID =>
+            // get Anime IDs from the file for processing, the episodes might not be created yet here
+            aniFile.EpisodeCrossRefs.Select(a => a.AnimeID).Distinct().ForEach(animeID =>
             {
                 if (animeIDs.ContainsKey(animeID)) animeIDs[animeID] = false;
                 else animeIDs.Add(animeID, false);

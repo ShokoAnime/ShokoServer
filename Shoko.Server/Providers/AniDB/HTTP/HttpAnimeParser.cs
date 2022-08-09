@@ -321,7 +321,7 @@ namespace Shoko.Server.Providers.AniDB.Http
             // if it is NOT a normal episode strip the leading character
             var fldTemp = fld.Trim();
             if (epType != EpisodeType.Episode)
-                fldTemp = fldTemp[1..^1];
+                fldTemp = fldTemp[1..];
 
             if (int.TryParse(fldTemp, out var epno)) return epno;
             // if we couldn't convert to an int, it must mean it is a double episode
