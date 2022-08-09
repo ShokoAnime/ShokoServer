@@ -659,48 +659,39 @@ ORDER BY count(DISTINCT a.AnimeID) DESC, g.GroupName ASC";
 
         public List<AniDB_Anime_Character> GetAnimeCharacters(ISessionWrapper session) => RepoFactory.AniDB_Anime_Character.GetByAnimeID(session, AnimeID);
 
-        public List<AniDB_Anime_Title> GetTitles() => RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
+        public List<SVR_AniDB_Anime_Title> GetTitles() => RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
 
-        public string GetFormattedTitle(List<AniDB_Anime_Title> titles)
+        public string GetFormattedTitle(List<SVR_AniDB_Anime_Title> titles)
         {
             foreach (NamingLanguage nlan in Languages.PreferredNamingLanguages)
             {
-                string thisLanguage = nlan.Language.Trim().ToUpper();
+                var thisLanguage = nlan.Language;
 
                 // Romaji and English titles will be contained in MAIN and/or OFFICIAL
                 // we won't use synonyms for these two languages
-                if (thisLanguage.Equals(Shoko.Models.Constants.AniDBLanguageType.Romaji) ||
-                    thisLanguage.Equals(Shoko.Models.Constants.AniDBLanguageType.English))
+                if (thisLanguage == TitleLanguage.Romaji || thisLanguage == TitleLanguage.English)
                 {
-                    foreach (AniDB_Anime_Title title in titles)
+                    foreach (var title in titles)
                     {
-                        string titleType = title.TitleType.Trim().ToUpper();
                         // first try the  Main title
-                        if (titleType.Trim().Equals(Shoko.Models.Constants.AnimeTitleType.Main,
-                                StringComparison.OrdinalIgnoreCase) &&
-                            title.Language.Trim().Equals(thisLanguage, StringComparison.OrdinalIgnoreCase))
+                        if (title.TitleType == TitleType.Main && title.Language == thisLanguage)
                             return title.Title;
                     }
                 }
 
                 // now try the official title
-                foreach (AniDB_Anime_Title title in titles)
+                foreach (var title in titles)
                 {
-                    string titleType = title.TitleType.Trim();
-                    if (titleType.Equals(Shoko.Models.Constants.AnimeTitleType.Official,
-                            StringComparison.OrdinalIgnoreCase) &&
-                        title.Language.Trim().Equals(thisLanguage, StringComparison.OrdinalIgnoreCase))
+                    if (title.TitleType == TitleType.Official && title.Language == thisLanguage)
                         return title.Title;
                 }
 
                 // try synonyms
                 if (ServerSettings.Instance.LanguageUseSynonyms)
                 {
-                    foreach (AniDB_Anime_Title title in titles)
+                    foreach (var title in titles)
                     {
-                        string titleType = title.TitleType.Trim().ToUpper();
-                        if (titleType == Shoko.Models.Constants.AnimeTitleType.Synonym.ToUpper() &&
-                            title.Language.Trim().ToUpper() == thisLanguage)
+                        if (title.TitleType == TitleType.Synonym && title.Language == thisLanguage)
                             return title.Title;
                     }
                 }
@@ -712,7 +703,7 @@ ORDER BY count(DISTINCT a.AnimeID) DESC, g.GroupName ASC";
 
         public string GetFormattedTitle()
         {
-            List<AniDB_Anime_Title> thisTitles = GetTitles();
+            var thisTitles = GetTitles();
             return GetFormattedTitle(thisTitles);
         }
 
@@ -812,7 +803,7 @@ ORDER BY count(DISTINCT a.AnimeID) DESC, g.GroupName ASC";
 
         #region Contracts
 
-        private CL_AniDB_Anime GenerateContract(List<AniDB_Anime_Title> titles)
+        private CL_AniDB_Anime GenerateContract(List<SVR_AniDB_Anime_Title> titles)
         {
             List<CL_AniDB_Character> characters = GetCharactersContract();
 
@@ -832,7 +823,7 @@ ORDER BY count(DISTINCT a.AnimeID) DESC, g.GroupName ASC";
             return cl;
         }
 
-        private CL_AniDB_Anime GenerateContract(List<AniDB_Anime_Title> titles, DefaultAnimeImages defaultImages,
+        private CL_AniDB_Anime GenerateContract(List<SVR_AniDB_Anime_Title> titles, DefaultAnimeImages defaultImages,
             List<CL_AniDB_Character> characters, IEnumerable<MovieDB_Fanart> movDbFanart,
             IEnumerable<TvDB_ImageFanart> tvDbFanart,
             IEnumerable<TvDB_ImageWideBanner> tvDbBanners)
@@ -951,9 +942,9 @@ ORDER BY count(DISTINCT a.AnimeID) DESC, g.GroupName ASC";
                     .Select(t => new CL_AnimeTitle
                     {
                         AnimeID = t.AnimeID,
-                        Language = t.Language,
+                        Language = t.LanguageCode,
                         Title = t.Title,
-                        TitleType = t.TitleType
+                        TitleType = t.TitleType.ToString().ToLower(),
                     })
                     .ToList();
 
@@ -1041,12 +1032,10 @@ ORDER BY count(DISTINCT a.AnimeID) DESC, g.GroupName ASC";
 
         public void UpdateContractDetailed(ISessionWrapper session)
         {
-            List<AniDB_Anime_Title> animeTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
+            var animeTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
             CL_AniDB_AnimeDetailed cl = new CL_AniDB_AnimeDetailed
             {
                 AniDBAnime = GenerateContract(animeTitles),
-
-
                 AnimeTitles = new List<CL_AnimeTitle>(),
                 Tags = new List<CL_AnimeTag>(),
                 CustomTags = new List<CustomTag>()
@@ -1055,14 +1044,14 @@ ORDER BY count(DISTINCT a.AnimeID) DESC, g.GroupName ASC";
             // get all the anime titles
             if (animeTitles != null)
             {
-                foreach (AniDB_Anime_Title title in animeTitles)
+                foreach (var title in animeTitles)
                 {
                     CL_AnimeTitle ctitle = new CL_AnimeTitle
                     {
                         AnimeID = title.AnimeID,
-                        Language = title.Language,
+                        Language = title.LanguageCode,
                         Title = title.Title,
-                        TitleType = title.TitleType
+                        TitleType = title.TitleType.ToString().ToLower(),
                     };
                     cl.AnimeTitles.Add(ctitle);
                 }
@@ -1291,15 +1280,17 @@ ORDER BY count(DISTINCT a.AnimeID) DESC, g.GroupName ASC";
         }
 
         AnimeType IAnime.Type => (AnimeType) AnimeType;
-        IReadOnlyList<AnimeTitle> IAnime.Titles =>
-            GetTitles().Select(a =>
-            {
-                var title = new AnimeTitle
-                    {LanguageCode = a.Language, Language = a.Language.GetEnum(), Title = a.Title};
-                if (!Enum.TryParse(a.TitleType, true, out TitleType type)) return null;
-                title.Type = type;
-                return title;
-            }).Where(a => a != null && a.Type != TitleType.None).ToList();
+        IReadOnlyList<AnimeTitle> IAnime.Titles => GetTitles()
+            .Select(a => new AnimeTitle
+                {
+                    LanguageCode = a.LanguageCode,
+                    Language = a.Language,
+                    Title = a.Title,
+                    Type = a.TitleType,
+                }
+            )
+            .Where(a => a != null && a.Type != TitleType.None)
+            .ToList();
         double IAnime.Rating => Rating / 100D;
 
         EpisodeCounts IAnime.EpisodeCounts => new EpisodeCounts

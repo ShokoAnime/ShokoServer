@@ -106,9 +106,9 @@ namespace Shoko.Server
             var dice = new SorensenDice();
             var languages = new HashSet<string> {"en", "x-jat"};
             languages.UnionWith(ServerSettings.Instance.LanguagePreference.Select(b => b.ToLower()));
-            foreach (var title in a.Contract.AniDBAnime.AnimeTitles
-                .Where(b => b.TitleType != Shoko.Models.Constants.AnimeTitleType.ShortName &&
-                            languages.Contains(b.Language.ToLower()))
+            
+            foreach (var title in RepoFactory.AniDB_Anime_Title.GetByAnimeID(a.AniDB_ID)
+                .Where(b => b.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Short && languages.Contains(b.LanguageCode))
                 .Select(b => b.Title?.ToLowerInvariant()).ToList())
             {
                 if (string.IsNullOrEmpty(title)) continue;
@@ -758,9 +758,7 @@ namespace Shoko.Server
                         var res = new CL_AnimeSearch
                         {
                             AnimeID = tit.AnimeID,
-                            MainTitle = tit.Titles.FirstOrDefault(a =>
-                                            a.TitleLanguage == "x-jat" && a.TitleType == "main")?.Title ??
-                                        tit.Titles.FirstOrDefault()?.Title,
+                            MainTitle = tit.MainTitle,
                             Titles = tit.Titles.Select(a => a.Title).ToHashSet()
                         };
 

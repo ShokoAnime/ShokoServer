@@ -9,6 +9,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
@@ -128,14 +129,11 @@ namespace Shoko.Server.Commands
                 if (results.Count != 0) return;
 
                 bool foundResult = false;
-                foreach (AniDB_Anime_Title title in anime.GetTitles())
+                foreach (var title in anime.GetTitles())
                 {
-                    if (!title.TitleType.Equals(Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
+                    if (title.TitleType != TitleType.Official)
                         continue;
-                    if (!title.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.English,
-                            StringComparison.InvariantCultureIgnoreCase) &&
-                        !title.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.Romaji,
-                            StringComparison.InvariantCultureIgnoreCase))
+                    if (title.Language != TitleLanguage.English && title.Language != TitleLanguage.Romaji)
                         continue;
 
                     string cleanTitle = CleanTitle(title.Title);

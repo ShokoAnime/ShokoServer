@@ -28,7 +28,7 @@ namespace Shoko.Server.Providers.AniDB.Http
             if (xml == null) return null;
             var anime = ParseAnime(animeId, xml);
             if (anime == null) return null;
-            var titles = ParseTitles(animeId, xml);
+            var titles = ParseTitles(xml);
             var episodes = ParseEpisodes(animeId, xml);
             var tags = ParseTags(animeId, xml);
             var staff = ParseStaffs(animeId, xml);
@@ -208,7 +208,7 @@ namespace Shoko.Server.Providers.AniDB.Http
         }
 #endregion
 #region Parse Titles
-        private List<ResponseTitle> ParseTitles(int animeID, XmlDocument docAnime)
+        private List<ResponseTitle> ParseTitles(XmlDocument docAnime)
         {
             var titles = new List<ResponseTitle>();
 
@@ -218,7 +218,7 @@ namespace Shoko.Server.Providers.AniDB.Http
             {
                 try
                 {
-                    var animeTitle = ParseTitle(animeID, node);
+                    var animeTitle = ParseTitle(node);
                     titles.Add(animeTitle);
                 }
                 catch (Exception ex)
@@ -230,14 +230,14 @@ namespace Shoko.Server.Providers.AniDB.Http
             return titles;
         }
 
-        private static ResponseTitle ParseTitle(int animeID, XmlNode node)
+        private static ResponseTitle ParseTitle(XmlNode node)
         {
             var titleType = TryGetAttribute(node, "type");
             if (!Enum.TryParse(titleType, true, out TitleType type)) return null;
             var language = TryGetAttribute(node, "xml:lang");
             var langEnum = language.GetEnum();
             var title = node.InnerText.Trim().Replace('`', '\'');
-            return new ResponseTitle { AnimeID = animeID, Title = title, TitleType = type, Language = langEnum };
+            return new ResponseTitle { Title = title, TitleType = type, Language = langEnum };
         }
 #endregion
 #region Parse Episodes
@@ -287,14 +287,14 @@ namespace Shoko.Server.Providers.AniDB.Http
                 .Select(nodeChild => new
                         {
                             nodeChild,
-                            episodeTitle = new AniDB_Episode_Title
+                            episodeTitle = new ResponseTitle
                             {
-                                AniDB_EpisodeID = id,
-                                Language = nodeChild?.Attributes?["xml:lang"]?.Value.Trim().ToUpperInvariant(),
+                                Language = nodeChild?.Attributes?["xml:lang"]?.Value?.GetEnum() ?? TitleLanguage.Unknown,
                                 Title = nodeChild?.InnerText.Trim().Replace('`', '\''),
+                                TitleType = TitleType.None,
                             },
                         })
-                .Where(t => Equals("title", t.nodeChild?.Name) && !string.IsNullOrEmpty(t.nodeChild.InnerText) && !string.IsNullOrEmpty(t.episodeTitle.Language))
+                .Where(t => Equals("title", t.nodeChild?.Name) && !string.IsNullOrEmpty(t.nodeChild.InnerText) && t.episodeTitle.Language != TitleLanguage.Unknown)
                 .Select(t => t.episodeTitle).ToList();
 
             var dateString = TryGetProperty(node, "airdate");

@@ -106,7 +106,7 @@ namespace Shoko.Server.API.v2.Models.common
             if (vote != null)
                 sr.userrating = Math.Round(vote.VoteValue / 100D, 1).ToString(CultureInfo.InvariantCulture);
             sr.titles = anime.GetTitles().Select(title =>
-                new AnimeTitle {Language = title.Language, Title = title.Title, Type = title.TitleType}).ToList();
+                new AnimeTitle {Language = title.LanguageCode, Title = title.Title, Type = title.TitleType.ToString().ToLower()}).ToList();
 
             PopulateArtFromAniDBAnime(ctx, anime, sr, allpics, pic);
 

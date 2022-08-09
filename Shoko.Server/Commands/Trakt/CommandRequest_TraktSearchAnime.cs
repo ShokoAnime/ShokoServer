@@ -162,9 +162,9 @@ namespace Shoko.Server.Commands
 
                     if (results.Count != 0) return;
 
-                    foreach (AniDB_Anime_Title title in anime.GetTitles())
+                    foreach (var title in anime.GetTitles())
                     {
-                        if (!string.Equals(title.TitleType, Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
+                        if (title.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Official)
                             continue;
 
                         if (string.Equals(searchCriteria, title.Title, StringComparison.InvariantCultureIgnoreCase)) continue;

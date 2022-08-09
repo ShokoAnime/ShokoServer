@@ -4,21 +4,22 @@ using System.Linq;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
-using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
 {
-    public class AniDB_Episode_TitleRepository : BaseCachedRepository<AniDB_Episode_Title, int>
+    public class AniDB_Episode_TitleRepository : BaseCachedRepository<SVR_AniDB_Episode_Title, int>
     {
-        private PocoIndex<int, AniDB_Episode_Title, int> Episodes;
+        private PocoIndex<int, SVR_AniDB_Episode_Title, int> Episodes;
 
         public override void PopulateIndexes()
         {
-            Episodes = new PocoIndex<int, AniDB_Episode_Title, int>(Cache, a => a.AniDB_EpisodeID);
+            Episodes = new PocoIndex<int, SVR_AniDB_Episode_Title, int>(Cache, a => a.AniDB_EpisodeID);
         }
 
-        protected override int SelectKey(AniDB_Episode_Title entity)
+        protected override int SelectKey(SVR_AniDB_Episode_Title entity)
         {
             return entity.AniDB_Episode_TitleID;
         }
@@ -27,9 +28,7 @@ namespace Shoko.Server.Repositories
         {
         }
 
-
-
-        public ILookup<int, AniDB_Episode_Title> GetByEpisodeIDs(ISessionWrapper session, ICollection<int> ids)
+        public ILookup<int, SVR_AniDB_Episode_Title> GetByEpisodeIDs(ISessionWrapper session, ICollection<int> ids)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -38,30 +37,29 @@ namespace Shoko.Server.Repositories
 
             if (ids.Count == 0)
             {
-                return EmptyLookup<int, AniDB_Episode_Title>.Instance;
+                return EmptyLookup<int, SVR_AniDB_Episode_Title>.Instance;
             }
 
             lock (globalDBLock)
             {
-                var titles = session.CreateCriteria<AniDB_Episode_Title>()
-                    .Add(Restrictions.InG(nameof(AniDB_Episode_Title.AniDB_EpisodeID), ids))
-                    .List<AniDB_Episode_Title>()
+                var titles = session.CreateCriteria<SVR_AniDB_Episode_Title>()
+                    .Add(Restrictions.InG(nameof(SVR_AniDB_Episode_Title.AniDB_EpisodeID), ids))
+                    .List<SVR_AniDB_Episode_Title>()
                     .ToLookup(t => t.AniDB_EpisodeID);
 
                 return titles;
             }
         }
 
-        public List<AniDB_Episode_Title> GetByEpisodeIDAndLanguage(int id, string language)
+        public List<SVR_AniDB_Episode_Title> GetByEpisodeIDAndLanguage(int id, TitleLanguage language)
         {
             lock (Cache)
             {
-                return Episodes.GetMultiple(id).Where(a =>
-                    a.Language.Equals(language, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                return Episodes.GetMultiple(id).Where(a => a.Language == language).ToList();
             }
         }
 
-        public List<AniDB_Episode_Title> GetByEpisodeID(int ID)
+        public List<SVR_AniDB_Episode_Title> GetByEpisodeID(int ID)
         {
             lock (Cache)
             {

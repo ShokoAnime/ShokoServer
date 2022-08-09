@@ -1,5 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Serialization;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Extensions;
 
 namespace Shoko.Server.Providers.AniDB.Titles
 {
@@ -11,6 +14,15 @@ namespace Shoko.Server.Providers.AniDB.Titles
 
         public class Anime
         {
+            [XmlIgnore]
+            public virtual string MainTitle
+            {
+                get
+                {
+                    return (Titles?.FirstOrDefault(t => t.Language == TitleLanguage.Romaji && t.TitleType == TitleType.Main) ?? Titles?.FirstOrDefault())?.Title ?? "";
+                }
+            }
+
             [XmlAttribute(DataType = "int", AttributeName = "aid")]
             public int AnimeID { get; set; }
 
@@ -23,10 +35,23 @@ namespace Shoko.Server.Providers.AniDB.Titles
                 public string Title { get; set; }
 
                 [XmlAttribute("type")]
-                public string TitleType { get; set; }
+                public TitleType TitleType { get; set; }
 
-                [XmlAttribute("xml:lang")]
-                public string TitleLanguage { get; set; }
+                [XmlIgnore]
+                public TitleLanguage Language { get; set; }
+
+                [XmlAttribute(DataType = "string", AttributeName = "xml:lang")]
+                public string LanguageCode
+                {
+                    get
+                    {
+                        return Language.GetString();
+                    }
+                    set
+                    {
+                        Language = value.GetEnum();
+                    }
+                }
             }
         }
     }

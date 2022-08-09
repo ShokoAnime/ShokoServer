@@ -920,13 +920,8 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.AnimeNameEnglish.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (anime.GetTitles().Any(ti =>
-                        ti.Language.Equals(AniDBLanguageType.English, StringComparison.InvariantCultureIgnoreCase) &&
-                        (ti.TitleType.Trim().Equals(AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) || ti.TitleType
-                             .Trim().Equals(AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))))
-                    {
+                    if (anime.GetTitles().Any(ti => ti.Language == TitleLanguage.English && (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official)))
                         return !notCondition;
-                    }
 
                     return notCondition;
                 }
@@ -939,17 +934,9 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.AnimeNameKanji.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeNameKanji, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (anime.GetTitles().Any(ti => ti.Language.Equals(AniDBLanguageType.Kanji,
-                                                        StringComparison.InvariantCultureIgnoreCase) &&
-                                                    (ti.TitleType.Trim()
-                                                         .Equals(AnimeTitleType.Main,
-                                                             StringComparison.InvariantCultureIgnoreCase) ||
-                                                     ti.TitleType.Trim()
-                                                         .Equals(AnimeTitleType.Official,
-                                                             StringComparison.InvariantCultureIgnoreCase))))
-                    {
+                    if (anime.GetTitles().Any(ti => ti.Language == TitleLanguage.Japanese && (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official)))
                         return !notCondition;
-                    }
+
                     return notCondition;
                 }
 
@@ -961,17 +948,9 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.AnimeNameRomaji.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagAnimeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (anime.GetTitles().Any(ti => ti.Language.Equals(AniDBLanguageType.Romaji,
-                                                        StringComparison.InvariantCultureIgnoreCase) &&
-                                                    (ti.TitleType.Trim()
-                                                         .Equals(AnimeTitleType.Main,
-                                                             StringComparison.InvariantCultureIgnoreCase) ||
-                                                     ti.TitleType.Trim()
-                                                         .Equals(AnimeTitleType.Official,
-                                                             StringComparison.InvariantCultureIgnoreCase))))
-                    {
+                    if (anime.GetTitles().Any(ti => ti.Language == TitleLanguage.Romaji && (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official)))
                         return !notCondition;
-                    }
+
                     return notCondition;
                 }
 
@@ -983,7 +962,7 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.EpisodeNameEnglish.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagEpisodeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "EN")
+                    var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.English)
                         .FirstOrDefault()?.Title;
                     if (string.IsNullOrEmpty(title))
                     {
@@ -1000,7 +979,7 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.EpisodeNameRomaji.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagEpisodeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "X-JAT")
+                    var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.Romaji)
                         .FirstOrDefault()?.Title;
                     if (string.IsNullOrEmpty(title))
                     {
@@ -1370,10 +1349,7 @@ namespace Shoko.Server.Renamer
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameEnglish.ToLower()))
             {
                 newFileName = anime.GetTitles()
-                    .Where(ti => ti.Language.Equals(AniDBLanguageType.English, StringComparison.InvariantCultureIgnoreCase) &&
-                                 (ti.TitleType.Trim()
-                                      .Equals(AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) || ti.TitleType.Trim()
-                                      .Equals(AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase)))
+                    .Where(ti => ti.Language == TitleLanguage.English && (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official))
                     .Aggregate(newFileName,
                         (current, ti) => current.Replace(Constants.FileRenameTag.AnimeNameEnglish, ti.Title));
             }
@@ -1385,10 +1361,7 @@ namespace Shoko.Server.Renamer
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameRomaji.ToLower()))
             {
                 newFileName = anime.GetTitles()
-                    .Where(ti => ti.Language.Equals(AniDBLanguageType.Romaji, StringComparison.InvariantCultureIgnoreCase) &&
-                                 (ti.TitleType.Trim()
-                                      .Equals(AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) || ti.TitleType.Trim()
-                                      .Equals(AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase)))
+                    .Where(ti => ti.Language == TitleLanguage.Romaji && (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official))
                     .Aggregate(newFileName,
                         (current, ti) => current.Replace(Constants.FileRenameTag.AnimeNameRomaji, ti.Title));
             }
@@ -1400,10 +1373,7 @@ namespace Shoko.Server.Renamer
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameKanji.ToLower()))
             {
                 newFileName = anime.GetTitles()
-                    .Where(ti => ti.Language.Equals(AniDBLanguageType.Kanji, StringComparison.InvariantCultureIgnoreCase) &&
-                                 (ti.TitleType.Trim()
-                                      .Equals(AnimeTitleType.Main, StringComparison.InvariantCultureIgnoreCase) || ti.TitleType.Trim()
-                                      .Equals(AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase)))
+                    .Where(ti => ti.Language == TitleLanguage.Japanese && (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official))
                     .Aggregate(newFileName,
                         (current, ti) => current.Replace(Constants.FileRenameTag.AnimeNameKanji, ti.Title));
             }
@@ -1488,7 +1458,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameEnglish.ToLower()))
             {
-                var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "EN")
+                var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.English)
                     .FirstOrDefault()?.Title;
                 if (epname?.Length > ServerSettings.Instance.LegacyRenamerMaxEpisodeLength) epname = epname.Substring(0, ServerSettings.Instance.LegacyRenamerMaxEpisodeLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameEnglish, epname);
@@ -1500,7 +1470,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameRomaji.ToLower()))
             {
-                var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "X-JAT")
+                var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.Romaji)
                     .FirstOrDefault()?.Title;
                 if (epname?.Length > ServerSettings.Instance.LegacyRenamerMaxEpisodeLength) epname = epname.Substring(0, ServerSettings.Instance.LegacyRenamerMaxEpisodeLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameRomaji, epname);
