@@ -41,43 +41,38 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                      * {int4 lid}|{int4 fid}|{int4 eid}|{int4 aid}|{int4 gid}|{int4 date}|{int2 state}|{int4 viewdate}|{str storage}|{str source}|{str other}|{int2 filestate}
                      */
                     //file already exists: read 'watched' status
-                    var arrResult = receivedData.Split('\n');
-                    if (arrResult.Length >= 2)
-                    {
-                        var arrStatus = arrResult[1].Split('|');
-                        // We expect 0 for a MyListID
-                        int.TryParse(arrStatus[0], out var myListID);
+                    var arrStatus = receivedData.Split('|');
+                    // We expect 0 for a MyListID
+                    int.TryParse(arrStatus[0], out var myListID);
 
-                        var state = (MyList_State) int.Parse(arrStatus[6]);
+                    var state = (MyList_State) int.Parse(arrStatus[6]);
 
-                        var viewdate = int.Parse(arrStatus[7]);
-                        var updatedate = int.Parse(arrStatus[5]);
-                        var watched = viewdate > 0;
-                        DateTime? updatedAt = null;
-                        DateTime? watchedDate = null;
-                        if (updatedate > 0)
-                            updatedAt = DateTime.UnixEpoch
-                            .AddSeconds(updatedate)
+                    var viewdate = int.Parse(arrStatus[7]);
+                    var updatedate = int.Parse(arrStatus[5]);
+                    var watched = viewdate > 0;
+                    DateTime? updatedAt = null;
+                    DateTime? watchedDate = null;
+                    if (updatedate > 0)
+                        updatedAt = DateTime.UnixEpoch
+                        .AddSeconds(updatedate)
+                        .ToLocalTime();
+                    if (watched)
+                        watchedDate = DateTime.UnixEpoch
+                            .AddSeconds(viewdate)
                             .ToLocalTime();
-                        if (watched)
-                            watchedDate = DateTime.UnixEpoch
-                                .AddSeconds(viewdate)
-                                .ToLocalTime();
 
-                        return new UDPResponse<ResponseMyListFile>
+                    return new UDPResponse<ResponseMyListFile>
+                    {
+                        Code = code,
+                        Response = new ResponseMyListFile
                         {
-                            Code = code,
-                            Response = new ResponseMyListFile
-                            {
-                                MyListID = myListID,
-                                State = state,
-                                IsWatched = watched,
-                                WatchedDate = watchedDate,
-                                UpdatedAt = updatedAt,
-                            },
-                        };
-                    }
-                    break;
+                            MyListID = myListID,
+                            State = state,
+                            IsWatched = watched,
+                            WatchedDate = watchedDate,
+                            UpdatedAt = updatedAt,
+                        },
+                    };
                 }
             }
             throw new UnexpectedUDPResponseException(code, receivedData);
