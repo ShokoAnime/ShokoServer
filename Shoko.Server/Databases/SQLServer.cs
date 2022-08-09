@@ -126,6 +126,7 @@ namespace Shoko.Server.Databases
             using var connection = new SqlConnection(GetTestConnectionString());
             var command = new SqlCommand(cmd, connection);
             connection.Open();
+            command.CommandTimeout = int.MaxValue;
             command.ExecuteNonQuery();
         }
 

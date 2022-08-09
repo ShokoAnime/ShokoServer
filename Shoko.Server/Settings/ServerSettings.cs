@@ -152,6 +152,7 @@ namespace Shoko.Server.Settings
         public bool GA_OptOutPlzDont { get; set; } = false;
 
         public static ServerSettings Instance { get; private set; } = new ServerSettings();
+        public bool LogWebRequests { get; set; }
 
         public static void LoadSettings()
         {
