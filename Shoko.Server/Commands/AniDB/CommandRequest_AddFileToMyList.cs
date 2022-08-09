@@ -101,6 +101,18 @@ namespace Shoko.Server.Commands.AniDB
                             EpisodeType = (EpisodeType)episode.EpisodeType,
                         };
                         response = request.Execute(handler);
+
+                        if (response.Code != UDPReturnCode.FILE_ALREADY_IN_MYLIST) continue;
+                        var updateRequest = new RequestUpdateEpisode
+                        {
+                            State = state.GetMyList_State(),
+                            IsWatched = originalWatchedDate.HasValue,
+                            WatchedDate = originalWatchedDate,
+                            AnimeID = episode.AnimeID,
+                            EpisodeNumber = episode.EpisodeNumber,
+                            EpisodeType = (EpisodeType)episode.EpisodeType,
+                        };
+                        updateRequest.Execute(handler);
                     }
                 }
                 else
@@ -114,6 +126,19 @@ namespace Shoko.Server.Commands.AniDB
                         Size = vid.FileSize,
                     };
                     response = request.Execute(handler);
+
+                    if (response.Code == UDPReturnCode.FILE_ALREADY_IN_MYLIST)
+                    {
+                        var updateRequest = new RequestUpdateFile
+                        {
+                            State = state.GetMyList_State(),
+                            IsWatched = originalWatchedDate.HasValue,
+                            WatchedDate = originalWatchedDate,
+                            Hash = vid.Hash,
+                            Size = vid.FileSize,
+                        };
+                        updateRequest.Execute(handler);
+                    }
                 }
 
                 // never true for Manual Links, so no worries about the loop overwriting it
