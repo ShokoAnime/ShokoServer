@@ -451,7 +451,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 Titles = includeTitles ? anime.GetTitles().Select(title => new Title
                     {
                         Name = title.Title,
-                        Language = title.Language,
+                        Language = title.LanguageCode,
                         Type = title.TitleType,
                         Default = string.Equals(title.Title, Title),
                         Source = "AniDB",
@@ -483,12 +483,10 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 ID = result.AnimeID;
                 ShokoID = series?.AnimeSeriesID;
                 Type = GetAniDBSeriesType(anime?.AnimeType);
-                Title = series?.GetSeriesName() ?? anime?.PreferredTitle ?? result.Titles.FirstOrDefault(
-                    a => a.TitleLanguage.Equals("x-jat", StringComparison.InvariantCultureIgnoreCase) && a.TitleType.Equals("main", StringComparison.InvariantCultureIgnoreCase)
-                )?.Title ?? result.Titles.FirstOrDefault()?.Title;
+                Title = series?.GetSeriesName() ?? anime?.PreferredTitle ?? result.MainTitle;
                 Titles = includeTitles ? result.Titles.Select(title => new Title
                     {
-                        Language = title.TitleLanguage,
+                        Language = title.LanguageCode,
                         Name = title.Title,
                         Type = title.TitleType,
                         Default = string.Equals(title.Title, Title),
@@ -527,7 +525,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                             title => new Title
                             {
                                 Name = title.Title,
-                                Language = title.Language,
+                                Language = title.LanguageCode,
                                 Type = title.TitleType,
                                 Default = string.Equals(title.Title, Title),
                                 Source = "AniDB",
@@ -544,14 +542,12 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 if (result != null)
                 {
                     Type = SeriesType.Unknown;
-                    Title = result.Titles.FirstOrDefault(
-                        a => a.TitleLanguage.Equals("x-jat", StringComparison.InvariantCultureIgnoreCase) && a.TitleType.Equals("main", StringComparison.InvariantCultureIgnoreCase)
-                    )?.Title ?? result.Titles.FirstOrDefault()?.Title;
+                    Title = result.MainTitle;
                     Titles = includeTitles
                         ? result.Titles.Select(
                             title => new Title
                             {
-                                Language = title.TitleLanguage,
+                                Language = title.LanguageCode,
                                 Name = title.Title,
                                 Type = title.TitleType,
                                 Default = string.Equals(title.Title, Title),
@@ -605,7 +601,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                             title => new Title
                             {
                                 Name = title.Title,
-                                Language = title.Language,
+                                Language = title.LanguageCode,
                                 Type = title.TitleType,
                                 Default = string.Equals(title.Title, Title),
                                 Source = "AniDB",
@@ -621,14 +617,12 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 if (result != null)
                 {
                     Type = SeriesType.Unknown;
-                    Title = result.Titles.FirstOrDefault(
-                        a => a.TitleLanguage.Equals("x-jat", StringComparison.InvariantCultureIgnoreCase) && a.TitleType.Equals("main", StringComparison.InvariantCultureIgnoreCase)
-                    )?.Title ?? result.Titles.FirstOrDefault()?.Title;
+                    Title = result.MainTitle;
                     Titles = includeTitles
                         ? result.Titles.Select(
                             title => new Title
                             {
-                                Language = title.TitleLanguage,
+                                Language = title.LanguageCode,
                                 Name = title.Title,
                                 Type = title.TitleType,
                                 Default = string.Equals(title.Title, Title),

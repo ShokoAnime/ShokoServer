@@ -353,7 +353,7 @@ namespace Shoko.Server.Extensions
                 Description = ep.Description,
                 AirDate = ep.AirDate,
                 DateTimeUpdated = ep.DateTimeUpdated,
-                Titles = titles.ToDictionary(a => a.Language, a => a.Title)
+                Titles = titles.ToDictionary(a => a.LanguageCode, a => a.Title)
             };
         }
 

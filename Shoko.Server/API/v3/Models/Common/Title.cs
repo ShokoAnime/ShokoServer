@@ -1,4 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Server.API.v3.Models.Common
 {
@@ -14,7 +17,7 @@ namespace Shoko.Server.API.v3.Models.Common
         /// </summary>
         [Required]
         public string Name { get; set; }
-            
+
         /// <summary>
         /// convert to AniDB style (x-jat is the special one, but most are standard 3-digit short names)
         /// </summary>
@@ -24,7 +27,8 @@ namespace Shoko.Server.API.v3.Models.Common
         /// <summary>
         /// AniDB type
         /// </summary>
-        public string Type { get; set; }
+        [JsonConverter(typeof(StringEnumConverter))]
+        public TitleType Type { get; set; }
         
         /// <summary>
         /// If this is the default title

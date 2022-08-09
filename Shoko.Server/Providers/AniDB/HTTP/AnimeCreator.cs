@@ -110,7 +110,7 @@ namespace Shoko.Server.AniDB_API
             _logger.LogTrace("------------------------------------------------");
             return true;
         }
-        
+
         private static bool PopulateAnime(ResponseAnime animeInfo, SVR_AniDB_Anime anime)
         {
             // We need various values to be populated to be considered valid
@@ -161,7 +161,7 @@ namespace Shoko.Server.AniDB_API
             RepoFactory.AniDB_Episode_Title.Delete(oldtitles);
             
             var epsToSave = new List<AniDB_Episode>();
-            var titlesToSave = new List<AniDB_Episode_Title>();
+            var titlesToSave = new List<SVR_AniDB_Episode_Title>();
 
             foreach (var epraw in eps)
             {
@@ -189,7 +189,17 @@ namespace Shoko.Server.AniDB_API
                 epsToSave.Add(epNew);
 
                 // Titles
-                titlesToSave.AddRange(epraw.Titles);
+                foreach (var rawtitle in epraw.Titles)
+                {
+                    if (string.IsNullOrEmpty(rawtitle?.Title)) continue;
+                    var title = new SVR_AniDB_Episode_Title()
+                    {
+                        AniDB_EpisodeID = epraw.EpisodeID,
+                        Language = rawtitle.Language,
+                        Title = rawtitle.Title,
+                    };
+                    titlesToSave.Add(title);
+                }
 
                 // since the HTTP api doesn't return a count of the number of specials, we will calculate it here
                 if (epNew.GetEpisodeTypeEnum() == EpisodeType.Episode)
@@ -229,17 +239,17 @@ namespace Shoko.Server.AniDB_API
             var allTitles = string.Empty;
 
             var titlesToDelete = RepoFactory.AniDB_Anime_Title.GetByAnimeID(anime.AnimeID);
-            var titlesToSave = new List<AniDB_Anime_Title>();
+            var titlesToSave = new List<SVR_AniDB_Anime_Title>();
             foreach (var rawtitle in titles)
             {
-
                 if (string.IsNullOrEmpty(rawtitle?.Title)) continue;
-                if (rawtitle.AnimeID <= 0) continue;
-                var title = new AniDB_Anime_Title();
-                title.AnimeID = rawtitle.AnimeID;
-                title.Language = rawtitle.Language.GetString();
-                title.Title = rawtitle.Title;
-                title.TitleType = rawtitle.TitleType.ToString();
+                var title = new SVR_AniDB_Anime_Title()
+                {
+                    AnimeID = anime.AnimeID,
+                    Language = rawtitle.Language,
+                    Title = rawtitle.Title,
+                    TitleType = rawtitle.TitleType,
+                };
                 titlesToSave.Add(title);
 
                 if (allTitles.Length > 0) allTitles += "|";

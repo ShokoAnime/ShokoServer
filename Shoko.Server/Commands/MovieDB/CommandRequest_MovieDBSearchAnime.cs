@@ -106,9 +106,9 @@ namespace Shoko.Server.Commands
 
                     if (results.Count == 0)
                     {
-                        foreach (AniDB_Anime_Title title in anime.GetTitles())
+                        foreach (var title in anime.GetTitles())
                         {
-                            if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
+                            if (title.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Official)
                                 continue;
 
                             if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;

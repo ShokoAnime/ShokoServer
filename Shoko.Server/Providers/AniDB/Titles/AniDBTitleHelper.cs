@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Xml.Serialization;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -54,7 +55,7 @@ namespace Shoko.Server.Providers.AniDB.Titles
                     return SeriesSearch.SearchCollection(
                         query, _cache.Animes,
                         anime => anime.Titles
-                            .Where(a => a.TitleLanguage.Equals("en") || a.TitleLanguage.Equals("x-jat") || ServerSettings.Instance.LanguagePreference.Contains(a.TitleLanguage))
+                            .Where(a => a.Language == TitleLanguage.English || a.Language == TitleLanguage.Romaji || ServerSettings.Instance.LanguagePreference.Contains(a.LanguageCode))
                             .Select(a => a.Title)
                             .ToList()
                         )

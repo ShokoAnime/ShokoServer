@@ -168,7 +168,7 @@ namespace Shoko.Server.Extensions
 
         public static string GetEnglishTitle(this AniDB_Episode ep)
         {
-            return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.EpisodeID, "EN").FirstOrDefault()
+            return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.EpisodeID, Shoko.Plugin.Abstractions.DataModels.TitleLanguage.English).FirstOrDefault()
                 ?.Title;
         }
     }

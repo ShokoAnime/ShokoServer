@@ -438,17 +438,16 @@ namespace Shoko.Server.Models
             }
         }
 
-        public List<AniDB_Anime_Title> Titles
+        public List<SVR_AniDB_Anime_Title> Titles
         {
             get
             {
-                List<int> animeTitleIDs = new List<int>();
-                List<AniDB_Anime_Title> animeTitles = new List<AniDB_Anime_Title>();
-
+                var animeTitleIDs = new List<int>();
+                var animeTitles = new List<SVR_AniDB_Anime_Title>();
 
                 // get a list of all the unique titles for this all the series in this group
-                foreach (SVR_AnimeSeries ser in GetAllSeries())
-                foreach (AniDB_Anime_Title aat in ser.GetAnime().GetTitles())
+                foreach (var ser in GetAllSeries())
+                foreach (var aat in ser.GetAnime().GetTitles())
                     if (!animeTitleIDs.Contains(aat.AniDB_Anime_TitleID))
                     {
                         animeTitleIDs.Add(aat.AniDB_Anime_TitleID);

@@ -89,8 +89,8 @@ namespace Shoko.Server.API.v2.Models.common
                 g.summary = anime.Description ?? string.Empty;
                 g.titles = anime.GetTitles().Select(s => new AnimeTitle
                 {
-                    Type = s.TitleType,
-                    Language = s.Language,
+                    Type = s.TitleType.ToString().ToLower(),
+                    Language = s.LanguageCode,
                     Title = s.Title
                 }).ToList();
                 g.year = anime.BeginYear.ToString();

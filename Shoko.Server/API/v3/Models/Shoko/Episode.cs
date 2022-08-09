@@ -9,6 +9,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
@@ -77,18 +78,17 @@ namespace Shoko.Server.API.v3.Models.Shoko
         
         internal static string GetEpisodeTitle(int anidbEpisodeID)
         {
-            // Try finding the 
-            var languages = Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language);
-            foreach (var language in languages)
+            // Try finding one of the preferred languages.
+            foreach (var language in Languages.PreferredEpisodeNamingLanguages)
             {
-                var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidbEpisodeID, language)
+                var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidbEpisodeID, language.Language)
                     .FirstOrDefault()?.Title;
                 if (!string.IsNullOrEmpty(title))
                     return title;
             }
 
             // Fallback to English if available.
-            return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidbEpisodeID, "EN")
+            return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidbEpisodeID, TitleLanguage.English)
                 .FirstOrDefault()
                 ?.Title;
         }
@@ -162,7 +162,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 Titles = titles.Select(a => new Title
                     {
                         Name = a.Title,
-                        Language = a.Language.ToLower(),
+                        Language = a.LanguageCode,
                         Default = false,
                         Source = "AniDB",
                     }

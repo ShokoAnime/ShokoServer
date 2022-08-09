@@ -1,21 +1,41 @@
-﻿namespace Shoko.Server.Utilities
+﻿using System;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Extensions;
+
+namespace Shoko.Server.Utilities
 {
     public class NamingLanguage
     {
-        public string Language { get; set; }
+        public TitleLanguage Language { get; set; }
+        
+        public string LanguageCode
+        {
+            get
+            {
+                return Language.GetString();
+            }
+        }
 
         public string LanguageDescription
         {
-            get { return Languages.GetLanguageDescription(Language.Trim().ToUpper()); }
+            get
+            {
+                return Language.GetDescription();
+            }
         }
 
         public NamingLanguage()
         {
         }
 
-        public NamingLanguage(string language)
+        public NamingLanguage(TitleLanguage language)
         {
             Language = language;
+        }
+
+        public NamingLanguage(string language)
+        {
+            Language = language.GetEnum();
         }
 
         public override string ToString()

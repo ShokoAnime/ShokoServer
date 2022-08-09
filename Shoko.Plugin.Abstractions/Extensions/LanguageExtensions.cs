@@ -61,6 +61,23 @@ public static class LanguageExtensions
         };
     }
     
+    public static string GetDescription(this TitleLanguage lang)
+    {
+        return lang switch
+        {
+            TitleLanguage.Romaji => "Japanese (romanji/x-jat)",
+            TitleLanguage.Japanese => "Japanese (kanji)",
+            TitleLanguage.Bangladeshi => "Bangladesh",
+            TitleLanguage.FrenchCanadian => "Canadian-French",
+            TitleLanguage.BrazilianPortuguese => "Brazilian Portuguese",
+            TitleLanguage.Chinese => "Chinese (any)",
+            TitleLanguage.ChineseSimplified => "Chinese (simplified)",
+            TitleLanguage.ChineseTraditional => "Chinese (traditional)",
+            TitleLanguage.Pinyin => "Chinese (pinyin/x-zhn)",
+            _ => lang.ToString(),
+        };
+    }
+
     public static string GetString(this TitleLanguage lang)
     {
         return lang switch
@@ -108,6 +125,21 @@ public static class LanguageExtensions
             TitleLanguage.ChineseSimplified => "zh-hans",
             TitleLanguage.ChineseTraditional => "zh-hant",
             _ => "unk",
+        };
+    }
+    
+    public static TitleType GetTitleType(this string type)
+    {
+        return type.ToLowerInvariant() switch
+        {
+            "main" => TitleType.Main,
+            "official" => TitleType.Official,
+            "synonym" => TitleType.Synonym,
+            "syn" => TitleType.Synonym,
+            "short" => TitleType.Short,
+            "card" => TitleType.Card,
+            "kana" => TitleType.Katakana,
+            _ => TitleType.None,
         };
     }
 }

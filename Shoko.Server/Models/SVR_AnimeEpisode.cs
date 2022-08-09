@@ -204,24 +204,32 @@ namespace Shoko.Server.Models
         {
             get
             {
-                var languages = Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language);
-                foreach (var language in languages)
+                // Try finding one of the preferred languages.
+                foreach (var language in Languages.PreferredEpisodeNamingLanguages)
                 {
-                    var episode_title =
-                        RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, language);
-                    var title = episode_title.FirstOrDefault();
-                    if (string.IsNullOrEmpty(title?.Title)) continue;
-                    return title?.Title;
+                    var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, language.Language)
+                        .FirstOrDefault()
+                        ?.Title;
+                    if (!string.IsNullOrEmpty(title))
+                        return title;
                 }
 
-                return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, "EN").FirstOrDefault()
+                // Fallback to English if available.
+                return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.English)
+                    .FirstOrDefault()
                     ?.Title;
             }
         }
 
         IReadOnlyList<AnimeTitle> IEpisode.Titles =>
             RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID)
-                .Select(a => new AnimeTitle { LanguageCode = a.Language, Language = a.Language.GetEnum(), Title = a.Title })
+                .Select(a => new AnimeTitle
+                    {
+                        LanguageCode = a.LanguageCode,
+                        Language = a.Language,
+                        Title = a.Title,
+                    }
+                )
                 .ToList();
         int IEpisode.EpisodeID => AniDB_EpisodeID;
         int IEpisode.AnimeID => AniDB_Episode?.AnimeID ?? 0;
