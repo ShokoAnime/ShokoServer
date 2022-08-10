@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Queue;
@@ -59,7 +60,7 @@ namespace Shoko.Server.Commands
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Trace("Checking File For Hashes: {0}", FileName);
+            Logger.LogTrace("Checking File For Hashes: {0}", FileName);
 
             try
             {
@@ -67,12 +68,12 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error processing file: {0}\n{1}", FileName, ex);
+                Logger.LogError(ex, "Error processing file: {0}\n{1}", FileName, ex);
             }
         }
 
         //Added size return, since symbolic links return 0, we use this function also to return the size of the file.
-        private static long CanAccessFile(string fileName, bool writeAccess, ref Exception e)
+        private long CanAccessFile(string fileName, bool writeAccess, ref Exception e)
         {
             var accessType = writeAccess ? FileAccess.ReadWrite : FileAccess.Read;
             try
@@ -90,7 +91,7 @@ namespace Shoko.Server.Commands
             catch (Exception ex)
             {
                 // This shouldn't cause a recursion, as it'll throw if failing
-                logger.Trace($"File {fileName} is Read-Only, unmarking");
+                Logger.LogTrace($"File {fileName} is Read-Only, unmarking");
                 try
                 {
                     FileInfo info = new FileInfo(fileName);
@@ -114,7 +115,7 @@ namespace Shoko.Server.Commands
         }
 
         //Used to check if file has been modified within the last X seconds.
-        private static bool FileModified(string FileName, int Seconds, ref long lastFileSize, bool writeAccess, ref Exception e)
+        private bool FileModified(string FileName, int Seconds, ref long lastFileSize, bool writeAccess, ref Exception e)
         {
             try
             {
@@ -147,7 +148,7 @@ namespace Shoko.Server.Commands
             Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
             if (tup == null)
             {
-                logger.Error($"Unable to locate Import Folder for {FileName}");
+                Logger.LogError($"Unable to locate Import Folder for {FileName}");
                 return;
             }
             SVR_ImportFolder folder = tup.Item1;
@@ -157,7 +158,7 @@ namespace Shoko.Server.Commands
 
             if (!File.Exists(FileName))
             {
-                logger.Error("File does not exist: {0}", FileName);
+                Logger.LogError("File does not exist: {0}", FileName);
                 return;
             }
 
@@ -183,7 +184,7 @@ namespace Shoko.Server.Commands
                     {
                         numAttempts++;
                         Thread.Sleep(waitTime);
-                        logger.Trace($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
+                        Logger.LogTrace($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
                     }
                 }
                 else
@@ -194,14 +195,13 @@ namespace Shoko.Server.Commands
                     {
                         numAttempts++;
                         Thread.Sleep(1000);
-                        logger.Trace($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
+                        Logger.LogTrace($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
                     }
 
                     // if we failed to access the file, get ouuta here
                     if (numAttempts >= 60)
                     {
-                        logger.Error("Could not access file: " + FileName);
-                        logger.Error(e);
+                        Logger.LogError("Could not access file: " + FileName);
                         return;
                     }
 
@@ -221,7 +221,7 @@ namespace Shoko.Server.Commands
                         Thread.Sleep(waitTime);
                         // Only show if it's more than 'seconds' past
                         if (numAttempts != 0 && numAttempts * 2 % seconds == 0)
-                            logger.Warn(
+                            Logger.LogWarning(
                                 $@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {numAttempts}/60 {FileName}"
                             );
                     }
@@ -230,15 +230,14 @@ namespace Shoko.Server.Commands
                 // if we failed to access the file, get ouuta here
                 if (numAttempts >= 60 || filesize == 0)
                 {
-                    logger.Error("Could not access file: " + FileName);
-                    logger.Error(e);
+                    Logger.LogError("Could not access file: " + FileName);
                     return;
                 }
             }
 
             if (!File.Exists(FileName))
             {
-                logger.Error("Could not access file: " + FileName);
+                Logger.LogError("Could not access file: " + FileName);
                 return;
             }
             FileInfo sourceFile = new FileInfo(FileName);
@@ -255,7 +254,7 @@ namespace Shoko.Server.Commands
                 vlocal = vlocalplace.VideoLocal;
                 if (vlocal != null)
                 {
-                    logger.Trace("VideoLocal record found in database: {0}", FileName);
+                    Logger.LogTrace("VideoLocal record found in database: {0}", FileName);
 
                     // This will only happen with DB corruption, so just clean up the mess.
                     if (vlocalplace.FullServerPath == null)
@@ -281,7 +280,7 @@ namespace Shoko.Server.Commands
             if (vlocal == null)
             {
                 // TODO support reading MD5 and SHA1 from files via the standard way
-                logger.Trace("No existing VideoLocal, creating temporary record");
+                Logger.LogTrace("No existing VideoLocal, creating temporary record");
                 vlocal = new SVR_VideoLocal
                 {
                     DateTimeUpdated = DateTime.Now,
@@ -299,7 +298,7 @@ namespace Shoko.Server.Commands
 
             if (vlocalplace == null)
             {
-                logger.Trace("No existing VideoLocal_Place, creating a new record");
+                Logger.LogTrace("No existing VideoLocal_Place, creating a new record");
                 vlocalplace = new SVR_VideoLocal_Place
                 {
                     FilePath = filePath,
@@ -313,7 +312,7 @@ namespace Shoko.Server.Commands
             // check if we need to get a hash this file
             if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
             {
-                logger.Trace("No existing hash in VideoLocal, checking XRefs");
+                Logger.LogTrace("No existing hash in VideoLocal, checking XRefs");
                 if (!ForceHash)
                 {
                     // try getting the hash from the CrossRef
@@ -345,7 +344,7 @@ namespace Shoko.Server.Commands
 
                     if (fnhashes != null && fnhashes.Count == 1)
                     {
-                        logger.Trace("Got hash from LOCAL cache: {0} ({1})", FileName, fnhashes[0].Hash);
+                        Logger.LogTrace("Got hash from LOCAL cache: {0} ({1})", FileName, fnhashes[0].Hash);
                         vlocal.Hash = fnhashes[0].Hash;
                         vlocal.HashSource = (int) HashSource.WebCacheFileName;
                     }
@@ -357,14 +356,14 @@ namespace Shoko.Server.Commands
                 // hash the file
                 if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
                 {
-                    logger.Info("Hashing File: {0}", FileName);
+                    Logger.LogInformation("Hashing File: {0}", FileName);
                     ShokoService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
                     DateTime start = DateTime.Now;
                     // update the VideoLocal record with the Hash, since cloud support we calculate everything
                     var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress,
                         true, true, true);
                     TimeSpan ts = DateTime.Now - start;
-                    logger.Trace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds, FileName,
+                    Logger.LogTrace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds, FileName,
                         Utils.FormatByteSize(vlocal.FileSize));
                     vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
                     vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
@@ -382,7 +381,7 @@ namespace Shoko.Server.Commands
 
                 if (tlocal != null)
                 {
-                    logger.Trace("Found existing VideoLocal with hash, merging info from it");
+                    Logger.LogTrace("Found existing VideoLocal with hash, merging info from it");
                     // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
                     changed = tlocal.MergeInfoFrom(vlocal);
                     vlocal = tlocal;
@@ -407,11 +406,11 @@ namespace Shoko.Server.Commands
 
                     if (dupPlace != null)
                     {
-                        logger.Warn("Found Duplicate File");
-                        logger.Warn("---------------------------------------------");
-                        logger.Warn($"New File: {vlocalplace.FullServerPath}");
-                        logger.Warn($"Existing File: {dupPlace.FullServerPath}");
-                        logger.Warn("---------------------------------------------");
+                        Logger.LogWarning("Found Duplicate File");
+                        Logger.LogWarning("---------------------------------------------");
+                        Logger.LogWarning($"New File: {vlocalplace.FullServerPath}");
+                        Logger.LogWarning($"Existing File: {dupPlace.FullServerPath}");
+                        Logger.LogWarning("---------------------------------------------");
 
                         if (ServerSettings.Instance.Import.AutomaticallyDeleteDuplicatesOnImport)
                         {
@@ -525,12 +524,12 @@ namespace Shoko.Server.Commands
                     tp.Add("MD5");
                 if (needcrc32)
                     tp.Add("CRC32");
-                logger.Trace("Calculating missing {1} hashes for: {0}", FileName, string.Join(",", tp));
+                Logger.LogTrace("Calculating missing {1} hashes for: {0}", FileName, string.Join(",", tp));
                 // update the VideoLocal record with the Hash, since cloud support we calculate everything
                 Hashes hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress,
                     needcrc32, needmd5, needsha1);
                 TimeSpan ts = DateTime.Now - start;
-                logger.Trace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds,
+                Logger.LogTrace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds,
                     FileName, Utils.FormatByteSize(vlocal.FileSize));
                 if (string.IsNullOrEmpty(vlocal.Hash))
                     vlocal.Hash = hashes.ED2K?.ToUpperInvariant();

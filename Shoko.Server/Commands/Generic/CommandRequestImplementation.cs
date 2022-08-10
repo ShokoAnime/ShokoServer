@@ -3,7 +3,8 @@ using System.Reflection;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
-using NLog;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
@@ -17,7 +18,7 @@ namespace Shoko.Server.Commands
 
     public abstract class CommandRequestImplementation : ICommandRequest
     {
-        protected static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        protected ILogger Logger;
 
         // ignoring the base properties so that when we serialize we only get the properties
         // defined in the concrete class
@@ -53,13 +54,15 @@ namespace Shoko.Server.Commands
         {
             try
             {
+                var factory = serviceProvider.GetRequiredService<ILoggerFactory>();
+                Logger = factory.CreateLogger(GetType());
                 Process(serviceProvider);
             }
             catch (Exception e)
             {
                 if (BubbleExceptions)
                     throw;
-                logger.Error(e, "Error processing {Type}: {CommandDetails} - {Exception}", GetType().Name, CommandID, e);
+                Logger.LogError(e, "Error processing {Type}: {CommandDetails} - {Exception}", GetType().Name, CommandID, e);
             }
         }
 
@@ -74,16 +77,16 @@ namespace Shoko.Server.Commands
 
         public string ToXML()
         {
-            XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
+            var ns = new XmlSerializerNamespaces();
             ns.Add("", string.Empty);
 
-            XmlSerializer serializer = new XmlSerializer(GetType());
-            XmlWriterSettings settings = new XmlWriterSettings
+            var serializer = new XmlSerializer(GetType());
+            var settings = new XmlWriterSettings
             {
                 OmitXmlDeclaration = true // Remove the <?xml version="1.0" encoding="utf-8"?>
             };
-            StringBuilder sb = new StringBuilder();
-            XmlWriter writer = XmlWriter.Create(sb, settings);
+            var sb = new StringBuilder();
+            var writer = XmlWriter.Create(sb, settings);
             serializer.Serialize(writer, this, ns);
 
             return sb.ToString();
@@ -127,7 +130,7 @@ namespace Shoko.Server.Commands
         {
             try
             {
-                string prop = doc?[keyName]?[propertyName]?.InnerText.Trim() ?? string.Empty;
+                var prop = doc?[keyName]?[propertyName]?.InnerText.Trim() ?? string.Empty;
                 return prop;
             }
             catch

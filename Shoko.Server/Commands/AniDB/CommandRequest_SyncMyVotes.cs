@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Xml;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
@@ -36,7 +37,7 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_SyncMyVotes");
+            Logger.LogInformation("Processing CommandRequest_SyncMyVotes");
 
             try
             {
@@ -79,11 +80,11 @@ namespace Shoko.Server.Commands.AniDB
                     cmdAnime.Save();
                 }
 
-                logger.Info("Processed Votes: {Count} Items", response.Response.Count);
+                Logger.LogInformation("Processed Votes: {Count} Items", response.Response.Count);
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error processing CommandRequest_SyncMyVotes: {Ex} ", ex);
+                Logger.LogError(ex, "Error processing CommandRequest_SyncMyVotes: {Ex} ", ex);
             }
         }
 

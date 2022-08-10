@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -46,7 +47,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_WebCacheSendXRefFileEpisode: {0} - {1}",
+                Logger.LogError("Error processing CommandRequest_WebCacheSendXRefFileEpisode: {0} - {1}",
                     CrossRef_File_EpisodeID,
                     ex);
             }

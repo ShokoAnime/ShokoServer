@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -75,7 +76,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error populating XREF: {0}", vlocal.ToStringDetailed());
+                Logger.LogError(ex, "Error populating XREF: {0}", vlocal.ToStringDetailed());
                 throw;
             }
             RepoFactory.CrossRef_File_Episode.Save(xref);
@@ -160,7 +161,7 @@ namespace Shoko.Server.Commands
                 vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
                 if (null==vlocal)
                 {
-                    logger.Info("videolocal object {0} not found", VideoLocalID);
+                    Logger.LogInformation("videolocal object {0} not found", VideoLocalID);
                     return false;
                 }
                 episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Xml;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -43,7 +44,7 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_GetUpdated");
+            Logger.LogInformation("Processing CommandRequest_GetUpdated");
             var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
 
             try
@@ -72,10 +73,10 @@ namespace Shoko.Server.Commands.AniDB
                 }
                 else
                 {
-                    logger.Trace("Last AniDB info update was : {UpdateDetails}", sched.UpdateDetails);
+                    Logger.LogTrace("Last AniDB info update was : {UpdateDetails}", sched.UpdateDetails);
                     webUpdateTime = DateTime.UnixEpoch.AddSeconds(long.Parse(sched.UpdateDetails));
 
-                    logger.Info($"{DateTime.UtcNow - webUpdateTime:g} since last UPDATED command");
+                    Logger.LogInformation($"{DateTime.UtcNow - webUpdateTime:g} since last UPDATED command");
                 }
 
                 var (response, countAnime, countSeries) = Update(webUpdateTime, handler, sched, 0, 0);
@@ -83,15 +84,15 @@ namespace Shoko.Server.Commands.AniDB
                 while (response?.Response?.Count > 200)
                     (response, countAnime, countSeries) = Update(response.Response.LastUpdated, handler, sched, countAnime, countSeries);
 
-                logger.Info("Updating {Count} anime records, and {CountSeries} group status records", countAnime, countSeries);
+                Logger.LogInformation("Updating {Count} anime records, and {CountSeries} group status records", countAnime, countSeries);
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error processing CommandRequest_GetUpdated: {Ex}", ex);
+                Logger.LogError(ex, "Error processing CommandRequest_GetUpdated: {Ex}", ex);
             }
         }
 
-        private static (UDPResponse<ResponseUpdatedAnime> response, int countAnime, int countSeries) Update(DateTime webUpdateTime, IUDPConnectionHandler handler, ScheduledUpdate sched, int countAnime, int countSeries)
+        private (UDPResponse<ResponseUpdatedAnime> response, int countAnime, int countSeries) Update(DateTime webUpdateTime, IUDPConnectionHandler handler, ScheduledUpdate sched, int countAnime, int countSeries)
         {
             // get a list of updates from AniDB
             // startTime will contain the date/time from which the updates apply to
@@ -108,7 +109,7 @@ namespace Shoko.Server.Commands.AniDB
 
             if (animeIDsToUpdate.Count == 0)
             {
-                logger.Info("No anime to be updated");
+                Logger.LogInformation("No anime to be updated");
                 return (response, countAnime, countSeries);
             }
 
@@ -118,11 +119,11 @@ namespace Shoko.Server.Commands.AniDB
                 var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null)
                 {
-                    logger.Trace("No local record found for Anime ID: {AnimeID}, so skipping...", animeID);
+                    Logger.LogTrace("No local record found for Anime ID: {AnimeID}, so skipping...", animeID);
                     continue;
                 }
 
-                logger.Info("Updating CommandRequest_GetUpdated: {AnimeID} ", animeID);
+                Logger.LogInformation("Updating CommandRequest_GetUpdated: {AnimeID} ", animeID);
                 var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
 
                 // but only if it hasn't been recently updated

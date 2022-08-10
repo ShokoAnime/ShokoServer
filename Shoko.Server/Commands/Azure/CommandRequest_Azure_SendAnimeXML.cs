@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Queue;
@@ -78,7 +79,7 @@ namespace Shoko.Server.Commands.Azure
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_Azure_SendAnimeXML: {0} - {1}", AnimeID, ex);
+                Logger.LogError("Error processing CommandRequest_Azure_SendAnimeXML: {0} - {1}", AnimeID, ex);
             }
         }
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
@@ -45,7 +46,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error(ex, 
+                Logger.LogError(ex, 
                     "Error processing CommandRequest_WebCacheDeleteXRefAniDBOther: {0}" + ex);
             }
         }

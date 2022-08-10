@@ -233,7 +233,7 @@ namespace Shoko.Server.Server
             }
 
             //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
-            CommandHelper.LoadCommands();
+            CommandHelper.LoadCommands(ServiceContainer);
 
             try
             {

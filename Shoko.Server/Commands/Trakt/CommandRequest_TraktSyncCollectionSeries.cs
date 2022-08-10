@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -42,7 +43,7 @@ namespace Shoko.Server.Commands
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_TraktSyncCollectionSeries");
+            Logger.LogInformation("Processing CommandRequest_TraktSyncCollectionSeries");
 
             try
             {
@@ -51,7 +52,7 @@ namespace Shoko.Server.Commands
                 SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
                 if (series == null)
                 {
-                    logger.Error("Could not find anime series: {0}", AnimeSeriesID);
+                    Logger.LogError("Could not find anime series: {0}", AnimeSeriesID);
                     return;
                 }
 
@@ -59,7 +60,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TraktSyncCollectionSeries: {0}", ex);
+                Logger.LogError("Error processing CommandRequest_TraktSyncCollectionSeries: {0}", ex);
             }
         }
 

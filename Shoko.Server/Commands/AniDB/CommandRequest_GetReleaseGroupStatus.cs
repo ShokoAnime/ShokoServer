@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Xml;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -46,7 +47,7 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_GetReleaseGroupStatus: {AnimeID}", AnimeID);
+            Logger.LogInformation("Processing CommandRequest_GetReleaseGroupStatus: {AnimeID}", AnimeID);
             var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
 
             try
@@ -61,7 +62,7 @@ namespace Shoko.Server.Commands.AniDB
                 // don't get group status if the anime has already ended more than 50 days ago
                 if (ShouldSkip(anime))
                 {
-                    logger.Info("Skipping group status command because anime has already ended: {AnimeID}", AnimeID);
+                    Logger.LogInformation("Skipping group status command because anime has already ended: {AnimeID}", AnimeID);
                     return;
                 }
 
@@ -113,7 +114,7 @@ namespace Shoko.Server.Commands.AniDB
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error processing CommandRequest_GetReleaseGroupStatus: {AnimeID} - {Ex}", AnimeID, ex);
+                Logger.LogError(ex, "Error processing CommandRequest_GetReleaseGroupStatus: {AnimeID} - {Ex}", AnimeID, ex);
             }
         }
 

@@ -2,6 +2,7 @@
 using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NHibernate;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -63,7 +64,7 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_GetAnimeHTTP: {AnimeID}", AnimeID);
+            Logger.LogInformation("Processing CommandRequest_GetAnimeHTTP: {AnimeID}", AnimeID);
 
             try
             {
@@ -108,7 +109,7 @@ namespace Shoko.Server.Commands.AniDB
 
                 if (response == null)
                 {
-                    logger.Error("No such anime with ID: {AnimeID}", AnimeID);
+                    Logger.LogError("No such anime with ID: {AnimeID}", AnimeID);
                     return;
                 }
 
@@ -138,7 +139,7 @@ namespace Shoko.Server.Commands.AniDB
             }
             catch (AniDBBannedException ex)
             {
-                logger.Error(ex, "Error processing CommandRequest_GetAnimeHTTP: {AnimeID} - {Ex}", AnimeID, ex);
+                Logger.LogError(ex, "Error processing CommandRequest_GetAnimeHTTP: {AnimeID} - {Ex}", AnimeID, ex);
             }
         }
 
