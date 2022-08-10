@@ -98,7 +98,7 @@ namespace Shoko.Server.Commands.AniDB
             // startTime will contain the date/time from which the updates apply to
             var request = new RequestUpdatedAnime { LastUpdated = webUpdateTime };
             var response = request.Execute(handler);
-            if (response == null) return (null, countAnime, countSeries);
+            if (response?.Response == null) return (null, countAnime, countSeries);
             var animeIDsToUpdate = response.Response.AnimeIDs;
 
             // now save the update time from AniDB
