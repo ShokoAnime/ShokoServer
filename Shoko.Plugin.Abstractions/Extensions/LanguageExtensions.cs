@@ -147,6 +147,7 @@ public static class LanguageExtensions
             "syn" => TitleType.Synonym,
             "card" => TitleType.TitleCard,
             "kana" => TitleType.KanjiReading,
+            "kanareading" => TitleType.KanjiReading,
             _ => TitleType.None,
         };
     }
