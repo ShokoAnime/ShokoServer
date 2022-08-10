@@ -111,14 +111,12 @@ namespace Shoko.Server.Repositories.Direct
         }
 
 
-        public CommandRequest GetNextDBCommandRequestGeneral()
+        public CommandRequest GetNextDBCommandRequestGeneral(IUDPConnectionHandler udpHandler, IHttpConnectionHandler httpHandler)
         {
             try
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var types = CommandTypesGeneral;
-                var udpHandler = ShokoServer.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
-                var httpHandler = ShokoServer.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
                 var noUDP = udpHandler.IsBanned || !udpHandler.IsNetworkAvailable;
                 // This is called very often, so speed it up as much as possible
                 // We can spare bytes of RAM to speed up the command queue

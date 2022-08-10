@@ -48,7 +48,7 @@ namespace Shoko.Server.Commands
                     continue;
                 }
 
-                CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral();
+                CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral(udpHandler, httpHandler);
                 if (crdb == null)
                 {
                     if (QueueCount > 0 && !httpHandler.IsBanned && !udpHandler.IsBanned)
