@@ -79,7 +79,11 @@ namespace Shoko.Server.Commands.AniDB
                     response = request.Execute(handler);
                 }
 
-                if (response == null) return;
+                if (response?.Response == null)
+                {
+                    logger.Info("File {VideoLocalID} ({Ed2kHash} | {FileName}) could not be found on AniDB", vlocal.VideoLocalID, vlocal.ED2KHash, vlocal.GetBestVideoLocalPlace()?.FileName);
+                    return;
+                }
                 // save to the database
                 aniFile ??= new SVR_AniDB_File();
                 aniFile.Hash = vlocal.Hash;
