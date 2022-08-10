@@ -11,14 +11,14 @@ using Shoko.Plugin.Abstractions.Extensions;
 
 namespace Shoko.Server.Databases.TypeConverters
 {
-    public class TitleLanguageConverter : TypeConverter, IUserType
+    public class TitleTypeConverter : TypeConverter, IUserType
     {
         public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
         {
             // any integer type is accepted. No fractional types like float/double.
             return sourceType.FullName switch
             {
-                "Shoko.Plugin.Abstractions.DataModels.TitleLanguage" => true,
+                "Shoko.Plugin.Abstractions.DataModels.TitleType" => true,
                 _ => false,
             };
         }
@@ -41,10 +41,10 @@ namespace Shoko.Server.Databases.TypeConverters
         {
             return value switch
             {
-                null => TitleLanguage.Unknown,
-                long i => (TitleLanguage)i,
-                int i => (TitleLanguage)i,
-                string s => s.GetTitleLanguage(),
+                null => TitleType.None,
+                long i => (TitleType)i,
+                int i => (TitleType)i,
+                string s => s.GetTitleType(),
                 _ => throw new ArgumentException("DestinationType must be string or int"),
             };
         }
@@ -65,11 +65,11 @@ namespace Shoko.Server.Databases.TypeConverters
         {
             if(value == null) throw new ArgumentNullException(nameof(value), @"Value can't be null");
 
-            if(value is not TitleLanguage t) throw new ArgumentException(@"Value isn't of type TitleLanguage", nameof(value));
+            if(value is not TitleType t) throw new ArgumentException(@"Value isn't of type TitleType", nameof(value));
 
             return destinationType.FullName switch
             {
-                "System.String" => t.GetString().ToLowerInvariant(),
+                "System.String" => t.ToString().ToLowerInvariant(),
                 "System.Int32" => (int)t,
                 "System.Int64" => (long)t,
                 _ => throw new ArgumentException("DestinationType must be string or int"),
