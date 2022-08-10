@@ -128,6 +128,11 @@ public static class LanguageExtensions
         };
     }
     
+    public static string GetString(this TitleType type)
+    {
+        return type.ToString().ToLowerInvariant();
+    }
+
     public static TitleType GetTitleType(this string type)
     {
         return type.ToLowerInvariant() switch
@@ -137,8 +142,10 @@ public static class LanguageExtensions
             "synonym" => TitleType.Synonym,
             "syn" => TitleType.Synonym,
             "short" => TitleType.Short,
-            "card" => TitleType.Card,
-            "kana" => TitleType.Katakana,
+            "card" => TitleType.TitleCard,
+            "titlecard" => TitleType.TitleCard,
+            "kanareading" => TitleType.KanjiReading,
+            "kana" => TitleType.KanjiReading,
             _ => TitleType.None,
         };
     }
