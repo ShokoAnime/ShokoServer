@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
@@ -9,7 +8,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
     public class RequestUpdatedAnime : UDPRequest<ResponseUpdatedAnime>
     {
         public DateTime LastUpdated { get; set; }
-        protected override string BaseCommand => $"UPDATED entity=1&time={LastUpdated}";
+        protected override string BaseCommand => $"UPDATED entity=1&time={Commons.Utils.AniDB.GetAniDBDateAsSeconds(LastUpdated)}";
 
         protected override UDPResponse<ResponseUpdatedAnime> ParseResponse(ILogger logger, UDPResponse<string> response)
         {
