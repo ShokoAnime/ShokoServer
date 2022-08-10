@@ -139,7 +139,7 @@ public static class LanguageExtensions
     {
         foreach (var type in Enum.GetValues(typeof(TitleType)).Cast<TitleType>())
         {
-            if (Equals(type, name)) return type;
+            if (type.GetString().Equals(name.ToLowerInvariant())) return type;
         }
 
         return name.ToLowerInvariant() switch
@@ -150,6 +150,4 @@ public static class LanguageExtensions
             _ => TitleType.None,
         };
     }
-
-    private static bool Equals(this TitleType type, string name) => type.GetString().Equals(name.ToLowerInvariant());
 }
