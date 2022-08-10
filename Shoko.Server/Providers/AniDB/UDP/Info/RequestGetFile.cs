@@ -138,7 +138,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                     var slangs = parts[11].Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries).ToList();
                     
                     // mylist
-                    var myList = ParseMyList(parts);
+                    var myList = ParseMyList(logger, parts);
 
                     return new UDPResponse<ResponseGetFile>
                     {
@@ -207,11 +207,21 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
             };
         }
 
-        private static ResponseGetFile.MyListInfo ParseMyList(IReadOnlyList<string> parts)
+        private static ResponseGetFile.MyListInfo ParseMyList(ILogger logger, IReadOnlyList<string> parts)
         {
             if (!int.TryParse(parts[4], out var myListID)) return null;
-            var mylistState = Enum.Parse<MyList_State>(parts[14]);
-            var mylistFileState = Enum.Parse<MyList_FileState>(parts[15]);
+            if (!int.TryParse(parts[14], out var mylistState))
+            {
+                logger.LogWarning("Could not parse MyList info for file. MyList_State failed binding: {Value}", parts[14]);
+                mylistState = (int)MyList_State.Unknown;
+            }
+
+            if (!int.TryParse(parts[15], out var mylistFileState))
+            {
+                logger.LogWarning("Could not parse MyList info for file. MyList_FileState failed binding: {Value}", parts[15]);
+                mylistFileState = (int)MyList_FileState.Other;
+            }
+
             DateTime? viewDate = null;
             if (int.TryParse(parts[16], out var viewCount))
             {
@@ -226,8 +236,8 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
             return new ResponseGetFile.MyListInfo
             {
                 MyListID = myListID,
-                State = mylistState,
-                FileState = mylistFileState,
+                State = (MyList_State)mylistState,
+                FileState = (MyList_FileState)mylistFileState,
                 ViewCount = viewCount,
                 ViewDate = viewDate
             };
