@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -30,7 +31,7 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("CommandRequest_GetAniDBTitles is deprecated. Skipping");
+            Logger.LogInformation("CommandRequest_GetAniDBTitles is deprecated. Skipping");
 
         }
 

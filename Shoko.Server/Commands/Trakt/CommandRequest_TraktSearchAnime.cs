@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using NHibernate;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
@@ -51,7 +52,7 @@ namespace Shoko.Server.Commands
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_TraktSearchAnime: {0}", AnimeID);
+            Logger.LogInformation("Processing CommandRequest_TraktSearchAnime: {0}", AnimeID);
 
             try
             {
@@ -77,7 +78,7 @@ namespace Shoko.Server.Commands
                                     TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(xref.TraktID);
                                     if (showInfo == null) continue;
 
-                                    logger.Trace("Found trakt match on web cache for {0} - id = {1}", AnimeID,
+                                    Logger.LogTrace("Found trakt match on web cache for {0} - id = {1}", AnimeID,
                                         showInfo.title);
                                     TraktTVHelper.LinkAniDBTrakt(AnimeID,
                                         (EpisodeType) xref.AniDBStartEpisodeType,
@@ -90,7 +91,7 @@ namespace Shoko.Server.Commands
                         }
                         catch (Exception ex)
                         {
-                            logger.Error(ex, ex.ToString());
+                            Logger.LogError(ex, ex.ToString());
                         }
                     }
 
@@ -133,7 +134,7 @@ namespace Shoko.Server.Commands
                                 tvXRef.TvDBSeasonNumber);
                             if (traktSeason == null) continue;
 
-                            logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}",
+                            Logger.LogTrace("Found trakt match using TvDBID locally {0} - id = {1}",
                                 AnimeID, showInfo.title);
                             TraktTVHelper.LinkAniDBTrakt(AnimeID,
                                 (EpisodeType) tvXRef.AniDBStartEpisodeType,
@@ -156,7 +157,7 @@ namespace Shoko.Server.Commands
 
                     // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
                     List<TraktV2SearchShowResult> results = TraktTVHelper.SearchShowV2(searchCriteria);
-                    logger.Trace("Found {0} trakt results for {1} ", results.Count, searchCriteria);
+                    Logger.LogTrace("Found {0} trakt results for {1} ", results.Count, searchCriteria);
                     if (ProcessSearchResults(session, results, searchCriteria)) return;
 
 
@@ -170,14 +171,14 @@ namespace Shoko.Server.Commands
                         if (string.Equals(searchCriteria, title.Title, StringComparison.InvariantCultureIgnoreCase)) continue;
 
                         results = TraktTVHelper.SearchShowV2(searchCriteria);
-                        logger.Trace("Found {0} trakt results for search on {1}", results.Count, title.Title);
+                        Logger.LogTrace("Found {0} trakt results for search on {1}", results.Count, title.Title);
                         if (ProcessSearchResults(session, results, title.Title)) return;
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex);
+                Logger.LogError("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex);
             }
         }
 
@@ -189,7 +190,7 @@ namespace Shoko.Server.Commands
                 if (results[0].show != null)
                 {
                     // since we are using this result, lets download the info
-                    logger.Trace("Found 1 trakt results for search on {0} --- Linked to {1} ({2})", searchCriteria,
+                    Logger.LogTrace("Found 1 trakt results for search on {0} --- Linked to {1} ({2})", searchCriteria,
                         results[0].show.Title, results[0].show.ids.slug);
                     TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(results[0].show.ids.slug);
                     if (showInfo != null)

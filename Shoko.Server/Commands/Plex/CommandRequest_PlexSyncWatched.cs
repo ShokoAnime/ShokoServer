@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -33,7 +34,7 @@ namespace Shoko.Server.Commands.Plex
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info($"Syncing watched videos for: {_jmmuser.Username}, if nothing happens make sure you have your libraries configured in Shoko.");
+            Logger.LogInformation($"Syncing watched videos for: {_jmmuser.Username}, if nothing happens make sure you have your libraries configured in Shoko.");
 
             foreach (var section in PlexHelper.GetForUser(_jmmuser).GetDirectories())
             {

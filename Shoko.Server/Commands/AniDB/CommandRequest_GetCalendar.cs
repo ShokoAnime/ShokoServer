@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Xml;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -38,7 +39,7 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_GetCalendar");
+            Logger.LogInformation("Processing CommandRequest_GetCalendar");
             var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
 
             try
@@ -85,7 +86,7 @@ namespace Shoko.Server.Commands.AniDB
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error processing CommandRequest_GetCalendar: " + ex);
+                Logger.LogError(ex, "Error processing CommandRequest_GetCalendar: " + ex);
             }
         }
 

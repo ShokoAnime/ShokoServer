@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Xml;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -56,7 +57,7 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_UpdateMyListFileStatus: {Hash}", Hash);
+            Logger.LogInformation("Processing CommandRequest_UpdateMyListFileStatus: {Hash}", Hash);
             var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
 
             try
@@ -124,7 +125,7 @@ namespace Shoko.Server.Commands.AniDB
                     }
                 }
 
-                logger.Info("Updating file list status: {Hash} - {Watched}", vid.Hash, Watched);
+                Logger.LogInformation("Updating file list status: {Hash} - {Watched}", vid.Hash, Watched);
 
                 if (!UpdateSeriesStats) return;
                 // update watched stats
@@ -136,7 +137,7 @@ namespace Shoko.Server.Commands.AniDB
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error processing CommandRequest_UpdateMyListFileStatus: {Hash} - {Ex}", Hash, ex);
+                Logger.LogError(ex, "Error processing CommandRequest_UpdateMyListFileStatus: {Hash} - {Ex}", Hash, ex);
             }
         }
 

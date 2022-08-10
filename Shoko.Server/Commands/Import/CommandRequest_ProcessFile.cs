@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -63,7 +64,7 @@ namespace Shoko.Server.Commands
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Trace($"Processing File: {VideoLocalID}");
+            Logger.LogTrace($"Processing File: {VideoLocalID}");
 
             try
             {
@@ -78,13 +79,13 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error($"Error processing CommandRequest_ProcessFile: {VideoLocalID} - {ex}");
+                Logger.LogError($"Error processing CommandRequest_ProcessFile: {VideoLocalID} - {ex}");
             }
         }
 
         private SVR_AniDB_File ProcessFile_AniDB(IServiceProvider provider, SVR_VideoLocal vidLocal)
         {
-            logger.Trace($"Checking for AniDB_File record for: {vidLocal.Hash} --- {vidLocal.FileName}");
+            Logger.LogTrace($"Checking for AniDB_File record for: {vidLocal.Hash} --- {vidLocal.FileName}");
             // check if we already have this AniDB_File info in the database
 
             lock (vidLocal)
@@ -96,7 +97,7 @@ namespace Shoko.Server.Commands
                     aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
 
                     if (aniFile == null)
-                        logger.Trace("AniDB_File record not found");
+                        Logger.LogTrace("AniDB_File record not found");
                 }
 
                 // If cross refs were wiped, but the AniDB_File was not, we unfortunately need to requery the info
@@ -138,7 +139,7 @@ namespace Shoko.Server.Commands
                         });
 
                         // if we have the AniDB file, but no cross refs it means something has been broken
-                        logger.Debug($"Could not find any cross ref records for: {vidLocal.ED2KHash}");
+                        Logger.LogDebug($"Could not find any cross ref records for: {vidLocal.ED2KHash}");
                     }
                     else
                     {
@@ -215,7 +216,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private static void PopulateAnimeForFile(IServiceProvider provider, SVR_VideoLocal vidLocal, Dictionary<int, bool> animeIDs)
+        private void PopulateAnimeForFile(IServiceProvider provider, SVR_VideoLocal vidLocal, Dictionary<int, bool> animeIDs)
         {
             foreach (var kV in animeIDs)
             {
@@ -238,7 +239,7 @@ namespace Shoko.Server.Commands
                 // this is to prevent banning
                 if (missingEpisodes && !animeRecentlyUpdated)
                 {
-                    logger.Debug("Getting Anime record from AniDB....");
+                    Logger.LogDebug("Getting Anime record from AniDB....");
                     // this should detect and handle a ban, which will leave Result null, and defer
                     var animeCommand = new CommandRequest_GetAnimeHTTP
                     {
@@ -252,14 +253,14 @@ namespace Shoko.Server.Commands
                 // create the group/series/episode records if needed
                 if (anime == null)
                 {
-                    logger.Warn($"Unable to create AniDB_Anime for file: {vidLocal.FileName}");
-                    logger.Warn($"Queuing GET for AniDB_Anime: {animeID}");
+                    Logger.LogWarning($"Unable to create AniDB_Anime for file: {vidLocal.FileName}");
+                    Logger.LogWarning($"Queuing GET for AniDB_Anime: {animeID}");
                     var animeCommand = new CommandRequest_GetAnimeHTTP(animeID, true, true, ServerSettings.Instance.AniDb.AutomaticallyImportSeries);
                     animeCommand.Save();
                     return;
                 }
 
-                logger.Debug("Creating groups, series and episodes....");
+                Logger.LogDebug("Creating groups, series and episodes....");
                 // check if there is an AnimeSeries Record associated with this AnimeID
                 var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
 
@@ -278,7 +279,7 @@ namespace Shoko.Server.Commands
                     {
                         if (ser.NeedsEpisodeUpdate())
                         {
-                            logger.Info(
+                            Logger.LogInformation(
                                 $"Series {anime.MainTitle} needs episodes regenerated (an episode was added or deleted from AniDB)");
                             ser.CreateAnimeEpisodes(anime);
                             ser.UpdatedAt = DateTime.Now;
@@ -314,7 +315,7 @@ namespace Shoko.Server.Commands
             if (ForceAniDB)
             {
                 // get info from AniDB
-                logger.Debug("Getting AniDB_File record from AniDB....");
+                Logger.LogDebug("Getting AniDB_File record from AniDB....");
                 try
                 {
                     var fileCommand = new CommandRequest_GetFile { VideoLocalID = vlocal.VideoLocalID, ForceAniDB = true, BubbleExceptions = true };
@@ -324,7 +325,7 @@ namespace Shoko.Server.Commands
                 catch (AniDBBannedException)
                 {
                     // We're banned, so queue it for later
-                    logger.Error("We are banned. Re-queuing {CommandID} for later", CommandID);
+                    Logger.LogError("We are banned. Re-queuing {CommandID} for later", CommandID);
                     var fileCommand = new CommandRequest_ProcessFile(vlocal.VideoLocalID, true);
                     fileCommand.Save(true);
                 }

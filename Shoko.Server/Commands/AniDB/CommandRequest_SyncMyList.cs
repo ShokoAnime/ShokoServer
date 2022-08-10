@@ -4,6 +4,7 @@ using System.Linq;
 using System.Xml;
 using Iesi.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
@@ -46,7 +47,7 @@ namespace Shoko.Server.Commands.AniDB
         protected override void Process(IServiceProvider serviceProvider)
         {
             return;
-            logger.Info("Processing CommandRequest_SyncMyList");
+            Logger.LogInformation("Processing CommandRequest_SyncMyList");
             var handler = serviceProvider.GetRequiredService<IHttpConnectionHandler>();
 
             try
@@ -75,7 +76,7 @@ namespace Shoko.Server.Commands.AniDB
 
                 if (response.Response == null)
                 {
-                    logger.Warn("AniDB did not return a successful code: " + response.Code);
+                    Logger.LogWarning("AniDB did not return a successful code: " + response.Code);
                     return;
                 }
 
@@ -106,7 +107,7 @@ namespace Shoko.Server.Commands.AniDB
                     }
                     missingFiles++;
                 }
-                logger.Info($"MYLIST Missing Files: {missingFiles} Added to queue for inclusion");
+                Logger.LogInformation($"MYLIST Missing Files: {missingFiles} Added to queue for inclusion");
 
                 var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
                 var modifiedSeries = new LinkedHashSet<SVR_AnimeSeries>();
@@ -206,13 +207,13 @@ namespace Shoko.Server.Commands.AniDB
 
                             vl.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).Where(a => a != null)
                                 .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
-                            logger.Info(
+                            Logger.LogInformation(
                                 $"MYLISTDIFF:: File {vl.FileName} - Local Status = {localStatus}, AniDB Status = {myitem.ViewedAt.HasValue} --- {action}");
                         }
                     }
                     catch (Exception ex)
                     {
-                        logger.Error($"A MyList Item threw an error while syncing: {ex}");
+                        Logger.LogError($"A MyList Item threw an error while syncing: {ex}");
                     }
                 }
 
@@ -237,18 +238,18 @@ namespace Shoko.Server.Commands.AniDB
                 }
                 
                 if (myListIDsToRemove.Count + filesToRemove.Count > 0)
-                    logger.Info($"MYLIST Missing Files: {myListIDsToRemove.Count + filesToRemove.Count} added to queue for deletion");
+                    Logger.LogInformation($"MYLIST Missing Files: {myListIDsToRemove.Count + filesToRemove.Count} added to queue for deletion");
 
                 modifiedSeries.ForEach(a => a.QueueUpdateStats());
 
-                logger.Info($"Process MyList: {totalItems} Items, {missingFiles} Added, {filesToRemove.Count} Deleted, {watchedItems} Watched, {modifiedItems} Modified");
+                Logger.LogInformation($"Process MyList: {totalItems} Items, {missingFiles} Added, {filesToRemove.Count} Deleted, {watchedItems} Watched, {modifiedItems} Modified");
 
                 sched.LastUpdate = DateTime.Now;
                 RepoFactory.ScheduledUpdate.Save(sched);
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error processing CommandRequest_SyncMyList: {Ex} ", ex);
+                Logger.LogError(ex, "Error processing CommandRequest_SyncMyList: {Ex} ", ex);
             }
         }
 

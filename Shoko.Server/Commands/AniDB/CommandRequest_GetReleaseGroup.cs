@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Xml;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -42,7 +43,7 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_GetReleaseGroup: {0}", GroupID);
+            Logger.LogInformation("Processing CommandRequest_GetReleaseGroup: {0}", GroupID);
             var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
 
             try
@@ -71,7 +72,7 @@ namespace Shoko.Server.Commands.AniDB
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_GetReleaseGroup: {0} - {1}", GroupID, ex);
+                Logger.LogError("Error processing CommandRequest_GetReleaseGroup: {0} - {1}", GroupID, ex);
             }
         }
 

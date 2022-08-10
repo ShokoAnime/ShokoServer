@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Xml;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
@@ -49,7 +50,7 @@ namespace Shoko.Server.Commands.AniDB
         {
             var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
             // there will be a road bump the first time we start up, as some people may have requests with MyListID. I don't care. It'll get there.
-            logger.Info("Processing CommandRequest_DeleteFileFromMyList: Hash: {Hash}, FileSize: {Size}", Hash, FileSize);
+            Logger.LogInformation("Processing CommandRequest_DeleteFileFromMyList: Hash: {Hash}, FileSize: {Size}", Hash, FileSize);
 
             try
             {
@@ -58,37 +59,37 @@ namespace Shoko.Server.Commands.AniDB
                 {
                     case AniDBFileDeleteType.Delete:
                         request = new RequestRemoveFile { Hash = Hash, Size = FileSize };
-                        logger.Info("Deleting file from list: Hash: {Hash}", Hash);
+                        Logger.LogInformation("Deleting file from list: Hash: {Hash}", Hash);
                         request.Execute(handler);
                         break;
                     case AniDBFileDeleteType.MarkDeleted:
                         request = new RequestUpdateFile { Hash = Hash, Size = FileSize, State = MyList_State.Deleted };
-                        logger.Info("Marking file as deleted from list: Hash: {Hash}", Hash);
+                        Logger.LogInformation("Marking file as deleted from list: Hash: {Hash}", Hash);
                         request.Execute(handler);
                         break;
                     case AniDBFileDeleteType.MarkUnknown:
                         request = new RequestUpdateFile { Hash = Hash, Size = FileSize, State = MyList_State.Deleted };
-                        logger.Info("Marking file as unknown: Hash: {Hash}", Hash);
+                        Logger.LogInformation("Marking file as unknown: Hash: {Hash}", Hash);
                         request.Execute(handler);
                         break;
                     case AniDBFileDeleteType.DeleteLocalOnly:
-                        logger.Info("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", Hash);
+                        Logger.LogInformation("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", Hash);
                         break;
                     case AniDBFileDeleteType.MarkExternalStorage:
                         request = new RequestUpdateFile { Hash = Hash, Size = FileSize, State = MyList_State.Remote };
-                        logger.Info("Moving file to external storage: Hash: {Hash}", Hash);
+                        Logger.LogInformation("Moving file to external storage: Hash: {Hash}", Hash);
                         request.Execute(handler);
                         break;
                     case AniDBFileDeleteType.MarkDisk:
                         request = new RequestUpdateFile { Hash = Hash, Size = FileSize, State = MyList_State.Disk };
-                        logger.Info("Moving file to disk (cd/dvd/bd): Hash: {Hash}", Hash);
+                        Logger.LogInformation("Moving file to disk (cd/dvd/bd): Hash: {Hash}", Hash);
                         request.Execute(handler);
                         break;
                 }
             }
             catch (AniDBBannedException ex)
             {
-                logger.Error(ex, "Error processing {Type}: Hash: {Hash} - {Exception}", GetType().Name, Hash, ex);
+                Logger.LogError(ex, "Error processing {Type}: Hash: {Hash} - {Exception}", GetType().Name, Hash, ex);
             }
         }
 

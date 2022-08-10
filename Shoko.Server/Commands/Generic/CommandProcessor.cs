@@ -5,7 +5,8 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Force.DeepCloner;
-using NLog;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -15,7 +16,7 @@ namespace Shoko.Server.Commands
 {
     public abstract class CommandProcessor : IDisposable
     {
-        protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        protected ILogger Logger;
         protected readonly BackgroundWorker WorkerCommands = new BackgroundWorker();
         protected IServiceProvider ServiceProvider;
         private bool _processingCommands;
@@ -142,7 +143,7 @@ namespace Shoko.Server.Commands
             _processingCommands = false;
             _paused = false;
 
-            if (e.Cancelled) Logger.Warn($"The {QueueType} Queue was cancelled with {QueueCount} commands left");
+            if (e.Cancelled) Logger.LogWarning($"The {QueueType} Queue was cancelled with {QueueCount} commands left");
 
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
 
@@ -153,6 +154,8 @@ namespace Shoko.Server.Commands
         {
             ServiceProvider = provider;
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
+            var logFactory = provider.GetRequiredService<ILoggerFactory>();
+            Logger = logFactory.CreateLogger(GetType());
 
             _processingCommands = true;
 
@@ -162,7 +165,7 @@ namespace Shoko.Server.Commands
 
         public void Stop()
         {
-            Logger.Info($"{QueueType} Queue has been stopped, {QueueCount} commands left.");
+            Logger.LogInformation($"{QueueType} Queue has been stopped, {QueueCount} commands left.");
             WorkerCommands.CancelAsync();
         }
 

@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Xml;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -63,7 +64,7 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info($"Processing CommandRequest_AddFileToMyList: {vid?.GetBestVideoLocalPlace()?.FileName} - {Hash} - {ReadStates}");
+            Logger.LogInformation($"Processing CommandRequest_AddFileToMyList: {vid?.GetBestVideoLocalPlace()?.FileName} - {Hash} - {ReadStates}");
 
             try
             {
@@ -149,7 +150,7 @@ namespace Shoko.Server.Commands.AniDB
                 }
 
                 var newWatchedDate = response?.Response?.WatchedDate;
-                logger.Info($"Added File to MyList. File: {vid.GetBestVideoLocalPlace()?.FileName}  Manual Link: {isManualLink}  Watched Locally: {originalWatchedDate != null}  Watched AniDB: {response?.Response?.IsWatched}  Local State: {ServerSettings.Instance.AniDb.MyList_StorageState}  AniDB State: {state}  ReadStates: {ReadStates}  ReadWatched Setting: {ServerSettings.Instance.AniDb.MyList_ReadWatched}  ReadUnwatched Setting: {ServerSettings.Instance.AniDb.MyList_ReadUnwatched}");
+                Logger.LogInformation($"Added File to MyList. File: {vid.GetBestVideoLocalPlace()?.FileName}  Manual Link: {isManualLink}  Watched Locally: {originalWatchedDate != null}  Watched AniDB: {response?.Response?.IsWatched}  Local State: {ServerSettings.Instance.AniDb.MyList_StorageState}  AniDB State: {state}  ReadStates: {ReadStates}  ReadWatched Setting: {ServerSettings.Instance.AniDb.MyList_ReadWatched}  ReadUnwatched Setting: {ServerSettings.Instance.AniDb.MyList_ReadUnwatched}");
                 if (juser != null)
                 {
                     var watched = newWatchedDate != null && DateTime.UnixEpoch.Equals(newWatchedDate);
@@ -195,7 +196,7 @@ namespace Shoko.Server.Commands.AniDB
             }
             catch (Exception ex)
             {
-                logger.Error($"Error processing CommandRequest_AddFileToMyList: {Hash} - {ex}");
+                Logger.LogError($"Error processing CommandRequest_AddFileToMyList: {Hash} - {ex}");
             }
         }
 

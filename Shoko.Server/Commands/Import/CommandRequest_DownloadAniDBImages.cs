@@ -7,6 +7,7 @@ using System.Net;
 using System.Threading;
 using System.Xml;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
@@ -66,7 +67,7 @@ namespace Shoko.Server.Commands
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_DownloadAniDBImages: {AnimeID}", AnimeID);
+            Logger.LogInformation("Processing CommandRequest_DownloadAniDBImages: {AnimeID}", AnimeID);
 
             try
             {
@@ -87,7 +88,7 @@ namespace Shoko.Server.Commands
                             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                             if (anime == null)
                             {
-                                logger.Warn($"AniDB poster image failed to download: Can't find AniDB_Anime with ID: {AnimeID}");
+                                Logger.LogWarning($"AniDB poster image failed to download: Can't find AniDB_Anime with ID: {AnimeID}");
                                 return;
                             }
 
@@ -105,7 +106,7 @@ namespace Shoko.Server.Commands
                                 .ToList();
                             if (chrs == null || chrs.Count == 0)
                             {
-                                logger.Warn(
+                                Logger.LogWarning(
                                     $"AniDB Character image failed to download: Can't find Character for anime: {AnimeID}");
                                 return;
                             }
@@ -131,7 +132,7 @@ namespace Shoko.Server.Commands
                                 .ToList();
                             if (creators == null || creators.Count == 0)
                             {
-                                logger.Warn(
+                                Logger.LogWarning(
                                     $"AniDB Seiyuu image failed to download: Can't find Seiyuus for anime: {AnimeID}");
                                 return;
                             }
@@ -149,7 +150,7 @@ namespace Shoko.Server.Commands
 
                     if (downloadUrls.Count == 0 || fileNames.All(string.IsNullOrEmpty))
                     {
-                        logger.Warn("Image failed to download: No URLs were generated. This should never happen");
+                        Logger.LogWarning("Image failed to download: No URLs were generated. This should never happen");
                         return;
                     }
 
@@ -179,7 +180,7 @@ namespace Shoko.Server.Commands
                                 Thread.CurrentThread.CurrentUICulture =
                                     CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-                                logger.Warn(Resources.Command_DeleteError, fileNames, ex.Message);
+                                Logger.LogWarning(Resources.Command_DeleteError, fileNames, ex.Message);
                                 return;
                             }
 
@@ -193,17 +194,17 @@ namespace Shoko.Server.Commands
                                 Directory.CreateDirectory(fullPath);
 
                             File.Move(tempName, fileNames[i]);
-                            logger.Info($"Image downloaded: {fileNames[i]} from {downloadUrls[i]}");
+                            Logger.LogInformation($"Image downloaded: {fileNames[i]} from {downloadUrls[i]}");
                         }
                         catch (WebException e)
                         {
-                            logger.Warn("Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
+                            Logger.LogWarning("Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
                                 downloadUrls[i],
                                 AnimeID,
                                 e.Message);
                         }catch (Exception e)
                         {
-                            logger.Error(e, "Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
+                            Logger.LogError(e, "Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
                                 downloadUrls[i],
                                 AnimeID,
                                 e);
@@ -213,7 +214,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error processing CommandRequest_DownloadAniDBImages: {AnimeID} - {Ex}", AnimeID, ex);
+                Logger.LogError(ex, "Error processing CommandRequest_DownloadAniDBImages: {AnimeID} - {Ex}", AnimeID, ex);
             }
         }
 

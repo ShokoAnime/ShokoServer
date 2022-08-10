@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -36,7 +37,7 @@ namespace Shoko.Server.Commands
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_TraktUpdateAllSeries");
+            Logger.LogInformation("Processing CommandRequest_TraktUpdateAllSeries");
 
             try
             {
@@ -72,7 +73,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TraktUpdateAllSeries: {0}", ex);
+                Logger.LogError("Error processing CommandRequest_TraktUpdateAllSeries: {0}", ex);
             }
         }
 

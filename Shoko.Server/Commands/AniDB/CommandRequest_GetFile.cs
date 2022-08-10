@@ -2,6 +2,7 @@
 using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -62,7 +63,7 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Get AniDB file info: {VideoLocalID}", VideoLocalID);
+            Logger.LogInformation("Get AniDB file info: {VideoLocalID}", VideoLocalID);
             var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
 
             if (handler.IsBanned) throw new AniDBBannedException { BanType = UpdateType.UDPBan, BanExpires = handler.BanTime?.AddHours(handler.BanTimerResetLength) };
@@ -81,7 +82,7 @@ namespace Shoko.Server.Commands.AniDB
 
                 if (response?.Response == null)
                 {
-                    logger.Info("File {VideoLocalID} ({Ed2kHash} | {FileName}) could not be found on AniDB", vlocal.VideoLocalID, vlocal.ED2KHash, vlocal.GetBestVideoLocalPlace()?.FileName);
+                    Logger.LogInformation("File {VideoLocalID} ({Ed2kHash} | {FileName}) could not be found on AniDB", vlocal.VideoLocalID, vlocal.ED2KHash, vlocal.GetBestVideoLocalPlace()?.FileName);
                     return;
                 }
                 // save to the database
