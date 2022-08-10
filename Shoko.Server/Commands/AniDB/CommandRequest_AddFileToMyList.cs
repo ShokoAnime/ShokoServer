@@ -178,7 +178,7 @@ namespace Shoko.Server.Commands.AniDB
                 foreach (var id in series)
                 {
                     var ser = RepoFactory.AnimeSeries.GetByAnimeID(id);
-                    ser.QueueUpdateStats();
+                    ser?.QueueUpdateStats();
                 }
 
                 // lets also try adding to the users trakt collection
