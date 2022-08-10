@@ -1,4 +1,6 @@
-﻿using Shoko.Plugin.Abstractions.DataModels;
+﻿using System;
+using System.Linq;
+using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions.Extensions;
 
@@ -133,20 +135,21 @@ public static class LanguageExtensions
         return type.ToString().ToLowerInvariant();
     }
 
-    public static TitleType GetTitleType(this string type)
+    public static TitleType GetTitleType(this string name)
     {
-        return type.ToLowerInvariant() switch
+        foreach (var type in Enum.GetValues(typeof(TitleType)).Cast<TitleType>())
         {
-            "main" => TitleType.Main,
-            "official" => TitleType.Official,
-            "synonym" => TitleType.Synonym,
+            if (Equals(type, name)) return type;
+        }
+
+        return name.ToLowerInvariant() switch
+        {
             "syn" => TitleType.Synonym,
-            "short" => TitleType.Short,
             "card" => TitleType.TitleCard,
-            "titlecard" => TitleType.TitleCard,
-            "kanareading" => TitleType.KanjiReading,
             "kana" => TitleType.KanjiReading,
             _ => TitleType.None,
         };
     }
+
+    private static bool Equals(this TitleType type, string name) => type.GetString().Equals(name.ToLowerInvariant());
 }
