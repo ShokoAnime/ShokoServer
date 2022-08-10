@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using NHibernate.SqlTypes;
 using NHibernate.UserTypes;
@@ -69,7 +69,7 @@ namespace Shoko.Server.Databases.TypeConverters
 
             return destinationType.FullName switch
             {
-                "System.String" => t.ToString().ToLowerInvariant(),
+                "System.String" => t.GetString(),
                 "System.Int32" => (int)t,
                 "System.Int64" => (long)t,
                 _ => throw new ArgumentException("DestinationType must be string or int"),

@@ -76,8 +76,8 @@ namespace Shoko.Plugin.Abstractions.DataModels
         [XmlEnum("syn")]
         Synonym = 4,
         [XmlEnum("card")]
-        Card = 5,
+        TitleCard = 5,
         [XmlEnum("kana")]
-        Katakana = 6,
+        KanjiReading = 6,
     }
 }
