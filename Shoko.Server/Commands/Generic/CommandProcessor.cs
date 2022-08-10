@@ -165,7 +165,7 @@ namespace Shoko.Server.Commands
 
         public void Stop()
         {
-            Logger.LogInformation($"{QueueType} Queue has been stopped, {QueueCount} commands left.");
+            Logger?.LogInformation($"{QueueType} Queue has been stopped, {QueueCount} commands left.");
             WorkerCommands.CancelAsync();
         }
 
