@@ -15,7 +15,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.AnimeID).Not.Nullable();
             Map(x => x.Language).CustomType<TitleLanguageConverter>().Not.Nullable();
             Map(x => x.Title).Not.Nullable();
-            Map(x => x.TitleType).Not.Nullable();
+            Map(x => x.TitleType).CustomType<TitleTypeConverter>().Not.Nullable();
         }
     }
 }
