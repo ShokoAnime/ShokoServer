@@ -32,6 +32,7 @@ namespace Shoko.Server.Commands.AniDB
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Updating MyList info from UDP API for File: {0}",
             queueState = QueueStateEnum.UpdateMyListInfo,
             extraParams = new[] {FullFileName}
         };

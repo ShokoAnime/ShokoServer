@@ -77,6 +77,7 @@ namespace Shoko.Server.Commands
                 }
                 return new QueueStateStruct
                 {
+                    message = "Downloading Image {0}: {1}",
                     queueState = QueueStateEnum.DownloadImage,
                     extraParams = new[] { type, EntityID.ToString() }
                 };

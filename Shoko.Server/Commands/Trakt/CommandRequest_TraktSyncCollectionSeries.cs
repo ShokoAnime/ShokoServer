@@ -24,6 +24,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Syncing Trakt collection for series: {0}",
             queueState = QueueStateEnum.SyncTraktSeries,
             extraParams = new[] {SeriesName}
         };

@@ -29,6 +29,7 @@ namespace Shoko.Server.Commands.AniDB
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Deleting file from MyList: {0}",
             queueState = QueueStateEnum.AniDB_MyListDelete,
             extraParams = new[] {Hash}
         };

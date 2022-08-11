@@ -23,7 +23,7 @@ namespace Shoko.Server.Commands.AniDB
 
         public override QueueStateStruct PrettyDescription => new()
         {
-            Message = "Upload Local Votes To AniDB",
+            message = "Upload Local Votes To AniDB",
             queueState = QueueStateEnum.Actions_SyncVotes,
             extraParams = Array.Empty<string>(),
         };

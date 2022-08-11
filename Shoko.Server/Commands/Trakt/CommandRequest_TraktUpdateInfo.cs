@@ -20,6 +20,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Updating info/images on Trakt.TV: {0}",
             queueState = QueueStateEnum.UpdateTraktData,
             extraParams = new[] {TraktID}
         };

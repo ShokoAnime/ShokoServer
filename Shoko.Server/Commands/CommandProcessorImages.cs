@@ -29,6 +29,7 @@ namespace Shoko.Server.Commands
             base.Init(provider);
             QueueState = new QueueStateStruct
             {
+                message = "Starting image downloading command worker",
                 queueState = QueueStateEnum.StartingImages,
                 extraParams = new string[0]
             };

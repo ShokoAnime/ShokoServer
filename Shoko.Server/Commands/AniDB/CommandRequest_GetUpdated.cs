@@ -26,6 +26,7 @@ namespace Shoko.Server.Commands.AniDB
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Getting list of updated anime from UDP API",
             queueState = QueueStateEnum.GetUpdatedAnime,
             extraParams = new string[0]
         };

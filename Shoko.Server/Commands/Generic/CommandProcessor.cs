@@ -57,6 +57,7 @@ namespace Shoko.Server.Commands
                     {
                         QueueState = new QueueStateStruct
                         {
+                            message = "Paused",
                             queueState = QueueStateEnum.Paused,
                             extraParams = new string[0]
                         };
@@ -66,6 +67,7 @@ namespace Shoko.Server.Commands
                     {
                         QueueState = new QueueStateStruct
                         {
+                            message = "Idle",
                             queueState = QueueStateEnum.Idle,
                             extraParams = new string[0]
                         };
@@ -145,7 +147,12 @@ namespace Shoko.Server.Commands
 
             if (e.Cancelled) Logger.LogWarning($"The {QueueType} Queue was cancelled with {QueueCount} commands left");
 
-            QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
+            QueueState = new QueueStateStruct
+            {
+                message = "Idle",
+                queueState = QueueStateEnum.Idle,
+                extraParams = new string[0]
+            };
 
             UpdateQueueCount();
         }

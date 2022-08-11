@@ -23,7 +23,12 @@ namespace Shoko.Server.Commands.AniDB
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.GetCalendar, extraParams = new string[0]};
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        {
+            message = "Getting calendar info from UDP API",
+            queueState = QueueStateEnum.GetCalendar,
+            extraParams = new string[0]
+        };
 
         public CommandRequest_GetCalendar()
         {

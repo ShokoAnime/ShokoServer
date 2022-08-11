@@ -37,11 +37,13 @@ namespace Shoko.Server.Commands.AniDB
                 if (vlocal != null)
                     return new QueueStateStruct
                     {
+                        message = "Getting file info from UDP API: {0}",
                         queueState = QueueStateEnum.GetFileInfo,
                         extraParams = new[] {vlocal.FileName}
                     };
                 return new QueueStateStruct
                 {
+                    message = "Getting file info from UDP API: {0}",
                     queueState = QueueStateEnum.GetFileInfo,
                     extraParams = new[] {VideoLocalID.ToString()}
                 };

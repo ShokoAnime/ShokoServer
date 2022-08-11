@@ -39,11 +39,13 @@ namespace Shoko.Server.Commands
                 if (vlocal != null && episode != null)
                     return new QueueStateStruct
                     {
+                        message = "Linking File: {0} to Episode: {1}",
                         queueState = QueueStateEnum.LinkFileManually,
                         extraParams = new[] {vlocal.FileName, episode.Title}
                     };
                 return new QueueStateStruct
                 {
+                    message = "Linking File: {0} to Episode: {1}",
                     queueState = QueueStateEnum.LinkFileManually,
                     extraParams = new[] {VideoLocalID.ToString(), EpisodeID.ToString()}
                 };

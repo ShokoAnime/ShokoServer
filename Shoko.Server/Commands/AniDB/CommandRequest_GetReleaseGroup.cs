@@ -24,6 +24,7 @@ namespace Shoko.Server.Commands.AniDB
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Getting release group info from UDP API: {0}",
             queueState = QueueStateEnum.GetReleaseInfo,
             extraParams = new[] {GroupID.ToString()}
         };

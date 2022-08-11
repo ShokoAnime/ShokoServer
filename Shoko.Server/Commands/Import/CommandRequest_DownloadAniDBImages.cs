@@ -36,18 +36,21 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new()
         {
+            message = "Downloading Image {0}: {1}",
             queueState = QueueStateEnum.DownloadImage,
             extraParams = new[] { Resources.Command_ValidateAllImages_AniDBPosters, AnimeID.ToString() }
         };
 
         public QueueStateStruct PrettyDescriptionCharacters => new()
         {
+            message = "Downloading Image {0}: {1}",
             queueState = QueueStateEnum.DownloadImage,
             extraParams = new[] { Resources.Command_ValidateAllImages_AniDBCharacters, AnimeID.ToString() }
         };
 
         public QueueStateStruct PrettyDescriptionCreators => new()
         {
+            message = "Downloading Image {0}: {1}",
             queueState = QueueStateEnum.DownloadImage,
             extraParams = new[] { Resources.Command_ValidateAllImages_AniDBSeiyuus, AnimeID.ToString() }
         };

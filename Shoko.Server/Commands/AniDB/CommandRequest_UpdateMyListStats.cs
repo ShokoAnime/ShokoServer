@@ -18,6 +18,7 @@ namespace Shoko.Server.Commands.AniDB
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Updating AniDB MyList Stats",
             queueState = QueueStateEnum.UpdateMyListStats,
             extraParams = new string[0]
         };

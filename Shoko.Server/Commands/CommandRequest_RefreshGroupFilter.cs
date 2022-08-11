@@ -31,6 +31,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Refreshing Group Filter: {0}",
             queueState = QueueStateEnum.RefreshGroupFilter,
             extraParams = new[] {GroupFilterID.ToString()}
         };

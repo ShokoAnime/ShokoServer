@@ -21,7 +21,12 @@ namespace Shoko.Server.Commands
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.SyncTrakt, extraParams = new string[0]};
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        {
+            message = "Syncing Trakt collection",
+            queueState = QueueStateEnum.SyncTrakt,
+            extraParams = new string[0]
+        };
 
         public CommandRequest_TraktSyncCollection()
         {
