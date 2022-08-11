@@ -37,11 +37,13 @@ namespace Shoko.Server.Commands
                 if (vlocal != null)
                     return new QueueStateStruct
                     {
+                        message = "Getting file info from UDP API: {0}",
                         queueState = QueueStateEnum.FileInfo,
                         extraParams = new[] {vlocal.FileName}
                     };
                 return new QueueStateStruct
                 {
+                    message = "Getting file info from UDP API: {0}",
                     queueState = QueueStateEnum.FileInfo,
                     extraParams = new[] {VideoLocalID.ToString()}
                 };

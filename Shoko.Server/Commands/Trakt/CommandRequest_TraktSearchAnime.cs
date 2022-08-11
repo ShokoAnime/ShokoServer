@@ -32,6 +32,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Searching for anime on Trakt.TV: {0}",
             queueState = QueueStateEnum.SearchTrakt,
             extraParams = new[] {AnimeID.ToString()}
         };

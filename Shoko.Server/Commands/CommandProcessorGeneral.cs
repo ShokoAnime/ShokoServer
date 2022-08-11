@@ -19,6 +19,7 @@ namespace Shoko.Server.Commands
             base.Init(provider);
             QueueState = new QueueStateStruct
             {
+                message = "Starting general command worker",
                 queueState = QueueStateEnum.StartingGeneral,
                 extraParams = new string[0]
             };

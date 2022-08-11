@@ -26,6 +26,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Add episode to history on Trakt: {0}",
             queueState = QueueStateEnum.TraktAddHistory,
             extraParams = new[] {AnimeEpisodeID.ToString()}
         };

@@ -24,6 +24,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Validating Images {0}",
             queueState = QueueStateEnum.ValidateAllImages,
             extraParams = new[] {string.Empty}
         };

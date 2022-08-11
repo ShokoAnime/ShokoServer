@@ -144,6 +144,7 @@ namespace Shoko.Server
                 {
                     ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
                     {
+                        message = "Checking File for Hashes: {0}",
                         queueState = QueueStateEnum.CheckingFile,
                         extraParams = new[] {v.FileName}
                     };
@@ -176,6 +177,7 @@ namespace Shoko.Server
                         {
                             ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
                             {
+                                message = "Hashing File: {0}",
                                 queueState = QueueStateEnum.HashingFile,
                                 extraParams = new[] {v.FileName}
                             };

@@ -23,6 +23,7 @@ namespace Shoko.Server.Commands.TvDB
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Updating Changed TvDB association: {0}",
             queueState = QueueStateEnum.LinkAniDBTvDB,
             extraParams = new[] {animeID.ToString()}
         };

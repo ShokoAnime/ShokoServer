@@ -23,6 +23,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Updating TvDB Series: {0}",
             queueState = QueueStateEnum.GettingTvDBSeries,
             extraParams = new[] {$"{SeriesTitle} ({TvDBSeriesID})"}
         };

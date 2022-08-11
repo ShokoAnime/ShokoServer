@@ -22,7 +22,12 @@ namespace Shoko.Server.Commands
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.UpdateTrakt, extraParams = new string[0]};
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        {
+            message = "Updating all Trakt series info added to queue",
+            queueState = QueueStateEnum.UpdateTrakt,
+            extraParams = new string[0]
+        };
 
         public CommandRequest_TraktUpdateAllSeries()
         {

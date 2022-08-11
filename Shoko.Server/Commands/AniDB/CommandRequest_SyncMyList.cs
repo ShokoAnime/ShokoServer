@@ -30,7 +30,12 @@ namespace Shoko.Server.Commands.AniDB
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.SyncMyList, extraParams = new string[0]};
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        {
+            message = "Syncing MyList info from HTTP API",
+            queueState = QueueStateEnum.SyncMyList,
+            extraParams = new string[0]
+        };
 
         public CommandRequest_SyncMyList()
         {

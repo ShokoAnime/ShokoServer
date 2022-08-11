@@ -31,6 +31,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Searching for anime on The MovieDB: {0}",
             queueState = QueueStateEnum.SearchTMDb,
             extraParams = new[] {AnimeID.ToString()}
         };

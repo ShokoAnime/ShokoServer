@@ -26,6 +26,7 @@ namespace Shoko.Server.Commands.AniDB
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Voting: {0} - {1}",
             queueState = QueueStateEnum.VoteAnime,
             extraParams = new[] {AnimeID.ToString(), VoteValue.ToString()}
         };

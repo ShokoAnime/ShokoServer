@@ -85,6 +85,7 @@ namespace Shoko.Server.Commands.Plex
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Syncing Plex for user: {0}",
             queueState = QueueStateEnum.SyncPlex,
             extraParams = new[] {_jmmuser.Username}
         };

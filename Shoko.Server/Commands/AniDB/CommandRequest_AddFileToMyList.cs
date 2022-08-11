@@ -38,11 +38,13 @@ namespace Shoko.Server.Commands.AniDB
                 if (vid != null)
                     return new QueueStateStruct
                     {
+                        message = "Adding file to MyList: {0}",
                         queueState = QueueStateEnum.AniDB_MyListAdd,
                         extraParams = new[] {vid.FileName}
                     };
                 return new QueueStateStruct
                 {
+                    message = "Adding file to MyList: {0}",
                     queueState = QueueStateEnum.AniDB_MyListAdd,
                     extraParams = new[] {Hash}
                 };

@@ -34,6 +34,7 @@ namespace Shoko.Server.Commands.AniDB
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Getting anime info from HTTP API: {0}",
             queueState = QueueStateEnum.AnimeInfo,
             extraParams = new[] {AnimeID.ToString()}
         };

@@ -34,12 +34,14 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Checking File for Hashes: {0}",
             queueState = QueueStateEnum.CheckingFile,
             extraParams = new[] {FileName}
         };
 
         public QueueStateStruct PrettyDescriptionHashing => new QueueStateStruct
         {
+            message = "Hashing File: {0}",
             queueState = QueueStateEnum.HashingFile,
             extraParams = new[] {FileName}
         };

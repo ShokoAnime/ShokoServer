@@ -21,6 +21,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Reading media info for file: {0}",
             queueState = QueueStateEnum.ReadingMedia,
             extraParams = new[] {VideoLocalID.ToString()}
         };

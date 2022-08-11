@@ -29,6 +29,7 @@ namespace Shoko.Server.Commands
             base.Init(provider);
             QueueState = new QueueStateStruct
             {
+                message = "Starting hasher command worker",
                 queueState = QueueStateEnum.StartingHasher,
                 extraParams = new string[0]
             };

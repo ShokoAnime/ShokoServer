@@ -28,6 +28,7 @@ namespace Shoko.Server.Commands.AniDB
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Getting group status info from UDP API for Anime: {0}",
             queueState = QueueStateEnum.GetReleaseGroup,
             extraParams = new[] {AnimeID.ToString()}
         };

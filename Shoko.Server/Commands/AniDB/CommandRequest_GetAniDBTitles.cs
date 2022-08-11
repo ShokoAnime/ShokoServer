@@ -18,7 +18,7 @@ namespace Shoko.Server.Commands.AniDB
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            Message = "Getting AniDB titles",
+            message = "Getting AniDB titles",
             queueState = QueueStateEnum.AniDB_GetTitles,
             extraParams = Array.Empty<string>(),
         };

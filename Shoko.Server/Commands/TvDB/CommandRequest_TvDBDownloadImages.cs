@@ -21,6 +21,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Getting images from The TvDB: {0}",
             queueState = QueueStateEnum.DownloadTvDBImages,
             extraParams = new[] {TvDBSeriesID.ToString()}
         };

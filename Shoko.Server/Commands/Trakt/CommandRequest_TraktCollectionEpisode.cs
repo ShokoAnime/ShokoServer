@@ -26,6 +26,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Sync episode to collection on Trakt: {0} - {1}",
             queueState = QueueStateEnum.SyncTraktEpisodes,
             extraParams = new[] {AnimeEpisodeID.ToString(), Action.ToString()}
         };

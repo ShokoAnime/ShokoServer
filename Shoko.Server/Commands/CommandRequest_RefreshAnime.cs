@@ -30,6 +30,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Refreshing anime stats: {0}",
             queueState = QueueStateEnum.Refresh,
             extraParams = new[] {AnimeID.ToString()}
         };
