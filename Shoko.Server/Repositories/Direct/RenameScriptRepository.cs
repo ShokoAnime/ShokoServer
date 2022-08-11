@@ -40,5 +40,17 @@ namespace Shoko.Server.Repositories
                 .List<RenameScript>().FirstOrDefault();
             return cr;
         }
+
+        public List<RenameScript> GetRenamerType(string renamerType)
+        {
+            if (string.IsNullOrEmpty(renamerType)) return new();
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var cr = session
+                .CreateCriteria(typeof(RenameScript))
+                .Add(Restrictions.Eq("RenamerType", renamerType))
+                .List<RenameScript>()
+                .ToList();
+            return cr;
+        }
     }
 }

@@ -469,6 +469,47 @@ namespace Shoko.Server.Models
             }
         }
 
+        public (bool success, string relativePath, SVR_ImportFolder importFolder) RenameAndMoveFile(bool preview = false, string scriptName = null, bool deleteEmpty = true)
+        {
+            if (ServerSettings.Instance.Import.RenameThenMove)
+            {
+                var (success, relativePath, errorMessage) = RenameFile(preview, scriptName);
+                if (!string.IsNullOrEmpty(errorMessage))
+                    throw new Exception(errorMessage);
+                if (!success)
+                    return (false, null, null);
+
+                SVR_ImportFolder importFolder;
+                (success, importFolder) = MoveFile(preview, true, scriptName, deleteEmpty);
+                if (!success)
+                    return (false, null, null);
+
+                if (!preview)
+                    LinuxFS.SetLinuxPermissions(FullServerPath, ServerSettings.Instance.Linux.UID, ServerSettings.Instance.Linux.GID, ServerSettings.Instance.Linux.Permission);
+                
+                return (true, relativePath, importFolder);
+            }
+            else
+            {
+                var (success, importFolder) = MoveFile(preview, true, scriptName, deleteEmpty);
+                if (!success)
+                    return (false, null, null);
+
+                string relativePath;
+                string errorMessage;
+                (success, relativePath, errorMessage) = RenameFile(preview, scriptName);
+                if (!string.IsNullOrEmpty(errorMessage))
+                    throw new Exception(errorMessage);
+                if (!success)
+                    return (false, null, null);
+
+                if (!preview)
+                    LinuxFS.SetLinuxPermissions(FullServerPath, ServerSettings.Instance.Linux.UID, ServerSettings.Instance.Linux.GID, ServerSettings.Instance.Linux.Permission);
+
+                return (true, relativePath, importFolder);
+            }
+        }
+
         public void RenameAndMoveAsRequired()
         {
             bool invert = ServerSettings.Instance.Import.RenameThenMove;
@@ -717,53 +758,74 @@ namespace Shoko.Server.Models
             // TODO Make this take an argument to disable removing empty dirs. It's slow, and should only be done if needed
             try
             {
-                logger.Trace($"Attempting to MOVE file: \"{FullServerPath ?? VideoLocal_Place_ID.ToString()}\"");
+                MoveFile(false, false, null, deleteEmpty);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, $"Could not MOVE file: \"{FullServerPath ?? VideoLocal_Place_ID.ToString()}\" -- {ex}");
+            }
+            ShokoServer.UnpauseWatchingFiles();
+            return true;
+        }
 
-                if (FullServerPath == null)
-                {
-                    logger.Error($"Could not find or access the file to move: {VideoLocal_Place_ID}");
-                    return true;
-                }
+        private (bool, SVR_ImportFolder) MoveFile(bool preview, bool emitPluginErrors, string scriptName, bool deleteEmpty)
+        {
+            logger.Trace($"Attempting to MOVE file: \"{FullServerPath ?? VideoLocal_Place_ID.ToString()}\"");
 
-                // check if this file is in the drop folder
-                // otherwise we don't need to move it
-                if (ImportFolder.IsDropSource == 0)
-                {
-                    logger.Trace($"Not moving file as it is NOT in the drop folder: \"{FullServerPath}\"");
-                    return true;
-                }
+            if (FullServerPath == null)
+            {
+                logger.Error($"Could not find or access the file to move: {VideoLocal_Place_ID}");
+                return (true, null);
+            }
 
-                if (!File.Exists(FullServerPath))
-                {
-                    logger.Error($"Could not find or access the file to move: \"{FullServerPath}\"");
-                    // this can happen due to file locks, so retry
-                    return false;
-                }
-                var sourceFile = new FileInfo(FullServerPath);
+            // keep the original drop folder for later (take a copy, not a reference)
+            var dropFolder = ImportFolder;
 
-                // find the default destination
-                (var destImpl, string newFolderPath) = RenameFileHelper.GetDestination(this, null);
+            // check if this file is in the drop folder
+            // otherwise we don't need to move it
+            if (dropFolder.IsDropSource == 0)
+            {
+                logger.Trace($"Not moving file as it is NOT in the drop folder: \"{FullServerPath}\"");
+                return (true, null);
+            }
 
-                if (!(destImpl is SVR_ImportFolder destFolder))
-                {
-                    // In this case, an error string was returned, but we'll suppress it and give an error elsewhere
-                    if (newFolderPath != null) return true;
-                    logger.Error($"Could not find a valid destination: \"{FullServerPath}\"");
-                    return true;
-                }
+            if (!File.Exists(FullServerPath))
+            {
+                logger.Error($"Could not find or access the file to move: \"{FullServerPath}\"");
+                // this can happen due to file locks, so retry
+                return (false, null);
+            }
+            var sourceFile = new FileInfo(FullServerPath);
 
-                // keep the original drop folder for later (take a copy, not a reference)
-                SVR_ImportFolder dropFolder = ImportFolder;
+            // Find the new destination.
+            var (destImpl, newFolderPath) = RenameFileHelper.GetDestination(this, scriptName);
+            if (!(destImpl is SVR_ImportFolder destFolder))
+            {
+                logger.Error($"Could not find a valid destination: \"{FullServerPath}\"");
+                logger.Error($"The error message was: {newFolderPath ?? ""}");
+                if (emitPluginErrors && !string.IsNullOrEmpty(newFolderPath))
+                    throw new Exception(newFolderPath);
+                return (true, null);
+            }
+            if (string.IsNullOrEmpty(newFolderPath))
+            {
+                return (true, null);
+            }
 
-                if (string.IsNullOrEmpty(newFolderPath))
-                {
-                    return true;
-                }
+            // We've already resolved FullServerPath, so it doesn't need to be checked
+            string newFilePath = Path.Combine(newFolderPath, Path.GetFileName(FullServerPath));
+            string newFullServerPath = Path.Combine(destFolder.ImportFolderLocation, newFilePath);
 
-                // We've already resolved FullServerPath, so it doesn't need to be checked
-                string newFilePath = Path.Combine(newFolderPath, Path.GetFileName(FullServerPath));
-                string newFullServerPath = Path.Combine(destFolder.ImportFolderLocation, newFilePath);
+            // Last ditch effort to ensure we aren't moving a file unto itself
+            if (newFullServerPath.Equals(FullServerPath, StringComparison.InvariantCultureIgnoreCase))
+            {
+                logger.Error($"Resolved to move \"{newFullServerPath}\" unto itself. NOT MOVING");
+                return (true, destFolder);
+            }
 
+            // Create folder structure for new file location.
+            if (!preview)
+            {
                 var destFullTree = Path.Combine(destFolder.ImportFolderLocation, newFolderPath);
                 if (!Directory.Exists(destFullTree))
                 {
@@ -774,38 +836,34 @@ namespace Shoko.Server.Models
                     catch (Exception e)
                     {
                         logger.Error(e);
-                        return true;
+                        return (true, null);
                     }
                 }
+            }
 
-                // Last ditch effort to ensure we aren't moving a file unto itself
-                if (newFullServerPath.Equals(FullServerPath, StringComparison.InvariantCultureIgnoreCase))
+            var originalFileName = FullServerPath;
+
+            // Move the file.
+            if (File.Exists(newFullServerPath))
+            {
+                // A file with the same name exists at the destination.
+                // Handle Duplicate Files, A duplicate file record won't exist yet,
+                // so we'll check the old fashioned way
+                logger.Trace("A file already exists at the new location, checking it for duplicate");
+                var destVideoLocalPlace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newFilePath, destFolder.ImportFolderID);
+                var destVideoLocal = destVideoLocalPlace?.VideoLocal;
+                if (destVideoLocal == null)
                 {
-                    logger.Error($"Resolved to move \"{newFullServerPath}\" unto itself. NOT MOVING");
-                    return true;
+                    logger.Error("The existing file at the new location does not have a VideoLocal. Not moving");
+                    return (true, null);
                 }
 
-                var originalFileName = FullServerPath;
-                var textStreams = SubtitleHelper.GetSubtitleStreams(this);
-                
-                if (File.Exists(newFullServerPath))
+                if (destVideoLocal.Hash == VideoLocal.Hash)
                 {
-                    // A file with the same name exists at the destination.
-                    // Handle Duplicate Files, A duplicate file record won't exist yet,
-                    // so we'll check the old fashioned way
-                    logger.Trace("A file already exists at the new location, checking it for duplicate");
-                    var destVideoLocalPlace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newFilePath,
-                        destFolder.ImportFolderID);
-                    var destVideoLocal = destVideoLocalPlace?.VideoLocal;
-                    if (destVideoLocal == null)
-                    {
-                        logger.Error("The existing file at the new location does not have a VideoLocal. Not moving");
-                        return true;
-                    }
-                    if (destVideoLocal.Hash == VideoLocal.Hash)
-                    {
-                        logger.Info($"Not moving file as it already exists at the new location, deleting source file instead: \"{FullServerPath}\" --- \"{newFullServerPath}\"");
+                    logger.Info($"Not moving file as it already exists at the new location, deleting source file instead: \"{FullServerPath}\" --- \"{newFullServerPath}\"");
 
+                    if (!preview)
+                    {
                         // if the file already exists, we can just delete the source file instead
                         // this is safer than deleting and moving
                         try
@@ -819,37 +877,38 @@ namespace Shoko.Server.Models
 
                             // check for any empty folders in drop folder
                             // only for the drop folder
-                            if (dropFolder.IsDropSource != 1) return true;
+                            if (dropFolder.IsDropSource != 1) return (true, null);
                             RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
-                            return true;
+                            return (true, null);
                         }
                     }
+                }
 
-                    // Not a dupe, don't delete it
-                    logger.Trace("A file already exists at the new location, checking it for version and group");
-                    var destinationExistingAniDBFile = destVideoLocal.GetAniDBFile();
-                    if (destinationExistingAniDBFile == null)
-                    {
-                        logger.Error("The existing file at the new location does not have AniDB info. Not moving.");
-                        return true;
-                    }
+                // Not a dupe, don't delete it
+                logger.Trace("A file already exists at the new location, checking it for version and group");
+                var destinationExistingAniDBFile = destVideoLocal.GetAniDBFile();
+                if (destinationExistingAniDBFile == null)
+                {
+                    logger.Error("The existing file at the new location does not have AniDB info. Not moving.");
+                    return (true, null);
+                }
 
-                    var aniDBFile = VideoLocal.GetAniDBFile();
-                    if (aniDBFile == null)
-                    {
-                        logger.Error("The file does not have AniDB info. Not moving.");
-                        return true;
-                    }
+                var aniDBFile = VideoLocal.GetAniDBFile();
+                if (aniDBFile == null)
+                {
+                    logger.Error("The file does not have AniDB info. Not moving.");
+                    return (true, null);
+                }
 
-                    if (destinationExistingAniDBFile.Anime_GroupName == aniDBFile.Anime_GroupName &&
-                        destinationExistingAniDBFile.FileVersion < aniDBFile.FileVersion)
+                if (destinationExistingAniDBFile.Anime_GroupName == aniDBFile.Anime_GroupName && destinationExistingAniDBFile.FileVersion < aniDBFile.FileVersion)
+                {
+                    // This is a V2 replacing a V1 with the same name.
+                    // Normally we'd let the Multiple Files Utility handle it, but let's just delete the V1
+                    logger.Info("The existing file is a V1 from the same group. Replacing it.");
+                    if (!preview)
                     {
-                        // This is a V2 replacing a V1 with the same name.
-                        // Normally we'd let the Multiple Files Utility handle it, but let's just delete the V1
-                        logger.Info("The existing file is a V1 from the same group. Replacing it.");
                         // Delete the destination
-                        (bool success, string _) = destVideoLocalPlace.RemoveAndDeleteFile();
-                        if (!success) return false;
+                        destVideoLocalPlace.RemoveRecordAndDeletePhysicalFile();
 
                         // Move
                         ShokoServer.PauseWatchingFiles();
@@ -862,7 +921,7 @@ namespace Shoko.Server.Models
                         {
                             logger.Error($"Unable to MOVE file: \"{FullServerPath}\" to \"{newFullServerPath}\" error {e}");
                             ShokoServer.UnpauseWatchingFiles();
-                            return false;
+                            return (false, null);
                         }
 
                         // Handle Duplicate Files
@@ -883,8 +942,7 @@ namespace Shoko.Server.Models
                             }
                             // validate the dup file
                             // There are cases where a dup file was not cleaned up before, so we'll do it here, too
-                            if (!dup.GetFullServerPath1()
-                                .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
+                            if (!dup.GetFullServerPath1().Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
                                 RepoFactory.DuplicateFile.Save(dup);
                             else
                                 RepoFactory.DuplicateFile.Delete(dup);
@@ -902,61 +960,65 @@ namespace Shoko.Server.Models
                         }
                     }
                 }
-                else
-                {
-                    ShokoServer.PauseWatchingFiles();
-                    logger.Info($"Moving file from \"{FullServerPath}\" to \"{newFullServerPath}\"");
-                    try
-                    {
-                        sourceFile.MoveTo(newFullServerPath);
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Error($"Unable to MOVE file: \"{FullServerPath}\" to \"{newFullServerPath}\" error {e}");
-                        ShokoServer.UnpauseWatchingFiles();
-                        return false;
-                    }
-
-                    // Handle Duplicate Files
-                    var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
-
-                    foreach (var dup in dups)
-                    {
-                        // Move source
-                        if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
-                        {
-                            dup.FilePathFile1 = newFilePath;
-                            dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
-                        }
-                        else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
-                        {
-                            dup.FilePathFile2 = newFilePath;
-                            dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
-                        }
-                        // validate the dup file
-                        // There are cases where a dup file was not cleaned up before, so we'll do it here, too
-                        if (!dup.GetFullServerPath1()
-                            .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                            RepoFactory.DuplicateFile.Save(dup);
-                        else
-                            RepoFactory.DuplicateFile.Delete(dup);
-                    }
-
-                    ImportFolderID = destFolder.ImportFolderID;
-                    FilePath = newFilePath;
-                    RepoFactory.VideoLocalPlace.Save(this);
-
-                    // check for any empty folders in drop folder
-                    // only for the drop folder
-                    if (dropFolder.IsDropSource == 1 && deleteEmpty)
-                    {
-                        RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
-                    }
-                }
-                
+            }
+            else if (!preview)
+            {
+                // Move
+                ShokoServer.PauseWatchingFiles();
+                logger.Info($"Moving file from \"{FullServerPath}\" to \"{newFullServerPath}\"");
                 try
                 {
-                    // move any subtitle files
+                    sourceFile.MoveTo(newFullServerPath);
+                }
+                catch (Exception e)
+                {
+                    logger.Error($"Unable to MOVE file: \"{FullServerPath}\" to \"{newFullServerPath}\" error {e}");
+                    ShokoServer.UnpauseWatchingFiles();
+                    return (false, null);
+                }
+
+                // Handle Duplicate Files
+                var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
+
+                foreach (var dup in dups)
+                {
+                    // Move source
+                    if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
+                    {
+                        dup.FilePathFile1 = newFilePath;
+                        dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
+                    }
+                    else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
+                    {
+                        dup.FilePathFile2 = newFilePath;
+                        dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
+                    }
+                    // validate the dup file
+                    // There are cases where a dup file was not cleaned up before, so we'll do it here, too
+                    if (!dup.GetFullServerPath1().Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
+                        RepoFactory.DuplicateFile.Save(dup);
+                    else
+                        RepoFactory.DuplicateFile.Delete(dup);
+                }
+
+                ImportFolderID = destFolder.ImportFolderID;
+                FilePath = newFilePath;
+                RepoFactory.VideoLocalPlace.Save(this);
+
+                // check for any empty folders in drop folder
+                // only for the drop folder
+                if (dropFolder.IsDropSource == 1 && deleteEmpty)
+                {
+                    RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
+                }
+            }
+
+            // Move subtitle files
+            if (!preview)
+            {
+                try
+                {
+                    var textStreams = SubtitleHelper.GetSubtitleStreams(originalFileName);
                     foreach (TextStream subtitleFile in textStreams)
                     {
                         if (string.IsNullOrEmpty(subtitleFile.Filename)) continue;
@@ -994,12 +1056,8 @@ namespace Shoko.Server.Models
                     logger.Error(ex, ex.ToString());
                 }
             }
-            catch (Exception ex)
-            {
-                logger.Error(ex, $"Could not MOVE file: \"{FullServerPath ?? VideoLocal_Place_ID.ToString()}\" -- {ex}");
-            }
-            ShokoServer.UnpauseWatchingFiles();
-            return true;
+
+            return (true, destFolder);
         }
         
         private void RecursiveDeleteEmptyDirectories(string dir, bool importfolder)

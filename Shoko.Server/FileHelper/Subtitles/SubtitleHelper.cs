@@ -16,10 +16,11 @@ namespace Shoko.Server.FileHelper.Subtitles
         private static List<ISubtitles> SubtitleImplementations;
 
         public static List<TextStream> GetSubtitleStreams(SVR_VideoLocal_Place vplace)
+            => GetSubtitleStreams(vplace?.FullServerPath);
+
+        public static List<TextStream> GetSubtitleStreams(string path)
         {
             if (SubtitleImplementations == null) SubtitleImplementations = InitImplementations();
-
-            var path = vplace.FullServerPath;
             if (string.IsNullOrEmpty(path)) return new List<TextStream>();
             string directoryName = Path.GetDirectoryName(path);
             if (string.IsNullOrEmpty(directoryName)) return new List<TextStream>();

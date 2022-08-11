@@ -105,17 +105,18 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// The Import Folder that this file resides in 
             /// </summary>
+            [Required]
             public int ImportFolderID { get; set; }
             
             /// <summary>
             /// The relative path from the import folder's path on the server. The Filename can be easily extracted from this. Using the ImportFolder, you can get the full server path of the file or map it if the client has remote access to the filesystem. 
             /// </summary>
+            [Required]
             public string RelativePath { get; set; }
             
             /// <summary>
             /// Can the server access the file right now
             /// </summary>
-            [JsonRequired]
             public bool Accessible { get; set; }
         }
 

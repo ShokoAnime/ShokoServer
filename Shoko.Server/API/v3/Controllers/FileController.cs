@@ -446,6 +446,62 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
+        /// Relocate to or preview the new <see cref="File.Location"/>.
+        /// </summary>
+        /// <param name="fileID">File ID</param>
+        /// <param name="body">The <see cref="File.Location"/> to move.</param>
+        /// <param name="previewOnly">Only preview the new location, don't actually relocate the file.</param>
+        /// <param name="scriptName">The name of the script to use.</param>
+        /// <param name="deleteEmpty">Delete empty directories for the previous location afterwards.</param>
+        /// <returns>The relocation.</returns>
+        [HttpPost("{fileID}/Relocate")]
+        public ActionResult<File.Location> GetFileRelocation([FromRoute] int fileID, [FromBody] File.Location body, [FromQuery] bool previewOnly = true, [FromQuery] string scriptName = null, [FromQuery] bool deleteEmpty = true)
+        {
+            var file = RepoFactory.VideoLocal.GetByID(fileID);
+            if (file == null)
+                return NotFound(FileNotFoundWithFileID);
+
+            var place = file.Places
+                .FirstOrDefault(place => place.ImportFolderID == body.ImportFolderID && place.FullServerPath == body.RelativePath);
+            if (place == null)
+                return BadRequest("Unknown File.Location spesified!");
+
+            // Make sure we have a valid script to use.
+            if (string.IsNullOrEmpty(scriptName))
+            {
+                var script = RepoFactory.RenameScript.GetDefaultOrFirst();
+                if (script == null)
+                    return BadRequest($"No default script have been selected! Select one before continuing.");
+            }
+            else
+            {
+                if (scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
+                    return BadRequest("Do not attempt to use a temp file to rename.");
+
+                var script = RepoFactory.RenameScript.GetByName(scriptName);
+                if (script == null)
+                    return BadRequest($"Unknown script named \"{scriptName}\"! Omit `scriptName` to use the default script!");
+            }
+
+            // When previewing, make sure we have a valid result, otherwise fall back to the existing location.
+            var (success, relativePath, importFolder) = place.RenameAndMoveFile(true, scriptName, false);
+            if (previewOnly && success && importFolder != null && !string.IsNullOrEmpty(relativePath))
+                return new File.Location
+                {
+                    Accessible = false,
+                    ImportFolderID = importFolder.ImportFolderID,
+                    RelativePath = relativePath,
+                };
+
+            return new File.Location
+            {
+                Accessible = place.GetFile() != null,
+                ImportFolderID = place.ImportFolderID,
+                RelativePath = place.FilePath,
+            };
+        }
+
+        /// <summary>
         /// Link one or more episodes from a series to the same file.
         /// </summary>
         /// <param name="fileID">The file id.</param>
