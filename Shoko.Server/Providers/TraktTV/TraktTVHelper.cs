@@ -466,13 +466,6 @@ namespace Shoko.Server.Providers.TraktTV
 
             logger.Trace("Changed trakt association: {0}", animeID);
 
-            if (ServerSettings.Instance.WebCache.Enabled && !excludeFromWebCache && ServerSettings.Instance.WebCache.Trakt_Send)
-            {
-                CommandRequest_WebCacheSendXRefAniDBTrakt req =
-                    new CommandRequest_WebCacheSendXRefAniDBTrakt(xref.CrossRef_AniDB_TraktV2ID);
-                req.Save();
-            }
-
             return string.Empty;
         }
 
@@ -488,15 +481,6 @@ namespace Shoko.Server.Providers.TraktTV
             RepoFactory.CrossRef_AniDB_TraktV2.Delete(xref.CrossRef_AniDB_TraktV2ID);
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
-
-            if (ServerSettings.Instance.WebCache.Enabled && ServerSettings.Instance.TraktTv.Enabled && ServerSettings.Instance.WebCache.Trakt_Send)
-            {
-                CommandRequest_WebCacheDeleteXRefAniDBTrakt req =
-                    new CommandRequest_WebCacheDeleteXRefAniDBTrakt(animeID,
-                        (int) aniEpType, aniEpNumber,
-                        traktID, seasonNumber, traktEpNumber);
-                req.Save();
-            }
         }
 
         public static void ScanForMatches()

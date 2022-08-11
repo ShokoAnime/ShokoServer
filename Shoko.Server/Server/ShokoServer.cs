@@ -1064,7 +1064,6 @@ namespace Shoko.Server.Server
             Importer.CheckForMyListStatsUpdate(false);
             Importer.CheckForAniDBFileUpdate(false);
             Importer.UpdateAniDBTitles();
-            Importer.SendUserInfoUpdate(false);
         }
 
         public static void StartWatchingFiles(bool log = true)

@@ -12,7 +12,6 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
-using Shoko.Server.Commands.Azure;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
@@ -1106,40 +1105,6 @@ namespace Shoko.Server
             }
 
             var cmd = new CommandRequest_GetCalendar(forceRefresh);
-            cmd.Save();
-        }
-
-        public static void SendUserInfoUpdate(bool forceRefresh)
-        {
-            if (!ServerSettings.Instance.WebCache.Enabled) return; 
-            // update the anonymous user info every 12 hours
-            // we will always assume that an anime was downloaded via http first
-
-            var sched =
-                RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AzureUserInfo);
-            if (sched != null)
-            {
-                // if we have run this in the last 6 hours and are not forcing it, then exit
-                var tsLastRun = DateTime.Now - sched.LastUpdate;
-                if (tsLastRun.TotalHours < 6)
-                {
-                    if (!forceRefresh) return;
-                }
-            }
-
-            if (sched == null)
-            {
-                sched = new ScheduledUpdate
-                {
-                    UpdateType = (int)ScheduledUpdateType.AzureUserInfo,
-                    UpdateDetails = string.Empty
-                };
-            }
-            sched.LastUpdate = DateTime.Now;
-            RepoFactory.ScheduledUpdate.Save(sched);
-
-            var cmd =
-                new CommandRequest_Azure_SendUserInfo(ServerSettings.Instance.AniDb.Username);
             cmd.Save();
         }
 

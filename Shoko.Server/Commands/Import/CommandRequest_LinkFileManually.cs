@@ -80,12 +80,6 @@ namespace Shoko.Server.Commands
                 throw;
             }
             RepoFactory.CrossRef_File_Episode.Save(xref);
-            if (ServerSettings.Instance.WebCache.Enabled)
-            {
-                CommandRequest_WebCacheSendXRefFileEpisode cr =
-                    new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
-                cr.Save();
-            }
 
             if (ServerSettings.Instance.FileQualityFilterEnabled)
             {

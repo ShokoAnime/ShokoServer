@@ -21,10 +21,11 @@ namespace Shoko.Server.Commands.AniDB
     {
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new()
         {
+            Message = "Upload Local Votes To AniDB",
             queueState = QueueStateEnum.Actions_SyncVotes,
-            extraParams = new string[0]
+            extraParams = Array.Empty<string>(),
         };
 
 

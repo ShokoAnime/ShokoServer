@@ -294,13 +294,6 @@ namespace Shoko.Server.Providers.MovieDB
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             logger.Trace("Changed moviedb association: {0}", animeID);
-
-            if (ServerSettings.Instance.WebCache.Enabled)
-            {
-                CommandRequest_WebCacheSendXRefAniDBOther req =
-                    new CommandRequest_WebCacheSendXRefAniDBOther(xref.CrossRef_AniDB_OtherID);
-                req.Save();
-            }
         }
 
         public static void RemoveLinkAniDBMovieDB(int animeID)
@@ -310,14 +303,6 @@ namespace Shoko.Server.Providers.MovieDB
             if (xref == null) return;
 
             RepoFactory.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);
-
-            if (ServerSettings.Instance.WebCache.Enabled)
-            {
-                CommandRequest_WebCacheDeleteXRefAniDBOther req = new CommandRequest_WebCacheDeleteXRefAniDBOther(
-                    animeID,
-                    CrossRefType.MovieDB);
-                req.Save();
-            }
         }
 
         public static void ScanForMatches()
