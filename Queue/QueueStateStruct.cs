@@ -12,12 +12,12 @@ namespace Shoko.Commons.Queue
     {
         public QueueStateEnum queueState;
         public string[] extraParams;
-        public string Message { get; set; }
+        public string message { get; set; }
 
         [Pure]
         public string formatMessage()
         {
-            if (!string.IsNullOrEmpty(Message)) return Message;
+            if (!string.IsNullOrEmpty(message)) return message;
 
             var formatString = getFormatString(queueState);
             // ReSharper disable once CoVariantArrayConversion
