@@ -17,7 +17,8 @@ namespace Shoko.Commons.Queue
         [Pure]
         public string formatMessage()
         {
-            if (!string.IsNullOrEmpty(message)) return message;
+            if (!string.IsNullOrEmpty(message))
+                return string.Format(message, extraParams);
 
             var formatString = getFormatString(queueState);
             // ReSharper disable once CoVariantArrayConversion
