@@ -141,7 +141,7 @@ namespace Shoko.Server.Commands
                         });
 
                         // if we have the AniDB file, but no cross refs it means something has been broken
-                        Logger.LogDebug($"Could not find any cross ref records for: {vidLocal.ED2KHash}");
+                        Logger.LogDebug("Could not find any cross ref records for: {Ed2KHash}", vidLocal.ED2KHash);
                     }
                     else
                     {
@@ -151,6 +151,19 @@ namespace Shoko.Server.Commands
 
                             if (animeIDs.ContainsKey(xref.AnimeID)) animeIDs[xref.AnimeID] = animeIDs[xref.AnimeID] || ep == null;
                             else animeIDs.Add(xref.AnimeID, ep == null);
+                        }
+                    }
+                    
+                    // we have an AniDB File, so check the release group info
+                    if (aniFile.GroupID != 0)
+                    {
+                        var releaseGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(aniFile.GroupID);
+                        if (releaseGroup == null)
+                        {
+                            // may as well download it immediately. We can change it later if it becomes an issue
+                            // this will only happen if it's null, and most people grab mostly the same release groups
+                            var groupCommand = new CommandRequest_GetReleaseGroup { GroupID = aniFile.GroupID };
+                            groupCommand.ProcessCommand(provider);
                         }
                     }
                 }
@@ -256,7 +269,7 @@ namespace Shoko.Server.Commands
                 if (anime == null)
                 {
                     Logger.LogWarning($"Unable to create AniDB_Anime for file: {vidLocal.FileName}");
-                    Logger.LogWarning($"Queuing GET for AniDB_Anime: {animeID}");
+                    Logger.LogWarning("Queuing GET for AniDB_Anime: {AnimeID}", animeID);
                     var animeCommand = new CommandRequest_GetAnimeHTTP(animeID, true, true, ServerSettings.Instance.AniDb.AutomaticallyImportSeries);
                     animeCommand.Save();
                     return;
@@ -282,7 +295,8 @@ namespace Shoko.Server.Commands
                         if (ser.NeedsEpisodeUpdate())
                         {
                             Logger.LogInformation(
-                                $"Series {anime.MainTitle} needs episodes regenerated (an episode was added or deleted from AniDB)");
+                                "Series {Title} needs episodes regenerated (an episode was added or deleted from AniDB)", anime.MainTitle
+                            );
                             ser.CreateAnimeEpisodes(anime);
                             ser.UpdatedAt = DateTime.Now;
                         }
