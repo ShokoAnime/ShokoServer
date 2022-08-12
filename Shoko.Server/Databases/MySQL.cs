@@ -649,6 +649,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(99, 4, "ALTER TABLE `AniDB_Character` DROP COLUMN CreatorListRaw;"),
             new DatabaseCommand(99, 5, "ALTER TABLE `AniDB_Anime_Character` DROP COLUMN EpisodeListRaw;"),
             new DatabaseCommand(99, 6, "ALTER TABLE `AniDB_Anime` DROP COLUMN AwardList;"),
+            new DatabaseCommand(99, 7, "ALTER TABLE `AniDB_File` DROP COLUMN AnimeID;"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
