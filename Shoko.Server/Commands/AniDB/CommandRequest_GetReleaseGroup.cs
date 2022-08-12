@@ -56,7 +56,7 @@ namespace Shoko.Server.Commands.AniDB
                 var request = new RequestReleaseGroup { ReleaseGroupID = GroupID };
                 var response = request.Execute(handler);
 
-                if (response.Response == null) return;
+                if (response?.Response == null) return;
                 relGroup ??= new AniDB_ReleaseGroup();
                 relGroup.GroupID = response.Response.ID;
                 relGroup.Rating = (int)(response.Response.Rating * 100);
