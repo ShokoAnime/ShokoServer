@@ -562,11 +562,11 @@ namespace Shoko.Commons.Extensions
 
         public static bool IsLocalFile(this CL_VideoDetailed videodetailed) => !String.IsNullOrEmpty(videodetailed.GetLocalFileSystemFullPath());
 
-        public static string GetVideoResolution(this CL_VideoDetailed videodetailed) => videodetailed.AniDB_File_VideoResolution.Length > 0 ? videodetailed.AniDB_File_VideoResolution : videodetailed.VideoInfo_VideoResolution;
+        public static string GetVideoResolution(this CL_VideoDetailed videodetailed) => videodetailed.VideoInfo_VideoResolution.Length > 0 ? videodetailed.VideoInfo_VideoResolution : "0x0";
 
-        public static string GetVideoCodec(this CL_VideoDetailed videodetailed) => videodetailed.AniDB_File_VideoCodec.Length > 0 ? videodetailed.AniDB_File_VideoCodec : videodetailed.VideoInfo_VideoCodec;
+        public static string GetVideoCodec(this CL_VideoDetailed videodetailed) => videodetailed.VideoInfo_VideoCodec.Length > 0 ? videodetailed.VideoInfo_VideoCodec : "unknown";
 
-        public static string GetAudioCodec(this CL_VideoDetailed videodetailed) => videodetailed.AniDB_File_AudioCodec.Length > 0 ? videodetailed.AniDB_File_AudioCodec : videodetailed.VideoInfo_AudioCodec;
+        public static string GetAudioCodec(this CL_VideoDetailed videodetailed) => videodetailed.VideoInfo_AudioCodec.Length > 0 ? videodetailed.VideoInfo_AudioCodec : "unknown";
 
         public static string GetFileName(this CL_VideoDetailed videodetailed) => videodetailed.VideoLocal_FileName;
 
@@ -611,7 +611,7 @@ namespace Shoko.Commons.Extensions
         {
             if (videodetailed.HasAniDBFile())
             {
-                return videodetailed.AniDB_File_AudioCodec.Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries)
+                return videodetailed.VideoInfo_AudioCodec.Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries)
                     .Length == 2;
             }
             return false;
@@ -621,7 +621,7 @@ namespace Shoko.Commons.Extensions
         {
             if (videodetailed.HasAniDBFile())
             {
-                return videodetailed.AniDB_File_AudioCodec.Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries)
+                return videodetailed.VideoInfo_AudioCodec.Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries)
                            .Length > 2;
             }
             return false;
@@ -630,9 +630,9 @@ namespace Shoko.Commons.Extensions
         public static int GetVideoWidth(this CL_VideoDetailed videodetailed)
         {
             int videoWidth = 0;
-            if (videodetailed.AniDB_File_VideoResolution.Trim().Length > 0)
+            if (videodetailed.VideoInfo_VideoResolution.Trim().Length > 0)
             {
-                string[] dimensions = videodetailed.AniDB_File_VideoResolution.Split('x');
+                string[] dimensions = videodetailed.VideoInfo_VideoResolution.Split('x');
                 if (dimensions.Length > 0) Int32.TryParse(dimensions[0], out videoWidth);
             }
             return videoWidth;
