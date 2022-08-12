@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
@@ -136,13 +136,13 @@ namespace Shoko.Server.Models
                 trans.Commit();
             }
 
-            fileEps = response.EpisodeIDs.Select(t => response.EpisodeIDs[0])
+            fileEps = response.EpisodeIDs
                 .Select(
                     (ep, x) => new CrossRef_File_Episode
                     {
                         Hash = Hash,
                         CrossRefSource = (int)CrossRefSource.AniDB,
-                        AnimeID = AnimeID,
+                        AnimeID = response.AnimeID,
                         EpisodeID = ep.EpisodeID,
                         Percentage = ep.Percentage,
                         EpisodeOrder = x + 1,

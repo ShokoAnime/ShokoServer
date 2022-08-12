@@ -580,6 +580,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(87, 3, "ALTER TABLE AniDB_Character DROP COLUMN CreatorListRaw;"),
             new DatabaseCommand(87, 4, "ALTER TABLE AniDB_Anime_Character DROP COLUMN EpisodeListRaw;"),
             new DatabaseCommand(87, 5, "ALTER TABLE AniDB_Anime DROP COLUMN AwardList;"),
+            new DatabaseCommand(87, 6, "ALTER TABLE AniDB_File DROP COLUMN AnimeID;"),
         };
 
         private static Tuple<bool, string> AlterAniDB_GroupStatus(object connection)

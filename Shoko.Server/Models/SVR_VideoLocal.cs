@@ -495,7 +495,7 @@ namespace Shoko.Server.Models
             {
                 cl.AniDB_Anime_GroupName = anifile.Anime_GroupName;
                 cl.AniDB_Anime_GroupNameShort = anifile.Anime_GroupNameShort;
-                cl.AniDB_AnimeID = anifile.AnimeID;
+                cl.AniDB_AnimeID = xrefs.FirstOrDefault().AnimeID;
                 cl.AniDB_File_Description = anifile.File_Description;
                 cl.AniDB_File_ReleaseDate = anifile.File_ReleaseDate;
                 cl.AniDB_File_Source = anifile.File_Source;
