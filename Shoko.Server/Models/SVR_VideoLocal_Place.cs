@@ -229,8 +229,22 @@ namespace Shoko.Server.Models
                 {
                     if (updateMyListStatus)
                     {
-                         var cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-                        cmdDel.Save();
+                        if (RepoFactory.AniDB_File.GetByHash(v.Hash) == null)
+                        {
+                            var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
+                            foreach (var xref in xrefs)
+                            {
+                                var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                                if (ep == null) continue;
+                                var cmdDel = new CommandRequest_DeleteFileFromMyList { AnimeID = xref.AnimeID, EpisodeType = ep.GetEpisodeTypeEnum(), EpisodeNumber = ep.EpisodeNumber };
+                                cmdDel.Save();
+                            }
+                        }
+                        else
+                        {
+                            var cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                            cmdDel.Save();
+                        }
                     }
 
                     using (var transaction = session.BeginTransaction())
@@ -275,8 +289,22 @@ namespace Shoko.Server.Models
             {
                 if (updateMyListStatus)
                 {
-                    var cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-                    cmdDel.Save();
+                    if (RepoFactory.AniDB_File.GetByHash(v.Hash) == null)
+                    {
+                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
+                        foreach (var xref in xrefs)
+                        {
+                            var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                            if (ep == null) continue;
+                            var cmdDel = new CommandRequest_DeleteFileFromMyList { AnimeID = xref.AnimeID, EpisodeType = ep.GetEpisodeTypeEnum(), EpisodeNumber = ep.EpisodeNumber };
+                            cmdDel.Save();
+                        }
+                    }
+                    else
+                    {
+                        var cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                        cmdDel.Save();
+                    }
                 }
 
                 List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
