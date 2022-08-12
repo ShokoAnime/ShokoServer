@@ -7,9 +7,6 @@ namespace Shoko.Models.Server
         public int AniDB_FileID { get; set; }
         public int FileID { get; set; }
         public string Hash { get; set; }
-        //TODO SHOULD BE REMOVED AniDB_File might belongs to one Anime, but it may have multiple episodes that belongs to different anime, or should be used as references of the first anime
-        [Obsolete("AniDB_Files are many to many mapped to Episodes to Anime. This should only be used if absolutely necessary")]
-        public int AnimeID { get; set; }
         public int GroupID { get; set; }
         public string File_Source { get; set; }
         public string File_Description { get; set; }
