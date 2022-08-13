@@ -73,6 +73,7 @@ namespace Shoko.Server.Commands.AniDB
                 var parser = serviceProvider.GetRequiredService<HttpAnimeParser>();
                 var animeCreator = serviceProvider.GetRequiredService<AnimeCreator>();
                 var xmlUtils = serviceProvider.GetRequiredService<HttpXmlUtils>();
+                var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
                 if (handler.IsBanned) throw new AniDBBannedException { BanType = UpdateType.HTTPBan, BanExpires = handler.BanTime?.AddHours(handler.BanTimerResetLength) };
 
@@ -103,8 +104,8 @@ namespace Shoko.Server.Commands.AniDB
                 }
                 else
                 {
-                    var request = new RequestGetAnime { AnimeID = AnimeID };
-                    var httpResponse = request.Execute(handler);
+                    var request = requestFactory.Create<RequestGetAnime>(r => r.AnimeID = AnimeID);
+                    var httpResponse = request.Execute();
                     response = httpResponse.Response;
                 }
 
@@ -134,7 +135,7 @@ namespace Shoko.Server.Commands.AniDB
 
                 Result = anime;
 
-                ProcessRelations(session, response, handler, animeCreator);
+                ProcessRelations(session, response, requestFactory, handler, animeCreator);
 
                 // Request an image download
             }
@@ -144,16 +145,16 @@ namespace Shoko.Server.Commands.AniDB
             }
         }
 
-        private void ProcessRelations(ISession session, ResponseGetAnime response, IHttpConnectionHandler handler, AnimeCreator animeCreator)
+        private void ProcessRelations(ISession session, ResponseGetAnime response, IRequestFactory requestFactory, IHttpConnectionHandler handler, AnimeCreator animeCreator)
         {
             if (!DownloadRelations) return;
             if (ServerSettings.Instance.AniDb.MaxRelationDepth <= 0) return;
             if (!ServerSettings.Instance.AutoGroupSeries && !ServerSettings.Instance.AniDb.DownloadRelatedAnime) return;
             // this command is RelDepth, so any further relations are +1
-            ProcessRelationsRecursive(session, response, handler, animeCreator, RelDepth + 1);
+            ProcessRelationsRecursive(session, response, requestFactory, handler, animeCreator, RelDepth + 1);
         }
 
-        private void ProcessRelationsRecursive(ISession session, ResponseGetAnime response, IHttpConnectionHandler handler, AnimeCreator animeCreator, int depth)
+        private void ProcessRelationsRecursive(ISession session, ResponseGetAnime response, IRequestFactory requestFactory, IHttpConnectionHandler handler, AnimeCreator animeCreator, int depth)
         {
             if (depth > ServerSettings.Instance.AniDb.MaxRelationDepth) return;
             foreach (var relation in response.Relations)
@@ -175,13 +176,13 @@ namespace Shoko.Server.Commands.AniDB
                 {
                     try
                     {
-                        var relationRequest = new RequestGetAnime { AnimeID = relation.RelatedAnimeID };
-                        var relationResponse = relationRequest.Execute(handler);
+                        var relationRequest = requestFactory.Create<RequestGetAnime, ResponseGetAnime>(r => r.AnimeID = relation.RelatedAnimeID);
+                        var relationResponse = relationRequest.Execute();
                         relatedAnime ??= new SVR_AniDB_Anime();
                         animeCreator.CreateAnime(session, relationResponse.Response, relatedAnime, depth);
                         // we just downloaded depth, so the next recursion is depth + 1
                         if (depth + 1 > ServerSettings.Instance.AniDb.MaxRelationDepth) return;
-                        ProcessRelationsRecursive(session, relationResponse.Response, handler, animeCreator, depth + 1);
+                        ProcessRelationsRecursive(session, relationResponse.Response, requestFactory, handler, animeCreator, depth + 1);
                         continue;
                     }
                     catch (AniDBBannedException)

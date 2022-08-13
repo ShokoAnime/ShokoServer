@@ -119,14 +119,8 @@ namespace Shoko.Server.Server
             
             services.AddSingleton<SettingsProvider>();
             services.AddSingleton(Loader.Instance);
-            services.AddSingleton<HttpAnimeParser>();
-            services.AddSingleton<AnimeCreator>();
-            services.AddSingleton<HttpXmlUtils>();
-            services.AddSingleton<UDPRateLimiter>();
-            services.AddSingleton<HttpRateLimiter>();
             services.AddSingleton(ShokoService.CmdProcessorGeneral);
-            services.AddSingleton<IHttpConnectionHandler, AniDBHttpConnectionHandler>();
-            services.AddSingleton<IUDPConnectionHandler, AniDBUDPConnectionHandler>();
+            AniDBStartup.ConfigureServices(services);
             Loader.Instance.Load(services);
         }
         

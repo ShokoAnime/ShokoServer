@@ -911,9 +911,15 @@ namespace Shoko.Server
 
             try
             {
-                var handler = HttpContext.RequestServices.GetRequiredService<IHttpConnectionHandler>();
-                var request = new RequestMyList { Username = ServerSettings.Instance.AniDb.Username, Password = ServerSettings.Instance.AniDb.Password };
-                var response = request.Execute(handler);
+                var requestFactory = HttpContext.RequestServices.GetRequiredService<IRequestFactory>();
+                var request = requestFactory.Create<RequestMyList>(
+                    r =>
+                    {
+                        r.Username = ServerSettings.Instance.AniDb.Username;
+                        r.Password = ServerSettings.Instance.AniDb.Password;
+                    }
+                );
+                var response = request.Execute();
                 if (response.Response != null)
                 {
                     foreach (var myitem in response.Response)

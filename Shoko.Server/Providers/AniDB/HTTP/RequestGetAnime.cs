@@ -1,21 +1,24 @@
 ﻿using System;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Providers.AniDB.Http
 {
-    public class RequestGetAnime : HttpBaseRequest<ResponseGetAnime>
+    public class RequestGetAnime : HttpRequest<ResponseGetAnime>
     {
-        public int AnimeID { get; init; }
+        private readonly HttpXmlUtils _xmlUtils;
+        private readonly HttpAnimeParser _parser;
+        
+        public int AnimeID { get; set; }
 
         protected override string BaseCommand => $"http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=anime&aid={AnimeID}";
 
-        protected override HttpBaseResponse<ResponseGetAnime> ParseResponse(ILogger logger, HttpBaseResponse<string> receivedData)
+        public RequestGetAnime(IHttpConnectionHandler handler, ILoggerFactory loggerFactory, HttpXmlUtils xmlUtils, HttpAnimeParser parser) : base(handler, loggerFactory)
         {
-            // this won't be called. It is bypassed in the version with a service provider
-            throw new NotSupportedException();
+            _xmlUtils = xmlUtils;
+            _parser = parser;
         }
 
         /// <summary>
@@ -25,18 +28,16 @@ namespace Shoko.Server.Providers.AniDB.Http
         /// <param name="receivedData"></param>
         /// <returns></returns>
         /// <exception cref="AniDBBannedException">Will throw if banned. Won't extend ban, so it's safe to use this as a check</exception>
-        protected override HttpBaseResponse<ResponseGetAnime> ParseResponse(IServiceProvider provider, HttpBaseResponse<string> receivedData)
+        protected override HttpResponse<ResponseGetAnime> ParseResponse(HttpResponse<string> receivedData)
         {
-            var xmlUtils = provider.GetRequiredService<HttpXmlUtils>();
             UpdateAnimeUpdateTime(AnimeID);
 
             // save a file cache of the response
             var rawXml = receivedData.Response.Trim();
-            xmlUtils.WriteAnimeHTTPToFile(AnimeID, rawXml);
+            _xmlUtils.WriteAnimeHTTPToFile(AnimeID, rawXml);
 
-            var parser = provider.GetRequiredService<HttpAnimeParser>();
-            var response = parser.Parse(AnimeID, receivedData.Response);
-            return new HttpBaseResponse<ResponseGetAnime> { Code = receivedData.Code, Response = response };
+            var response = _parser.Parse(AnimeID, receivedData.Response);
+            return new HttpResponse<ResponseGetAnime> { Code = receivedData.Code, Response = response };
         }
 
         private static void UpdateAnimeUpdateTime(int animeId)

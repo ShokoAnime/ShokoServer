@@ -16,16 +16,16 @@ namespace Shoko.Server.Providers.AniDB.Http
         public override string Type => "HTTP";
         public override UpdateType BanEnum => UpdateType.HTTPBan;
 
-        public AniDBHttpConnectionHandler(IServiceProvider provider, CommandProcessorGeneral queue, HttpRateLimiter rateLimiter) : base(provider, queue, rateLimiter) { }
+        public AniDBHttpConnectionHandler(ILoggerFactory loggerFactory, CommandProcessorGeneral queue, HttpRateLimiter rateLimiter) : base(loggerFactory, queue, rateLimiter) { }
 
-        public HttpBaseResponse<string> GetHttp(string url)
+        public HttpResponse<string> GetHttp(string url)
         {
             var response = GetHttpDirectly(url);
 
             return response;
         }
 
-        public HttpBaseResponse<string> GetHttpDirectly(string url)
+        public HttpResponse<string> GetHttpDirectly(string url)
         {
             try
             {
@@ -56,7 +56,7 @@ namespace Shoko.Server.Providers.AniDB.Http
                 var output = reader.ReadToEnd();
 
                 if (CheckForBan(output)) throw new AniDBBannedException { BanType = UpdateType.HTTPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength) };
-                return new HttpBaseResponse<string> {Response = output, Code = webResponse.StatusCode};
+                return new HttpResponse<string> {Response = output, Code = webResponse.StatusCode};
             }
             catch (Exception ex)
             {

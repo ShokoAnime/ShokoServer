@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -29,7 +30,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
 
         protected override string BaseCommand => $"VOTE type={(Temporary ? 2 : 1)}&aid={AnimeID}&value={AniDBValue}";
 
-        protected override UDPResponse<ResponseVote> ParseResponse(ILogger logger, UDPResponse<string> response)
+        protected override UDPResponse<ResponseVote> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -46,6 +47,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                 Type = (VoteType) type,
                 EntityID = id
             }};
+        }
+
+        public RequestVoteAnime(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

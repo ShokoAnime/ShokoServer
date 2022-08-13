@@ -1,5 +1,6 @@
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User
@@ -7,7 +8,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
     public class RequestMyListStats : UDPRequest<ResponseMyListStats>
     {
         protected override string BaseCommand => "MYLISTSTATS";
-        protected override UDPResponse<ResponseMyListStats> ParseResponse(ILogger logger, UDPResponse<string> response)
+        protected override UDPResponse<ResponseMyListStats> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -38,6 +39,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                 ViewedLength = parsedData[16]
             };
             return new UDPResponse<ResponseMyListStats>{Code = code, Response = stats};
+        }
+
+        public RequestMyListStats(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

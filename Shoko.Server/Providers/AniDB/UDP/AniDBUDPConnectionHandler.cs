@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Text;
 using System.Timers;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Commands;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -17,6 +16,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
 {
     public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandler
     {
+        private readonly IRequestFactory _requestFactory;
         IServiceProvider IUDPConnectionHandler.ServiceProvider => ServiceProvider;
         private IAniDBSocketHandler _socketHandler;
 
@@ -69,8 +69,9 @@ namespace Shoko.Server.Providers.AniDB.UDP
         private DateTime LastMessage =>
             LastAniDBMessageNonPing < LastAniDBPing ? LastAniDBPing : LastAniDBMessageNonPing;
 
-        public AniDBUDPConnectionHandler(IServiceProvider provider, CommandProcessorGeneral queue, SettingsProvider settings, UDPRateLimiter rateLimiter) : base(provider, queue, rateLimiter)
+        public AniDBUDPConnectionHandler(IRequestFactory requestFactory, ILoggerFactory loggerFactory, CommandProcessorGeneral queue, SettingsProvider settings, UDPRateLimiter rateLimiter) : base(loggerFactory, queue, rateLimiter)
         {
+            _requestFactory = requestFactory;
             SettingsProvider = settings;
             InitInternal();
         }
@@ -103,8 +104,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             }
 
             var settings = SettingsProvider.Settings;
-            var logFactory = ServiceProvider.GetRequiredService<ILoggerFactory>();
-            _socketHandler = new AniDBSocketHandler(logFactory, settings.AniDb.ServerAddress, settings.AniDb.ServerPort, settings.AniDb.ClientPort);
+            _socketHandler = new AniDBSocketHandler(_loggerFactory, settings.AniDb.ServerAddress, settings.AniDb.ServerPort, settings.AniDb.ClientPort);
             _isLoggedOn = false;
 
             IsNetworkAvailable = _socketHandler.TryConnection();
@@ -138,8 +138,8 @@ namespace Shoko.Server.Providers.AniDB.UDP
                     pingTimestamp.TotalSeconds >= Constants.PingFrequency &&
                     !IsBanned && !ExtendPauseSecs.HasValue)
                 {
-                    var ping = new RequestPing();
-                    ping.Execute(this);
+                    var ping = _requestFactory.Create<RequestPing>();
+                    ping.Execute();
                 }
 
                 if (nonPingTimestamp.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
@@ -370,8 +370,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             Logger.LogTrace("Logging Out");
             try
             {
-                var req = new RequestLogout();
-                req.Execute(this);
+                _requestFactory.Create<RequestLogout>().Execute();
             }
             catch
             {
@@ -424,9 +423,15 @@ namespace Shoko.Server.Providers.AniDB.UDP
             UDPResponse<ResponseLogin> response;
             try
             {
-                var login = new RequestLogin { Username = username, Password = password };
+                var login = _requestFactory.Create<RequestLogin>(
+                    r =>
+                    {
+                        r.Username = username;
+                        r.Password = password;
+                    }
+                );
                 // Never give Execute a null SessionID, except here
-                response = login.Execute(this);
+                response = login.Execute();
             }
             catch (Exception e)
             {

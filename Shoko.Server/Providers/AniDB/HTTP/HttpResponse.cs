@@ -1,8 +1,9 @@
 using System.Net;
+using Shoko.Server.Providers.AniDB.Interfaces;
 
 namespace Shoko.Server.Providers.AniDB.Http
 {
-    public class HttpBaseResponse<T> where T : class
+    public class HttpResponse<T> : IResponse<T> where T : class
     {
         public HttpStatusCode Code { get; set; }
         

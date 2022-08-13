@@ -45,7 +45,7 @@ namespace Shoko.Server.Commands.AniDB
         protected override void Process(IServiceProvider serviceProvider)
         {
             Logger.LogInformation("Processing CommandRequest_GetCalendar");
-            var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
+            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
@@ -71,8 +71,8 @@ namespace Shoko.Server.Commands.AniDB
 
                 sched.LastUpdate = DateTime.Now;
 
-                var request = new RequestCalendar();
-                var response = request.Execute(handler);
+                var request = requestFactory.Create<RequestCalendar>();
+                var response = request.Execute();
                 RepoFactory.ScheduledUpdate.Save(sched);
 
                 if (response.Response?.Next25Anime != null)

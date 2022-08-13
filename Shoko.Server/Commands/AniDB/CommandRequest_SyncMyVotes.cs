@@ -39,12 +39,19 @@ namespace Shoko.Server.Commands.AniDB
         protected override void Process(IServiceProvider serviceProvider)
         {
             Logger.LogInformation("Processing CommandRequest_SyncMyVotes");
+            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
                 var handler = serviceProvider.GetRequiredService<IHttpConnectionHandler>();
-                var request = new RequestVotes { Username = ServerSettings.Instance.AniDb.Username, Password = ServerSettings.Instance.AniDb.Password };
-                var response = request.Execute(handler);
+                var request = requestFactory.Create<RequestVotes>(
+                    r =>
+                    {
+                        r.Username = ServerSettings.Instance.AniDb.Username;
+                        r.Password = ServerSettings.Instance.AniDb.Password;
+                    }
+                );
+                var response = request.Execute();
                 if (response.Response == null) return;
                 foreach (var myVote in response.Response)
                 {

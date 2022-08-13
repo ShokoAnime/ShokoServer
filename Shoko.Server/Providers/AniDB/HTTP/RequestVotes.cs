@@ -5,18 +5,19 @@ using System.Linq;
 using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
+using Shoko.Server.Providers.AniDB.Interfaces;
 
 namespace Shoko.Server.Providers.AniDB.Http
 {
-    public class RequestVotes : HttpBaseRequest<List<ResponseVote>>
+    public class RequestVotes : HttpRequest<List<ResponseVote>>
     {
 
         protected override string BaseCommand => $"http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=votes&user={Username}&pass={Password}";
         
-        public string Username { private get; init; }
-        public string Password { private get; init; }
+        public string Username { private get; set; }
+        public string Password { private get; set; }
         
-        protected override HttpBaseResponse<List<ResponseVote>> ParseResponse(ILogger logger, HttpBaseResponse<string> data)
+        protected override HttpResponse<List<ResponseVote>> ParseResponse(HttpResponse<string> data)
         {
             var results = new List<ResponseVote>();
             try
@@ -43,12 +44,12 @@ namespace Shoko.Server.Providers.AniDB.Http
                     results.AddRange(myitems.Cast<XmlNode>().Select(GetEpisode).Where(vote => vote != null));
                 }
                 
-                return new HttpBaseResponse<List<ResponseVote>> {Code = data.Code, Response = results};
+                return new HttpResponse<List<ResponseVote>> {Code = data.Code, Response = results};
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "{Message}", ex.Message);
-                return new HttpBaseResponse<List<ResponseVote>> {Code = data.Code, Response = null};
+                Logger.LogError(ex, "{Message}", ex.Message);
+                return new HttpResponse<List<ResponseVote>> {Code = data.Code, Response = null};
             }
         }
 
@@ -80,6 +81,10 @@ namespace Shoko.Server.Providers.AniDB.Http
             if (!int.TryParse(node.Attributes?["eid"]?.Value, out var entityID)) return null;
             if (!decimal.TryParse(node.InnerText.Trim(), style, culture, out var val)) return null;
             return new ResponseVote { EntityID = entityID, VoteType = AniDBVoteType.Episode, VoteValue = val };
+        }
+
+        public RequestVotes(IHttpConnectionHandler handler, ILoggerFactory loggerFactory) : base(handler, loggerFactory)
+        {
         }
     }
 }

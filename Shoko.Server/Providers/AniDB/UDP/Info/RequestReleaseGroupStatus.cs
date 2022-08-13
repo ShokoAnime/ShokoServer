@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -13,7 +14,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
 
         protected override string BaseCommand => $"GROUPSTATUS aid={AnimeID}";
 
-        protected override UDPResponse<List<ResponseReleaseGroupStatus>> ParseResponse(ILogger logger, UDPResponse<string> response)
+        protected override UDPResponse<List<ResponseReleaseGroupStatus>> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -90,7 +91,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                         }
                         catch (Exception ex)
                         {
-                            logger.LogError(ex, "{Ex}", ex.ToString());
+                            Logger.LogError(ex, "{Ex}", ex.ToString());
                         }
                     }
 
@@ -101,6 +102,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                     return new UDPResponse<List<ResponseReleaseGroupStatus>> { Code = response.Code, Response = null };
                 default: throw new UnexpectedUDPResponseException(code, receivedData);
             }
+        }
+
+        public RequestReleaseGroupStatus(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

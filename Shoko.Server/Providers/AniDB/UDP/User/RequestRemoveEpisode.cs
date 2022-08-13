@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Void;
@@ -23,7 +24,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         public int EpisodeNumber { get; set; }
         public EpisodeType EpisodeType { get; set; } = EpisodeType.Episode;
 
-        protected override UDPResponse<Void> ParseResponse(ILogger logger, UDPResponse<string> response)
+        protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -34,6 +35,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                     return new UDPResponse<Void> { Code = code };
             }
             throw new UnexpectedUDPResponseException(code, receivedData);
+        }
+
+        public RequestRemoveEpisode(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

@@ -4,6 +4,8 @@ namespace Shoko.Server.Providers.AniDB.Interfaces
 {
     public interface IRequestFactory
     {
-        T1 Create<T1, T2>(Action<T1> ctor) where T1 : IRequest<T2>, new() where T2 : IResponse;
+        T Create<T>(Action<T> ctor = null) where T : class, IRequest;
+        
+        T Create<T, T1>(Action<T> ctor = null) where T : IRequest<IResponse<T1>, T1> where T1 : class;
     }
 }
