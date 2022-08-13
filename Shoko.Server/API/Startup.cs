@@ -133,6 +133,7 @@ namespace Shoko.Server.API
             services.AddSingleton<QueueEmitter>();
             services.AddSingleton<LegacyAniDBEmitter>();
             services.AddSingleton<LoggingEmitter>();
+            services.AddSingleton<ShokoEventEmitter>();
 
             // allow CORS calls from other both local and non-local hosts
             services.AddCors(options =>
@@ -261,6 +262,7 @@ namespace Shoko.Server.API
                 conf.MapHub<QueueHub>("/signalr/events");
                 conf.MapHub<LegacyAniDBHub>("/signalr/anidb");
                 conf.MapHub<LoggingHub>("/signalr/logging");
+                conf.MapHub<ShokoEventHub>("/signalr/shoko");
             });
 
             app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());

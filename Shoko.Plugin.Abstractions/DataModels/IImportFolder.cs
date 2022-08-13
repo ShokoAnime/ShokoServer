@@ -3,6 +3,11 @@ namespace Shoko.Plugin.Abstractions.DataModels
     public interface IImportFolder
     {
         /// <summary>
+        /// Import folder ID.
+        /// </summary>
+        int ImportFolderID { get; }
+
+        /// <summary>
         /// The Import Folder's name. This is user specified in WebUI, or NA for legacy
         /// </summary>
         string Name { get; }

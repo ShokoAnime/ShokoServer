@@ -1,3 +1,4 @@
+using System;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 
@@ -7,7 +8,7 @@ namespace Shoko.Plugin.Abstractions
     /// <summary>
     /// Fired on series info updates, currently, AniDB, TvDB, etc will trigger this
     /// </summary>
-    public class SeriesInfoUpdatedEventArgs
+    public class SeriesInfoUpdatedEventArgs : EventArgs
     {
         /// <summary>
         /// Where the data was updated. If there was a batch operation, this may just say the first one.
