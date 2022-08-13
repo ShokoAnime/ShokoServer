@@ -64,5 +64,9 @@ UMASK set:    $(umask)
 -------------------------------------
 "
 
+# Make sure we use the packaged WebUI
+rm -rf /home/shoko/.shoko/Shoko.CLI/webui
+ln -s /usr/src/app/build/webui /home/shoko/.shoko/Shoko.CLI/webui
+
 # Go and run the server 
 exec gosu $USER:$GROUP /usr/src/app/build/Shoko.CLI
