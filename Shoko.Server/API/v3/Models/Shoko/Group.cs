@@ -96,10 +96,10 @@ namespace Shoko.Server.API.v3.Models.Shoko
             public int? DefaultSeries { get; set; }
 
             /// <summary>
-            /// The ID of the main series for the group, unless the group is empty.
+            /// The ID of the main series for the group.
             /// </summary>
             /// <value></value>
-            public int? MainSeries { get; set; }
+            public int MainSeries { get; set; }
 
             /// <summary>
             /// The ID of the direct parent group, if it has one.
