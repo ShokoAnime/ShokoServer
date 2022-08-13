@@ -29,7 +29,7 @@ namespace Shoko.Server.API.v3.Controllers
                     if (group == null || !user.AllowedGroup(group))
                         return null;
 
-                    var series = group.GetDefaultSeries() ?? group.GetAllSeries().FirstOrDefault();
+                    var series = group.GetMainSeries();
                     var anime = series?.GetAnime();
                     if (series == null || anime == null)
                         return null;
