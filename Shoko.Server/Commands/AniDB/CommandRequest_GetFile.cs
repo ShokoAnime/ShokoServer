@@ -67,6 +67,7 @@ namespace Shoko.Server.Commands.AniDB
         {
             Logger.LogInformation("Get AniDB file info: {VideoLocalID}", VideoLocalID);
             var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
+            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             if (handler.IsBanned) throw new AniDBBannedException { BanType = UpdateType.UDPBan, BanExpires = handler.BanTime?.AddHours(handler.BanTimerResetLength) };
             vlocal ??= RepoFactory.VideoLocal.GetByID(VideoLocalID);
@@ -78,8 +79,14 @@ namespace Shoko.Server.Commands.AniDB
                 UDPResponse<ResponseGetFile> response = null;
                 if (aniFile == null || ForceAniDB)
                 {
-                    var request = new RequestGetFile { Hash = vlocal.Hash, Size = vlocal.FileSize };
-                    response = request.Execute(handler);
+                    var request = requestFactory.Create<RequestGetFile>(
+                        r =>
+                        {
+                            r.Hash = vlocal.Hash;
+                            r.Size = vlocal.FileSize;
+                        }
+                    );
+                    response = request.Execute();
                 }
 
                 if (response?.Response == null)

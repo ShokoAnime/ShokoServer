@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -39,7 +40,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
 
-        protected override UDPResponse<ResponseMyListFile> ParseResponse(ILogger logger, UDPResponse<string> response)
+        protected override UDPResponse<ResponseMyListFile> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -101,6 +102,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                 }
             }
             throw new UnexpectedUDPResponseException(code, receivedData);
+        }
+
+        public RequestAddEpisode(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

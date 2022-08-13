@@ -54,6 +54,7 @@ namespace Shoko.Server.Commands.AniDB
             return;
             Logger.LogInformation("Processing CommandRequest_SyncMyList");
             var handler = serviceProvider.GetRequiredService<IHttpConnectionHandler>();
+            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
@@ -76,8 +77,14 @@ namespace Shoko.Server.Commands.AniDB
                 }
 
                 // Get the list from AniDB
-                var request = new RequestMyList { Username = ServerSettings.Instance.AniDb.Username, Password = ServerSettings.Instance.AniDb.Password };
-                var response = request.Execute(handler);
+                var request = requestFactory.Create<RequestMyList>(
+                    r =>
+                    {
+                        r.Username = ServerSettings.Instance.AniDb.Username;
+                        r.Password = ServerSettings.Instance.AniDb.Password;
+                    }
+                );
+                var response = request.Execute();
 
                 if (response.Response == null)
                 {

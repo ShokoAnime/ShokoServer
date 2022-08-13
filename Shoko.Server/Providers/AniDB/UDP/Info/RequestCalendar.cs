@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Info
@@ -11,7 +12,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
 
         protected override string BaseCommand => "CALENDAR";
 
-        protected override UDPResponse<ResponseCalendar> ParseResponse(ILogger logger, UDPResponse<string> response)
+        protected override UDPResponse<ResponseCalendar> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -50,6 +51,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
             {
                 Response = calendar, Code = code
             };
+        }
+
+        public RequestCalendar(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

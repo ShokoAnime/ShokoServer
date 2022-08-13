@@ -59,7 +59,7 @@ namespace Shoko.Server.Commands.AniDB
         protected override void Process(IServiceProvider serviceProvider)
         {
             Logger.LogInformation("Processing CommandRequest_UpdateMyListFileStatus: {Hash}", Hash);
-            var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
+            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
@@ -71,26 +71,30 @@ namespace Shoko.Server.Commands.AniDB
                     if (WatchedDateAsSecs > 0)
                     {
                         var watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                        var request = new RequestUpdateFile
-                        {
-                            State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State(),
-                            Hash = vid.Hash,
-                            Size = vid.FileSize,
-                            IsWatched = true,
-                            WatchedDate = watchedDate,
-                        };
-                        request.Execute(handler);
+                        var request = requestFactory.Create<RequestUpdateFile>(
+                            r =>
+                            {
+                                r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
+                                r.Hash = vid.Hash;
+                                r.Size = vid.FileSize;
+                                r.IsWatched = true;
+                                r.WatchedDate = watchedDate;
+                            }
+                        );
+                        request.Execute();
                     }
                     else
                     {
-                        var request = new RequestUpdateFile
-                        {
-                            State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State(),
-                            Hash = vid.Hash,
-                            Size = vid.FileSize,
-                            IsWatched = false,
-                        };
-                        request.Execute(handler);
+                        var request = requestFactory.Create<RequestUpdateFile>(
+                            r =>
+                            {
+                                r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
+                                r.Hash = vid.Hash;
+                                r.Size = vid.FileSize;
+                                r.IsWatched = false;
+                            }
+                        );
+                        request.Execute();
                     }
                 }
                 else
@@ -102,26 +106,30 @@ namespace Shoko.Server.Commands.AniDB
                         if (WatchedDateAsSecs > 0)
                         {
                             var watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                            var request = new RequestUpdateEpisode
-                            {
-                                State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State(),
-                                EpisodeNumber = episode.EpisodeNumber,
-                                AnimeID = episode.AnimeID,
-                                IsWatched = true,
-                                WatchedDate = watchedDate,
-                            };
-                            request.Execute(handler);
+                            var request = requestFactory.Create<RequestUpdateEpisode>(
+                                r =>
+                                {
+                                    r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
+                                    r.EpisodeNumber = episode.EpisodeNumber;
+                                    r.AnimeID = episode.AnimeID;
+                                    r.IsWatched = true;
+                                    r.WatchedDate = watchedDate;
+                                }
+                            );
+                            request.Execute();
                         }
                         else
                         {
-                            var request = new RequestUpdateEpisode
-                            {
-                                State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State(),
-                                EpisodeNumber = episode.EpisodeNumber,
-                                AnimeID = episode.AnimeID,
-                                IsWatched = false,
-                            };
-                            request.Execute(handler);
+                            var request = requestFactory.Create<RequestUpdateEpisode>(
+                                r =>
+                                {
+                                    r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
+                                    r.EpisodeNumber = episode.EpisodeNumber;
+                                    r.AnimeID = episode.AnimeID;
+                                    r.IsWatched = false;
+                                }
+                            );
+                            request.Execute();
                         }
                     }
                 }

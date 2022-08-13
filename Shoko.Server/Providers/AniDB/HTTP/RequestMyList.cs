@@ -3,18 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 
 namespace Shoko.Server.Providers.AniDB.Http
 {
-    public class RequestMyList : HttpBaseRequest<List<ResponseMyList>>
+    public class RequestMyList : HttpRequest<List<ResponseMyList>>
     {
 
         protected override string BaseCommand => $"http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=mylist&user={Username}&pass={Password}";
         
-        public string Username { private get; init; }
-        public string Password { private get; init; }
+        public string Username { private get; set; }
+        public string Password { private get; set; }
         
-        protected override HttpBaseResponse<List<ResponseMyList>> ParseResponse(ILogger logger, HttpBaseResponse<string> data)
+        protected override HttpResponse<List<ResponseMyList>> ParseResponse(HttpResponse<string> data)
         {
             try
             {
@@ -47,13 +48,17 @@ namespace Shoko.Server.Providers.AniDB.Http
                         };
                     }
                 ).ToList();
-                return new HttpBaseResponse<List<ResponseMyList>> {Code = data.Code, Response = responses};
+                return new HttpResponse<List<ResponseMyList>> {Code = data.Code, Response = responses};
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, ex.Message);
-                return new HttpBaseResponse<List<ResponseMyList>> {Code = data.Code, Response = null};
+                Logger.LogError(ex, ex.Message);
+                return new HttpResponse<List<ResponseMyList>> {Code = data.Code, Response = null};
             }
+        }
+
+        public RequestMyList(IHttpConnectionHandler handler, ILoggerFactory loggerFactory) : base(handler, loggerFactory)
+        {
         }
     }
 }

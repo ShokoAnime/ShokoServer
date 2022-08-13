@@ -14,7 +14,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
 
         protected override string BaseCommand => $"AUTH user={Username}&pass={Password}&protover=3&client=ommserver&clientver=2&comp=1&imgserver=1&enc=utf-16";
 
-        protected override UDPResponse<ResponseLogin> ParseResponse(ILogger logger, UDPResponse<string> response)
+        protected override UDPResponse<ResponseLogin> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -32,22 +32,26 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             // Override to prevent attaching our non-existent sessionID
         }
         
-        public override UDPResponse<ResponseLogin> Execute(IUDPConnectionHandler handler)
+        public override UDPResponse<ResponseLogin> Execute()
         {
             Command = BaseCommand;
             // LOGIN commands have special needs, so we want to handle this differently
             UDPResponse<string> rawResponse;
             try
             {
-                rawResponse = handler.CallAniDBUDPDirectly(Command, false, true, false, true);
+                rawResponse = Handler.CallAniDBUDPDirectly(Command, false, true, false, true);
             }
             catch (NotLoggedInException)
             {
-                rawResponse = handler.CallAniDBUDPDirectly(Command, true, true, false, true);
+                rawResponse = Handler.CallAniDBUDPDirectly(Command, true, true, false, true);
             }
 
-            var response = ParseResponse(null, rawResponse);
+            var response = ParseResponse(rawResponse);
             return response;
+        }
+
+        public RequestLogin(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

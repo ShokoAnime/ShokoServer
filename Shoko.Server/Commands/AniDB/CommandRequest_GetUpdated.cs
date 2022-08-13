@@ -46,7 +46,7 @@ namespace Shoko.Server.Commands.AniDB
         protected override void Process(IServiceProvider serviceProvider)
         {
             Logger.LogInformation("Processing CommandRequest_GetUpdated");
-            var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
+            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
@@ -80,10 +80,10 @@ namespace Shoko.Server.Commands.AniDB
                     Logger.LogInformation($"{DateTime.UtcNow - webUpdateTime:g} since last UPDATED command");
                 }
 
-                var (response, countAnime, countSeries) = Update(webUpdateTime, handler, sched, 0, 0);
+                var (response, countAnime, countSeries) = Update(webUpdateTime, requestFactory, sched, 0, 0);
 
                 while (response?.Response?.Count > 200)
-                    (response, countAnime, countSeries) = Update(response.Response.LastUpdated, handler, sched, countAnime, countSeries);
+                    (response, countAnime, countSeries) = Update(response.Response.LastUpdated, requestFactory, sched, countAnime, countSeries);
 
                 Logger.LogInformation("Updating {Count} anime records, and {CountSeries} group status records", countAnime, countSeries);
             }
@@ -93,12 +93,12 @@ namespace Shoko.Server.Commands.AniDB
             }
         }
 
-        private (UDPResponse<ResponseUpdatedAnime> response, int countAnime, int countSeries) Update(DateTime webUpdateTime, IUDPConnectionHandler handler, ScheduledUpdate sched, int countAnime, int countSeries)
+        private (UDPResponse<ResponseUpdatedAnime> response, int countAnime, int countSeries) Update(DateTime webUpdateTime, IRequestFactory requestFactory, ScheduledUpdate sched, int countAnime, int countSeries)
         {
             // get a list of updates from AniDB
             // startTime will contain the date/time from which the updates apply to
-            var request = new RequestUpdatedAnime { LastUpdated = webUpdateTime };
-            var response = request.Execute(handler);
+            var request = requestFactory.Create<RequestUpdatedAnime>(r => r.LastUpdated = webUpdateTime);
+            var response = request.Execute();
             if (response?.Response == null) return (null, countAnime, countSeries);
             var animeIDsToUpdate = response.Response.AnimeIDs;
 

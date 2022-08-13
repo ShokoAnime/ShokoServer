@@ -27,7 +27,7 @@ namespace Shoko.Server.Commands.AniDB
 
 
         [NonSerialized]
-        private SVR_VideoLocal vid;
+        private SVR_VideoLocal _videoLocal;
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -35,12 +35,12 @@ namespace Shoko.Server.Commands.AniDB
         {
             get
             {
-                if (vid != null)
+                if (_videoLocal != null)
                     return new QueueStateStruct
                     {
                         message = "Adding file to MyList: {0}",
                         queueState = QueueStateEnum.AniDB_MyListAdd,
-                        extraParams = new[] {vid.FileName}
+                        extraParams = new[] {_videoLocal.FileName}
                     };
                 return new QueueStateStruct
                 {
@@ -66,24 +66,24 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            Logger.LogInformation($"Processing CommandRequest_AddFileToMyList: {vid?.GetBestVideoLocalPlace()?.FileName} - {Hash} - {ReadStates}");
+            Logger.LogInformation("Processing CommandRequest_AddFileToMyList: {FileName} - {Hash} - {ReadStates}", _videoLocal?.GetBestVideoLocalPlace()?.FileName, Hash, ReadStates);
 
             try
             {
-                if (vid == null) return;
-                var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
+                if (_videoLocal == null) return;
+                var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
                 // when adding a file via the API, newWatchedStatus will return with current watched status on AniDB
                 // if the file is already on the user's list
 
-                var isManualLink = vid.GetAniDBFile() == null;
+                var isManualLink = _videoLocal.GetAniDBFile() == null;
 
                 // mark the video file as watched
                 var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
                 var juser = aniDBUsers.FirstOrDefault();
                 DateTime? originalWatchedDate = null;
                 if (juser != null)
-                    originalWatchedDate = vid.GetUserRecord(juser.JMMUserID)?.WatchedDate?.ToUniversalTime();
+                    originalWatchedDate = _videoLocal.GetUserRecord(juser.JMMUserID)?.WatchedDate?.ToUniversalTime();
 
                 UDPResponse<ResponseMyListFile> response = null;
                 // this only gets overwritten if the response is File Already in MyList
@@ -91,68 +91,81 @@ namespace Shoko.Server.Commands.AniDB
 
                 if (isManualLink)
                 {
-                    var episodes = vid.GetAnimeEpisodes().Select(a => a.AniDB_Episode).ToArray();
+                    var episodes = _videoLocal.GetAnimeEpisodes().Select(a => a.AniDB_Episode).ToArray();
                     foreach (var episode in episodes)
                     {
-                        var request = new RequestAddEpisode
-                        {
-                            State = state.GetMyList_State(),
-                            IsWatched = originalWatchedDate.HasValue,
-                            WatchedDate = originalWatchedDate,
-                            AnimeID = episode.AnimeID,
-                            EpisodeNumber = episode.EpisodeNumber,
-                            EpisodeType = (EpisodeType)episode.EpisodeType,
-                        };
-                        response = request.Execute(handler);
+                        var request = requestFactory.Create<RequestAddEpisode>(
+                            r =>
+                            {
+                                r.State = state.GetMyList_State();
+                                r.IsWatched = originalWatchedDate.HasValue;
+                                r.WatchedDate = originalWatchedDate;
+                                r.AnimeID = episode.AnimeID;
+                                r.EpisodeNumber = episode.EpisodeNumber;
+                                r.EpisodeType = (EpisodeType)episode.EpisodeType;
+                            }
+                        );
+                        response = request.Execute();
 
                         if (response.Code != UDPReturnCode.FILE_ALREADY_IN_MYLIST) continue;
-                        var updateRequest = new RequestUpdateEpisode
-                        {
-                            State = state.GetMyList_State(),
-                            IsWatched = originalWatchedDate.HasValue,
-                            WatchedDate = originalWatchedDate,
-                            AnimeID = episode.AnimeID,
-                            EpisodeNumber = episode.EpisodeNumber,
-                            EpisodeType = (EpisodeType)episode.EpisodeType,
-                        };
-                        updateRequest.Execute(handler);
+                        
+                        var updateRequest = requestFactory.Create<RequestUpdateEpisode>(
+                            r =>
+                            {
+                                r.State = state.GetMyList_State();
+                                r.IsWatched = originalWatchedDate.HasValue;
+                                r.WatchedDate = originalWatchedDate;
+                                r.AnimeID = episode.AnimeID;
+                                r.EpisodeNumber = episode.EpisodeNumber;
+                                r.EpisodeType = (EpisodeType)episode.EpisodeType;
+                            }
+                        );
+                        updateRequest.Execute();
                     }
                 }
                 else
                 {
-                    var request = new RequestAddFile
-                    {
-                        State = state.GetMyList_State(),
-                        IsWatched = originalWatchedDate.HasValue,
-                        WatchedDate = originalWatchedDate,
-                        Hash = vid.Hash,
-                        Size = vid.FileSize,
-                    };
-                    response = request.Execute(handler);
+                    var request = requestFactory.Create<RequestAddFile>(
+                        r =>
+                        {
+                            r.State = state.GetMyList_State();
+                            r.IsWatched = originalWatchedDate.HasValue;
+                            r.WatchedDate = originalWatchedDate;
+                            r.Hash = _videoLocal.Hash;
+                            r.Size = _videoLocal.FileSize;
+                        }
+                    );
+                    response = request.Execute();
 
                     if (response.Code == UDPReturnCode.FILE_ALREADY_IN_MYLIST)
                     {
-                        var updateRequest = new RequestUpdateFile
-                        {
-                            State = state.GetMyList_State(),
-                            IsWatched = originalWatchedDate.HasValue,
-                            WatchedDate = originalWatchedDate,
-                            Hash = vid.Hash,
-                            Size = vid.FileSize,
-                        };
-                        updateRequest.Execute(handler);
+                        var updateRequest = requestFactory.Create<RequestUpdateFile>(
+                            r =>
+                            {
+                                r.State = state.GetMyList_State();
+                                r.IsWatched = originalWatchedDate.HasValue;
+                                r.WatchedDate = originalWatchedDate;
+                                r.Hash = _videoLocal.Hash;
+                                r.Size = _videoLocal.FileSize;
+                            }
+                        );
+                        updateRequest.Execute();
                     }
                 }
 
                 // never true for Manual Links, so no worries about the loop overwriting it
                 if ((response?.Response?.MyListID ?? 0) != 0)
                 {
-                    vid.MyListID = response.Response.MyListID;
-                    RepoFactory.VideoLocal.Save(vid);
+                    _videoLocal.MyListID = response.Response.MyListID;
+                    RepoFactory.VideoLocal.Save(_videoLocal);
                 }
 
                 var newWatchedDate = response?.Response?.WatchedDate;
-                Logger.LogInformation($"Added File to MyList. File: {vid.GetBestVideoLocalPlace()?.FileName}  Manual Link: {isManualLink}  Watched Locally: {originalWatchedDate != null}  Watched AniDB: {response?.Response?.IsWatched}  Local State: {ServerSettings.Instance.AniDb.MyList_StorageState}  AniDB State: {state}  ReadStates: {ReadStates}  ReadWatched Setting: {ServerSettings.Instance.AniDb.MyList_ReadWatched}  ReadUnwatched Setting: {ServerSettings.Instance.AniDb.MyList_ReadUnwatched}");
+                Logger.LogInformation(
+                    "Added File to MyList. File: {FileName}  Manual Link: {IsManualLink}  Watched Locally: {Unknown}  Watched AniDB: {ResponseIsWatched}  Local State: {AniDbMyListStorageState}  AniDB State: {State}  ReadStates: {ReadStates}  ReadWatched Setting: {AniDbMyListReadWatched}  ReadUnwatched Setting: {AniDbMyListReadUnwatched}",
+                    _videoLocal.GetBestVideoLocalPlace()?.FileName, isManualLink, originalWatchedDate != null, response?.Response?.IsWatched, ServerSettings.Instance.AniDb.MyList_StorageState, state, ReadStates,
+                    ServerSettings.Instance.AniDb.MyList_ReadWatched, ServerSettings.Instance.AniDb.MyList_ReadUnwatched
+                );
                 if (juser != null)
                 {
                     var watched = newWatchedDate != null && DateTime.UnixEpoch.Equals(newWatchedDate);
@@ -163,19 +176,19 @@ namespace Shoko.Server.Commands.AniDB
                         // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
                         if (ServerSettings.Instance.AniDb.MyList_ReadWatched && watched && !watchedLocally)
                         {
-                            vid.ToggleWatchedStatus(true, false, newWatchedDate, false, juser.JMMUserID,
+                            _videoLocal.ToggleWatchedStatus(true, false, newWatchedDate, false, juser.JMMUserID,
                                 false, false);
                         }
                         else if (ServerSettings.Instance.AniDb.MyList_ReadUnwatched && !watched && watchedLocally)
                         {
-                            vid.ToggleWatchedStatus(false, false, null, false, juser.JMMUserID,
+                            _videoLocal.ToggleWatchedStatus(false, false, null, false, juser.JMMUserID,
                                 false, false);
                         }
                     }
                 }
 
                 // if we don't have xrefs, then no series or eps.
-                var series = vid.EpisodeCrossRefs.Select(a => a.AnimeID).Distinct().ToArray();
+                var series = _videoLocal.EpisodeCrossRefs.Select(a => a.AnimeID).Distinct().ToArray();
                 if (series.Length <= 0) return;
 
                 foreach (var id in series)
@@ -188,7 +201,7 @@ namespace Shoko.Server.Commands.AniDB
                 if (ServerSettings.Instance.TraktTv.Enabled &&
                     !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                 {
-                    foreach (var aep in vid.GetAnimeEpisodes())
+                    foreach (var aep in _videoLocal.GetAnimeEpisodes())
                     {
                         var cmdSyncTrakt =
                             new CommandRequest_TraktCollectionEpisode(aep.AnimeEpisodeID, TraktSyncAction.Add);
@@ -198,7 +211,7 @@ namespace Shoko.Server.Commands.AniDB
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Error processing CommandRequest_AddFileToMyList: {Hash} - {ex}");
+                Logger.LogError("Error processing CommandRequest_AddFileToMyList: {Hash} - {Ex}", Hash, ex);
             }
         }
 
@@ -233,7 +246,7 @@ namespace Shoko.Server.Commands.AniDB
             }
 
             if (Hash.Trim().Length <= 0) return false;
-            vid = RepoFactory.VideoLocal.GetByHash(Hash);
+            _videoLocal = RepoFactory.VideoLocal.GetByHash(Hash);
             return true;
         }
 

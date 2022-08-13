@@ -53,7 +53,7 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
+            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
             // there will be a road bump the first time we start up, as some people may have requests with MyListID. I don't care. It'll get there.
             Logger.LogInformation("Processing CommandRequest_DeleteFileFromMyList: Hash: {Hash}, FileSize: {Size}", Hash, FileSize);
 
@@ -65,45 +65,88 @@ namespace Shoko.Server.Commands.AniDB
                     case AniDBFileDeleteType.Delete:
                         if (string.IsNullOrEmpty(Hash))
                         {
-                            request = new RequestRemoveEpisode { AnimeID = AnimeID, EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType, EpisodeNumber = EpisodeNumber };
+                            request = requestFactory.Create<RequestRemoveEpisode>(
+                                r =>
+                                {
+                                    r.AnimeID = AnimeID;
+                                    r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
+                                    r.EpisodeNumber = EpisodeNumber;
+                                }
+                            );
                             Logger.LogInformation("Deleting Episode from MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID, EpisodeType, EpisodeNumber);
-                            request.Execute(handler);
+                            request.Execute();
                         }
                         else
                         {
-                            request = new RequestRemoveFile { Hash = Hash, Size = FileSize };
+                            request = requestFactory.Create<RequestRemoveFile>(
+                                r =>
+                                {
+                                    r.Hash = Hash;
+                                    r.Size = FileSize;
+                                }
+                            );
                             Logger.LogInformation("Deleting file from MyList: Hash: {Hash}", Hash);
-                            request.Execute(handler);                            
+                            request.Execute();                            
                         }
 
                         break;
                     case AniDBFileDeleteType.MarkDeleted:
                         if (string.IsNullOrEmpty(Hash))
                         {
-                            request = new RequestUpdateEpisode { AnimeID = AnimeID, EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType, EpisodeNumber = EpisodeNumber, State = MyList_State.Deleted };
+                            request = requestFactory.Create<RequestUpdateEpisode>(
+                                r =>
+                                {
+                                    r.AnimeID = AnimeID;
+                                    r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
+                                    r.EpisodeNumber = EpisodeNumber;
+                                    r.State = MyList_State.Deleted;
+                                }
+                            );
                             Logger.LogInformation("Marking Episode as deleted in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID, EpisodeType, EpisodeNumber);
-                            request.Execute(handler);
+                            request.Execute();
                         }
                         else
                         {
-                            request = new RequestUpdateFile { Hash = Hash, Size = FileSize, State = MyList_State.Deleted };
+                            request = requestFactory.Create<RequestUpdateFile>(
+                                r =>
+                                {
+                                    r.Hash = Hash;
+                                    r.Size = FileSize;
+                                    r.State = MyList_State.Deleted;
+                                }
+                            );
                             Logger.LogInformation("Marking file as deleted in MyList: Hash: {Hash}", Hash);
-                            request.Execute(handler);
+                            request.Execute();
                         }
 
                         break;
                     case AniDBFileDeleteType.MarkUnknown:
                         if (string.IsNullOrEmpty(Hash))
                         {
-                            request = new RequestUpdateEpisode { AnimeID = AnimeID, EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType, EpisodeNumber = EpisodeNumber, State = MyList_State.Unknown };
+                            request = requestFactory.Create<RequestUpdateEpisode>(
+                                r =>
+                                {
+                                    r.AnimeID = AnimeID;
+                                    r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
+                                    r.EpisodeNumber = EpisodeNumber;
+                                    r.State = MyList_State.Unknown;
+                                }
+                            );
                             Logger.LogInformation("Marking Episode as unknown in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID, EpisodeType, EpisodeNumber);
-                            request.Execute(handler);
+                            request.Execute();
                         }
                         else
                         {
-                            request = new RequestUpdateFile { Hash = Hash, Size = FileSize, State = MyList_State.Unknown };
+                            request = requestFactory.Create<RequestUpdateFile>(
+                                r =>
+                                {
+                                    r.Hash = Hash;
+                                    r.Size = FileSize;
+                                    r.State = MyList_State.Unknown;
+                                }
+                            );
                             Logger.LogInformation("Marking file as unknown in MyList: Hash: {Hash}", Hash);
-                            request.Execute(handler);
+                            request.Execute();
                         }
 
                         break;
@@ -113,29 +156,59 @@ namespace Shoko.Server.Commands.AniDB
                     case AniDBFileDeleteType.MarkExternalStorage:
                         if (string.IsNullOrEmpty(Hash))
                         {
-                            request = new RequestUpdateEpisode { AnimeID = AnimeID, EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType, EpisodeNumber = EpisodeNumber, State = MyList_State.Remote };
+                            request = requestFactory.Create<RequestUpdateEpisode>(
+                                r =>
+                                {
+                                    r.AnimeID = AnimeID;
+                                    r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
+                                    r.EpisodeNumber = EpisodeNumber;
+                                    r.State = MyList_State.Remote;
+                                }
+                            );
                             Logger.LogInformation("Marking Episode as remote in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID, EpisodeType, EpisodeNumber);
-                            request.Execute(handler);
+                            request.Execute();
                         }
                         else
                         {
-                            request = new RequestUpdateFile { Hash = Hash, Size = FileSize, State = MyList_State.Remote };
+                            request = requestFactory.Create<RequestUpdateFile>(
+                                r =>
+                                {
+                                    r.Hash = Hash;
+                                    r.Size = FileSize;
+                                    r.State = MyList_State.Remote;
+                                }
+                            );
                             Logger.LogInformation("Marking file as remote in MyList: Hash: {Hash}", Hash);
-                            request.Execute(handler);
+                            request.Execute();
                         }
                         break;
                     case AniDBFileDeleteType.MarkDisk:
                         if (string.IsNullOrEmpty(Hash))
                         {
-                            request = new RequestUpdateEpisode { AnimeID = AnimeID, EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType, EpisodeNumber = EpisodeNumber, State = MyList_State.Disk };
+                            request = requestFactory.Create<RequestUpdateEpisode>(
+                                r =>
+                                {
+                                    r.AnimeID = AnimeID;
+                                    r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
+                                    r.EpisodeNumber = EpisodeNumber;
+                                    r.State = MyList_State.Disk;
+                                }
+                            );
                             Logger.LogInformation("Marking Episode as Disk in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID, EpisodeType, EpisodeNumber);
-                            request.Execute(handler);
+                            request.Execute();
                         }
                         else
                         {
-                            request = new RequestUpdateFile { Hash = Hash, Size = FileSize, State = MyList_State.Disk };
+                            request = requestFactory.Create<RequestUpdateFile>(
+                                r =>
+                                {
+                                    r.Hash = Hash;
+                                    r.Size = FileSize;
+                                    r.State = MyList_State.Disk;
+                                }
+                            );
                             Logger.LogInformation("Marking file as Disk in MyList: Hash: {Hash}", Hash);
-                            request.Execute(handler);
+                            request.Execute();
                         }
                         break;
                 }

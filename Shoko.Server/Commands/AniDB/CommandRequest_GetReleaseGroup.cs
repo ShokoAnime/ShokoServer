@@ -44,8 +44,8 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            Logger.LogInformation("Processing CommandRequest_GetReleaseGroup: {0}", GroupID);
-            var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
+            Logger.LogInformation("Processing CommandRequest_GetReleaseGroup: {GroupID}", GroupID);
+            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
@@ -53,8 +53,8 @@ namespace Shoko.Server.Commands.AniDB
 
                 if (!ForceRefresh && relGroup != null) return;
                 // redownload anime details from http ap so we can get an update character list
-                var request = new RequestReleaseGroup { ReleaseGroupID = GroupID };
-                var response = request.Execute(handler);
+                var request = requestFactory.Create<RequestReleaseGroup>(r => r.ReleaseGroupID = GroupID);
+                var response = request.Execute();
 
                 if (response?.Response == null) return;
                 relGroup ??= new AniDB_ReleaseGroup();

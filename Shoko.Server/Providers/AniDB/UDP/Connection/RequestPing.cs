@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
@@ -10,7 +9,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
     {
         protected override string BaseCommand => "PING";
 
-        protected override UDPResponse<Void> ParseResponse(ILogger logger, UDPResponse<string> response)
+        protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -23,13 +22,15 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             // Don't set the session for pings
         }
 
-        public override UDPResponse<Void> Execute(IUDPConnectionHandler handler)
+        public override UDPResponse<Void> Execute()
         {
-            var rawResponse = handler.CallAniDBUDPDirectly(BaseCommand, true, true, true);
-            var factory = handler.ServiceProvider.GetRequiredService<ILoggerFactory>();
-            var logger = factory.CreateLogger(GetType());
-            var response = ParseResponse(logger, rawResponse);
+            var rawResponse = Handler.CallAniDBUDPDirectly(BaseCommand, true, true, true);
+            var response = ParseResponse(rawResponse);
             return response;
+        }
+
+        public RequestPing(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

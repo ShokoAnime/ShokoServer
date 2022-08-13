@@ -1,5 +1,6 @@
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -12,7 +13,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
         
         protected override string BaseCommand => $"GROUP gid={ReleaseGroupID}";
 
-        protected override UDPResponse<ResponseReleaseGroup> ParseResponse(ILogger logger, UDPResponse<string> response)
+        protected override UDPResponse<ResponseReleaseGroup> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -73,6 +74,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                 }
                 default: throw new UnexpectedUDPResponseException(code, receivedData);
             }
+        }
+
+        public RequestReleaseGroup(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

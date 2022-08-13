@@ -7,6 +7,6 @@ namespace Shoko.Server.Providers.AniDB.Interfaces
     {
         event EventHandler<AniDBStateUpdate> AniDBStateUpdate;
         IServiceProvider ServiceProvider { get; }
-        HttpBaseResponse<string> GetHttp(string url);
+        HttpResponse<string> GetHttp(string url);
     }
 }

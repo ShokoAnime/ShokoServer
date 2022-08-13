@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -47,7 +48,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
 
         private static string PadByte(byte b) => b.ToString("X").PadLeft(2, '0');
 
-        protected override UDPResponse<ResponseGetFile> ParseResponse(ILogger logger, UDPResponse<string> response)
+        protected override UDPResponse<ResponseGetFile> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -138,7 +139,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                     var slangs = parts[11].Split(new[] {'\''}, StringSplitOptions.RemoveEmptyEntries).ToList();
                     
                     // mylist
-                    var myList = ParseMyList(logger, parts);
+                    var myList = ParseMyList(parts);
 
                     return new UDPResponse<ResponseGetFile>
                     {
@@ -207,18 +208,18 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
             };
         }
 
-        private static ResponseGetFile.MyListInfo ParseMyList(ILogger logger, IReadOnlyList<string> parts)
+        private ResponseGetFile.MyListInfo ParseMyList(IReadOnlyList<string> parts)
         {
             if (!int.TryParse(parts[4], out var myListID)) return null;
             if (!int.TryParse(parts[14], out var mylistState))
             {
-                logger.LogWarning("Could not parse MyList info for file. MyList_State failed binding: {Value}", parts[14]);
+                Logger.LogWarning("Could not parse MyList info for file. MyList_State failed binding: {Value}", parts[14]);
                 mylistState = (int)MyList_State.Unknown;
             }
 
             if (!int.TryParse(parts[15], out var mylistFileState))
             {
-                logger.LogWarning("Could not parse MyList info for file. MyList_FileState failed binding: {Value}", parts[15]);
+                Logger.LogWarning("Could not parse MyList info for file. MyList_FileState failed binding: {Value}", parts[15]);
                 mylistFileState = (int)MyList_FileState.Other;
             }
 
@@ -241,6 +242,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                 ViewCount = viewCount,
                 ViewDate = viewDate
             };
+        }
+
+        public RequestGetFile(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

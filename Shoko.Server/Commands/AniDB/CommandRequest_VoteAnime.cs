@@ -47,14 +47,21 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            Logger.LogInformation("Processing CommandRequest_Vote: {0}", CommandID);
+            Logger.LogInformation("Processing CommandRequest_Vote: {CommandID}", CommandID);
 
 
             try
             {
-                var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
-                var vote = new RequestVoteAnime { Temporary = VoteType == (int)AniDBVoteType.AnimeTemp, Value = Convert.ToDouble(VoteValue), AnimeID = AnimeID };
-                vote.Execute(handler);
+                var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
+                var vote = requestFactory.Create<RequestVoteAnime>(
+                    r =>
+                    {
+                        r.Temporary = VoteType == (int)AniDBVoteType.AnimeTemp;
+                        r.Value = Convert.ToDouble(VoteValue);
+                        r.AnimeID = AnimeID;
+                    }
+                );
+                vote.Execute();
             }
             catch (Exception ex)
             {

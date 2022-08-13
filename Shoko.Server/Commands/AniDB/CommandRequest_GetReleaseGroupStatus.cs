@@ -49,7 +49,7 @@ namespace Shoko.Server.Commands.AniDB
         protected override void Process(IServiceProvider serviceProvider)
         {
             Logger.LogInformation("Processing CommandRequest_GetReleaseGroupStatus: {AnimeID}", AnimeID);
-            var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
+            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
@@ -67,8 +67,8 @@ namespace Shoko.Server.Commands.AniDB
                     return;
                 }
 
-                var request = new RequestReleaseGroupStatus { AnimeID = AnimeID };
-                var response = request.Execute(handler);
+                var request = requestFactory.Create<RequestReleaseGroupStatus>(r => r.AnimeID = AnimeID);
+                var response = request.Execute();
                 if (response.Response == null) return;
 
                 var maxEpisode = response.Response.Max(a => a.LastEpisodeNumber);
