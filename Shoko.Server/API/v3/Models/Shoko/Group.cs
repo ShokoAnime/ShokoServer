@@ -91,7 +91,9 @@ namespace Shoko.Server.API.v3.Models.Shoko
         public class GroupIDs : IDs
         {
             /// <summary>
-            /// The ID of the Default Series, if it has one.
+            /// The ID of the user selected default series, if it has one.
+            ///
+            /// The value of this field will be reflected in <see cref="MainSeries"/> if it is set.
             /// </summary>
             public int? DefaultSeries { get; set; }
 
@@ -192,7 +194,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
                 /// <summary>
                 /// The <see cref="Group"/> parent ID. Omit it or set it to 0 to
-                /// not use a parent group.
+                /// create a new top-level group.
                 /// </summary>
                 /// <value></value>
                 public int? ParentID { get; set; } = 0;
