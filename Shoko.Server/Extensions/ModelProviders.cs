@@ -798,6 +798,7 @@ namespace Shoko.Server.Extensions
             string name = series.GetSeriesName();
             agroup.GroupName = name;
             agroup.SortName = name;
+            agroup.MainAniDBAnimeID = series.AniDB_ID;
             agroup.DateTimeUpdated = now;
             agroup.DateTimeCreated = now;
         }
@@ -808,6 +809,7 @@ namespace Shoko.Server.Extensions
             string name = anime.GetFormattedTitle();
             agroup.GroupName = name;
             agroup.SortName = name;
+            agroup.MainAniDBAnimeID = anime.AnimeID;
             agroup.DateTimeUpdated = now;
             agroup.DateTimeCreated = now;
         }

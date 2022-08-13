@@ -12,6 +12,7 @@ namespace Shoko.Server.Mappings
             Id(x => x.AnimeGroupID);
             Map(x => x.AnimeGroupParentID);
             Map(x => x.DefaultAnimeSeriesID);
+            Map(x => x.MainAniDBAnimeID);
             Map(x => x.DateTimeCreated).Not.Nullable();
             Map(x => x.DateTimeUpdated).Not.Nullable();
             Map(x => x.Description).CustomType("StringClob").CustomSqlType("nvarchar(max)");
