@@ -38,8 +38,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             int cnt = 0;
             List<SVR_AnimeEpisode_User> sers =
-                Cache.Values.Where(a => a.ContractVersion < SVR_AnimeEpisode_User.CONTRACT_VERSION ||
-                                        a.AnimeEpisode_UserID == 0)
+                Cache.Values.Where(a => a.AnimeEpisode_UserID == 0)
                     .ToList();
             int max = sers.Count;
             ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
@@ -57,39 +56,6 @@ namespace Shoko.Server.Repositories.Cached
             ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
                 typeof(AnimeEpisode_User).Name,
                 " DbRegen - " + max + "/" + max);
-        }
-
-        public override void Save(SVR_AnimeEpisode_User obj)
-        {
-            lock (obj)
-            {
-                if (obj.AnimeEpisode_UserID == 0)
-                    base.Save(obj);
-                UpdateContract(obj);
-                base.Save(obj);
-            }
-        }
-
-        public override void SaveWithOpenTransaction(ISessionWrapper session, SVR_AnimeEpisode_User obj)
-        {
-            lock (obj)
-            {
-                if (obj.AnimeEpisode_UserID == 0)
-                    base.SaveWithOpenTransaction(session, obj);
-                UpdateContract(obj);
-                base.SaveWithOpenTransaction(session, obj);
-            }
-        }
-
-        public override void SaveWithOpenTransaction(ISession session, SVR_AnimeEpisode_User obj)
-        {
-            lock (obj)
-            {
-                if (obj.AnimeEpisode_UserID == 0)
-                    base.SaveWithOpenTransaction(session, obj);
-                UpdateContract(obj);
-                base.SaveWithOpenTransaction(session, obj);
-            }
         }
 
         public List<SVR_AnimeEpisode_User> GetBySeriesID(int seriesid)
@@ -156,49 +122,6 @@ namespace Shoko.Server.Repositories.Cached
             {
                 return UsersSeries.GetMultiple((ulong) userid << 48 | (ulong) seriesid);
             }
-        }
-
-
-        public void UpdateContract(SVR_AnimeEpisode_User aeu)
-        {
-            CL_AnimeEpisode_User caep = aeu.Contract ?? new CL_AnimeEpisode_User();
-            SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aeu.AnimeEpisodeID);
-            if (ep == null)
-                return;
-            AniDB_Episode aniEp = ep.AniDB_Episode;
-            caep.AniDB_EpisodeID = ep.AniDB_EpisodeID;
-            caep.AnimeEpisodeID = ep.AnimeEpisodeID;
-            caep.AnimeSeriesID = ep.AnimeSeriesID;
-            caep.DateTimeUpdated = ep.DateTimeUpdated;
-            caep.PlayedCount = aeu.PlayedCount;
-            caep.StoppedCount = aeu.StoppedCount;
-            caep.WatchedCount = aeu.WatchedCount;
-            caep.WatchedDate = aeu.WatchedDate;
-            var englishTitle = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, "EN")
-                .FirstOrDefault()?.Title;
-            var romajiTitle = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, "X-JAT")
-                .FirstOrDefault()?.Title;
-            caep.AniDB_EnglishName = englishTitle;
-            caep.AniDB_RomajiName = romajiTitle;
-            caep.EpisodeNameEnglish = englishTitle;
-            caep.EpisodeNameRomaji = romajiTitle;
-            if (aniEp != null)
-            {
-                caep.AniDB_AirDate = aniEp.GetAirDateAsDate();
-                caep.AniDB_LengthSeconds = aniEp.LengthSeconds;
-                caep.AniDB_Rating = aniEp.Rating;
-                caep.AniDB_Votes = aniEp.Votes;
-
-                caep.EpisodeNumber = aniEp.EpisodeNumber;
-                caep.Description = aniEp.Description;
-                caep.EpisodeType = aniEp.EpisodeType;
-            }
-
-            /*
-            //TODO if this is needed, calculating it in here will not affect performance
-            caep.ReleaseGroups = new List<CL_AniDB_GroupStatus>();
-            */
-            aeu.Contract = caep;
         }
     }
 }

@@ -34,17 +34,6 @@ namespace Shoko.Server.Tasks
                     return pb;
                 });
             });
-            ContractExtractors.Add("AnimeEpisode_User", (sw, za) =>
-            {
-                ExtractContracts<SVR_AnimeEpisode_User, CL_AnimeEpisode_User>(sw, za, pb =>
-                {
-                    pb.Select(CreateEntryNameProjection<SVR_AnimeEpisode_User>("AnimeEpisode_User\\u", a => a.JMMUserID,
-                        "\\s", a => a.AnimeSeriesID, "_e", a => a.AnimeEpisodeID));
-                    pb.Select(s => s.ContractSize);
-                    pb.Select(s => s.ContractBlob);
-                    return pb;
-                });
-            });
             ContractExtractors.Add("AnimeGroup", (sw, za) =>
             {
                 ExtractContracts<SVR_AnimeGroup, CL_AnimeGroup_User>(sw, za, pb =>
