@@ -157,9 +157,9 @@ namespace Shoko.Server.Models
                 StoppedCount = episodeUserRecord.StoppedCount,
                 WatchedCount = episodeUserRecord.WatchedCount,
                 WatchedDate = episodeUserRecord.WatchedDate,
-                AniDB_EnglishName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, "EN")
+                AniDB_EnglishName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.English)
                     .FirstOrDefault()?.Title,
-                AniDB_RomajiName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, "X-JAT")
+                AniDB_RomajiName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.Romaji)
                     .FirstOrDefault()?.Title,
                 AniDB_AirDate = anidbEpisode.GetAirDateAsDate(),
                 AniDB_LengthSeconds = anidbEpisode.LengthSeconds,
