@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Linq;
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Server.Providers.AniDB.Interfaces;
 
@@ -8,6 +10,8 @@ namespace Shoko.Server.Providers.AniDB
     public class RequestFactory : IRequestFactory
     {
         private readonly IServiceProvider _provider;
+        private static MethodInfo _cachedBaseMethod;
+        private static readonly ConcurrentDictionary<Type, MethodInfo> CachedGenericMethods = new();
 
         public RequestFactory(IServiceProvider provider)
         {
@@ -27,11 +31,26 @@ namespace Shoko.Server.Providers.AniDB
             var genericType = baseType.GetGenericArguments().FirstOrDefault();
             if (genericType == null) throw new ArgumentException($"Type parameter {baseType} must be a generic IRequest type");
 
-            var methodInfo = GetType().GetMethods().FirstOrDefault(a => a.Name.Equals(nameof(Create)) && a.GetGenericArguments().Length == 2);
-            if (methodInfo == null) throw new MissingMethodException(nameof(RequestFactory), nameof(Create));
+            if (_cachedBaseMethod == null)
+            {
+                var methodInfo = GetType().GetMethods().FirstOrDefault(a => a.Name.Equals(nameof(Create)) && a.GetGenericArguments().Length == 2);
+                if (methodInfo == null) throw new MissingMethodException(nameof(RequestFactory), nameof(Create));
+                _cachedBaseMethod = methodInfo;
+            }
 
-            var genericMethod = methodInfo.MakeGenericMethod(typeof(T), genericType);
-            var result = genericMethod.Invoke(this, new object[] { ctor });
+            MethodInfo genericMethod;
+            object result;
+            if (!CachedGenericMethods.ContainsKey(genericType))
+            {
+                genericMethod = _cachedBaseMethod.MakeGenericMethod(typeof(T), genericType);
+                // we don't care if there was a conflict. This is a cache that will have the same values
+                CachedGenericMethods.TryAdd(genericType, genericMethod);
+                result = genericMethod.Invoke(this, new object[] { ctor });
+                return result as T;
+            }
+
+            genericMethod = CachedGenericMethods[genericType];
+            result = genericMethod.Invoke(this, new object[] { ctor });
             return result as T;
         }
 

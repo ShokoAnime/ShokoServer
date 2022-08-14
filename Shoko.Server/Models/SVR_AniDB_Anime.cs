@@ -81,8 +81,9 @@ namespace Shoko.Server.Models
                 @"SELECT g.GroupName
 FROM AniDB_File a
 INNER JOIN AniDB_ReleaseGroup g ON a.GroupID = g.GroupID
+INNER JOIN CrossRef_File_Episode xref1 ON xref1.Hash = a.Hash
 GROUP BY g.GroupName
-ORDER BY count(DISTINCT a.AnimeID) DESC, g.GroupName ASC";
+ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 IList<string> result = session.CreateSQLQuery(query).List<string>();
