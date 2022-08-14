@@ -11,7 +11,7 @@ namespace Shoko.Server.Providers.AniDB
     {
         private readonly IServiceProvider _provider;
         private static MethodInfo _cachedBaseMethod;
-        private static readonly ConcurrentDictionary<Type, MethodInfo> CachedGenericMethods = new();
+        private static readonly ConcurrentDictionary<string, MethodInfo> CachedGenericMethods = new();
 
         public RequestFactory(IServiceProvider provider)
         {
@@ -40,16 +40,17 @@ namespace Shoko.Server.Providers.AniDB
 
             MethodInfo genericMethod;
             object result;
-            if (!CachedGenericMethods.ContainsKey(genericType))
+            var key = baseType.FullName + "," + genericType.FullName;
+            if (!CachedGenericMethods.ContainsKey(key))
             {
                 genericMethod = _cachedBaseMethod.MakeGenericMethod(typeof(T), genericType);
                 // we don't care if there was a conflict. This is a cache that will have the same values
-                CachedGenericMethods.TryAdd(genericType, genericMethod);
+                CachedGenericMethods.TryAdd(key, genericMethod);
                 result = genericMethod.Invoke(this, new object[] { ctor });
                 return result as T;
             }
 
-            genericMethod = CachedGenericMethods[genericType];
+            genericMethod = CachedGenericMethods[key];
             result = genericMethod.Invoke(this, new object[] { ctor });
             return result as T;
         }

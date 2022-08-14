@@ -40,6 +40,7 @@ namespace Shoko.Server.Commands.AniDB
 
         public CommandRequest_DeleteFileFromMyList()
         {
+            EpisodeType = EpisodeType.Episode; // default
         }
 
         public CommandRequest_DeleteFileFromMyList(string hash, long fileSize)
