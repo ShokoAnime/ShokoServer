@@ -619,9 +619,10 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(89, 1, "ALTER TABLE AnimeSeries_User ADD LastEpisodeUpdate datetime DEFAULT NULL;"),
             new DatabaseCommand(89, 2, DatabaseFixes.FixWatchDates),
             new DatabaseCommand(90, 1, "ALTER TABLE AnimeGroup ADD MainAniDBAnimeID INT DEFAULT NULL;"),
-            new DatabaseCommand(91, 1, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractSize;"),
-            new DatabaseCommand(91, 2, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractBlob;"),
-            new DatabaseCommand(91, 3, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractVersion;"),
+            new DatabaseCommand(91, 1, DropDefaultsOnAnimeEpisode_User),
+            new DatabaseCommand(91, 2, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractSize;"),
+            new DatabaseCommand(91, 3, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractBlob;"),
+            new DatabaseCommand(91, 4, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractVersion;"),
             new DatabaseCommand(92, 1, "ALTER TABLE AniDB_File DROP COLUMN File_AudioCodec, File_VideoCodec, File_VideoResolution, File_FileExtension, File_LengthSeconds, Anime_GroupName, Anime_GroupNameShort, Episode_Rating, Episode_Votes, IsWatched, WatchedDate, CRC, MD5, SHA1"),
             new DatabaseCommand(92, 2, DropDefaultOnChaptered),
             new DatabaseCommand(92, 3, "ALTER TABLE AniDB_File Alter COLUMN IsCensored bit NULL; ALTER TABLE AniDB_File ALTER COLUMN IsDeprecated bit not null; ALTER TABLE AniDB_File ALTER COLUMN IsChaptered bit not null"),
@@ -631,6 +632,13 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(92, 7, "ALTER TABLE AniDB_Anime DROP COLUMN AwardList;"),
             new DatabaseCommand(92, 8, "ALTER TABLE AniDB_File DROP COLUMN AnimeID;"),
         };
+
+        private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
+        {
+            DropDefaultConstraint("AnimeEpisode_User", "ContractSize");
+            DropDefaultConstraint("AnimeEpisode_User", "ContractVersion");
+            return Tuple.Create<bool, string>(true, null);
+        }
 
         private static Tuple<bool, string> DropDefaultOnChaptered(object connection)
         {
