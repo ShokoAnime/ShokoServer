@@ -25,7 +25,14 @@ namespace Shoko.Server.Providers.AniDB
             var requestType = typeof(IRequest);
             var types = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(s => s.GetTypes())
-                .Where(p => requestType.IsAssignableFrom(p) && !requestType.IsAbstract && requestType.IsClass);
+                .Where(p => requestType.IsAssignableFrom(p) && !p.IsAbstract && p.IsClass);
+            
+            /* Possibly negate the need for IRequest (non-generic)
+            var requestType = typeof(IRequest<>);
+            var types = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(s => s.GetTypes())
+                .Where(p => p.IsGenericType && requestType.IsAssignableFrom(p.GetGenericTypeDefinition()) && !p.IsAbstract && p.IsClass)
+             */
 
             foreach (var type in types)
             {
