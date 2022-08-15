@@ -30,7 +30,6 @@ namespace Shoko.Server.API.v3.Models.Common
         /// The role that the staff plays, cv, writer, director, etc
         /// </summary>
         [Required]
-        [JsonConverter(typeof(StringEnumConverter))]
         public CreatorRoleType RoleName { get; set; }
 
         /// <summary>
@@ -68,6 +67,7 @@ namespace Shoko.Server.API.v3.Models.Common
             public Image Image { get; set; }
         }
 
+        [JsonConverter(typeof(StringEnumConverter))]
         public enum CreatorRoleType
         {
             /// <summary>
