@@ -43,7 +43,7 @@ namespace Shoko.Server.Commands.AniDB
             EpisodeType = EpisodeType.Episode; // default
         }
 
-        public CommandRequest_DeleteFileFromMyList(string hash, long fileSize)
+        public CommandRequest_DeleteFileFromMyList(string hash, long fileSize) : this()
         {
             Hash = hash;
             FileSize = fileSize;
