@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions
@@ -13,9 +12,9 @@ namespace Shoko.Plugin.Abstractions
         public string RelativePath { get; set; }
 
         /// <summary>
-        /// FileInfo for the file. Be careful with this
+        /// Information about the file itself, such as media info or hashes.
         /// </summary>
-        public FileInfo FileInfo { get; set; }
+        public IVideoFile FileInfo { get; set; }
 
         /// <summary>
         /// The import folder that the file is in

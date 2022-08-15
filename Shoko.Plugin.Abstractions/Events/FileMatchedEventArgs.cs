@@ -1,17 +1,11 @@
-using System;
 using System.Collections.Generic;
 using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions
 {
 
-    public class FileMatchedEventArgs : EventArgs
+    public class FileMatchedEventArgs : FileEventArgs
     {
-        /// <summary>
-        /// Information about the file itself, such as MediaInfo
-        /// </summary>
-        public IVideoFile FileInfo { get; set; }
-
         /// <summary>
         /// Information about the Anime, such as titles
         /// </summary>

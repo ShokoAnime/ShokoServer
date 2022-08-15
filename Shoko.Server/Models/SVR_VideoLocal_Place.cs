@@ -1050,6 +1050,7 @@ namespace Shoko.Server.Models
             }
         }
 
+        int IVideoFile.VideoFileID => VideoLocalID;
         string IVideoFile.Filename => Path.GetFileName(FilePath);
         string IVideoFile.FilePath => FullServerPath;
         long IVideoFile.FileSize => VideoLocal?.FileSize ?? 0;

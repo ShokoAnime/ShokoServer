@@ -48,11 +48,9 @@ namespace Shoko.Server
             var path = vlp.FilePath;
             FileHashed?.Invoke(null, new FileHashedEventArgs
             {
-                FileInfo = vlp.GetFile(),
+                FileInfo = vlp,
                 ImportFolder = folder,
                 RelativePath = path,
-                Hashes = vlp.Hashes,
-                MediaInfo = vlp.MediaInfo,
             });
         }
 
@@ -62,7 +60,9 @@ namespace Shoko.Server
             FileMatched?.Invoke(
                 null, new FileMatchedEventArgs
                 {
+                    RelativePath = vlp.FilePath,
                     FileInfo = vlp,
+                    ImportFolder = vlp.ImportFolder,
                     AnimeInfo = series.Select(a => a.GetAnime()).Cast<IAnime>().ToList(),
                     EpisodeInfo = vlp.VideoLocal?.GetAnimeEpisodes().Cast<IEpisode>().ToList(),
                     GroupInfo = series.Select(a => a.AnimeGroup).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),

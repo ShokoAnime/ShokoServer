@@ -3,6 +3,12 @@ namespace Shoko.Plugin.Abstractions.DataModels
     public interface IVideoFile
     {
         /// <summary>
+        /// Video file ID.
+        /// </summary>
+        /// <value></value>
+        int VideoFileID { get; }
+
+        /// <summary>
         /// The name of the file being renamed or moved, before any actions are applied
         /// </summary>
         string Filename { get; }

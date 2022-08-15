@@ -3,7 +3,7 @@ using System;
 namespace Shoko.Plugin.Abstractions
 {
 
-    public class AniDBBannedEventArgs
+    public class AniDBBannedEventArgs : EventArgs
     {
         /// <summary>
         /// Type of ban
