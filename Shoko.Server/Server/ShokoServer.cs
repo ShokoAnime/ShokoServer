@@ -1310,7 +1310,10 @@ namespace Shoko.Server.Server
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
-                    logging.SetMinimumLevel(ServerSettings.Instance.LogWebRequests ? Microsoft.Extensions.Logging.LogLevel.Trace : Microsoft.Extensions.Logging.LogLevel.Warning);
+                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                    if (ServerSettings.Instance.LogWebRequests) return;
+                    logging.AddFilter("Microsoft", Microsoft.Extensions.Logging.LogLevel.Warning);
+                    logging.AddFilter("System", Microsoft.Extensions.Logging.LogLevel.Warning);
                 }).UseNLog()
                 .UseSentry(
                     o =>
