@@ -20,6 +20,7 @@ namespace Shoko.Server.Providers.AniDB
 
         public T Create<T>(Action<T> ctor = null) where T : class, IRequest
         {
+            var requestType = typeof(T);
             var baseType = typeof(T);
             while (baseType?.BaseType != null)
             {
@@ -28,8 +29,8 @@ namespace Shoko.Server.Providers.AniDB
             }
 
             if (baseType is not { IsGenericType: true }) throw new ArgumentException($"Type parameter {baseType} must be a generic IRequest type");
-            var genericType = baseType.GetGenericArguments().FirstOrDefault();
-            if (genericType == null) throw new ArgumentException($"Type parameter {baseType} must be a generic IRequest type");
+            var responseType = baseType.GetGenericArguments().FirstOrDefault();
+            if (responseType == null) throw new ArgumentException($"Type parameter {baseType} must be a generic IRequest type");
 
             if (_cachedBaseMethod == null)
             {
@@ -38,21 +39,17 @@ namespace Shoko.Server.Providers.AniDB
                 _cachedBaseMethod = methodInfo;
             }
 
-            MethodInfo genericMethod;
-            object result;
-            var key = baseType.FullName + "," + genericType.FullName;
-            if (!CachedGenericMethods.ContainsKey(key))
+            var key = $"{requestType.FullName},{responseType.FullName}";
+            if (!CachedGenericMethods.TryGetValue(key, out var genericMethod))
             {
-                genericMethod = _cachedBaseMethod.MakeGenericMethod(typeof(T), genericType);
+                genericMethod = _cachedBaseMethod.MakeGenericMethod(requestType, responseType);
                 // we don't care if there was a conflict. This is a cache that will have the same values
                 CachedGenericMethods.TryAdd(key, genericMethod);
-                result = genericMethod.Invoke(this, new object[] { ctor });
-                return result as T;
+                return genericMethod.Invoke(this, new object[] { ctor }) as T;
             }
 
             genericMethod = CachedGenericMethods[key];
-            result = genericMethod.Invoke(this, new object[] { ctor });
-            return result as T;
+            return genericMethod.Invoke(this, new object[] { ctor }) as T;
         }
 
         public T Create<T,T1>(Action<T> ctor = null) where T : IRequest<IResponse<T1>, T1> where T1 : class
