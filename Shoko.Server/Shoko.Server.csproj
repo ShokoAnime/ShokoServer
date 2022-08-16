@@ -11,10 +11,13 @@
     <PublishUrl>publish\</PublishUrl>
     <MapFileExtensions>true</MapFileExtensions>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <Configurations>Debug;Release</Configurations>
+    <Configurations>Debug;Release;ApiLogging</Configurations>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <ApplicationIcon>db.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'ApiLogging' ">
+    <DefineConstants>LOGWEB;DEBUG</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="..\Dependencies\**\*" CopyToOutputDirectory="PreserveNewest" />
