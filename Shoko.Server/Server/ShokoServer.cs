@@ -153,9 +153,11 @@ namespace Shoko.Server.Server
                 target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.log";
             }
 
+#if LOGWEB
             // Disable blackhole http info logs
             LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Microsoft.AspNetCore"))?.DisableLoggingForLevel(LogLevel.Info);
             LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Shoko.Server.API.Authentication"))?.DisableLoggingForLevel(LogLevel.Info);
+#endif
 #if DEBUG
             // Enable debug logging
             LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Contains(target))?.EnableLoggingForLevel(LogLevel.Debug);
@@ -1311,9 +1313,11 @@ namespace Shoko.Server.Server
                 {
                     logging.ClearProviders();
                     logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-                    if (ServerSettings.Instance.LogWebRequests) return;
+#if !LOGWEB
                     logging.AddFilter("Microsoft", Microsoft.Extensions.Logging.LogLevel.Warning);
                     logging.AddFilter("System", Microsoft.Extensions.Logging.LogLevel.Warning);
+                    logging.AddFilter("Shoko.Server.API", Microsoft.Extensions.Logging.LogLevel.Warning);
+#endif
                 }).UseNLog()
                 .UseSentry(
                     o =>
