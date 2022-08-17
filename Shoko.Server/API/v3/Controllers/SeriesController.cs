@@ -134,6 +134,22 @@ namespace Shoko.Server.API.v3.Controllers
                 .ToList();
         }
         
+        /// <summary>
+        /// Get a paginated list of <see cref="Series"/> without local files, available to the current <see cref="User"/>.
+        /// </summary>
+        /// <param name="pageSize">The page size.</param>
+        /// <param name="page">The page index.</param>
+        /// <returns></returns>
+        [HttpGet("WithoutFiles")]
+        public ActionResult<ListResult<Series>> GetSeriesWithoutFiles([FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        {
+            var user = User;
+            return RepoFactory.AnimeSeries.GetAll()
+                .Where(series => user.AllowedSeries(series) && series.GetAnimeEpisodesCountWithVideoLocal() == 0)
+                .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
+                .ToListResult(series => new Series(HttpContext, series), page, pageSize);
+        }
+        
         #endregion
         #region AniDB
 
