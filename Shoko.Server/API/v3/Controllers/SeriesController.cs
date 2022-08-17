@@ -145,13 +145,9 @@ namespace Shoko.Server.API.v3.Controllers
         {
             var user = User;
             return RepoFactory.AnimeSeries.GetAll()
-                .Select(series => (series, seriesName: series.GetSeriesName().ToLowerInvariant()))
-                .Where(tuple => {
-                    var (series, seriesName) = tuple;
-                    return user.AllowedSeries(series) && series.GetAnimeEpisodesCountWithVideoLocal() == 0;
-                })
-                .OrderBy(a => a.seriesName)
-                .ToListResult(tuple => new Series(HttpContext, tuple.series), page, pageSize);
+                .Where(series => user.AllowedSeries(series) && series.GetAnimeEpisodesCountWithVideoLocal() == 0)
+                .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
+                .ToListResult(series => new Series(HttpContext, series), page, pageSize);
         }
         
         #endregion
