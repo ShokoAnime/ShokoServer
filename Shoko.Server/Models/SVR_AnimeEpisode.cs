@@ -195,12 +195,8 @@ namespace Shoko.Server.Models
         {
             GetVideoLocals().SelectMany(a => a.Places).ForEach(place =>
             {
-                if (!deleteFiles) place.RemoveRecord();
-                else place.RemoveRecordAndDeletePhysicalFile(false);
-            }, place =>
-            {
-                if (!deleteFiles) place.RemoveRecord();
-                else place.RemoveRecordAndDeletePhysicalFile();
+                if (!deleteFiles) place?.RemoveRecord();
+                else place?.RemoveRecordAndDeletePhysicalFile(false);
             });
         }
 
