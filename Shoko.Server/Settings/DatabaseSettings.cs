@@ -31,6 +31,9 @@ namespace Shoko.Server.Settings
             get => sqlite_file;
             set
             {
+                string prefix = null;
+                if (value.StartsWith('/')) prefix = "/";
+                else if (value.StartsWith("\\\\")) prefix = "\\\\";
                 var parts = value.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length <= 1)
                 {
@@ -39,6 +42,7 @@ namespace Shoko.Server.Settings
                 }
 
                 var directory = Path.Combine(parts[..^1]);
+                if (prefix != null) directory = prefix + directory;
                 MySqliteDirectory = directory;
                 sqlite_file = parts.LastOrDefault();
             }
