@@ -100,6 +100,49 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
+        /// Get a paginated list of all the <see cref="Series"/> within a <see cref="Filter"/>.
+        /// </summary>
+        /// <remarks>
+        ///  Pass a <paramref name="filterID"/> of <code>0</code> to disable filter.
+        /// </remarks>
+        /// <param name="filterID"><see cref="Filter"/> ID</param>
+        /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
+        /// <param name="page">The page index.</param>
+        /// <param name="randomImages">Randomise images shown for each <see cref="Series"/>.</param>
+        /// <returns></returns>
+        [HttpGet("Filter/{filterID}/Series")]
+        public ActionResult<ListResult<Series>> GetSeriesInFilteredGroup([FromRoute] int filterID, [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool randomImages = false)
+        {
+            // Return the series with no group filter applied.
+            if (filterID == 0)
+                return RepoFactory.AnimeSeries.GetAll()
+                    .Where(series => User.AllowedSeries(series))
+                    .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
+                    .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
+
+            // Check if the group filter exists.
+            var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
+            if (groupFilter == null)
+                return NotFound(FilterController.FilterNotFound);
+
+            // Return all series if group filter is not applied to series.
+            if (groupFilter.ApplyToSeries != 1)
+                return RepoFactory.AnimeSeries.GetAll()
+                    .Where(series => User.AllowedSeries(series))
+                    .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
+                    .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
+
+            // Return early if every series will be filtered out.
+            if (!groupFilter.SeriesIds.TryGetValue(User.JMMUserID, out var seriesIDs))
+                return new ListResult<Series>();
+
+            return seriesIDs.Select(id => RepoFactory.AnimeSeries.GetByID(id))
+                .Where(series => series != null && User.AllowedSeries(series))
+                .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
+                .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
+        }
+
+        /// <summary>
         /// Get a list of all the sub-<see cref="Group"/>s belonging to the <see cref="Group"/> with the given <paramref name="groupID"/> and which are present within the <see cref="Filter"/> with the given <paramref name="filterID"/>.
         /// </summary>
         /// <param name="filterID"><see cref="Filter"/> ID</param>
