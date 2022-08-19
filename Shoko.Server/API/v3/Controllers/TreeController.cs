@@ -9,7 +9,6 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -49,7 +48,7 @@ namespace Shoko.Server.API.v3.Controllers
 
             return RepoFactory.GroupFilter.GetByParentID(filterID)
                 .Where(filter => showHidden || filter.InvisibleInClients != 1)
-                .OrderByName()
+                .OrderBy(filter => filter.GroupFilterName)
                 .ToListResult(filter => new Filter(HttpContext, filter), page, pageSize);
         }
 
@@ -72,7 +71,7 @@ namespace Shoko.Server.API.v3.Controllers
                 var user = User;
                 groups = RepoFactory.AnimeGroup.GetAll()
                     .Where(group => !group.AnimeGroupParentID.HasValue && user.AllowedGroup(group))
-                    .OrderByName();
+                    .OrderBy(group => group.GroupName);
             }
             else
             {
@@ -196,7 +195,7 @@ namespace Shoko.Server.API.v3.Controllers
 
             return (recursive ? group.GetAllSeries() : group.GetSeries())
                 .Where(series => seriesIDs.Contains(series.AnimeSeriesID))
-                .OrderByAirDate()
+                .OrderBy(series => series.GetAnime()?.AirDate ?? DateTime.MaxValue)
                 .Select(series => new Series(HttpContext, series))
                 .Where(series => series.Size > 0 || includeMissing)
                 .ToList();
@@ -235,7 +234,7 @@ namespace Shoko.Server.API.v3.Controllers
 
                     return includeEmpty || group.GetAllSeries().Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
                 })
-                .OrderByName()
+                .OrderBy(group => group.GroupName)
                 .Select(group => new Group(HttpContext, group, randomImages))
                 .ToList();
         }
@@ -263,7 +262,7 @@ namespace Shoko.Server.API.v3.Controllers
             var user = User;
             return (recursive ? group.GetAllSeries() : group.GetSeries())
                 .Where(a => user.AllowedSeries(a))
-                .OrderByAirDate()
+                .OrderBy(series => series.GetAnime()?.AirDate ?? DateTime.MaxValue)
                 .Select(series => new Series(HttpContext, series, randomImages))
                 .Where(series => series.Size > 0 || includeMissing)
                 .ToList();

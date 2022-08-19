@@ -9,7 +9,6 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Tasks;
@@ -58,7 +57,7 @@ namespace Shoko.Server.API.v3.Controllers
 
                     return includeEmpty || group.GetAllSeries().Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
                 })
-                .OrderByName()
+                .OrderBy(group => group.GroupName)
                 .ToListResult(group => new Group(HttpContext, group, randomImages), page, pageSize);
         }
 

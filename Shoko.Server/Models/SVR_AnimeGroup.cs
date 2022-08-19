@@ -312,7 +312,7 @@ namespace Shoko.Server.Models
 
             // Earliest airing series.
             return GetAllSeries()
-                .OrderByAirDate()
+                .OrderBy(series => series.GetAnime()?.AirDate ?? DateTime.MaxValue)
                 .FirstOrDefault();
         }
 
