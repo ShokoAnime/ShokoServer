@@ -125,7 +125,7 @@ namespace Shoko.Server.API.v3.Controllers
                 return NotFound(GroupController.GroupNotFound);
 
             var user = User;
-            if (user.AllowedGroup(group))
+            if (!user.AllowedGroup(group))
                 return Forbid(GroupController.GroupForbiddenForUser);
 
             // Just return early because the every group will be filtered out.
@@ -138,7 +138,7 @@ namespace Shoko.Server.API.v3.Controllers
                     if (subGroup == null)
                         return false;
 
-                    if (user.AllowedGroup(subGroup))
+                    if (!user.AllowedGroup(subGroup))
                         return false;
 
                     if (!includeEmpty && !subGroup.GetAllSeries().Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0)))
@@ -187,7 +187,7 @@ namespace Shoko.Server.API.v3.Controllers
                 return NotFound(GroupController.GroupNotFound);
 
             var user = User;
-            if (user.AllowedGroup(group))
+            if (!user.AllowedGroup(group))
                 return Forbid(GroupController.GroupForbiddenForUser);
 
             // Just return early because the every series will be filtered out.
@@ -221,7 +221,7 @@ namespace Shoko.Server.API.v3.Controllers
                 return NotFound(GroupController.GroupNotFound);
 
             var user = User;
-            if (user.AllowedGroup(group))
+            if (!user.AllowedGroup(group))
                 return Forbid(GroupController.GroupForbiddenForUser);
 
             return group.GetChildGroups()
@@ -230,7 +230,7 @@ namespace Shoko.Server.API.v3.Controllers
                     if (subGroup == null)
                         return false;
 
-                    if (user.AllowedGroup(subGroup))
+                    if (!user.AllowedGroup(subGroup))
                         return false;
 
                     return includeEmpty || group.GetAllSeries().Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
@@ -289,7 +289,7 @@ namespace Shoko.Server.API.v3.Controllers
                 return NotFound(GroupController.GroupNotFound);
 
             var user = User;
-            if (user.AllowedGroup(group))
+            if (!user.AllowedGroup(group))
                 return Forbid(GroupController.GroupForbiddenForUser);
 
             var mainSeries = group.GetMainSeries();
