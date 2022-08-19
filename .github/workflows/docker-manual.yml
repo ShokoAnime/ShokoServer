@@ -45,7 +45,7 @@ jobs:
     - name: Log into docker hub
       run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
     - name: Build and Push the Docker image
-      run: docker buildx build . --file Dockerfile_arm --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-arm64 --platform linux/arm64 --push
+      run: docker buildx build . --file Dockerfile.aarch64 --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-arm64 --platform linux/arm64 --push
 
   push_manifest:
     needs: [publish_amd64, publish_arm64]
