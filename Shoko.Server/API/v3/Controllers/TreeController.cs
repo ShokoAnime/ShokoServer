@@ -128,7 +128,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (user.AllowedGroup(group))
                 return Forbid(GroupController.GroupForbiddenForUser);
 
-            // Just return early because the every gropup will be filtered out.
+            // Just return early because the every group will be filtered out.
             if (!groupFilter.SeriesIds.TryGetValue(user.JMMUserID, out var seriesIDs))
                 return new List<Group>();
 
