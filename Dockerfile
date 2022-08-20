@@ -19,7 +19,7 @@ ENV PUID=1000 \
 RUN apt-get update && apt-get install -y gnupg curl
 
 RUN curl https://mediaarea.net/repo/deb/debian/pubkey.gpg | apt-key add -
-RUN echo "deb https://mediaarea.net/repo/deb/debian/ bullseye main" | tee -a /etc/apt/sources.list
+RUN echo "deb https://mediaarea.net/repo/deb/debian/ buster main" | tee -a /etc/apt/sources.list
 
 RUN apt-get update && apt-get install -y apt-utils gosu jq unzip mediainfo librhash-dev 
 
