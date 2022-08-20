@@ -13,6 +13,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
         public int? GroupID { get; set; }
         // AniDB Episode IDs for episodes that this file may link to. The eid is listed here as 100%
         public List<EpisodeXRef> EpisodeIDs { get; set; }
+        public List<EpisodeXRef> OtherEpisodes { get; set; }
         // Is the file deprecated/replaced
         public bool Deprecated { get; set; }
         // the version, will be higher than 1 if it's replacing a deprecated file

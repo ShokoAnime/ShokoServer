@@ -1,12 +1,16 @@
 ﻿using System;
+using System.Linq;
 using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
+using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -113,14 +117,82 @@ namespace Shoko.Server.Commands.AniDB
                 aniFile.InternalVersion = 3;
 
                 RepoFactory.AniDB_File.Save(aniFile, false);
-                aniFile.CreateLanguages(response.Response);
-                aniFile.CreateCrossEpisodes(vlocal.FileName, response.Response);
+                CreateLanguages(response.Response);
+                CreateEpisodes(vlocal.FileName, response.Response);
 
                 var anime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Response.AnimeID);
                 if (anime != null) RepoFactory.AniDB_Anime.Save(anime, false);
                 var series = RepoFactory.AnimeSeries.GetByAnimeID(response.Response.AnimeID);
                 series?.UpdateStats(true, true, true);
                 Result = RepoFactory.AniDB_File.GetByFileID(aniFile.FileID);
+            }
+        }
+
+        public void CreateLanguages(ResponseGetFile response)
+        {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            if ((response?.AudioLanguages?.Count ?? 0) > 0) //Only create relations if the origin of the data if from Raw (WebService/AniDB)
+            {
+                // Delete old if changed
+                var fileLanguages = RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(response.FileID);
+                RepoFactory.CrossRef_Languages_AniDB_File.DeleteWithOpenTransaction(session, fileLanguages);
+
+                var toSave = response.AudioLanguages.Select(language => language.Trim().ToLower()).Where(lang => lang.Length > 0)
+                    .Select(lang => new CrossRef_Languages_AniDB_File { LanguageName = lang, FileID = response.FileID }).ToList();
+
+                RepoFactory.CrossRef_Languages_AniDB_File.SaveWithOpenTransaction(session, toSave);
+            }
+
+            if ((response?.SubtitleLanguages?.Count ?? 0) > 0)
+            {
+                // Delete old if changed
+                var fileLanguages = RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(response.FileID);
+                RepoFactory.CrossRef_Subtitles_AniDB_File.DeleteWithOpenTransaction(session, fileLanguages);
+
+                var toSave = response.SubtitleLanguages.Select(language => language.Trim().ToLower()).Where(lang => lang.Length > 0)
+                    .Select(lang => new CrossRef_Subtitles_AniDB_File { LanguageName = lang, FileID = response.FileID }).ToList();
+
+                RepoFactory.CrossRef_Subtitles_AniDB_File.SaveWithOpenTransaction(session, toSave);
+            }
+        }
+
+        public void CreateEpisodes(string filename, ResponseGetFile response)
+        {
+            if (response.EpisodeIDs.Count <= 0) return;
+            var fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash);
+
+            // Use a single session A. for efficiency and B. to prevent regenerating stats
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using (var trans = session.BeginTransaction())
+            {
+                RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, fileEps);
+                trans.Commit();
+            }
+
+            fileEps = response.EpisodeIDs
+                .Select(
+                    (ep, x) => new CrossRef_File_Episode
+                    {
+                        Hash = vlocal.Hash,
+                        CrossRefSource = (int)CrossRefSource.AniDB,
+                        AnimeID = response.AnimeID,
+                        EpisodeID = ep.EpisodeID,
+                        Percentage = ep.Percentage,
+                        EpisodeOrder = x + 1,
+                        FileName = filename,
+                        FileSize = vlocal.FileSize,
+                    }
+                )
+                .ToList();
+
+            
+
+            // There is a chance that AniDB returned a dup, however unlikely
+            using (var trans = session.BeginTransaction())
+            {
+                RepoFactory.CrossRef_File_Episode.SaveWithOpenTransaction(session,
+                    fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}").ToList());
+                trans.Commit();
             }
         }
 

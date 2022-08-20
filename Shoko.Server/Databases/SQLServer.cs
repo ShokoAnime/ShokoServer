@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 92;
+        public int RequiredVersion { get; } = 93;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -631,6 +631,13 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(92, 6, "ALTER TABLE AniDB_Anime_Character DROP COLUMN EpisodeListRaw;"),
             new DatabaseCommand(92, 7, "ALTER TABLE AniDB_Anime DROP COLUMN AwardList;"),
             new DatabaseCommand(92, 8, "ALTER TABLE AniDB_File DROP COLUMN AnimeID;"),
+            new DatabaseCommand(93, 1, "ALTER TABLE CrossRef_Languages_AniDB_File ADD LanguageName nvarchar(100) NOT NULL DEFAULT '';"),
+            new DatabaseCommand(93, 2, "UPDATE c SET LanguageName = l.LanguageName FROM CrossRef_Languages_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';"),
+            new DatabaseCommand(93, 3, "ALTER TABLE CrossRef_Languages_AniDB_File DROP COLUMN LanguageID;"),
+            new DatabaseCommand(93, 4, "ALTER TABLE CrossRef_Subtitles_AniDB_File ADD LanguageName nvarchar(100) NOT NULL DEFAULT '';"),
+            new DatabaseCommand(93, 5, "UPDATE c SET LanguageName = l.LanguageName FROM CrossRef_Subtitles_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';"),
+            new DatabaseCommand(93, 6, "ALTER TABLE CrossRef_Subtitles_AniDB_File DROP COLUMN LanguageID;"),
+            new DatabaseCommand(93, 7, "DROP TABLE Language;"),
         };
 
         private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

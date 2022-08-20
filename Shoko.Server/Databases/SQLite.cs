@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 87;
+        public int RequiredVersion { get; } = 88;
 
 
         public void BackupDatabase(string fullfilename)
@@ -579,8 +579,56 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(87, 3, DropAniDB_CharacterColumns),
             new DatabaseCommand(87, 4, DropAniDB_Anime_CharacterColumns),
             new DatabaseCommand(87, 5, DropAniDB_AnimeColumns),
+            new DatabaseCommand(88, 1, DropLanguage),
         };
-        
+
+        private static Tuple<bool, string> DropLanguage(object connection)
+        {
+            try
+            {
+                var myConn = (SqliteConnection) connection;
+                var factory = (SQLite)DatabaseFactory.Instance;
+
+                var addCommand = "ALTER TABLE CrossRef_Languages_AniDB_File ADD LanguageName TEXT NOT NULL DEFAULT '';";
+                var updateCommand = "UPDATE c SET LanguageName = l.LanguageName FROM CrossRef_Languages_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';";
+                factory.Execute(myConn, addCommand);
+                factory.Execute(myConn, updateCommand);
+
+                addCommand = "ALTER TABLE CrossRef_Subtitles_AniDB_File ADD LanguageName TEXT NOT NULL DEFAULT '';";
+                updateCommand = "UPDATE c SET LanguageName = l.LanguageName FROM CrossRef_Subtitles_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';";
+                factory.Execute(myConn, addCommand);
+                factory.Execute(myConn, updateCommand);
+
+                var createCommand = "CREATE TABLE CrossRef_Languages_AniDB_File ( CrossRef_Languages_AniDB_FileID INTEGER PRIMARY KEY AUTOINCREMENT, FileID int NOT NULL, LanguageName TEXT NOT NULL);";
+
+                ((SQLite)DatabaseFactory.Instance).DropColumns(
+                    myConn, "CrossRef_Languages_AniDB_File",
+                    new List<string>
+                    {
+                        "LanguageID",
+                    }, createCommand, new List<string>()
+                );
+
+                createCommand = "CREATE TABLE CrossRef_Subtitles_AniDB_File ( CrossRef_Subtitles_AniDB_FileID INTEGER PRIMARY KEY AUTOINCREMENT, FileID int NOT NULL, LanguageName TEXT NOT NULL);";
+
+                ((SQLite)DatabaseFactory.Instance).DropColumns(
+                    myConn, "CrossRef_Subtitles_AniDB_File",
+                    new List<string>
+                    {
+                        "LanguageID",
+                    }, createCommand, new List<string>()
+                );
+
+                var dropCommand = "DROP TABLE Language";
+                factory.Execute(myConn, dropCommand);
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+            return new Tuple<bool, string>(true, null);
+        }
+
         private static Tuple<bool, string> DropAniDB_AnimeColumns(object connection)
         {
             try

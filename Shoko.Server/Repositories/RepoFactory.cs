@@ -34,7 +34,6 @@ namespace Shoko.Server.Repositories
         public static MovieDB_PosterRepository MovieDB_Poster { get; } = new MovieDB_PosterRepository();
         public static MovieDB_FanartRepository MovieDB_Fanart { get; } = new MovieDB_FanartRepository();
         public static MovieDb_MovieRepository MovieDb_Movie { get; } = new MovieDb_MovieRepository();
-        public static LanguageRepository Language { get; } = new LanguageRepository();
         public static IgnoreAnimeRepository IgnoreAnime { get; } = new IgnoreAnimeRepository();
         public static FileNameHashRepository FileNameHash { get; } = new FileNameHashRepository();
         public static FileFfdshowPresetRepository FileFfdshowPreset { get; } = new FileFfdshowPresetRepository();

@@ -11,7 +11,7 @@ namespace Shoko.Server.Mappings
             Id(x => x.CrossRef_Languages_AniDB_FileID);
 
             Map(x => x.FileID).Not.Nullable();
-            Map(x => x.LanguageID).Not.Nullable();
+            Map(x => x.LanguageName).Not.Nullable();
         }
     }
 }

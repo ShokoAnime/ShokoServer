@@ -19,10 +19,10 @@ namespace Shoko.Server.Models
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         [XmlIgnore]
-        public List<Language> Languages => RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(FileID).Select(crossref => RepoFactory.Language.GetByID(crossref.LanguageID)).Where(lan => lan != null).ToList();
+        public List<CrossRef_Languages_AniDB_File> Languages => RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(FileID).ToList();
 
         [XmlIgnore]
-        public List<Language> Subtitles => RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(FileID).Select(crossref => RepoFactory.Language.GetByID(crossref.LanguageID)).Where(sub => sub != null).ToList();
+        public List<CrossRef_Subtitles_AniDB_File> Subtitles => RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(FileID).ToList();
 
         [XmlIgnore]
         public List<int> EpisodeIDs => RepoFactory.CrossRef_File_Episode.GetByHash(Hash).Select(crossref => crossref.EpisodeID).ToList();
@@ -65,99 +65,6 @@ namespace Shoko.Server.Models
                     ret += lang.LanguageName;
                 }
                 return ret;
-            }
-        }
-
-        public void CreateLanguages(ResponseGetFile response)
-        {
-            var apostrophe = '\'';
-
-            if ((response?.AudioLanguages?.Count ?? 0) > 0) //Only create relations if the origin of the data if from Raw (WebService/AniDB)
-            {
-                // Delete old if changed
-                var fileLanguages = RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(FileID);
-                foreach (var fLan in fileLanguages)
-                {
-                    RepoFactory.CrossRef_Languages_AniDB_File.Delete(fLan.CrossRef_Languages_AniDB_FileID);
-                }
-
-                foreach (var language in response.AudioLanguages)
-                {
-                    var rlan = language.Trim().ToLower();
-                    if (rlan.Length <= 0) continue;
-                    var lan = RepoFactory.Language.GetByLanguageName(rlan);
-                    if (lan == null)
-                    {
-                        lan = new Language { LanguageName = rlan };
-                        RepoFactory.Language.Save(lan);
-                    }
-
-                    var cross = new CrossRef_Languages_AniDB_File { LanguageID = lan.LanguageID, FileID = FileID };
-                    RepoFactory.CrossRef_Languages_AniDB_File.Save(cross);
-                }
-            }
-
-            if ((response?.SubtitleLanguages?.Count ?? 0) > 0)
-            {
-                // Delete old if changed
-                var fileSubtitles = RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(FileID);
-                foreach (var fSub in fileSubtitles)
-                {
-                    RepoFactory.CrossRef_Subtitles_AniDB_File.Delete(fSub.CrossRef_Subtitles_AniDB_FileID);
-                }
-
-                foreach (var language in response.SubtitleLanguages)
-                {
-                    var rlan = language.Trim().ToLower();
-                    if (rlan.Length <= 0) continue;
-                    var lan = RepoFactory.Language.GetByLanguageName(rlan);
-                    if (lan == null)
-                    {
-                        lan = new Language { LanguageName = rlan };
-                        RepoFactory.Language.Save(lan);
-                    }
-
-                    var cross = new CrossRef_Subtitles_AniDB_File { LanguageID = lan.LanguageID, FileID = FileID };
-                    RepoFactory.CrossRef_Subtitles_AniDB_File.Save(cross);
-                }
-            }
-        }
-
-        public void CreateCrossEpisodes(string localFileName, ResponseGetFile response)
-        {
-            if (response.EpisodeIDs.Count <= 0) return;
-            var fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
-
-            // Use a single session A. for efficiency and B. to prevent regenerating stats
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            using (var trans = session.BeginTransaction())
-            {
-                RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, fileEps);
-                trans.Commit();
-            }
-
-            fileEps = response.EpisodeIDs
-                .Select(
-                    (ep, x) => new CrossRef_File_Episode
-                    {
-                        Hash = Hash,
-                        CrossRefSource = (int)CrossRefSource.AniDB,
-                        AnimeID = response.AnimeID,
-                        EpisodeID = ep.EpisodeID,
-                        Percentage = ep.Percentage,
-                        EpisodeOrder = x + 1,
-                        FileName = localFileName,
-                        FileSize = FileSize,
-                    }
-                )
-                .ToList();
-
-            // There is a chance that AniDB returned a dup, however unlikely
-            using (var trans = session.BeginTransaction())
-            {
-                RepoFactory.CrossRef_File_Episode.SaveWithOpenTransaction(session,
-                    fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}").ToList());
-                trans.Commit();
             }
         }
 

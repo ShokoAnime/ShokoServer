@@ -117,6 +117,8 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                             });
                         }
                     }
+
+                    var otherXrefs = new List<ResponseGetFile.EpisodeXRef>();
                     if (!string.IsNullOrEmpty(parts[5]))
                     {
                         var xrefStrings = parts[5].Split('\'');
@@ -129,7 +131,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                             }
                         ).Where(a => a != null).ToArray();
                         if (tempXrefs.Length > 0)
-                            xrefs.AddRange(tempXrefs);
+                            otherXrefs.AddRange(tempXrefs);
                     }
                     
                     // audio languages
@@ -159,6 +161,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                             Quality = quality,
                             Source = source,
                             EpisodeIDs = xrefs,
+                            OtherEpisodes = otherXrefs,
                             AudioLanguages = alangs,
                             SubtitleLanguages = slangs,
                             MyList = myList,
