@@ -20,17 +20,21 @@ namespace Shoko.Server.API.v3.Controllers
     {
         internal static string EpisodeNotFoundWithEpisodeID = "No Episode entry for the given episodeID";
 
+        internal static string EpisodeNotFoundForAnidbEpisodeID = "No Episode entry for the given anidbEpisodeID";
+
         internal static string AnidbNotFoundForEpisodeID = "No Episode.Anidb entry for the given episodeID";
+
+        internal static string AnidbNotFoundForAnidbEpisodeID = "No Episode.Anidb entry for the given anidbEpisodeID";
         
         internal static string EpisodeForbiddenForUser = "Accessing Episode is not allowed for the current user";
 
         /// <summary>
-        /// Get an Episode by Shoko ID
+        /// Get the <see cref="Episode"/> entry for the given <paramref name="episodeID"/>.
         /// </summary>
         /// <param name="episodeID">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{episodeID}")]
-        public ActionResult<Episode> GetEpisode([FromRoute] int episodeID)
+        public ActionResult<Episode> GetEpisodeByEpisodeID([FromRoute] int episodeID)
         {
             var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
             if (episode == null)
@@ -40,12 +44,12 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
-        /// Get the AniDB details for episode with Shoko ID
+        /// Get the <see cref="Episode.AniDB"/> entry for the given <paramref name="episodeID"/>.
         /// </summary>
         /// <param name="episodeID">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{episodeID}/AniDB")]
-        public ActionResult<Episode.AniDB> GetEpisodeAniDBDetails([FromRoute] int episodeID)
+        public ActionResult<Episode.AniDB> GetEpisodeAnidbByEpisodeID([FromRoute] int episodeID)
         {
             var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
             if (episode == null)
@@ -56,6 +60,40 @@ namespace Shoko.Server.API.v3.Controllers
                 return InternalError(AnidbNotFoundForEpisodeID);
 
             return new Episode.AniDB(anidb);
+        }
+
+        /// <summary>
+        /// Get the <see cref="Episode.AniDB"/> entry for the given <paramref name="anidbEpisodeID"/>.
+        /// </summary>
+        /// <param name="anidbEpisodeID">AniDB Episode ID</param>
+        /// <returns></returns>
+        [HttpGet("AniDB/{anidbEpisodeID}")]
+        public ActionResult<Episode.AniDB> GetEpisodeAnidbByAnidbEpisodeID([FromRoute] int anidbEpisodeID)
+        {
+            var anidb = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID);
+            if (anidb == null)
+                return NotFound(AnidbNotFoundForAnidbEpisodeID);
+
+            return new Episode.AniDB(anidb);
+        }
+
+        /// <summary>
+        /// Get the <see cref="Episode"/> entry for the given <paramref name="anidbEpisodeID"/>, if any.
+        /// </summary>
+        /// <param name="anidbEpisodeID">AniDB Episode ID</param>
+        /// <returns></returns>
+        [HttpGet("AniDB/{anidbEpisodeID}/Episode")]
+        public ActionResult<Episode> GetEpisode([FromRoute] int anidbEpisodeID)
+        {
+            var anidb = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID);
+            if (anidb == null)
+                return NotFound(AnidbNotFoundForAnidbEpisodeID);
+
+            var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anidb.EpisodeID);
+            if (episode == null)
+                return NotFound(EpisodeNotFoundForAnidbEpisodeID);
+
+            return new Episode(HttpContext, episode);
         }
 
         /// <summary>
