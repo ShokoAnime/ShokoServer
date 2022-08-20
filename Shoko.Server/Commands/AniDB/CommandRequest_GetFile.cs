@@ -117,7 +117,7 @@ namespace Shoko.Server.Commands.AniDB
                 aniFile.CreateCrossEpisodes(vlocal.FileName, response.Response);
 
                 var anime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Response.AnimeID);
-                if (anime != null) RepoFactory.AniDB_Anime.Save(anime);
+                if (anime != null) RepoFactory.AniDB_Anime.Save(anime, false);
                 var series = RepoFactory.AnimeSeries.GetByAnimeID(response.Response.AnimeID);
                 series?.UpdateStats(true, true, true);
                 Result = RepoFactory.AniDB_File.GetByFileID(aniFile.FileID);

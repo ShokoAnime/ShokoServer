@@ -757,7 +757,7 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
 
             series.Populate(this);
             // Populate before making a group to ensure IDs and stats are set for group filters.
-            RepoFactory.AnimeSeries.Save(series, false, false);
+            RepoFactory.AnimeSeries.Save(series, false, false, true);
 
             if (existingGroupID == null)
             {
@@ -771,7 +771,7 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
                 series.AnimeGroupID = grp.AnimeGroupID;
             }
 
-            RepoFactory.AnimeSeries.Save(series, false, false);
+            RepoFactory.AnimeSeries.Save(series, false, false, true);
 
             // check for TvDB associations
             if (Restricted == 0)

@@ -66,7 +66,7 @@ namespace Shoko.Server.Commands
 
         protected override void Process(IServiceProvider serviceProvider)
         {
-            Logger.LogTrace($"Processing File: {VideoLocalID}");
+            Logger.LogTrace("Processing File: {VideoLocalID}", VideoLocalID);
 
             try
             {
@@ -81,13 +81,13 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Error processing CommandRequest_ProcessFile: {VideoLocalID} - {ex}");
+                Logger.LogError("Error processing CommandRequest_ProcessFile: {VideoLocalID} - {Ex}", VideoLocalID, ex);
             }
         }
 
         private SVR_AniDB_File ProcessFile_AniDB(IServiceProvider provider, SVR_VideoLocal vidLocal)
         {
-            Logger.LogTrace($"Checking for AniDB_File record for: {vidLocal.Hash} --- {vidLocal.FileName}");
+            Logger.LogTrace("Checking for AniDB_File record for: {VidLocalHash} --- {VidLocalFileName}", vidLocal.Hash, vidLocal.FileName);
             // check if we already have this AniDB_File info in the database
 
             lock (vidLocal)
