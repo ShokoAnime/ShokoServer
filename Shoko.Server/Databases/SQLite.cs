@@ -590,12 +590,12 @@ namespace Shoko.Server.Databases
                 var factory = (SQLite)DatabaseFactory.Instance;
 
                 var addCommand = "ALTER TABLE CrossRef_Languages_AniDB_File ADD LanguageName TEXT NOT NULL DEFAULT '';";
-                var updateCommand = "UPDATE CrossRef_Subtitles_AniDB_File c SET LanguageName = l.LanguageName FROM CrossRef_Languages_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';";
+                var updateCommand = "UPDATE CrossRef_Subtitles_AniDB_File c SET c.LanguageName = l.LanguageName FROM CrossRef_Languages_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';";
                 factory.Execute(myConn, addCommand);
                 factory.Execute(myConn, updateCommand);
 
                 addCommand = "ALTER TABLE CrossRef_Subtitles_AniDB_File ADD LanguageName TEXT NOT NULL DEFAULT '';";
-                updateCommand = "UPDATE CrossRef_Subtitles_AniDB_File c SET LanguageName = l.LanguageName FROM CrossRef_Subtitles_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';";
+                updateCommand = "UPDATE CrossRef_Subtitles_AniDB_File c SET c.LanguageName = l.LanguageName FROM CrossRef_Subtitles_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';";
                 factory.Execute(myConn, addCommand);
                 factory.Execute(myConn, updateCommand);
 
