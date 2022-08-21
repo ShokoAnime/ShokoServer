@@ -502,10 +502,9 @@ namespace Shoko.Server.Repositories
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 IDbCommand command = session.Connection.CreateCommand();
-                command.CommandText = "SELECT Distinct(lan.LanguageName) ";
-                command.CommandText += "FROM CrossRef_Subtitles_AniDB_File subt ";
-                command.CommandText += "INNER JOIN Language lan on subt.LanguageID = lan.LanguageID ";
-                command.CommandText += "ORDER BY lan.LanguageName ";
+                command.CommandText = "SELECT Distinct(LanguageName) ";
+                command.CommandText += "FROM CrossRef_Subtitles_AniDB_File";
+                command.CommandText += "ORDER BY LanguageName ";
 
                 using (IDataReader rdr = command.ExecuteReader())
                 {
@@ -528,7 +527,7 @@ namespace Shoko.Server.Repositories
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 IDbCommand command = session.Connection.CreateCommand();
-                command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, lan.LanguageName ";
+                command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, audio.LanguageName ";
                 command.CommandText += "FROM AnimeSeries ser  ";
                 command.CommandText += "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID ";
                 command.CommandText += "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID ";
@@ -537,8 +536,7 @@ namespace Shoko.Server.Repositories
                 command.CommandText += "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash ";
                 command.CommandText +=
                     "INNER JOIN CrossRef_Languages_AniDB_File audio on audio.FileID = anifile.FileID ";
-                command.CommandText += "INNER JOIN Language lan on audio.LanguageID = lan.LanguageID ";
-                command.CommandText += "GROUP BY anime.AnimeID, anime.MainTitle, lan.LanguageName ";
+                command.CommandText += "GROUP BY anime.AnimeID, anime.MainTitle, audio.LanguageName ";
 
                 using (IDataReader rdr = command.ExecuteReader())
                 {
@@ -577,15 +575,14 @@ namespace Shoko.Server.Repositories
         public Dictionary<int, LanguageStat> GetSubtitleLanguageStatsForAnime(ISessionWrapper session)
         {
             Dictionary<int, LanguageStat> dictStats = new Dictionary<int, LanguageStat>();
-            const string query = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, lan.LanguageName "
+            const string query = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, subt.LanguageName "
                                  + "FROM AnimeSeries ser  "
                                  + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
                                  + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
                                  + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
                                  + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
                                  + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
-                                 + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "
-                                 + "INNER JOIN Language lan on subt.LanguageID = lan.LanguageID";
+                                 + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID ";
 
             var rows = session.CreateSQLQuery(query)
                 .AddScalar("AnimeID", NHibernateUtil.Int32)
@@ -618,7 +615,7 @@ namespace Shoko.Server.Repositories
 
         private string GetAudioLanguageStatsByAnimeSQL(string animeIdPredicate)
         {
-            string sql = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, lan.LanguageName "
+            string sql = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, audio.LanguageName "
                          + "FROM AnimeSeries ser  "
                          + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
                          + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
@@ -626,7 +623,6 @@ namespace Shoko.Server.Repositories
                          + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
                          + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
                          + "INNER JOIN CrossRef_Languages_AniDB_File audio on audio.FileID = anifile.FileID "
-                         + "INNER JOIN Language lan on audio.LanguageID = lan.LanguageID "
                          + "WHERE anime.AnimeID " + animeIdPredicate;
             return sql;
         }
@@ -723,7 +719,7 @@ namespace Shoko.Server.Repositories
             string animeIdPredicate)
         {
             Dictionary<int, LanguageStat> dictStats = new Dictionary<int, LanguageStat>();
-            string query = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, lan.LanguageName "
+            string query = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, subt.LanguageName "
                            + "FROM AnimeSeries ser  "
                            + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
                            + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
@@ -731,7 +727,6 @@ namespace Shoko.Server.Repositories
                            + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
                            + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
                            + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "
-                           + "INNER JOIN Language lan on subt.LanguageID = lan.LanguageID "
                            + "WHERE anime.AnimeID " + animeIdPredicate;
 
             var rows = session.CreateSQLQuery(query)
