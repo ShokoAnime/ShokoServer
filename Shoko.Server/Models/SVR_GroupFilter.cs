@@ -943,9 +943,7 @@ namespace Shoko.Server.Models
                             .Where(a => !string.IsNullOrWhiteSpace(a))
                             .ToList();
                     bool tagsFound =
-                        tags.Any(a => contractSerie.AniDBAnime.AniDBAnime.GetAllTags()
-                            .Contains(a,
-                                StringComparer.InvariantCultureIgnoreCase));
+                        tags.Any(a => contractSerie.AniDBAnime.AniDBAnime.GetAllTags().Contains(a));
                     if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.In ||
                          gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include) && !tagsFound) return false;
                     if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.NotIn ||
@@ -1015,11 +1013,9 @@ namespace Shoko.Server.Models
                     break;
 
                 case GroupFilterConditionType.AssignedTvDBInfo:
-                    bool tvDBInfoMissing = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0;
-                    bool supposedToHaveTvDBLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType !=
-                                                  (int) AnimeType.Movie &&
-                                                  !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
-                    tvDBInfoMissing &= supposedToHaveTvDBLink;
+                    if (contractSerie.AniDBAnime.AniDBAnime.AnimeType == (int)AnimeType.Movie || contractSerie.AniDBAnime.AniDBAnime.Restricted > 0)
+                        return false;
+                    bool tvDBInfoMissing = !RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Any();
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && tvDBInfoMissing)
                         return false;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && !tvDBInfoMissing)
@@ -1034,11 +1030,9 @@ namespace Shoko.Server.Models
                     break;
 
                 case GroupFilterConditionType.AssignedMovieDBInfo:
+                    if (contractSerie.AniDBAnime.AniDBAnime.AnimeType != (int)AnimeType.Movie || contractSerie.AniDBAnime.AniDBAnime.Restricted > 0)
+                        return false;
                     bool movieMissing = contractSerie.CrossRefAniDBMovieDB == null;
-                    bool supposedToHaveMovieLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType ==
-                                                   (int) AnimeType.Movie &&
-                                                   !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
-                    movieMissing &= supposedToHaveMovieLink;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && movieMissing) return false;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && !movieMissing)
                         return false;
@@ -1047,11 +1041,10 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
                     // return true if excluding
                     if (contractSerie.AniDBAnime.AniDBAnime.Restricted > 0)
-                        return gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude;
+                        return false;
                     bool movieLinkMissing = contractSerie.CrossRefAniDBMovieDB == null;
-                    bool tvlinkMissing =
-                        RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0;
-                        bool bothMissing = movieLinkMissing && tvlinkMissing;
+                    bool tvlinkMissing = !RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Any();
+                    bool bothMissing = movieLinkMissing && tvlinkMissing;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && bothMissing) return false;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && !bothMissing) return false;
                     break;
