@@ -651,7 +651,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(99, 6, "ALTER TABLE `AniDB_Anime` DROP COLUMN AwardList;"),
             new DatabaseCommand(99, 7, "ALTER TABLE `AniDB_File` DROP COLUMN AnimeID;"),
             new DatabaseCommand(100, 1, "ALTER TABLE CrossRef_Languages_AniDB_File ADD LanguageName nvarchar(100) NOT NULL DEFAULT '';"),
-            new DatabaseCommand(100, 2, "UPDATE CrossRef_Languages_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID SET LanguageName = l.LanguageName WHERE c.LanguageName = '';"),
+            new DatabaseCommand(100, 2, "UPDATE CrossRef_Languages_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID SET c.LanguageName = l.LanguageName WHERE c.LanguageName = '';"),
             new DatabaseCommand(100, 3, "ALTER TABLE CrossRef_Languages_AniDB_File DROP COLUMN LanguageID;"),
             new DatabaseCommand(100, 4, "ALTER TABLE CrossRef_Subtitles_AniDB_File ADD LanguageName nvarchar(100) NOT NULL DEFAULT '';"),
             new DatabaseCommand(100, 5, "UPDATE CrossRef_Subtitles_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID SET LanguageName = l.LanguageName WHERE c.LanguageName = '';"),

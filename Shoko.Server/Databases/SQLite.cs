@@ -595,7 +595,7 @@ namespace Shoko.Server.Databases
                 factory.Execute(myConn, updateCommand);
 
                 addCommand = "ALTER TABLE CrossRef_Subtitles_AniDB_File ADD LanguageName TEXT NOT NULL DEFAULT '';";
-                updateCommand = "UPDATE c SET LanguageName = l.LanguageName FROM CrossRef_Subtitles_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';";
+                updateCommand = "UPDATE CrossRef_Subtitles_AniDB_File c SET LanguageName = l.LanguageName FROM CrossRef_Subtitles_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';";
                 factory.Execute(myConn, addCommand);
                 factory.Execute(myConn, updateCommand);
 
