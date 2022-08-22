@@ -19,17 +19,15 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public static MediaContainer GetMediaInfo_New(string filename)
+        private static MediaContainer GetMediaInfo_New(string filename)
         {
             try
             {
-                string exe = GetMediaInfoPathForOS();
-                var escapedName = filename.Replace("\"", "\\\"").Replace("$", "\\$");
-                string args = $"--OUTPUT=JSON \"{escapedName}\"";
+                var exe = GetMediaInfoPathForOS();
 
-                var pProcess = GetProcess(exe, args);
+                var pProcess = GetProcess(exe, filename);
                 pProcess.Start();
-                string output = pProcess.StandardOutput.ReadToEnd().Trim();
+                var output = pProcess.StandardOutput.ReadToEnd().Trim();
                 //Wait for process to finish
                 pProcess.WaitForExit();
 
@@ -42,7 +40,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                     if (string.IsNullOrWhiteSpace(output) || output.EqualsInvariantIgnoreCase("null"))
                         output = "No message";
 
-                    logger.Error($"MediaInfo threw an error on {filename}, {exe} {args}: {output}");
+                    logger.Error($"MediaInfo threw an error on {filename}, {exe}: {output}");
                     return null;
                 }
 
@@ -61,12 +59,12 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                 };
 
                 // assuming json, as it starts with {
-                MediaContainer m = JsonConvert.DeserializeObject<MediaContainer>(output, settings);
+                var m = JsonConvert.DeserializeObject<MediaContainer>(output, settings);
                 m.media.track.ForEach(a =>
                 {
                     // Stream should never be null, but here we are
                     if (string.IsNullOrEmpty(a?.Language)) return;
-                    Tuple<string, string> langs = MediaInfoUtils.GetLanguageMapping(a.Language);
+                    var langs = MediaInfoUtils.GetLanguageMapping(a.Language);
                     if (langs == null)
                     {
                         logger.Error($"{filename} had a missing language code: {a.Language}");
@@ -84,54 +82,14 @@ namespace Shoko.Server.Utilities.MediaInfoLib
             }
         }
 
-        public static Media GetMediaInfoFromWrapper(string filename)
+        private static Process GetProcess(string processName, string filename)
         {
-            try
-            {
-                var filenameArgs = GetFilenameAndArgsForOS(filename);
-
-                logger.Trace($"Calling MediaInfoWrapper for file: {filenameArgs.Item1} {filenameArgs.Item2}");
-
-                Process pProcess = GetProcess(filenameArgs.Item1, filenameArgs.Item2);
-
-                pProcess.Start();
-                string strOutput = pProcess.StandardOutput.ReadToEnd().Trim();
-                //Wait for process to finish
-                pProcess.WaitForExit();
-                
-                if (pProcess.ExitCode != 0 || !strOutput.StartsWith("{"))
-                {
-                    // We have an error
-                    if (string.IsNullOrWhiteSpace(strOutput) || strOutput.EqualsInvariantIgnoreCase("null"))
-                        strOutput = pProcess.StandardError.ReadToEnd().Trim();
-
-                    if (string.IsNullOrWhiteSpace(strOutput) || strOutput.EqualsInvariantIgnoreCase("null"))
-                        strOutput = "No message";
-                    
-                    logger.Error($"MediaInfo threw an error on {filename}: {strOutput}");
-                    return null;
-                }
-                
-                // assuming json, as it starts with {
-                Media m = JsonConvert.DeserializeObject<Media>(strOutput,
-                    new JsonSerializerSettings {Culture = CultureInfo.InvariantCulture});
-                return m;
-            }
-            catch (Exception e)
-            {
-                logger.Error($"MediaInfo threw an error on {filename}: {e}");
-                return null;
-            }
-        }
-
-        private static Process GetProcess(string filename, string args)
-        {
-            Process pProcess = new Process
+            var pProcess = new Process
             {
                 StartInfo =
                 {
-                    FileName = filename,
-                    Arguments = args,
+                    FileName = processName,
+                    ArgumentList = { "--OUTPUT=JSON", filename },
                     UseShellExecute = false,
                     WindowStyle = ProcessWindowStyle.Hidden,
                     RedirectStandardOutput = true,
@@ -151,10 +109,10 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
             if (Utils.IsRunningOnLinuxOrMac()) return "mediainfo";
 
-            string exePath = Assembly.GetEntryAssembly()?.Location;
-            string exeDir = Path.GetDirectoryName(exePath);
+            var exePath = Assembly.GetEntryAssembly()?.Location;
+            var exeDir = Path.GetDirectoryName(exePath);
             if (exeDir == null) return null;
-            string appPath = Path.Combine(exeDir, "MediaInfo", "MediaInfo.exe");
+            var appPath = Path.Combine(exeDir, "MediaInfo", "MediaInfo.exe");
             if (!File.Exists(appPath)) return null;
             if (ServerSettings.Instance.Import.MediaInfoPath == null)
             {
@@ -170,9 +128,9 @@ namespace Shoko.Server.Utilities.MediaInfoLib
             // Windows: avdumpDestination --Auth=....
             // Mono: mono avdumpDestination --Auth=...
             var executable = WrapperPath;
-            string fileName = (char)34 + file + (char)34;
+            var fileName = (char)34 + file + (char)34;
 
-            int timeout = ServerSettings.Instance.Import.MediaInfoTimeoutMinutes;
+            var timeout = ServerSettings.Instance.Import.MediaInfoTimeoutMinutes;
             var args = $"{fileName} {timeout}";
 
             if (Utils.IsRunningOnMono())
@@ -197,12 +155,12 @@ namespace Shoko.Server.Utilities.MediaInfoLib
         public static MediaContainer GetMediaInfo(string filename)
         {
             MediaContainer m = null;
-            Task<MediaContainer> mediaTask = Task.FromResult(GetMediaInfo_New(filename));
+            var mediaTask = Task.FromResult(GetMediaInfo_New(filename));
 
-            int timeout = ServerSettings.Instance.Import.MediaInfoTimeoutMinutes;
+            var timeout = ServerSettings.Instance.Import.MediaInfoTimeoutMinutes;
             if (timeout > 0)
             {
-                Task task = Task.WhenAny(mediaTask, Task.Delay(TimeSpan.FromMinutes(timeout))).Result;
+                var task = Task.WhenAny(mediaTask, Task.Delay(TimeSpan.FromMinutes(timeout))).Result;
                 if (task == mediaTask) m = mediaTask.Result;
             }
             else
