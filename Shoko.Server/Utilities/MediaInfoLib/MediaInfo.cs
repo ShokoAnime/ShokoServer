@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -15,7 +14,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 {
     public static class MediaInfo
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         private static MediaContainer GetMediaInfo_New(string filename)
         {
@@ -38,7 +37,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                     if (string.IsNullOrWhiteSpace(output) || output.EqualsInvariantIgnoreCase("null"))
                         output = "No message";
 
-                    logger.Error($"MediaInfo threw an error on {filename}, {exe}: {output}");
+                    Logger.Error($"MediaInfo threw an error on {filename}, {exe}: {output}");
                     return null;
                 }
 
@@ -47,35 +46,36 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                     Converters = new JsonConverter[]
                     {
                         new StreamJsonConverter(), new BooleanConverter(), new StringEnumConverter(),
-                        new DateTimeConverter() {DateTimeFormat = "yyyy-MM-dd HH:mm:ss"}, new MultiIntConverter()
+                        new DateTimeConverter {DateTimeFormat = "yyyy-MM-dd HH:mm:ss"}, new MultiIntConverter()
                     },
-                    Error = (s, e) =>
+                    Error = (_, e) =>
                     {
-                        logger.Error(e.ErrorContext.Error);
+                        Logger.Error(e.ErrorContext.Error);
                         e.ErrorContext.Handled = true;
-                    }
+                    },
                 };
 
                 // assuming json, as it starts with {
                 var m = JsonConvert.DeserializeObject<MediaContainer>(output, settings);
+                if (m == null) throw new Exception($"Unable to deserialize MediaInfo response: {output}");
                 m.media.track.ForEach(a =>
                 {
                     // Stream should never be null, but here we are
                     if (string.IsNullOrEmpty(a?.Language)) return;
-                    var langs = MediaInfoUtils.GetLanguageMapping(a.Language);
-                    if (langs == null)
+                    var languages = MediaInfoUtils.GetLanguageMapping(a.Language);
+                    if (languages == null)
                     {
-                        logger.Error($"{filename} had a missing language code: {a.Language}");
+                        Logger.Error($"{filename} had a missing language code: {a.Language}");
                         return;
                     }
-                    a.LanguageCode = langs.Item1;
-                    a.LanguageName = langs.Item2;
+                    a.LanguageCode = languages.Item1;
+                    a.LanguageName = languages.Item2;
                 });
                 return m;
             }
             catch (Exception e)
             {
-                logger.Error($"MediaInfo threw an error on {filename}: {e}");
+                Logger.Error($"MediaInfo threw an error on {filename}: {e}");
                 return null;
             }
         }
