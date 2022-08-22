@@ -8,7 +8,7 @@
             "args": [
                 "build",
                 "${workspaceFolder}/Shoko.CLI/Shoko.CLI.csproj",
-                "/property:GenerateFullPaths=true",
+                "/property:GenerateFullPaths=true,Version=${input:version},InformationalVersion=\"channel=debug\"",
                 "/consoleloggerparameters:NoSummary"
             ],
             "problemMatcher": "$msCompile"
@@ -49,6 +49,14 @@
                 "/consoleloggerparameters:NoSummary"
             ],
             "problemMatcher": "$msCompile"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "version",
+            "type": "promptString",
+            "default": "5.0.0",
+            "description": "The version to build"
         }
     ]
 }

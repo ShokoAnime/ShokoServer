@@ -1,0 +1,204 @@
+name: Build Release (Stable)
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  cli-framework-stable:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        dotnet: [ '6.x' ]
+
+    name: Build CLI — Framework dependent (Stable)
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.ref }}"
+          submodules: recursive
+          fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Get release version
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          tag: "${{ github.ref }}"
+          prefix: v
+          prefixRegex: "[vV]?"
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - run: dotnet publish -c Release --no-self-contained Shoko.CLI "/p:Version=${{ steps.release_info.outputs.version }},InformationalVersion=\"channel=stable; commit=${{ github.sha }}; tag=${{ steps.release_info.outputs.tag }}\""
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: CLI-Framework-Dependent
+          path: Shoko.Server/bin/Release/net6.0/publish/
+
+      - name: Archive Release
+        shell: pwsh
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0\\publish .\\Shoko.CLI_Framework_any-x64.zip
+
+      - name: Upload Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./Shoko.CLI*.zip
+          tag: ${{ steps.release_info.outputs.tag }}
+          file_glob: true
+
+  cli-standalone-stable:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        rid: ['win-x64', 'linux-x64']
+        dotnet: [ '6.x' ]
+
+    name: Build CLI — Standalone ${{ matrix.rid }} (Stable)
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.ref }}"
+          submodules: recursive
+          fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Get release version
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          tag: "${{ github.ref }}"
+          prefix: v
+          prefixRegex: "[vV]?"
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} Shoko.CLI "/p:Version=${{ steps.release_info.outputs.version }},InformationalVersion=\"channel=stable; commit=${{ github.sha }}; tag=${{ steps.release_info.outputs.tag }}\""
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.rid }}
+          path: Shoko.Server/bin/Release/net6.0/${{matrix.rid}}/publish/
+
+      - name: Archive Release (${{ matrix.rid }})
+        shell: pwsh
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0\\${{ matrix.rid }}\\publish .\\Shoko.CLI_Standalone_${{ matrix.rid }}.zip
+
+      - name: Upload Release (${{ matrix.rid }})
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./Shoko.CLI*.zip
+          tag: ${{ steps.release_info.outputs.tag }}
+          file_glob: true
+
+  tray-service-framework-stable:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        dotnet: [ '6.x' ]
+
+    name: Build Tray Service — Framework dependent (Stable)
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.ref }}"
+          submodules: recursive
+          fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Get release version
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          tag: "${{ github.ref }}"
+          prefix: v
+          prefixRegex: "[vV]?"
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - run: dotnet publish -c Release -r win10-x64 --no-self-contained Shoko.TrayService "/p:Version=${{ steps.release_info.outputs.version }},InformationalVersion=\"channel=stable; commit=${{ github.sha }}; tag=${{ steps.release_info.outputs.tag }}\""
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Shoko.TrayService-Framework-Dependent
+          path: Shoko.Server/bin/Release/net6.0-windows/win10-x64/publish/
+
+      - name: Archive Release
+        shell: pwsh
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\Shoko.TrayService_Framework_win10-x64.zip
+
+      - name: Upload Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./Shoko.TrayService*.zip
+          tag: ${{ steps.release_info.outputs.tag }}
+          file_glob: true
+
+  tray-service-standalone-stable:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        dotnet: [ '6.x' ]
+
+    name: Build Tray Service — Standalone (Stable)
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.ref }}"
+          submodules: recursive
+          fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Get release version
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          tag: "${{ github.ref }}"
+          prefix: v
+          prefixRegex: "[vV]?"
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net6.0-windows Shoko.TrayService "/p:Version=${{ steps.release_info.outputs.version }},InformationalVersion=\"channel=stable; commit=${{ github.sha }}; tag=${{ steps.release_info.outputs.tag }}\""
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Shoko.TrayService
+          path: Shoko.Server/bin/Release/net6.0-windows/win10-x64/publish/
+
+      - name: Archive Release
+        shell: pwsh
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\Shoko.TrayService_Standalone_win10-x64.zip
+
+      - name: Upload Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./Shoko.TrayService*.zip
+          tag: ${{ steps.release_info.outputs.tag }}
+          file_glob: true

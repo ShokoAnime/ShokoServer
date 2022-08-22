@@ -1,0 +1,70 @@
+name: Build Tray Service - Standalone (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git reference for what to push
+        default: master
+        required: true
+      filename:
+        description: Name of the file to upload to shokoanime.com
+        default: ShokoServer.zip
+        required: true
+      release:
+        description: Release Channel
+        default: dev
+        required: true
+
+jobs:
+  tray-service-standalone-manual:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        dotnet: [ '6.x' ]
+
+    name: Shoko Tray Service build
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.event.inputs.ref }}"
+          submodules: recursive
+          fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Get next version
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          branch: true
+          prefix: v
+          prefixRegex: "[vV]?"
+          suffix: ${{ github.event.inputs.release }}
+          suffixRegex: "dev|${{ github.event.inputs.release }}"
+          increment: suffix
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net6.0-windows Shoko.TrayService "/p:Version=${{ steps.release_info.outputs.version }},InformationalVersion=\"channel=${{ github.event.inputs.release }}; commit=${{ github.sha }}\""
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Shoko.TrayService
+          path: Shoko.Server/bin/Release/net6.0-windows/win10-x64/publish/
+
+      - name: Archive Release
+        shell: pwsh
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\ShokoServer.zip
+
+      - name: Upload Daily to shokoanime.com
+        shell: pwsh
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        run : .\\.github\\workflows\\UploadArchive.ps1 -filename "${{ github.event.inputs.filename }}"

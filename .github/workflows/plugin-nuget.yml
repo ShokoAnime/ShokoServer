@@ -3,11 +3,9 @@ name: Publish Shoko.Plugin.Abstractions Nuget
 on:
   push:
     branches: [ master ]
-#   pull_request:
-#     branches: [ master ]
 
 jobs:
-  build:
+  build-plugin-nuget:
     runs-on: ubuntu-latest
 
     strategy:
@@ -20,14 +18,19 @@ jobs:
       - uses: actions/checkout@master
         with:
           submodules: recursive
+
       - name: Setup dotnet
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ matrix.dotnet }}
+
       - run: dotnet restore Shoko.Plugin.Abstractions
+
       - run: dotnet build -c Release Shoko.Plugin.Abstractions
+
       - name: Publish Shoko.Plugin.Abstractions Nuget
         uses: brandedoutcast/publish-nuget@v2.5.2
         with:
           PROJECT_FILE_PATH: Shoko.Plugin.Abstractions/Shoko.Plugin.Abstractions.csproj
           NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+          TAG_FORMAT: Shoko.Plugin.Abstractions-v*
