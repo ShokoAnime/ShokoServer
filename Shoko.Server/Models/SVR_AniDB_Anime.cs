@@ -1290,7 +1290,7 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
                     Type = a.TitleType,
                 }
             )
-            .Where(a => a != null && a.Type != TitleType.None)
+            .Where(a => a.Type != TitleType.None)
             .ToList();
         double IAnime.Rating => Rating / 100D;
 

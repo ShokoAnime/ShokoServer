@@ -6,7 +6,6 @@ using System.Net;
 using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Providers.AniDB.Http.GetAnime;
@@ -289,7 +288,7 @@ namespace Shoko.Server.Providers.AniDB.Http
                             nodeChild,
                             episodeTitle = new ResponseTitle
                             {
-                                Language = nodeChild?.Attributes?["xml:lang"]?.Value?.GetTitleLanguage() ?? TitleLanguage.Unknown,
+                                Language = nodeChild?.Attributes?["xml:lang"]?.Value.GetTitleLanguage() ?? TitleLanguage.Unknown,
                                 Title = nodeChild?.InnerText.Trim().Replace('`', '\''),
                                 TitleType = TitleType.None,
                             },
@@ -473,7 +472,7 @@ namespace Shoko.Server.Providers.AniDB.Http
             {
                 if (nodeChild?.Name != "seiyuu") continue;
                 if (!int.TryParse(nodeChild.Attributes?["id"]?.Value, out var seiyuuID)) continue;
-                var seiyuuPic = nodeChild.Attributes["picture"]?.Value;
+                var seiyuuPic = nodeChild.Attributes["picture"]?.Value ?? string.Empty;
                 var seiyuuName = nodeChild.InnerText.Replace('`', '\'');
                 seiyuus.Add(new ResponseSeiyuu { SeiyuuID = seiyuuID, SeiyuuName = seiyuuName, PicName = seiyuuPic });
             }
