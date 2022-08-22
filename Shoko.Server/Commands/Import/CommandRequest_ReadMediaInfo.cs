@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -19,6 +21,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Reading media info for file: {0}",
             queueState = QueueStateEnum.ReadingMedia,
             extraParams = new[] {VideoLocalID.ToString()}
         };
@@ -35,9 +38,9 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Reading Media Info for File: {0}", VideoLocalID);
+            Logger.LogInformation("Reading Media Info for File: {0}", VideoLocalID);
 
 
             try
@@ -46,7 +49,7 @@ namespace Shoko.Server.Commands
                 SVR_VideoLocal_Place place = vlocal?.GetBestVideoLocalPlace(true);
                 if (place == null)
                 {
-                    logger.Error("Cound not find Video: {0}", VideoLocalID);
+                    Logger.LogError("Cound not find Video: {0}", VideoLocalID);
                     return;
                 }
                 if (place.RefreshMediaInfo())
@@ -54,7 +57,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_ReadMediaInfo: {0} - {1}", VideoLocalID, ex);
+                Logger.LogError("Error processing CommandRequest_ReadMediaInfo: {0} - {1}", VideoLocalID, ex);
             }
         }
 

@@ -13,16 +13,43 @@ on:
         required: true
 
 jobs:
+  
   publish:
+    name: Publish docker image
+    strategy:
+      matrix:
+        include:
+          - arch: 'amd64'
+            dockerfile: 'Dockerfile'
+          - arch: 'arm64'
+            dockerfile: 'Dockerfile.aarch64'
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@master
       with:
         submodules: recursive
         ref: "${{ github.event.inputs.ref }}"
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}
+    - uses: docker/setup-qemu-action@v1
+      name: Set up QEMU
+      with:
+        platforms: arm64
+      if: ${{ matrix.arch == 'arm64' }}
+    - uses: docker/setup-buildx-action@v1
+      name: Set up Docker Buildx
     - name: Log into docker hub
       run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
-    - name: Push daily to Docker Hub
-      run: docker push ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}
+    - name: Build and Push the Docker image
+      run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --push
+
+  push_manifest:
+    needs: publish
+    name: Push combined tag for both images
+    runs-on: ubuntu-latest
+    steps:
+    - name: Log into docker hub
+      run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+    - name: Create manifest
+      run: docker manifest create ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }} --amend ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-amd64 --amend ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-arm64
+    - name: Push manifest
+      run: docker manifest push ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}

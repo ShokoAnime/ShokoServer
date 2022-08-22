@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 90;
+        public int RequiredVersion { get; } = 93;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -56,17 +56,12 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
-                {
-                    var query = "select 1";
-
-                    var command = new SqlCommand(query, connection);
-
-                    connection.Open();
-
-                    command.ExecuteScalar();
-                    return true;
-                }
+                using var connection = new SqlConnection(GetTestConnectionString());
+                const string query = "select 1";
+                var command = new SqlCommand(query, connection);
+                connection.Open();
+                command.ExecuteScalar();
+                return true;
             }
             catch
             {
@@ -75,25 +70,24 @@ namespace Shoko.Server.Databases
             return false;
         }
 
+        public override string GetTestConnectionString()
+        {
+            return $"data source={ServerSettings.Instance.Database.Hostname};Initial Catalog=master;user id={ServerSettings.Instance.Database.Username};password={ServerSettings.Instance.Database.Password};persist security info=True;MultipleActiveResultSets=True";
+        }
 
         public override string GetConnectionString()
         {
             return
-                $"Server={ServerSettings.Instance.Database.Hostname};Database={ServerSettings.Instance.Database.Schema};UID={ServerSettings.Instance.Database.Username};PWD={ServerSettings.Instance.Database.Password};";
+                $"data source={ServerSettings.Instance.Database.Hostname};Initial Catalog={ServerSettings.Instance.Database.Schema};user id={ServerSettings.Instance.Database.Username};password={ServerSettings.Instance.Database.Password};persist security info=True;MultipleActiveResultSets=True";
         }
 
         public ISessionFactory CreateSessionFactory()
         {
-            string connectionstring = $@"data source={ServerSettings.Instance.Database.Hostname};initial catalog={
-                    ServerSettings.Instance.Database.Schema
-                };persist security info=True;user id={
-                    ServerSettings.Instance.Database.Username
-                };password={ServerSettings.Instance.Database.Password}";
             // SQL Server batching on Mono is busted atm.
             // Fixed in https://github.com/mono/corefx/commit/6e65509a17da898933705899677c22eae437d68a
             // but waiting for release
             return Fluently.Configure()
-                .Database(MsSqlConfiguration.MsSql2008.ConnectionString(connectionstring))
+                .Database(MsSqlConfiguration.MsSql2008.ConnectionString(GetConnectionString()))
                 .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
                 .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
                 {
@@ -112,16 +106,10 @@ namespace Shoko.Server.Databases
 
         public bool DatabaseAlreadyExists()
         {
-            long count;
-            string cmd = $"Select count(*) from sysdatabases where name = '{ServerSettings.Instance.Database.Schema}'";
-            using (SqlConnection tmpConn =
-                new SqlConnection(
-                    $"Server={ServerSettings.Instance.Database.Hostname};User ID={ServerSettings.Instance.Database.Username};Password={ServerSettings.Instance.Database.Password};database={"master"}")
-            )
-            {
-                tmpConn.Open();
-                count = ExecuteScalar(tmpConn, cmd);
-            }
+            var cmd = $"Select count(*) from sysdatabases where name = '{ServerSettings.Instance.Database.Schema}'";
+            using var tmpConn = new SqlConnection(GetTestConnectionString());
+            tmpConn.Open();
+            var count = ExecuteScalar(tmpConn, cmd);
 
             // if the Versions already exists, it means we have done this already
             if (count > 0) return true;
@@ -134,11 +122,22 @@ namespace Shoko.Server.Databases
         {
             if (DatabaseAlreadyExists()) return;
 
-            ServerConnection conn = new ServerConnection(ServerSettings.Instance.Database.Hostname,
-                ServerSettings.Instance.Database.Username, ServerSettings.Instance.Database.Password);
-            Microsoft.SqlServer.Management.Smo.Server srv = new Microsoft.SqlServer.Management.Smo.Server(conn);
-            Database db = new Database(srv, ServerSettings.Instance.Database.Schema);
-            db.Create();
+            var cmd = $"CREATE DATABASE {ServerSettings.Instance.Database.Schema}";
+            using var connection = new SqlConnection(GetTestConnectionString());
+            var command = new SqlCommand(cmd, connection);
+            connection.Open();
+            command.CommandTimeout = int.MaxValue;
+            command.ExecuteNonQuery();
+        }
+
+        public override bool HasVersionsTable()
+        {
+            const string cmd = "SELECT Count(1) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Versions'";
+            using var connection = new SqlConnection(GetConnectionString());
+            var command = new SqlCommand(cmd, connection);
+            connection.Open();
+            var count = (int) command.ExecuteScalar();
+            return count > 0;
         }
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>
@@ -620,10 +619,39 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(89, 1, "ALTER TABLE AnimeSeries_User ADD LastEpisodeUpdate datetime DEFAULT NULL;"),
             new DatabaseCommand(89, 2, DatabaseFixes.FixWatchDates),
             new DatabaseCommand(90, 1, "ALTER TABLE AnimeGroup ADD MainAniDBAnimeID INT DEFAULT NULL;"),
-            new DatabaseCommand(91, 1, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractSize;"),
-            new DatabaseCommand(91, 2, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractBlob;"),
-            new DatabaseCommand(91, 3, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractVersion;"),
+            new DatabaseCommand(91, 1, DropDefaultsOnAnimeEpisode_User),
+            new DatabaseCommand(91, 2, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractSize;"),
+            new DatabaseCommand(91, 3, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractBlob;"),
+            new DatabaseCommand(91, 4, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractVersion;"),
+            new DatabaseCommand(92, 1, "ALTER TABLE AniDB_File DROP COLUMN File_AudioCodec, File_VideoCodec, File_VideoResolution, File_FileExtension, File_LengthSeconds, Anime_GroupName, Anime_GroupNameShort, Episode_Rating, Episode_Votes, IsWatched, WatchedDate, CRC, MD5, SHA1"),
+            new DatabaseCommand(92, 2, DropDefaultOnChaptered),
+            new DatabaseCommand(92, 3, "ALTER TABLE AniDB_File Alter COLUMN IsCensored bit NULL; ALTER TABLE AniDB_File ALTER COLUMN IsDeprecated bit not null; ALTER TABLE AniDB_File ALTER COLUMN IsChaptered bit not null"),
+            new DatabaseCommand(92, 4, "ALTER TABLE AniDB_GroupStatus Alter COLUMN Rating decimal(6,2) NULL; UPDATE AniDB_GroupStatus SET Rating = Rating / 100 WHERE Rating > 10"),
+            new DatabaseCommand(92, 5, "ALTER TABLE AniDB_Character DROP COLUMN CreatorListRaw;"),
+            new DatabaseCommand(92, 6, "ALTER TABLE AniDB_Anime_Character DROP COLUMN EpisodeListRaw;"),
+            new DatabaseCommand(92, 7, "ALTER TABLE AniDB_Anime DROP COLUMN AwardList;"),
+            new DatabaseCommand(92, 8, "ALTER TABLE AniDB_File DROP COLUMN AnimeID;"),
+            new DatabaseCommand(93, 1, "ALTER TABLE CrossRef_Languages_AniDB_File ADD LanguageName nvarchar(100) NOT NULL DEFAULT '';"),
+            new DatabaseCommand(93, 2, "UPDATE c SET LanguageName = l.LanguageName FROM CrossRef_Languages_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';"),
+            new DatabaseCommand(93, 3, "ALTER TABLE CrossRef_Languages_AniDB_File DROP COLUMN LanguageID;"),
+            new DatabaseCommand(93, 4, "ALTER TABLE CrossRef_Subtitles_AniDB_File ADD LanguageName nvarchar(100) NOT NULL DEFAULT '';"),
+            new DatabaseCommand(93, 5, "UPDATE c SET LanguageName = l.LanguageName FROM CrossRef_Subtitles_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';"),
+            new DatabaseCommand(93, 6, "ALTER TABLE CrossRef_Subtitles_AniDB_File DROP COLUMN LanguageID;"),
+            new DatabaseCommand(93, 7, "DROP TABLE Language;"),
         };
+
+        private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
+        {
+            DropDefaultConstraint("AnimeEpisode_User", "ContractSize");
+            DropDefaultConstraint("AnimeEpisode_User", "ContractVersion");
+            return Tuple.Create<bool, string>(true, null);
+        }
+
+        private static Tuple<bool, string> DropDefaultOnChaptered(object connection)
+        {
+            DropDefaultConstraint("AniDB_File", "IsChaptered");
+            return Tuple.Create<bool, string>(true, null);
+        }
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
         {
@@ -647,25 +675,37 @@ namespace Shoko.Server.Databases
 
         private static void DropColumnWithDefaultConstraint(string table, string column)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
-            {
-                using (var trans = session.BeginTransaction())
-                {
-                    string query = $@"DECLARE @ConstraintName nvarchar(200)
-SELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS
-WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
-AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns
-                        WHERE NAME = N'{column}'
-                        AND object_id = OBJECT_ID(N'{table}'))
-IF @ConstraintName IS NOT NULL
-EXEC('ALTER TABLE {table} DROP CONSTRAINT ' + @ConstraintName)";
-                    session.CreateSQLQuery(query).ExecuteUpdate();
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            using var trans = session.BeginTransaction();
+            var query = $@"SELECT Name FROM SYS.DEFAULT_CONSTRAINTS
+                        WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
+                          AND PARENT_COLUMN_ID = (
+                            SELECT column_id FROM sys.columns
+                            WHERE NAME = N'{column}' AND object_id = OBJECT_ID(N'{table}')
+                            )";
+            var name = session.CreateSQLQuery(query).UniqueResult<string>();
+            query = $@"ALTER TABLE {table} DROP CONSTRAINT {name}";
+            session.CreateSQLQuery(query).ExecuteUpdate();
 
-                    query = $@"ALTER TABLE {table} DROP COLUMN {column}";
-                    session.CreateSQLQuery(query).ExecuteUpdate();
-                    trans.Commit();
-                }
-            }
+            query = $@"ALTER TABLE {table} DROP COLUMN {column}";
+            session.CreateSQLQuery(query).ExecuteUpdate();
+            trans.Commit();
+        }
+
+        private static void DropDefaultConstraint(string table, string column)
+        {
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            using var trans = session.BeginTransaction();
+            var query = $@"SELECT Name FROM SYS.DEFAULT_CONSTRAINTS
+                        WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
+                          AND PARENT_COLUMN_ID = (
+                            SELECT column_id FROM sys.columns
+                            WHERE NAME = N'{column}' AND object_id = OBJECT_ID(N'{table}')
+                            )";
+            var name = session.CreateSQLQuery(query).UniqueResult<string>();
+            query = $@"ALTER TABLE {table} DROP CONSTRAINT {name}";
+            session.CreateSQLQuery(query).ExecuteUpdate();
+            trans.Commit();
         }
 
         protected override Tuple<bool, string> ExecuteCommand(SqlConnection connection, string command)

@@ -1,10 +1,12 @@
-﻿using Shoko.Plugin.Abstractions.DataModels;
+﻿using System;
+using System.Linq;
+using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Plugin.Abstractions.Extensions;
 
 public static class LanguageExtensions
 {
-    public static TitleLanguage GetEnum(this string lang)
+    public static TitleLanguage GetTitleLanguage(this string lang)
     {
         return lang.ToUpper() switch
         {
@@ -61,6 +63,23 @@ public static class LanguageExtensions
         };
     }
     
+    public static string GetDescription(this TitleLanguage lang)
+    {
+        return lang switch
+        {
+            TitleLanguage.Romaji => "Japanese (romanji/x-jat)",
+            TitleLanguage.Japanese => "Japanese (kanji)",
+            TitleLanguage.Bangladeshi => "Bangladesh",
+            TitleLanguage.FrenchCanadian => "Canadian-French",
+            TitleLanguage.BrazilianPortuguese => "Brazilian Portuguese",
+            TitleLanguage.Chinese => "Chinese (any)",
+            TitleLanguage.ChineseSimplified => "Chinese (simplified)",
+            TitleLanguage.ChineseTraditional => "Chinese (traditional)",
+            TitleLanguage.Pinyin => "Chinese (pinyin/x-zhn)",
+            _ => lang.ToString(),
+        };
+    }
+
     public static string GetString(this TitleLanguage lang)
     {
         return lang switch
@@ -108,6 +127,28 @@ public static class LanguageExtensions
             TitleLanguage.ChineseSimplified => "zh-hans",
             TitleLanguage.ChineseTraditional => "zh-hant",
             _ => "unk",
+        };
+    }
+    
+    public static string GetString(this TitleType type)
+    {
+        return type.ToString().ToLowerInvariant();
+    }
+
+    public static TitleType GetTitleType(this string name)
+    {
+        foreach (var type in Enum.GetValues(typeof(TitleType)).Cast<TitleType>())
+        {
+            if (type.GetString().Equals(name.ToLowerInvariant())) return type;
+        }
+
+        return name.ToLowerInvariant() switch
+        {
+            "syn" => TitleType.Synonym,
+            "card" => TitleType.TitleCard,
+            "kana" => TitleType.KanjiReading,
+            "kanareading" => TitleType.KanjiReading,
+            _ => TitleType.None,
         };
     }
 }

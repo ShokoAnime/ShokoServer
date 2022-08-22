@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -34,6 +34,7 @@ using Shoko.Server.AniDB_API;
 using Shoko.Server.API;
 using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Commands;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -41,11 +42,15 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Plugin;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Http;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
+using Shoko.Server.Settings.DI;
 using Shoko.Server.UI;
 using Shoko.Server.Utilities;
 using Trinet.Core.IO.Ntfs;
@@ -101,7 +106,7 @@ namespace Shoko.Server.Server
 
         public static List<UserCulture> userLanguages = new List<UserCulture>();
 
-        public static IServiceProvider ServiceContainer => webHost.Services;
+        public static IServiceProvider ServiceContainer => webHost?.Services;
         
         private Mutex mutex;
         private const string SentryDsn = "https://47df427564ab42f4be998e637b3ec45a@o330862.ingest.sentry.io/1851880";
@@ -109,10 +114,13 @@ namespace Shoko.Server.Server
         internal static void ConfigureServices(IServiceCollection services)
         {
             ServerSettings.ConfigureServices(services);
+            // THIS IS BAD AND NOT WORKING
             services.AddSingleton(ServerSettings.Instance);
+            
+            services.AddSingleton<SettingsProvider>();
             services.AddSingleton(Loader.Instance);
-            services.AddSingleton(ShokoService.AniDBProcessor);
-            services.AddSingleton<HttpParser>();
+            services.AddSingleton(ShokoService.CmdProcessorGeneral);
+            AniDBStartup.ConfigureServices(services);
             Loader.Instance.Load(services);
         }
         
@@ -145,10 +153,12 @@ namespace Shoko.Server.Server
                 target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.log";
             }
 
-#if DEBUG
+#if LOGWEB
             // Disable blackhole http info logs
             LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Microsoft.AspNetCore"))?.DisableLoggingForLevel(LogLevel.Info);
             LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Shoko.Server.API.Authentication"))?.DisableLoggingForLevel(LogLevel.Info);
+#endif
+#if DEBUG
             // Enable debug logging
             LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Contains(target))?.EnableLoggingForLevel(LogLevel.Debug);
 #endif
@@ -159,6 +169,12 @@ namespace Shoko.Server.Server
                     AsyncTargetWrapperOverflowAction.Discard);
             LogManager.Configuration.AddTarget("signalr", signalrTarget);
             LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Info, signalrTarget));
+            var consoleTarget = (ColoredConsoleTarget) LogManager.Configuration.FindTargetByName("console");
+            if (consoleTarget != null)
+            {
+                consoleTarget.Layout = "${date:format=HH\\:mm\\:ss}| ${logger:shortname=true} --- ${message}";
+            }
+
             LogManager.ReconfigExistingLoggers();
         }
 
@@ -213,7 +229,7 @@ namespace Shoko.Server.Server
             }
 
             //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
-            CommandHelper.LoadCommands();
+            CommandHelper.LoadCommands(ServiceContainer);
 
             try
             {
@@ -323,6 +339,8 @@ namespace Shoko.Server.Server
             if (!SetupNetHosts()) return false;
 
             Analytics.PostEvent("Server", "StartupFinished");
+            // for log readability, this will simply init the singleton
+            ServiceContainer.GetService<IUDPConnectionHandler>();
             return true;
         }
 
@@ -729,6 +747,11 @@ namespace Shoko.Server.Server
             SetupAniDBProcessor();
         }
 
+        public void StartAniDBSocket()
+        {
+            SetupAniDBProcessor();
+        }
+
         void WorkerSetupDB_DoWork(object sender, DoWorkEventArgs e)
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
@@ -1037,7 +1060,6 @@ namespace Shoko.Server.Server
             Importer.CheckForMyListStatsUpdate(false);
             Importer.CheckForAniDBFileUpdate(false);
             Importer.UpdateAniDBTitles();
-            Importer.SendUserInfoUpdate(false);
         }
 
         public static void StartWatchingFiles(bool log = true)
@@ -1291,6 +1313,11 @@ namespace Shoko.Server.Server
                 {
                     logging.ClearProviders();
                     logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+#if !LOGWEB
+                    logging.AddFilter("Microsoft", Microsoft.Extensions.Logging.LogLevel.Warning);
+                    logging.AddFilter("System", Microsoft.Extensions.Logging.LogLevel.Warning);
+                    logging.AddFilter("Shoko.Server.API", Microsoft.Extensions.Logging.LogLevel.Warning);
+#endif
                 }).UseNLog()
                 .UseSentry(
                     o =>
@@ -1298,7 +1325,6 @@ namespace Shoko.Server.Server
                         o.Release = Utils.GetApplicationVersion();
                         o.Dsn = SentryDsn;
                     })
-
                 .Build();
         }
 
@@ -1369,20 +1395,19 @@ namespace Shoko.Server.Server
 
         private static void SetupAniDBProcessor()
         {
-            ShokoService.AniDBProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+            var handler = ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+            handler.Init(
+                ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
                 ServerSettings.Instance.AniDb.ServerAddress,
-                ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
+                ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort
+            );
         }
 
-        public static void AniDBDispose()
+        private static void AniDBDispose()
         {
-            logger.Info("Disposing...");
-            if (ShokoService.AniDBProcessor != null)
-            {
-                ShokoService.AniDBProcessor.ForceLogout();
-                ShokoService.AniDBProcessor.Dispose();
-                Thread.Sleep(1000);
-            }
+            var handler = ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+            handler.ForceLogout();
+            handler.CloseConnections();
         }
 
         public static int OnHashProgress(string fileName, int percentComplete)
@@ -1526,15 +1551,6 @@ namespace Shoko.Server.Server
         public static void RunWorkSetupDB() => workerSetupDB.RunWorkerAsync();
 
         #region Tests
-
-        private static void ReviewsTest()
-        {
-            CommandRequest_GetReviews cmd = new CommandRequest_GetReviews(7525, true);
-            cmd.Save();
-
-            //CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(7727, false);
-            //cmd.Save();
-        }
 
         private static void HashTest()
         {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
@@ -12,9 +13,11 @@ using Shoko.Models.Enums;
 using Shoko.Models.Metro;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
@@ -38,6 +41,8 @@ namespace Shoko.Server
 
             try
             {
+                var httpHandler = HttpContext.RequestServices.GetRequiredService<IHttpConnectionHandler>();
+                var udpHandler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
                 contract.HashQueueCount = ShokoService.CmdProcessorHasher.QueueCount;
                 contract.HashQueueState =
                     ShokoService.CmdProcessorHasher.QueueState.formatMessage(); //Deprecated since 3.6.0.0
@@ -56,8 +61,8 @@ namespace Shoko.Server
                 contract.ImagesQueueStateId = (int) ShokoService.CmdProcessorImages.QueueState.queueState;
                 contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
 
-                contract.IsBanned = ShokoService.AniDBProcessor.IsHttpBanned || ShokoService.AniDBProcessor.IsUdpBanned;
-                contract.BanReason = (ShokoService.AniDBProcessor.IsHttpBanned ? ShokoService.AniDBProcessor.HttpBanTime : ShokoService.AniDBProcessor.UdpBanTime).ToString();
+                contract.IsBanned = httpHandler.IsBanned || udpHandler.IsBanned;
+                contract.BanReason = (httpHandler.IsBanned ? httpHandler.BanTime : udpHandler.BanTime).ToString();
             }
             catch (Exception ex)
             {
@@ -1037,9 +1042,12 @@ namespace Shoko.Server
                     if (animeLink == null)
                     {
                         // try getting it from anidb now
-                        animeLink = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(link.RelatedAnimeID,
-                            false,
-                            false);
+                        var command = new CommandRequest_GetAnimeHTTP
+                        {
+                            BubbleExceptions = true, DownloadRelations = false, AnimeID = link.RelatedAnimeID, CreateSeriesEntry = false,
+                        };
+                        command.ProcessCommand(HttpContext.RequestServices);
+                        animeLink = command.Result;
                     }
 
                     if (animeLink == null) continue;
@@ -1082,9 +1090,12 @@ namespace Shoko.Server
                     if (animeLink == null)
                     {
                         // try getting it from anidb now
-                        animeLink = ShokoService.AniDBProcessor.GetAnimeInfoHTTP(link.SimilarAnimeID,
-                            false,
-                            false);
+                        var command = new CommandRequest_GetAnimeHTTP
+                        {
+                            BubbleExceptions = true, DownloadRelations = false, AnimeID = link.SimilarAnimeID, CreateSeriesEntry = false,
+                        };
+                        command.ProcessCommand(HttpContext.RequestServices);
+                        animeLink = command.Result;
                     }
 
                     if (animeLink == null) continue;
@@ -1188,7 +1199,11 @@ namespace Shoko.Server
         {
             try
             {
-                ShokoService.AniDBProcessor.GetAnimeInfoHTTP(animeID, true, false);
+                var command = new CommandRequest_GetAnimeHTTP
+                {
+                    BubbleExceptions = true, ForceRefresh = true, DownloadRelations = false, AnimeID = animeID, CreateSeriesEntry = false,
+                };
+                command.ProcessCommand(HttpContext.RequestServices);
             }
             catch (Exception ex)
             {

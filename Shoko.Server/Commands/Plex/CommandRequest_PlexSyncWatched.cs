@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Models;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Plex;
 using Shoko.Server.Plex.Collection;
 using Shoko.Server.Plex.Libraries;
@@ -31,9 +32,9 @@ namespace Shoko.Server.Commands.Plex
         }
 
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info($"Syncing watched videos for: {_jmmuser.Username}, if nothing happens make sure you have your libraries configured in Shoko.");
+            Logger.LogInformation($"Syncing watched videos for: {_jmmuser.Username}, if nothing happens make sure you have your libraries configured in Shoko.");
 
             foreach (var section in PlexHelper.GetForUser(_jmmuser).GetDirectories())
             {
@@ -58,12 +59,12 @@ namespace Shoko.Server.Commands.Plex
                             lastWatched = FromUnixTime((long) episode.LastViewedAt);
                         }
 
-                        SVR_VideoLocal video = animeEpisode.GetVideoLocals()?.FirstOrDefault();
+                        var video = animeEpisode.GetVideoLocals()?.FirstOrDefault();
                         if (video == null) continue;
                         var alreadyWatched = animeEpisode.GetVideoLocals()
-                                 .Where(x => x.GetAniDBFile() != null)
-                                 .Any(x => x.GetAniDBFile().IsWatched > 0);
-                        
+                            .Select(a => a.GetUserRecord(_jmmuser.JMMUserID))
+                            .Any(x => x.WatchedDate is not null || x.WatchedCount > 0);
+
                         if (!alreadyWatched && userRecord != null)
                             alreadyWatched = userRecord.IsWatched();
 
@@ -84,6 +85,7 @@ namespace Shoko.Server.Commands.Plex
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Syncing Plex for user: {0}",
             queueState = QueueStateEnum.SyncPlex,
             extraParams = new[] {_jmmuser.Username}
         };

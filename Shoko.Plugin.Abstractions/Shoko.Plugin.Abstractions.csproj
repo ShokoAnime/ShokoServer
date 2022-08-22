@@ -13,5 +13,7 @@
         <PackageTags>plugins, shoko, anime, metadata, tagging</PackageTags>
         <PackageReleaseNotes>File Events</PackageReleaseNotes>
         <Version>2.3.0-alpha4</Version>
+        <Configurations>Debug;Release;ApiLogging</Configurations>
+        <Platforms>AnyCPU;x64</Platforms>
     </PropertyGroup>
 </Project>

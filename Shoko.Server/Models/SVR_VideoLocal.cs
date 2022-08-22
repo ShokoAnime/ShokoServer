@@ -11,6 +11,7 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
@@ -257,27 +258,11 @@ namespace Shoko.Server.Models
             // now lets find all the associated AniDB_File record if there is one
             if (user.IsAniDBUser == 1)
             {
-                SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(Hash);
-                if (aniFile != null)
-                {
-                    aniFile.IsWatched = mywatched;
-
-                    if (watched)
-                        aniFile.WatchedDate = watchedDate ?? DateTime.Now;
-                    else
-                        aniFile.WatchedDate = null;
-
-
-                    RepoFactory.AniDB_File.Save(aniFile, false);
-                }
-
                 if (updateOnline)
                     if ((watched && ServerSettings.Instance.AniDb.MyList_SetWatched) ||
                         (!watched && ServerSettings.Instance.AniDb.MyList_SetUnwatched))
                     {
-                        CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(
-                            Hash, watched, false,
-                            AniDB.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime()));
+                        var cmd = new CommandRequest_UpdateMyListFileStatus(Hash, watched, false, AniDB.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime()));
                         cmd.Save();
                     }
             }
@@ -458,108 +443,64 @@ namespace Shoko.Server.Models
 
         public CL_VideoDetailed ToClientDetailed(int userID)
         {
-            CL_VideoDetailed cl = new CL_VideoDetailed();
-
             // get the cross ref episode
-            List<CrossRef_File_Episode> xrefs = EpisodeCrossRefs;
+            var xrefs = EpisodeCrossRefs;
             if (xrefs.Count == 0) return null;
 
-            cl.Percentage = xrefs[0].Percentage;
-            cl.EpisodeOrder = xrefs[0].EpisodeOrder;
-            cl.CrossRefSource = xrefs[0].CrossRefSource;
-            cl.AnimeEpisodeID = xrefs[0].EpisodeID;
-
-            cl.VideoLocal_FileName = FileName;
-            cl.VideoLocal_Hash = Hash;
-            cl.VideoLocal_FileSize = FileSize;
-            cl.VideoLocalID = VideoLocalID;
-            cl.VideoLocal_IsIgnored = IsIgnored;
-            cl.VideoLocal_IsVariation = IsVariation;
-            cl.Places = Places.Select(a => a.ToClient()).ToList();
-
-            cl.VideoLocal_MD5 = MD5;
-            cl.VideoLocal_SHA1 = SHA1;
-            cl.VideoLocal_CRC32 = CRC32;
-            cl.VideoLocal_HashSource = HashSource;
-
-            SVR_VideoLocal_User userRecord = GetUserRecord(userID);
-            if (userRecord?.WatchedDate == null)
-            {
-                cl.VideoLocal_IsWatched = 0;
-                cl.VideoLocal_WatchedDate = null;
-            }
-            else
-            {
-                cl.VideoLocal_IsWatched = 1;
-                cl.VideoLocal_WatchedDate = userRecord.WatchedDate;
-            }
-            cl.VideoLocal_ResumePosition = userRecord?.ResumePosition ?? 0;
-            cl.VideoInfo_AudioBitrate = Media?.AudioStreams.FirstOrDefault()?.BitRate.ToString();
-            cl.VideoInfo_AudioCodec =
-                LegacyMediaUtils.TranslateCodec(Media?.AudioStreams.FirstOrDefault());
-            cl.VideoInfo_Duration = Duration;
-            cl.VideoInfo_VideoBitrate = (Media?.VideoStream?.BitRate ?? 0).ToString();
-            cl.VideoInfo_VideoBitDepth = (Media?.VideoStream?.BitDepth ?? 0).ToString();
-            cl.VideoInfo_VideoCodec = LegacyMediaUtils.TranslateCodec(Media?.VideoStream);
-            cl.VideoInfo_VideoFrameRate = Media?.VideoStream?.FrameRate.ToString();
-            cl.VideoInfo_VideoResolution = VideoResolution;
-
-            // AniDB File
-            SVR_AniDB_File anifile = GetAniDBFile(); // to prevent multiple db calls
-            if (anifile != null)
-            {
-                cl.AniDB_Anime_GroupName = anifile.Anime_GroupName;
-                cl.AniDB_Anime_GroupNameShort = anifile.Anime_GroupNameShort;
-                cl.AniDB_AnimeID = anifile.AnimeID;
-                cl.AniDB_CRC = anifile.CRC;
-                cl.AniDB_Episode_Rating = anifile.Episode_Rating;
-                cl.AniDB_Episode_Votes = anifile.Episode_Votes;
-                cl.AniDB_File_AudioCodec = anifile.File_AudioCodec;
-                cl.AniDB_File_Description = anifile.File_Description;
-                cl.AniDB_File_FileExtension = anifile.File_FileExtension;
-                cl.AniDB_File_LengthSeconds = anifile.File_LengthSeconds;
-                cl.AniDB_File_ReleaseDate = anifile.File_ReleaseDate;
-                cl.AniDB_File_Source = anifile.File_Source;
-                cl.AniDB_File_VideoCodec = anifile.File_VideoCodec;
-                cl.AniDB_File_VideoResolution = anifile.File_VideoResolution;
-                cl.AniDB_FileID = anifile.FileID;
-                cl.AniDB_GroupID = anifile.GroupID;
-                cl.AniDB_MD5 = anifile.MD5;
-                cl.AniDB_SHA1 = anifile.SHA1;
-                cl.AniDB_File_FileVersion = anifile.FileVersion;
-                cl.AniDB_File_IsCensored = anifile.IsCensored;
-                cl.AniDB_File_IsChaptered = anifile.IsChaptered;
-                cl.AniDB_File_IsDeprecated = anifile.IsDeprecated;
-                cl.AniDB_File_InternalVersion = anifile.InternalVersion;
-
-                // languages
-                cl.LanguagesAudio = anifile.LanguagesRAW;
-                cl.LanguagesSubtitle = anifile.SubtitlesRAW;
-            }
-            else
-            {
-                cl.AniDB_Anime_GroupName = string.Empty;
-                cl.AniDB_Anime_GroupNameShort = string.Empty;
-                cl.AniDB_CRC = string.Empty;
-                cl.AniDB_File_AudioCodec = string.Empty;
-                cl.AniDB_File_Description = string.Empty;
-                cl.AniDB_File_FileExtension = string.Empty;
-                cl.AniDB_File_Source = string.Empty;
-                cl.AniDB_File_VideoCodec = string.Empty;
-                cl.AniDB_File_VideoResolution = string.Empty;
-                cl.AniDB_MD5 = string.Empty;
-                cl.AniDB_SHA1 = string.Empty;
-                cl.AniDB_File_FileVersion = 1;
-
-                // languages
-                cl.LanguagesAudio = string.Empty;
-                cl.LanguagesSubtitle = string.Empty;
-            }
-
-
-            AniDB_ReleaseGroup relGroup = ReleaseGroup; // to prevent multiple db calls
-            cl.ReleaseGroup = relGroup;
-            if (Media != null) cl.Media = new Media(VideoLocalID, Media);
+            var userRecord = GetUserRecord(userID);
+            var aniFile = GetAniDBFile(); // to prevent multiple db calls
+            var relGroup = ReleaseGroup; // to prevent multiple db calls
+            var cl = new CL_VideoDetailed { Percentage = xrefs[0].Percentage, EpisodeOrder = xrefs[0].EpisodeOrder, CrossRefSource = xrefs[0].CrossRefSource, AnimeEpisodeID = xrefs[0].EpisodeID,
+                VideoLocal_FileName = FileName,
+                VideoLocal_Hash = Hash,
+                VideoLocal_FileSize = FileSize,
+                VideoLocalID = VideoLocalID,
+                VideoLocal_IsIgnored = IsIgnored,
+                VideoLocal_IsVariation = IsVariation,
+                Places = Places.Select(a => a.ToClient()).ToList(),
+                VideoLocal_MD5 = MD5,
+                VideoLocal_SHA1 = SHA1,
+                VideoLocal_CRC32 = CRC32,
+                VideoLocal_HashSource = HashSource,
+                VideoLocal_IsWatched = userRecord?.WatchedDate == null ? 0 : 1,
+                VideoLocal_WatchedDate = userRecord?.WatchedDate,
+                VideoLocal_ResumePosition = userRecord?.ResumePosition ?? 0,
+                VideoInfo_AudioBitrate = Media?.AudioStreams.FirstOrDefault()?.BitRate.ToString(),
+                VideoInfo_AudioCodec = LegacyMediaUtils.TranslateCodec(Media?.AudioStreams.FirstOrDefault()),
+                VideoInfo_Duration = Duration,
+                VideoInfo_VideoBitrate = (Media?.VideoStream?.BitRate ?? 0).ToString(),
+                VideoInfo_VideoBitDepth = (Media?.VideoStream?.BitDepth ?? 0).ToString(),
+                VideoInfo_VideoCodec = LegacyMediaUtils.TranslateCodec(Media?.VideoStream),
+                VideoInfo_VideoFrameRate = Media?.VideoStream?.FrameRate.ToString(),
+                VideoInfo_VideoResolution = VideoResolution,
+                AniDB_File_FileExtension = Path.GetExtension(aniFile?.FileName) ?? string.Empty,
+                AniDB_File_LengthSeconds = (int?) Media?.General?.Duration ?? 0,
+                AniDB_AnimeID = xrefs.FirstOrDefault()?.AnimeID,
+                AniDB_CRC = CRC32,
+                AniDB_MD5 = MD5,
+                AniDB_SHA1 = SHA1,
+                AniDB_Episode_Rating = 0,
+                AniDB_Episode_Votes = 0,
+                AniDB_File_AudioCodec = LegacyMediaUtils.TranslateCodec(Media?.AudioStreams.FirstOrDefault()) ?? string.Empty,
+                AniDB_File_VideoCodec = LegacyMediaUtils.TranslateCodec(Media?.VideoStream) ?? string.Empty,
+                AniDB_File_VideoResolution = VideoResolution,
+                AniDB_Anime_GroupName = aniFile?.Anime_GroupName ?? string.Empty,
+                AniDB_Anime_GroupNameShort = aniFile?.Anime_GroupNameShort ?? string.Empty,
+                AniDB_File_Description = aniFile?.File_Description ?? string.Empty,
+                AniDB_File_ReleaseDate = aniFile?.File_ReleaseDate ?? 0,
+                AniDB_File_Source = aniFile?.File_Source ?? string.Empty,
+                AniDB_FileID = aniFile?.FileID ?? 0,
+                AniDB_GroupID = aniFile?.GroupID ?? 0,
+                AniDB_File_FileVersion = aniFile?.FileVersion ?? 1,
+                AniDB_File_IsCensored = aniFile?.IsCensored ?? false ? 1 : 0,
+                AniDB_File_IsChaptered = aniFile?.IsChaptered ?? false ? 1 : 0,
+                AniDB_File_IsDeprecated = aniFile?.IsDeprecated ?? false ? 1 : 0,
+                AniDB_File_InternalVersion = aniFile?.InternalVersion ?? 3,
+                LanguagesAudio = aniFile?.LanguagesRAW ?? string.Empty,
+                LanguagesSubtitle = aniFile?.SubtitlesRAW ?? string.Empty,
+                ReleaseGroup = relGroup,
+                Media = Media == null ? null : new Media(VideoLocalID, Media),
+            };
             return cl;
         }
 

@@ -13,10 +13,7 @@ namespace Shoko.Server.Repositories
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         private PocoIndex<int, SVR_AniDB_File, string> Hashes;
-        private PocoIndex<int, SVR_AniDB_File, string> SHA1s;
-        private PocoIndex<int, SVR_AniDB_File, string> MD5s;
         private PocoIndex<int, SVR_AniDB_File, int> FileIds;
-        private PocoIndex<int, SVR_AniDB_File, string> Resolutions;
         private PocoIndex<int, SVR_AniDB_File, int> InternalVersions;
 
         protected override int SelectKey(SVR_AniDB_File entity)
@@ -28,10 +25,7 @@ namespace Shoko.Server.Repositories
         {
             // Only populated from main thread before these are accessible, so no lock
             Hashes = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.Hash);
-            SHA1s = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.SHA1);
-            MD5s = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.MD5);
             FileIds = new PocoIndex<int, SVR_AniDB_File, int>(Cache, a => a.FileID);
-            Resolutions = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.File_VideoResolution);
             InternalVersions = new PocoIndex<int, SVR_AniDB_File, int>(Cache, a => a.InternalVersion);
         }
 
@@ -46,10 +40,6 @@ namespace Shoko.Server.Repositories
 
         public void Save(SVR_AniDB_File obj, bool updateStats)
         {
-            if (obj.Anime_GroupName == null)
-                obj.Anime_GroupName = "UNKNOWN";
-            if (obj.Anime_GroupNameShort==null)
-                obj.Anime_GroupNameShort = "UNKNOWN";
             base.Save(obj);
             if (updateStats)
             {
@@ -68,22 +58,6 @@ namespace Shoko.Server.Repositories
             }
         }
 
-        public SVR_AniDB_File GetBySHA1(string hash)
-        {
-            lock (Cache)
-            {
-                return SHA1s.GetOne(hash);
-            }
-        }
-
-        public SVR_AniDB_File GetByMD5(string hash)
-        {
-            lock (Cache)
-            {
-                return MD5s.GetOne(hash);
-            }
-        }
-
         public List<SVR_AniDB_File> GetByInternalVersion(int version)
         {
             lock (Cache)
@@ -97,9 +71,10 @@ namespace Shoko.Server.Repositories
             lock (globalDBLock)
             {
                 // the only containers that support chapters (and will have data on anidb)
+                // < 0 instead of = -1 to avoid any issues with bit data types
                 List<SVR_AniDB_File> list = DatabaseFactory.SessionFactory.OpenSession()
                     .CreateSQLQuery(
-                        @"SELECT FileID FROM AniDB_File WHERE IsChaptered = -1 AND (File_FileExtension = 'mkv' OR File_FileExtension = 'ogm')")
+                        @"SELECT FileID FROM AniDB_File WHERE IsChaptered IS NULL OR IsChaptered < 0 AND (FileName LIKE '%.mkv' OR FileName LIKE '%.ogm')")
                     .List<int>()
                     .Select(GetByFileID)
                     .ToList();
@@ -121,14 +96,6 @@ namespace Shoko.Server.Repositories
             lock (Cache)
             {
                 return FileIds.GetOne(fileID);
-            }
-        }
-
-        public List<SVR_AniDB_File> GetByResolution(string res)
-        {
-            lock (Cache)
-            {
-                return Resolutions.GetMultiple(res);
             }
         }
     }

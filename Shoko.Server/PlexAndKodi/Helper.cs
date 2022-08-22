@@ -316,7 +316,7 @@ namespace Shoko.Server.PlexAndKodi
                 string title = ep.Title;
                 if (!String.IsNullOrEmpty(title)) l.Title = title;
 
-                string romaji = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, "X-JAT")
+                string romaji = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, Shoko.Plugin.Abstractions.DataModels.TitleLanguage.Romaji)
                     .FirstOrDefault()?.Title;
                 if (!String.IsNullOrEmpty(romaji)) l.OriginalTitle = romaji;
 
@@ -573,8 +573,8 @@ namespace Shoko.Server.PlexAndKodi
                     .Select(title => new AnimeTitle
                     {
                         Title = title.Title,
-                        Language = title.Language,
-                        Type = title.TitleType
+                        Language = title.LanguageCode,
+                        Type = title.TitleType.ToString().ToLower(),
                     })
                     .ToList();
                 v.Titles = newTitles;
@@ -830,10 +830,10 @@ namespace Shoko.Server.PlexAndKodi
                     }
                 }
                 p.Titles = new List<AnimeTitle>();
-                foreach (AniDB_Anime_Title title in anidb.GetTitles())
+                foreach (var title in anidb.GetTitles())
                 {
                     p.Titles.Add(
-                        new AnimeTitle {Language = title.Language, Title = title.Title, Type = title.TitleType});
+                        new AnimeTitle {Language = title.LanguageCode, Title = title.Title, Type = title.TitleType.ToString().ToLower()});
                 }
             }
         }

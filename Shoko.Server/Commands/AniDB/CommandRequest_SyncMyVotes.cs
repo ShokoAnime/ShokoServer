@@ -1,18 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Xml;
-using AniDBAPI;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.AniDB_API.Commands;
-using Shoko.Server.AniDB_API.Raws;
+using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Providers.AniDB.Http;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.AniDB
 {
     [Serializable]
     [Command(CommandRequestType.AniDB_SyncVotes)]
@@ -20,10 +21,11 @@ namespace Shoko.Server.Commands
     {
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new()
         {
+            message = "Upload Local Votes To AniDB",
             queueState = QueueStateEnum.Actions_SyncVotes,
-            extraParams = new string[0]
+            extraParams = Array.Empty<string>(),
         };
 
 
@@ -34,65 +36,63 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_SyncMyVotes");
+            Logger.LogInformation("Processing CommandRequest_SyncMyVotes");
+            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
-                AniDBHTTPCommand_GetVotes cmd = new AniDBHTTPCommand_GetVotes();
-                cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
-                AniDBUDPResponseCode ev = cmd.Process();
-                if (ev == AniDBUDPResponseCode.GotVotesHTTP)
-                {
-                    foreach (Raw_AniDB_Vote_HTTP myVote in cmd.MyVotes)
+                var handler = serviceProvider.GetRequiredService<IHttpConnectionHandler>();
+                var request = requestFactory.Create<RequestVotes>(
+                    r =>
                     {
-                        List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(myVote.EntityID);
-                        AniDB_Vote thisVote = null;
-                        foreach (AniDB_Vote dbVote in dbVotes)
+                        r.Username = ServerSettings.Instance.AniDb.Username;
+                        r.Password = ServerSettings.Instance.AniDb.Password;
+                    }
+                );
+                var response = request.Execute();
+                if (response.Response == null) return;
+                foreach (var myVote in response.Response)
+                {
+                    var dbVotes = RepoFactory.AniDB_Vote.GetByEntity(myVote.EntityID);
+                    AniDB_Vote thisVote = null;
+                    foreach (var dbVote in dbVotes)
+                    {
+                        // we can only have anime permanent or anime temp but not both
+                        if (myVote.VoteType is AniDBVoteType.Anime or AniDBVoteType.AnimeTemp)
                         {
-                            // we can only have anime permanent or anime temp but not both
-                            if (myVote.VoteType == AniDBVoteType.Anime ||
-                                myVote.VoteType == AniDBVoteType.AnimeTemp)
-                            {
-                                if (dbVote.VoteType == (int) AniDBVoteType.Anime ||
-                                    dbVote.VoteType == (int) AniDBVoteType.AnimeTemp)
-                                {
-                                    thisVote = dbVote;
-                                }
-                            }
-                            else
+                            if (dbVote.VoteType is (int) AniDBVoteType.Anime or (int) AniDBVoteType.AnimeTemp)
                             {
                                 thisVote = dbVote;
                             }
                         }
-
-                        if (thisVote == null)
+                        else
                         {
-                            thisVote = new AniDB_Vote
-                            {
-                                EntityID = myVote.EntityID
-                            };
-                        }
-                        thisVote.VoteType = (int) myVote.VoteType;
-                        thisVote.VoteValue = myVote.VoteValue;
-
-                        RepoFactory.AniDB_Vote.Save(thisVote);
-
-                        if (myVote.VoteType == AniDBVoteType.Anime || myVote.VoteType == AniDBVoteType.AnimeTemp)
-                        {
-                            // download the anime info if the user doesn't already have it
-                            CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(thisVote.EntityID, false, false, false);
-                            cmdAnime.Save();
+                            thisVote = dbVote;
                         }
                     }
 
-                    logger.Info("Processed Votes: {0} Items", cmd.MyVotes.Count);
+                    if (thisVote == null)
+                    {
+                        thisVote = new AniDB_Vote { EntityID = myVote.EntityID };
+                    }
+                    thisVote.VoteType = (int) myVote.VoteType;
+                    thisVote.VoteValue = (int) (myVote.VoteValue * 100);
+
+                    RepoFactory.AniDB_Vote.Save(thisVote);
+
+                    if (myVote.VoteType is not (AniDBVoteType.Anime or AniDBVoteType.AnimeTemp)) continue;
+                    // download the anime info if the user doesn't already have it
+                    var cmdAnime = new CommandRequest_GetAnimeHTTP(thisVote.EntityID, false, false, false);
+                    cmdAnime.Save();
                 }
+
+                Logger.LogInformation("Processed Votes: {Count} Items", response.Response.Count);
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_SyncMyVotes: {0} ", ex);
+                Logger.LogError(ex, "Error processing CommandRequest_SyncMyVotes: {Ex} ", ex);
             }
         }
 

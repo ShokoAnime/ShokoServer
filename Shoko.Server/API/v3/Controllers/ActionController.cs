@@ -1,13 +1,15 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using AniDBAPI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
+using Shoko.Server.Commands.AniDB;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -171,8 +173,8 @@ namespace Shoko.Server.API.v3.Controllers
             {
                 var list = allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
                     .Where(_tuple => _tuple.anidb != null)
-                    .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
-                    .Where(_tuple => _tuple.vid.Media?.MenuStreams.Any() != (_tuple.anidb.IsChaptered == 1))
+                    .Where(_tuple => !_tuple.anidb.IsDeprecated)
+                    .Where(_tuple => _tuple.vid.Media?.MenuStreams.Any() != _tuple.anidb.IsChaptered)
                     .Select(_tuple => _tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
                     .Where(path => !string.IsNullOrEmpty(path)).ToList();
                 int index = 0;
@@ -203,33 +205,25 @@ namespace Shoko.Server.API.v3.Controllers
             try
             {
                 var allAnime = RepoFactory.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
-                Logger.LogInformation($"Starting the check for {allAnime.Count} anime XML files");
+                Logger.LogInformation("Starting the check for {AllAnimeCount} anime XML files", allAnime.Count);
                 int updatedAnime = 0;
                 for (var i = 0; i < allAnime.Count; i++)
                 {
                     var animeID = allAnime[i];
-                    if (i % 10 == 1) Logger.LogInformation($"Checking anime {i + 1}/{allAnime.Count} for XML file");
+                    if (i % 10 == 1) Logger.LogInformation("Checking anime {I}/{AllAnimeCount} for XML file", i + 1, allAnime.Count);
 
-                    var xml = APIUtils.LoadAnimeHTTPFromFile(animeID);
-                    if (xml == null)
-                    {
-                        Series.QueueAniDBRefresh(animeID, true, false, false);
-                        updatedAnime++;
-                        continue;
-                    }
+                    var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
+                    var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
 
-                    var rawAnime = AniDBHTTPHelper.ProcessAnimeDetails(xml, animeID);
-                    if (rawAnime == null)
-                    {
-                        Series.QueueAniDBRefresh(animeID, true, false, false);
-                        updatedAnime++;
-                    }
+                    if (rawXml != null) continue;
+                    Series.QueueAniDBRefresh(HttpContext, animeID, true, false, false);
+                    updatedAnime++;
                 }
-                Logger.LogInformation($"Updating {updatedAnime} anime");
+                Logger.LogInformation("Updating {UpdatedAnime} anime", updatedAnime);
             }
             catch (Exception e)
             {
-                Logger.LogError(e, $"Error checking and queuing AniDB XML Updates: {e}");
+                Logger.LogError(e, "Error checking and queuing AniDB XML Updates: {E}", e);
                 return InternalError(e.Message);
             }
             return Ok();

@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using NHibernate;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
@@ -29,6 +31,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Searching for anime on The MovieDB: {0}",
             queueState = QueueStateEnum.SearchTMDb,
             extraParams = new[] {AnimeID.ToString()}
         };
@@ -46,9 +49,9 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_MovieDBSearchAnime: {0}", AnimeID);
+            Logger.LogInformation("Processing CommandRequest_MovieDBSearchAnime: {0}", AnimeID);
 
             try
             {
@@ -99,21 +102,21 @@ namespace Shoko.Server.Commands
 
                     // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
                     List<MovieDB_Movie_Result> results = MovieDBHelper.Search(searchCriteria);
-                    logger.Trace("Found {0} moviedb results for {1} on MovieDB", results.Count, searchCriteria);
+                    Logger.LogTrace("Found {0} moviedb results for {1} on MovieDB", results.Count, searchCriteria);
                     if (ProcessSearchResults(session, results, searchCriteria)) return;
 
 
                     if (results.Count == 0)
                     {
-                        foreach (AniDB_Anime_Title title in anime.GetTitles())
+                        foreach (var title in anime.GetTitles())
                         {
-                            if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
+                            if (title.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Official)
                                 continue;
 
                             if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
 
                             results = MovieDBHelper.Search(title.Title);
-                            logger.Trace("Found {0} moviedb results for search on {1}", results.Count, title.Title);
+                            Logger.LogTrace("Found {0} moviedb results for search on {1}", results.Count, title.Title);
                             if (ProcessSearchResults(session, results, title.Title)) return;
                         }
                     }
@@ -121,7 +124,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex);
+                Logger.LogError("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex);
             }
         }
 
@@ -130,7 +133,7 @@ namespace Shoko.Server.Commands
             if (results.Count == 1)
             {
                 // since we are using this result, lets download the info
-                logger.Trace("Found 1 moviedb results for search on {0} --- Linked to {1} ({2})", searchCriteria,
+                Logger.LogTrace("Found 1 moviedb results for search on {0} --- Linked to {1} ({2})", searchCriteria,
                     results[0].MovieName, results[0].MovieID);
 
                 int movieID = results[0].MovieID;

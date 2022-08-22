@@ -44,7 +44,6 @@ namespace Shoko.Server.Extensions
                 DateTimeUpdated = anime.GetDateTimeUpdated(),
                 DateTimeDescUpdated = anime.DateTimeDescUpdated,
                 ImageEnabled = anime.ImageEnabled,
-                AwardList = anime.AwardList,
                 Restricted = anime.Restricted,
                 AnimePlanetID = anime.AnimePlanetID,
                 ANNID = anime.ANNID,
@@ -79,7 +78,7 @@ namespace Shoko.Server.Extensions
                 AniDB_CharacterID = c.AniDB_CharacterID,
                 CharID = c.CharID,
                 PicName = c.PicName,
-                CreatorListRaw = c.CreatorListRaw,
+                CreatorListRaw = c.CreatorListRaw ?? "",
                 CharName = c.CharName,
                 CharKanjiName = c.CharKanjiName,
                 CharDescription = c.CharDescription
@@ -354,7 +353,7 @@ namespace Shoko.Server.Extensions
                 Description = ep.Description,
                 AirDate = ep.AirDate,
                 DateTimeUpdated = ep.DateTimeUpdated,
-                Titles = titles.ToDictionary(a => a.Language, a => a.Title)
+                Titles = titles.ToDictionary(a => a.LanguageCode, a => a.Title)
             };
         }
 

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -24,6 +26,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Sync episode to collection on Trakt: {0} - {1}",
             queueState = QueueStateEnum.SyncTraktEpisodes,
             extraParams = new[] {AnimeEpisodeID.ToString(), Action.ToString()}
         };
@@ -41,9 +44,9 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_TraktCollectionEpisode: {0}-{1}", AnimeEpisodeID, Action);
+            Logger.LogInformation("Processing CommandRequest_TraktCollectionEpisode: {0}-{1}", AnimeEpisodeID, Action);
 
             try
             {
@@ -59,7 +62,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TraktCollectionEpisode: {0} - {1} - {2}", AnimeEpisodeID,
+                Logger.LogError("Error processing CommandRequest_TraktCollectionEpisode: {0} - {1} - {2}", AnimeEpisodeID,
                     Action,
                     ex);
             }

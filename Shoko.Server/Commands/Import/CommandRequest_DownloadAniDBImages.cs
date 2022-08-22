@@ -6,6 +6,8 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Xml;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
@@ -13,11 +15,11 @@ using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.AniDB_API;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -32,20 +34,23 @@ namespace Shoko.Server.Commands
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority1;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        public override QueueStateStruct PrettyDescription => new()
         {
+            message = "Downloading Image {0}: {1}",
             queueState = QueueStateEnum.DownloadImage,
             extraParams = new[] { Resources.Command_ValidateAllImages_AniDBPosters, AnimeID.ToString() }
         };
 
-        public QueueStateStruct PrettyDescriptionCharacters => new QueueStateStruct
+        public QueueStateStruct PrettyDescriptionCharacters => new()
         {
+            message = "Downloading Image {0}: {1}",
             queueState = QueueStateEnum.DownloadImage,
             extraParams = new[] { Resources.Command_ValidateAllImages_AniDBCharacters, AnimeID.ToString() }
         };
 
-        public QueueStateStruct PrettyDescriptionCreators => new QueueStateStruct
+        public QueueStateStruct PrettyDescriptionCreators => new()
         {
+            message = "Downloading Image {0}: {1}",
             queueState = QueueStateEnum.DownloadImage,
             extraParams = new[] { Resources.Command_ValidateAllImages_AniDBSeiyuus, AnimeID.ToString() }
         };
@@ -63,35 +68,35 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_DownloadAniDBImages: {0}", AnimeID);
+            Logger.LogInformation("Processing CommandRequest_DownloadAniDBImages: {AnimeID}", AnimeID);
 
-            StaticRateLimiter.UDP.EnsureRate();
             try
             {
-                List<ImageEntityType> types = new List<ImageEntityType>
+                var types = new List<ImageEntityType>
                 {
                     ImageEntityType.AniDB_Cover,
                     ImageEntityType.AniDB_Character,
                     ImageEntityType.AniDB_Creator
                 };
-                foreach (var EntityTypeEnum in types)
+                IUDPConnectionHandler handler = null;
+                foreach (var entityTypeEnum in types)
                 {
-                    List<string> downloadURLs = new List<string>();
-                    List<string> fileNames = new List<string>();
-                    switch (EntityTypeEnum)
+                    var downloadUrls = new List<string>();
+                    var fileNames = new List<string>();
+                    switch (entityTypeEnum)
                     {
                         case ImageEntityType.AniDB_Cover:
-                            SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                             if (anime == null)
                             {
-                                logger.Warn(
-                                    $"AniDB poster image failed to download: Can't find AniDB_Anime with ID: {AnimeID}");
+                                Logger.LogWarning($"AniDB poster image failed to download: Can't find AniDB_Anime with ID: {AnimeID}");
                                 return;
                             }
 
-                            downloadURLs.Add(string.Format(ShokoService.AniDBProcessor.ImageServerUrl, anime.Picname));
+                            handler ??= serviceProvider.GetRequiredService<IUDPConnectionHandler>();
+                            downloadUrls.Add(string.Format(handler.ImageServerUrl, anime.Picname));
                             fileNames.Add(anime.PosterPath);
                             break;
 
@@ -104,14 +109,15 @@ namespace Shoko.Server.Commands
                                 .ToList();
                             if (chrs == null || chrs.Count == 0)
                             {
-                                logger.Warn(
+                                Logger.LogWarning(
                                     $"AniDB Character image failed to download: Can't find Character for anime: {AnimeID}");
                                 return;
                             }
 
+                            handler ??= serviceProvider.GetRequiredService<IUDPConnectionHandler>();
                             foreach (var chr in chrs)
                             {
-                                downloadURLs.Add(string.Format(ShokoService.AniDBProcessor.ImageServerUrl, chr.PicName));
+                                downloadUrls.Add(string.Format(handler.ImageServerUrl, chr.PicName));
                                 fileNames.Add(chr.GetPosterPath());
                             }
 
@@ -129,14 +135,15 @@ namespace Shoko.Server.Commands
                                 .ToList();
                             if (creators == null || creators.Count == 0)
                             {
-                                logger.Warn(
+                                Logger.LogWarning(
                                     $"AniDB Seiyuu image failed to download: Can't find Seiyuus for anime: {AnimeID}");
                                 return;
                             }
 
+                            handler ??= serviceProvider.GetRequiredService<IUDPConnectionHandler>();
                             foreach (var creator in creators)
                             {
-                                downloadURLs.Add(string.Format(ShokoService.AniDBProcessor.ImageServerUrl, creator.PicName));
+                                downloadUrls.Add(string.Format(handler.ImageServerUrl, creator.PicName));
                                 fileNames.Add(creator.GetPosterPath());
                             }
 
@@ -144,27 +151,27 @@ namespace Shoko.Server.Commands
                             break;
                     }
 
-                    if (downloadURLs.Count == 0 || fileNames.All(a => string.IsNullOrEmpty(a)))
+                    if (downloadUrls.Count == 0 || fileNames.All(string.IsNullOrEmpty))
                     {
-                        logger.Warn("Image failed to download: No URLs were generated. This should never happen");
+                        Logger.LogWarning("Image failed to download: No URLs were generated. This should never happen");
                         return;
                     }
 
 
-                    for (int i = 0; i < downloadURLs.Count; i++)
+                    for (var i = 0; i < downloadUrls.Count; i++)
                     {
                         try
                         {
                             if (string.IsNullOrEmpty(fileNames[i])) continue;
-                            bool downloadImage = true;
-                            bool fileExists = File.Exists(fileNames[i]);
-                            bool imageValid = fileExists && Misc.IsImageValid(fileNames[i]);
+                            var downloadImage = true;
+                            var fileExists = File.Exists(fileNames[i]);
+                            var imageValid = fileExists && Misc.IsImageValid(fileNames[i]);
 
                             if (imageValid && !ForceDownload) downloadImage = false;
 
                             if (!downloadImage) continue;
 
-                            string tempName = Path.Combine(ImageUtils.GetImagesTempFolder(),
+                            var tempName = Path.Combine(ImageUtils.GetImagesTempFolder(),
                                 Path.GetFileName(fileNames[i]));
 
                             try
@@ -176,32 +183,32 @@ namespace Shoko.Server.Commands
                                 Thread.CurrentThread.CurrentUICulture =
                                     CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-                                logger.Warn(Resources.Command_DeleteError, fileNames, ex.Message);
+                                Logger.LogWarning(Resources.Command_DeleteError, fileNames, ex.Message);
                                 return;
                             }
 
                             // If this has any issues, it will throw an exception, so the catch below will handle it
-                            RecursivelyRetryDownload(downloadURLs[i], ref tempName, 0, 5);
+                            RecursivelyRetryDownload(downloadUrls[i], ref tempName, 0, 5);
 
                             // move the file to it's final location
                             // check that the final folder exists
-                            string fullPath = Path.GetDirectoryName(fileNames[i]);
+                            var fullPath = Path.GetDirectoryName(fileNames[i]);
                             if (!Directory.Exists(fullPath))
                                 Directory.CreateDirectory(fullPath);
 
                             File.Move(tempName, fileNames[i]);
-                            logger.Info($"Image downloaded: {fileNames[i]} from {downloadURLs[i]}");
+                            Logger.LogInformation($"Image downloaded: {fileNames[i]} from {downloadUrls[i]}");
                         }
                         catch (WebException e)
                         {
-                            logger.Warn("Error processing CommandRequest_DownloadAniDBImages: {0} ({1}) - {2}",
-                                downloadURLs[i],
+                            Logger.LogWarning("Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
+                                downloadUrls[i],
                                 AnimeID,
                                 e.Message);
                         }catch (Exception e)
                         {
-                            logger.Error("Error processing CommandRequest_DownloadAniDBImages: {0} ({1}) - {2}",
-                                downloadURLs[i],
+                            Logger.LogError(e, "Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
+                                downloadUrls[i],
                                 AnimeID,
                                 e);
                         }
@@ -210,12 +217,11 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_DownloadAniDBImages: {0} - {1}", AnimeID, ex);
+                Logger.LogError(ex, "Error processing CommandRequest_DownloadAniDBImages: {AnimeID} - {Ex}", AnimeID, ex);
             }
-            StaticRateLimiter.UDP.Reset();
         }
 
-        private void RecursivelyRetryDownload(string downloadURL, ref string tempFilePath, int count, int maxretry)
+        private static void RecursivelyRetryDownload(string downloadURL, ref string tempFilePath, int count, int maxretry)
         {
             try
             {
@@ -227,79 +233,56 @@ namespace Shoko.Server.Commands
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
                 ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
 
-                using (WebClient client = new WebClient())
+                using var client = new WebClient();
+                client.Headers.Add("user-agent", "JMM");
+                //OnImageDownloadEvent(new ImageDownloadEventArgs("", req, ImageDownloadEventType.Started));
+                //BaseConfig.MyAnimeLog.Write("ProcessImages: Download: {0}  *** to ***  {1}", req.URL, fullName);
+
+                AniDbImageRateLimiter.Instance.EnsureRate();
+                var bytes = client.DownloadData(downloadURL);
+                AniDbImageRateLimiter.Instance.Reset();
+                if (bytes.Length < 4)
+                    throw new WebException(
+                        "The image download stream returned less than 4 bytes (a valid image has 2-4 bytes in the header)");
+
+                var imageFormat = Misc.GetImageFormat(bytes);
+                string extension;
+                switch (imageFormat)
                 {
-                    client.Headers.Add("user-agent", "JMM");
-                    //OnImageDownloadEvent(new ImageDownloadEventArgs("", req, ImageDownloadEventType.Started));
-                    //BaseConfig.MyAnimeLog.Write("ProcessImages: Download: {0}  *** to ***  {1}", req.URL, fullName);
-
-                    AniDbImageRateLimiter.Instance.EnsureRate();
-                    byte[] bytes = client.DownloadData(downloadURL);
-                    AniDbImageRateLimiter.Instance.Reset();
-                    if (bytes.Length < 4)
-                        throw new WebException(
-                            "The image download stream returned less than 4 bytes (a valid image has 2-4 bytes in the header)");
-
-                    ImageFormatEnum imageFormat = Misc.GetImageFormat(bytes);
-                    string extension;
-                    switch (imageFormat)
-                    {
-                        case ImageFormatEnum.bmp:
-                            extension = ".bmp";
-                            break;
-                        case ImageFormatEnum.gif:
-                            extension = ".gif";
-                            break;
-                        case ImageFormatEnum.jpeg:
-                            extension = ".jpeg";
-                            break;
-                        case ImageFormatEnum.png:
-                            extension = ".png";
-                            break;
-                        case ImageFormatEnum.tiff:
-                            extension = ".tiff";
-                            break;
-                        default: throw new WebException("The image download stream returned an invalid image");
-                    }
-
-                    if (extension.Length <= 0) return;
-                    string newFile = Path.ChangeExtension(tempFilePath, extension);
-                    if(newFile == null) return;
-
-                    if (File.Exists(newFile)) File.Delete(newFile);
-                    using (var fs = new FileStream(newFile, FileMode.Create, FileAccess.Write))
-                    {
-                        fs.Write(bytes, 0, bytes.Length);
-                    }
-                    tempFilePath = newFile;
+                    case ImageFormatEnum.bmp:
+                        extension = ".bmp";
+                        break;
+                    case ImageFormatEnum.gif:
+                        extension = ".gif";
+                        break;
+                    case ImageFormatEnum.jpeg:
+                        extension = ".jpeg";
+                        break;
+                    case ImageFormatEnum.png:
+                        extension = ".png";
+                        break;
+                    case ImageFormatEnum.tiff:
+                        extension = ".tiff";
+                        break;
+                    default: throw new WebException("The image download stream returned an invalid image");
                 }
+
+                if (extension.Length <= 0) return;
+                var newFile = Path.ChangeExtension(tempFilePath, extension);
+                if(newFile == null) return;
+
+                if (File.Exists(newFile)) File.Delete(newFile);
+                using (var fs = new FileStream(newFile, FileMode.Create, FileAccess.Write))
+                {
+                    fs.Write(bytes, 0, bytes.Length);
+                }
+                tempFilePath = newFile;
             }
             catch (WebException)
             {
                 if (count + 1 >= maxretry) throw;
                 Thread.Sleep(500);
                 RecursivelyRetryDownload(downloadURL, ref tempFilePath, count + 1, maxretry);
-            }
-        }
-
-        private string GetFileName(ImageDownloadRequest req)
-        {
-            switch (req.ImageType)
-            {
-                case ImageEntityType.AniDB_Cover:
-                    SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
-                    return anime.PosterPath;
-
-                case ImageEntityType.AniDB_Character:
-                    AniDB_Character chr = req.ImageData as AniDB_Character;
-                    return chr.GetPosterPath();
-
-                case ImageEntityType.AniDB_Creator:
-                    AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
-                    return creator.GetPosterPath();
-
-                default:
-                    return string.Empty;
             }
         }
 
@@ -317,16 +300,14 @@ namespace Shoko.Server.Commands
             DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (CommandDetails.Trim().Length > 0)
-            {
-                XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(CommandDetails);
+            if (CommandDetails.Trim().Length <= 0) return true;
+            var docCreator = new XmlDocument();
+            docCreator.LoadXml(CommandDetails);
 
-                // populate the fields
-                AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadAniDBImages", "AnimeID"));
-                ForceDownload =
-                    bool.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadAniDBImages", "ForceDownload"));
-            }
+            // populate the fields
+            AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadAniDBImages", "AnimeID"));
+            ForceDownload =
+                bool.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadAniDBImages", "ForceDownload"));
 
             return true;
         }
@@ -335,7 +316,7 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest
+            var cq = new CommandRequest
             {
                 CommandID = CommandID,
                 CommandType = CommandType,

@@ -4,17 +4,18 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml;
-using AniDBAPI;
-using AniDBAPI.Commands;
+using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
@@ -320,46 +321,7 @@ namespace Shoko.Server.Databases
 
         public static void FixAniDB_EpisodesWithMissingTitles()
         {
-            logger.Info("Checking for Episodes with Missing Titles");
-            var episodes = RepoFactory.AniDB_Episode.GetAll()
-                .Where(a => !RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.EpisodeID).Any() &&
-                            RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null).ToList();
-            var animeIDs = episodes.Select(a => a.AnimeID).Distinct().OrderBy(a => a).ToList();
-            int count = 0;
-            logger.Info($"There are {episodes.Count} episodes in {animeIDs.Count} anime with missing titles. Attempting to fill them from HTTP cache");
-            foreach (int animeID in animeIDs)
-            {
-                count++;
-                try
-                {
-                    var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                    if (anime == null)
-                    {
-                        logger.Info($"Anime {animeID} is missing it's AniDB_Anime record. That's a problem. Try importing a file for the anime.");
-                        continue;
-                    }
-
-                    ServerState.Instance.ServerStartingStatus = string.Format(
-                        Resources.Database_Validating,
-                        $"Generating Episode Info for {anime.MainTitle}",
-                        $" {count}/{animeIDs.Count}");
-                    XmlDocument docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
-                    if (docAnime == null) continue;
-                    logger.Info($"{anime.MainTitle} has a proper HTTP cache. Attempting to regenerate info from it.");
-
-                    var rawEpisodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
-                    anime.CreateEpisodes(rawEpisodes);
-                    logger.Info($"Recreating Episodes for {anime.MainTitle}");
-                    SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
-                    if (series == null) continue;
-                    series.CreateAnimeEpisodes(anime);
-                }
-                catch (Exception e)
-                {
-                    logger.Error($"Error Populating Episode Titles for Anime ({animeID}): {e}");
-                }
-            }
-            logger.Info("Finished Filling Episode Titles from Cache.");
+            // Deprecated. It's been a while since this was relevant
         }
 
         public static void FixDuplicateTraktLinks()
@@ -457,56 +419,7 @@ namespace Shoko.Server.Databases
 
         public static void PopulateMyListIDs()
         {
-            // Don't bother with no AniDB creds, we assume first run
-            if (!ShokoService.AniDBProcessor.ValidAniDBCredentials()) return;
-
-            // Don't even bother on new DBs
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                var result = session.CreateSQLQuery("SELECT COUNT(VideoLocalID) FROM VideoLocal").UniqueResult();
-                long vlCount = result is int ? (int) result : result is long ? (long) result : 0;
-                if (vlCount == 0) return;
-            }
-
-            // Get the list from AniDB
-            AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
-            cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
-            AniDBUDPResponseCode ev = cmd.Process();
-            if (ev != AniDBUDPResponseCode.GotMyListHTTP)
-            {
-                logger.Warn("AniDB did not return a successful code: " + ev);
-                return;
-            }
-            // Add missing files on AniDB
-            var onlineFiles = cmd.MyListItems.ToLookup(a => a.FileID);
-            var dictAniFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
-
-            var list = RepoFactory.VideoLocal.GetAll().Where(a => !string.IsNullOrEmpty(a.Hash)).ToList();
-            int count = 0;
-            foreach (SVR_VideoLocal vid in list)
-            {
-                count++;
-                if (count % 10 == 0)
-                {
-                    ServerState.Instance.ServerStartingStatus = string.Format(
-                        Resources.Database_Validating, "Populating MyList IDs (this will help solve MyList issues)",
-                        $" {count}/{list.Count}");
-                }
-
-                // Does it have a linked AniFile
-                if (!dictAniFiles.Contains(vid.Hash)) continue;
-
-                int fileID = dictAniFiles[vid.Hash].FirstOrDefault()?.FileID ?? 0;
-                if (fileID == 0) continue;
-                // Is it in MyList
-                if (!onlineFiles.Contains(fileID)) continue;
-
-                Raw_AniDB_MyListFile file = onlineFiles[fileID].FirstOrDefault(a => a != null && a.ListID != 0);
-                if (file == null || vid.MyListID != 0) continue;
-
-                vid.MyListID = file.ListID;
-                RepoFactory.VideoLocal.Save(vid);
-            }
+            // nah
         }
 
         public static void RefreshAniDBInfoFromXML()
@@ -523,16 +436,15 @@ namespace Shoko.Server.Databases
                 i++;
                 try
                 {
-                    var getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
-                    getAnimeCmd.Init(animeID, false, false, true);
-                    var result = getAnimeCmd.Process();
-                    if (result == AniDBUDPResponseCode.Banned_555 || result == AniDBUDPResponseCode.NoSuchAnime)
-                        continue;
-                    if (getAnimeCmd.Anime == null) continue;
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    var command = new CommandRequest_GetAnimeHTTP
                     {
-                        ShokoService.AniDBProcessor.SaveResultsForAnimeXML(session, animeID, false, false, getAnimeCmd, 0, false);
-                    }
+                        CacheOnly = true,
+                        DownloadRelations = false,
+                        AnimeID = animeID,
+                        CreateSeriesEntry = false,
+                        BubbleExceptions = true,
+                    };
+                    command.ProcessCommand(ShokoServer.ServiceContainer);
                 }
                 catch (Exception e)
                 {
@@ -602,55 +514,7 @@ namespace Shoko.Server.Databases
 
         public static void PopulateResourceLinks()
         {
-            int i = 0;
-            var animes = RepoFactory.AniDB_Anime.GetAll().ToList();
-            foreach (var anime in animes)
-            {
-                if (i % 10 == 0)
-                    ServerState.Instance.ServerStartingStatus = string.Format(
-                        Resources.Database_Validating, "Populating Resource Links from Cache",
-                        $" {i}/{animes.Count}");
-                i++;
-                try
-                {
-                    var xmlDocument = APIUtils.LoadAnimeHTTPFromFile(anime.AnimeID);
-                    if (xmlDocument == null) continue;
-                    var resourceLinks = AniDBHTTPHelper.ProcessResources(xmlDocument, anime.AnimeID);
-                    anime.CreateResources(resourceLinks);
-                }
-                catch (Exception e)
-                {
-                    logger.Error(
-                        $"There was an error Populating Resource Links for AniDB_Anime {anime.AnimeID}, Update the Series' AniDB Info for a full stack: {e.Message}");
-                }
-            }
-
-
-            using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
-            {
-                i = 0;
-                var batches = animes.Batch(50).ToList();
-                foreach (var animeBatch in batches)
-                {
-                    i++;
-                    ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
-                        "Saving AniDB_Anime batch ", $"{i}/{batches.Count}");
-                    try
-                    {
-                        using (var transaction = session.BeginTransaction())
-                        {
-                            foreach (var anime in animeBatch)
-                                RepoFactory.AniDB_Anime.SaveWithOpenTransaction(session.Wrap(), anime);
-                            transaction.Commit();
-                        }
-
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Error($"There was an error saving anime while Populating Resource Links: {e}");
-                    }
-                }
-            }
+            // deprecated
         }
 
         public static void PopulateTagWeight()
@@ -788,19 +652,6 @@ namespace Shoko.Server.Databases
         {
             // Reset incorrectly parsed watch dates for anidb file.
             logger.Debug($"Looking for faulty anidb file entries...");
-            var anidbFilesToSave = new List<SVR_AniDB_File>();
-            foreach (var anidbFile in RepoFactory.AniDB_File.GetAll())
-            {
-                if (anidbFile.WatchedDate.HasValue && anidbFile.WatchedDate.Value.ToUniversalTime().Equals(DateTime.UnixEpoch))
-                {
-                    anidbFile.WatchedDate = null;
-                    anidbFile.IsWatched = 0;
-                    anidbFilesToSave.Add(anidbFile);
-                }
-            }
-            logger.Debug($"Found {anidbFilesToSave.Count} anidb file entries to fix.");
-            RepoFactory.AniDB_File.Save(anidbFilesToSave);
-            anidbFilesToSave.Clear();
             logger.Debug($"Looking for faulty episode user records...");
             // Fetch every episode user record stored to both remove orphaned records and to make sure the watch date is correct.
             var userDict = RepoFactory.JMMUser.GetAll().ToDictionary(user => user.JMMUserID);

@@ -9,11 +9,12 @@ namespace Shoko.Server.Providers.AniDB
 {
     public abstract class ConnectionHandler
     {
+        protected readonly ILoggerFactory _loggerFactory;
         protected ILogger Logger { get; set; } 
         internal IServiceProvider ServiceProvider { get; set; }
         protected CommandProcessor GeneralQueue { get; set; }
         protected AniDBRateLimiter RateLimiter { get; set; }
-        public abstract int BanTimerResetLength { get; }
+        public abstract double BanTimerResetLength { get; }
         public abstract string Type { get; }
         public abstract UpdateType BanEnum { get; }
         
@@ -91,11 +92,10 @@ namespace Shoko.Server.Providers.AniDB
             }
         }
 
-        public ConnectionHandler(IServiceProvider provider, CommandProcessor queue, AniDBRateLimiter rateLimiter)
+        public ConnectionHandler(ILoggerFactory loggerFactory, CommandProcessorGeneral queue, AniDBRateLimiter rateLimiter)
         {
-            var factory = provider.GetService<ILoggerFactory>();
-            ServiceProvider = provider;
-            Logger = factory.CreateLogger(GetType());
+            _loggerFactory = loggerFactory;
+            Logger = loggerFactory.CreateLogger(GetType());
             GeneralQueue = queue;
             RateLimiter = rateLimiter;
             BanResetTimer = new Timer

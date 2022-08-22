@@ -12,7 +12,6 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
-using Shoko.Server.Commands.Azure;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
@@ -145,24 +144,10 @@ namespace Shoko.Server
                 {
                     ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
                     {
+                        message = "Checking File for Hashes: {0}",
                         queueState = QueueStateEnum.CheckingFile,
                         extraParams = new[] {v.FileName}
                     };
-                    var file = RepoFactory.AniDB_File.GetByHash(v.ED2KHash);
-                    if (file != null)
-                    {
-                        if (!string.IsNullOrEmpty(file.CRC) && !string.IsNullOrEmpty(file.SHA1) &&
-                            !string.IsNullOrEmpty(file.MD5))
-                        {
-                            v.CRC32 = file.CRC;
-                            v.MD5 = file.MD5;
-                            v.SHA1 = file.SHA1;
-                            RepoFactory.VideoLocal.Save(v, false);
-                            missfiles.Remove(v);
-                            withfiles.Add(v);
-                            continue;
-                        }
-                    }
                     var ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
                     if (ls != null)
                     {
@@ -192,6 +177,7 @@ namespace Shoko.Server
                         {
                             ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
                             {
+                                message = "Hashing File: {0}",
                                 queueState = QueueStateEnum.HashingFile,
                                 extraParams = new[] {v.FileName}
                             };
@@ -881,9 +867,22 @@ namespace Shoko.Server
 
                     if (removeMyList)
                     {
-                        var cmdDel =
-                            new CommandRequest_DeleteFileFromMyList(v.MyListID);
-                        cmdDel.Save();
+                        if (RepoFactory.AniDB_File.GetByHash(v.Hash) == null)
+                        {
+                            var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
+                            foreach (var xref in xrefs)
+                            {
+                                var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                                if (ep == null) continue;
+                                var cmdDel = new CommandRequest_DeleteFileFromMyList { AnimeID = xref.AnimeID, EpisodeType = ep.GetEpisodeTypeEnum(), EpisodeNumber = ep.EpisodeNumber };
+                                cmdDel.Save();
+                            }
+                        }
+                        else
+                        {
+                            var cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                            cmdDel.Save();
+                        }
                     }
 
                     using (var transaction = session.BeginTransaction())
@@ -976,20 +975,7 @@ namespace Shoko.Server
             {
                 if (missingInfo)
                 {
-                    var vids = RepoFactory.VideoLocal.GetByAniDBResolution("0x0");
-
-                    foreach (var vid in vids)
-                    {
-                        if (!vidsToUpdate.Contains(vid.VideoLocalID))
-                            vidsToUpdate.Add(vid.VideoLocalID);
-                    }
-
-                    vids = RepoFactory.VideoLocal.GetWithMissingChapters();
-                    foreach (var vid in vids)
-                    {
-                        if (!vidsToUpdate.Contains(vid.VideoLocalID))
-                            vidsToUpdate.Add(vid.VideoLocalID);
-                    }
+                    vidsToUpdate.AddRange(RepoFactory.VideoLocal.GetWithMissingChapters().Where(vid => !vidsToUpdate.Contains(vid.VideoLocalID)).Select(a => a.VideoLocalID));
                 }
 
                 if (outOfDate)
@@ -1138,40 +1124,6 @@ namespace Shoko.Server
             cmd.Save();
         }
 
-        public static void SendUserInfoUpdate(bool forceRefresh)
-        {
-            if (!ServerSettings.Instance.WebCache.Enabled) return; 
-            // update the anonymous user info every 12 hours
-            // we will always assume that an anime was downloaded via http first
-
-            var sched =
-                RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AzureUserInfo);
-            if (sched != null)
-            {
-                // if we have run this in the last 6 hours and are not forcing it, then exit
-                var tsLastRun = DateTime.Now - sched.LastUpdate;
-                if (tsLastRun.TotalHours < 6)
-                {
-                    if (!forceRefresh) return;
-                }
-            }
-
-            if (sched == null)
-            {
-                sched = new ScheduledUpdate
-                {
-                    UpdateType = (int)ScheduledUpdateType.AzureUserInfo,
-                    UpdateDetails = string.Empty
-                };
-            }
-            sched.LastUpdate = DateTime.Now;
-            RepoFactory.ScheduledUpdate.Save(sched);
-
-            var cmd =
-                new CommandRequest_Azure_SendUserInfo(ServerSettings.Instance.AniDb.Username);
-            cmd.Save();
-        }
-
         public static void CheckForAnimeUpdate(bool forceRefresh)
         {
             if (ServerSettings.Instance.AniDb.Anime_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
@@ -1196,25 +1148,7 @@ namespace Shoko.Server
 
         public static void CheckForMyListStatsUpdate(bool forceRefresh)
         {
-            if (ServerSettings.Instance.AniDb.MyListStats_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
-                return;
-            var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.MyListStats_UpdateFrequency);
-
-            var sched =
-                RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
-            if (sched != null)
-            {
-                // if we have run this in the last 24 hours and are not forcing it, then exit
-                var tsLastRun = DateTime.Now - sched.LastUpdate;
-                Logger.Trace("Last AniDB MyList Stats Update: {0} minutes ago", tsLastRun.TotalMinutes);
-                if (tsLastRun.TotalHours < freqHours)
-                {
-                    if (!forceRefresh) return;
-                }
-            }
-
-            var cmd = new CommandRequest_UpdateMyListStats(forceRefresh);
-            cmd.Save();
+            // Obsolete. Noop
         }
 
         public static void CheckForMyListSyncUpdate(bool forceRefresh)

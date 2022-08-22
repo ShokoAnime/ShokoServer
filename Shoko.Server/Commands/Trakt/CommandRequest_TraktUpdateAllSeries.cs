@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -20,7 +22,12 @@ namespace Shoko.Server.Commands
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.UpdateTrakt, extraParams = new string[0]};
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        {
+            message = "Updating all Trakt series info added to queue",
+            queueState = QueueStateEnum.UpdateTrakt,
+            extraParams = new string[0]
+        };
 
         public CommandRequest_TraktUpdateAllSeries()
         {
@@ -33,9 +40,9 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_TraktUpdateAllSeries");
+            Logger.LogInformation("Processing CommandRequest_TraktUpdateAllSeries");
 
             try
             {
@@ -71,7 +78,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TraktUpdateAllSeries: {0}", ex);
+                Logger.LogError("Error processing CommandRequest_TraktUpdateAllSeries: {0}", ex);
             }
         }
 

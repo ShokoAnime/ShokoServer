@@ -1,13 +1,18 @@
 ﻿using System;
 using System.Globalization;
 using System.Xml;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.AniDB
 {
     [Serializable]
     [Command(CommandRequestType.AniDB_VoteAnime)]
@@ -21,6 +26,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Voting: {0} - {1}",
             queueState = QueueStateEnum.VoteAnime,
             extraParams = new[] {AnimeID.ToString(), VoteValue.ToString()}
         };
@@ -39,18 +45,27 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_Vote: {0}", CommandID);
+            Logger.LogInformation("Processing CommandRequest_Vote: {CommandID}", CommandID);
 
 
             try
             {
-                ShokoService.AniDBProcessor.VoteAnime(AnimeID, VoteValue, (AniDBVoteType) VoteType);
+                var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
+                var vote = requestFactory.Create<RequestVoteAnime>(
+                    r =>
+                    {
+                        r.Temporary = VoteType == (int)AniDBVoteType.AnimeTemp;
+                        r.Value = Convert.ToDouble(VoteValue);
+                        r.AnimeID = AnimeID;
+                    }
+                );
+                vote.Execute();
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_Vote: {0} - {1}", CommandID, ex);
+                Logger.LogError(ex, "Error processing CommandRequest_Vote: {CommandID} - {Exception}", CommandID, ex);
             }
         }
 

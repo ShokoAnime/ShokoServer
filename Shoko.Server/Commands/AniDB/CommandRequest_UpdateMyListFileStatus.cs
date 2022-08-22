@@ -1,17 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Settings;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.AniDB
 {
     [Serializable]
     [Command(CommandRequestType.AniDB_UpdateWatchedUDP)]
@@ -27,9 +32,12 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Updating MyList info from UDP API for File: {0}",
             queueState = QueueStateEnum.UpdateMyListInfo,
             extraParams = new[] {FullFileName}
         };
+
+        public override CommandConflict ConflictBehavior { get; } = CommandConflict.Replace;
 
         public CommandRequest_UpdateMyListFileStatus()
         {
@@ -48,63 +56,97 @@ namespace Shoko.Server.Commands
             FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_UpdateMyListFileStatus: {0}", Hash);
-
+            Logger.LogInformation("Processing CommandRequest_UpdateMyListFileStatus: {Hash}", Hash);
+            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
                 // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
-                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHash(Hash);
-                if (vid != null)
+                var vid = RepoFactory.VideoLocal.GetByHash(Hash);
+                if (vid == null) return;
+                if (vid.GetAniDBFile() != null)
                 {
-                    if (vid.GetAniDBFile() != null)
+                    if (WatchedDateAsSecs > 0)
                     {
-                        if (WatchedDateAsSecs > 0)
-                        {
-                            DateTime? watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                            ShokoService.AniDBProcessor.UpdateMyListFileStatus(serviceProvider, vid, Watched, watchedDate);
-                        }
-                        else
-                            ShokoService.AniDBProcessor.UpdateMyListFileStatus(serviceProvider, vid, Watched);
+                        var watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
+                        var request = requestFactory.Create<RequestUpdateFile>(
+                            r =>
+                            {
+                                r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
+                                r.Hash = vid.Hash;
+                                r.Size = vid.FileSize;
+                                r.IsWatched = true;
+                                r.WatchedDate = watchedDate;
+                            }
+                        );
+                        request.Execute();
                     }
                     else
                     {
-                        // we have a manual link, so get the xrefs and add the episodes instead as generic files
-                        var xrefs = vid.EpisodeCrossRefs;
-                        foreach (var xref in xrefs)
-                        {
-                            var episode = xref.GetEpisode();
-                            if (episode == null) continue;
-                            if (WatchedDateAsSecs > 0)
+                        var request = requestFactory.Create<RequestUpdateFile>(
+                            r =>
                             {
-                                DateTime? watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                                ShokoService.AniDBProcessor.UpdateMyListFileStatus(serviceProvider, vid, episode.AnimeID,
-                                    episode.EpisodeNumber, Watched, watchedDate);
+                                r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
+                                r.Hash = vid.Hash;
+                                r.Size = vid.FileSize;
+                                r.IsWatched = false;
                             }
-                            else
-                                ShokoService.AniDBProcessor.UpdateMyListFileStatus(serviceProvider, vid, episode.AnimeID,
-                                    episode.EpisodeNumber, Watched);
-                        }
+                        );
+                        request.Execute();
                     }
-
-                    logger.Info("Updating file list status: {0} - {1}", vid, Watched);
-
-                    if (UpdateSeriesStats)
+                }
+                else
+                {
+                    // we have a manual link, so get the xrefs and add the episodes instead as generic files
+                    var xrefs = vid.EpisodeCrossRefs;
+                    foreach (var episode in xrefs.Select(xref => xref.GetEpisode()).Where(episode => episode != null))
                     {
-                        // update watched stats
-                        List<SVR_AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetByHash(vid.ED2KHash);
-                        if (eps.Count > 0)
+                        if (WatchedDateAsSecs > 0)
                         {
-                            eps.DistinctBy(a => a.AnimeSeriesID).ForEach(a => a.GetAnimeSeries().QueueUpdateStats());
+                            var watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
+                            var request = requestFactory.Create<RequestUpdateEpisode>(
+                                r =>
+                                {
+                                    r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
+                                    r.EpisodeNumber = episode.EpisodeNumber;
+                                    r.AnimeID = episode.AnimeID;
+                                    r.IsWatched = true;
+                                    r.WatchedDate = watchedDate;
+                                }
+                            );
+                            request.Execute();
+                        }
+                        else
+                        {
+                            var request = requestFactory.Create<RequestUpdateEpisode>(
+                                r =>
+                                {
+                                    r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
+                                    r.EpisodeNumber = episode.EpisodeNumber;
+                                    r.AnimeID = episode.AnimeID;
+                                    r.IsWatched = false;
+                                }
+                            );
+                            request.Execute();
                         }
                     }
+                }
+
+                Logger.LogInformation("Updating file list status: {Hash} - {Watched}", vid.Hash, Watched);
+
+                if (!UpdateSeriesStats) return;
+                // update watched stats
+                var eps = RepoFactory.AnimeEpisode.GetByHash(vid.ED2KHash);
+                if (eps.Count > 0)
+                {
+                    eps.DistinctBy(a => a.AnimeSeriesID).ForEach(a => a.GetAnimeSeries().QueueUpdateStats());
                 }
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_UpdateMyListFileStatus: {0} - {1}", Hash, ex);
+                Logger.LogError(ex, "Error processing CommandRequest_UpdateMyListFileStatus: {Hash} - {Ex}", Hash, ex);
             }
         }
 

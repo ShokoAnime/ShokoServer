@@ -11,7 +11,7 @@
         <LangVersion>latest</LangVersion>
         <UseWPF>true</UseWPF>
         <UseWindowsForms>true</UseWindowsForms>
-        <Configurations>Debug;Release</Configurations>
+        <Configurations>Debug;Release;ApiLogging</Configurations>
         <ApplicationIcon>..\Shoko.Server\db.ico</ApplicationIcon>
         <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
     </PropertyGroup>

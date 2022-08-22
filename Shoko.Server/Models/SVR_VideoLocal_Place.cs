@@ -10,6 +10,7 @@ using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Commands;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper.Subtitles;
@@ -44,6 +45,8 @@ namespace Shoko.Server.Models
                 return Path.Combine(ImportFolder.ImportFolderLocation, FilePath);
             }
         }
+
+        public string FileName => Path.GetFileName(FilePath);
 
         public SVR_VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
@@ -226,9 +229,22 @@ namespace Shoko.Server.Models
                 {
                     if (updateMyListStatus)
                     {
-                        CommandRequest_DeleteFileFromMyList cmdDel =
-                            new CommandRequest_DeleteFileFromMyList(v.MyListID);
-                        cmdDel.Save();
+                        if (RepoFactory.AniDB_File.GetByHash(v.Hash) == null)
+                        {
+                            var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
+                            foreach (var xref in xrefs)
+                            {
+                                var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                                if (ep == null) continue;
+                                var cmdDel = new CommandRequest_DeleteFileFromMyList { AnimeID = xref.AnimeID, EpisodeType = ep.GetEpisodeTypeEnum(), EpisodeNumber = ep.EpisodeNumber };
+                                cmdDel.Save();
+                            }
+                        }
+                        else
+                        {
+                            var cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                            cmdDel.Save();
+                        }
                     }
 
                     using (var transaction = session.BeginTransaction())
@@ -273,9 +289,22 @@ namespace Shoko.Server.Models
             {
                 if (updateMyListStatus)
                 {
-                    CommandRequest_DeleteFileFromMyList cmdDel =
-                        new CommandRequest_DeleteFileFromMyList(v.MyListID);
-                    cmdDel.Save();
+                    if (RepoFactory.AniDB_File.GetByHash(v.Hash) == null)
+                    {
+                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
+                        foreach (var xref in xrefs)
+                        {
+                            var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                            if (ep == null) continue;
+                            var cmdDel = new CommandRequest_DeleteFileFromMyList { AnimeID = xref.AnimeID, EpisodeType = ep.GetEpisodeTypeEnum(), EpisodeNumber = ep.EpisodeNumber };
+                            cmdDel.Save();
+                        }
+                    }
+                    else
+                    {
+                        var cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                        cmdDel.Save();
+                    }
                 }
 
                 List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();

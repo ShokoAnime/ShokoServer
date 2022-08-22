@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Server;
 
@@ -18,6 +20,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Updating info/images on Trakt.TV: {0}",
             queueState = QueueStateEnum.UpdateTraktData,
             extraParams = new[] {TraktID}
         };
@@ -35,9 +38,9 @@ namespace Shoko.Server.Commands
         }
 
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_TraktUpdateInfo: {0}", TraktID);
+            Logger.LogInformation("Processing CommandRequest_TraktUpdateInfo: {0}", TraktID);
 
             try
             {
@@ -45,7 +48,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TraktUpdateInfo: {0} - {1}", TraktID,
+                Logger.LogError("Error processing CommandRequest_TraktUpdateInfo: {0} - {1}", TraktID,
                     ex);
             }
         }

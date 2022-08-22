@@ -2,21 +2,22 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Info
 {
-    public class RequestCalendar : UDPBaseRequest<ResponseCalendar>
+    public class RequestCalendar : UDPRequest<ResponseCalendar>
     {
 
         protected override string BaseCommand => "CALENDAR";
 
-        protected override UDPBaseResponse<ResponseCalendar> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<ResponseCalendar> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
             if (code == UDPReturnCode.CALENDAR_EMPTY)
-                return new UDPBaseResponse<ResponseCalendar> {Response = null, Code = code};
+                return new UDPResponse<ResponseCalendar> {Response = null, Code = code};
 
             var calendar = new ResponseCalendar
             {
@@ -46,10 +47,14 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                 else calendar.Next25Anime.Add(entry);
             }
 
-            return new UDPBaseResponse<ResponseCalendar>
+            return new UDPResponse<ResponseCalendar>
             {
                 Response = calendar, Code = code
             };
+        }
+
+        public RequestCalendar(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

@@ -18,7 +18,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public AnimeEpisodeRepository()
         {
-            EndDeleteCallback = cr =>
+            BeginDeleteCallback = cr =>
             {
                 RepoFactory.AnimeEpisode_User.Delete(
                     RepoFactory.AnimeEpisode_User.GetByEpisodeID(cr.AnimeEpisodeID));

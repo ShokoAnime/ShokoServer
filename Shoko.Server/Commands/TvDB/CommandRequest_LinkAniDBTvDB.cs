@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Server;
@@ -21,6 +23,7 @@ namespace Shoko.Server.Commands.TvDB
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Updating Changed TvDB association: {0}",
             queueState = QueueStateEnum.LinkAniDBTvDB,
             extraParams = new[] {animeID.ToString()}
         };
@@ -40,9 +43,9 @@ namespace Shoko.Server.Commands.TvDB
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_LinkAniDBTvDB: {0}", animeID);
+            Logger.LogInformation("Processing CommandRequest_LinkAniDBTvDB: {0}", animeID);
 
             try
             {
@@ -51,7 +54,7 @@ namespace Shoko.Server.Commands.TvDB
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_LinkAniDBTvDB: {0} - {1}", animeID,
+                Logger.LogError("Error processing CommandRequest_LinkAniDBTvDB: {0} - {1}", animeID,
                     ex);
             }
         }

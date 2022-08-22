@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SqlServer.Management.Smo;
 using NLog;
 using Shoko.Commons;
@@ -19,6 +20,7 @@ using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Databases;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -268,19 +270,18 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("anidb/test")]
         public ActionResult TestAniDB()
         {
-            ShokoService.AniDBProcessor.ForceLogout();
-            ShokoService.AniDBProcessor.CloseConnections();
-
-            Thread.Sleep(1000);
+            var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
+            handler.ForceLogout();
+            handler.CloseConnections();
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-            ShokoService.AniDBProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+            handler.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
                 ServerSettings.Instance.AniDb.ServerAddress,
                 ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
 
-            if (!ShokoService.AniDBProcessor.Login()) return APIStatus.BadRequest("Failed to log in");
-            ShokoService.AniDBProcessor.ForceLogout();
+            if (!handler.Login()) return APIStatus.BadRequest("Failed to log in");
+            handler.ForceLogout();
 
             return APIStatus.OK();
         }

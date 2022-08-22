@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Void;
@@ -9,16 +10,16 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
     /// <summary>
     /// Update a file in the MyList
     /// </summary>
-    public class RequestUpdateFile : UDPBaseRequest<Generic.Void>
+    public class RequestUpdateFile : UDPRequest<Void>
     {
         protected override string BaseCommand
         {
             get
             {
-                string command = $"MYLISTADD lid={MyListID}&state={State}";
+                var command = $"MYLISTADD size={Size}&ed2k={Hash}&state={(int)State}";
                 if (IsWatched)
                 {
-                    DateTime date = WatchedDate ?? DateTime.Now;
+                    var date = WatchedDate ?? DateTime.Now;
                     command += $"&viewed=1&viewdate={Commons.Utils.AniDB.GetAniDBDateAsSeconds(date)}";
                 }
                 else
@@ -32,14 +33,15 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
             }
         }
 
-        public int MyListID { get; set; }
+        public string Hash { get; set; }
+        public long Size { get; set; }
 
-        public GetFile_State State { get; set; }
+        public MyList_State State { get; set; }
 
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
 
-        protected override UDPBaseResponse<Void> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -47,9 +49,13 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
             {
                 case UDPReturnCode.MYLIST_ENTRY_EDITED:
                 case UDPReturnCode.NO_SUCH_MYLIST_ENTRY:
-                    return new UDPBaseResponse<Void> {Code = code};
+                    return new UDPResponse<Void> {Code = code};
             }
             throw new UnexpectedUDPResponseException(code, receivedData);
+        }
+
+        public RequestUpdateFile(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

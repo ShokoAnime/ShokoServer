@@ -208,6 +208,7 @@ namespace Shoko.Server.Utilities
                             {
                                 ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
                                 {
+                                    message = "Hashing File: {0}",
                                     queueState = QueueStateEnum.HashingFile,
                                     extraParams = new[] { sf.FullName }
                                 };

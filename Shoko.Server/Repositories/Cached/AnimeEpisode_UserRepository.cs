@@ -6,6 +6,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;

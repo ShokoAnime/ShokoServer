@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -19,7 +21,12 @@ namespace Shoko.Server.Commands
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.SyncTrakt, extraParams = new string[0]};
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        {
+            message = "Syncing Trakt collection",
+            queueState = QueueStateEnum.SyncTrakt,
+            extraParams = new string[0]
+        };
 
         public CommandRequest_TraktSyncCollection()
         {
@@ -33,9 +40,9 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_TraktSyncCollection");
+            Logger.LogInformation("Processing CommandRequest_TraktSyncCollection");
 
             try
             {
@@ -69,7 +76,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TraktSyncCollection: {0}", ex);
+                Logger.LogError("Error processing CommandRequest_TraktSyncCollection: {0}", ex);
             }
         }
 

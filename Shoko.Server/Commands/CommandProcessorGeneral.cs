@@ -1,9 +1,12 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
@@ -16,6 +19,7 @@ namespace Shoko.Server.Commands
             base.Init(provider);
             QueueState = new QueueStateStruct
             {
+                message = "Starting general command worker",
                 queueState = QueueStateEnum.StartingGeneral,
                 extraParams = new string[0]
             };
@@ -23,6 +27,8 @@ namespace Shoko.Server.Commands
 
         protected override void WorkerCommands_DoWork(object sender, DoWorkEventArgs e)
         {
+            var udpHandler = ServiceProvider.GetRequiredService<IUDPConnectionHandler>();
+            var httpHandler = ServiceProvider.GetRequiredService<IHttpConnectionHandler>();
             while (true)
             {
                 if (WorkerCommands.CancellationPending)
@@ -44,21 +50,21 @@ namespace Shoko.Server.Commands
                     continue;
                 }
 
-                CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral();
+                CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral(udpHandler, httpHandler);
                 if (crdb == null)
                 {
-                    if (QueueCount > 0 && !ShokoService.AniDBProcessor.IsHttpBanned && !ShokoService.AniDBProcessor.IsUdpBanned)
-                        Logger.Error($"No command returned from database, but there are {QueueCount} commands left");
+                    if (QueueCount > 0 && !httpHandler.IsBanned && !udpHandler.IsBanned)
+                        Logger.LogError($"No command returned from database, but there are {QueueCount} commands left");
                     return;
                 }
 
                 if (WorkerCommands.CancellationPending)
                     return;
 
-                ICommandRequest icr = CommandHelper.GetCommand(crdb);
+                ICommandRequest icr = CommandHelper.GetCommand(ServiceProvider, crdb);
                 if (icr == null)
                 {
-                    Logger.Error("No implementation found for command: {0}-{1}", crdb.CommandType, crdb.CommandID);
+                    Logger.LogError("No implementation found for command: {0}-{1}", crdb.CommandType, crdb.CommandID);
                 }
                 else
                 {
@@ -67,7 +73,7 @@ namespace Shoko.Server.Commands
                     if (WorkerCommands.CancellationPending)
                         return;
 
-                    Logger.Trace("Processing command request: {0}", crdb.CommandID);
+                    Logger.LogTrace("Processing command request: {0}", crdb.CommandID);
                     try
                     {
                         CurrentCommand = crdb;
@@ -75,7 +81,7 @@ namespace Shoko.Server.Commands
                     }
                     catch (Exception ex)
                     {
-                        Logger.Error(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex);
+                        Logger.LogError(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex);
                     }
                     finally
                     {
@@ -83,7 +89,7 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                Logger.Trace("Deleting command request: {0}", crdb.CommandID);
+                Logger.LogTrace("Deleting command request: {0}", crdb.CommandID);
                 RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
 
                 UpdateQueueCount();

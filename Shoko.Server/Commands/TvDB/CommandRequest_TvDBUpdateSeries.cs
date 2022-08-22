@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -21,6 +23,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Updating TvDB Series: {0}",
             queueState = QueueStateEnum.GettingTvDBSeries,
             extraParams = new[] {$"{SeriesTitle} ({TvDBSeriesID})"}
         };
@@ -39,9 +42,9 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_TvDBUpdateSeries: {0}", TvDBSeriesID);
+            Logger.LogInformation("Processing CommandRequest_TvDBUpdateSeries: {0}", TvDBSeriesID);
 
             try
             {
@@ -49,7 +52,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TvDBUpdateSeries: {0} - {1}", TvDBSeriesID,
+                Logger.LogError("Error processing CommandRequest_TvDBUpdateSeries: {0} - {1}", TvDBSeriesID,
                     ex);
             }
         }

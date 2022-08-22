@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Void;
@@ -8,7 +9,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
     /// <summary>
     /// Remove a file from MyList.
     /// </summary>
-    public class RequestRemoveFile : UDPBaseRequest<Void>
+    public class RequestRemoveFile : UDPRequest<Void>
     {
         // These are dependent on context
         protected override string BaseCommand
@@ -23,7 +24,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
 
         public long Size { get; set; }
 
-        protected override UDPBaseResponse<Void> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -31,9 +32,13 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
             {
                 case UDPReturnCode.MYLIST_ENTRY_DELETED:
                 case UDPReturnCode.NO_SUCH_MYLIST_ENTRY:
-                    return new UDPBaseResponse<Void> { Code = code };
+                    return new UDPResponse<Void> { Code = code };
             }
             throw new UnexpectedUDPResponseException(code, receivedData);
+        }
+
+        public RequestRemoveFile(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

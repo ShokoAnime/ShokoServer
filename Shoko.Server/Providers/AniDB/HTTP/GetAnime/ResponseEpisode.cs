@@ -24,6 +24,6 @@ namespace Shoko.Server.Providers.AniDB.Http.GetAnime
 
         public DateTime? AirDate { get; set; }
 
-        public List<AniDB_Episode_Title> Titles = new();
+        public List<ResponseTitle> Titles = new();
     }
 }

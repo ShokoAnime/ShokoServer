@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.TvDB;
@@ -29,6 +32,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Searching for anime on The TvDB: {0}",
             queueState = QueueStateEnum.SearchTvDB,
             extraParams = new[] {AnimeID.ToString()}
         };
@@ -46,9 +50,9 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_TvDBSearchAnime: {0}", AnimeID);
+            Logger.LogInformation("Processing CommandRequest_TvDBSearchAnime: {0}", AnimeID);
 
             try
             {
@@ -87,7 +91,7 @@ namespace Shoko.Server.Commands
                             {
                                 TvDB_Series tvser = TvDBApiHelper.GetSeriesInfoOnline(xref.TvDBID, false);
                                 if (tvser == null) continue;
-                                logger.Trace("Found tvdb match on web cache for {0}", AnimeID);
+                                Logger.LogTrace("Found tvdb match on web cache for {0}", AnimeID);
                                 TvDBApiHelper.LinkAniDBTvDB(AnimeID, xref.TvDBID, true);
                             }
                             return;
@@ -120,21 +124,18 @@ namespace Shoko.Server.Commands
 
                 // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
                 List<TVDB_Series_Search_Response> results = TvDBApiHelper.SearchSeries(searchCriteria);
-                logger.Trace("Found {0} tvdb results for {1} on TheTvDB", results.Count, searchCriteria);
+                Logger.LogTrace("Found {0} tvdb results for {1} on TheTvDB", results.Count, searchCriteria);
                 if (ProcessSearchResults(results, searchCriteria)) return;
 
 
                 if (results.Count != 0) return;
 
                 bool foundResult = false;
-                foreach (AniDB_Anime_Title title in anime.GetTitles())
+                foreach (var title in anime.GetTitles())
                 {
-                    if (!title.TitleType.Equals(Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
+                    if (title.TitleType != TitleType.Official)
                         continue;
-                    if (!title.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.English,
-                            StringComparison.InvariantCultureIgnoreCase) &&
-                        !title.Language.Equals(Shoko.Models.Constants.AniDBLanguageType.Romaji,
-                            StringComparison.InvariantCultureIgnoreCase))
+                    if (title.Language != TitleLanguage.English && title.Language != TitleLanguage.Romaji)
                         continue;
 
                     string cleanTitle = CleanTitle(title.Title);
@@ -144,14 +145,14 @@ namespace Shoko.Server.Commands
                     searchCriteria = cleanTitle;
                     results = TvDBApiHelper.SearchSeries(searchCriteria);
                     if (results.Count > 0) foundResult = true;
-                    logger.Trace("Found {0} tvdb results for search on {1}", results.Count, searchCriteria);
+                    Logger.LogTrace("Found {0} tvdb results for search on {1}", results.Count, searchCriteria);
                     if (ProcessSearchResults(results, searchCriteria)) return;
                 }
-                if (!foundResult) logger.Warn("Unable to find a matching TvDB series for {0}", anime.MainTitle);
+                if (!foundResult) Logger.LogWarning("Unable to find a matching TvDB series for {0}", anime.MainTitle);
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex);
+                Logger.LogError("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex);
             }
         }
 
@@ -162,7 +163,7 @@ namespace Shoko.Server.Commands
             {
                 case 1:
                     // since we are using this result, lets download the info
-                    logger.Trace("Found 1 tvdb results for search on {0} --- Linked to {1} ({2})", searchCriteria,
+                    Logger.LogTrace("Found 1 tvdb results for search on {0} --- Linked to {1} ({2})", searchCriteria,
                         results[0].SeriesName,
                         results[0].SeriesID);
                     tvser = TvDBApiHelper.GetSeriesInfoOnline(results[0].SeriesID, false);
@@ -175,13 +176,13 @@ namespace Shoko.Server.Commands
                 case 0:
                     return false;
                 default:
-                    logger.Trace("Found multiple ({0}) tvdb results for search on so checking for english results {1}",
+                    Logger.LogTrace("Found multiple ({0}) tvdb results for search on so checking for english results {1}",
                         results.Count,
                         searchCriteria);
                     foreach (TVDB_Series_Search_Response sres in results)
                     {
                         // since we are using this result, lets download the info
-                        logger.Trace("Found english result for search on {0} --- Linked to {1} ({2})", searchCriteria,
+                        Logger.LogTrace("Found english result for search on {0} --- Linked to {1} ({2})", searchCriteria,
                             sres.SeriesName,
                             sres.SeriesID);
                         tvser = TvDBApiHelper.GetSeriesInfoOnline(results[0].SeriesID, false);
@@ -193,7 +194,7 @@ namespace Shoko.Server.Commands
                         return true;
                     }
 
-                    logger.Trace("No english results found, so SKIPPING: {0}", searchCriteria);
+                    Logger.LogTrace("No english results found, so SKIPPING: {0}", searchCriteria);
 
                     return false;
             }

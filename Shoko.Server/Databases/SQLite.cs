@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.IO;
 using System.Linq;
 using FluentNHibernate.Cfg;
@@ -17,12 +17,12 @@ using Shoko.Server.Settings;
 
 namespace Shoko.Server.Databases
 {
-    public class SQLite : BaseDatabase<SQLiteConnection>, IDatabase
+    public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
     {
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 86;
+        public int RequiredVersion { get; } = 88;
 
 
         public void BackupDatabase(string fullfilename)
@@ -31,26 +31,28 @@ namespace Shoko.Server.Databases
             File.Copy(GetDatabaseFilePath(), fullfilename);
         }
 
-        public static string GetDatabasePath()
-        {
-            return ServerSettings.Instance.Database.MySqliteDirectory;
-        }
+        private static string DatabasePath => ServerSettings.Instance.Database.MySqliteDirectory;
 
-        public static string GetDatabaseFilePath()
+        private static string GetDatabaseFilePath()
         {
-            string dbName = Path.Combine(GetDatabasePath(), ServerSettings.Instance.Database.SQLite_DatabaseFile);
+            string dbName = Path.Combine(DatabasePath, ServerSettings.Instance.Database.SQLite_DatabaseFile);
             return dbName;
         }
 
         public override string GetConnectionString()
         {
-            return $@"data source={GetDatabaseFilePath()};useutf16encoding=True";
+            return $@"data source={GetDatabaseFilePath()}";
+        }
+
+        public override string GetTestConnectionString()
+        {
+            return GetConnectionString();
         }
 
         public ISessionFactory CreateSessionFactory()
         {
             return Fluently.Configure()
-                .Database(SQLiteConfiguration.Standard
+                .Database(MsSqliteConfiguration.Standard
                     .UsingFile(GetDatabaseFilePath()))
                 .Mappings(m =>
                     m.FluentMappings.AddFromAssemblyOf<ShokoService>())
@@ -71,16 +73,28 @@ namespace Shoko.Server.Databases
             return false;
         }
 
+        public override bool HasVersionsTable()
+        {
+            using var myConn = new SqliteConnection(GetConnectionString());
+            myConn.Open();
+            const string sql = "SELECT COUNT(name) FROM sqlite_master WHERE type='table' AND name='Versions'";
+            var cmd = new SqliteCommand(sql, myConn);
+            var count = (long)cmd.ExecuteScalar();
+            myConn.Close();
+
+            return count > 0;
+        }
 
         public void CreateDatabase()
         {
             if (DatabaseAlreadyExists()) return;
 
-            if (!Directory.Exists(GetDatabasePath()))
-                Directory.CreateDirectory(GetDatabasePath());
+            if (!Directory.Exists(DatabasePath))
+                Directory.CreateDirectory(DatabasePath);
 
-            if (!File.Exists(GetDatabaseFilePath()))
-                SQLiteConnection.CreateFile(GetDatabaseFilePath());
+            // Microsoft.Data.Sqlite automatically creates the file if it doesn't exist during init
+            // if (!File.Exists(GetDatabaseFilePath()))
+            //     SqliteConnection.CreateFile(GetDatabaseFilePath());
 
             ServerSettings.Instance.Database.SQLite_DatabaseFile = GetDatabaseFilePath();
         }
@@ -559,16 +573,249 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(84, 1, "ALTER TABLE AnimeSeries_User ADD LastEpisodeUpdate timestamp DEFAULT NULL;"),
             new DatabaseCommand(84, 2, DatabaseFixes.FixWatchDates),
             new DatabaseCommand(85, 1, "ALTER TABLE AnimeGroup ADD MainAniDBAnimeID INT DEFAULT NULL;"),
-            new DatabaseCommand(86, 1, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractSize;"),
-            new DatabaseCommand(86, 2, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractBlob;"),
-            new DatabaseCommand(86, 3, "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractVersion;"),
+            new DatabaseCommand(86, 1, DropAnimeEpisode_UserColumns),
+            new DatabaseCommand(87, 1, DropAniDB_FileColumns),
+            new DatabaseCommand(87, 2, AlterAniDB_GroupStatus),
+            new DatabaseCommand(87, 3, DropAniDB_CharacterColumns),
+            new DatabaseCommand(87, 4, DropAniDB_Anime_CharacterColumns),
+            new DatabaseCommand(87, 5, DropAniDB_AnimeColumns),
+            new DatabaseCommand(88, 1, DropLanguage),
         };
 
+        private static Tuple<bool, string> DropLanguage(object connection)
+        {
+            try
+            {
+                var myConn = (SqliteConnection) connection;
+                var factory = (SQLite)DatabaseFactory.Instance;
+
+                var addCommand = "ALTER TABLE CrossRef_Languages_AniDB_File ADD LanguageName TEXT NOT NULL DEFAULT '';";
+                var updateCommand = "UPDATE CrossRef_Languages_AniDB_File SET LanguageName = l.LanguageName FROM CrossRef_Languages_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';";
+                factory.Execute(myConn, addCommand);
+                factory.Execute(myConn, updateCommand);
+
+                addCommand = "ALTER TABLE CrossRef_Subtitles_AniDB_File ADD LanguageName TEXT NOT NULL DEFAULT '';";
+                updateCommand = "UPDATE CrossRef_Subtitles_AniDB_File SET LanguageName = l.LanguageName FROM CrossRef_Subtitles_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';";
+                factory.Execute(myConn, addCommand);
+                factory.Execute(myConn, updateCommand);
+
+                var createCommand = "CREATE TABLE CrossRef_Languages_AniDB_File ( CrossRef_Languages_AniDB_FileID INTEGER PRIMARY KEY AUTOINCREMENT, FileID int NOT NULL, LanguageName TEXT NOT NULL);";
+
+                ((SQLite)DatabaseFactory.Instance).DropColumns(
+                    myConn, "CrossRef_Languages_AniDB_File",
+                    new List<string>
+                    {
+                        "LanguageID",
+                    }, createCommand, new List<string>()
+                );
+
+                createCommand = "CREATE TABLE CrossRef_Subtitles_AniDB_File ( CrossRef_Subtitles_AniDB_FileID INTEGER PRIMARY KEY AUTOINCREMENT, FileID int NOT NULL, LanguageName TEXT NOT NULL);";
+
+                ((SQLite)DatabaseFactory.Instance).DropColumns(
+                    myConn, "CrossRef_Subtitles_AniDB_File",
+                    new List<string>
+                    {
+                        "LanguageID",
+                    }, createCommand, new List<string>()
+                );
+
+                var dropCommand = "DROP TABLE Language";
+                factory.Execute(myConn, dropCommand);
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+            return new Tuple<bool, string>(true, null);
+        }
+
+        private static Tuple<bool, string> DropAniDB_AnimeColumns(object connection)
+        {
+            try
+            {
+                var myConn = (SqliteConnection) connection;
+                var indexCommands = new List<string>
+                {
+                    "CREATE UNIQUE INDEX UIX2_AniDB_Anime_AnimeID ON AniDB_Anime (AnimeID);",
+                };
+                var createCommand = "CREATE TABLE AniDB_Anime ( AniDB_AnimeID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, EpisodeCount int NOT NULL, AirDate timestamp, EndDate timestamp, URL text, Picname text, BeginYear int NOT NULL, EndYear int NOT NULL, AnimeType int NOT NULL, MainTitle text NOT NULL, AllTitles text NOT NULL, AllTags text NOT NULL, Description text NOT NULL, EpisodeCountNormal int NOT NULL, EpisodeCountSpecial int NOT NULL, Rating int NOT NULL, VoteCount int NOT NULL, TempRating int NOT NULL, TempVoteCount int NOT NULL, AvgReviewRating int NOT NULL, ReviewCount int NOT NULL, DateTimeUpdated timestamp NOT NULL, DateTimeDescUpdated timestamp NOT NULL, ImageEnabled int NOT NULL, Restricted int NOT NULL, AnimePlanetID int, ANNID int, AllCinemaID int, AnimeNfo int, LatestEpisodeNumber int, DisableExternalLinksFlag int, ContractVersion int DEFAULT 0 NOT NULL, ContractBlob BLOB, ContractSize int DEFAULT 0 NOT NULL, Site_JP TEXT, Site_EN TEXT, Wikipedia_ID TEXT, WikipediaJP_ID TEXT, SyoboiID INT, AnisonID INT, CrunchyrollID TEXT );";
+
+                ((SQLite)DatabaseFactory.Instance).DropColumns(
+                    myConn, "AniDB_Anime",
+                    new List<string>
+                    {
+                        "AwardList",
+                    }, createCommand, indexCommands
+                );
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+            return new Tuple<bool, string>(true, null);
+        }
+        
+        private static Tuple<bool, string> DropAniDB_Anime_CharacterColumns(object connection)
+        {
+            try
+            {
+                var myConn = (SqliteConnection) connection;
+                var indexCommands = new List<string>
+                {
+                    "CREATE INDEX IX_AniDB_Anime_Character_AnimeID ON AniDB_Anime_Character (AnimeID);",
+                    "CREATE INDEX IX_AniDB_Anime_Character_CharID ON AniDB_Anime_Character (CharID);",
+                    "CREATE UNIQUE INDEX UIX_AniDB_Anime_Character_AnimeID_CharID ON AniDB_Anime_Character (AnimeID, CharID);",
+                };
+                var createCommand = "CREATE TABLE AniDB_Anime_Character ( AniDB_Anime_CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int  NOT NULL, CharID int  NOT NULL, CharType text NOT NULL);";
+
+                ((SQLite)DatabaseFactory.Instance).DropColumns(
+                    myConn, "AniDB_Anime_Character",
+                    new List<string>
+                    {
+                        "EpisodeListRaw",
+                    }, createCommand, indexCommands
+                );
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+            return new Tuple<bool, string>(true, null);
+        }
+        
+        private static Tuple<bool, string> DropAniDB_CharacterColumns(object connection)
+        {
+            try
+            {
+                var myConn = (SqliteConnection) connection;
+                var indexCommands = new List<string>
+                {
+                    "CREATE UNIQUE INDEX UIX_AniDB_Character_CharID ON AniDB_Character (CharID);",
+                };
+                var createCommand = "CREATE TABLE AniDB_Character (AniDB_CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, CharID int NOT NULL, CharName text NOT NULL, PicName text NOT NULL, CharKanjiName text NOT NULL, CharDescription text NOT NULL);";
+
+                ((SQLite)DatabaseFactory.Instance).DropColumns(
+                    myConn, "AniDB_Character",
+                    new List<string>
+                    {
+                        "CreatorListRaw",
+                    }, createCommand, indexCommands
+                );
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+            return new Tuple<bool, string>(true, null);
+        }
+
+        private static Tuple<bool, string> AlterAniDB_GroupStatus(object connection)
+        {
+            try
+            {
+                var myConn = (SqliteConnection) connection;
+                var commands = new List<string>
+                {
+                    "ALTER TABLE AniDB_GroupStatus RENAME TO AniDB_GroupStatus_old;",
+                    "CREATE TABLE AniDB_GroupStatus ( AniDB_GroupStatusID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, GroupID int NOT NULL, GroupName text NOT NULL, CompletionState int NOT NULL, LastEpisodeNumber int NOT NULL, Rating decimal(6,2) NOT NULL, Votes int NOT NULL, EpisodeRange text NOT NULL ); ",
+                    "DROP INDEX IX_AniDB_GroupStatus_AnimeID;",
+                    "CREATE INDEX IX_AniDB_GroupStatus_AnimeID on AniDB_GroupStatus(AnimeID);",
+                    "DROP INDEX UIX_AniDB_GroupStatus_AnimeID_GroupID;",
+                    "CREATE UNIQUE INDEX UIX_AniDB_GroupStatus_AnimeID_GroupID ON AniDB_GroupStatus(AnimeID, GroupID);",
+                    "INSERT INTO AniDB_GroupStatus (AnimeID, GroupID, GroupName, CompletionState, LastEpisodeNumber, Rating, Votes, EpisodeRange) SELECT AnimeID, GroupID, GroupName, CompletionState, LastEpisodeNumber, CAST(Rating AS decimal(5,3)) / 100, Votes, EpisodeRange FROM AniDB_GroupStatus_old",
+                    "DROP TABLE AniDB_GroupStatus_old",
+                };
+
+                foreach (var command in commands)
+                {
+                    ((SQLite) DatabaseFactory.Instance).Execute(myConn, command);
+                }
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+            return new Tuple<bool, string>(true, null);
+        }
+
+        private static Tuple<bool, string> DropAniDB_FileColumns(object connection)
+        {
+            try
+            {
+                var myConn = (SqliteConnection) connection;
+                var indexCommands = new List<string>
+                {
+                    "CREATE UNIQUE INDEX UIX_AniDB_File_Hash on AniDB_File(Hash, FileSize);",
+                    "CREATE UNIQUE INDEX UIX_AniDB_File_FileID ON AniDB_File(FileID);",
+                    "CREATE INDEX IX_AniDB_File_File_Source on AniDB_File(File_Source);",
+                };
+                var createCommand =
+                    "CREATE TABLE AniDB_File ( AniDB_FileID INTEGER PRIMARY KEY AUTOINCREMENT, FileID int NOT NULL, Hash text NOT NULL, GroupID int NOT NULL, File_Source text NOT NULL, File_Description text NOT NULL, File_ReleaseDate int NOT NULL, DateTimeUpdated timestamp NOT NULL, FileName text NOT NULL, FileSize INTEGER NOT NULL,  FileVersion int NULL, InternalVersion int NULL, IsDeprecated int NOT NULL, IsCensored int NULL, IsChaptered INT NOT NULL);";
+
+                ((SQLite)DatabaseFactory.Instance).DropColumns(
+                    myConn, "AniDB_File",
+                    new List<string>
+                    {
+                        "File_AudioCodec",
+                        "File_VideoCodec",
+                        "File_VideoResolution",
+                        "File_FileExtension",
+                        "File_LengthSeconds",
+                        "Anime_GroupName",
+                        "Anime_GroupNameShort",
+                        "Episode_Rating",
+                        "Episode_Votes",
+                        "IsWatched",
+                        "WatchedDate",
+                        "CRC",
+                        "MD5",
+                        "SHA1",
+                        "AnimeID",
+                    }, createCommand, indexCommands
+                );
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+            return new Tuple<bool, string>(true, null);
+        }
+        
+        private static Tuple<bool, string> DropAnimeEpisode_UserColumns(object connection)
+        {
+            try
+            {
+                var myConn = (SqliteConnection) connection;
+                var indexCommands = new List<string>
+                {
+                    "CREATE INDEX IX_AnimeEpisode_User_User_AnimeSeriesID on AnimeEpisode_User (JMMUserID, AnimeSeriesID);",
+                    "CREATE UNIQUE INDEX UIX_AnimeEpisode_User_User_EpisodeID on AnimeEpisode_User (JMMUserID, AnimeEpisodeID);",
+                };
+                var createCommand =
+                    "CREATE TABLE AnimeEpisode_User (AnimeEpisode_UserID INTEGER PRIMARY KEY AUTOINCREMENT, JMMUserID int NOT NULL, AnimeEpisodeID int NOT NULL, AnimeSeriesID int NOT NULL, WatchedDate timestamp, PlayedCount int NOT NULL, WatchedCount int NOT NULL, StoppedCount int NOT NULL);";
+
+                ((SQLite)DatabaseFactory.Instance).DropColumns(
+                    myConn, "AnimeEpisode_User",
+                    new List<string>
+                    {
+                        "ContractSize",
+                        "ContractBlob",
+                        "ContractVersion",
+                    }, createCommand, indexCommands
+                );
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+            return new Tuple<bool, string>(true, null);
+        }
+        
         private static Tuple<bool, string> DropVideoLocal_Media(object connection)
         {
             try
             {
-                SQLiteConnection myConn = (SQLiteConnection) connection;
+                SqliteConnection myConn = (SqliteConnection) connection;
                 string createvlcommand =
                     "CREATE TABLE VideoLocal ( VideoLocalID INTEGER PRIMARY KEY AUTOINCREMENT, Hash text NOT NULL, CRC32 text NULL, MD5 text NULL, SHA1 text NULL, HashSource int NOT NULL, FileSize INTEGER NOT NULL, IsIgnored int NOT NULL, DateTimeUpdated timestamp NOT NULL, FileName text NOT NULL DEFAULT '', DateTimeCreated timestamp NULL, IsVariation int NULL,MediaVersion int NOT NULL DEFAULT 0,MediaBlob BLOB NULL,MediaSize int NOT NULL DEFAULT 0, MyListID INT NOT NULL DEFAULT 0);";
                 List<string> indexvlcommands =
@@ -591,7 +838,7 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                SQLiteConnection myConn = (SQLiteConnection) connection;
+                SqliteConnection myConn = (SqliteConnection) connection;
                 string createcommand =
                     "create table AniDB_Episode ( AniDB_EpisodeID integer primary key autoincrement, EpisodeID int not null, AnimeID int not null, LengthSeconds int not null, Rating text not null, Votes text not null, EpisodeNumber int not null, EpisodeType int not null, AirDate int not null, DateTimeUpdated datetime not null, Description text default '' not null )";
                 List<string> indexcommands = new List<string>
@@ -614,7 +861,7 @@ namespace Shoko.Server.Databases
             try
             {
                 // I'm doing this manually to save time
-                SQLiteConnection myConn = (SQLiteConnection) connection;;
+                SqliteConnection myConn = (SqliteConnection) connection;;
 
                 // make the new one
                 // create indexes
@@ -643,7 +890,7 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                SQLiteConnection myConn = (SQLiteConnection) connection;
+                SqliteConnection myConn = (SqliteConnection) connection;
                 string createcommand =
                     "CREATE TABLE AniDB_Anime ( AniDB_AnimeID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, EpisodeCount int NOT NULL, AirDate timestamp NULL, EndDate timestamp NULL, URL text NULL, Picname text NULL, BeginYear int NOT NULL, EndYear int NOT NULL, AnimeType int NOT NULL, MainTitle text NOT NULL, AllTitles text NOT NULL, AllTags text NOT NULL, Description text NOT NULL, EpisodeCountNormal int NOT NULL, EpisodeCountSpecial int NOT NULL, Rating int NOT NULL, VoteCount int NOT NULL, TempRating int NOT NULL, TempVoteCount int NOT NULL, AvgReviewRating int NOT NULL, ReviewCount int NOT NULL, DateTimeUpdated timestamp NOT NULL, DateTimeDescUpdated timestamp NOT NULL, ImageEnabled int NOT NULL, AwardList text NOT NULL, Restricted int NOT NULL, AnimePlanetID int NULL, ANNID int NULL, AllCinemaID int NULL, AnimeNfo int NULL, LatestEpisodeNumber int NULL, DisableExternalLinksFlag int NULL );";
                 List<string> indexcommands = new List<string>
@@ -665,7 +912,7 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                SQLiteConnection myConn = (SQLiteConnection) connection;
+                SqliteConnection myConn = (SqliteConnection) connection;
                 string createvlcommand =
                     "CREATE TABLE VideoLocal ( VideoLocalID INTEGER PRIMARY KEY AUTOINCREMENT, Hash text NOT NULL, CRC32 text NULL, MD5 text NULL, SHA1 text NULL, HashSource int NOT NULL, FileSize INTEGER NOT NULL, IsIgnored int NOT NULL, DateTimeUpdated timestamp NOT NULL, FileName text NOT NULL DEFAULT '', VideoCodec text NOT NULL DEFAULT '', VideoBitrate text NOT NULL DEFAULT '',VideoBitDepth text NOT NULL DEFAULT '',VideoFrameRate text NOT NULL DEFAULT '',VideoResolution text NOT NULL DEFAULT '',AudioCodec text NOT NULL DEFAULT '',AudioBitrate text NOT NULL DEFAULT '',Duration INTEGER NOT NULL DEFAULT 0,DateTimeCreated timestamp NULL, IsVariation int NULL,MediaVersion int NOT NULL DEFAULT 0,MediaBlob BLOB NULL,MediaSize int NOT NULL DEFAULT 0 );";
                 List<string> indexvlcommands =
@@ -684,7 +931,7 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                SQLiteConnection myConn = (SQLiteConnection) connection;
+                SqliteConnection myConn = (SqliteConnection) connection;
                 string createtvepcommand =
                     "CREATE TABLE TvDB_Episode ( TvDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, Id int NOT NULL, SeriesID int NOT NULL, SeasonID int NOT NULL, SeasonNumber int NOT NULL, EpisodeNumber int NOT NULL, EpisodeName text, Overview text, Filename text, EpImgFlag int NOT NULL, AbsoluteNumber int, AirsAfterSeason int, AirsBeforeEpisode int, AirsBeforeSeason int, AirDate timestamp, Rating int)";
                 List<string> indextvepcommands =
@@ -703,7 +950,7 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                SQLiteConnection myConn = (SQLiteConnection) connection;
+                SqliteConnection myConn = (SqliteConnection) connection;
                 string createvluser =
                     "CREATE TABLE VideoLocal_User ( VideoLocal_UserID INTEGER PRIMARY KEY AUTOINCREMENT, JMMUserID int NOT NULL, VideoLocalID int NOT NULL, WatchedDate timestamp NULL, ResumePosition bigint NOT NULL DEFAULT 0); ";
                 List<string> indexvluser = new List<string>
@@ -722,7 +969,7 @@ namespace Shoko.Server.Databases
 
         //WE NEED TO DROP SOME SQL LITE COLUMNS...
 
-        private void DropColumns(SQLiteConnection db, string tableName, List<string> colsToRemove, string createcommand,
+        private void DropColumns(SqliteConnection db, string tableName, List<string> colsToRemove, string createcommand,
             List<string> indexcommands)
         {
             List<string> updatedTableColumns = GetTableColumns(db, tableName);
@@ -767,7 +1014,7 @@ namespace Shoko.Server.Databases
             }
         }
 
-        private void Alter(SQLiteConnection db, string tableName, string createcommand, List<string> indexcommands)
+        private void Alter(SqliteConnection db, string tableName, string createcommand, List<string> indexcommands)
         {
             List<string> updatedTableColumns = GetTableColumns(db, tableName);
             string columnsSeperated = string.Join(",", updatedTableColumns);
@@ -786,7 +1033,7 @@ namespace Shoko.Server.Databases
             }
         }
 
-        private List<string> GetTableColumns(SQLiteConnection conn, string tableName)
+        private List<string> GetTableColumns(SqliteConnection conn, string tableName)
         {
             string cmd = "pragma table_info(" + tableName + ")";
             List<string> columns = new List<string>();
@@ -798,7 +1045,7 @@ namespace Shoko.Server.Databases
             return columns;
         }
 
-        protected override Tuple<bool, string> ExecuteCommand(SQLiteConnection connection, string command)
+        protected override Tuple<bool, string> ExecuteCommand(SqliteConnection connection, string command)
         {
             try
             {
@@ -811,31 +1058,31 @@ namespace Shoko.Server.Databases
             }
         }
 
-        protected override void Execute(SQLiteConnection connection, string command)
+        protected override void Execute(SqliteConnection connection, string command)
         {
-            using (SQLiteCommand sqCommand = new SQLiteCommand(command, connection))
+            using (SqliteCommand sqCommand = new SqliteCommand(command, connection))
             {
                 sqCommand.CommandTimeout = 0;
                 sqCommand.ExecuteNonQuery();
             }
         }
 
-        protected override long ExecuteScalar(SQLiteConnection connection, string command)
+        protected override long ExecuteScalar(SqliteConnection connection, string command)
         {
-            using (SQLiteCommand sqCommand = new SQLiteCommand(command, connection))
+            using (SqliteCommand sqCommand = new SqliteCommand(command, connection))
             {
                 sqCommand.CommandTimeout = 0;
                 return long.Parse(sqCommand.ExecuteScalar().ToString());
             }
         }
 
-        protected override ArrayList ExecuteReader(SQLiteConnection connection, string command)
+        protected override ArrayList ExecuteReader(SqliteConnection connection, string command)
         {
-            using (SQLiteCommand sqCommand = new SQLiteCommand(command, connection))
+            using (SqliteCommand sqCommand = new SqliteCommand(command, connection))
             {
                 ArrayList rows = new ArrayList();
                 sqCommand.CommandTimeout = 0;
-                using (SQLiteDataReader reader = sqCommand.ExecuteReader())
+                using (SqliteDataReader reader = sqCommand.ExecuteReader())
                 {
                     while (reader.Read())
                     {
@@ -849,9 +1096,9 @@ namespace Shoko.Server.Databases
             }
         }
 
-        protected override void ConnectionWrapper(string connectionstring, Action<SQLiteConnection> action)
+        protected override void ConnectionWrapper(string connectionstring, Action<SqliteConnection> action)
         {
-            using (SQLiteConnection con = new SQLiteConnection(connectionstring))
+            using (SqliteConnection con = new SqliteConnection(connectionstring))
             {
                 con.Open();
                 action(con);
@@ -862,6 +1109,7 @@ namespace Shoko.Server.Databases
         {
             ConnectionWrapper(GetConnectionString(), myConn =>
             {
+                Execute(myConn, "PRAGMA encoding = \"UTF-16\"");
                 bool create = (ExecuteScalar(myConn,
                     "SELECT count(*) as NumTables FROM sqlite_master WHERE name='Versions'") == 0);
                 if (create)

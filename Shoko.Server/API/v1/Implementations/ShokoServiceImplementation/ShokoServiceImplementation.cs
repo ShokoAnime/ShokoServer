@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
@@ -14,9 +15,11 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Commands;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -25,9 +28,8 @@ namespace Shoko.Server
 {
     [EmitEmptyEnumerableInsteadOfNull]
     [ApiController, Route("/v1"), ApiExplorerSettings(IgnoreApi = true)]
-    public partial class ShokoServiceImplementation : Controller, IShokoServer, IHttpContextAccessor
+    public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
-        public new HttpContext HttpContext { get; set; }
         //TODO Split this file into subfiles with partial class, Move #region functionality from the interface to those subfiles
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -267,17 +269,18 @@ namespace Shoko.Server
                 contract.ImagesQueueStateId = (int) ShokoService.CmdProcessorImages.QueueState.queueState;
                 contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
 
-                var helper = ShokoService.AniDBProcessor;
-                if (helper.IsHttpBanned)
+                var udp = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
+                var http = HttpContext.RequestServices.GetRequiredService<IHttpConnectionHandler>();
+                if (http.IsBanned)
                 {
                     contract.IsBanned = true;
-                    contract.BanReason = helper.HttpBanTime.ToString();
+                    contract.BanReason = http.BanTime?.ToString();
                     contract.BanOrigin = @"HTTP";
                 }
-                else if (helper.IsUdpBanned)
+                else if (udp.IsBanned)
                 {
                     contract.IsBanned = true;
-                    contract.BanReason = helper.UdpBanTime.ToString();
+                    contract.BanReason = udp.BanTime?.ToString();
                     contract.BanOrigin = @"UDP";
                 }
                 else
@@ -558,11 +561,13 @@ namespace Shoko.Server
 
                 if (anidbSettingsChanged)
                 {
-                    ShokoService.AniDBProcessor.ForceLogout();
-                    ShokoService.AniDBProcessor.CloseConnections();
+                    var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
+                    
+                    handler.ForceLogout();
+                    handler.CloseConnections();
 
                     Thread.Sleep(1000);
-                    ShokoService.AniDBProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+                    handler.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
                         ServerSettings.Instance.AniDb.ServerAddress,
                         ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
                 }
@@ -717,25 +722,25 @@ namespace Shoko.Server
         [HttpPost("AniDB/Status")]
         public string TestAniDBConnection()
         {
-            string log = string.Empty;
+            var log = string.Empty;
             try
             {
+                var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
                 log += "Disposing..." + Environment.NewLine;
-                ShokoService.AniDBProcessor.ForceLogout();
-                ShokoService.AniDBProcessor.CloseConnections();
-                Thread.Sleep(1000);
+                handler.ForceLogout();
+                handler.CloseConnections();
 
                 log += "Init..." + Environment.NewLine;
-                ShokoService.AniDBProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+                handler.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
                     ServerSettings.Instance.AniDb.ServerAddress,
                     ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
 
                 log += "Login..." + Environment.NewLine;
-                if (ShokoService.AniDBProcessor.Login())
+                if (handler.Login())
                 {
                     log += "Login Success!" + Environment.NewLine;
                     log += "Logout..." + Environment.NewLine;
-                    ShokoService.AniDBProcessor.ForceLogout();
+                    handler.ForceLogout();
                     log += "Logged out" + Environment.NewLine;
                 }
                 else

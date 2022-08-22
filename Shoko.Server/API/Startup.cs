@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc.Versioning;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,8 +26,6 @@ using Shoko.Server.API.SignalR;
 using Shoko.Server.Plugin;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using Swashbuckle.AspNetCore.Swagger;
-using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Shoko.Server.API
 {
@@ -131,7 +128,7 @@ namespace Shoko.Server.API
             });
 
             services.AddSingleton<QueueEmitter>();
-            services.AddSingleton<LegacyAniDBEmitter>();
+            services.AddSingleton<AniDBEmitter>();
             services.AddSingleton<LoggingEmitter>();
             services.AddSingleton<ShokoEventEmitter>();
 
@@ -260,7 +257,7 @@ namespace Shoko.Server.API
             app.UseEndpoints(conf =>
             {
                 conf.MapHub<QueueHub>("/signalr/events");
-                conf.MapHub<LegacyAniDBHub>("/signalr/anidb");
+                conf.MapHub<AniDBHub>("/signalr/anidb");
                 conf.MapHub<LoggingHub>("/signalr/logging");
                 conf.MapHub<ShokoEventHub>("/signalr/shoko");
             });

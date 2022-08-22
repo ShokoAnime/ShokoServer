@@ -1,3 +1,5 @@
+using System.Xml.Serialization;
+
 namespace Shoko.Plugin.Abstractions.DataModels
 {
     public class AnimeTitle
@@ -63,10 +65,19 @@ namespace Shoko.Plugin.Abstractions.DataModels
 
     public enum TitleType
     {
+        [XmlEnum("none")]
         None = 0,
+        [XmlEnum("main")]
         Main = 1,
+        [XmlEnum("official")]
         Official = 2,
+        [XmlEnum("short")]
         Short = 3,
-        Synonym = 4
+        [XmlEnum("syn")]
+        Synonym = 4,
+        [XmlEnum("card")]
+        TitleCard = 5,
+        [XmlEnum("kana")]
+        KanjiReading = 6,
     }
 }

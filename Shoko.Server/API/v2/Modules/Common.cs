@@ -19,6 +19,7 @@ using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -752,8 +753,8 @@ namespace Shoko.Server.API.v2.Modules
                 .ToDictionary(a => a, a => a.GetAniDBFile());
             return allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
                 .Where(tuple => tuple.anidb != null)
-                .Where(tuple => tuple.anidb.IsDeprecated != 1)
-                .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != (tuple.anidb.IsChaptered == 1))
+                .Where(tuple => !tuple.anidb.IsDeprecated)
+                .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != tuple.anidb.IsChaptered)
                 .Select(tuple => GetFileById(tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
         }
 
@@ -771,8 +772,8 @@ namespace Shoko.Server.API.v2.Modules
             {
                 var list = allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
                     .Where(tuple => tuple.anidb != null)
-                    .Where(tuple => tuple.anidb.IsDeprecated != 1)
-                    .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != (tuple.anidb.IsChaptered == 1))
+                    .Where(tuple => !tuple.anidb.IsDeprecated)
+                    .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != tuple.anidb.IsChaptered)
                     .Select(tuple => tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
                     .Where(path => !string.IsNullOrEmpty(path)).ToList();
                 int index = 0;
@@ -799,7 +800,7 @@ namespace Shoko.Server.API.v2.Modules
             JMMUser user = HttpContext.GetUser();
 
             var allvids = RepoFactory.VideoLocal.GetAll()
-                .Where(a => !a.IsEmpty() && a.GetAniDBFile() != null && a.GetAniDBFile().IsDeprecated == 1).ToList();
+                .Where(a => !a.IsEmpty() && a.GetAniDBFile() != null && a.GetAniDBFile().IsDeprecated).ToList();
             return allvids.Select(vid => GetFileById(vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
         }
 

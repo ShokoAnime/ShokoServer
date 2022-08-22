@@ -1,13 +1,14 @@
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User
 {
-    public class RequestMyListStats : UDPBaseRequest<ResponseMyListStats>
+    public class RequestMyListStats : UDPRequest<ResponseMyListStats>
     {
         protected override string BaseCommand => "MYLISTSTATS";
-        protected override UDPBaseResponse<ResponseMyListStats> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<ResponseMyListStats> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -17,7 +18,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
             // 222 MYLIST STATS
             // 281|3539|4025|1509124|0|0|0|0|100|100|0|3|5|170|23|0|4001
 
-            ResponseMyListStats stats = new ResponseMyListStats
+            var stats = new ResponseMyListStats
             {
                 Anime = (int) parsedData[0],
                 Episodes = (int) parsedData[1],
@@ -37,7 +38,11 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                 Reviews = (int) parsedData[15],
                 ViewedLength = parsedData[16]
             };
-            return new UDPBaseResponse<ResponseMyListStats>{Code = code, Response = stats};
+            return new UDPResponse<ResponseMyListStats>{Code = code, Response = stats};
+        }
+
+        public RequestMyListStats(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

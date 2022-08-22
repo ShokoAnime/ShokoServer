@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Server;
 
@@ -19,6 +21,7 @@ namespace Shoko.Server.Commands
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
+            message = "Getting images from The TvDB: {0}",
             queueState = QueueStateEnum.DownloadTvDBImages,
             extraParams = new[] {TvDBSeriesID.ToString()}
         };
@@ -39,9 +42,9 @@ namespace Shoko.Server.Commands
         }
 
 
-        public override void ProcessCommand(IServiceProvider serviceProvider)
+        protected override void Process(IServiceProvider serviceProvider)
         {
-            logger.Info("Processing CommandRequest_TvDBDownloadImages: {0}", TvDBSeriesID);
+            Logger.LogInformation("Processing CommandRequest_TvDBDownloadImages: {0}", TvDBSeriesID);
 
             try
             {
@@ -49,7 +52,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TvDBDownloadImages: {0} - {1}", TvDBSeriesID,
+                Logger.LogError("Error processing CommandRequest_TvDBDownloadImages: {0} - {1}", TvDBSeriesID,
                     ex);
             }
         }

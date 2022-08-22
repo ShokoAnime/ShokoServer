@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -9,22 +10,22 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
     /// Add a file to MyList. If it doesn't exist, it will return the MyListID for future updates.
     /// If it exists, it will return the current status on AniDB. 
     /// </summary>
-    public class RequestAddFile : UDPBaseRequest<ResponseMyListFile>
+    public class RequestAddFile : UDPRequest<ResponseMyListFile>
     {
         // These are dependent on context
         protected override string BaseCommand
         {
             get
             {
-                string command = $"MYLISTADD size={Size}&ed2k={Hash}&state={State}";
+                var command = $"MYLISTADD size={Size}&ed2k={Hash}&state={(int)State}";
                 if (IsWatched)
                 {
-                    DateTime date = WatchedDate ?? DateTime.Now;
+                    var date = WatchedDate ?? DateTime.Now;
                     command += $"&viewed=1&viewdate={Commons.Utils.AniDB.GetAniDBDateAsSeconds(date)}";
                 }
                 else
                 {
-                    command += "viewed=0";
+                    command += "&viewed=0";
                 }
 
                 return command;
@@ -35,12 +36,12 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         
         public long Size { get; set; }
 
-        public GetFile_State State { get; set; }
+        public MyList_State State { get; set; }
         
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
         
-        protected override UDPBaseResponse<ResponseMyListFile> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
+        protected override UDPResponse<ResponseMyListFile> ParseResponse(UDPResponse<string> response)
         {
             var code = response.Code;
             var receivedData = response.Response;
@@ -52,24 +53,19 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                      * {int4 mylist id of new entry}
                      */
                     // parse the MyList ID
-                    string[] arrResult = receivedData.Split('\n');
-                    if (arrResult.Length >= 2)
+                    if (!int.TryParse(receivedData, out var myListID)) throw new UnexpectedUDPResponseException(code, receivedData);
+                    return new UDPResponse<ResponseMyListFile>
                     {
-                        int.TryParse(arrResult[1], out int myListID);
-                        return new UDPBaseResponse<ResponseMyListFile>
+                        Code = code,
+                        Response = new ResponseMyListFile
                         {
-                            Code = code,
-                            Response = new ResponseMyListFile
-                            {
-                                MyListID = myListID,
-                                State = State,
-                                IsWatched = IsWatched,
-                                WatchedDate = WatchedDate,
-                                UpdatedAt = DateTime.Now,
-                            }
-                        };
-                    }
-                    break;
+                            MyListID = myListID,
+                            State = State,
+                            IsWatched = IsWatched,
+                            WatchedDate = WatchedDate,
+                            UpdatedAt = DateTime.Now,
+                        },
+                    };
                 }
                 case UDPReturnCode.FILE_ALREADY_IN_MYLIST:
                 {
@@ -77,51 +73,49 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                      * {int4 lid}|{int4 fid}|{int4 eid}|{int4 aid}|{int4 gid}|{int4 date}|{int2 state}|{int4 viewdate}|{str storage}|{str source}|{str other}|{int2 filestate}
                      */
                     //file already exists: read 'watched' status
-                    string[] arrResult = receivedData.Split('\n');
-                    if (arrResult.Length >= 2)
+                    var arrStatus = receivedData.Split('|');
+                    if (!int.TryParse(arrStatus[0], out var myListID)) throw new UnexpectedUDPResponseException
                     {
-                        string[] arrStatus = arrResult[1].Split('|');
-                        bool hasMyListID = int.TryParse(arrStatus[0], out int myListID);
-                        if (!hasMyListID) throw new UnexpectedUDPResponseException
-                        {
-                            Message = "MyListID was not provided. Use AniDBMyList_RequestAddEpisode for generic files.",
-                            Response = receivedData,
-                            ReturnCode = code
-                        };
+                        Message = "MyListID was not provided. Use AniDBMyList_RequestAddEpisode for generic files.",
+                        Response = receivedData,
+                        ReturnCode = code,
+                    };
 
-                        GetFile_State state = (GetFile_State) int.Parse(arrStatus[6]);
+                    var state = (MyList_State) int.Parse(arrStatus[6]);
 
-                        int viewdate = int.Parse(arrStatus[7]);
-                        int updatedate = int.Parse(arrStatus[5]);
-                        bool watched = viewdate > 0;
-                        DateTime? updatedAt = null;
-                        DateTime? watchedDate = null;
-                        if (updatedate > 0)
-                            updatedAt = DateTime.UnixEpoch
-                            .AddSeconds(updatedate)
+                    var viewdate = int.Parse(arrStatus[7]);
+                    var updatedate = int.Parse(arrStatus[5]);
+                    var watched = viewdate > 0;
+                    DateTime? updatedAt = null;
+                    DateTime? watchedDate = null;
+                    if (updatedate > 0)
+                        updatedAt = DateTime.UnixEpoch
+                        .AddSeconds(updatedate)
+                        .ToLocalTime();
+                    if (watched)
+                        watchedDate = DateTime.UnixEpoch
+                            .AddSeconds(viewdate)
                             .ToLocalTime();
-                        if (watched)
-                            watchedDate = DateTime.UnixEpoch
-                                .AddSeconds(viewdate)
-                                .ToLocalTime();
 
-                        return new UDPBaseResponse<ResponseMyListFile>
+                    return new UDPResponse<ResponseMyListFile>
+                    {
+                        Code = code,
+                        Response = new ResponseMyListFile
                         {
-                            Code = code,
-                            Response = new ResponseMyListFile
-                            {
-                                MyListID = myListID,
-                                State = state,
-                                IsWatched = watched,
-                                WatchedDate = watchedDate,
-                                UpdatedAt = updatedAt,
-                            },
-                        };
-                    }
-                    break;
+                            MyListID = myListID,
+                            State = state,
+                            IsWatched = watched,
+                            WatchedDate = watchedDate,
+                            UpdatedAt = updatedAt,
+                        },
+                    };
                 }
             }
             throw new UnexpectedUDPResponseException(code, receivedData);
+        }
+
+        public RequestAddFile(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        {
         }
     }
 }

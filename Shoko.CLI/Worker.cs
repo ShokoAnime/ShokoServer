@@ -39,7 +39,6 @@ namespace Shoko.CLI
             if (!ShokoServer.Instance.StartUpServer()) return;
 
             // Ensure that the AniDB socket is initialized. Try to Login, then start the server if successful.
-            ShokoServer.Instance.RestartAniDBSocket();
             if (!ServerSettings.Instance.FirstRun)
                 ShokoServer.RunWorkSetupDB();
             else Logger.Warn("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -28,6 +29,7 @@ namespace Shoko.Server.Commands
             base.Init(provider);
             QueueState = new QueueStateStruct
             {
+                message = "Starting image downloading command worker",
                 queueState = QueueStateEnum.StartingImages,
                 extraParams = new string[0]
             };
@@ -62,7 +64,7 @@ namespace Shoko.Server.Commands
                 if (WorkerCommands.CancellationPending)
                     return;
 
-                ICommandRequest icr = CommandHelper.GetCommand(crdb);
+                ICommandRequest icr = CommandHelper.GetCommand(ServiceProvider, crdb);
                 if (icr == null)
                     return;
 
@@ -78,7 +80,7 @@ namespace Shoko.Server.Commands
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex);
+                    Logger.LogError(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex);
                 }
                 finally
                 {

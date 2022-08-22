@@ -5,14 +5,21 @@ namespace Shoko.Server.Providers.AniDB.Interfaces
 {
     public interface IUDPConnectionHandler : IConnectionHandler
     {
+        event EventHandler<AniDBStateUpdate> AniDBStateUpdate;
+        string SessionID { get; }
+        string ImageServerUrl { get; }
+        IServiceProvider ServiceProvider { get; }
         bool IsNetworkAvailable { get; }
         event EventHandler LoginFailed;
         bool SetCredentials(string username, string password);
         bool ValidAniDBCredentials(string user, string pass);
         bool Login();
         void ForceLogout();
+        void CloseConnections();
         void ForceReconnection();
-        UDPBaseResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode, bool disableLogging, bool isPing, bool returnFullResponse);
-        UDPBaseResponse<string> CallAniDBUDP(string command, bool needsUnicode, bool disableLogging, bool isPing);
+        bool Init(string username, string password, string serverName, ushort serverPort, ushort clientPort);
+        bool TestLogin(string username, string password);
+        UDPResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode=true, bool disableLogging=false, bool isPing=false, bool returnFullResponse=false);
+        UDPResponse<string> CallAniDBUDP(string command, bool needsUnicode = true, bool disableLogging = false, bool isPing = false);
     }
 }
