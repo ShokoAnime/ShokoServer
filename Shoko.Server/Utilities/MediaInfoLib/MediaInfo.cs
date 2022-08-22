@@ -15,8 +15,6 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 {
     public static class MediaInfo
     {
-        private static string WrapperPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "MediaInfoWrapper.dll");
-
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         private static MediaContainer GetMediaInfo_New(string filename)
@@ -121,35 +119,6 @@ namespace Shoko.Server.Utilities.MediaInfoLib
             }
             return appPath;
 
-        }
-        
-        private static Tuple<string, string> GetFilenameAndArgsForOS(string file)
-        {
-            // Windows: avdumpDestination --Auth=....
-            // Mono: mono avdumpDestination --Auth=...
-            var executable = WrapperPath;
-            var fileName = (char)34 + file + (char)34;
-
-            var timeout = ServerSettings.Instance.Import.MediaInfoTimeoutMinutes;
-            var args = $"{fileName} {timeout}";
-
-            if (Utils.IsRunningOnMono())
-            {
-                executable = "mono";
-                #if DEBUG
-                args = $"--debug {WrapperPath} {args}";
-                #else
-                args = $"{WrapperPath} {args}";
-                #endif
-            }
-
-            if (Utils.IsRunningOnLinuxOrMac())
-            {
-                executable = "dotnet";
-                args = $"{WrapperPath} {args}";
-            }
-
-            return Tuple.Create(executable, args);
         }
 
         public static MediaContainer GetMediaInfo(string filename)
