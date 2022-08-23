@@ -12,8 +12,12 @@
         <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
         <PackageTags>plugins, shoko, anime, metadata, tagging</PackageTags>
         <PackageReleaseNotes>File Events</PackageReleaseNotes>
-        <Version>2.4.0-alpha2</Version>
+        <Version>2.4.0-alpha3</Version>
         <Configurations>Debug;Release</Configurations>
         <Platforms>AnyCPU;x64</Platforms>
     </PropertyGroup>
+    <ItemGroup>
+        <None Include="../LICENSE" Pack="true" PackagePath="/"/>
+        <None Include="../icon.png" Pack="true" PackagePath="/"/>
+    </ItemGroup>
 </Project>
