@@ -1,7 +1,7 @@
 using System;
 using System.Net;
 
-namespace Shoko.Server.Providers.AniDB.Http
+namespace Shoko.Server.Providers.AniDB.HTTP
 {
     [Serializable]
     public class UnexpectedHttpResponseException : Exception

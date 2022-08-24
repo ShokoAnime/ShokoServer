@@ -1,7 +1,7 @@
 using System.Net;
 using Shoko.Server.Providers.AniDB.Interfaces;
 
-namespace Shoko.Server.Providers.AniDB.Http
+namespace Shoko.Server.Providers.AniDB.HTTP
 {
     public class HttpResponse<T> : IResponse<T> where T : class
     {

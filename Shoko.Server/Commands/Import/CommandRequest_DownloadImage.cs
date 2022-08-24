@@ -13,7 +13,6 @@ using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.AniDB_API;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;

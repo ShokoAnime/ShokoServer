@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using Shoko.Server.Providers.AniDB.Http.GetAnime;
+﻿using System.Collections.Generic;
+using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 
-namespace Shoko.Server.Providers.AniDB.Http
+namespace Shoko.Server.Providers.AniDB.HTTP
 {
     public class ResponseGetAnime
     {

@@ -4,7 +4,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Providers.AniDB.Http
+namespace Shoko.Server.Providers.AniDB.HTTP
 {
     public class RequestGetAnime : HttpRequest<ResponseGetAnime>
     {

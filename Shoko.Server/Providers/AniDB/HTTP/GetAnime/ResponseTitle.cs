@@ -1,6 +1,6 @@
 ﻿using Shoko.Plugin.Abstractions.DataModels;
 
-namespace Shoko.Server.Providers.AniDB.Http.GetAnime
+namespace Shoko.Server.Providers.AniDB.HTTP.GetAnime
 {
     public class ResponseTitle
     {

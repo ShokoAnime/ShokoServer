@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using Shoko.Models.Server;
 
-namespace Shoko.Server.Providers.AniDB.Http.GetAnime
+namespace Shoko.Server.Providers.AniDB.HTTP.GetAnime
 {
     public class ResponseEpisode
     {

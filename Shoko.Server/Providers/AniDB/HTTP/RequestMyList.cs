@@ -5,7 +5,7 @@ using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 
-namespace Shoko.Server.Providers.AniDB.Http
+namespace Shoko.Server.Providers.AniDB.HTTP
 {
     public class RequestMyList : HttpRequest<List<ResponseMyList>>
     {

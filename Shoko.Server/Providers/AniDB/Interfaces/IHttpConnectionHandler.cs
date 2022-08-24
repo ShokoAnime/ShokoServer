@@ -1,5 +1,5 @@
 using System;
-using Shoko.Server.Providers.AniDB.Http;
+using Shoko.Server.Providers.AniDB.HTTP;
 
 namespace Shoko.Server.Providers.AniDB.Interfaces
 {

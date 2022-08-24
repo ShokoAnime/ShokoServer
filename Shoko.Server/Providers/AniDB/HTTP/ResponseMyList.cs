@@ -1,8 +1,6 @@
 using System;
-using System.Xml.Serialization;
-using Shoko.Server.Providers.AniDB.UDP;
 
-namespace Shoko.Server.Providers.AniDB.Http
+namespace Shoko.Server.Providers.AniDB.HTTP
 {
     public class ResponseMyList
     {

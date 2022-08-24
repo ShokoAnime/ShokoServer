@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 
-namespace Shoko.Server.Providers.AniDB.Http
+namespace Shoko.Server.Providers.AniDB.HTTP
 {
     public abstract class HttpRequest<T> : IRequest, IRequest<HttpResponse<T>, T> where T : class
     {

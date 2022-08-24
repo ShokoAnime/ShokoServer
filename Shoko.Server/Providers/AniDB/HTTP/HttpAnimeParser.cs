@@ -8,9 +8,9 @@ using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
-using Shoko.Server.Providers.AniDB.Http.GetAnime;
+using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 
-namespace Shoko.Server.Providers.AniDB.Http
+namespace Shoko.Server.Providers.AniDB.HTTP
 {
     public class HttpAnimeParser
     {

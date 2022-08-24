@@ -7,23 +7,18 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using NHibernate;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.Http;
-using Shoko.Server.Providers.AniDB.Http.GetAnime;
+using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Settings;
-using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
-namespace Shoko.Server.AniDB_API
+namespace Shoko.Server.Providers.AniDB.HTTP
 {
     public class AnimeCreator
     {
@@ -175,7 +170,7 @@ namespace Shoko.Server.AniDB_API
                 }
 
                 epNew ??= new AniDB_Episode();
-                epNew.AirDate = AniDB.GetAniDBDateAsSeconds(epraw.AirDate);
+                epNew.AirDate = Commons.Utils.AniDB.GetAniDBDateAsSeconds(epraw.AirDate);
                 epNew.AnimeID = epraw.AnimeID;
                 epNew.DateTimeUpdated = DateTime.Now;
                 epNew.EpisodeID = epraw.EpisodeID;
@@ -202,10 +197,10 @@ namespace Shoko.Server.AniDB_API
                 }
 
                 // since the HTTP api doesn't return a count of the number of specials, we will calculate it here
-                if (epNew.GetEpisodeTypeEnum() == EpisodeType.Episode)
+                if (epNew.GetEpisodeTypeEnum() == Shoko.Models.Enums.EpisodeType.Episode)
                     episodeCountNormal++;
 
-                if (epNew.GetEpisodeTypeEnum() == EpisodeType.Special)
+                if (epNew.GetEpisodeTypeEnum() == Shoko.Models.Enums.EpisodeType.Special)
                     episodeCountSpecial++;
             }
 

@@ -1,6 +1,6 @@
 using Shoko.Models.Enums;
 
-namespace Shoko.Server.Providers.AniDB.Http
+namespace Shoko.Server.Providers.AniDB.HTTP
 {
     public class ResponseVote
     {

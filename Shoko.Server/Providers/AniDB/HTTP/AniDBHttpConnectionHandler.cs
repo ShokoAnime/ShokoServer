@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Server.Commands;
 using Shoko.Server.Providers.AniDB.Interfaces;
 
-namespace Shoko.Server.Providers.AniDB.Http
+namespace Shoko.Server.Providers.AniDB.HTTP
 {
     public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHandler
     {
