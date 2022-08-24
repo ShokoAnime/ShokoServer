@@ -68,7 +68,7 @@ namespace Shoko.Server.Commands.AniDB
                 if (vid == null) return;
                 if (vid.GetAniDBFile() != null)
                 {
-                    if (WatchedDateAsSecs > 0)
+                    if (Watched && WatchedDateAsSecs > 0)
                     {
                         var watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
                         var request = requestFactory.Create<RequestUpdateFile>(
@@ -103,7 +103,7 @@ namespace Shoko.Server.Commands.AniDB
                     var xrefs = vid.EpisodeCrossRefs;
                     foreach (var episode in xrefs.Select(xref => xref.GetEpisode()).Where(episode => episode != null))
                     {
-                        if (WatchedDateAsSecs > 0)
+                        if (Watched && WatchedDateAsSecs > 0)
                         {
                             var watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
                             var request = requestFactory.Create<RequestUpdateEpisode>(
