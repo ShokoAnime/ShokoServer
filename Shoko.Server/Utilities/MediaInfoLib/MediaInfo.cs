@@ -46,7 +46,8 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                     Converters = new JsonConverter[]
                     {
                         new StreamJsonConverter(), new BooleanConverter(), new StringEnumConverter(),
-                        new DateTimeConverter {DateTimeFormat = "yyyy-MM-dd HH:mm:ss"}, new MultiIntConverter()
+                        new DateTimeConverter {DateTimeFormat = "yyyy-MM-dd HH:mm:ss"}, new MultiIntConverter(),
+                        new MenuBase64Converter()
                     },
                     Error = (_, e) =>
                     {
