@@ -1,7 +1,9 @@
 ﻿using System;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Commands
@@ -9,13 +11,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.NullCommand)]
     class CommandRequest_Null : CommandRequestImplementation
     {
-        public CommandRequest_Null()
-        {
-            DefaultPriority = CommandRequestPriority.Priority5;
-
-        }
-
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             
         }
@@ -25,7 +21,7 @@ namespace Shoko.Server.Commands
             return true;
         }
 
-        public override CommandRequestPriority DefaultPriority { get; }
+        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
         public override QueueStateStruct PrettyDescription => new QueueStateStruct();
         public override CommandRequest ToDatabaseObject()
         {
@@ -43,6 +39,10 @@ namespace Shoko.Server.Commands
         public override void GenerateCommandID()
         {
             CommandID = nameof(CommandRequest_Null);
+        }
+
+        public CommandRequest_Null(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

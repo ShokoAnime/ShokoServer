@@ -10,6 +10,7 @@ using Shoko.Models.Azure;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
@@ -60,7 +61,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             Logger.LogTrace("Checking File For Hashes: {0}", FileName);
 

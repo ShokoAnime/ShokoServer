@@ -8,6 +8,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -56,7 +57,7 @@ namespace Shoko.Server.Commands.AniDB
             FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
         }
 
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_UpdateMyListFileStatus: {Hash}", Hash);
             var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();

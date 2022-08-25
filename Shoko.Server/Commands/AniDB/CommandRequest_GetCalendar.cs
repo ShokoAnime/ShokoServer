@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Xml;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
@@ -19,6 +19,9 @@ namespace Shoko.Server.Commands.AniDB
     [Command(CommandRequestType.AniDB_GetCalendar)]
     public class CommandRequest_GetCalendar : CommandRequestImplementation
     {
+        private readonly IRequestFactory _requestFactory;
+        private readonly ICommandRequestFactory _commandFactory;
+        
         public bool ForceRefresh { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
@@ -30,22 +33,9 @@ namespace Shoko.Server.Commands.AniDB
             extraParams = new string[0]
         };
 
-        public CommandRequest_GetCalendar()
-        {
-        }
-
-        public CommandRequest_GetCalendar(bool forced)
-        {
-            ForceRefresh = forced;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_GetCalendar");
-            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
@@ -71,7 +61,7 @@ namespace Shoko.Server.Commands.AniDB
 
                 sched.LastUpdate = DateTime.Now;
 
-                var request = requestFactory.Create<RequestCalendar>();
+                var request = _requestFactory.Create<RequestCalendar>();
                 var response = request.Execute();
                 RepoFactory.ScheduledUpdate.Save(sched);
 
@@ -91,11 +81,11 @@ namespace Shoko.Server.Commands.AniDB
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error processing CommandRequest_GetCalendar: " + ex);
+                Logger.LogError(ex, "Error processing CommandRequest_GetCalendar: {Ex}", ex);
             }
         }
 
-        private static void GetAnime(ResponseCalendar.CalendarEntry cal)
+        private void GetAnime(ResponseCalendar.CalendarEntry cal)
         {
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
             var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
@@ -105,7 +95,13 @@ namespace Shoko.Server.Commands.AniDB
                 var ts = DateTime.Now - update.UpdatedAt;
                 if (ts.TotalDays >= 2)
                 {
-                    var cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false, false);
+                    var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                        c =>
+                        {
+                            c.AnimeID = cal.AnimeID;
+                            c.ForceRefresh = true;
+                        }
+                    );
                     cmdAnime.Save();
                 }
                 else
@@ -121,7 +117,13 @@ namespace Shoko.Server.Commands.AniDB
             }
             else
             {
-                var cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false, false);
+                var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                    c =>
+                    {
+                        c.AnimeID = cal.AnimeID;
+                        c.ForceRefresh = true;
+                    }
+                );
                 cmdAnime.Save();
             }
         }
@@ -166,6 +168,12 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_GetCalendar(ILoggerFactory loggerFactory, IRequestFactory requestFactory, ICommandRequestFactory commandFactory) : base(loggerFactory)
+        {
+            _requestFactory = requestFactory;
+            _commandFactory = commandFactory;
         }
     }
 }

@@ -12,6 +12,7 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -49,7 +50,7 @@ namespace Shoko.Server.Commands.AniDB
             GenerateCommandID();
         }
 
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             return;
             Logger.LogInformation("Processing CommandRequest_SyncMyList");

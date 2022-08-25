@@ -8,6 +8,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
@@ -17,6 +18,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
 
 namespace Shoko.Server.Commands.AniDB
 {
@@ -24,6 +26,13 @@ namespace Shoko.Server.Commands.AniDB
     [Command(CommandRequestType.AniDB_GetAnimeHTTP)]
     public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
     {
+        private readonly IHttpConnectionHandler _handler;
+        private readonly HttpAnimeParser _parser;
+        private readonly AnimeCreator _animeCreator;
+        private readonly HttpXmlUtils _xmlUtils;
+        private readonly IRequestFactory _requestFactory;
+        private readonly ICommandRequestFactory _commandFactory;
+        
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
         public bool CacheOnly { get; set; }
@@ -45,36 +54,14 @@ namespace Shoko.Server.Commands.AniDB
         [XmlIgnore]
         public SVR_AniDB_Anime Result { get; set; }
 
-        public CommandRequest_GetAnimeHTTP()
-        {
-        }
-
-        public CommandRequest_GetAnimeHTTP(int animeid, bool forced, bool downloadRelations, bool createSeriesEntry, int relDepth = 0)
-        {
-            AnimeID = animeid;
-            DownloadRelations = downloadRelations;
-            ForceRefresh = forced;
-            Priority = (int) DefaultPriority;
-            if (RepoFactory.AniDB_Anime.GetByAnimeID(animeid) == null) Priority = (int) CommandRequestPriority.Priority1;
-            RelDepth = relDepth;
-            CreateSeriesEntry = createSeriesEntry;
-
-            GenerateCommandID();
-        }
-
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_GetAnimeHTTP: {AnimeID}", AnimeID);
 
             try
             {
-                var handler = serviceProvider.GetRequiredService<IHttpConnectionHandler>();
-                var parser = serviceProvider.GetRequiredService<HttpAnimeParser>();
-                var animeCreator = serviceProvider.GetRequiredService<AnimeCreator>();
-                var xmlUtils = serviceProvider.GetRequiredService<HttpXmlUtils>();
-                var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
-                if (handler.IsBanned) throw new AniDBBannedException { BanType = UpdateType.HTTPBan, BanExpires = handler.BanTime?.AddHours(handler.BanTimerResetLength) };
+                if (_handler.IsBanned) throw new AniDBBannedException { BanType = UpdateType.HTTPBan, BanExpires = _handler.BanTime?.AddHours(_handler.BanTimerResetLength) };
 
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var sessionWrapper = session.Wrap();
@@ -98,12 +85,12 @@ namespace Shoko.Server.Commands.AniDB
                 ResponseGetAnime response = null;
                 if (skip)
                 {
-                    var xml = xmlUtils.LoadAnimeHTTPFromFile(AnimeID);
-                    if (xml != null) response = parser.Parse(AnimeID, xml);
+                    var xml = _xmlUtils.LoadAnimeHTTPFromFile(AnimeID);
+                    if (xml != null) response = _parser.Parse(AnimeID, xml);
                 }
                 else
                 {
-                    var request = requestFactory.Create<RequestGetAnime>(r => r.AnimeID = AnimeID);
+                    var request = _requestFactory.Create<RequestGetAnime>(r => r.AnimeID = AnimeID);
                     var httpResponse = request.Execute();
                     response = httpResponse.Response;
                 }
@@ -115,7 +102,7 @@ namespace Shoko.Server.Commands.AniDB
                 }
 
                 anime ??= new SVR_AniDB_Anime();
-                animeCreator.CreateAnime(session, response, anime, 0);
+                _animeCreator.CreateAnime(session, response, anime, 0);
 
                 var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
                 // conditionally create AnimeSeries if it doesn't exist
@@ -134,7 +121,7 @@ namespace Shoko.Server.Commands.AniDB
 
                 Result = anime;
 
-                ProcessRelations(session, response, requestFactory, handler, animeCreator);
+                ProcessRelations(session, response, _requestFactory, _handler, _animeCreator);
 
                 // Request an image download
             }
@@ -192,7 +179,16 @@ namespace Shoko.Server.Commands.AniDB
 
                 // here, we either didn't do the above, or it was stopped by a ban. Either way, we haven't downloaded depth, so queue that
                 if (RepoFactory.CommandRequest.GetByCommandID(session, GetCommandID(relation.RelatedAnimeID)) != null) continue;
-                var command = new CommandRequest_GetAnimeHTTP { AnimeID = relation.RelatedAnimeID, DownloadRelations = true, RelDepth = depth };
+                var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                    c =>
+                    {
+                        c.AnimeID = relation.RelatedAnimeID;
+                        c.DownloadRelations = true;
+                        c.RelDepth = depth;
+                        if (RepoFactory.AniDB_Anime.GetByAnimeID(relation.RelatedAnimeID) == null)
+                            c.Priority = (int) CommandRequestPriority.Priority1;
+                    }
+                );
                 command.Save();
             }
         }
@@ -249,6 +245,16 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_GetAnimeHTTP(ILoggerFactory loggerFactory, IHttpConnectionHandler handler, HttpAnimeParser parser, AnimeCreator animeCreator, HttpXmlUtils xmlUtils, IRequestFactory requestFactory, ICommandRequestFactory commandFactory) : base(loggerFactory)
+        {
+            _handler = handler;
+            _parser = parser;
+            _animeCreator = animeCreator;
+            _xmlUtils = xmlUtils;
+            _requestFactory = requestFactory;
+            _commandFactory = commandFactory;
         }
     }
 }

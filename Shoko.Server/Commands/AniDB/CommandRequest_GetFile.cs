@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Xml;
 using System.Xml.Serialization;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
@@ -10,6 +9,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
@@ -25,6 +25,9 @@ namespace Shoko.Server.Commands.AniDB
     [Command(CommandRequestType.AniDB_GetFileUDP)]
     public class CommandRequest_GetFile : CommandRequestImplementation
     {
+        private readonly IUDPConnectionHandler _handler;
+        private readonly IRequestFactory _requestFactory;
+
         public int VideoLocalID { get; set; }
         public bool ForceAniDB { get; set; }
 
@@ -54,26 +57,11 @@ namespace Shoko.Server.Commands.AniDB
             }
         }
 
-        public CommandRequest_GetFile()
-        {
-        }
-
-        public CommandRequest_GetFile(int vidLocalID, bool forceAniDB)
-        {
-            VideoLocalID = vidLocalID;
-            ForceAniDB = forceAniDB;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             Logger.LogInformation("Get AniDB file info: {VideoLocalID}", VideoLocalID);
-            var handler = serviceProvider.GetRequiredService<IUDPConnectionHandler>();
-            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
-            if (handler.IsBanned) throw new AniDBBannedException { BanType = UpdateType.UDPBan, BanExpires = handler.BanTime?.AddHours(handler.BanTimerResetLength) };
+            if (_handler.IsBanned) throw new AniDBBannedException { BanType = UpdateType.UDPBan, BanExpires = _handler.BanTime?.AddHours(_handler.BanTimerResetLength) };
             vlocal ??= RepoFactory.VideoLocal.GetByID(VideoLocalID);
             if (vlocal == null) return;
             lock (vlocal)
@@ -83,7 +71,7 @@ namespace Shoko.Server.Commands.AniDB
                 UDPResponse<ResponseGetFile> response = null;
                 if (aniFile == null || ForceAniDB)
                 {
-                    var request = requestFactory.Create<RequestGetFile>(
+                    var request = _requestFactory.Create<RequestGetFile>(
                         r =>
                         {
                             r.Hash = vlocal.Hash;
@@ -239,6 +227,12 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now,
             };
             return cq;
+        }
+
+        public CommandRequest_GetFile(ILoggerFactory loggerFactory, IUDPConnectionHandler handler, IRequestFactory requestFactory) : base(loggerFactory)
+        {
+            _handler = handler;
+            _requestFactory = requestFactory;
         }
     }
 }

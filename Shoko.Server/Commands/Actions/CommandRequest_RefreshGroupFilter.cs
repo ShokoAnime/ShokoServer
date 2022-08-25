@@ -1,8 +1,10 @@
 ﻿using System;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -14,19 +16,6 @@ namespace Shoko.Server.Commands
     {
         public int GroupFilterID { get; set; }
 
-        public CommandRequest_RefreshGroupFilter(int groupFilterID)
-        {
-            GroupFilterID = groupFilterID;
-
-            Priority = (int) DefaultPriority;
-            GenerateCommandID();
-        }
-
-        public CommandRequest_RefreshGroupFilter()
-        {
-        }
-
-
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
@@ -36,7 +25,7 @@ namespace Shoko.Server.Commands
             extraParams = new[] {GroupFilterID.ToString()}
         };
 
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             if (GroupFilterID == 0)
             {
@@ -78,6 +67,10 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_RefreshGroupFilter(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

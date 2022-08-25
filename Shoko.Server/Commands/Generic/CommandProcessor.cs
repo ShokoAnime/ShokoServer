@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
@@ -12,22 +11,18 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.Generic
 {
     public abstract class CommandProcessor : IDisposable
     {
         protected ILogger Logger;
-        protected readonly BackgroundWorker WorkerCommands = new BackgroundWorker();
+        protected readonly BackgroundWorker WorkerCommands = new();
         protected IServiceProvider ServiceProvider;
         private bool _processingCommands;
-        private ConcurrentQueue<ICommandRequest> _commandsToSave = new();
-        public DateTime? PauseTime;
 
         protected abstract string QueueType { get; }
 
-        private readonly object _lockQueueCount = new object();
-        private readonly object _lockQueueState = new object();
-        private readonly object _lockPaused = new object();
+        private readonly object _lockQueueState = new();
 
         public delegate void QueueCountChangedHandler(QueueCountEventArgs ev);
 
@@ -43,38 +38,25 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                lock (_lockPaused)
-                {
-                    return _paused;
-                }
+                return _paused;
             }
             set
             {
-                lock (_lockPaused)
+                _paused = value;
+                lock (_lockQueueState)
                 {
-                    _paused = value;
                     if (_paused)
                     {
-                        QueueState = new QueueStateStruct
-                        {
-                            message = "Paused",
-                            queueState = QueueStateEnum.Paused,
-                            extraParams = new string[0]
-                        };
-                        PauseTime = DateTime.Now;
+
+                        QueueState = new QueueStateStruct { message = "Paused", queueState = QueueStateEnum.Paused, extraParams = new string[0] };
                     }
                     else
                     {
-                        QueueState = new QueueStateStruct
-                        {
-                            message = "Idle",
-                            queueState = QueueStateEnum.Idle,
-                            extraParams = new string[0]
-                        };
-                        PauseTime = null;
+                        QueueState = new QueueStateStruct { message = "Idle", queueState = QueueStateEnum.Idle, extraParams = new string[0] };
                     }
-                    UpdatePause(_paused);
                 }
+
+                UpdatePause(_paused);
             }
         }
 
@@ -86,23 +68,16 @@ namespace Shoko.Server.Commands
         {
             get
             {
-                lock (_lockQueueCount)
-                {
-                    return _queueCount;
-                }
+                return _queueCount;
             }
             set
             {
-                lock (_lockQueueCount)
-                {
-                    _queueCount = value;
-                }
+                _queueCount = value;
                 Task.Factory.StartNew(() => OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(value)));
             }
         }
 
-        private QueueStateStruct _queueState =
-            new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
+        private QueueStateStruct _queueState = new() {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
 
         public QueueStateStruct QueueState
         {
@@ -145,7 +120,7 @@ namespace Shoko.Server.Commands
             _processingCommands = false;
             _paused = false;
 
-            if (e.Cancelled) Logger.LogWarning($"The {QueueType} Queue was cancelled with {QueueCount} commands left");
+            if (e.Cancelled) Logger.LogWarning("The {QueueType} Queue was cancelled with {QueueCount} commands left", QueueType, QueueCount);
 
             QueueState = new QueueStateStruct
             {
@@ -172,7 +147,7 @@ namespace Shoko.Server.Commands
 
         public void Stop()
         {
-            Logger?.LogInformation($"{QueueType} Queue has been stopped, {QueueCount} commands left.");
+            Logger?.LogInformation("{QueueType} Queue has been stopped, {QueueCount} commands left", QueueType, QueueCount);
             WorkerCommands.CancelAsync();
         }
 

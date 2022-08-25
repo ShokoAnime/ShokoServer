@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Generic;
+using Shoko.Server.Commands.Interfaces;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -65,7 +67,7 @@ namespace Shoko.Server.Commands
                 if (crdb == null)
                 {
                     if (QueueCount > 0)
-                        Logger.LogError($"No command returned from repo, but there are {QueueCount} commands left");
+                        Logger.LogError("No command returned from repo, but there are {QueueCount} commands left", QueueCount);
                     return;
                 }
 
@@ -73,7 +75,7 @@ namespace Shoko.Server.Commands
                 
                 if (icr == null)
                 {
-                    Logger.LogTrace("No implementation found for command: {0}-{1}", crdb.CommandType, crdb.CommandID);
+                    Logger.LogTrace("No implementation found for command: {CommandType}-{CommandID}", crdb.CommandType, crdb.CommandID);
                     return;
                 }
 
@@ -85,12 +87,12 @@ namespace Shoko.Server.Commands
                 try
                 {
                     CurrentCommand = crdb;
-                    icr.ProcessCommand(ServiceProvider);
+                    icr.ProcessCommand();
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex);
-                    Logger.LogInformation(ex, "Removing ProcessCommand: {0}", crdb.CommandID);
+                    Logger.LogError(ex, "ProcessCommand exception: {CommandID}\n{Ex}", crdb.CommandID, ex);
+                    Logger.LogInformation(ex, "Removing ProcessCommand: {CommandID}", crdb.CommandID);
                     RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
                 }
                 finally

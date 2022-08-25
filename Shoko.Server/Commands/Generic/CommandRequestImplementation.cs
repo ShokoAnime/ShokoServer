@@ -3,24 +3,24 @@ using System.Reflection;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Exceptions;
+using Shoko.Server.Commands.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Server;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.Generic
 {
 
     public abstract class CommandRequestImplementation : ICommandRequest
     {
-        protected ILogger Logger;
+        protected readonly ILogger Logger;
 
         // ignoring the base properties so that when we serialize we only get the properties
         // defined in the concrete class
@@ -46,19 +46,22 @@ namespace Shoko.Server.Commands
         [XmlIgnore]
         public bool BubbleExceptions = false;
 
+        public CommandRequestImplementation(ILoggerFactory loggerFactory)
+        {
+            Logger = loggerFactory.CreateLogger(GetType());
+            Priority = (int) DefaultPriority;
+        }
+
         /// <summary>
         /// Inherited classes to provide the implemenation of how to process this command
         /// </summary>
-        /// <param name="serviceProvider"></param>
-        protected abstract void Process(IServiceProvider serviceProvider);
+        protected abstract void Process();
 
-        public void ProcessCommand(IServiceProvider serviceProvider)
+        public void ProcessCommand()
         {
             try
             {
-                var factory = serviceProvider.GetRequiredService<ILoggerFactory>();
-                Logger = factory.CreateLogger(GetType());
-                Process(serviceProvider);
+                Process();
             }
             catch (Exception e)
             {

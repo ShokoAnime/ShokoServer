@@ -5,6 +5,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Commands.AniDB
@@ -23,14 +24,7 @@ namespace Shoko.Server.Commands.AniDB
             extraParams = Array.Empty<string>(),
         };
 
-        public CommandRequest_GetAniDBTitles()
-        {
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             Logger.LogInformation("CommandRequest_GetAniDBTitles is deprecated. Skipping");
 
@@ -76,6 +70,10 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_GetAniDBTitles(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

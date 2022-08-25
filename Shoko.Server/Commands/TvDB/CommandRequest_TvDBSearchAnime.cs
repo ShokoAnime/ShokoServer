@@ -12,6 +12,7 @@ using Shoko.Models.Server;
 using Shoko.Models.TvDB;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.TvDB;
@@ -50,7 +51,7 @@ namespace Shoko.Server.Commands
             GenerateCommandID();
         }
 
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_TvDBSearchAnime: {0}", AnimeID);
 

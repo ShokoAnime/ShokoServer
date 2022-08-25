@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NLog;
 using Shoko.Server.Commands;
+using Shoko.Server.Commands.Generic;
 
 namespace Shoko.Server.Server
 {

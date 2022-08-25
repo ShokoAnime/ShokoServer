@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Linq;
 using System.Xml;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -22,6 +22,8 @@ namespace Shoko.Server.Commands.AniDB
     [Command(CommandRequestType.AniDB_AddFileUDP)]
     public class CommandRequest_AddFileToMyList : CommandRequestImplementation
     {
+        private readonly IRequestFactory _requestFactory;
+
         public string Hash { get; set; }
         public bool ReadStates { get; set; } = true;
 
@@ -51,27 +53,13 @@ namespace Shoko.Server.Commands.AniDB
             }
         }
 
-        public CommandRequest_AddFileToMyList()
-        {
-        }
-
-        public CommandRequest_AddFileToMyList(string hash, bool readstate = true)
-        {
-            Hash = hash;
-            ReadStates = readstate;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_AddFileToMyList: {FileName} - {Hash} - {ReadStates}", _videoLocal?.GetBestVideoLocalPlace()?.FileName, Hash, ReadStates);
 
             try
             {
                 if (_videoLocal == null) return;
-                var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
                 // when adding a file via the API, newWatchedStatus will return with current watched status on AniDB
                 // if the file is already on the user's list
@@ -94,7 +82,7 @@ namespace Shoko.Server.Commands.AniDB
                     var episodes = _videoLocal.GetAnimeEpisodes().Select(a => a.AniDB_Episode).ToArray();
                     foreach (var episode in episodes)
                     {
-                        var request = requestFactory.Create<RequestAddEpisode>(
+                        var request = _requestFactory.Create<RequestAddEpisode>(
                             r =>
                             {
                                 r.State = state.GetMyList_State();
@@ -109,7 +97,7 @@ namespace Shoko.Server.Commands.AniDB
 
                         if (response.Code != UDPReturnCode.FILE_ALREADY_IN_MYLIST) continue;
                         
-                        var updateRequest = requestFactory.Create<RequestUpdateEpisode>(
+                        var updateRequest = _requestFactory.Create<RequestUpdateEpisode>(
                             r =>
                             {
                                 r.State = state.GetMyList_State();
@@ -125,7 +113,7 @@ namespace Shoko.Server.Commands.AniDB
                 }
                 else
                 {
-                    var request = requestFactory.Create<RequestAddFile>(
+                    var request = _requestFactory.Create<RequestAddFile>(
                         r =>
                         {
                             r.State = state.GetMyList_State();
@@ -139,7 +127,7 @@ namespace Shoko.Server.Commands.AniDB
 
                     if (response.Code == UDPReturnCode.FILE_ALREADY_IN_MYLIST)
                     {
-                        var updateRequest = requestFactory.Create<RequestUpdateFile>(
+                        var updateRequest = _requestFactory.Create<RequestUpdateFile>(
                             r =>
                             {
                                 r.State = state.GetMyList_State();
@@ -263,6 +251,11 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_AddFileToMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory) : base(loggerFactory)
+        {
+            _requestFactory = requestFactory;
         }
     }
 }

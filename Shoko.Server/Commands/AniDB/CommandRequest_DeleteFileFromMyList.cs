@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Xml;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
@@ -23,6 +23,8 @@ namespace Shoko.Server.Commands.AniDB
     [Command(CommandRequestType.AniDB_DeleteFileUDP)]
     public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
     {
+        private readonly IRequestFactory _requestFactory;
+
         public string Hash { get; set; }
         public long FileSize { get; set; }
         public EpisodeType EpisodeType { get; set; }
@@ -38,23 +40,8 @@ namespace Shoko.Server.Commands.AniDB
             extraParams = string.IsNullOrEmpty(Hash) ? new[] { AnimeID.ToString(), EpisodeType.ToString(), EpisodeNumber.ToString() } : new[] { Hash },
         };
 
-        public CommandRequest_DeleteFileFromMyList()
+        protected override void Process()
         {
-            EpisodeType = EpisodeType.Episode; // default
-        }
-
-        public CommandRequest_DeleteFileFromMyList(string hash, long fileSize) : this()
-        {
-            Hash = hash;
-            FileSize = fileSize;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
-        protected override void Process(IServiceProvider serviceProvider)
-        {
-            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
             // there will be a road bump the first time we start up, as some people may have requests with MyListID. I don't care. It'll get there.
             Logger.LogInformation("Processing CommandRequest_DeleteFileFromMyList: Hash: {Hash}, FileSize: {Size}", Hash, FileSize);
 
@@ -66,7 +53,7 @@ namespace Shoko.Server.Commands.AniDB
                     case AniDBFileDeleteType.Delete:
                         if (string.IsNullOrEmpty(Hash))
                         {
-                            request = requestFactory.Create<RequestRemoveEpisode>(
+                            request = _requestFactory.Create<RequestRemoveEpisode>(
                                 r =>
                                 {
                                     r.AnimeID = AnimeID;
@@ -79,7 +66,7 @@ namespace Shoko.Server.Commands.AniDB
                         }
                         else
                         {
-                            request = requestFactory.Create<RequestRemoveFile>(
+                            request = _requestFactory.Create<RequestRemoveFile>(
                                 r =>
                                 {
                                     r.Hash = Hash;
@@ -94,7 +81,7 @@ namespace Shoko.Server.Commands.AniDB
                     case AniDBFileDeleteType.MarkDeleted:
                         if (string.IsNullOrEmpty(Hash))
                         {
-                            request = requestFactory.Create<RequestUpdateEpisode>(
+                            request = _requestFactory.Create<RequestUpdateEpisode>(
                                 r =>
                                 {
                                     r.AnimeID = AnimeID;
@@ -108,7 +95,7 @@ namespace Shoko.Server.Commands.AniDB
                         }
                         else
                         {
-                            request = requestFactory.Create<RequestUpdateFile>(
+                            request = _requestFactory.Create<RequestUpdateFile>(
                                 r =>
                                 {
                                     r.Hash = Hash;
@@ -124,7 +111,7 @@ namespace Shoko.Server.Commands.AniDB
                     case AniDBFileDeleteType.MarkUnknown:
                         if (string.IsNullOrEmpty(Hash))
                         {
-                            request = requestFactory.Create<RequestUpdateEpisode>(
+                            request = _requestFactory.Create<RequestUpdateEpisode>(
                                 r =>
                                 {
                                     r.AnimeID = AnimeID;
@@ -138,7 +125,7 @@ namespace Shoko.Server.Commands.AniDB
                         }
                         else
                         {
-                            request = requestFactory.Create<RequestUpdateFile>(
+                            request = _requestFactory.Create<RequestUpdateFile>(
                                 r =>
                                 {
                                     r.Hash = Hash;
@@ -157,7 +144,7 @@ namespace Shoko.Server.Commands.AniDB
                     case AniDBFileDeleteType.MarkExternalStorage:
                         if (string.IsNullOrEmpty(Hash))
                         {
-                            request = requestFactory.Create<RequestUpdateEpisode>(
+                            request = _requestFactory.Create<RequestUpdateEpisode>(
                                 r =>
                                 {
                                     r.AnimeID = AnimeID;
@@ -171,7 +158,7 @@ namespace Shoko.Server.Commands.AniDB
                         }
                         else
                         {
-                            request = requestFactory.Create<RequestUpdateFile>(
+                            request = _requestFactory.Create<RequestUpdateFile>(
                                 r =>
                                 {
                                     r.Hash = Hash;
@@ -186,7 +173,7 @@ namespace Shoko.Server.Commands.AniDB
                     case AniDBFileDeleteType.MarkDisk:
                         if (string.IsNullOrEmpty(Hash))
                         {
-                            request = requestFactory.Create<RequestUpdateEpisode>(
+                            request = _requestFactory.Create<RequestUpdateEpisode>(
                                 r =>
                                 {
                                     r.AnimeID = AnimeID;
@@ -200,7 +187,7 @@ namespace Shoko.Server.Commands.AniDB
                         }
                         else
                         {
-                            request = requestFactory.Create<RequestUpdateFile>(
+                            request = _requestFactory.Create<RequestUpdateFile>(
                                 r =>
                                 {
                                     r.Hash = Hash;
@@ -216,7 +203,7 @@ namespace Shoko.Server.Commands.AniDB
             }
             catch (AniDBBannedException ex)
             {
-                Logger.LogError(ex, "Error processing {Type}: Hash: {Hash} - {Exception}", GetType().Name, Hash, ex);
+                Logger.LogError(ex, "Error processing {Type}: Hash: {Hash} - {Ex}", GetType().Name, Hash, ex);
             }
         }
 
@@ -288,6 +275,12 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_DeleteFileFromMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory) : base(loggerFactory)
+        {
+            _requestFactory = requestFactory;
+            EpisodeType = EpisodeType.Episode; // default
         }
     }
 }

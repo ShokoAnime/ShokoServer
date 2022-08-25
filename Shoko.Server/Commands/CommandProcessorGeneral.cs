@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Generic;
+using Shoko.Server.Commands.Interfaces;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -54,7 +56,7 @@ namespace Shoko.Server.Commands
                 if (crdb == null)
                 {
                     if (QueueCount > 0 && !httpHandler.IsBanned && !udpHandler.IsBanned)
-                        Logger.LogError($"No command returned from database, but there are {QueueCount} commands left");
+                        Logger.LogError("No command returned from database, but there are {QueueCount} commands left", QueueCount);
                     return;
                 }
 
@@ -64,7 +66,7 @@ namespace Shoko.Server.Commands
                 ICommandRequest icr = CommandHelper.GetCommand(ServiceProvider, crdb);
                 if (icr == null)
                 {
-                    Logger.LogError("No implementation found for command: {0}-{1}", crdb.CommandType, crdb.CommandID);
+                    Logger.LogError("No implementation found for command: {CommandType}-{CommandID}", crdb.CommandType, crdb.CommandID);
                 }
                 else
                 {
@@ -73,15 +75,15 @@ namespace Shoko.Server.Commands
                     if (WorkerCommands.CancellationPending)
                         return;
 
-                    Logger.LogTrace("Processing command request: {0}", crdb.CommandID);
+                    Logger.LogTrace("Processing command request: {CommandID}", crdb.CommandID);
                     try
                     {
                         CurrentCommand = crdb;
-                        icr.ProcessCommand(ServiceProvider);
+                        icr.ProcessCommand();
                     }
                     catch (Exception ex)
                     {
-                        Logger.LogError(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex);
+                        Logger.LogError(ex, "ProcessCommand exception: {CommandID}\n{Ex}", crdb.CommandID, ex);
                     }
                     finally
                     {
@@ -89,7 +91,7 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                Logger.LogTrace("Deleting command request: {0}", crdb.CommandID);
+                Logger.LogTrace("Deleting command request: {Command}", crdb.CommandID);
                 RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
 
                 UpdateQueueCount();

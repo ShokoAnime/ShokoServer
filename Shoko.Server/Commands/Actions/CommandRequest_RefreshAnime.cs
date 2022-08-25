@@ -1,8 +1,10 @@
 ﻿using System;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
 
@@ -12,18 +14,6 @@ namespace Shoko.Server.Commands
     public class CommandRequest_RefreshAnime : CommandRequestImplementation
     {
         public int AnimeID { get; set; }
-
-        public CommandRequest_RefreshAnime(int animeID)
-        {
-            AnimeID = animeID;
-
-            Priority = (int) DefaultPriority;
-            GenerateCommandID();
-        }
-
-        public CommandRequest_RefreshAnime()
-        {
-        }
 
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
@@ -35,7 +25,7 @@ namespace Shoko.Server.Commands
             extraParams = new[] {AnimeID.ToString()}
         };
 
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
         }
@@ -69,6 +59,10 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_RefreshAnime(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

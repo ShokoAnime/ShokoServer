@@ -6,14 +6,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Interfaces;
 using Shoko.Server.Server;
-using Shoko.Server.Utilities;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.Generic
 {
     public static class CommandHelper
     {
-        private static Dictionary<CommandRequestType, ReflectionUtils.ObjectActivator<CommandRequestImplementation>> CommandRequestImpls;
+        private static Dictionary<CommandRequestType, Type> _commandRequestImpls;
 
         // List of priorities for commands
         // Order is as such:
@@ -113,20 +113,19 @@ namespace Shoko.Server.Commands
         {
             var logFactory = provider.GetRequiredService<ILoggerFactory>();
             var logger = logFactory.CreateLogger(typeof(CommandHelper));
-            CommandRequestImpls = new Dictionary<CommandRequestType, ReflectionUtils.ObjectActivator<CommandRequestImplementation>>();
+            _commandRequestImpls = new Dictionary<CommandRequestType, Type>();
 
             IEnumerable<Type> types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => { try { return a.GetTypes(); } catch { return new Type[]{}; }}).Where(a => a.GetCustomAttribute<CommandAttribute>() != null);
             foreach (var commandType in types)
             {
-                var attr = commandType.GetCustomAttribute<CommandAttribute>().RequestType;
-                if (CommandRequestImpls.ContainsKey(attr))
+                var attr = commandType.GetCustomAttribute<CommandAttribute>()!.RequestType;
+                if (_commandRequestImpls.ContainsKey(attr))
                 {
-                    logger.LogWarning($"Duplicate command of type {attr}, this should never happen without a code error, please report this to the devs.");
+                    logger.LogWarning("Duplicate command of type {Attr}, this should never happen without a code error, please report this to the devs", attr);
                     continue;
                 }
 
-                var ctor = ReflectionUtils.GetActivator<CommandRequestImplementation>(commandType.GetConstructor(Type.EmptyTypes));
-                CommandRequestImpls.Add(attr, ctor);
+                _commandRequestImpls.Add(attr, commandType);
             }
         }
 
@@ -138,19 +137,18 @@ namespace Shoko.Server.Commands
             if (crdb == null)
                 return null;
 
-            if (!CommandRequestImpls.TryGetValue((CommandRequestType)crdb.CommandType,
-                out ReflectionUtils.ObjectActivator<CommandRequestImplementation> ctor)) return null;
+            if (!_commandRequestImpls.TryGetValue((CommandRequestType)crdb.CommandType, out var type)) return null;
 
             try
             {
-                CommandRequestImplementation command = ctor();
-                command.LoadFromDBCommand(crdb);
+                var command = ActivatorUtilities.CreateInstance(provider, type) as ICommandRequest;
+                command?.LoadFromDBCommand(crdb);
                 return command;
             }
             catch (Exception e)
             {
-                logger.LogError($"There was an error loading {(CommandRequestType)crdb.CommandType}: The XML was {crdb.CommandDetails}");
-                logger.LogError($"There was an error loading {(CommandRequestType)crdb.CommandType}: {e}");
+                logger.LogError("There was an error loading {CommandType}: The XML was {CommandDetails}", (CommandRequestType)crdb.CommandType, crdb.CommandDetails);
+                logger.LogError("There was an error loading {CommandType}: {E}", (CommandRequestType)crdb.CommandType, e);
             }
             return null;
         }

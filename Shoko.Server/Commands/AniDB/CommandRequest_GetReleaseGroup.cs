@@ -6,6 +6,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
@@ -42,7 +43,7 @@ namespace Shoko.Server.Commands.AniDB
             GenerateCommandID();
         }
 
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_GetReleaseGroup: {GroupID}", GroupID);
             var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();

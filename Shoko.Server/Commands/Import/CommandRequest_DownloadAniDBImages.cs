@@ -6,7 +6,6 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Xml;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
@@ -16,6 +15,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Providers.AniDB;
@@ -24,11 +24,12 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.Import
 {
     [Command(CommandRequestType.DownloadAniDBImages)]
     public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
     {
+        private readonly IUDPConnectionHandler _handler;
         public int AnimeID { get; set; }
         public bool ForceDownload { get; set; }
 
@@ -55,20 +56,7 @@ namespace Shoko.Server.Commands
             extraParams = new[] { Resources.Command_ValidateAllImages_AniDBSeiyuus, AnimeID.ToString() }
         };
 
-        public CommandRequest_DownloadAniDBImages()
-        {
-        }
-
-        public CommandRequest_DownloadAniDBImages(int animeID, bool forced)
-        {
-            AnimeID = animeID;
-            ForceDownload = forced;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
-        protected override void Process(IServiceProvider serviceProvider)
+        protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_DownloadAniDBImages: {AnimeID}", AnimeID);
 
@@ -80,7 +68,7 @@ namespace Shoko.Server.Commands
                     ImageEntityType.AniDB_Character,
                     ImageEntityType.AniDB_Creator
                 };
-                IUDPConnectionHandler handler = null;
+
                 foreach (var entityTypeEnum in types)
                 {
                     var downloadUrls = new List<string>();
@@ -91,12 +79,11 @@ namespace Shoko.Server.Commands
                             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                             if (anime == null)
                             {
-                                Logger.LogWarning($"AniDB poster image failed to download: Can't find AniDB_Anime with ID: {AnimeID}");
+                                Logger.LogWarning("AniDB poster image failed to download: Can\'t find AniDB_Anime with ID: {AnimeID}", AnimeID);
                                 return;
                             }
 
-                            handler ??= serviceProvider.GetRequiredService<IUDPConnectionHandler>();
-                            downloadUrls.Add(string.Format(handler.ImageServerUrl, anime.Picname));
+                            downloadUrls.Add(string.Format(_handler.ImageServerUrl, anime.Picname));
                             fileNames.Add(anime.PosterPath);
                             break;
 
@@ -110,14 +97,14 @@ namespace Shoko.Server.Commands
                             if (chrs == null || chrs.Count == 0)
                             {
                                 Logger.LogWarning(
-                                    $"AniDB Character image failed to download: Can't find Character for anime: {AnimeID}");
+                                    "AniDB Character image failed to download: Can\'t find Character for anime: {AnimeID}", AnimeID
+                                );
                                 return;
                             }
 
-                            handler ??= serviceProvider.GetRequiredService<IUDPConnectionHandler>();
                             foreach (var chr in chrs)
                             {
-                                downloadUrls.Add(string.Format(handler.ImageServerUrl, chr.PicName));
+                                downloadUrls.Add(string.Format(_handler.ImageServerUrl, chr.PicName));
                                 fileNames.Add(chr.GetPosterPath());
                             }
 
@@ -136,14 +123,14 @@ namespace Shoko.Server.Commands
                             if (creators == null || creators.Count == 0)
                             {
                                 Logger.LogWarning(
-                                    $"AniDB Seiyuu image failed to download: Can't find Seiyuus for anime: {AnimeID}");
+                                    "AniDB Seiyuu image failed to download: Can\'t find Seiyuus for anime: {AnimeID}", AnimeID
+                                );
                                 return;
                             }
 
-                            handler ??= serviceProvider.GetRequiredService<IUDPConnectionHandler>();
                             foreach (var creator in creators)
                             {
-                                downloadUrls.Add(string.Format(handler.ImageServerUrl, creator.PicName));
+                                downloadUrls.Add(string.Format(_handler.ImageServerUrl, creator.PicName));
                                 fileNames.Add(creator.GetPosterPath());
                             }
 
@@ -197,7 +184,7 @@ namespace Shoko.Server.Commands
                                 Directory.CreateDirectory(fullPath);
 
                             File.Move(tempName, fileNames[i]);
-                            Logger.LogInformation($"Image downloaded: {fileNames[i]} from {downloadUrls[i]}");
+                            Logger.LogInformation("Image downloaded: {FileName} from {DownloadUrl}", fileNames[i], downloadUrls[i]);
                         }
                         catch (WebException e)
                         {
@@ -325,6 +312,11 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_DownloadAniDBImages(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory)
+        {
+            _handler = handler;
         }
     }
 }
