@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using Microsoft.Data.Sqlite;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -14,7 +13,6 @@ using System.Timers;
 using System.Text.RegularExpressions;
 using LeanWork.IO.FileSystem;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
@@ -22,29 +20,24 @@ using Microsoft.Win32.TaskScheduler;
 using NHibernate;
 using NLog;
 using NLog.Config;
-using NLog.Extensions.Logging;
 using NLog.Targets;
 using NLog.Targets.Wrappers;
 using NLog.Web;
 using Sentry;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
 using Shoko.Server.API;
 using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
-using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
@@ -120,6 +113,7 @@ namespace Shoko.Server.Server
             services.AddSingleton(Loader.Instance);
             services.AddSingleton(ShokoService.CmdProcessorGeneral);
             AniDBStartup.ConfigureServices(services);
+            CommandStartup.Configure(services);
             Loader.Instance.Load(services);
         }
         
@@ -618,6 +612,7 @@ namespace Shoko.Server.Server
             // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
 
             // This is faster and doesn't throw on weird paths. I've had some UTF-16/UTF-32 paths cause serious issues
+            var commandFactory = ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             if (Directory.Exists(evt.FullPath)) // filter out invalid events
             {
                 logger.Info("New folder detected: {0}: {1}", evt.FullPath, evt.ChangeType);
@@ -636,7 +631,7 @@ namespace Shoko.Server.Server
 
                         var tup = VideoLocal_PlaceRepository.GetFromFullPath(file);
                         ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(file));
-                        var cmd = new CommandRequest_HashFile(file, false);
+                        var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = file);
                         cmd.Save();
                     }
                 }
@@ -655,7 +650,7 @@ namespace Shoko.Server.Server
 
                     var tup = VideoLocal_PlaceRepository.GetFromFullPath(evt.FullPath);
                     ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(evt.FullPath));
-                    var cmd = new CommandRequest_HashFile(evt.FullPath, false);
+                    var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = evt.FullPath);
                     cmd.Save();
                 }
             }
@@ -879,9 +874,10 @@ namespace Shoko.Server.Server
         {
             // first build a list of files that we already know about, as we don't want to process them again
             IReadOnlyList<SVR_VideoLocal> filesAll = RepoFactory.VideoLocal.GetAll();
+            var commandFactory = ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             foreach (SVR_VideoLocal vl in filesAll)
             {
-                CommandRequest_ReadMediaInfo cr = new CommandRequest_ReadMediaInfo(vl.VideoLocalID);
+                var cr = commandFactory.Create<CommandRequest_ReadMediaInfo>(c => c.VideoLocalID = vl.VideoLocalID);
                 cr.Save();
             }
         }
@@ -1347,45 +1343,6 @@ namespace Shoko.Server.Server
             }
         }
 
-        private static void ReadFiles()
-        {
-            // Steps for processing a file
-            // 1. Check if it is a video file
-            // 2. Check if we have a VideoLocal record for that file
-            // .........
-
-            // get a complete list of files
-            List<string> fileList = new List<string>();
-            foreach (SVR_ImportFolder share in RepoFactory.ImportFolder.GetAll())
-            {
-                logger.Debug("Import Folder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
-                Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
-            }
-
-
-            // get a list of all the shares we are looking at
-            int filesFound = 0, videosFound = 0;
-            int i = 0;
-
-            // get a list of all files in the share
-            foreach (string fileName in fileList)
-            {
-                i++;
-                filesFound++;
-
-                if (fileName.Contains("Sennou"))
-                {
-                    logger.Info("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
-                }
-
-                if (!FileHashHelper.IsVideo(fileName)) continue;
-
-                videosFound++;
-            }
-            logger.Debug("Found {0} files", filesFound);
-            logger.Debug("Found {0} videos", videosFound);
-        }
-
         public static void StopHost()
         {
             webHost?.Dispose();
@@ -1423,393 +1380,19 @@ namespace Shoko.Server.Server
         /// <returns>true if there was any commands added to the queue, flase otherwise</returns>
         public bool SyncPlex()
         {
+            var commandFactory = ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             Analytics.PostEvent("Plex", "SyncAll");
 
             bool flag = false;
             foreach (SVR_JMMUser user in RepoFactory.JMMUser.GetAll())
             {
-                if (!string.IsNullOrEmpty(user.PlexToken))
-                {
-                    flag = true;
-                    new CommandRequest_PlexSyncWatched(user).Save();
-                }
+                if (string.IsNullOrEmpty(user.PlexToken)) continue;
+                flag = true;
+                commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = user).Save();
             }
             return flag;
         }
 
-        public void EnableStartWithWindows()
-        {
-            ServerState state = ServerState.Instance;
-
-            if (state.IsAutostartEnabled)
-            {
-                return;
-            }
-
-            if (state.autostartMethod == AutostartMethod.Registry)
-            {
-                try
-                {
-                    state.AutostartRegistryKey.SetValue(state.autostartKey,
-                        "\"" + Assembly.GetEntryAssembly().Location + "\"");
-                    state.LoadSettings();
-                }
-                catch (Exception ex)
-                {
-                    logger.Debug(ex , "Creating autostart key");
-                }
-            }
-            else if (state.autostartMethod == AutostartMethod.TaskScheduler)
-            {
-                Task task = TaskService.Instance.GetTask(state.autostartTaskName);
-                if (task != null)
-                {
-                    TaskService.Instance.RootFolder.DeleteTask(task.Name);
-                }
-
-                TaskDefinition td = TaskService.Instance.NewTask();
-                td.RegistrationInfo.Description = "Auto start task for Shoko Server";
-
-                td.Principal.RunLevel = TaskRunLevel.Highest;
-
-                td.Triggers.Add(new BootTrigger());
-                td.Triggers.Add(new LogonTrigger());
-
-                td.Actions.Add(new ExecAction($"\"{Assembly.GetEntryAssembly().Location}\""));
-
-                TaskService.Instance.RootFolder.RegisterTaskDefinition(state.autostartTaskName, td);
-                state.LoadSettings();
-            }
-        }
-
-        public void DisableStartWithWindows()
-        {
-            ServerState state = ServerState.Instance;
-            if (!state.IsAutostartEnabled)
-            {
-                return;
-            }
-
-            if (state.autostartMethod == AutostartMethod.Registry)
-            {
-                try
-                {
-                    state.AutostartRegistryKey.DeleteValue(state.autostartKey, false);
-                    state.LoadSettings();
-                }
-                catch (Exception ex)
-                {
-                    logger.Debug(ex, "Deleting autostart key");
-                }
-            }
-            else if (state.autostartMethod == AutostartMethod.TaskScheduler)
-            {
-                Task task = TaskService.Instance.GetTask(state.autostartTaskName);
-
-                if (task == null) return;
-                TaskService.Instance.RootFolder.DeleteTask(task.Name);
-                state.LoadSettings();
-            }
-        }
-
-        public bool SetNancyPort(ushort port)
-        {
-            if (!Utils.IsAdministrator()) return false;
-
-            ShokoService.CmdProcessorGeneral.Paused = true;
-            ShokoService.CmdProcessorHasher.Paused = true;
-            ShokoService.CmdProcessorImages.Paused = true;
-
-            StopHost();
-
-            ServerSettings.Instance.ServerPort = port;
-
-            bool started = NetPermissionWrapper(StartWebHost);
-            if (!started)
-            {
-                StopHost();
-                throw new Exception("Failed to start all of the network hosts");
-            }
-
-            ShokoService.CmdProcessorGeneral.Paused = false;
-            ShokoService.CmdProcessorHasher.Paused = false;
-            ShokoService.CmdProcessorImages.Paused = false;
-            return true;
-        }
-
-        public void CheckForUpdates()
-        {
-            Assembly a = Assembly.GetExecutingAssembly();
-            ServerState.Instance.ApplicationVersion = Utils.GetApplicationVersion(a);
-            ServerState.Instance.ApplicationVersionExtra = Utils.GetApplicationExtraVersion(a);
-
-            logger.Info("Checking for updates...");
-            CheckForUpdatesNew(false);
-        }
-
         public static void RunWorkSetupDB() => workerSetupDB.RunWorkerAsync();
-
-        #region Tests
-
-        private static void HashTest()
-        {
-            string fileName = @"C:\Code_Geass_R2_Ep14_Geass_Hunt_[720p,BluRay,x264]_-_THORA.mkv";
-            //string fileName = @"M:\[ Anime Test ]\Code_Geass_R2_Ep14_Geass_Hunt_[720p,BluRay,x264]_-_THORA.mkv";
-
-            DateTime start = DateTime.Now;
-            Hashes hashes = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, false);
-            TimeSpan ts = DateTime.Now - start;
-
-            double doubleED2k = ts.TotalMilliseconds;
-
-            start = DateTime.Now;
-            Hashes hashes2 = Hasher.CalculateHashes(fileName, OnHashProgress, true, false, false);
-            ts = DateTime.Now - start;
-
-            double doubleCRC32 = ts.TotalMilliseconds;
-
-            start = DateTime.Now;
-            Hashes hashes3 = Hasher.CalculateHashes(fileName, OnHashProgress, false, true, false);
-            ts = DateTime.Now - start;
-
-            double doubleMD5 = ts.TotalMilliseconds;
-
-            start = DateTime.Now;
-            Hashes hashes4 = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, true);
-            ts = DateTime.Now - start;
-
-            double doubleSHA1 = ts.TotalMilliseconds;
-
-            start = DateTime.Now;
-            Hashes hashes5 = Hasher.CalculateHashes(fileName, OnHashProgress, true, true, true);
-            ts = DateTime.Now - start;
-
-            double doubleAll = ts.TotalMilliseconds;
-
-            logger.Info("ED2K only took {0} ms --- {1}/{2}/{3}/{4}", doubleED2k, hashes.ED2K, hashes.CRC32, hashes.MD5,
-                hashes.SHA1);
-            logger.Info("ED2K + CRCR32 took {0} ms --- {1}/{2}/{3}/{4}", doubleCRC32, hashes2.ED2K, hashes2.CRC32,
-                hashes2.MD5,
-                hashes2.SHA1);
-            logger.Info("ED2K + MD5 took {0} ms --- {1}/{2}/{3}/{4}", doubleMD5, hashes3.ED2K, hashes3.CRC32,
-                hashes3.MD5,
-                hashes3.SHA1);
-            logger.Info("ED2K + SHA1 took {0} ms --- {1}/{2}/{3}/{4}", doubleSHA1, hashes4.ED2K, hashes4.CRC32,
-                hashes4.MD5,
-                hashes4.SHA1);
-            logger.Info("Everything took {0} ms --- {1}/{2}/{3}/{4}", doubleAll, hashes5.ED2K, hashes5.CRC32,
-                hashes5.MD5,
-                hashes5.SHA1);
-        }
-
-        private static void HashTest2()
-        {
-            string fileName = @"C:\Anime\Code_Geass_R2_Ep14_Geass_Hunt_[720p,BluRay,x264]_-_THORA.mkv";
-            FileInfo fi = new FileInfo(fileName);
-            string fileSize1 = Utils.FormatByteSize(fi.Length);
-            DateTime start = DateTime.Now;
-            Hashes hashes = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, false);
-            TimeSpan ts = DateTime.Now - start;
-
-            double doubleFile1 = ts.TotalMilliseconds;
-
-            fileName = @"C:\Anime\[Coalgirls]_Bakemonogatari_01_(1280x720_Blu-Ray_FLAC)_[CA425D15].mkv";
-            fi = new FileInfo(fileName);
-            string fileSize2 = Utils.FormatByteSize(fi.Length);
-            start = DateTime.Now;
-            Hashes hashes2 = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, false);
-            ts = DateTime.Now - start;
-
-            double doubleFile2 = ts.TotalMilliseconds;
-
-
-            fileName = @"C:\Anime\Highschool_of_the_Dead_Ep01_Spring_of_the_Dead_[1080p,BluRay,x264]_-_gg-THORA.mkv";
-            fi = new FileInfo(fileName);
-            string fileSize3 = Utils.FormatByteSize(fi.Length);
-            start = DateTime.Now;
-            Hashes hashes3 = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, false);
-            ts = DateTime.Now - start;
-
-            double doubleFile3 = ts.TotalMilliseconds;
-
-            logger.Info("Hashed {0} in {1} ms --- {2}", fileSize1, doubleFile1, hashes.ED2K);
-            logger.Info("Hashed {0} in {1} ms --- {2}", fileSize2, doubleFile2, hashes2.ED2K);
-            logger.Info("Hashed {0} in {1} ms --- {2}", fileSize3, doubleFile3, hashes3.ED2K);
-        }
-
-        private static void UpdateStatsTest()
-        {
-            foreach (SVR_AnimeGroup grp in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
-            {
-                grp.UpdateStatsFromTopLevel(true, true);
-            }
-        }
-
-        private static void CreateImportFolders_Test()
-        {
-            logger.Debug("Creating import folders...");
-
-            SVR_ImportFolder sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime Test ]");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderName = "Anime",
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderLocation = @"M:\[ Anime Test ]"
-                };
-                RepoFactory.ImportFolder.Save(sn);
-            }
-
-            logger.Debug("Complete!");
-        }
-
-        private static void ProcessFileTest()
-        {
-            //CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(@"M:\[ Anime Test ]\[HorribleSubs] Dragon Crisis! - 02 [720p].mkv", false);
-            //CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(@"M:\[ Anime Test ]\[Doki] Saki - 01 (720x480 h264 DVD AAC) [DC73ACB9].mkv");
-            //cr_hashfile.Save();
-
-            CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(15350, false);
-            cr_procfile.Save();
-        }
-
-        private static void CreateImportFolders()
-        {
-            logger.Debug("Creating shares...");
-
-            SVR_ImportFolder sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime 2011 ]");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime 2011",
-                    ImportFolderLocation = @"M:\[ Anime 2011 ]"
-                };
-                RepoFactory.ImportFolder.Save(sn);
-            }
-
-            sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime - DVD and Bluray IN PROGRESS ]");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime - DVD and Bluray IN PROGRESS",
-                    ImportFolderLocation = @"M:\[ Anime - DVD and Bluray IN PROGRESS ]"
-                };
-                RepoFactory.ImportFolder.Save(sn);
-            }
-
-            sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime - DVD and Bluray COMPLETE ]");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime - DVD and Bluray COMPLETE",
-                    ImportFolderLocation = @"M:\[ Anime - DVD and Bluray COMPLETE ]"
-                };
-                RepoFactory.ImportFolder.Save(sn);
-            }
-
-            sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime ]");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime",
-                    ImportFolderLocation = @"M:\[ Anime ]"
-                };
-                RepoFactory.ImportFolder.Save(sn);
-            }
-
-            logger.Debug("Creating shares complete!");
-        }
-
-        private static void CreateImportFolders2()
-        {
-            logger.Debug("Creating shares...");
-
-            SVR_ImportFolder sn = RepoFactory.ImportFolder.GetByImportLocation(@"F:\Anime1");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime1",
-                    ImportFolderLocation = @"F:\Anime1"
-                };
-                RepoFactory.ImportFolder.Save(sn);
-            }
-
-            sn = RepoFactory.ImportFolder.GetByImportLocation(@"H:\Anime2");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime2",
-                    ImportFolderLocation = @"H:\Anime2"
-                };
-                RepoFactory.ImportFolder.Save(sn);
-            }
-
-            sn = RepoFactory.ImportFolder.GetByImportLocation(@"G:\Anime3");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime3",
-                    ImportFolderLocation = @"G:\Anime3"
-                };
-                RepoFactory.ImportFolder.Save(sn);
-            }
-
-            logger.Debug("Creating shares complete!");
-        }
-
-        private static void CreateTestCommandRequests()
-        {
-            CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(5415, false, true, false);
-            cr_anime.Save();
-
-            /*
-			cr_anime = new CommandRequest_GetAnimeHTTP(7382); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(6239); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(69); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(6751); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(3168); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(4196); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(634); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(2002); cr_anime.Save();
-
-
-
-			cr_anime = new CommandRequest_GetAnimeHTTP(1); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(2); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(3); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(4); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(5); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(6); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(7); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(8); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(9); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(10); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(11); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(12); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(13); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(14); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(15); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(16); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(17); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(18); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(19); cr_anime.Save();*/
-        }
-
-        #endregion
     }
 }

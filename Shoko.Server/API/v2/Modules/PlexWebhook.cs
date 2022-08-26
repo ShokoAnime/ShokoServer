@@ -15,6 +15,7 @@ using Shoko.Models.Plex.Collection;
 using Shoko.Models.Plex.Libraries;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.Commands;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -33,7 +34,14 @@ namespace Shoko.Server.API.v2.Modules
     [ApiVersionNeutral]
     public class PlexWebhook : BaseController
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private readonly ILogger _logger;
+        private readonly ICommandRequestFactory _commandFactory;
+
+        public PlexWebhook(ICommandRequestFactory commandFactory, ILogger logger)
+        {
+            _commandFactory = commandFactory;
+            _logger = logger;
+        }
 
         //The second one is to just make sure 
         [HttpPost, HttpPost("/plex.json")]
@@ -43,7 +51,7 @@ namespace Shoko.Server.API.v2.Modules
                 new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()});*/
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            logger.Trace($"{payload.Event}: {payload.Metadata.Guid}");
+            _logger.Trace($"{payload.Event}: {payload.Metadata.Guid}");
             switch (payload.Event)
             {
                 case "media.scrobble":
@@ -67,7 +75,7 @@ namespace Shoko.Server.API.v2.Modules
         #region Plex events
 
         [NonAction]
-        private static void TraktScrobble(PlexEvent evt, ScrobblePlayingStatus type)
+        private void TraktScrobble(PlexEvent evt, ScrobblePlayingStatus type)
         {
             PlexEvent.PlexMetadata metadata = evt.Metadata;
             (SVR_AnimeEpisode episode, SVR_AnimeSeries anime) = GetEpisode(metadata);
@@ -92,16 +100,16 @@ namespace Shoko.Server.API.v2.Modules
             (SVR_AnimeEpisode episode, SVR_AnimeSeries anime) = GetEpisode(metadata);
             if (episode == null)
             {
-                logger.Info("No episode returned, aborting scrobble. This might not have been a ShokoMetadata library");
+                _logger.Info("No episode returned, aborting scrobble. This might not have been a ShokoMetadata library");
                 return;
             }
 
-            logger.Trace($"Got anime: {anime}, ep: {episode.AniDB_Episode.EpisodeNumber}");
+            _logger.Trace($"Got anime: {anime}, ep: {episode.AniDB_Episode.EpisodeNumber}");
 
             var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
             if (user == null)
             {
-                logger.Info($"Unable to determine who \"{data.Account.Title}\" is in Shoko, make sure this is set under user settings in Desktop");
+                _logger.Info($"Unable to determine who \"{data.Account.Title}\" is in Shoko, make sure this is set under user settings in Desktop");
                 return; //At this point in time, we don't want to scrobble for unknown users
             }
 
@@ -113,7 +121,7 @@ namespace Shoko.Server.API.v2.Modules
         #endregion
 
         [NonAction]
-        private static (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
+        private (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
         {
             Uri guid = new Uri(metadata.Guid);
             if (guid.Scheme != "com.plexapp.agents.shoko") return (null, null);
@@ -175,7 +183,7 @@ namespace Shoko.Server.API.v2.Modules
 
 
             //catch all
-            logger.Info($"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multipl episodes linked, but no tvdb link.");
+            _logger.Info($"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multipl episodes linked, but no tvdb link.");
             return (null, anime);
         }
 
@@ -203,7 +211,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             Analytics.PostEvent("Plex", "SyncOne");
 
-            new CommandRequest_PlexSyncWatched(HttpContext.GetUser()).Save();
+            _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser()).Save();
             return APIStatus.OK();
         }
 

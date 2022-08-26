@@ -4,20 +4,17 @@ using System.Xml;
 using Microsoft.Extensions.Logging;
 using NHibernate;
 using Shoko.Commons.Queue;
-using Shoko.Models.Azure;
-using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
 
 namespace Shoko.Server.Commands
 {
@@ -37,95 +34,45 @@ namespace Shoko.Server.Commands
             extraParams = new[] {AnimeID.ToString()}
         };
 
-        public CommandRequest_MovieDBSearchAnime()
-        {
-        }
-
-        public CommandRequest_MovieDBSearchAnime(int animeID, bool forced)
-        {
-            AnimeID = animeID;
-            ForceRefresh = forced;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
-            Logger.LogInformation("Processing CommandRequest_MovieDBSearchAnime: {0}", AnimeID);
+            Logger.LogInformation("Processing CommandRequest_MovieDBSearchAnime: {AnimeID}", AnimeID);
 
             try
             {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                var sessionWrapper = session.Wrap();
+
+                // Use TvDB setting
+                if (!ServerSettings.Instance.TvDB.AutoLink) return;
+
+                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
+                if (anime == null) return;
+
+                var searchCriteria = anime.PreferredTitle;
+
+                // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
+                var results = MovieDBHelper.Search(searchCriteria);
+                Logger.LogTrace("Found {Count} moviedb results for {Criteria} on MovieDB", results.Count, searchCriteria);
+                if (ProcessSearchResults(session, results, searchCriteria)) return;
+
+
+                if (results.Count != 0) return;
+                foreach (var title in anime.GetTitles())
                 {
-                    ISessionWrapper sessionWrapper = session.Wrap();
+                    if (title.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Official)
+                        continue;
 
-                    // first check if the user wants to use the web cache
-                    if (ServerSettings.Instance.WebCache.Enabled && ServerSettings.Instance.WebCache.TvDB_Get)
-                    {
-                        try
-                        {
-                            Azure_CrossRef_AniDB_Other crossRef =
-                                AzureWebAPI.Get_CrossRefAniDBOther(AnimeID,
-                                    CrossRefType.MovieDB);
-                            if (crossRef != null)
-                            {
-                                int movieID = int.Parse(crossRef.CrossRefID);
-                                MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(sessionWrapper, movieID);
-                                if (movie == null)
-                                {
-                                    // update the info from online
-                                    MovieDBHelper.UpdateMovieInfo(session, movieID, true);
-                                    movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieID);
-                                }
+                    if (string.Equals(searchCriteria, title.Title, StringComparison.CurrentCultureIgnoreCase)) continue;
 
-                                if (movie != null)
-                                {
-                                    // since we are using the web cache result, let's save it
-                                    MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, true);
-                                    return;
-                                }
-                            }
-                        }
-                        catch (Exception)
-                        {
-                        }
-                    }
-
-                    // Use TvDB setting
-                    if (!ServerSettings.Instance.TvDB.AutoLink) return;
-
-                    string searchCriteria = string.Empty;
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
-                    if (anime == null) return;
-
-                    searchCriteria = anime.PreferredTitle;
-
-                    // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-                    List<MovieDB_Movie_Result> results = MovieDBHelper.Search(searchCriteria);
-                    Logger.LogTrace("Found {0} moviedb results for {1} on MovieDB", results.Count, searchCriteria);
-                    if (ProcessSearchResults(session, results, searchCriteria)) return;
-
-
-                    if (results.Count == 0)
-                    {
-                        foreach (var title in anime.GetTitles())
-                        {
-                            if (title.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Official)
-                                continue;
-
-                            if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
-
-                            results = MovieDBHelper.Search(title.Title);
-                            Logger.LogTrace("Found {0} moviedb results for search on {1}", results.Count, title.Title);
-                            if (ProcessSearchResults(session, results, title.Title)) return;
-                        }
-                    }
+                    results = MovieDBHelper.Search(title.Title);
+                    Logger.LogTrace("Found {Count} moviedb results for search on {Title}", results.Count, title.Title);
+                    if (ProcessSearchResults(session, results, title.Title)) return;
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogError("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex);
+                Logger.LogError("Error processing CommandRequest_TvDBSearchAnime: {AnimeID} - {Ex}", AnimeID, ex);
             }
         }
 
@@ -134,10 +81,10 @@ namespace Shoko.Server.Commands
             if (results.Count == 1)
             {
                 // since we are using this result, lets download the info
-                Logger.LogTrace("Found 1 moviedb results for search on {0} --- Linked to {1} ({2})", searchCriteria,
+                Logger.LogTrace("Found 1 moviedb results for search on {SearchCriteria} --- Linked to {Name} ({ID})", searchCriteria,
                     results[0].MovieName, results[0].MovieID);
 
-                int movieID = results[0].MovieID;
+                var movieID = results[0].MovieID;
                 MovieDBHelper.UpdateMovieInfo(session, movieID, true);
                 MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, false);
                 return true;
@@ -162,7 +109,7 @@ namespace Shoko.Server.Commands
             // read xml to get parameters
             if (CommandDetails.Trim().Length > 0)
             {
-                XmlDocument docCreator = new XmlDocument();
+                var docCreator = new XmlDocument();
                 docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
@@ -178,7 +125,7 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest
+            var cq = new CommandRequest
             {
                 CommandID = CommandID,
                 CommandType = CommandType,
@@ -187,6 +134,10 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_MovieDBSearchAnime(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

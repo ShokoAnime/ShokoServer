@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using FluentNHibernate.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
@@ -72,10 +73,11 @@ namespace Shoko.Server.Repositories.Cached
                     .ToList();
                 max = list.Count;
 
+                var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
                 list.ForEach(
                     a =>
                     {
-                        var cmd = new CommandRequest_ReadMediaInfo(a.VideoLocalID);
+                        var cmd = commandFactory.Create<CommandRequest_ReadMediaInfo>(c => c.VideoLocalID = a.VideoLocalID);
                         cmd.Save();
                         count++;
                         ServerState.Instance.ServerStartingStatus = string.Format(

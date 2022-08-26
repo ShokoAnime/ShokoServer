@@ -22,6 +22,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.ProcessFile)]
     public class CommandRequest_ProcessFile : CommandRequestImplementation
     {
+        private readonly ICommandRequestFactory _commandFactory;
         public int VideoLocalID { get; set; }
         public bool ForceAniDB { get; set; }
         
@@ -51,20 +52,6 @@ namespace Shoko.Server.Commands
             }
         }
 
-        public CommandRequest_ProcessFile()
-        {
-        }
-
-        public CommandRequest_ProcessFile(int vidLocalID, bool forceAniDB, bool skipMyList = false)
-        {
-            VideoLocalID = vidLocalID;
-            ForceAniDB = forceAniDB;
-            Priority = (int) DefaultPriority;
-            SkipMyList = skipMyList;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
             Logger.LogTrace("Processing File: {VideoLocalID}", VideoLocalID);
@@ -75,7 +62,7 @@ namespace Shoko.Server.Commands
                 if (vlocal == null) return;
 
                 //now that we have all the has info, we can get the AniDB Info
-                var aniFile = ProcessFile_AniDB(serviceProvider, vlocal);
+                var aniFile = ProcessFile_AniDB(vlocal);
                 vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
                 if (aniFile != null) ShokoEventHandler.Instance.OnFileMatched(vlocal.GetBestVideoLocalPlace());
@@ -86,7 +73,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private SVR_AniDB_File ProcessFile_AniDB(IServiceProvider provider, SVR_VideoLocal vidLocal)
+        private SVR_AniDB_File ProcessFile_AniDB(SVR_VideoLocal vidLocal)
         {
             Logger.LogTrace("Checking for AniDB_File record for: {VidLocalHash} --- {VidLocalFileName}", vidLocal.Hash, vidLocal.FileName);
             // check if we already have this AniDB_File info in the database
@@ -109,7 +96,7 @@ namespace Shoko.Server.Commands
 
                 var animeIDs = new Dictionary<int, bool>();
 
-                if (aniFile == null || aniFile.FileSize != vlocal.FileSize) aniFile = TryGetAniDBFileFromAniDB(provider, vidLocal, animeIDs);
+                if (aniFile == null || aniFile.FileSize != vlocal.FileSize) aniFile = TryGetAniDBFileFromAniDB(vidLocal, animeIDs);
 
                 // if we still haven't got the AniDB_File Info we try the web cache or local records
                 if (aniFile == null)
@@ -163,13 +150,13 @@ namespace Shoko.Server.Commands
                         {
                             // may as well download it immediately. We can change it later if it becomes an issue
                             // this will only happen if it's null, and most people grab mostly the same release groups
-                            var groupCommand = new CommandRequest_GetReleaseGroup { GroupID = aniFile.GroupID };
-                            groupCommand.ProcessCommand(provider);
+                            var groupCommand = _commandFactory.Create<CommandRequest_GetReleaseGroup>(c => c.GroupID = aniFile.GroupID);
+                            groupCommand.ProcessCommand();
                         }
                     }
                 }
 
-                PopulateAnimeForFile(provider, vidLocal, animeIDs);
+                PopulateAnimeForFile(vidLocal, animeIDs);
 
                 // We do this inside, as the info will not be available as needed otherwise
                 var videoLocals =
@@ -221,18 +208,18 @@ namespace Shoko.Server.Commands
                 // Add this file to the users list
                 if (ServerSettings.Instance.AniDb.MyList_AddFiles && !SkipMyList && vidLocal.MyListID <= 0)
                 {
-                    new CommandRequest_AddFileToMyList
+                    _commandFactory.Create<CommandRequest_AddFileToMyList>(c =>
                     {
-                        Hash = vidLocal.ED2KHash,
-                        ReadStates = true,
-                    }.Save();
+                        c.Hash = vidLocal.ED2KHash;
+                        c.ReadStates = true;
+                    }).Save();
                 }
 
                 return aniFile;
             }
         }
 
-        private void PopulateAnimeForFile(IServiceProvider provider, SVR_VideoLocal vidLocal, Dictionary<int, bool> animeIDs)
+        private void PopulateAnimeForFile(SVR_VideoLocal vidLocal, Dictionary<int, bool> animeIDs)
         {
             foreach (var kV in animeIDs)
             {
@@ -257,12 +244,15 @@ namespace Shoko.Server.Commands
                 {
                     Logger.LogDebug("Getting Anime record from AniDB....");
                     // this should detect and handle a ban, which will leave Result null, and defer
-                    var animeCommand = new CommandRequest_GetAnimeHTTP
+                    var animeCommand = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
                     {
-                        AnimeID = animeID, ForceRefresh = true, DownloadRelations = ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime, CreateSeriesEntry = true,
-                    };
+                        c.AnimeID = animeID;
+                        c.ForceRefresh = true;
+                        c.DownloadRelations = ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime;
+                        c.CreateSeriesEntry = true;
+                    });
 
-                    animeCommand.ProcessCommand(provider);
+                    animeCommand.ProcessCommand();
                     anime = animeCommand.Result;
                 }
 
@@ -271,7 +261,15 @@ namespace Shoko.Server.Commands
                 {
                     Logger.LogWarning($"Unable to create AniDB_Anime for file: {vidLocal.FileName}");
                     Logger.LogWarning("Queuing GET for AniDB_Anime: {AnimeID}", animeID);
-                    var animeCommand = new CommandRequest_GetAnimeHTTP(animeID, true, true, ServerSettings.Instance.AniDb.AutomaticallyImportSeries);
+                    var animeCommand = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                        c =>
+                        {
+                            c.AnimeID = animeID;
+                            c.ForceRefresh = true;
+                            c.DownloadRelations = ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime;
+                            c.CreateSeriesEntry = ServerSettings.Instance.AniDb.AutomaticallyImportSeries;
+                        }
+                    );
                     animeCommand.Save();
                     return;
                 }
@@ -307,7 +305,7 @@ namespace Shoko.Server.Commands
                 // check if we have any group status data for this associated anime
                 // if not we will download it now
                 if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
-                    new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false).Save();
+                    _commandFactory.Create<CommandRequest_GetReleaseGroupStatus>(c => c.AnimeID = anime.AnimeID).Save();
 
                 // Only save the date, we'll update GroupFilters and stats in one pass
                 // don't bother saving the series here, it'll happen in SVR_AniDB_Anime.UpdateStatsByAnimeID()
@@ -322,7 +320,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private SVR_AniDB_File TryGetAniDBFileFromAniDB(IServiceProvider provider, SVR_VideoLocal vidLocal, Dictionary<int, bool> animeIDs)
+        private SVR_AniDB_File TryGetAniDBFileFromAniDB(SVR_VideoLocal vidLocal, Dictionary<int, bool> animeIDs)
         {
             // check if we already have a record
             var aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
@@ -335,15 +333,26 @@ namespace Shoko.Server.Commands
                 Logger.LogDebug("Getting AniDB_File record from AniDB....");
                 try
                 {
-                    var fileCommand = new CommandRequest_GetFile { VideoLocalID = vlocal.VideoLocalID, ForceAniDB = true, BubbleExceptions = true };
-                    fileCommand.ProcessCommand(provider);
+                    var fileCommand = _commandFactory.Create<CommandRequest_GetFile>(c =>
+                    {
+                        c.VideoLocalID = vlocal.VideoLocalID;
+                        c.ForceAniDB = true;
+                        c.BubbleExceptions = true;
+                    });
+                    fileCommand.ProcessCommand();
                     aniFile = fileCommand.Result;
                 }
                 catch (AniDBBannedException)
                 {
                     // We're banned, so queue it for later
                     Logger.LogError("We are banned. Re-queuing {CommandID} for later", CommandID);
-                    var fileCommand = new CommandRequest_ProcessFile(vlocal.VideoLocalID, true);
+                    var fileCommand = _commandFactory.Create<CommandRequest_ProcessFile>(
+                        c =>
+                        {
+                            c.VideoLocalID = vlocal.VideoLocalID;
+                            c.ForceAniDB = true;
+                        }
+                    );
                     fileCommand.Save(true);
                 }
             }
@@ -403,6 +412,11 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_ProcessFile(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory) : base(loggerFactory)
+        {
+            _commandFactory = commandFactory;
         }
     }
 }

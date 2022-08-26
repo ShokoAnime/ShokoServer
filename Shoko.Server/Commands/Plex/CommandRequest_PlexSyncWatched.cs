@@ -21,23 +21,13 @@ namespace Shoko.Server.Commands.Plex
     [Command(CommandRequestType.Plex_Sync)]
     class CommandRequest_PlexSyncWatched : CommandRequestImplementation
     {
-        private JMMUser _jmmuser;
-
-        public CommandRequest_PlexSyncWatched()
-        {
-        }
-
-        public CommandRequest_PlexSyncWatched(JMMUser jmmUser)
-        {
-            _jmmuser = jmmUser;
-        }
-
+        public JMMUser User;
 
         protected override void Process()
         {
-            Logger.LogInformation($"Syncing watched videos for: {_jmmuser.Username}, if nothing happens make sure you have your libraries configured in Shoko.");
+            Logger.LogInformation("Syncing watched videos for: {Username}, if nothing happens make sure you have your libraries configured in Shoko", User.Username);
 
-            foreach (var section in PlexHelper.GetForUser(_jmmuser).GetDirectories())
+            foreach (var section in PlexHelper.GetForUser(User).GetDirectories())
             {
                 if (!ServerSettings.Instance.Plex.Libraries.Contains(section.Key)) continue;
 
@@ -52,8 +42,8 @@ namespace Shoko.Server.Commands.Plex
 
                         var animeEpisode = episode.AnimeEpisode;
                         if (animeEpisode == null) continue;
-                        var userRecord = animeEpisode.GetUserRecord(_jmmuser.JMMUserID);
-                        var isWatched = episode.ViewCount != null && episode.ViewCount > 0;
+                        var userRecord = animeEpisode.GetUserRecord(User.JMMUserID);
+                        var isWatched = episode.ViewCount is > 0;
                         var lastWatched = userRecord?.WatchedDate;
                         if (userRecord?.WatchedCount == 0 && isWatched && episode.LastViewedAt != null)
                         {
@@ -63,7 +53,7 @@ namespace Shoko.Server.Commands.Plex
                         var video = animeEpisode.GetVideoLocals()?.FirstOrDefault();
                         if (video == null) continue;
                         var alreadyWatched = animeEpisode.GetVideoLocals()
-                            .Select(a => a.GetUserRecord(_jmmuser.JMMUserID))
+                            .Select(a => a.GetUserRecord(User.JMMUserID))
                             .Any(x => x.WatchedDate is not null || x.WatchedCount > 0);
 
                         if (!alreadyWatched && userRecord != null)
@@ -71,7 +61,8 @@ namespace Shoko.Server.Commands.Plex
 
                         if (alreadyWatched && !isWatched) episode.Scrobble();
 
-                        if (isWatched && !alreadyWatched) video.ToggleWatchedStatus(true, true, lastWatched, true, _jmmuser.JMMUserID, true, true);
+                        if (isWatched && !alreadyWatched)
+                            video.ToggleWatchedStatus(true, true, lastWatched, true, User.JMMUserID, true, true);
                     }
                 }
             }
@@ -79,7 +70,7 @@ namespace Shoko.Server.Commands.Plex
 
         public override void GenerateCommandID()
         {
-            CommandID = $"SyncPlex_{_jmmuser.JMMUserID}";
+            CommandID = $"SyncPlex_{User.JMMUserID}";
         }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
@@ -88,7 +79,7 @@ namespace Shoko.Server.Commands.Plex
         {
             message = "Syncing Plex for user: {0}",
             queueState = QueueStateEnum.SyncPlex,
-            extraParams = new[] {_jmmuser.Username}
+            extraParams = new[] {User.Username}
         };
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -98,7 +89,7 @@ namespace Shoko.Server.Commands.Plex
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
-            _jmmuser = RepoFactory.JMMUser.GetByID(Convert.ToInt32(cq.CommandDetails));
+            User = RepoFactory.JMMUser.GetByID(Convert.ToInt32(cq.CommandDetails));
             return true;
         }
 
@@ -111,7 +102,7 @@ namespace Shoko.Server.Commands.Plex
                 CommandID = CommandID,
                 CommandType = CommandType,
                 Priority = Priority,
-                CommandDetails = _jmmuser.JMMUserID.ToString(CultureInfo.InvariantCulture),
+                CommandDetails = User.JMMUserID.ToString(CultureInfo.InvariantCulture),
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
@@ -121,6 +112,10 @@ namespace Shoko.Server.Commands.Plex
         {
             return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 .AddSeconds(unixTime);
+        }
+
+        public CommandRequest_PlexSyncWatched(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

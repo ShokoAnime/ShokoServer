@@ -21,6 +21,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.ValidateAllImages)]
     public class CommandRequest_ValidateAllImages : CommandRequestImplementation
     {
+        private readonly ICommandRequestFactory _commandFactory;
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
@@ -30,36 +31,29 @@ namespace Shoko.Server.Commands
             extraParams = new[] {string.Empty}
         };
 
-        public CommandRequest_ValidateAllImages()
-        {
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_ValidateAllImages");
             try
             {
-                QueueStateStruct queueState = PrettyDescription;
+                var queueState = PrettyDescription;
                 queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBEpisodes};
                 ShokoService.CmdProcessorImages.QueueState = queueState;
-                int count = 0;
+                var count = 0;
                 Logger.LogInformation("Scanning TvDB Episode thumbs for corrupted images");
                 var episodes = RepoFactory.TvDB_Episode.GetAll().Where(fanart =>
                         !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
                         !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
 
-                Logger.LogInformation($"Found {episodes.Count} corrupted TvDB Episode {(episodes.Count == 1 ? "thumb" : "thumbs")}");
+                Logger.LogInformation("Found {Count} corrupted TvDB Episode {Thumbs}", episodes.Count, (episodes.Count == 1 ? "thumb" : "thumbs"));
                 foreach (var fanart in episodes)
                 {
-                    Logger.LogTrace($"Corrupt image found! Attempting Redownload: {fanart.GetFullImagePath()}");
+                    Logger.LogTrace("Corrupt image found! Attempting Redownload: {FullImagePath}", fanart.GetFullImagePath());
                     RemoveImageAndQueueRedownload(ImageEntityType.TvDB_Episode, fanart.TvDB_EpisodeID, fanart);
                     count++;
                     if (count % 10 == 0)
                     {
-                        Logger.LogInformation($"Deleting and queueing for redownload {count}/{episodes.Count}");
+                        Logger.LogInformation("Deleting and queueing for redownload {Count}/{EpisodesCount}", count, episodes.Count);
                         queueState.extraParams = new[]
                             {$"{Resources.Command_ValidateAllImages_TvDBEpisodes} - {count}/{episodes.Count}"};
                         ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -76,15 +70,15 @@ namespace Shoko.Server.Commands
                         !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
                         !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
 
-                    Logger.LogInformation($"Found {fanarts.Count} corrupted TvDB {(fanarts.Count == 1 ? "Fanart" : "Fanarts")}");
+                    Logger.LogInformation("Found {FanartsCount} corrupted TvDB {Fanarts}", fanarts.Count, (fanarts.Count == 1 ? "Fanart" : "Fanarts"));
                     foreach (var fanart in fanarts)
                     {
-                        Logger.LogTrace($"Corrupt image found! Attempting Redownload: {fanart.GetFullImagePath()}");
+                        Logger.LogTrace("Corrupt image found! Attempting Redownload: {FullImagePath}", fanart.GetFullImagePath());
                         RemoveImageAndQueueRedownload(ImageEntityType.TvDB_FanArt, fanart.TvDB_ImageFanartID, fanart);
                         count++;
                         if (count % 10 == 0)
                         {
-                            Logger.LogInformation($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            Logger.LogInformation("Deleting and queueing for redownload {Count}/{FanartsCount}", count, fanarts.Count);
                             queueState.extraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_TvDBFanarts} - {count}/{fanarts.Count}"};
                             ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -102,15 +96,15 @@ namespace Shoko.Server.Commands
                             !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
                             !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
 
-                    Logger.LogInformation($"Found {fanarts.Count} corrupted TvDB {(fanarts.Count == 1 ? "Poster" : "Posters")}");
+                    Logger.LogInformation("Found {FanartsCount} corrupted TvDB {Posters}", fanarts.Count, (fanarts.Count == 1 ? "Poster" : "Posters"));
                     foreach (var fanart in fanarts)
                     {
-                        Logger.LogTrace($"Corrupt image found! Attempting Redownload: {fanart.GetFullImagePath()}");
+                        Logger.LogTrace("Corrupt image found! Attempting Redownload: {FullImagePath}", fanart.GetFullImagePath());
                         RemoveImageAndQueueRedownload(ImageEntityType.TvDB_Cover, fanart.TvDB_ImagePosterID, fanart);
                         count++;
                         if (count % 10 == 0)
                         {
-                            Logger.LogInformation($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            Logger.LogInformation("Deleting and queueing for redownload {Count}/{FanartsCount}", count, fanarts.Count);
                             queueState.extraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_TvDBPosters} - {count}/{fanarts.Count}"};
                             ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -128,15 +122,15 @@ namespace Shoko.Server.Commands
                         !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
                         !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
 
-                    Logger.LogInformation($"Found {fanarts.Count} corrupted TvDB {(fanarts.Count == 1 ? "Banner" : "Banners")}");
+                    Logger.LogInformation("Found {FanartsCount} corrupted TvDB {Banners}", fanarts.Count, (fanarts.Count == 1 ? "Banner" : "Banners"));
                     foreach (var fanart in fanarts)
                     {
-                        Logger.LogTrace($"Corrupt image found! Attempting Redownload: {fanart.GetFullImagePath()}");
+                        Logger.LogTrace("Corrupt image found! Attempting Redownload: {FullImagePath}", fanart.GetFullImagePath());
                         RemoveImageAndQueueRedownload(ImageEntityType.TvDB_Banner, fanart.TvDB_ImageWideBannerID, fanart);
                         count++;
                         if (count % 10 == 0)
                         {
-                            Logger.LogInformation($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            Logger.LogInformation("Deleting and queueing for redownload {Count}/{FanartsCount}", count, fanarts.Count);
                             queueState.extraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_TvDBBanners} - {count}/{fanarts.Count}"};
                             ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -154,15 +148,15 @@ namespace Shoko.Server.Commands
                         !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
                         !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
 
-                    Logger.LogInformation($"Found {fanarts.Count} corrupted MovieDB {(fanarts.Count == 1 ? "Poster" : "Posters")}");
+                    Logger.LogInformation("Found {FanartsCount} corrupted MovieDB {Posters}", fanarts.Count, (fanarts.Count == 1 ? "Poster" : "Posters"));
                     foreach (var fanart in fanarts)
                     {
-                        Logger.LogTrace($"Corrupt image found! Attempting Redownload: {fanart.GetFullImagePath()}");
+                        Logger.LogTrace("Corrupt image found! Attempting Redownload: {FullImagePath}", fanart.GetFullImagePath());
                         RemoveImageAndQueueRedownload(ImageEntityType.MovieDB_Poster, fanart.MovieDB_PosterID, fanart);
                         count++;
                         if (count % 10 == 0)
                         {
-                            Logger.LogInformation($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            Logger.LogInformation("Deleting and queueing for redownload {Count}/{FanartsCount}", count, fanarts.Count);
                             queueState.extraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_MovieDBPosters} - {count}/{fanarts.Count}"};
                             ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -179,15 +173,15 @@ namespace Shoko.Server.Commands
                     var fanarts = RepoFactory.MovieDB_Fanart.GetAll().Where(fanart =>
                             !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
                             !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
-                    Logger.LogInformation($"Found {fanarts.Count} corrupted MovieDB {(fanarts.Count == 1 ? "Fanart" : "Fanarts")}");
+                    Logger.LogInformation("Found {FanartsCount} corrupted MovieDB {Fanarts}", fanarts.Count, (fanarts.Count == 1 ? "Fanart" : "Fanarts"));
                     foreach (var fanart in fanarts)
                     {
-                        Logger.LogTrace($"Corrupt image found! Attempting Redownload: {fanart.GetFullImagePath()}");
+                        Logger.LogTrace("Corrupt image found! Attempting Redownload: {FullImagePath}", fanart.GetFullImagePath());
                         RemoveImageAndQueueRedownload(ImageEntityType.MovieDB_FanArt, fanart.MovieDB_FanartID, fanart);
                         count++;
                         if (count % 10 == 0)
                         {
-                            Logger.LogInformation($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            Logger.LogInformation("Deleting and queueing for redownload {Count}/{FanartsCount}", count, fanarts.Count);
                             queueState.extraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_MovieDBFanarts} - {count}/{fanarts.Count}"};
                             ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -201,15 +195,15 @@ namespace Shoko.Server.Commands
                 Logger.LogInformation("Scanning AniDB Posters for corrupted images");
                 var posters = RepoFactory.AniDB_Anime.GetAll().Where(fanart =>
                         !string.IsNullOrEmpty(fanart.PosterPath) && !Misc.IsImageValid(fanart.PosterPath)).ToList();
-                Logger.LogInformation($"Found {posters.Count} corrupted AniDB {(posters.Count == 1 ? "Poster" : "Posters")}");
+                Logger.LogInformation("Found {PostersCount} corrupted AniDB {Posters}", posters.Count, (posters.Count == 1 ? "Poster" : "Posters"));
                 foreach (var fanart in posters)
                 {
-                    Logger.LogTrace($"Corrupt image found! Attempting Redownload: {fanart.PosterPath}");
+                    Logger.LogTrace("Corrupt image found! Attempting Redownload: {FanartPosterPath}", fanart.PosterPath);
                     RemoveImageAndQueueRedownload(ImageEntityType.AniDB_Cover, fanart.AnimeID, fanart);
                     count++;
                     if (count % 10 == 0)
                     {
-                        Logger.LogInformation($"Deleting and queueing for redownload {count}/{posters.Count}");
+                        Logger.LogInformation("Deleting and queueing for redownload {Count}/{PostersCount}", count, posters.Count);
                         queueState.extraParams = new[]
                             {$"{Resources.Command_ValidateAllImages_AniDBPosters} - {count}/{posters.Count}"};
                         ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -225,15 +219,15 @@ namespace Shoko.Server.Commands
                     var fanarts = RepoFactory.AniDB_Character.GetAll().Where(fanart =>
                             !string.IsNullOrEmpty(fanart.GetPosterPath()) && !Misc.IsImageValid(fanart.GetPosterPath()))
                         .ToList();
-                    Logger.LogInformation($"Found {fanarts.Count} corrupted AniDB Character {(fanarts.Count == 1 ? "image" : "images")}");
+                    Logger.LogInformation("Found {FanartsCount} corrupted AniDB Character {Images}", fanarts.Count, (fanarts.Count == 1 ? "image" : "images"));
                     foreach (var fanart in fanarts)
                     {
-                        Logger.LogTrace($"Corrupt image found! Attempting Redownload: {fanart.GetPosterPath()}");
+                        Logger.LogTrace("Corrupt image found! Attempting Redownload: {PosterPath}", fanart.GetPosterPath());
                         RemoveImageAndQueueRedownload(ImageEntityType.AniDB_Character, fanart.AniDB_CharacterID, fanart);
                         count++;
                         if (count % 10 == 0)
                         {
-                            Logger.LogInformation($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            Logger.LogInformation("Deleting and queueing for redownload {Count}/{FanartsCount}", count, fanarts.Count);
                             queueState.extraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_AniDBCharacters} - {count}/{fanarts.Count}"};
                             ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -249,15 +243,15 @@ namespace Shoko.Server.Commands
                     Logger.LogInformation("Scanning AniDB Seiyuus for corrupted images");
                     var fanarts = RepoFactory.AniDB_Seiyuu.GetAll().Where(fanart =>
                         !string.IsNullOrEmpty(fanart.GetPosterPath()) && !Misc.IsImageValid(fanart.GetPosterPath())).ToList();
-                    Logger.LogInformation($"Found {fanarts.Count} corrupted AniDB Seiyuu {(fanarts.Count == 1 ? "image" : "images")}");
+                    Logger.LogInformation("Found {FanartsCount} corrupted AniDB Seiyuu {Images}", fanarts.Count, (fanarts.Count == 1 ? "image" : "images"));
                     foreach (var fanart in fanarts)
                     {
-                        Logger.LogTrace($"Corrupt image found! Attempting Redownload: {fanart.GetPosterPath()}");
+                        Logger.LogTrace("Corrupt image found! Attempting Redownload: {PosterPath}", fanart.GetPosterPath());
                         RemoveImageAndQueueRedownload(ImageEntityType.AniDB_Creator, fanart.SeiyuuID, fanart);
                         count++;
                         if (count % 10 == 0)
                         {
-                            Logger.LogInformation($"Deleting and queueing for redownload {count}/{fanarts.Count}");
+                            Logger.LogInformation("Deleting and queueing for redownload {Count}/{FanartsCount}", count, fanarts.Count);
                             queueState.extraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_AniDBSeiyuus} - {count}/{fanarts.Count}"};
                             ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -267,17 +261,17 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                Logger.LogWarning($"Error processing CommandRequest_ValidateAllImages: {ex.Message}");
+                Logger.LogWarning("Error processing CommandRequest_ValidateAllImages: {Message}", ex.Message);
             }
         }
 
-        private void RemoveImageAndQueueRedownload(ImageEntityType EntityTypeEnum, int EntityID, object Entity)
+        private void RemoveImageAndQueueRedownload(ImageEntityType entityTypeEnum, int entityID, object entity)
         {
             CommandRequest_DownloadImage cmd;
-            switch (EntityTypeEnum)
+            switch (entityTypeEnum)
             {
                 case ImageEntityType.TvDB_Episode:
-                    TvDB_Episode episode = Entity as TvDB_Episode;
+                    var episode = entity as TvDB_Episode;
                     if (episode == null) return;
                     try
                     {
@@ -285,14 +279,21 @@ namespace Shoko.Server.Commands
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError($"Unable to delete {episode.GetFullImagePath()} - {e.Message}");
+                        Logger.LogError("Unable to delete {FullImagePath} - {Message}", episode.GetFullImagePath(), e.Message);
                     }
 
-                    cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.TvDB_Episode, true);
+                    cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = entityID;
+                            c.EntityType = (int)ImageEntityType.TvDB_Episode;
+                            c.ForceDownload = true;
+                        }
+                    );
                     break;
 
                 case ImageEntityType.TvDB_FanArt:
-                    TvDB_ImageFanart fanart = Entity as TvDB_ImageFanart;
+                    var fanart = entity as TvDB_ImageFanart;
                     if (fanart == null) return;
                     try
                     {
@@ -300,14 +301,21 @@ namespace Shoko.Server.Commands
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError($"Unable to delete {fanart.GetFullImagePath()} - {e.Message}");
+                        Logger.LogError("Unable to delete {FullImagePath} - {Message}", fanart.GetFullImagePath(), e.Message);
                     }
 
-                    cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.TvDB_FanArt, true);
+                    cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = entityID;
+                            c.EntityType = (int)ImageEntityType.TvDB_FanArt;
+                            c.ForceDownload = true;
+                        }
+                    );
                     break;
 
                 case ImageEntityType.TvDB_Cover:
-                    TvDB_ImagePoster poster = Entity as TvDB_ImagePoster;
+                    var poster = entity as TvDB_ImagePoster;
                     if (poster == null) return;
                     try
                     {
@@ -315,14 +323,21 @@ namespace Shoko.Server.Commands
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError($"Unable to delete {poster.GetFullImagePath()} - {e.Message}");
+                        Logger.LogError("Unable to delete {FullImagePath} - {Message}", poster.GetFullImagePath(), e.Message);
                     }
 
-                    cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.TvDB_Cover, true);
+                    cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = entityID;
+                            c.EntityType = (int)ImageEntityType.TvDB_Cover;
+                            c.ForceDownload = true;
+                        }
+                    );
                     break;
 
                 case ImageEntityType.TvDB_Banner:
-                    TvDB_ImageWideBanner wideBanner = Entity as TvDB_ImageWideBanner;
+                    var wideBanner = entity as TvDB_ImageWideBanner;
                     if (wideBanner == null) return;
                     try
                     {
@@ -330,14 +345,21 @@ namespace Shoko.Server.Commands
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError($"Unable to delete {wideBanner.GetFullImagePath()} - {e.Message}");
+                        Logger.LogError("Unable to delete {FullImagePath} - {Message}", wideBanner.GetFullImagePath(), e.Message);
                     }
 
-                    cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.TvDB_Banner, true);
+                    cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = entityID;
+                            c.EntityType = (int)ImageEntityType.TvDB_Banner;
+                            c.ForceDownload = true;
+                        }
+                    );
                     break;
 
                 case ImageEntityType.MovieDB_Poster:
-                    MovieDB_Poster moviePoster = Entity as MovieDB_Poster;
+                    var moviePoster = entity as MovieDB_Poster;
                     if (moviePoster == null) return;
                     try
                     {
@@ -345,14 +367,21 @@ namespace Shoko.Server.Commands
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError($"Unable to delete {moviePoster.GetFullImagePath()} - {e.Message}");
+                        Logger.LogError("Unable to delete {FullImagePath} - {Message}", moviePoster.GetFullImagePath(), e.Message);
                     }
 
-                    cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.MovieDB_Poster, true);
+                    cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = entityID;
+                            c.EntityType = (int)ImageEntityType.MovieDB_Poster;
+                            c.ForceDownload = true;
+                        }
+                    );
                     break;
 
                 case ImageEntityType.MovieDB_FanArt:
-                    MovieDB_Fanart movieFanart = Entity as MovieDB_Fanart;
+                    var movieFanart = entity as MovieDB_Fanart;
                     if (movieFanart == null) return;
                     try
                     {
@@ -360,13 +389,20 @@ namespace Shoko.Server.Commands
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError($"Unable to delete {movieFanart.GetFullImagePath()} - {e.Message}");
+                        Logger.LogError("Unable to delete {FullImagePath} - {Message}", movieFanart.GetFullImagePath(), e.Message);
                     }
 
-                    cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.MovieDB_FanArt, true);
+                    cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = entityID;
+                            c.EntityType = (int)ImageEntityType.MovieDB_FanArt;
+                            c.ForceDownload = true;
+                        }
+                    );
                     break;
                 case ImageEntityType.AniDB_Cover:
-                    string coverpath = (Entity as SVR_AniDB_Anime)?.PosterPath;
+                    var coverpath = (entity as SVR_AniDB_Anime)?.PosterPath;
                     if (string.IsNullOrEmpty(coverpath)) return;
                     try
                     {
@@ -374,13 +410,20 @@ namespace Shoko.Server.Commands
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError($"Unable to delete {coverpath} - {e.Message}");
+                        Logger.LogError("Unable to delete {Coverpath} - {Message}", coverpath, e.Message);
                     }
 
-                    cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.AniDB_Cover, true);
+                    cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = entityID;
+                            c.EntityType = (int)ImageEntityType.AniDB_Cover;
+                            c.ForceDownload = true;
+                        }
+                    );
                     break;
                 case ImageEntityType.AniDB_Creator:
-                    string creatorpath = (Entity as AniDB_Seiyuu)?.GetPosterPath();
+                    var creatorpath = (entity as AniDB_Seiyuu)?.GetPosterPath();
                     if (string.IsNullOrEmpty(creatorpath)) return;
                     try
                     {
@@ -388,13 +431,20 @@ namespace Shoko.Server.Commands
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError($"Unable to delete {creatorpath} - {e.Message}");
+                        Logger.LogError("Unable to delete {Creatorpath} - {Message}", creatorpath, e.Message);
                     }
 
-                    cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.AniDB_Creator, true);
+                    cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = entityID;
+                            c.EntityType = (int)ImageEntityType.AniDB_Creator;
+                            c.ForceDownload = true;
+                        }
+                    );
                     break;
                 case ImageEntityType.AniDB_Character:
-                    string characterpath = (Entity as AniDB_Character)?.GetPosterPath();
+                    var characterpath = (entity as AniDB_Character)?.GetPosterPath();
                     if (string.IsNullOrEmpty(characterpath)) return;
                     try
                     {
@@ -402,10 +452,17 @@ namespace Shoko.Server.Commands
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError($"Unable to delete {characterpath} - {e.Message}");
+                        Logger.LogError("Unable to delete {Characterpath} - {Message}", characterpath, e.Message);
                     }
 
-                    cmd = new CommandRequest_DownloadImage(EntityID, ImageEntityType.AniDB_Character, true);
+                    cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = entityID;
+                            c.EntityType = (int)ImageEntityType.AniDB_Character;
+                            c.ForceDownload = true;
+                        }
+                    );
                     break;
                 default:
                     return;
@@ -433,7 +490,7 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest
+            var cq = new CommandRequest
             {
                 CommandID = CommandID,
                 CommandType = CommandType,
@@ -442,6 +499,11 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_ValidateAllImages(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory) : base(loggerFactory)
+        {
+            _commandFactory = commandFactory;
         }
     }
 }
