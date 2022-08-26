@@ -5,6 +5,7 @@ using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
@@ -12,6 +13,7 @@ using Shoko.Server.Commands.Exceptions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Server;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Shoko.Server.Commands
 {
@@ -110,7 +112,7 @@ namespace Shoko.Server.Commands
 
             var cri = ToDatabaseObject();
             cri.CommandID = commandID;
-            Logger.LogTrace("Saving new CommandRequest: {CommandType} {CommandID}", (CommandRequestType)cri.CommandType, cri.CommandID);
+            LogManager.GetCurrentClassLogger().Trace("Saving new CommandRequest: {CommandType} {CommandID}", (CommandRequestType)cri.CommandType, cri.CommandID);
             RepoFactory.CommandRequest.Save(cri);
 
             switch (CommandRequestRepository.GetQueueIndex(cri))
