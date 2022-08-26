@@ -88,99 +88,93 @@ namespace Shoko.Server.Repositories.Cached
                 // ignore
             }
 
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var locals = Cache.Values
+                .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
+                .GroupBy(a => a.Hash)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            ServerState.Instance.ServerStartingStatus = string.Format(
+                Resources.Database_Validating, nameof(VideoLocal),
+                " Cleaning Empty Records");
+            using (var transaction = session.BeginTransaction())
             {
-                var locals = Cache.Values
-                    .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
-                    .GroupBy(a => a.Hash)
-                    .ToDictionary(g => g.Key, g => g.ToList());
-                ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, nameof(VideoLocal),
-                    " Cleaning Empty Records");
-                using (var transaction = session.BeginTransaction())
-                {
-                    var list = Cache.Values.Where(a => a.IsEmpty()).ToList();
-                    count = 0;
-                    max = list.Count;
-                    foreach (var remove in list)
-                    {
-                        RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
-                        count++;
-                        ServerState.Instance.ServerStartingStatus = string.Format(
-                            Resources.Database_Validating, nameof(VideoLocal),
-                            " Cleaning Empty Records - " + count + "/" + max);
-                    }
-                    transaction.Commit();
-                }
-                var toRemove = new List<SVR_VideoLocal>();
-                var comparer = new VideoLocalComparer();
-
-                ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, nameof(VideoLocal),
-                    " Checking for Duplicate Records");
-
-                foreach (var hash in locals.Keys)
-                {
-                    var values = locals[hash];
-                    values.Sort(comparer);
-                    var to = values.First();
-                    var froms = values.Except(to).ToList();
-                    foreach (var from in froms)
-                    {
-                        var places = from.Places;
-                        if (places == null || places.Count == 0) continue;
-                        using (var transaction = session.BeginTransaction())
-                        {
-                            foreach (var place in places)
-                            {
-                                place.VideoLocalID = to.VideoLocalID;
-                                RepoFactory.VideoLocalPlace.SaveWithOpenTransaction(session, place);
-                            }
-                            transaction.Commit();
-                        }
-                    }
-                    toRemove.AddRange(froms);
-                }
-
+                var list = Cache.Values.Where(a => a.IsEmpty()).ToList();
                 count = 0;
-                max = toRemove.Count;
-                foreach (var batch in toRemove.Batch(50))
+                max = list.Count;
+                foreach (var remove in list)
                 {
-                    using (var transaction = session.BeginTransaction())
-                    {
-                        foreach (var remove in batch)
-                        {
-                            count++;
-                            ServerState.Instance.ServerStartingStatus = string.Format(
-                                Resources.Database_Validating, nameof(VideoLocal),
-                                " Cleaning Duplicate Records - " + count + "/" + max);
-                            DeleteWithOpenTransaction(session, remove);
-                        }
-                        transaction.Commit();
-                    }
+                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
+                    count++;
+                    ServerState.Instance.ServerStartingStatus = string.Format(
+                        Resources.Database_Validating, nameof(VideoLocal),
+                        " Cleaning Empty Records - " + count + "/" + max);
                 }
+                transaction.Commit();
+            }
+            var toRemove = new List<SVR_VideoLocal>();
+            var comparer = new VideoLocalComparer();
 
-                ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, nameof(VideoLocal),
-                    " Cleaning Fragmented Records");
-                using (var transaction = session.BeginTransaction())
+            ServerState.Instance.ServerStartingStatus = string.Format(
+                Resources.Database_Validating, nameof(VideoLocal),
+                " Checking for Duplicate Records");
+
+            foreach (var hash in locals.Keys)
+            {
+                var values = locals[hash];
+                values.Sort(comparer);
+                var to = values.First();
+                var froms = values.Except(to).ToList();
+                foreach (var from in froms)
                 {
-                    var list = Cache.Values.SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
-                        .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
-                                    a.GetEpisode() == null).ToArray();
-                    count = 0;
-                    max = list.Length;
-                    foreach (var xref in list)
+                    var places = from.Places;
+                    if (places == null || places.Count == 0) continue;
+                    using var transaction = session.BeginTransaction();
+                    foreach (var place in places)
                     {
-                        // We don't need to update anything since they don't exist
-                        RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
-                        count++;
-                        ServerState.Instance.ServerStartingStatus = string.Format(
-                            Resources.Database_Validating, nameof(VideoLocal),
-                            " Cleaning Fragmented Records - " + count + "/" + max);
+                        place.VideoLocalID = to.VideoLocalID;
+                        RepoFactory.VideoLocalPlace.SaveWithOpenTransaction(session, place);
                     }
                     transaction.Commit();
                 }
+                toRemove.AddRange(froms);
+            }
+
+            count = 0;
+            max = toRemove.Count;
+            foreach (var batch in toRemove.Batch(50))
+            {
+                using var transaction = session.BeginTransaction();
+                foreach (var remove in batch)
+                {
+                    count++;
+                    ServerState.Instance.ServerStartingStatus = string.Format(
+                        Resources.Database_Validating, nameof(VideoLocal),
+                        " Cleaning Duplicate Records - " + count + "/" + max);
+                    DeleteWithOpenTransaction(session, remove);
+                }
+                transaction.Commit();
+            }
+
+            ServerState.Instance.ServerStartingStatus = string.Format(
+                Resources.Database_Validating, nameof(VideoLocal),
+                " Cleaning Fragmented Records");
+            using (var transaction = session.BeginTransaction())
+            {
+                var list = Cache.Values.SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
+                    .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
+                                a.GetEpisode() == null).ToArray();
+                count = 0;
+                max = list.Length;
+                foreach (var xref in list)
+                {
+                    // We don't need to update anything since they don't exist
+                    RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
+                    count++;
+                    ServerState.Instance.ServerStartingStatus = string.Format(
+                        Resources.Database_Validating, nameof(VideoLocal),
+                        " Cleaning Fragmented Records - " + count + "/" + max);
+                }
+                transaction.Commit();
             }
         }
 
@@ -216,17 +210,14 @@ namespace Shoko.Server.Repositories.Cached
         {
             lock (Cache)
             {
-                lock (obj)
+                if (obj.VideoLocalID == 0)
                 {
-                    if (obj.VideoLocalID == 0)
-                    {
-                        obj.Media = null;
-                        base.Save(obj);
-                    }
-
-                    UpdateMediaContracts(obj);
+                    obj.Media = null;
                     base.Save(obj);
                 }
+
+                UpdateMediaContracts(obj);
+                base.Save(obj);
             }
 
             if (updateEpisodes)
