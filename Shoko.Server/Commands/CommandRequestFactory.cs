@@ -17,6 +17,7 @@ namespace Shoko.Server.Commands
         {
             var obj = ActivatorUtilities.CreateInstance<T>(_provider);
             ctor?.Invoke(obj);
+            obj.PostInit();
             obj.GenerateCommandID();
             return obj;
         }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Xml;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
@@ -23,6 +22,8 @@ namespace Shoko.Server.Commands.AniDB
     [Command(CommandRequestType.AniDB_UpdateWatchedUDP)]
     public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementation
     {
+        private readonly IRequestFactory _requestFactory;
+
         public string FullFileName { get; set; }
         public string Hash { get; set; }
         public bool Watched { get; set; }
@@ -40,27 +41,15 @@ namespace Shoko.Server.Commands.AniDB
 
         public override CommandConflict ConflictBehavior { get; } = CommandConflict.Replace;
 
-        public CommandRequest_UpdateMyListFileStatus()
+        public override void PostInit()
         {
-        }
-
-        public CommandRequest_UpdateMyListFileStatus(string hash, bool watched, bool updateSeriesStats,
-            int watchedDateSecs)
-        {
-            Hash = hash;
-            Watched = watched;
-            Priority = (int) DefaultPriority;
-            UpdateSeriesStats = updateSeriesStats;
-            WatchedDateAsSecs = watchedDateSecs;
-
-            GenerateCommandID();
             FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
         }
 
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_UpdateMyListFileStatus: {Hash}", Hash);
-            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
+            FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
 
             try
             {
@@ -72,7 +61,7 @@ namespace Shoko.Server.Commands.AniDB
                     if (Watched && WatchedDateAsSecs > 0)
                     {
                         var watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                        var request = requestFactory.Create<RequestUpdateFile>(
+                        var request = _requestFactory.Create<RequestUpdateFile>(
                             r =>
                             {
                                 r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
@@ -86,7 +75,7 @@ namespace Shoko.Server.Commands.AniDB
                     }
                     else
                     {
-                        var request = requestFactory.Create<RequestUpdateFile>(
+                        var request = _requestFactory.Create<RequestUpdateFile>(
                             r =>
                             {
                                 r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
@@ -107,7 +96,7 @@ namespace Shoko.Server.Commands.AniDB
                         if (Watched && WatchedDateAsSecs > 0)
                         {
                             var watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                            var request = requestFactory.Create<RequestUpdateEpisode>(
+                            var request = _requestFactory.Create<RequestUpdateEpisode>(
                                 r =>
                                 {
                                     r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
@@ -121,7 +110,7 @@ namespace Shoko.Server.Commands.AniDB
                         }
                         else
                         {
-                            var request = requestFactory.Create<RequestUpdateEpisode>(
+                            var request = _requestFactory.Create<RequestUpdateEpisode>(
                                 r =>
                                 {
                                     r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
@@ -210,6 +199,11 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_UpdateMyListFileStatus(ILoggerFactory loggerFactory, IRequestFactory requestFactory) : base(loggerFactory)
+        {
+            _requestFactory = requestFactory;
         }
     }
 }

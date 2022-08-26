@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
 using Iesi.Collections.Generic;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
@@ -27,6 +26,9 @@ namespace Shoko.Server.Commands.AniDB
     [Command(CommandRequestType.AniDB_SyncMyList)]
     public class CommandRequest_SyncMyList : CommandRequestImplementation
     {
+        private readonly IRequestFactory _requestFactory;
+        private readonly IHttpConnectionHandler _handler;
+        private readonly ICommandRequestFactory _commandFactory;
         public bool ForceRefresh { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
@@ -38,24 +40,9 @@ namespace Shoko.Server.Commands.AniDB
             extraParams = new string[0]
         };
 
-        public CommandRequest_SyncMyList()
-        {
-        }
-
-        public CommandRequest_SyncMyList(bool forced)
-        {
-            ForceRefresh = forced;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
-            return;
-            Logger.LogInformation("Processing CommandRequest_SyncMyList");
-            var handler = serviceProvider.GetRequiredService<IHttpConnectionHandler>();
-            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
+            /*Logger.LogInformation("Processing CommandRequest_SyncMyList");
 
             try
             {
@@ -78,7 +65,7 @@ namespace Shoko.Server.Commands.AniDB
                 }
 
                 // Get the list from AniDB
-                var request = requestFactory.Create<RequestMyList>(
+                var request = _requestFactory.Create<RequestMyList>(
                     r =>
                     {
                         r.Username = ServerSettings.Instance.AniDb.Username;
@@ -89,7 +76,7 @@ namespace Shoko.Server.Commands.AniDB
 
                 if (response.Response == null)
                 {
-                    Logger.LogWarning("AniDB did not return a successful code: " + response.Code);
+                    Logger.LogWarning("AniDB did not return a successful code: {Code}", response.Code);
                     return;
                 }
 
@@ -249,13 +236,13 @@ namespace Shoko.Server.Commands.AniDB
                         //deleteCommand.Save();
                     }
                 }
-                
+
                 if (myListIDsToRemove.Count + filesToRemove.Count > 0)
-                    Logger.LogInformation($"MYLIST Missing Files: {myListIDsToRemove.Count + filesToRemove.Count} added to queue for deletion");
+                    Logger.LogInformation("MYLIST Missing Files: {Count} added to queue for deletion", myListIDsToRemove.Count + filesToRemove.Count);
 
                 modifiedSeries.ForEach(a => a.QueueUpdateStats());
 
-                Logger.LogInformation($"Process MyList: {totalItems} Items, {missingFiles} Added, {filesToRemove.Count} Deleted, {watchedItems} Watched, {modifiedItems} Modified");
+                Logger.LogInformation("Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {WatchedItems} Watched, {ModifiedItems} Modified", totalItems, missingFiles, filesToRemove.Count, watchedItems, modifiedItems);
 
                 sched.LastUpdate = DateTime.Now;
                 RepoFactory.ScheduledUpdate.Save(sched);
@@ -263,10 +250,10 @@ namespace Shoko.Server.Commands.AniDB
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error processing CommandRequest_SyncMyList: {Ex} ", ex);
-            }
+            }*/
         }
 
-        private static bool TryParseFileID(ILookup<string, SVR_AniDB_File> dictAniFiles, SVR_VideoLocal vid, ILookup<int?, ResponseMyList> onlineFiles)
+        /*private static bool TryParseFileID(ILookup<string, SVR_AniDB_File> dictAniFiles, SVR_VideoLocal vid, ILookup<int?, ResponseMyList> onlineFiles)
         {
             if (!dictAniFiles.Contains(vid.Hash)) return false;
 
@@ -297,7 +284,7 @@ namespace Shoko.Server.Commands.AniDB
         {
 
             return true;
-        }
+        }*/
 
         public override void GenerateCommandID()
         {
@@ -338,6 +325,12 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_SyncMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory, IHttpConnectionHandler handler) : base(loggerFactory)
+        {
+            this._requestFactory = requestFactory;
+            this._handler = handler;
         }
     }
 }

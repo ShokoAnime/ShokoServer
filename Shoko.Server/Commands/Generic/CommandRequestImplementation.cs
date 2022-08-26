@@ -57,6 +57,10 @@ namespace Shoko.Server.Commands.Generic
         /// </summary>
         protected abstract void Process();
 
+        public virtual void PostInit()
+        {
+        }
+
         public void ProcessCommand()
         {
             try
@@ -115,7 +119,7 @@ namespace Shoko.Server.Commands.Generic
 
             var cri = ToDatabaseObject();
             cri.CommandID = commandID;
-            LogManager.GetCurrentClassLogger().Trace("Saving new CommandRequest: {CommandType} {CommandID}", (CommandRequestType)cri.CommandType, cri.CommandID);
+            Logger.LogTrace("Saving new CommandRequest: {CommandType} {CommandID}", (CommandRequestType)cri.CommandType, cri.CommandID);
             RepoFactory.CommandRequest.Save(cri);
 
             switch (CommandRequestRepository.GetQueueIndex(cri))

@@ -6,6 +6,7 @@ namespace Shoko.Server.Commands.Interfaces
 {
     public interface ICommandRequest
     {
+        void PostInit();
         void ProcessCommand();
         bool LoadFromDBCommand(CommandRequest cq);
         CommandRequestPriority DefaultPriority { get; }

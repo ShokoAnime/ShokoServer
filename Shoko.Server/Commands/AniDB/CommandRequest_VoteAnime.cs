@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Globalization;
 using System.Xml;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
@@ -19,6 +18,7 @@ namespace Shoko.Server.Commands.AniDB
     [Command(CommandRequestType.AniDB_VoteAnime)]
     public class CommandRequest_VoteAnime : CommandRequestImplementation
     {
+        private readonly IRequestFactory _requestFactory;
         public int AnimeID { get; set; }
         public int VoteType { get; set; }
         public decimal VoteValue { get; set; }
@@ -32,29 +32,13 @@ namespace Shoko.Server.Commands.AniDB
             extraParams = new[] {AnimeID.ToString(), VoteValue.ToString()}
         };
 
-        public CommandRequest_VoteAnime()
-        {
-        }
-
-        public CommandRequest_VoteAnime(int animeID, int voteType, decimal voteValue)
-        {
-            AnimeID = animeID;
-            VoteType = voteType;
-            VoteValue = voteValue;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_Vote: {CommandID}", CommandID);
 
-
             try
             {
-                var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
-                var vote = requestFactory.Create<RequestVoteAnime>(
+                var vote = _requestFactory.Create<RequestVoteAnime>(
                     r =>
                     {
                         r.Temporary = VoteType == (int)AniDBVoteType.AnimeTemp;
@@ -119,6 +103,11 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_VoteAnime(ILoggerFactory loggerFactory, IRequestFactory requestFactory) : base(loggerFactory)
+        {
+            _requestFactory = requestFactory;
         }
     }
 }

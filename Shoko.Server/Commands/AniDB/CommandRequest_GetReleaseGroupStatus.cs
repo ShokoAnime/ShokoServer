@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Xml;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
@@ -22,6 +21,8 @@ namespace Shoko.Server.Commands.AniDB
     [Command(CommandRequestType.AniDB_GetReleaseGroupStatus)]
     public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
     {
+        private readonly IRequestFactory _requestFactory;
+        private readonly ICommandRequestFactory _commandFactory;
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
 
@@ -34,23 +35,9 @@ namespace Shoko.Server.Commands.AniDB
             extraParams = new[] {AnimeID.ToString()}
         };
 
-        public CommandRequest_GetReleaseGroupStatus()
-        {
-        }
-
-        public CommandRequest_GetReleaseGroupStatus(int aid, bool forced)
-        {
-            AnimeID = aid;
-            ForceRefresh = forced;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_GetReleaseGroupStatus: {AnimeID}", AnimeID);
-            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
@@ -68,7 +55,7 @@ namespace Shoko.Server.Commands.AniDB
                     return;
                 }
 
-                var request = requestFactory.Create<RequestReleaseGroupStatus>(r => r.AnimeID = AnimeID);
+                var request = _requestFactory.Create<RequestReleaseGroupStatus>(r => r.AnimeID = AnimeID);
                 var response = request.Execute();
                 if (response.Response == null) return;
 
@@ -104,7 +91,11 @@ namespace Shoko.Server.Commands.AniDB
                     var eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(AnimeID, maxEpisode);
                     if (eps.Count == 0)
                     {
-                        var crAnime = new CommandRequest_GetAnimeHTTP(AnimeID, true, false, false);
+                        var crAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+                        {
+                            c.AnimeID = AnimeID;
+                            c.ForceRefresh = true;
+                        });
                         crAnime.Save();
                     }
                     // update the missing episode stats on groups and children
@@ -112,7 +103,7 @@ namespace Shoko.Server.Commands.AniDB
                 }
 
                 if (ServerSettings.Instance.AniDb.DownloadReleaseGroups && response is { Response: { Count: > 0 } })
-                    response.Response.DistinctBy(a => a.GroupID).Select(a => new CommandRequest_GetReleaseGroup(a.GroupID, false)).ForEach(a => a.Save());
+                    response.Response.DistinctBy(a => a.GroupID).Select(a => _commandFactory.Create<CommandRequest_GetReleaseGroup>(c => c.GroupID = a.GroupID)).ForEach(a => a.Save());
             }
             catch (Exception ex)
             {
@@ -173,6 +164,12 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_GetReleaseGroupStatus(ILoggerFactory loggerFactory, IRequestFactory requestFactory, ICommandRequestFactory commandFactory) : base(loggerFactory)
+        {
+            this._requestFactory = requestFactory;
+            _commandFactory = commandFactory;
         }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Xml;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
@@ -20,6 +19,8 @@ namespace Shoko.Server.Commands.AniDB
     [Command(CommandRequestType.AniDB_SyncVotes)]
     public class CommandRequest_SyncMyVotes : CommandRequestImplementation
     {
+        private readonly IRequestFactory _requestFactory;
+        private readonly ICommandRequestFactory _commandFactory;
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
         public override QueueStateStruct PrettyDescription => new()
@@ -29,23 +30,13 @@ namespace Shoko.Server.Commands.AniDB
             extraParams = Array.Empty<string>(),
         };
 
-
-        public CommandRequest_SyncMyVotes()
-        {
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_SyncMyVotes");
-            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
-                var handler = serviceProvider.GetRequiredService<IHttpConnectionHandler>();
-                var request = requestFactory.Create<RequestVotes>(
+                var request = _requestFactory.Create<RequestVotes>(
                     r =>
                     {
                         r.Username = ServerSettings.Instance.AniDb.Username;
@@ -85,7 +76,7 @@ namespace Shoko.Server.Commands.AniDB
 
                     if (myVote.VoteType is not (AniDBVoteType.Anime or AniDBVoteType.AnimeTemp)) continue;
                     // download the anime info if the user doesn't already have it
-                    var cmdAnime = new CommandRequest_GetAnimeHTTP(thisVote.EntityID, false, false, false);
+                    var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c => c.AnimeID = thisVote.EntityID);
                     cmdAnime.Save();
                 }
 
@@ -133,6 +124,12 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_SyncMyVotes(ILoggerFactory loggerFactory, IRequestFactory requestFactory, ICommandRequestFactory commandFactory) : base(loggerFactory)
+        {
+            _requestFactory = requestFactory;
+            _commandFactory = commandFactory;
         }
     }
 }

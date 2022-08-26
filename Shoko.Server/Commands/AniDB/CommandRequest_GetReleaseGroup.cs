@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Xml;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -18,6 +17,7 @@ namespace Shoko.Server.Commands.AniDB
     [Command(CommandRequestType.AniDB_GetReleaseGroup)]
     public class CommandRequest_GetReleaseGroup : CommandRequestImplementation
     {
+        private readonly IRequestFactory _requestFactory;
         public int GroupID { get; set; }
         public bool ForceRefresh { get; set; }
 
@@ -30,23 +30,9 @@ namespace Shoko.Server.Commands.AniDB
             extraParams = new[] {GroupID.ToString()}
         };
 
-        public CommandRequest_GetReleaseGroup()
-        {
-        }
-
-        public CommandRequest_GetReleaseGroup(int grpid, bool forced)
-        {
-            GroupID = grpid;
-            ForceRefresh = forced;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_GetReleaseGroup: {GroupID}", GroupID);
-            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
@@ -54,7 +40,7 @@ namespace Shoko.Server.Commands.AniDB
 
                 if (!ForceRefresh && relGroup != null) return;
                 // redownload anime details from http ap so we can get an update character list
-                var request = requestFactory.Create<RequestReleaseGroup>(r => r.ReleaseGroupID = GroupID);
+                var request = _requestFactory.Create<RequestReleaseGroup>(r => r.ReleaseGroupID = GroupID);
                 var response = request.Execute();
 
                 if (response?.Response == null) return;
@@ -74,7 +60,7 @@ namespace Shoko.Server.Commands.AniDB
             }
             catch (Exception ex)
             {
-                Logger.LogError("Error processing CommandRequest_GetReleaseGroup: {0} - {1}", GroupID, ex);
+                Logger.LogError("Error processing CommandRequest_GetReleaseGroup: {GroupID} - {Ex}", GroupID, ex);
             }
         }
 
@@ -119,6 +105,11 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_GetReleaseGroup(ILoggerFactory loggerFactory, IRequestFactory requestFactory) : base(loggerFactory)
+        {
+            _requestFactory = requestFactory;
         }
     }
 }

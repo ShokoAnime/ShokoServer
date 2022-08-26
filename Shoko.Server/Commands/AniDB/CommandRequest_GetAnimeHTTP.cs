@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Xml;
 using System.Xml.Serialization;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NHibernate;
 using Shoko.Commons.Queue;
@@ -53,6 +52,12 @@ namespace Shoko.Server.Commands.AniDB
         
         [XmlIgnore]
         public SVR_AniDB_Anime Result { get; set; }
+
+        public override void PostInit()
+        {
+            if (RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID) == null)
+                Priority = (int) CommandRequestPriority.Priority1;
+        }
 
         protected override void Process()
         {
@@ -185,8 +190,6 @@ namespace Shoko.Server.Commands.AniDB
                         c.AnimeID = relation.RelatedAnimeID;
                         c.DownloadRelations = true;
                         c.RelDepth = depth;
-                        if (RepoFactory.AniDB_Anime.GetByAnimeID(relation.RelatedAnimeID) == null)
-                            c.Priority = (int) CommandRequestPriority.Priority1;
                     }
                 );
                 command.Save();

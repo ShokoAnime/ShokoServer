@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Xml;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -21,6 +20,8 @@ namespace Shoko.Server.Commands.AniDB
     [Command(CommandRequestType.AniDB_GetUpdated)]
     public class CommandRequest_GetUpdated : CommandRequestImplementation
     {
+        private readonly IRequestFactory _requestFactory;
+        private readonly ICommandRequestFactory _commandFactory;
         public bool ForceRefresh { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
@@ -32,22 +33,9 @@ namespace Shoko.Server.Commands.AniDB
             extraParams = new string[0]
         };
 
-        public CommandRequest_GetUpdated()
-        {
-        }
-
-        public CommandRequest_GetUpdated(bool forced)
-        {
-            ForceRefresh = forced;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_GetUpdated");
-            var requestFactory = serviceProvider.GetRequiredService<IRequestFactory>();
 
             try
             {
@@ -78,13 +66,13 @@ namespace Shoko.Server.Commands.AniDB
                     Logger.LogTrace("Last AniDB info update was : {UpdateDetails}", sched.UpdateDetails);
                     webUpdateTime = DateTime.UnixEpoch.AddSeconds(long.Parse(sched.UpdateDetails));
 
-                    Logger.LogInformation($"{DateTime.UtcNow - webUpdateTime:g} since last UPDATED command");
+                    Logger.LogInformation("{UpdateTime} since last UPDATED command", DateTime.UtcNow - webUpdateTime);
                 }
 
-                var (response, countAnime, countSeries) = Update(webUpdateTime, requestFactory, sched, 0, 0);
+                var (response, countAnime, countSeries) = Update(webUpdateTime, _requestFactory, sched, 0, 0);
 
                 while (response?.Response?.Count > 200)
-                    (response, countAnime, countSeries) = Update(response.Response.LastUpdated, requestFactory, sched, countAnime, countSeries);
+                    (response, countAnime, countSeries) = Update(response.Response.LastUpdated, _requestFactory, sched, countAnime, countSeries);
 
                 Logger.LogInformation("Updating {Count} anime records, and {CountSeries} group status records", countAnime, countSeries);
             }
@@ -132,7 +120,13 @@ namespace Shoko.Server.Commands.AniDB
                 var ts = DateTime.Now - update.UpdatedAt;
                 if (ts.TotalHours > 4)
                 {
-                    var cmdAnime = new CommandRequest_GetAnimeHTTP(animeID, true, false, false);
+                    var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                        c =>
+                        {
+                            c.AnimeID = animeID;
+                            c.ForceRefresh = true;
+                        }
+                    );
                     cmdAnime.Save();
                     countAnime++;
                 }
@@ -142,7 +136,11 @@ namespace Shoko.Server.Commands.AniDB
                 // so we only get by an anime where we also have an associated series
                 var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                 if (ser == null) continue;
-                var cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID, true);
+                var cmdStatus = _commandFactory.Create<CommandRequest_GetReleaseGroupStatus>(c =>
+                {
+                    c.AnimeID = animeID;
+                    c.ForceRefresh = true;
+                });
                 cmdStatus.Save();
                 countSeries++;
             }
@@ -189,6 +187,12 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_GetUpdated(ILoggerFactory loggerFactory, IRequestFactory requestFactory, ICommandRequestFactory commandFactory) : base(loggerFactory)
+        {
+            this._requestFactory = requestFactory;
+            _commandFactory = commandFactory;
         }
     }
 }

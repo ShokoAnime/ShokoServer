@@ -143,6 +143,7 @@ namespace Shoko.Server.Commands.Generic
             {
                 var command = ActivatorUtilities.CreateInstance(provider, type) as ICommandRequest;
                 command?.LoadFromDBCommand(crdb);
+                command?.PostInit();
                 return command;
             }
             catch (Exception e)

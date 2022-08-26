@@ -6,7 +6,6 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
@@ -27,30 +26,17 @@ namespace Shoko.Server.Commands
             extraParams = new[] {VideoLocalID.ToString()}
         };
 
-        public CommandRequest_ReadMediaInfo()
-        {
-        }
-
-        public CommandRequest_ReadMediaInfo(int vidID)
-        {
-            VideoLocalID = vidID;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
-            Logger.LogInformation("Reading Media Info for File: {0}", VideoLocalID);
-
+            Logger.LogInformation("Reading Media Info for File: {VideoLocalID}", VideoLocalID);
 
             try
             {
-                SVR_VideoLocal vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
-                SVR_VideoLocal_Place place = vlocal?.GetBestVideoLocalPlace(true);
+                var vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+                var place = vlocal?.GetBestVideoLocalPlace(true);
                 if (place == null)
                 {
-                    Logger.LogError("Cound not find Video: {0}", VideoLocalID);
+                    Logger.LogError("Could not find Video: {VideoLocalID}", VideoLocalID);
                     return;
                 }
                 if (place.RefreshMediaInfo())
@@ -58,7 +44,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                Logger.LogError("Error processing CommandRequest_ReadMediaInfo: {0} - {1}", VideoLocalID, ex);
+                Logger.LogError("Error processing CommandRequest_ReadMediaInfo: {VideoLocalID} - {Ex}", VideoLocalID, ex);
             }
         }
 
@@ -83,7 +69,7 @@ namespace Shoko.Server.Commands
             // read xml to get parameters
             if (CommandDetails.Trim().Length > 0)
             {
-                XmlDocument docCreator = new XmlDocument();
+                var docCreator = new XmlDocument();
                 docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
@@ -98,7 +84,7 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest
+            var cq = new CommandRequest
             {
                 CommandID = CommandID,
                 CommandType = CommandType,
@@ -107,6 +93,10 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_ReadMediaInfo(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

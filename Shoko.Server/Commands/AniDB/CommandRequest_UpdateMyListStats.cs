@@ -24,12 +24,6 @@ namespace Shoko.Server.Commands.AniDB
             extraParams = new string[0]
         };
 
-        public CommandRequest_UpdateMyListStats()
-        {
-            Priority = (int) DefaultPriority;
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
             Logger.LogInformation("CommandRequest_UpdateMyListStats is deprecated. Skipping!");
@@ -71,6 +65,10 @@ namespace Shoko.Server.Commands.AniDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_UpdateMyListStats(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

@@ -5,7 +5,6 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Xml;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
@@ -29,6 +28,8 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.ImageDownload)]
     public class CommandRequest_DownloadImage : CommandRequestImplementation
     {
+        private readonly IUDPConnectionHandler _handler;
+        
         public int EntityID { get; set; }
         public int EntityType { get; set; }
         public bool ForceDownload { get; set; }
@@ -84,24 +85,10 @@ namespace Shoko.Server.Commands
             }
         }
 
-        public CommandRequest_DownloadImage()
-        {
-        }
-
-        public CommandRequest_DownloadImage(int entityID, ImageEntityType entityType, bool forced)
-        {
-            EntityID = entityID;
-            EntityType = (int) entityType;
-            ForceDownload = forced;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
-            Logger.LogInformation("Processing CommandRequest_DownloadImage: {0}", EntityID);
-            string downloadURL = string.Empty;
+            Logger.LogInformation("Processing CommandRequest_DownloadImage: {EntityID}", EntityID);
+            var downloadURL = string.Empty;
 
             try
             {
@@ -109,20 +96,20 @@ namespace Shoko.Server.Commands
                 switch (EntityTypeEnum)
                 {
                     case ImageEntityType.TvDB_Episode:
-                        TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(EntityID);
+                        var ep = RepoFactory.TvDB_Episode.GetByID(EntityID);
                         if (string.IsNullOrEmpty(ep?.Filename))
                         {
-                            Logger.LogWarning($"TvDB Episode image failed to download: Can't get episode with ID: {EntityID}");
+                            Logger.LogWarning("TvDB Episode image failed to download: Can\'t get episode with ID: {EntityID}", EntityID);
                             return;
                         }
                         req = new ImageDownloadRequest(EntityTypeEnum, ep, ForceDownload);
                         break;
 
                     case ImageEntityType.TvDB_FanArt:
-                        TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(EntityID);
+                        var fanart = RepoFactory.TvDB_ImageFanart.GetByID(EntityID);
                         if (string.IsNullOrEmpty(fanart?.BannerPath))
                         {
-                            Logger.LogWarning($"TvDB Fanart image failed to download: Can't find valid fanart with ID: {EntityID}");
+                            Logger.LogWarning("TvDB Fanart image failed to download: Can\'t find valid fanart with ID: {EntityID}", EntityID);
                             RemoveImageRecord();
                             return;
                         }
@@ -130,10 +117,10 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.TvDB_Cover:
-                        TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(EntityID);
+                        var poster = RepoFactory.TvDB_ImagePoster.GetByID(EntityID);
                         if (string.IsNullOrEmpty(poster?.BannerPath))
                         {
-                            Logger.LogWarning($"TvDB Poster image failed to download: Can't find valid poster with ID: {EntityID}");
+                            Logger.LogWarning("TvDB Poster image failed to download: Can\'t find valid poster with ID: {EntityID}", EntityID);
                             RemoveImageRecord();
                             return;
                         }
@@ -141,10 +128,10 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.TvDB_Banner:
-                        TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(EntityID);
+                        var wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(EntityID);
                         if (string.IsNullOrEmpty(wideBanner?.BannerPath))
                         {
-                            Logger.LogWarning($"TvDB Banner image failed to download: Can't find valid banner with ID: {EntityID}");
+                            Logger.LogWarning("TvDB Banner image failed to download: Can\'t find valid banner with ID: {EntityID}", EntityID);
                             RemoveImageRecord();
                             return;
                         }
@@ -152,10 +139,10 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.MovieDB_Poster:
-                        MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(EntityID);
+                        var moviePoster = RepoFactory.MovieDB_Poster.GetByID(EntityID);
                         if (string.IsNullOrEmpty(moviePoster?.URL))
                         {
-                            Logger.LogWarning($"MovieDB Poster image failed to download: Can't find valid poster with ID: {EntityID}");
+                            Logger.LogWarning("MovieDB Poster image failed to download: Can\'t find valid poster with ID: {EntityID}", EntityID);
                             RemoveImageRecord();
                             return;
                         }
@@ -163,20 +150,20 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.MovieDB_FanArt:
-                        MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(EntityID);
+                        var movieFanart = RepoFactory.MovieDB_Fanart.GetByID(EntityID);
                         if (string.IsNullOrEmpty(movieFanart?.URL))
                         {
-                            Logger.LogWarning($"MovieDB Fanart image failed to download: Can't find valid fanart with ID: {EntityID}");
+                            Logger.LogWarning("MovieDB Fanart image failed to download: Can\'t find valid fanart with ID: {EntityID}", EntityID);
                             return;
                         }
                         req = new ImageDownloadRequest(EntityTypeEnum, movieFanart, ForceDownload);
                         break;
 
                     case ImageEntityType.AniDB_Cover:
-                        SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(EntityID);
+                        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(EntityID);
                         if (anime == null)
                         {
-                            Logger.LogWarning($"AniDB poster image failed to download: Can't find AniDB_Anime with ID: {EntityID}");
+                            Logger.LogWarning("AniDB poster image failed to download: Can\'t find AniDB_Anime with ID: {EntityID}", EntityID);
                             return;
                         }
                         AniDbImageRateLimiter.Instance.EnsureRate();
@@ -184,10 +171,10 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.AniDB_Character:
-                        AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(EntityID);
+                        var chr = RepoFactory.AniDB_Character.GetByCharID(EntityID);
                         if (chr == null)
                         {
-                            Logger.LogWarning($"AniDB Character image failed to download: Can't find AniDB Character with ID: {EntityID}");
+                            Logger.LogWarning("AniDB Character image failed to download: Can\'t find AniDB Character with ID: {EntityID}", EntityID);
                             return;
                         }
                         AniDbImageRateLimiter.Instance.EnsureRate();
@@ -195,10 +182,10 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.AniDB_Creator:
-                        AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(EntityID);
+                        var creator = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(EntityID);
                         if (creator == null)
                         {
-                            Logger.LogWarning($"AniDB Seiyuu image failed to download: Can't find Seiyuu with ID: {EntityID}");
+                            Logger.LogWarning("AniDB Seiyuu image failed to download: Can\'t find Seiyuu with ID: {EntityID}", EntityID);
                             return;
                         }
                         AniDbImageRateLimiter.Instance.EnsureRate();
@@ -208,35 +195,35 @@ namespace Shoko.Server.Commands
 
                 if (req == null)
                 {
-                    Logger.LogWarning($"Image failed to download: No implementation found for {EntityTypeEnum}");
+                    Logger.LogWarning("Image failed to download: No implementation found for {EntityTypeEnum}", EntityTypeEnum);
                     return;
                 }
 
-                List<string> fileNames = new List<string>();
-                List<string> downloadURLs = new List<string>();
+                var fileNames = new List<string>();
+                var downloadUrls = new List<string>();
 
-                string fileNameTemp = GetFileName(req);
-                string downloadURLTemp = GetFileURL(serviceProvider, req);
+                var fileNameTemp = GetFileName(req);
+                var downloadURLTemp = GetFileURL(req);
 
                 fileNames.Add(fileNameTemp);
-                downloadURLs.Add(downloadURLTemp);
+                downloadUrls.Add(downloadURLTemp);
 
-                for (int i = 0; i < fileNames.Count; i++)
+                for (var i = 0; i < fileNames.Count; i++)
                 {
                     try
                     {
-                        string fileName = fileNames[i];
-                        downloadURL = downloadURLs[i];
+                        var fileName = fileNames[i];
+                        downloadURL = downloadUrls[i];
 
-                        bool downloadImage = true;
-                        bool fileExists = File.Exists(fileName);
-                        bool imageValid = fileExists && Misc.IsImageValid(fileName);
+                        var downloadImage = true;
+                        var fileExists = File.Exists(fileName);
+                        var imageValid = fileExists && Misc.IsImageValid(fileName);
 
                         if (imageValid && !req.ForceDownload) downloadImage = false;
 
                         if (!downloadImage) continue;
 
-                        string tempName = Path.Combine(ImageUtils.GetImagesTempFolder(), Path.GetFileName(fileName));
+                        var tempName = Path.Combine(ImageUtils.GetImagesTempFolder(), Path.GetFileName(fileName));
 
                         try
                         {
@@ -255,16 +242,16 @@ namespace Shoko.Server.Commands
 
                         // move the file to it's final location
                         // check that the final folder exists
-                        string fullPath = Path.GetDirectoryName(fileName);
+                        var fullPath = Path.GetDirectoryName(fileName);
                         if (!Directory.Exists(fullPath))
                             Directory.CreateDirectory(fullPath);
 
                         File.Move(tempName, fileName);
-                        Logger.LogInformation($"Image downloaded: {fileName} from {downloadURL}");
+                        Logger.LogInformation("Image downloaded: {FileName} from {DownloadUrl}", fileName, downloadURL);
                     }
                     catch (WebException e)
                     {
-                        Logger.LogWarning("Error processing CommandRequest_DownloadImage: {0} ({1}) - {2}", downloadURL,
+                        Logger.LogWarning("Error processing CommandRequest_DownloadImage: {Url} ({EntityID}) - {Message}", downloadURL,
                             EntityID,
                             e.Message);
                         // Remove the record if the image doesn't exist or can't download
@@ -274,8 +261,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                Logger.LogWarning("Error processing CommandRequest_DownloadImage: {0} ({1}) - {2}", downloadURL, EntityID,
-                    ex.Message);
+                Logger.LogWarning("Error processing CommandRequest_DownloadImage: {Url} ({EntityID}) - {Ex}", downloadURL, EntityID, ex);
             }
         }
 
@@ -284,31 +270,31 @@ namespace Shoko.Server.Commands
             switch (EntityTypeEnum)
                 {
                     case ImageEntityType.TvDB_FanArt:
-                        TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(EntityID);
+                        var fanart = RepoFactory.TvDB_ImageFanart.GetByID(EntityID);
                         if (fanart == null) return;
                         RepoFactory.TvDB_ImageFanart.Delete(fanart);
                         break;
 
                     case ImageEntityType.TvDB_Cover:
-                        TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(EntityID);
+                        var poster = RepoFactory.TvDB_ImagePoster.GetByID(EntityID);
                         if (poster == null) return;
                         RepoFactory.TvDB_ImagePoster.Delete(poster);
                         break;
 
                     case ImageEntityType.TvDB_Banner:
-                        TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(EntityID);
+                        var wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(EntityID);
                         if (wideBanner == null) return;
                         RepoFactory.TvDB_ImageWideBanner.Delete(wideBanner);
                         break;
 
                     case ImageEntityType.MovieDB_Poster:
-                        MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(EntityID);
+                        var moviePoster = RepoFactory.MovieDB_Poster.GetByID(EntityID);
                         if (moviePoster == null) return;
                         RepoFactory.MovieDB_Poster.Delete(moviePoster);
                         break;
 
                     case ImageEntityType.MovieDB_FanArt:
-                        MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(EntityID);
+                        var movieFanart = RepoFactory.MovieDB_Fanart.GetByID(EntityID);
                         if (movieFanart == null) return;
                         RepoFactory.MovieDB_Fanart.Delete(movieFanart);
                         break;
@@ -327,18 +313,18 @@ namespace Shoko.Server.Commands
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
                 ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
                 
-                using (WebClient client = new WebClient())
+                using (var client = new WebClient())
                 {
                     client.Headers.Add("user-agent", "JMM");
                     //OnImageDownloadEvent(new ImageDownloadEventArgs("", req, ImageDownloadEventType.Started));
                     //BaseConfig.MyAnimeLog.Write("ProcessImages: Download: {0}  *** to ***  {1}", req.URL, fullName);
 
-                    byte[] bytes = client.DownloadData(downloadURL);
+                    var bytes = client.DownloadData(downloadURL);
                     if (bytes.Length < 4)
                         throw new WebException(
                             "The image download stream returned less than 4 bytes (a valid image has 2-4 bytes in the header)");
 
-                    ImageFormatEnum imageFormat = Misc.GetImageFormat(bytes);
+                    var imageFormat = Misc.GetImageFormat(bytes);
                     string extension;
                     switch (imageFormat)
                     {
@@ -361,7 +347,7 @@ namespace Shoko.Server.Commands
                     }
 
                     if (extension.Length <= 0) return;
-                    string newFile = Path.ChangeExtension(tempFilePath, extension);
+                    var newFile = Path.ChangeExtension(tempFilePath, extension);
                     if(newFile == null) return;
 
                     if (File.Exists(newFile)) File.Delete(newFile);
@@ -380,49 +366,45 @@ namespace Shoko.Server.Commands
             }
         }
 
-        public static string GetFileURL(IServiceProvider provider, ImageDownloadRequest req)
+        public string GetFileURL(ImageDownloadRequest req)
         {
-            IUDPConnectionHandler handler;
             switch (req.ImageType)
             {
                 case ImageEntityType.TvDB_Episode:
-                    TvDB_Episode ep = req.ImageData as TvDB_Episode;
-                    return string.Format(Constants.URLS.TvDB_Episode_Images, ep.Filename);
+                    var ep = req.ImageData as TvDB_Episode;
+                    return string.Format(Constants.URLS.TvDB_Episode_Images, ep!.Filename);
 
                 case ImageEntityType.TvDB_FanArt:
-                    TvDB_ImageFanart fanart = req.ImageData as TvDB_ImageFanart;
-                    return string.Format(Constants.URLS.TvDB_Images, fanart.BannerPath);
+                    var fanart = req.ImageData as TvDB_ImageFanart;
+                    return string.Format(Constants.URLS.TvDB_Images, fanart!.BannerPath);
 
                 case ImageEntityType.TvDB_Cover:
-                    TvDB_ImagePoster poster = req.ImageData as TvDB_ImagePoster;
-                    return string.Format(Constants.URLS.TvDB_Images, poster.BannerPath);
+                    var poster = req.ImageData as TvDB_ImagePoster;
+                    return string.Format(Constants.URLS.TvDB_Images, poster!.BannerPath);
 
                 case ImageEntityType.TvDB_Banner:
-                    TvDB_ImageWideBanner wideBanner = req.ImageData as TvDB_ImageWideBanner;
-                    return string.Format(Constants.URLS.TvDB_Images, wideBanner.BannerPath);
+                    var wideBanner = req.ImageData as TvDB_ImageWideBanner;
+                    return string.Format(Constants.URLS.TvDB_Images, wideBanner!.BannerPath);
 
                 case ImageEntityType.MovieDB_Poster:
-                    MovieDB_Poster moviePoster = req.ImageData as MovieDB_Poster;
-                    return string.Format(Constants.URLS.MovieDB_Images, moviePoster.URL);
+                    var moviePoster = req.ImageData as MovieDB_Poster;
+                    return string.Format(Constants.URLS.MovieDB_Images, moviePoster!.URL);
 
                 case ImageEntityType.MovieDB_FanArt:
-                    MovieDB_Fanart movieFanart = req.ImageData as MovieDB_Fanart;
-                    return string.Format(Constants.URLS.MovieDB_Images, movieFanart.URL);
+                    var movieFanart = req.ImageData as MovieDB_Fanart;
+                    return string.Format(Constants.URLS.MovieDB_Images, movieFanart!.URL);
 
                 case ImageEntityType.AniDB_Cover:
-                    SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
-                    handler = provider.GetRequiredService<IUDPConnectionHandler>();
-                    return string.Format(handler.ImageServerUrl, anime.Picname);
+                    var anime = req.ImageData as SVR_AniDB_Anime;
+                    return string.Format(_handler.ImageServerUrl, anime!.Picname);
 
                 case ImageEntityType.AniDB_Character:
-                    AniDB_Character chr = req.ImageData as AniDB_Character;
-                    handler = provider.GetRequiredService<IUDPConnectionHandler>();
-                    return string.Format(handler.ImageServerUrl, chr.PicName);
+                    var chr = req.ImageData as AniDB_Character;
+                    return string.Format(_handler.ImageServerUrl, chr!.PicName);
 
                 case ImageEntityType.AniDB_Creator:
-                    AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
-                    handler = provider.GetRequiredService<IUDPConnectionHandler>();
-                    return string.Format(handler.ImageServerUrl, creator.PicName);
+                    var creator = req.ImageData as AniDB_Seiyuu;
+                    return string.Format(_handler.ImageServerUrl, creator!.PicName);
 
                 default:
                     return string.Empty;
@@ -434,39 +416,39 @@ namespace Shoko.Server.Commands
             switch (req.ImageType)
             {
                 case ImageEntityType.AniDB_Cover:
-                    SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
-                    return anime.PosterPath;
+                    var anime = req.ImageData as SVR_AniDB_Anime;
+                    return anime!.PosterPath;
 
                 case ImageEntityType.TvDB_Episode:
-                    TvDB_Episode ep = req.ImageData as TvDB_Episode;
+                    var ep = req.ImageData as TvDB_Episode;
                     return ep.GetFullImagePath();
 
                 case ImageEntityType.TvDB_FanArt:
-                    TvDB_ImageFanart fanart = req.ImageData as TvDB_ImageFanart;
+                    var fanart = req.ImageData as TvDB_ImageFanart;
                     return fanart.GetFullImagePath();
 
                 case ImageEntityType.TvDB_Cover:
-                    TvDB_ImagePoster poster = req.ImageData as TvDB_ImagePoster;
+                    var poster = req.ImageData as TvDB_ImagePoster;
                     return poster.GetFullImagePath();
 
                 case ImageEntityType.TvDB_Banner:
-                    TvDB_ImageWideBanner wideBanner = req.ImageData as TvDB_ImageWideBanner;
+                    var wideBanner = req.ImageData as TvDB_ImageWideBanner;
                     return wideBanner.GetFullImagePath();
 
                 case ImageEntityType.MovieDB_Poster:
-                    MovieDB_Poster moviePoster = req.ImageData as MovieDB_Poster;
+                    var moviePoster = req.ImageData as MovieDB_Poster;
                     return moviePoster.GetFullImagePath();
 
                 case ImageEntityType.MovieDB_FanArt:
-                    MovieDB_Fanart movieFanart = req.ImageData as MovieDB_Fanart;
+                    var movieFanart = req.ImageData as MovieDB_Fanart;
                     return movieFanart.GetFullImagePath();
 
                 case ImageEntityType.AniDB_Character:
-                    AniDB_Character chr = req.ImageData as AniDB_Character;
+                    var chr = req.ImageData as AniDB_Character;
                     return chr.GetPosterPath();
 
                 case ImageEntityType.AniDB_Creator:
-                    AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
+                    var creator = req.ImageData as AniDB_Seiyuu;
                     return creator.GetPosterPath();
 
                 default:
@@ -490,7 +472,7 @@ namespace Shoko.Server.Commands
             // read xml to get parameters
             if (CommandDetails.Trim().Length > 0)
             {
-                XmlDocument docCreator = new XmlDocument();
+                var docCreator = new XmlDocument();
                 docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
@@ -507,7 +489,7 @@ namespace Shoko.Server.Commands
         {
             GenerateCommandID();
 
-            CommandRequest cq = new CommandRequest
+            var cq = new CommandRequest
             {
                 CommandID = CommandID,
                 CommandType = CommandType,
@@ -516,6 +498,11 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_DownloadImage(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory)
+        {
+            _handler = handler;
         }
     }
 }
