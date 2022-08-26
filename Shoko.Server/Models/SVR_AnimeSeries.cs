@@ -13,6 +13,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -21,6 +22,7 @@ using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Settings;
+using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Models
 {
@@ -1121,11 +1123,11 @@ namespace Shoko.Server.Models
                     xref =>
                     {
                         var vl = RepoFactory.VideoLocal.GetByHash(xref.Hash);
-                        if (vl == null) return null;
+                        if (vl == null) return Array.Empty<(int EpisodeID, SVR_VideoLocal_User VideoLocalUser)>();
                         var users = RepoFactory.VideoLocalUser.GetByVideoLocalID(vl.VideoLocalID);
-                        return users?.Select(a => new { xref.EpisodeID, VideoLocalUser = a });
+                        return users?.Select(a => (xref.EpisodeID, VideoLocalUser: a));
                     }
-                ).Where(a => a?.VideoLocalUser != null).ToLookup(a => (a.EpisodeID, a.VideoLocalUser.JMMUserID), b => b.VideoLocalUser);
+                ).Where(a => a.VideoLocalUser != null).ToLookup(a => (a.EpisodeID, a.VideoLocalUser.JMMUserID), b => b.VideoLocalUser);
 
                 foreach (var juser in RepoFactory.JMMUser.GetAll())
                 {
