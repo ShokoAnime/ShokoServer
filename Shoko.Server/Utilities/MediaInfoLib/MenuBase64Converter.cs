@@ -38,7 +38,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                         break;
                     }
                     default:
-                        throw new NotImplementedException();
+                        throw new NotSupportedException("Unknown type encountered in MenuStream.extra");
                 }
             }
 
