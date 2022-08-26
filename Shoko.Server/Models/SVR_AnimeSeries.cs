@@ -1117,13 +1117,13 @@ namespace Shoko.Server.Models
 
             if (watchedStats)
             {
-                var vlUsers = RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID).SelectMany(
-                    a =>
+                var vlUsers = RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID).Where(a => !string.IsNullOrEmpty(a?.Hash)).SelectMany(
+                    xref =>
                     {
-                        var vl = RepoFactory.VideoLocal.GetByHash(a.Hash);
+                        var vl = RepoFactory.VideoLocal.GetByHash(xref.Hash);
                         if (vl == null) return null;
                         var users = RepoFactory.VideoLocalUser.GetByVideoLocalID(vl.VideoLocalID);
-                        return users.Select(b => new { a.EpisodeID, VideoLocalUser = b });
+                        return users?.Select(a => new { xref.EpisodeID, VideoLocalUser = a });
                     }
                 ).Where(a => a?.VideoLocalUser != null).ToLookup(a => (a.EpisodeID, a.VideoLocalUser.JMMUserID), b => b.VideoLocalUser);
 
@@ -1153,7 +1153,7 @@ namespace Shoko.Server.Models
 
                             lock (lck)
                             {
-                                if (watchedDate == null || (epUserRecord.WatchedDate.HasValue &&  epUserRecord.WatchedDate.Value > watchedDate.Value))
+                                if (watchedDate == null || epUserRecord.WatchedDate != null && epUserRecord.WatchedDate.Value > watchedDate.Value)
                                     watchedDate = epUserRecord.WatchedDate;
 
                                 if (lastEpisodeUpdate == null || lastUpdated.Value > lastEpisodeUpdate.Value)
