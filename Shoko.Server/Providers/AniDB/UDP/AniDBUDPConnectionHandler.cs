@@ -367,6 +367,12 @@ namespace Shoko.Server.Providers.AniDB.UDP
         public void ForceLogout()
         {
             if (!_isLoggedOn) return;
+            if (IsBanned)
+            {
+                _isLoggedOn = false;
+                SessionID = null;
+                return;
+            }
             Logger.LogTrace("Logging Out");
             try
             {
