@@ -110,6 +110,7 @@ namespace Shoko.Server.Commands
 
             var cri = ToDatabaseObject();
             cri.CommandID = commandID;
+            Logger.LogTrace("Saving new CommandRequest: {CommandType} {CommandID}", (CommandRequestType)cri.CommandType, cri.CommandID);
             RepoFactory.CommandRequest.Save(cri);
 
             switch (CommandRequestRepository.GetQueueIndex(cri))
