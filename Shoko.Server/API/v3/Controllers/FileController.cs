@@ -62,19 +62,26 @@ namespace Shoko.Server.API.v3.Controllers
         /// Delete a file.
         /// </summary>
         /// <param name="fileID">The VideoLocal_Place ID. This cares about which location we are deleting from.</param>
+        /// <param name="removeFiles">Remove all physical file locations.</param>
         /// <param name="removeFolder">This causes the empty folder removal to skipped if set to false.
         /// This significantly speeds up batch deleting if you are deleting many files in the same folder.
         /// It may be specified in the query.</param>
         /// <returns></returns>
         [Authorize("admin")]
         [HttpDelete("{fileID}")]
-        public ActionResult DeleteFile([FromRoute] int fileID, [FromQuery] bool removeFolder = true)
+        public ActionResult DeleteFile([FromRoute] int fileID, [FromQuery] bool removeFiles = true, [FromQuery] bool removeFolder = true)
         {
-            var file = RepoFactory.VideoLocalPlace.GetByID(fileID);
+            var file = RepoFactory.VideoLocal.GetByID(fileID);
             if (file == null)
                 return NotFound(FileNotFoundWithFileID);
 
-            file.RemoveRecordAndDeletePhysicalFile(removeFolder);
+            foreach (var place in file.Places)
+                if (removeFiles)
+                    place.RemoveRecordAndDeletePhysicalFile(removeFolder);
+                else
+                    place.RemoveRecord();
+
+            RepoFactory.VideoLocal.Delete(fileID);
             return Ok();
         }
 
