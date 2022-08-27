@@ -54,6 +54,7 @@ namespace Shoko.Server.Commands.Plex
                         if (video == null) continue;
                         var alreadyWatched = animeEpisode.GetVideoLocals()
                             .Select(a => a.GetUserRecord(User.JMMUserID))
+                            .Where(a => a != null)
                             .Any(x => x.WatchedDate is not null || x.WatchedCount > 0);
 
                         if (!alreadyWatched && userRecord != null)
