@@ -46,9 +46,13 @@ namespace Shoko.Server.Commands.Generic
         [XmlIgnore]
         public bool BubbleExceptions = false;
 
-        public CommandRequestImplementation(ILoggerFactory loggerFactory)
+        public CommandRequestImplementation(ILoggerFactory loggerFactory) : this()
         {
             Logger = loggerFactory.CreateLogger(GetType());
+        }
+
+        protected CommandRequestImplementation()
+        {
             Priority = (int) DefaultPriority;
         }
 

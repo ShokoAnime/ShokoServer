@@ -20,6 +20,9 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.MovieDB;
+using Shoko.Server.Providers.TraktTV;
+using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -33,6 +36,18 @@ namespace Shoko.Server
         //TODO Split this file into subfiles with partial class, Move #region functionality from the interface to those subfiles
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
+        private readonly TvDBApiHelper _tvdbHelper;
+        private readonly TraktTVHelper _traktHelper;
+        private readonly MovieDBHelper _movieDBHelper;
+        private readonly ICommandRequestFactory _commandFactory;
+
+        public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, ICommandRequestFactory commandFactory)
+        {
+            _tvdbHelper = tvdbHelper;
+            _traktHelper = traktHelper;
+            _movieDBHelper = movieDBHelper;
+            _commandFactory = commandFactory;
+        }
 
         #region Bookmarks
         [HttpGet("Bookmark")]
@@ -609,7 +624,6 @@ namespace Shoko.Server
         [HttpPost("File/Hashes/Sync")]
         public void SyncHashes()
         {
-            ShokoServer.SyncHashes();
         }
 
         [HttpPost("Folder/Scan")]
@@ -645,7 +659,7 @@ namespace Shoko.Server
         [HttpPost("AniDB/Vote/Sync")]
         public void SyncVotes()
         {
-            CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
+            CommandRequest_SyncMyVotes cmdVotes = _commandFactory.Create<CommandRequest_SyncMyVotes>();
             cmdVotes.Save();
         }
 

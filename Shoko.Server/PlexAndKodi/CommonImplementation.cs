@@ -890,6 +890,7 @@ namespace Shoko.Server.PlexAndKodi
 
         public Response TraktScrobble(IProvider prov, string animeId, int typeTrakt, float progressTrakt, int status)
         {
+            var traktHelper = ShokoServer.ServiceContainer.GetRequiredService<TraktTVHelper>();
             Response rsp = new Response
             {
                 Code = "400",
@@ -917,7 +918,7 @@ namespace Shoko.Server.PlexAndKodi
                 {
                     // Movie
                     case (int) ScrobblePlayingType.movie:
-                        rsp.Code = TraktTVHelper.Scrobble(
+                        rsp.Code = traktHelper.Scrobble(
                                 ScrobblePlayingType.movie, animeId,
                                 statusTraktV2, progressTrakt)
                             .ToString();
@@ -926,7 +927,7 @@ namespace Shoko.Server.PlexAndKodi
                     // TV episode
                     case (int) ScrobblePlayingType.episode:
                         rsp.Code =
-                            TraktTVHelper.Scrobble(ScrobblePlayingType.episode,
+                            traktHelper.Scrobble(ScrobblePlayingType.episode,
                                     animeId,
                                     statusTraktV2, progressTrakt)
                                 .ToString();

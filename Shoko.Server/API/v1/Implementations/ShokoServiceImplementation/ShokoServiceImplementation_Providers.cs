@@ -225,7 +225,13 @@ namespace Shoko.Server
         {
             try
             {
-                CommandRequest_TvDBUpdateSeries updateseries = new CommandRequest_TvDBUpdateSeries(seriesID, true);
+                CommandRequest_TvDBUpdateSeries updateseries = _commandFactory.Create<CommandRequest_TvDBUpdateSeries>(
+                    c =>
+                    {
+                        c.TvDBSeriesID = seriesID;
+                        c.ForceRefresh = true;
+                    }
+                );
                 updateseries.Save();
             }
             catch (Exception ex)
@@ -240,7 +246,7 @@ namespace Shoko.Server
         {
             try
             {
-                return TvDBApiHelper.GetLanguages();
+                return _tvdbHelper.GetLanguages();
             }
             catch (Exception ex)
             {
@@ -304,7 +310,7 @@ namespace Shoko.Server
         {
             try
             {
-                return TvDBApiHelper.SearchSeries(criteria);
+                return _tvdbHelper.SearchSeries(criteria);
             }
             catch (Exception ex)
             {
@@ -320,7 +326,7 @@ namespace Shoko.Server
             try
             {
                 // refresh data from TvDB
-                TvDBApiHelper.UpdateSeriesInfoAndImages(seriesID, true, false);
+                _tvdbHelper.UpdateSeriesInfoAndImages(seriesID, true, false);
 
                 seasonNumbers = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(seriesID);
 
@@ -351,8 +357,14 @@ namespace Shoko.Server
                 }
 
                 // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
-                CommandRequest_LinkAniDBTvDB cmdRequest =
-                    new CommandRequest_LinkAniDBTvDB(link.AnimeID, link.TvDBID, link.IsAdditive);
+                CommandRequest_LinkAniDBTvDB cmdRequest = _commandFactory.Create<CommandRequest_LinkAniDBTvDB>(
+                    c =>
+                    {
+                        c.AnimeID = link.AnimeID;
+                        c.TvDBID = link.TvDBID;
+                        c.AdditiveLink = link.IsAdditive;
+                    }
+                );
                 cmdRequest.Save();
 
                 return string.Empty;
@@ -379,8 +391,14 @@ namespace Shoko.Server
                 RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(link.AnimeID);
 
                 // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
-                CommandRequest_LinkAniDBTvDB cmdRequest =
-                    new CommandRequest_LinkAniDBTvDB(link.AnimeID, link.TvDBID, link.IsAdditive);
+                CommandRequest_LinkAniDBTvDB cmdRequest = _commandFactory.Create<CommandRequest_LinkAniDBTvDB>(
+                    c =>
+                    {
+                        c.AnimeID = link.AnimeID;
+                        c.TvDBID = link.TvDBID;
+                        c.AdditiveLink = link.IsAdditive;
+                    }
+                );
                 cmdRequest.Save();
 
                 var overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(links);
@@ -407,7 +425,7 @@ namespace Shoko.Server
         {
             try
             {
-                TvDBApiHelper.LinkAniDBTvDBEpisode(aniDBID, tvDBID);
+                _tvdbHelper.LinkAniDBTvDBEpisode(aniDBID, tvDBID);
 
                 return string.Empty;
             }
@@ -450,7 +468,7 @@ namespace Shoko.Server
                         }
                     }
 
-                    TvDBApiHelper.RemoveLinkAniDBTvDB(xref.AniDBID, xref.TvDBID);
+                    _tvdbHelper.RemoveLinkAniDBTvDB(xref.AniDBID, xref.TvDBID);
                 }
 
                 return string.Empty;
@@ -484,7 +502,7 @@ namespace Shoko.Server
                     }
                 }
 
-                TvDBApiHelper.RemoveLinkAniDBTvDB(link.AnimeID, link.TvDBID);
+                _tvdbHelper.RemoveLinkAniDBTvDB(link.AnimeID, link.TvDBID);
 
                 return string.Empty;
             }
@@ -650,7 +668,7 @@ namespace Shoko.Server
                     CrossRef_AniDB_TraktV2 xrefTemp =
                         RepoFactory.CrossRef_AniDB_TraktV2.GetByID(crossRef_AniDB_TraktV2ID.Value);
                     // delete the existing one if we are updating
-                    TraktTVHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (EpisodeType) xrefTemp.AniDBStartEpisodeType,
+                    _traktHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (EpisodeType) xrefTemp.AniDBStartEpisodeType,
                         xrefTemp.AniDBStartEpisodeNumber,
                         xrefTemp.TraktID, xrefTemp.TraktSeasonNumber, xrefTemp.TraktStartEpisodeNumber);
                 }
@@ -673,7 +691,7 @@ namespace Shoko.Server
                     return msg;
                 }
 
-                return TraktTVHelper.LinkAniDBTrakt(animeID, (EpisodeType) aniEpType, aniEpNumber, traktID,
+                return _traktHelper.LinkAniDBTrakt(animeID, (EpisodeType) aniEpType, aniEpNumber, traktID,
                     seasonNumber,
                     traktEpNumber, false);
             }
@@ -718,7 +736,7 @@ namespace Shoko.Server
             List<CL_TraktTVShowResponse> results = new List<CL_TraktTVShowResponse>();
             try
             {
-                List<TraktV2SearchShowResult> traktResults = TraktTVHelper.SearchShowV2(criteria);
+                List<TraktV2SearchShowResult> traktResults = _traktHelper.SearchShowV2(criteria);
 
                 foreach (TraktV2SearchShowResult res in traktResults)
                     results.Add(res.ToContract());
@@ -754,7 +772,7 @@ namespace Shoko.Server
 
                 foreach (CrossRef_AniDB_TraktV2 xref in RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID))
                 {
-                    TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType) xref.AniDBStartEpisodeType,
+                    _traktHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType) xref.AniDBStartEpisodeType,
                         xref.AniDBStartEpisodeNumber,
                         xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber);
                 }
@@ -790,7 +808,7 @@ namespace Shoko.Server
                     }
                 }
 
-                TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType) aniEpType, aniEpNumber,
+                _traktHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType) aniEpType, aniEpNumber,
                     traktID, traktSeasonNumber, traktEpNumber);
 
                 return string.Empty;
@@ -809,7 +827,7 @@ namespace Shoko.Server
             try
             {
                 // refresh show info including season numbers from trakt
-                TraktV2ShowExtended tvshow = TraktTVHelper.GetShowInfoV2(traktID);
+                TraktV2ShowExtended tvshow = _traktHelper.GetShowInfoV2(traktID);
 
                 Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
                 if (show == null) return seasonNumbers;
@@ -888,12 +906,12 @@ namespace Shoko.Server
                     {
                         // Movie
                         case (int) ScrobblePlayingType.movie:
-                            return TraktTVHelper.Scrobble(
+                            return _traktHelper.Scrobble(
                                 ScrobblePlayingType.movie, animeId.ToString(),
                                 statusTraktV2, progressTrakt);
                         // TV episode
                         case (int) ScrobblePlayingType.episode:
-                            return TraktTVHelper.Scrobble(
+                            return _traktHelper.Scrobble(
                                 ScrobblePlayingType.episode,
                                 animeId.ToString(), statusTraktV2, progressTrakt);
                     }
@@ -912,7 +930,7 @@ namespace Shoko.Server
         {
             try
             {
-                TraktTVHelper.UpdateAllInfo(traktID);
+                _traktHelper.UpdateAllInfo(traktID);
             }
             catch (Exception ex)
             {
@@ -931,9 +949,13 @@ namespace Shoko.Server
                 SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                 if (ser == null) return "Could not find Anime Series";
 
-                CommandRequest_TraktSyncCollectionSeries cmd =
-                    new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID,
-                        ser.GetSeriesName());
+                CommandRequest_TraktSyncCollectionSeries cmd = _commandFactory.Create<CommandRequest_TraktSyncCollectionSeries>(
+                    c =>
+                    {
+                        c.AnimeSeriesID = ser.AnimeSeriesID;
+                        c.SeriesName = ser.GetSeriesName();
+                    }
+                );
                 cmd.Save();
 
                 return string.Empty;
@@ -948,7 +970,7 @@ namespace Shoko.Server
         [HttpPost("Trakt/Comment/{traktID}/{isSpoiler}")]
         public CL_Response<bool> PostTraktCommentShow(string traktID, string commentText, bool isSpoiler)
         {
-            return TraktTVHelper.PostCommentShow(traktID, commentText, isSpoiler);
+            return _traktHelper.PostCommentShow(traktID, commentText, isSpoiler);
         }
 
         [HttpPost("Trakt/LinkValidity/{slug}/{removeDBEntries}")]
@@ -956,7 +978,7 @@ namespace Shoko.Server
         {
             try
             {
-                return TraktTVHelper.CheckTraktValidity(slug, removeDBEntries);
+                return _traktHelper.CheckTraktValidity(slug, removeDBEntries);
             }
             catch (Exception ex)
             {
@@ -986,7 +1008,7 @@ namespace Shoko.Server
 
             try
             {
-                List<TraktV2Comment> commentsTemp = TraktTVHelper.GetShowCommentsV2(animeID);
+                List<TraktV2Comment> commentsTemp = _traktHelper.GetShowCommentsV2(animeID);
                 if (commentsTemp == null || commentsTemp.Count == 0) return comments;
 
                 foreach (TraktV2Comment sht in commentsTemp)
@@ -1031,7 +1053,7 @@ namespace Shoko.Server
         {
             try
             {
-                var response = TraktTVHelper.GetTraktDeviceCode();
+                var response = _traktHelper.GetTraktDeviceCode();
                 return new CL_TraktDeviceCode
                 {
                     VerificationUrl = response.VerificationUrl,
@@ -1088,7 +1110,7 @@ namespace Shoko.Server
                 switch (xrefType)
                 {
                     case CrossRefType.MovieDB:
-                        MovieDBHelper.LinkAniDBMovieDB(animeID, id, false);
+                        _movieDBHelper.LinkAniDBMovieDB(animeID, id, false);
                         break;
                 }
 
@@ -1126,7 +1148,7 @@ namespace Shoko.Server
                                 RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                             }
                         }
-                        MovieDBHelper.RemoveLinkAniDBMovieDB(animeID);
+                        _movieDBHelper.RemoveLinkAniDBMovieDB(animeID);
                         break;
                 }
 
@@ -1149,7 +1171,7 @@ namespace Shoko.Server
             List<CL_MovieDBMovieSearch_Response> results = new List<CL_MovieDBMovieSearch_Response>();
             try
             {
-                List<MovieDB_Movie_Result> movieResults = MovieDBHelper.Search(criteria);
+                List<MovieDB_Movie_Result> movieResults = _movieDBHelper.Search(criteria);
 
                 foreach (MovieDB_Movie_Result res in movieResults)
                     results.Add(res.ToContract());
@@ -1200,7 +1222,7 @@ namespace Shoko.Server
         {
             try
             {
-                MovieDBHelper.UpdateMovieInfo(movieD, true);
+                _movieDBHelper.UpdateMovieInfo(movieD, true);
             }
             catch (Exception ex)
             {

@@ -27,6 +27,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.Trakt_SearchAnime)]
     public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
     {
+        private readonly TraktTVHelper _helper;
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
 
@@ -64,12 +65,12 @@ namespace Shoko.Server.Commands
                             {
                                 foreach (Azure_CrossRef_AniDB_Trakt xref in resultsCache)
                                 {
-                                    TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(xref.TraktID);
+                                    TraktV2ShowExtended showInfo = _helper.GetShowInfoV2(xref.TraktID);
                                     if (showInfo == null) continue;
 
                                     Logger.LogTrace("Found trakt match on web cache for {0} - id = {1}", AnimeID,
                                         showInfo.title);
-                                    TraktTVHelper.LinkAniDBTrakt(AnimeID,
+                                    _helper.LinkAniDBTrakt(AnimeID,
                                         (EpisodeType) xref.AniDBStartEpisodeType,
                                         xref.AniDBStartEpisodeNumber,
                                         xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber, true);
@@ -95,7 +96,7 @@ namespace Shoko.Server.Commands
                         {
                             // first search for this show by the TvDB ID
                             List<TraktV2SearchTvDBIDShowResult> searchResults =
-                                TraktTVHelper.SearchShowByIDV2(TraktSearchIDType.tvdb,
+                                _helper.SearchShowByIDV2(TraktSearchIDType.tvdb,
                                     tvXRef.TvDBID.ToString());
                             if (searchResults == null || searchResults.Count <= 0) continue;
                             // since we are searching by ID, there will only be one 'show' result
@@ -109,7 +110,7 @@ namespace Shoko.Server.Commands
 
                             if (resShow == null) continue;
 
-                            TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(resShow.ids.slug);
+                            TraktV2ShowExtended showInfo = _helper.GetShowInfoV2(resShow.ids.slug);
                             if (showInfo?.ids == null) continue;
 
                             // make sure the season specified by TvDB also exists on Trakt
@@ -125,7 +126,7 @@ namespace Shoko.Server.Commands
 
                             Logger.LogTrace("Found trakt match using TvDBID locally {0} - id = {1}",
                                 AnimeID, showInfo.title);
-                            TraktTVHelper.LinkAniDBTrakt(AnimeID,
+                            _helper.LinkAniDBTrakt(AnimeID,
                                 (EpisodeType) tvXRef.AniDBStartEpisodeType,
                                 tvXRef.AniDBStartEpisodeNumber, showInfo.ids.slug,
                                 tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber,
@@ -145,7 +146,7 @@ namespace Shoko.Server.Commands
                     var searchCriteria = anime.MainTitle;
 
                     // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-                    List<TraktV2SearchShowResult> results = TraktTVHelper.SearchShowV2(searchCriteria);
+                    List<TraktV2SearchShowResult> results = _helper.SearchShowV2(searchCriteria);
                     Logger.LogTrace("Found {0} trakt results for {1} ", results.Count, searchCriteria);
                     if (ProcessSearchResults(session, results, searchCriteria)) return;
 
@@ -159,7 +160,7 @@ namespace Shoko.Server.Commands
 
                         if (string.Equals(searchCriteria, title.Title, StringComparison.InvariantCultureIgnoreCase)) continue;
 
-                        results = TraktTVHelper.SearchShowV2(searchCriteria);
+                        results = _helper.SearchShowV2(searchCriteria);
                         Logger.LogTrace("Found {0} trakt results for search on {1}", results.Count, title.Title);
                         if (ProcessSearchResults(session, results, title.Title)) return;
                     }
@@ -181,10 +182,10 @@ namespace Shoko.Server.Commands
                     // since we are using this result, lets download the info
                     Logger.LogTrace("Found 1 trakt results for search on {0} --- Linked to {1} ({2})", searchCriteria,
                         results[0].show.Title, results[0].show.ids.slug);
-                    TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(results[0].show.ids.slug);
+                    TraktV2ShowExtended showInfo = _helper.GetShowInfoV2(results[0].show.ids.slug);
                     if (showInfo != null)
                     {
-                        TraktTVHelper.LinkAniDBTrakt(session, AnimeID, EpisodeType.Episode, 1,
+                        _helper.LinkAniDBTrakt(session, AnimeID, EpisodeType.Episode, 1,
                             results[0].show.ids.slug, 1, 1,
                             true);
                         return true;
@@ -238,7 +239,12 @@ namespace Shoko.Server.Commands
             return cq;
         }
 
-        public CommandRequest_TraktSearchAnime(ILoggerFactory loggerFactory) : base(loggerFactory)
+        public CommandRequest_TraktSearchAnime(ILoggerFactory loggerFactory, TraktTVHelper helper) : base(loggerFactory)
+        {
+            _helper = helper;
+        }
+
+        protected CommandRequest_TraktSearchAnime()
         {
         }
     }

@@ -18,6 +18,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.Trakt_EpisodeCollection)]
     public class CommandRequest_TraktCollectionEpisode : CommandRequestImplementation
     {
+        private readonly TraktTVHelper _helper;
         public int AnimeEpisodeID { get; set; }
         public int Action { get; set; }
 
@@ -45,7 +46,7 @@ namespace Shoko.Server.Commands
                 {
                     TraktSyncType syncType = TraktSyncType.CollectionAdd;
                     if (ActionEnum == TraktSyncAction.Remove) syncType = TraktSyncType.CollectionRemove;
-                    TraktTVHelper.SyncEpisodeToTrakt(ep, syncType);
+                    _helper.SyncEpisodeToTrakt(ep, syncType);
                 }
             }
             catch (Exception ex)
@@ -103,7 +104,12 @@ namespace Shoko.Server.Commands
             return cq;
         }
 
-        public CommandRequest_TraktCollectionEpisode(ILoggerFactory loggerFactory) : base(loggerFactory)
+        public CommandRequest_TraktCollectionEpisode(ILoggerFactory loggerFactory, TraktTVHelper helper) : base(loggerFactory)
+        {
+            _helper = helper;
+        }
+
+        protected CommandRequest_TraktCollectionEpisode()
         {
         }
     }

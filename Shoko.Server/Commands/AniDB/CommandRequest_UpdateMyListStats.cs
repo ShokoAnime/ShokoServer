@@ -70,5 +70,9 @@ namespace Shoko.Server.Commands.AniDB
         public CommandRequest_UpdateMyListStats(ILoggerFactory loggerFactory) : base(loggerFactory)
         {
         }
+
+        protected CommandRequest_UpdateMyListStats()
+        {
+        }
     }
 }

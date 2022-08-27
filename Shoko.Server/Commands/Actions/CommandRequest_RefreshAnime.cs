@@ -64,5 +64,9 @@ namespace Shoko.Server.Commands
         public CommandRequest_RefreshAnime(ILoggerFactory loggerFactory) : base(loggerFactory)
         {
         }
+
+        protected CommandRequest_RefreshAnime()
+        {
+        }
     }
 }

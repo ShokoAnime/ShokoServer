@@ -27,15 +27,21 @@ namespace Shoko.Server.API.v3.Controllers
     [Authorize]
     public class FileController : BaseController
     {
+        private const string FileUserStatsNotFoundWithFileID = "No FileUserStats entry for the given fileID for the current user";
+        private const string FileNoPath = "Unable to get file path";
+        private const string AnidbNotFoundForFileID = "No File.Anidb entry for the given fileID";
+        private readonly TraktTVHelper _traktHelper;
+        private readonly ICommandRequestFactory _commandFactory;
+
         internal static string FileNotFoundWithFileID = "No File entry for the given fileID";
-        
-        internal static string FileUserStatsNotFoundWithFileID = "No FileUserStats entry for the given fileID for the current user";
 
-        internal static string FileNoPath = "Unable to get file path";
+        public FileController(TraktTVHelper traktHelper, ICommandRequestFactory commandFactory)
+        {
+            _traktHelper = traktHelper;
+            _commandFactory = commandFactory;
+        }
 
-        internal static string FileForbiddenForUser = "Accessing File is not allowed for the current user";
-
-        internal static string AnidbNotFoundForFileID = "No File.Anidb entry for the given fileID";
+        internal const string FileForbiddenForUser = "Accessing File is not allowed for the current user";
 
         /// <summary>
         /// Get File Details
@@ -295,7 +301,7 @@ namespace Shoko.Server.API.v3.Controllers
                 ? ScrobblePlayingType.movie
                 : ScrobblePlayingType.episode;
 
-            TraktTVHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), status, percentage);
+            _traktHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), status, percentage);
         }
 
         [NonAction]
@@ -388,7 +394,13 @@ namespace Shoko.Server.API.v3.Controllers
             if (string.IsNullOrEmpty(filePath))
                 return BadRequest(FileNoPath);
 
-            var command = new CommandRequest_ProcessFile(file.VideoLocalID, true);
+            var command = _commandFactory.Create<CommandRequest_ProcessFile>(
+                c =>
+                {
+                    c.VideoLocalID = file.VideoLocalID;
+                    c.ForceAniDB = true;
+                }
+            );
             if (priority) command.Priority = (int) CommandRequestPriority.Priority1;
             command.Save();
             return Ok();
@@ -410,7 +422,13 @@ namespace Shoko.Server.API.v3.Controllers
             if (string.IsNullOrEmpty(filePath))
                 return BadRequest(FileNoPath);
 
-            var command = new CommandRequest_HashFile(filePath, true);
+            var command = _commandFactory.Create<CommandRequest_HashFile>(
+                c =>
+                {
+                    c.FileName = filePath;
+                    c.ForceHash = true;
+                }
+            );
             command.Save();
 
             return Ok();
@@ -438,7 +456,13 @@ namespace Shoko.Server.API.v3.Controllers
                 if (episode == null)
                     return BadRequest("Could not find episode entry");
 
-                var command = new CommandRequest_LinkFileManually(fileID, episode.AnimeEpisodeID);
+                var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
+                    c =>
+                    {
+                        c.VideoLocalID = fileID;
+                        c.EpisodeID = episode.AnimeEpisodeID;
+                    }
+                );
                 command.Save();
             }
 
@@ -501,7 +525,13 @@ namespace Shoko.Server.API.v3.Controllers
                 if (episode == null)
                     return InternalError("Could not find episode entry");
 
-                var command = new CommandRequest_LinkFileManually(fileID, episode.AnimeEpisodeID);
+                var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
+                    c =>
+                    {
+                        c.VideoLocalID = fileID;
+                        c.EpisodeID = episode.AnimeEpisodeID;
+                    }
+                );
                 command.Save();
             }
 
@@ -617,7 +647,13 @@ namespace Shoko.Server.API.v3.Controllers
                 if (episode == null)
                     return InternalError("Could not find episode entry");
 
-                var command = new CommandRequest_LinkFileManually(file.VideoLocalID, episode.AnimeEpisodeID);
+                var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
+                    c =>
+                    {
+                        c.VideoLocalID = file.VideoLocalID;
+                        c.EpisodeID = episode.AnimeEpisodeID;
+                    }
+                );
                 if (singleEpisode)
                     command.Percentage = (int)Math.Round((double)(fileCount / files.Count * 100));
                 else
@@ -664,7 +700,13 @@ namespace Shoko.Server.API.v3.Controllers
             var fileCount = 1;
             foreach (var file in files)
             {
-                var command = new CommandRequest_LinkFileManually(file.VideoLocalID, episode.AnimeEpisodeID);
+                var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
+                    c =>
+                    {
+                        c.VideoLocalID = file.VideoLocalID;
+                        c.EpisodeID = episode.AnimeEpisodeID;
+                    }
+                );
                 command.Percentage = (int)Math.Round((double)(fileCount / files.Count * 100));
 
                 if (RemoveXRefsForFile(file))

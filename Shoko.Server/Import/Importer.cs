@@ -639,27 +639,30 @@ namespace Shoko.Server
         public static void RunImport_ScanTvDB()
         {
             Analytics.PostEvent("Management", nameof(RunImport_ScanTvDB));
+            var tvDBHelper = ShokoServer.ServiceContainer.GetRequiredService<TvDBApiHelper>();
 
-            TvDBApiHelper.ScanForMatches();
+            tvDBHelper.ScanForMatches();
         }
 
         public static void RunImport_ScanTrakt()
         {
-            if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
-                TraktTVHelper.ScanForMatches();
+            if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken)) return;
+            var traktHelper = ShokoServer.ServiceContainer.GetRequiredService<TraktTVHelper>();
+            traktHelper.ScanForMatches();
         }
 
         public static void RunImport_ScanMovieDB()
         {
             Analytics.PostEvent("Management", nameof(RunImport_ScanMovieDB));
-            MovieDBHelper.ScanForMatches();
+            var movieDBHelper = ShokoServer.ServiceContainer.GetRequiredService<MovieDBHelper>();
+            movieDBHelper.ScanForMatches();
         }
 
         public static void RunImport_UpdateTvDB(bool forced)
         {
             Analytics.PostEvent("Management", nameof(RunImport_UpdateTvDB));
-
-            TvDBApiHelper.UpdateAllInfo(forced);
+            var tvDBHelper = ShokoServer.ServiceContainer.GetRequiredService<TvDBApiHelper>();
+            tvDBHelper.UpdateAllInfo(forced);
         }
 
         public static void RunImport_UpdateAllAniDB()
@@ -1000,6 +1003,7 @@ namespace Shoko.Server
         {
             if (ServerSettings.Instance.TvDB.UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
             var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+            var tvDBHelper = ShokoServer.ServiceContainer.GetRequiredService<TvDBApiHelper>();
             var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TvDB.UpdateFrequency);
 
             // update tvdb info every 12 hours
@@ -1017,7 +1021,7 @@ namespace Shoko.Server
 
             var tvDBIDs = new List<int>();
             var tvDBOnline = false;
-            var serverTime = TvDBApiHelper.IncrementalTvDBUpdate(ref tvDBIDs, ref tvDBOnline);
+            var serverTime = tvDBHelper.IncrementalTvDBUpdate(ref tvDBIDs, ref tvDBOnline);
 
             if (tvDBOnline)
             {
@@ -1048,7 +1052,7 @@ namespace Shoko.Server
             sched.UpdateDetails = serverTime;
             RepoFactory.ScheduledUpdate.Save(sched);
 
-            TvDBApiHelper.ScanForMatches();
+            tvDBHelper.ScanForMatches();
         }
 
         public static void CheckForCalendarUpdate(bool forceRefresh)
@@ -1188,6 +1192,7 @@ namespace Shoko.Server
             try
             {
                 if (!ServerSettings.Instance.TraktTv.Enabled) return;
+                var traktHelper = ShokoServer.ServiceContainer.GetRequiredService<TraktTVHelper>();
                 // by updating the Trakt token regularly, the user won't need to authorize again
                 var freqHours = 24; // we need to update this daily
 
@@ -1204,7 +1209,7 @@ namespace Shoko.Server
                     }
                 }
 
-                TraktTVHelper.RefreshAuthToken();
+                traktHelper.RefreshAuthToken();
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate

@@ -259,9 +259,14 @@ namespace Shoko.Server.Commands.AniDB
             return cq;
         }
 
-        public CommandRequest_AddFileToMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory) : base(loggerFactory)
+        public CommandRequest_AddFileToMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory, ICommandRequestFactory commandFactory) : base(loggerFactory)
         {
             _requestFactory = requestFactory;
+            _commandFactory = commandFactory;
+        }
+        
+        protected CommandRequest_AddFileToMyList()
+        {
         }
     }
 }

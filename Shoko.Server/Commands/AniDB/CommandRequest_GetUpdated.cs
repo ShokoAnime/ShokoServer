@@ -191,8 +191,12 @@ namespace Shoko.Server.Commands.AniDB
 
         public CommandRequest_GetUpdated(ILoggerFactory loggerFactory, IRequestFactory requestFactory, ICommandRequestFactory commandFactory) : base(loggerFactory)
         {
-            this._requestFactory = requestFactory;
+            _requestFactory = requestFactory;
             _commandFactory = commandFactory;
+        }
+
+        protected CommandRequest_GetUpdated()
+        {
         }
     }
 }

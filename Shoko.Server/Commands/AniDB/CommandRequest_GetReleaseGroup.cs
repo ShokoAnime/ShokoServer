@@ -111,5 +111,9 @@ namespace Shoko.Server.Commands.AniDB
         {
             _requestFactory = requestFactory;
         }
+        
+        protected CommandRequest_GetReleaseGroup()
+        {
+        }
     }
 }

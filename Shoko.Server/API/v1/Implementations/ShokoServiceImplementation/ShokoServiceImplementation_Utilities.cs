@@ -718,14 +718,14 @@ namespace Shoko.Server
 
                     // try the local database first
                     // if not download the data from AniDB now
-                    var command = new CommandRequest_GetAnimeHTTP
+                    var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
                     {
-                        AnimeID = aid,
-                        BubbleExceptions = true,
-                        ForceRefresh = false,
-                        DownloadRelations = ServerSettings.Instance.AniDb.DownloadRelatedAnime,
-                    };
-                    command.ProcessCommand(HttpContext.RequestServices);
+                        c.AnimeID = aid;
+                        c.BubbleExceptions = true;
+                        c.ForceRefresh = false;
+                        c.DownloadRelations = ServerSettings.Instance.AniDb.DownloadRelatedAnime;
+                    });
+                    command.ProcessCommand();
                     var anime = command.Result;
 
                     if (anime != null)
@@ -1025,7 +1025,13 @@ namespace Shoko.Server
             {
                 var vl = RepoFactory.VideoLocal.GetByMyListID(missingFile.FileID);
                 if (vl == null) continue;
-                var cmd = new CommandRequest_DeleteFileFromMyList(vl.Hash, vl.FileSize);
+                var cmd = _commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+                    c =>
+                    {
+                        c.Hash = vl.Hash;
+                        c.FileSize = vl.FileSize;
+                    }
+                );
                 cmd.Save();
 
                 // For deletion of files from Trakt, we will rely on the Daily sync
@@ -1139,7 +1145,13 @@ namespace Shoko.Server
 
                 foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
-                    var cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
+                    var cmd = _commandFactory.Create<CommandRequest_ProcessFile>(
+                        c =>
+                        {
+                            c.VideoLocalID = vl.VideoLocalID;
+                            c.ForceAniDB = true;
+                        }
+                    );
                     cmd.Save();
                 }
             }
@@ -1159,7 +1171,13 @@ namespace Shoko.Server
 
                 foreach (var vl in files.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
-                    var cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
+                    var cmd = _commandFactory.Create<CommandRequest_ProcessFile>(
+                        c =>
+                        {
+                            c.VideoLocalID = vl.VideoLocalID;
+                            c.ForceAniDB = true;
+                        }
+                    );
                     cmd.Save();
                 }
             }

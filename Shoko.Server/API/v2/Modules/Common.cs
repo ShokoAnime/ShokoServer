@@ -35,6 +35,14 @@ namespace Shoko.Server.API.v2.Modules
     [ApiController]
     public class Common : BaseController
     {
+        private readonly ICommandRequestFactory _commandFactory;
+        private readonly ShokoServiceImplementation _service;
+
+        public Common(ICommandRequestFactory commandFactory)
+        {
+            _commandFactory = commandFactory;
+            _service = new ShokoServiceImplementation(null, null, null, commandFactory);
+        }
         //class will be found automagically thanks to inherits also class need to be public (or it will 404)
 
         #region 01. Import Folders
@@ -45,7 +53,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns><see cref="List{ImportFolder}"/></returns>
         [HttpGet("folder/list")]
-        public ActionResult<IEnumerable<ImportFolder>> GetFolders() => new ShokoServiceImplementation().GetImportFolders();
+        public ActionResult<IEnumerable<ImportFolder>> GetFolders() => _service.GetImportFolders();
 
         /// <summary>
         /// Handle /api/folder/count
@@ -56,7 +64,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             Counter count = new Counter
             {
-                count = new ShokoServiceImplementation().GetImportFolders().Count
+                count = _service.GetImportFolders().Count
             };
             return count;
         }
@@ -194,7 +202,6 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("hash/sync")]
         public ActionResult HashSync()
         {
-            ShokoServer.SyncHashes();
             return Ok();
         }
 
@@ -213,8 +220,13 @@ namespace Shoko.Server.API.v2.Modules
                 if (vid == null) return NotFound();
                 if (string.IsNullOrEmpty(vid.Hash))
                     return BadRequest("Could not Update a cloud file without hash, hash it locally first");
-                CommandRequest_ProcessFile cmd =
-                    new CommandRequest_ProcessFile(vid.VideoLocalID, true);
+                var cmd = _commandFactory.Create<CommandRequest_ProcessFile>(
+                    c =>
+                    {
+                        c.VideoLocalID = vid.VideoLocalID;
+                        c.ForceAniDB = true;
+                    }
+                );
                 cmd.Save();
                 return Ok();
             }
@@ -238,7 +250,13 @@ namespace Shoko.Server.API.v2.Modules
 
                 foreach (SVR_VideoLocal vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
-                    CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
+                    var cmd = _commandFactory.Create<CommandRequest_ProcessFile>(
+                        c =>
+                        {
+                            c.VideoLocalID = vl.VideoLocalID;
+                            c.ForceAniDB = true;
+                        }
+                    );
                     cmd.Save();
                 }
                 return Ok();
@@ -263,7 +281,13 @@ namespace Shoko.Server.API.v2.Modules
 
                 foreach (SVR_VideoLocal vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
-                    CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
+                    var cmd = _commandFactory.Create<CommandRequest_ProcessFile>(
+                        c =>
+                        {
+                            c.VideoLocalID = vl.VideoLocalID;
+                            c.ForceAniDB = true;
+                        }
+                    );
                     cmd.Save();
                 }
                 return Ok();
@@ -287,7 +311,13 @@ namespace Shoko.Server.API.v2.Modules
             if (vl == null) return NotFound("VideoLocal Not Found");
             SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
             if (pl?.FullServerPath == null) return NotFound("videolocal_place not found");
-            CommandRequest_HashFile crHashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
+            CommandRequest_HashFile crHashfile = _commandFactory.Create<CommandRequest_HashFile>(
+                c =>
+                {
+                    c.FileName = pl.FullServerPath;
+                    c.ForceHash = true;
+                }
+            );
             crHashfile.Save();
 
             return Ok();
@@ -307,7 +337,13 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                     if (pl?.FullServerPath == null) continue;
-                    CommandRequest_HashFile crHashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
+                    CommandRequest_HashFile crHashfile = _commandFactory.Create<CommandRequest_HashFile>(
+                        c =>
+                        {
+                            c.FileName = pl.FullServerPath;
+                            c.ForceHash = true;
+                        }
+                    );
                     crHashfile.Save();
                 }
             }
@@ -333,7 +369,13 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                     if (pl?.FullServerPath == null) continue;
-                    CommandRequest_HashFile crHashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
+                    CommandRequest_HashFile crHashfile = _commandFactory.Create<CommandRequest_HashFile>(
+                        c =>
+                        {
+                            c.FileName = pl.FullServerPath;
+                            c.ForceHash = true;
+                        }
+                    );
                     crHashfile.Save();
                 }
             }
@@ -1270,7 +1312,6 @@ namespace Shoko.Server.API.v2.Modules
                 // type 1-movie, 2-episode
                 if (id > 0 & progress >= 0 & status > 0)
                 {
-                    ShokoServiceImplementation impl = new ShokoServiceImplementation();
                     int type = 2;
                     if (ismovie)
                     {
@@ -1280,7 +1321,7 @@ namespace Shoko.Server.API.v2.Modules
                     {
                         type = 1;
                     }
-                    switch (impl.TraktScrobble(id, type, progress, status))
+                    switch (_service.TraktScrobble(id, type, progress, status))
                     {
                         case 200:
                             return Ok();
@@ -2368,8 +2409,14 @@ namespace Shoko.Server.API.v2.Modules
 
             RepoFactory.AniDB_Vote.Save(thisVote);
 
-            CommandRequest_VoteAnime cmdVote =
-                new CommandRequest_VoteAnime(ser.AniDB_ID, voteType, Convert.ToDecimal(score / 100));
+            CommandRequest_VoteAnime cmdVote = _commandFactory.Create<CommandRequest_VoteAnime>(
+                c =>
+                {
+                    c.AnimeID = ser.AniDB_ID;
+                    c.VoteType = voteType;
+                    c.VoteValue = Convert.ToDecimal(score / 100);
+                }
+            );
             cmdVote.Save();
             return Ok();
         }

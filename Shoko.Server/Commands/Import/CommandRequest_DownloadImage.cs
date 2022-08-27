@@ -504,5 +504,9 @@ namespace Shoko.Server.Commands
         {
             _handler = handler;
         }
+
+        protected CommandRequest_DownloadImage()
+        {
+        }
     }
 }

@@ -117,5 +117,9 @@ namespace Shoko.Server.Commands.Plex
         public CommandRequest_PlexSyncWatched(ILoggerFactory loggerFactory) : base(loggerFactory)
         {
         }
+
+        protected CommandRequest_PlexSyncWatched()
+        {
+        }
     }
 }

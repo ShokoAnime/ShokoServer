@@ -98,5 +98,9 @@ namespace Shoko.Server.Commands
         public CommandRequest_ReadMediaInfo(ILoggerFactory loggerFactory) : base(loggerFactory)
         {
         }
+
+        protected CommandRequest_ReadMediaInfo()
+        {
+        }
     }
 }

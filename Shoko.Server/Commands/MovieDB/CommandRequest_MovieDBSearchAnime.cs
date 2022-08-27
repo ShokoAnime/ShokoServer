@@ -22,6 +22,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.MovieDB_SearchAnime)]
     public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
     {
+        private readonly MovieDBHelper _helper;
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
 
@@ -52,7 +53,7 @@ namespace Shoko.Server.Commands
                 var searchCriteria = anime.PreferredTitle;
 
                 // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-                var results = MovieDBHelper.Search(searchCriteria);
+                var results = _helper.Search(searchCriteria);
                 Logger.LogTrace("Found {Count} moviedb results for {Criteria} on MovieDB", results.Count, searchCriteria);
                 if (ProcessSearchResults(session, results, searchCriteria)) return;
 
@@ -65,7 +66,7 @@ namespace Shoko.Server.Commands
 
                     if (string.Equals(searchCriteria, title.Title, StringComparison.CurrentCultureIgnoreCase)) continue;
 
-                    results = MovieDBHelper.Search(title.Title);
+                    results = _helper.Search(title.Title);
                     Logger.LogTrace("Found {Count} moviedb results for search on {Title}", results.Count, title.Title);
                     if (ProcessSearchResults(session, results, title.Title)) return;
                 }
@@ -85,8 +86,8 @@ namespace Shoko.Server.Commands
                     results[0].MovieName, results[0].MovieID);
 
                 var movieID = results[0].MovieID;
-                MovieDBHelper.UpdateMovieInfo(session, movieID, true);
-                MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, false);
+                _helper.UpdateMovieInfo(session, movieID, true);
+                _helper.LinkAniDBMovieDB(AnimeID, movieID, false);
                 return true;
             }
 
@@ -136,7 +137,12 @@ namespace Shoko.Server.Commands
             return cq;
         }
 
-        public CommandRequest_MovieDBSearchAnime(ILoggerFactory loggerFactory) : base(loggerFactory)
+        public CommandRequest_MovieDBSearchAnime(ILoggerFactory loggerFactory, MovieDBHelper helper) : base(loggerFactory)
+        {
+            _helper = helper;
+        }
+
+        protected CommandRequest_MovieDBSearchAnime()
         {
         }
     }

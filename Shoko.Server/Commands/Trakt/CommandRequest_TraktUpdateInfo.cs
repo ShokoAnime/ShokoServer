@@ -15,6 +15,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.Trakt_UpdateInfo)]
     public class CommandRequest_TraktUpdateInfo : CommandRequestImplementation
     {
+        private readonly TraktTVHelper _helper;
         public string TraktID { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
@@ -32,7 +33,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                TraktTVHelper.UpdateAllInfo(TraktID);
+                _helper.UpdateAllInfo(TraktID);
             }
             catch (Exception ex)
             {
@@ -84,6 +85,10 @@ namespace Shoko.Server.Commands
         }
 
         public CommandRequest_TraktUpdateInfo(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
+        }
+
+        protected CommandRequest_TraktUpdateInfo()
         {
         }
     }

@@ -329,8 +329,12 @@ namespace Shoko.Server.Commands.AniDB
 
         public CommandRequest_SyncMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory, IHttpConnectionHandler handler) : base(loggerFactory)
         {
-            this._requestFactory = requestFactory;
-            this._handler = handler;
+            _requestFactory = requestFactory;
+            _handler = handler;
+        }
+
+        protected CommandRequest_SyncMyList()
+        {
         }
     }
 }

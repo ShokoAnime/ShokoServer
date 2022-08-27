@@ -259,5 +259,9 @@ namespace Shoko.Server.Commands.AniDB
             _requestFactory = requestFactory;
             _commandFactory = commandFactory;
         }
+        
+        protected CommandRequest_GetAnimeHTTP()
+        {
+        }
     }
 }

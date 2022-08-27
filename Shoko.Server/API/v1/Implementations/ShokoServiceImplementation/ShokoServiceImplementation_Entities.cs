@@ -641,7 +641,13 @@ namespace Shoko.Server
                     return "Could not find episode record";
 
                 RemoveXRefsForFile(videoLocalID);
-                var com = new CommandRequest_LinkFileManually(videoLocalID, animeEpisodeID);
+                var com = _commandFactory.Create<CommandRequest_LinkFileManually>(
+                    c =>
+                    {
+                        c.VideoLocalID = videoLocalID;
+                        c.EpisodeID = animeEpisodeID;
+                    }
+                );
                 com.Save();
                 return string.Empty;
             }
@@ -680,7 +686,13 @@ namespace Shoko.Server
                     if (ep == null)
                         return "Could not find episode record";
 
-                    var com = new CommandRequest_LinkFileManually(videoLocalID, ep.AnimeEpisodeID);
+                    var com = _commandFactory.Create<CommandRequest_LinkFileManually>(
+                        c =>
+                        {
+                            c.VideoLocalID = videoLocalID;
+                            c.EpisodeID = ep.AnimeEpisodeID;
+                        }
+                    );
                     com.Save();
                 }
 
@@ -756,7 +768,13 @@ namespace Shoko.Server
                         return "Could not find episode record";
 
                     RemoveXRefsForFile(videoLocalID);
-                    var com = new CommandRequest_LinkFileManually(videoLocalID, ep.AnimeEpisodeID);
+                    var com = _commandFactory.Create<CommandRequest_LinkFileManually>(
+                        c =>
+                        {
+                            c.VideoLocalID = videoLocalID;
+                            c.EpisodeID = ep.AnimeEpisodeID;
+                        }
+                    );
                     if (singleEpisode)
                     {
                         com.Percentage = (int) Math.Round((double) count / total * 100);
@@ -788,7 +806,13 @@ namespace Shoko.Server
             {
                 SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return "File could not be found";
-                CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
+                CommandRequest_GetFile cmd = _commandFactory.Create<CommandRequest_GetFile>(
+                    c =>
+                    {
+                        c.VideoLocalID = vid.VideoLocalID;
+                        c.ForceAniDB = true;
+                    }
+                );
                 cmd.Save();
             }
             catch (Exception ex)
@@ -808,7 +832,13 @@ namespace Shoko.Server
                 if (vid == null) return "File could not be found";
                 if (string.IsNullOrEmpty(vid.Hash))
                     return "Could not Update a cloud file without hash, hash it locally first";
-                CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vid.VideoLocalID, true);
+                CommandRequest_ProcessFile cmd = _commandFactory.Create<CommandRequest_ProcessFile>(
+                    c =>
+                    {
+                        c.VideoLocalID = vid.VideoLocalID;
+                        c.ForceAniDB = true;
+                    }
+                );
                 cmd.Save();
             }
             catch (Exception ex)
@@ -832,7 +862,13 @@ namespace Shoko.Server
                     logger.Error("Unable to hash videolocal with id = {videoLocalID}, it has no assigned place");
                     return;
                 }
-                CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
+                CommandRequest_HashFile cr_hashfile = _commandFactory.Create<CommandRequest_HashFile>(
+                    c =>
+                    {
+                        c.FileName = pl.FullServerPath;
+                        c.ForceHash = true;
+                    }
+                );
                 cr_hashfile.Save();
             }
         }
@@ -1011,7 +1047,13 @@ namespace Shoko.Server
         {
             var vl = RepoFactory.VideoLocal.GetByMyListID(fileID);
             if (vl == null) return;
-            var cmd = new CommandRequest_DeleteFileFromMyList(vl.Hash, vl.FileSize);
+            var cmd = _commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+                c =>
+                {
+                    c.Hash = vl.Hash;
+                    c.FileSize = vl.FileSize;
+                }
+            );
             cmd.Save();
         }
 
@@ -1020,7 +1062,7 @@ namespace Shoko.Server
         {
             try
             {
-                var cmdAddFile = new CommandRequest_AddFileToMyList(hash, false);
+                var cmdAddFile = _commandFactory.Create<CommandRequest_AddFileToMyList>(c => c.Hash = hash);
                 cmdAddFile.Save();
             }
             catch (Exception ex)
@@ -1505,7 +1547,14 @@ namespace Shoko.Server
             thisVote.VoteValue = iVoteValue;
             RepoFactory.AniDB_Vote.Save(thisVote);
 
-            CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(animeID, voteType, voteValue);
+            CommandRequest_VoteAnime cmdVote = _commandFactory.Create<CommandRequest_VoteAnime>(
+                c =>
+                {
+                    c.AnimeID = animeID;
+                    c.VoteType = voteType;
+                    c.VoteValue = voteValue;
+                }
+            );
             cmdVote.Save();
         }
 
@@ -1528,7 +1577,14 @@ namespace Shoko.Server
 
             if (thisVote == null) return;
 
-            CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(animeID, thisVote.VoteType, -1);
+            CommandRequest_VoteAnime cmdVote = _commandFactory.Create<CommandRequest_VoteAnime>(
+                c =>
+                {
+                    c.AnimeID = animeID;
+                    c.VoteType = thisVote.VoteType;
+                    c.VoteValue = -1;
+                }
+            );
             cmdVote.Save();
 
             RepoFactory.AniDB_Vote.Delete(thisVote.AniDB_VoteID);
@@ -2112,15 +2168,15 @@ namespace Shoko.Server
                 }
 
                 // make sure the anime exists first
-                var command = new CommandRequest_GetAnimeHTTP
+                var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
                 {
-                    AnimeID = animeID,
-                    ForceRefresh = false,
-                    DownloadRelations = ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime,
-                    CreateSeriesEntry = true,
-                    BubbleExceptions = true,
-                };
-                command.ProcessCommand(HttpContext.RequestServices);
+                    c.AnimeID = animeID;
+                    c.ForceRefresh = false;
+                    c.DownloadRelations = ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime;
+                    c.CreateSeriesEntry = true;
+                    c.BubbleExceptions = true;
+                });
+                command.ProcessCommand();
                 var anime = command.Result;
 
                 if (anime == null)
@@ -2135,7 +2191,7 @@ namespace Shoko.Server
                 // if not we will download it now
                 if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
                 {
-                    var cmdStatus = new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
+                    var cmdStatus = _commandFactory.Create<CommandRequest_GetReleaseGroupStatus>(c => c.AnimeID = anime.AnimeID);
                     cmdStatus.Save();
                 }
 
@@ -2156,18 +2212,23 @@ namespace Shoko.Server
         {
             try
             {
-                var command = new CommandRequest_GetAnimeHTTP
+                var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
                 {
-                    AnimeID = animeID,
-                    ForceRefresh = true,
-                    DownloadRelations = false,
-                    BubbleExceptions = true,
-                };
-                command.ProcessCommand(HttpContext.RequestServices);
+                    c.AnimeID = animeID;
+                    c.ForceRefresh = true;
+                    c.DownloadRelations = false;
+                    c.BubbleExceptions = true;
+                });
+                command.ProcessCommand();
 
                 // update group status information
-                var cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID,
-                    true);
+                var cmdStatus = _commandFactory.Create<CommandRequest_GetReleaseGroupStatus>(
+                    c =>
+                    {
+                        c.AnimeID = animeID;
+                        c.ForceRefresh = true;
+                    }
+                );
                 cmdStatus.Save();
             }
             catch (Exception ex)
@@ -2183,19 +2244,24 @@ namespace Shoko.Server
         {
             try
             {
-                var command = new CommandRequest_GetAnimeHTTP
+                var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
                 {
-                    AnimeID = animeID,
-                    ForceRefresh = true,
-                    DownloadRelations = false,
-                    BubbleExceptions = true,
-                };
-                command.ProcessCommand(HttpContext.RequestServices);
+                    c.AnimeID = animeID;
+                    c.ForceRefresh = true;
+                    c.DownloadRelations = false;
+                    c.BubbleExceptions = true;
+                });
+                command.ProcessCommand();
                 var anime = command.Result;
 
                 // update group status information
-                var cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID,
-                    true);
+                var cmdStatus = _commandFactory.Create<CommandRequest_GetReleaseGroupStatus>(
+                    c =>
+                    {
+                        c.AnimeID = animeID;
+                        c.ForceRefresh = true;
+                    }
+                );
                 cmdStatus.Save();
 
                 return anime?.Contract;

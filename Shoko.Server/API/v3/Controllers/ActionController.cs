@@ -10,6 +10,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -23,12 +24,19 @@ namespace Shoko.Server.API.v3.Controllers
     [Authorize]
     public class ActionController : BaseController
     {
-        public ActionController(ILogger<ActionController> logger)
+        private readonly ILogger<ActionController> _logger;
+        private readonly ICommandRequestFactory _commandFactory;
+        private readonly TraktTVHelper _traktHelper;
+        private readonly MovieDBHelper _movieDBHelper;
+        private readonly IHttpConnectionHandler _httpHandler;
+        public ActionController(ILogger<ActionController> logger, ICommandRequestFactory commandFactory, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, IHttpConnectionHandler httpHandler)
         {
-            Logger = logger;
+            _logger = logger;
+            _commandFactory = commandFactory;
+            _traktHelper = traktHelper;
+            _movieDBHelper = movieDBHelper;
+            _httpHandler = httpHandler;
         }
-        
-        private readonly ILogger<ActionController> Logger;
 
         #region Common Actions
         /// <summary>
@@ -70,7 +78,7 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("SyncVotes")]
         public ActionResult SyncVotes()
         {
-            new CommandRequest_SyncMyVotes().Save();
+            _commandFactory.Create<CommandRequest_SyncMyVotes>().Save();
             return Ok();
         }
 
@@ -83,7 +91,7 @@ namespace Shoko.Server.API.v3.Controllers
         {
             if (!ServerSettings.Instance.TraktTv.Enabled ||
                 string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken)) return BadRequest();
-            new CommandRequest_TraktSyncCollection(true).Save();
+            _commandFactory.Create<CommandRequest_TraktSyncCollection>(c => c.ForceRefresh = true).Save();
 
             return Ok();
         }
@@ -128,7 +136,7 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("UpdateAllMovieDBInfo")]
         public ActionResult UpdateAllMovieDBInfo()
         {
-            Task.Factory.StartNew(() => MovieDBHelper.UpdateAllMovieInfo(true));
+            Task.Factory.StartNew(() => _movieDBHelper.UpdateAllMovieInfo(true));
             return Ok();
         }
 
@@ -141,7 +149,7 @@ namespace Shoko.Server.API.v3.Controllers
         {
             if (!ServerSettings.Instance.TraktTv.Enabled ||
                 string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken)) return BadRequest();
-            TraktTVHelper.UpdateAllInfo();
+            _traktHelper.UpdateAllInfo();
             return Ok();
         }
 
@@ -152,7 +160,7 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("ValidateAllImages")]
         public ActionResult ValidateAllImages()
         {
-            new CommandRequest_ValidateAllImages().Save();
+            _commandFactory.Create<CommandRequest_ValidateAllImages>().Save();
             return Ok();
         }
         #endregion
@@ -180,11 +188,11 @@ namespace Shoko.Server.API.v3.Controllers
                 int index = 0;
                 foreach (var path in list)
                 {
-                    Logger.LogInformation($"AVDump Start {index + 1}/{list.Count}: {path}");
+                    _logger.LogInformation($"AVDump Start {index + 1}/{list.Count}: {path}");
                     AVDumpHelper.DumpFile(path);
-                    Logger.LogInformation($"AVDump Finished {index + 1}/{list.Count}: {path}");
+                    _logger.LogInformation($"AVDump Finished {index + 1}/{list.Count}: {path}");
                     index++;
-                    Logger.LogInformation($"AVDump Progress: {list.Count - index} remaining");
+                    _logger.LogInformation($"AVDump Progress: {list.Count - index} remaining");
                 }
             });
 
@@ -205,25 +213,25 @@ namespace Shoko.Server.API.v3.Controllers
             try
             {
                 var allAnime = RepoFactory.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
-                Logger.LogInformation("Starting the check for {AllAnimeCount} anime XML files", allAnime.Count);
+                _logger.LogInformation("Starting the check for {AllAnimeCount} anime XML files", allAnime.Count);
                 int updatedAnime = 0;
                 for (var i = 0; i < allAnime.Count; i++)
                 {
                     var animeID = allAnime[i];
-                    if (i % 10 == 1) Logger.LogInformation("Checking anime {I}/{AllAnimeCount} for XML file", i + 1, allAnime.Count);
+                    if (i % 10 == 1) _logger.LogInformation("Checking anime {I}/{AllAnimeCount} for XML file", i + 1, allAnime.Count);
 
                     var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
                     var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
 
                     if (rawXml != null) continue;
-                    Series.QueueAniDBRefresh(HttpContext, animeID, true, false, false);
+                    Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, true, false, false);
                     updatedAnime++;
                 }
-                Logger.LogInformation("Updating {UpdatedAnime} anime", updatedAnime);
+                _logger.LogInformation("Updating {UpdatedAnime} anime", updatedAnime);
             }
             catch (Exception e)
             {
-                Logger.LogError(e, "Error checking and queuing AniDB XML Updates: {E}", e);
+                _logger.LogError(e, "Error checking and queuing AniDB XML Updates: {E}", e);
                 return InternalError(e.Message);
             }
             return Ok();
@@ -246,7 +254,7 @@ namespace Shoko.Server.API.v3.Controllers
             }
             catch (Exception e)
             {
-                Logger.LogError(e, e.Message);
+                _logger.LogError(e, e.Message);
                 return InternalError(e.Message);
             }
 

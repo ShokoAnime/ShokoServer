@@ -44,5 +44,9 @@ namespace Shoko.Server.Commands
         public CommandRequest_Null(ILoggerFactory loggerFactory) : base(loggerFactory)
         {
         }
+        
+        protected CommandRequest_Null()
+        {
+        }
     }
 }

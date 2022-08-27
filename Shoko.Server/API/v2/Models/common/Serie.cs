@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
@@ -64,7 +65,14 @@ namespace Shoko.Server.API.v2.Models.common
             SVR_AniDB_Anime aniDB_Anime = RepoFactory.AniDB_Anime.GetByAnimeID(bookmark.AnimeID);
             if (aniDB_Anime == null)
             {
-                CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(bookmark.AnimeID, true, false, false);
+                var commandFactory = ctx.RequestServices.GetRequiredService<ICommandRequestFactory>();
+                var cr_anime = commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                    c =>
+                    {
+                        c.AnimeID = bookmark.AnimeID;
+                        c.ForceRefresh = true;
+                    }
+                );
                 cr_anime.Save();
  
                 Serie empty_serie = new Serie

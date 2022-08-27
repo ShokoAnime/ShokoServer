@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
@@ -220,6 +221,7 @@ namespace Shoko.Server.Models
             List<SVR_AnimeSeries> seriesToUpdate = new List<SVR_AnimeSeries>();
             SVR_VideoLocal v = VideoLocal;
             List<DuplicateFile> dupFiles = null;
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             if (!string.IsNullOrEmpty(FilePath))
                 dupFiles = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
 
@@ -236,13 +238,26 @@ namespace Shoko.Server.Models
                             {
                                 var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                                 if (ep == null) continue;
-                                var cmdDel = new CommandRequest_DeleteFileFromMyList { AnimeID = xref.AnimeID, EpisodeType = ep.GetEpisodeTypeEnum(), EpisodeNumber = ep.EpisodeNumber };
+                                var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+                                    c =>
+                                    {
+                                        c.AnimeID = xref.AnimeID;
+                                        c.EpisodeType = ep.GetEpisodeTypeEnum();
+                                        c.EpisodeNumber = ep.EpisodeNumber;
+                                    }
+                                );
                                 cmdDel.Save();
                             }
                         }
                         else
                         {
-                            var cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                            var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+                                c =>
+                                {
+                                    c.Hash = v.Hash;
+                                    c.FileSize = v.FileSize;
+                                }
+                            );
                             cmdDel.Save();
                         }
                     }
@@ -280,6 +295,7 @@ namespace Shoko.Server.Models
         {
             logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
             SVR_VideoLocal v = VideoLocal;
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
 
             List<DuplicateFile> dupFiles = null;
             if (!string.IsNullOrEmpty(FilePath) && removeDuplicateFileEntries)
@@ -296,13 +312,24 @@ namespace Shoko.Server.Models
                         {
                             var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                             if (ep == null) continue;
-                            var cmdDel = new CommandRequest_DeleteFileFromMyList { AnimeID = xref.AnimeID, EpisodeType = ep.GetEpisodeTypeEnum(), EpisodeNumber = ep.EpisodeNumber };
+                            var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(c =>
+                            {
+                                c.AnimeID = xref.AnimeID;
+                                c.EpisodeType = ep.GetEpisodeTypeEnum();
+                                c.EpisodeNumber = ep.EpisodeNumber;
+                            });
                             cmdDel.Save();
                         }
                     }
                     else
                     {
-                        var cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                        var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+                            c =>
+                            {
+                                c.Hash = v.Hash;
+                                c.FileSize = v.FileSize;
+                            }
+                        );
                         cmdDel.Save();
                     }
                 }

@@ -12,6 +12,7 @@ using Shoko.Models.Server;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -116,20 +117,20 @@ namespace Shoko.Server.API.v3.Models.Shoko
             }
         }
 
-        public static bool RefreshAniDBFromCachedXML(HttpContext ctx, SVR_AniDB_Anime anime)
+        public static bool RefreshAniDBFromCachedXML(ICommandRequestFactory commandFactory, SVR_AniDB_Anime anime)
         {
             try
             {
-                var command = new CommandRequest_GetAnimeHTTP
+                var command = commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
                 {
-                    AnimeID = anime.AnimeID,
-                    DownloadRelations = false,
-                    ForceRefresh = false,
-                    CacheOnly = true,
-                    CreateSeriesEntry = true,
-                    BubbleExceptions = true,
-                };
-                command.ProcessCommand(ctx.RequestServices);
+                    c.AnimeID = anime.AnimeID;
+                    c.DownloadRelations = false;
+                    c.ForceRefresh = false;
+                    c.CacheOnly = true;
+                    c.CreateSeriesEntry = true;
+                    c.BubbleExceptions = true;
+                });
+                command.ProcessCommand();
             }
             catch
             {
@@ -139,21 +140,20 @@ namespace Shoko.Server.API.v3.Models.Shoko
             return true;
         }
 
-        public static bool QueueAniDBRefresh(HttpContext ctx, int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false)
+        public static bool QueueAniDBRefresh(ICommandRequestFactory commandFactory, IHttpConnectionHandler handler, int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false)
         {
-            var command = new CommandRequest_GetAnimeHTTP
+            var command = commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
             {
-                AnimeID = animeID,
-                DownloadRelations = downloadRelations,
-                ForceRefresh = force,
-                CreateSeriesEntry = createSeriesEntry,
-                BubbleExceptions = immediate,
-            };
-            var handler = ctx.RequestServices.GetRequiredService<IHttpConnectionHandler>();
+                c.AnimeID = animeID;
+                c.DownloadRelations = downloadRelations;
+                c.ForceRefresh = force;
+                c.CreateSeriesEntry = createSeriesEntry;
+                c.BubbleExceptions = immediate;
+            });
             if (immediate && !handler.IsBanned) {
                 try
                 {
-                    command.ProcessCommand(ctx.RequestServices);
+                    command.ProcessCommand();
                 }
                 catch
                 {
@@ -330,7 +330,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 .ToList();
         }
 
-        public static void AddSeriesVote(HttpContext context, SVR_AnimeSeries ser, int userID, Vote vote)
+        public static void AddSeriesVote(ICommandRequestFactory commandFactory, SVR_AnimeSeries ser, int userID, Vote vote)
         {
             int voteType = (vote.Type?.ToLowerInvariant() ?? "") switch
             {
@@ -354,7 +354,14 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
             RepoFactory.AniDB_Vote.Save(dbVote);
 
-            var cmdVote = new CommandRequest_VoteAnime(ser.AniDB_ID, voteType, vote.GetRating());
+            var cmdVote = commandFactory.Create<CommandRequest_VoteAnime>(
+                c =>
+                {
+                    c.AnimeID = ser.AniDB_ID;
+                    c.VoteType = voteType;
+                    c.VoteValue = vote.GetRating();
+                }
+            );
             cmdVote.Save();
         }
 

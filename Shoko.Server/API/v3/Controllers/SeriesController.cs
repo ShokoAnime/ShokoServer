@@ -15,7 +15,9 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Commands;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -26,6 +28,15 @@ namespace Shoko.Server.API.v3.Controllers
     [Authorize]
     public class SeriesController : BaseController
     {
+        private readonly ICommandRequestFactory _commandFactory;
+        private readonly IHttpConnectionHandler _httpHandler;
+
+        public SeriesController(ICommandRequestFactory commandFactory, IHttpConnectionHandler httpHandler)
+        {
+            _commandFactory = commandFactory;
+            _httpHandler = httpHandler;
+        }
+        
         #region Return messages
 
         internal static string SeriesNotFoundWithSeriesID = "No Series entry for the given seriesID";
@@ -507,7 +518,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (!createSeriesEntry.HasValue)
                 createSeriesEntry = ServerSettings.Instance.AniDb.AutomaticallyImportSeries;
 
-            return Series.QueueAniDBRefresh(HttpContext, anidbID, force, downloadRelations, createSeriesEntry.Value, immediate);
+            return Series.QueueAniDBRefresh(_commandFactory, _httpHandler, anidbID, force, downloadRelations, createSeriesEntry.Value, immediate);
         }
 
         /// <summary>
@@ -535,7 +546,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (anidb == null)
                 return InternalError(AnidbNotFoundForSeriesID);
 
-            return Series.QueueAniDBRefresh(HttpContext, anidb.AnimeID, force, downloadRelations, createSeriesEntry.Value, immediate);
+            return Series.QueueAniDBRefresh(_commandFactory, _httpHandler, anidb.AnimeID, force, downloadRelations, createSeriesEntry.Value, immediate);
         }
 
         /// <summary>
@@ -556,7 +567,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (anime == null)
                 return InternalError(AnidbNotFoundForSeriesID);
 
-            return Series.RefreshAniDBFromCachedXML(HttpContext, anime);
+            return Series.RefreshAniDBFromCachedXML(_commandFactory, anime);
         }
     
         #endregion
@@ -653,7 +664,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (vote.MaxValue <= 0)
                 return BadRequest("Max value must be an integer above 0.");
 
-            Series.AddSeriesVote(HttpContext, series, User.JMMUserID, vote);
+            Series.AddSeriesVote(_commandFactory, series, User.JMMUserID, vote);
 
             return NoContent();
         }
@@ -664,11 +675,11 @@ namespace Shoko.Server.API.v3.Controllers
 
         private static HashSet<Image.ImageType> AllowedImageTypes = new() { Image.ImageType.Poster, Image.ImageType.Banner, Image.ImageType.Fanart };
 
-        private static string InvalidIDForSource = "Invalid image id for selected source.";
+        private const string InvalidIDForSource = "Invalid image id for selected source.";
 
-        private static string InvalidImageTypeForSeries = "Invalid image type for series images.";
+        private const string InvalidImageTypeForSeries = "Invalid image type for series images.";
 
-        private static string InvalidImageIsDisabled = "Image is disabled.";
+        private const string InvalidImageIsDisabled = "Image is disabled.";
 
         /// <summary>
         /// Get all images for series with ID, optionally with Disabled images, as well.

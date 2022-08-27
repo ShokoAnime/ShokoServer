@@ -18,6 +18,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.Trakt_SyncCollection)]
     public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
     {
+        private readonly TraktTVHelper _helper;
         public bool ForceRefresh { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
@@ -61,7 +62,7 @@ namespace Shoko.Server.Commands
                 sched.LastUpdate = DateTime.Now;
                 RepoFactory.ScheduledUpdate.Save(sched);
 
-                TraktTVHelper.SyncCollectionToTrakt();
+                _helper.SyncCollectionToTrakt();
             }
             catch (Exception ex)
             {
@@ -115,7 +116,12 @@ namespace Shoko.Server.Commands
             return cq;
         }
 
-        public CommandRequest_TraktSyncCollection(ILoggerFactory loggerFactory) : base(loggerFactory)
+        public CommandRequest_TraktSyncCollection(ILoggerFactory loggerFactory, TraktTVHelper helper) : base(loggerFactory)
+        {
+            _helper = helper;
+        }
+
+        protected CommandRequest_TraktSyncCollection()
         {
         }
     }

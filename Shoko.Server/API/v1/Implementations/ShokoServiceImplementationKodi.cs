@@ -2,9 +2,11 @@
 using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using NLog;
 using Shoko.Models.Interfaces;
 using Shoko.Models.PlexAndKodi;
+using Shoko.Server.Commands;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.PlexAndKodi.Kodi;
 using Stream = System.IO.Stream;
@@ -14,11 +16,19 @@ namespace Shoko.Server.API.v1.Implementations
     [ApiController, Route("/api/Kodi"), ApiVersion("1.0", Deprecated = true)]
     public class ShokoServiceImplementationKodi : IShokoServerKodi, IHttpContextAccessor
     {
+        private readonly ShokoServiceImplementation _service;
         public HttpContext HttpContext { get; set; }
 
-        CommonImplementation _impl = new CommonImplementation();
-        ShokoServiceImplementation service = new ShokoServiceImplementation();
-        public static Logger logger = LogManager.GetCurrentClassLogger();
+        private readonly CommonImplementation _impl;
+        
+        private readonly ILogger<ShokoServiceImplementationKodi> _logger;
+
+        public ShokoServiceImplementationKodi(ICommandRequestFactory commandFactory, ILogger<ShokoServiceImplementationKodi> logger)
+        {
+            _service = new ShokoServiceImplementation(null, null, null, commandFactory);
+            _logger = logger;
+            _impl = new CommonImplementation();
+        }
 
 
         [HttpGet("Image/Support/{name}")]
@@ -105,7 +115,7 @@ namespace Shoko.Server.API.v1.Implementations
             Response r = new Response();
             try
             {
-                string output = service.RescanFile(vlid);
+                string output = _service.RescanFile(vlid);
                 if (!string.IsNullOrEmpty(output))
                 {
                     r.Code = HttpStatusCode.BadRequest.ToString();
@@ -118,7 +128,7 @@ namespace Shoko.Server.API.v1.Implementations
             {
                 r.Code = "500";
                 r.Message = "Internal Error : " + ex;
-                logger.Error(ex, ex.ToString());
+                _logger.LogError(ex, "{Ex}", ex.ToString());
             }
             return r;
         }
@@ -130,14 +140,14 @@ namespace Shoko.Server.API.v1.Implementations
             Response r = new Response();
             try
             {
-                service.RehashFile(vlid);
+                _service.RehashFile(vlid);
                 r.Code = HttpStatusCode.OK.ToString();
             }
             catch (Exception ex)
             {
                 r.Code = "500";
                 r.Message = "Internal Error : " + ex;
-                logger.Error(ex, ex.ToString());
+                _logger.LogError(ex, "{Ex}", ex.ToString());
             }
             return r;
         }

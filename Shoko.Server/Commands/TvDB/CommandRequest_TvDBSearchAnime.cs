@@ -26,6 +26,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.TvDB_SearchAnime)]
     public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
     {
+        private readonly TvDBApiHelper _helper;
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
 
@@ -77,10 +78,10 @@ namespace Shoko.Server.Commands
                             }
                             foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)
                             {
-                                TvDB_Series tvser = TvDBApiHelper.GetSeriesInfoOnline(xref.TvDBID, false);
+                                TvDB_Series tvser = _helper.GetSeriesInfoOnline(xref.TvDBID, false);
                                 if (tvser == null) continue;
                                 Logger.LogTrace("Found tvdb match on web cache for {0}", AnimeID);
-                                TvDBApiHelper.LinkAniDBTvDB(AnimeID, xref.TvDBID, true);
+                                _helper.LinkAniDBTvDB(AnimeID, xref.TvDBID, true);
                             }
                             return;
                         }
@@ -100,7 +101,7 @@ namespace Shoko.Server.Commands
 
                 if (tvDBID != null)
                 {
-                    TvDBApiHelper.LinkAniDBTvDB(AnimeID, tvDBID.Value, true);
+                    _helper.LinkAniDBTvDB(AnimeID, tvDBID.Value, true);
                     return;
                 }
 
@@ -111,7 +112,7 @@ namespace Shoko.Server.Commands
                 string searchCriteria = CleanTitle(anime.MainTitle);
 
                 // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-                List<TVDB_Series_Search_Response> results = TvDBApiHelper.SearchSeries(searchCriteria);
+                List<TVDB_Series_Search_Response> results = _helper.SearchSeries(searchCriteria);
                 Logger.LogTrace("Found {0} tvdb results for {1} on TheTvDB", results.Count, searchCriteria);
                 if (ProcessSearchResults(results, searchCriteria)) return;
 
@@ -131,7 +132,7 @@ namespace Shoko.Server.Commands
                     if (searchCriteria.Equals(cleanTitle, StringComparison.InvariantCultureIgnoreCase)) continue;
 
                     searchCriteria = cleanTitle;
-                    results = TvDBApiHelper.SearchSeries(searchCriteria);
+                    results = _helper.SearchSeries(searchCriteria);
                     if (results.Count > 0) foundResult = true;
                     Logger.LogTrace("Found {0} tvdb results for search on {1}", results.Count, searchCriteria);
                     if (ProcessSearchResults(results, searchCriteria)) return;
@@ -154,8 +155,8 @@ namespace Shoko.Server.Commands
                     Logger.LogTrace("Found 1 tvdb results for search on {0} --- Linked to {1} ({2})", searchCriteria,
                         results[0].SeriesName,
                         results[0].SeriesID);
-                    tvser = TvDBApiHelper.GetSeriesInfoOnline(results[0].SeriesID, false);
-                    TvDBApiHelper.LinkAniDBTvDB(AnimeID, results[0].SeriesID, true);
+                    tvser = _helper.GetSeriesInfoOnline(results[0].SeriesID, false);
+                    _helper.LinkAniDBTvDB(AnimeID, results[0].SeriesID, true);
 
                     // add links for multiple seasons (for long shows)
                     AddCrossRef_AniDB_TvDBV2(AnimeID, results[0].SeriesID, CrossRefSource.Automatic);
@@ -173,8 +174,8 @@ namespace Shoko.Server.Commands
                         Logger.LogTrace("Found english result for search on {0} --- Linked to {1} ({2})", searchCriteria,
                             sres.SeriesName,
                             sres.SeriesID);
-                        tvser = TvDBApiHelper.GetSeriesInfoOnline(results[0].SeriesID, false);
-                        TvDBApiHelper.LinkAniDBTvDB(AnimeID, sres.SeriesID, true);
+                        tvser = _helper.GetSeriesInfoOnline(results[0].SeriesID, false);
+                        _helper.LinkAniDBTvDB(AnimeID, sres.SeriesID, true);
 
                         // add links for multiple seasons (for long shows)
                         AddCrossRef_AniDB_TvDBV2(AnimeID, results[0].SeriesID, CrossRefSource.Automatic);
@@ -255,7 +256,12 @@ namespace Shoko.Server.Commands
             return cq;
         }
 
-        public CommandRequest_TvDBSearchAnime(ILoggerFactory loggerFactory) : base(loggerFactory)
+        public CommandRequest_TvDBSearchAnime(ILoggerFactory loggerFactory, TvDBApiHelper helper) : base(loggerFactory)
+        {
+            _helper = helper;
+        }
+
+        protected CommandRequest_TvDBSearchAnime()
         {
         }
     }

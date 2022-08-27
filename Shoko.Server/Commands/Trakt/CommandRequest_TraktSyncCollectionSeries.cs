@@ -18,6 +18,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.Trakt_SyncCollectionSeries)]
     public class CommandRequest_TraktSyncCollectionSeries : CommandRequestImplementation
     {
+        private readonly TraktTVHelper _helper;
         public int AnimeSeriesID { get; set; }
         public string SeriesName { get; set; }
 
@@ -45,7 +46,7 @@ namespace Shoko.Server.Commands
                     return;
                 }
 
-                TraktTVHelper.SyncCollectionToTrakt_Series(series);
+                _helper.SyncCollectionToTrakt_Series(series);
             }
             catch (Exception ex)
             {
@@ -100,7 +101,12 @@ namespace Shoko.Server.Commands
             return cq;
         }
 
-        public CommandRequest_TraktSyncCollectionSeries(ILoggerFactory loggerFactory) : base(loggerFactory)
+        public CommandRequest_TraktSyncCollectionSeries(ILoggerFactory loggerFactory, TraktTVHelper helper) : base(loggerFactory)
+        {
+            _helper = helper;
+        }
+
+        protected CommandRequest_TraktSyncCollectionSeries()
         {
         }
     }

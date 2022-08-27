@@ -72,5 +72,9 @@ namespace Shoko.Server.Commands
         public CommandRequest_RefreshGroupFilter(ILoggerFactory loggerFactory) : base(loggerFactory)
         {
         }
+        
+        protected CommandRequest_RefreshGroupFilter()
+        {
+        }
     }
 }

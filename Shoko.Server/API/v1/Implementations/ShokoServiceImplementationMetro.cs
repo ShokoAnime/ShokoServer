@@ -13,6 +13,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Metro;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
+using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
@@ -30,9 +31,19 @@ namespace Shoko.Server
     [ApiController, Route("/api/Metro"), ApiVersion("1.0", Deprecated = true)]
     public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAccessor
     {
+        private readonly ICommandRequestFactory _commandFactory;
+        private readonly TraktTVHelper _traktHelper;
+        private readonly ShokoServiceImplementation _service;
         public HttpContext HttpContext { get; set; }
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
+
+        public ShokoServiceImplementationMetro(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper)
+        {
+            _commandFactory = commandFactory;
+            _traktHelper = traktHelper;
+            _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory);
+        }
 
         [HttpGet("Server/Status")]
         public CL_ServerStatus GetServerStatus()
@@ -90,7 +101,7 @@ namespace Shoko.Server
         [HttpPost("Comment/{traktID}/{commentText}/{isSpoiler}")]
         public CL_Response<bool> PostCommentShow(string traktID, string commentText, bool isSpoiler)
         {
-            return TraktTVHelper.PostCommentShow(traktID, commentText, isSpoiler);
+            return _traktHelper.PostCommentShow(traktID, commentText, isSpoiler);
         }
 
         [HttpGet("Community/Links/{animeID}")]
@@ -335,8 +346,6 @@ namespace Shoko.Server
                     TimeSpan ts = DateTime.Now - start;
                     logger.Info(string.Format("GetAnimeContinueWatching:Series: {0}", ts.TotalMilliseconds));
 
-
-                    ShokoServiceImplementation imp = new ShokoServiceImplementation();
                     foreach (SVR_AnimeSeries_User userRecord in allSeriesUser)
                     {
                         start = DateTime.Now;
@@ -353,7 +362,7 @@ namespace Shoko.Server
 
                         SVR_AnimeSeries_User serUser = series.GetUserRecord(jmmuserID);
 
-                        CL_AnimeEpisode_User ep = imp.GetNextUnwatchedEpisode(userRecord.AnimeSeriesID,
+                        CL_AnimeEpisode_User ep = _service.GetNextUnwatchedEpisode(userRecord.AnimeSeriesID,
                             jmmuserID);
                         if (ep != null)
                         {
@@ -438,15 +447,13 @@ namespace Shoko.Server
 
                 foreach (CL_AnimeGroup_User grp in comboGroups)
                 {
-                    ShokoServiceImplementation imp = new ShokoServiceImplementation();
                     foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetByGroupID(grp.AnimeGroupID))
                     {
                         if (!user.AllowedSeries(ser)) continue;
 
                         SVR_AnimeSeries_User serUser = ser.GetUserRecord(jmmuserID);
 
-                        CL_AnimeEpisode_User ep =
-                            imp.GetNextUnwatchedEpisode(ser.AnimeSeriesID, jmmuserID);
+                        CL_AnimeEpisode_User ep = _service.GetNextUnwatchedEpisode(ser.AnimeSeriesID, jmmuserID);
                         if (ep != null)
                         {
                             SVR_AniDB_Anime anidb_anime = ser.GetAnime();
@@ -924,7 +931,7 @@ namespace Shoko.Server
 
             try
             {
-                List<TraktV2Comment> commentsTemp = TraktTVHelper.GetShowCommentsV2(animeID);
+                List<TraktV2Comment> commentsTemp = _traktHelper.GetShowCommentsV2(animeID);
 
                 if (commentsTemp == null || commentsTemp.Count == 0) return comments;
 
@@ -1042,11 +1049,14 @@ namespace Shoko.Server
                     if (animeLink == null)
                     {
                         // try getting it from anidb now
-                        var command = new CommandRequest_GetAnimeHTTP
+                        var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
                         {
-                            BubbleExceptions = true, DownloadRelations = false, AnimeID = link.RelatedAnimeID, CreateSeriesEntry = false,
-                        };
-                        command.ProcessCommand(HttpContext.RequestServices);
+                            c.BubbleExceptions = true;
+                            c.DownloadRelations = false;
+                            c.AnimeID = link.RelatedAnimeID;
+                            c.CreateSeriesEntry = false;
+                        });
+                        command.ProcessCommand();
                         animeLink = command.Result;
                     }
 
@@ -1090,11 +1100,16 @@ namespace Shoko.Server
                     if (animeLink == null)
                     {
                         // try getting it from anidb now
-                        var command = new CommandRequest_GetAnimeHTTP
-                        {
-                            BubbleExceptions = true, DownloadRelations = false, AnimeID = link.SimilarAnimeID, CreateSeriesEntry = false,
-                        };
-                        command.ProcessCommand(HttpContext.RequestServices);
+                        var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                            c =>
+                            {
+                                c.BubbleExceptions = true;
+                                c.DownloadRelations = false;
+                                c.AnimeID = link.SimilarAnimeID;
+                                c.CreateSeriesEntry = false;
+                            }
+                        );
+                        command.ProcessCommand();
                         animeLink = command.Result;
                     }
 
@@ -1199,11 +1214,15 @@ namespace Shoko.Server
         {
             try
             {
-                var command = new CommandRequest_GetAnimeHTTP
+                var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
                 {
-                    BubbleExceptions = true, ForceRefresh = true, DownloadRelations = false, AnimeID = animeID, CreateSeriesEntry = false,
-                };
-                command.ProcessCommand(HttpContext.RequestServices);
+                    c.BubbleExceptions = true;
+                    c.ForceRefresh = true;
+                    c.DownloadRelations = false;
+                    c.AnimeID = animeID;
+                    c.CreateSeriesEntry = false;
+                });
+                command.ProcessCommand();
             }
             catch (Exception ex)
             {

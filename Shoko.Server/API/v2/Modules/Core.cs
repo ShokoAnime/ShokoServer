@@ -21,6 +21,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -35,6 +36,16 @@ namespace Shoko.Server.API.v2.Modules
     public class Core : BaseController
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private readonly ICommandRequestFactory _commandFactory;
+        private readonly TraktTVHelper _traktHelper;
+        private readonly ShokoServiceImplementation _service;
+
+        public Core(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper)
+        {
+            _commandFactory = commandFactory;
+            _traktHelper = traktHelper;
+            _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory);
+        }
 
         #region 01.Settings
 
@@ -250,7 +261,7 @@ namespace Shoko.Server.API.v2.Modules
         public ActionResult SyncAniDBVotes()
         {
             //TODO APIv2: Command should be split into AniDb/MAL sepereate
-            CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
+            CommandRequest_SyncMyVotes cmdVotes = _commandFactory.Create<CommandRequest_SyncMyVotes>();
             cmdVotes.Save();
             return APIStatus.OK();
         }
@@ -295,7 +306,13 @@ namespace Shoko.Server.API.v2.Modules
                     var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
 
                     if (rawXml != null) continue;
-                    var cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false, false);
+                    var cmd = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                        c =>
+                        {
+                            c.AnimeID = animeID;
+                            c.ForceRefresh = true;
+                        }
+                    );
                     cmd.Save();
                     updatedAnime++;
                 }
@@ -320,7 +337,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("trakt/code")]
         public ActionResult<Dictionary<string, object>> GetTraktCode()
         {
-            var code = new ShokoServiceImplementation().GetTraktDeviceCode();
+            var code = _service.GetTraktDeviceCode();
             if (code.UserCode == string.Empty)
                 return APIStatus.InternalError("Trakt code doesn't exist on the server");
 
@@ -353,7 +370,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
             {
-                CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
+                CommandRequest_TraktSyncCollection cmd = _commandFactory.Create<CommandRequest_TraktSyncCollection>(c => c.ForceRefresh = true);
                 cmd.Save();
                 return APIStatus.OK();
             }
@@ -585,7 +602,7 @@ namespace Shoko.Server.API.v2.Modules
             user.Password = Digest.Hash(user.Password);
             user.HideCategories = string.Empty;
             user.PlexUsers = string.Empty;
-            return new ShokoServiceImplementation().SaveUser(user) == string.Empty
+            return _service.SaveUser(user) == string.Empty
                 ? APIStatus.OK()
                 : APIStatus.InternalError();
         }
@@ -597,7 +614,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpPost("user/password")]
         public ActionResult ChangePassword(JMMUser user)
         {
-            return new ShokoServiceImplementation().ChangePassword(user.JMMUserID, user.Password) == string.Empty
+            return _service.ChangePassword(user.JMMUserID, user.Password) == string.Empty
                     ? APIStatus.OK()
                     : APIStatus.InternalError();
         }
@@ -610,7 +627,7 @@ namespace Shoko.Server.API.v2.Modules
         [Authorize("admin")]
         public ActionResult ChangePassword(int uid, JMMUser user)
         {
-            return new ShokoServiceImplementation().ChangePassword(uid, user.Password) == string.Empty
+            return _service.ChangePassword(uid, user.Password) == string.Empty
                 ? APIStatus.OK()
                 : APIStatus.InternalError();
         }
@@ -623,7 +640,7 @@ namespace Shoko.Server.API.v2.Modules
         [Authorize("admin")]
         public ActionResult DeleteUser(JMMUser user)
         {
-            return new ShokoServiceImplementation().DeleteUser(user.JMMUserID) == string.Empty
+            return _service.DeleteUser(user.JMMUserID) == string.Empty
                 ? APIStatus.OK()
                 : APIStatus.InternalError();
         }

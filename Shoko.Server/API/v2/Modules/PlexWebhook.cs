@@ -36,11 +36,13 @@ namespace Shoko.Server.API.v2.Modules
     {
         private readonly ILogger _logger;
         private readonly ICommandRequestFactory _commandFactory;
+        private readonly TraktTVHelper _traktHelper;
 
-        public PlexWebhook(ICommandRequestFactory commandFactory, ILogger logger)
+        public PlexWebhook(ICommandRequestFactory commandFactory, ILogger logger, TraktTVHelper traktHelper)
         {
             _commandFactory = commandFactory;
             _logger = logger;
+            _traktHelper = traktHelper;
         }
 
         //The second one is to just make sure 
@@ -90,7 +92,7 @@ namespace Shoko.Server.API.v2.Modules
                 ? ScrobblePlayingType.movie
                 : ScrobblePlayingType.episode;
 
-            TraktTVHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), type, per);
+            _traktHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), type, per);
         }
 
         [NonAction]

@@ -18,6 +18,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.Trakt_UpdateAllSeries)]
     public class CommandRequest_TraktUpdateAllSeries : CommandRequestImplementation
     {
+        private readonly TraktTVHelper _helper;
         public bool ForceRefresh { get; set; }
 
 
@@ -61,10 +62,10 @@ namespace Shoko.Server.Commands
                 RepoFactory.ScheduledUpdate.Save(sched);
 
                 // update all info
-                TraktTVHelper.UpdateAllInfo();
+                _helper.UpdateAllInfo();
 
                 // scan for new matches
-                TraktTVHelper.ScanForMatches();
+                _helper.ScanForMatches();
             }
             catch (Exception ex)
             {
@@ -119,6 +120,10 @@ namespace Shoko.Server.Commands
         }
 
         public CommandRequest_TraktUpdateAllSeries(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
+        }
+
+        protected CommandRequest_TraktUpdateAllSeries()
         {
         }
     }

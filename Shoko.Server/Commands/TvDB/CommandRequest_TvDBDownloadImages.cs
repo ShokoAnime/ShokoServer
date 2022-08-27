@@ -15,6 +15,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.TvDB_DownloadImages)]
     public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation
     {
+        private readonly TvDBApiHelper _helper;
         public int TvDBSeriesID { get; set; }
         public bool ForceRefresh { get; set; }
 
@@ -33,7 +34,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                TvDBApiHelper.DownloadAutomaticImages(TvDBSeriesID, ForceRefresh);
+                _helper.DownloadAutomaticImages(TvDBSeriesID, ForceRefresh);
             }
             catch (Exception ex)
             {
@@ -86,7 +87,12 @@ namespace Shoko.Server.Commands
             return cq;
         }
 
-        public CommandRequest_TvDBDownloadImages(ILoggerFactory loggerFactory) : base(loggerFactory)
+        public CommandRequest_TvDBDownloadImages(ILoggerFactory loggerFactory, TvDBApiHelper helper) : base(loggerFactory)
+        {
+            _helper = helper;
+        }
+
+        protected CommandRequest_TvDBDownloadImages()
         {
         }
     }

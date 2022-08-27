@@ -75,5 +75,9 @@ namespace Shoko.Server.Commands.AniDB
         public CommandRequest_GetAniDBTitles(ILoggerFactory loggerFactory) : base(loggerFactory)
         {
         }
+        
+        protected CommandRequest_GetAniDBTitles()
+        {
+        }
     }
 }

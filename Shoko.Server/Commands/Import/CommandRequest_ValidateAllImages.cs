@@ -505,5 +505,9 @@ namespace Shoko.Server.Commands
         {
             _commandFactory = commandFactory;
         }
+
+        protected CommandRequest_ValidateAllImages()
+        {
+        }
     }
 }

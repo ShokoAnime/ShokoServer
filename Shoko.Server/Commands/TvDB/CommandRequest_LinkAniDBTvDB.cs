@@ -16,9 +16,10 @@ namespace Shoko.Server.Commands.TvDB
     [Command(CommandRequestType.LinkAniDBTvDB)]
     public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation
     {
-        public int animeID;
-        public int tvDBID;
-        public bool additiveLink;
+        private readonly TvDBApiHelper _helper;
+        public int AnimeID;
+        public int TvDBID;
+        public bool AdditiveLink;
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
@@ -26,21 +27,21 @@ namespace Shoko.Server.Commands.TvDB
         {
             message = "Updating Changed TvDB association: {0}",
             queueState = QueueStateEnum.LinkAniDBTvDB,
-            extraParams = new[] {animeID.ToString()}
+            extraParams = new[] {AnimeID.ToString()}
         };
 
         protected override void Process()
         {
-            Logger.LogInformation("Processing CommandRequest_LinkAniDBTvDB: {0}", animeID);
+            Logger.LogInformation("Processing CommandRequest_LinkAniDBTvDB: {0}", AnimeID);
 
             try
             {
-                TvDBApiHelper.LinkAniDBTvDB(animeID, tvDBID, additiveLink);
-                SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
+                _helper.LinkAniDBTvDB(AnimeID, TvDBID, AdditiveLink);
+                SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
             }
             catch (Exception ex)
             {
-                Logger.LogError("Error processing CommandRequest_LinkAniDBTvDB: {0} - {1}", animeID,
+                Logger.LogError("Error processing CommandRequest_LinkAniDBTvDB: {0} - {1}", AnimeID,
                     ex);
             }
         }
@@ -48,7 +49,7 @@ namespace Shoko.Server.Commands.TvDB
         public override void GenerateCommandID()
         {
             CommandID =
-                $"CommandRequest_LinkAniDBTvDB_{animeID}_{tvDBID}";
+                $"CommandRequest_LinkAniDBTvDB_{AnimeID}_{TvDBID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -66,9 +67,9 @@ namespace Shoko.Server.Commands.TvDB
                 docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                animeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "animeID"));
-                tvDBID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvDBID"));
-                additiveLink = bool.Parse(
+                AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "animeID"));
+                TvDBID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvDBID"));
+                AdditiveLink = bool.Parse(
                     TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "additiveLink"));
             }
 
@@ -90,7 +91,12 @@ namespace Shoko.Server.Commands.TvDB
             return cq;
         }
 
-        public CommandRequest_LinkAniDBTvDB(ILoggerFactory loggerFactory) : base(loggerFactory)
+        public CommandRequest_LinkAniDBTvDB(ILoggerFactory loggerFactory, TvDBApiHelper helper) : base(loggerFactory)
+        {
+            _helper = helper;
+        }
+
+        protected CommandRequest_LinkAniDBTvDB()
         {
         }
     }

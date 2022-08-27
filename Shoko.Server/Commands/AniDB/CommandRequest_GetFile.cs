@@ -234,5 +234,9 @@ namespace Shoko.Server.Commands.AniDB
             _handler = handler;
             _requestFactory = requestFactory;
         }
+
+        protected CommandRequest_GetFile()
+        {
+        }
     }
 }

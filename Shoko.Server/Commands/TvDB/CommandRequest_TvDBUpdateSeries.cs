@@ -16,6 +16,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.TvDB_UpdateSeries)]
     public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation
     {
+        private readonly TvDBApiHelper _helper;
         public int TvDBSeriesID { get; set; }
         public bool ForceRefresh { get; set; }
         public string SeriesTitle { get; set; }
@@ -40,7 +41,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                TvDBApiHelper.UpdateSeriesInfoAndImages(TvDBSeriesID, ForceRefresh, true);
+                _helper.UpdateSeriesInfoAndImages(TvDBSeriesID, ForceRefresh, true);
             }
             catch (Exception ex)
             {
@@ -102,7 +103,12 @@ namespace Shoko.Server.Commands
             return cq;
         }
 
-        public CommandRequest_TvDBUpdateSeries(ILoggerFactory loggerFactory) : base(loggerFactory)
+        public CommandRequest_TvDBUpdateSeries(ILoggerFactory loggerFactory, TvDBApiHelper helper) : base(loggerFactory)
+        {
+            _helper = helper;
+        }
+
+        protected CommandRequest_TvDBUpdateSeries()
         {
         }
     }

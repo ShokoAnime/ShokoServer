@@ -318,5 +318,9 @@ namespace Shoko.Server.Commands.Import
         {
             _handler = handler;
         }
+
+        protected CommandRequest_DownloadAniDBImages()
+        {
+        }
     }
 }

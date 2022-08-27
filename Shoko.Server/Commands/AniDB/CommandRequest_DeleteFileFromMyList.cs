@@ -282,5 +282,10 @@ namespace Shoko.Server.Commands.AniDB
             _requestFactory = requestFactory;
             EpisodeType = EpisodeType.Episode; // default
         }
+        
+        protected CommandRequest_DeleteFileFromMyList()
+        {
+            EpisodeType = EpisodeType.Episode; // default
+        }
     }
 }
