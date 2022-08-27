@@ -71,16 +71,11 @@ namespace Shoko.Server.API.v3.Controllers
         public ActionResult DeleteFile([FromRoute] int fileID, [FromQuery] bool removeFolder = true)
         {
             var file = RepoFactory.VideoLocalPlace.GetByID(fileID);
-            if (file == null) return BadRequest("Could not get the VideoLocal_Place with ID: " + fileID);
-            try
-            {
-                file.RemoveRecordAndDeletePhysicalFile(removeFolder);
-                return Ok();
-            }
-            catch (Exception e)
-            {
-                return new APIMessage(HttpStatusCode.InternalServerError, e.Message);
-            }
+            if (file == null)
+                return NotFound(FileNotFoundWithFileID);
+
+            file.RemoveRecordAndDeletePhysicalFile(removeFolder);
+            return Ok();
         }
 
         /// <summary>
