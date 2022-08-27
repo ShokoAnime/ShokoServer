@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Plex.Collection;
@@ -21,7 +21,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
 using Shoko.Server.Plex.Libraries;
-using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -34,11 +33,11 @@ namespace Shoko.Server.API.v2.Modules
     [ApiVersionNeutral]
     public class PlexWebhook : BaseController
     {
-        private readonly ILogger _logger;
+        private readonly ILogger<PlexWebhook> _logger;
         private readonly ICommandRequestFactory _commandFactory;
         private readonly TraktTVHelper _traktHelper;
 
-        public PlexWebhook(ICommandRequestFactory commandFactory, ILogger logger, TraktTVHelper traktHelper)
+        public PlexWebhook(ICommandRequestFactory commandFactory, ILogger<PlexWebhook> logger, TraktTVHelper traktHelper)
         {
             _commandFactory = commandFactory;
             _logger = logger;
@@ -53,7 +52,7 @@ namespace Shoko.Server.API.v2.Modules
                 new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()});*/
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            _logger.Trace($"{payload.Event}: {payload.Metadata.Guid}");
+            _logger.LogTrace($"{payload.Event}: {payload.Metadata.Guid}");
             switch (payload.Event)
             {
                 case "media.scrobble":
@@ -102,16 +101,16 @@ namespace Shoko.Server.API.v2.Modules
             (SVR_AnimeEpisode episode, SVR_AnimeSeries anime) = GetEpisode(metadata);
             if (episode == null)
             {
-                _logger.Info("No episode returned, aborting scrobble. This might not have been a ShokoMetadata library");
+                _logger.LogInformation("No episode returned, aborting scrobble. This might not have been a ShokoMetadata library");
                 return;
             }
 
-            _logger.Trace($"Got anime: {anime}, ep: {episode.AniDB_Episode.EpisodeNumber}");
+            _logger.LogTrace($"Got anime: {anime}, ep: {episode.AniDB_Episode.EpisodeNumber}");
 
             var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
             if (user == null)
             {
-                _logger.Info($"Unable to determine who \"{data.Account.Title}\" is in Shoko, make sure this is set under user settings in Desktop");
+                _logger.LogInformation($"Unable to determine who \"{data.Account.Title}\" is in Shoko, make sure this is set under user settings in Desktop");
                 return; //At this point in time, we don't want to scrobble for unknown users
             }
 
@@ -185,7 +184,7 @@ namespace Shoko.Server.API.v2.Modules
 
 
             //catch all
-            _logger.Info($"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multipl episodes linked, but no tvdb link.");
+            _logger.LogInformation($"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multipl episodes linked, but no tvdb link.");
             return (null, anime);
         }
 
