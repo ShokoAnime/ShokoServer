@@ -50,7 +50,7 @@ namespace Shoko.Server.Plex
 
         static PlexHelper()
         {
-            SetupHttpClient(HttpClient, TimeSpan.FromSeconds(3));
+            SetupHttpClient(HttpClient, TimeSpan.FromSeconds(60));
         }
 
         private PlexHelper(JMMUser user)
@@ -172,7 +172,7 @@ namespace Shoko.Server.Plex
             client.DefaultRequestHeaders.Add("X-Plex-Device", "Shoko");
             client.DefaultRequestHeaders.Add("User-Agent",
                 $"{Assembly.GetEntryAssembly().GetName().Name} v${Assembly.GetEntryAssembly().GetName().Version}");
-            client.Timeout = TimeSpan.FromSeconds(3);
+            client.Timeout = timeout;
         }
 
         private PlexKey GetPlexKey()
