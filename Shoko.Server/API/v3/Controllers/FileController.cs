@@ -80,8 +80,6 @@ namespace Shoko.Server.API.v3.Controllers
                     place.RemoveRecordAndDeletePhysicalFile(removeFolder);
                 else
                     place.RemoveRecord();
-
-            RepoFactory.VideoLocal.Delete(fileID);
             return Ok();
         }
 
