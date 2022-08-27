@@ -9,6 +9,7 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
+using Shoko.Server.Commands.Plex;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.MovieDB;
@@ -337,6 +338,19 @@ namespace Shoko.Server.API.v3.Controllers
             Task.Run(() => new AnimeGroupCreator().RecreateAllGroups());
             return Ok("Check the server status via init/status or SignalR's Events hub");
         }
+
+        /// <summary>
+        /// Sync watch states with plex.
+        /// </summary>
+        /// <returns></returns>
+        [Authorize("admin")]
+        [HttpGet("PlexSyncAll")]
+        public ActionResult PlexSyncAll()
+        {
+            _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser()).Save();
+            return Ok();
+        }
+
         #endregion
     }
 }
