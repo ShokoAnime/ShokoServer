@@ -19,6 +19,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
 
 namespace Shoko.Server.Commands
 {
@@ -37,20 +38,6 @@ namespace Shoko.Server.Commands
             queueState = QueueStateEnum.SearchTrakt,
             extraParams = new[] {AnimeID.ToString()}
         };
-
-        public CommandRequest_TraktSearchAnime()
-        {
-        }
-
-        public CommandRequest_TraktSearchAnime(int animeID, bool forced)
-        {
-            AnimeID = animeID;
-            ForceRefresh = forced;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
 
         protected override void Process()
         {
@@ -249,6 +236,10 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_TraktSearchAnime(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

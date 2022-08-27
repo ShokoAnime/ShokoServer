@@ -29,18 +29,9 @@ namespace Shoko.Server.Commands
             extraParams = new[] {$"{SeriesTitle} ({TvDBSeriesID})"}
         };
 
-        public CommandRequest_TvDBUpdateSeries()
+        public override void PostInit()
         {
-        }
-
-        public CommandRequest_TvDBUpdateSeries(int tvDBSeriesID, bool forced)
-        {
-            TvDBSeriesID = tvDBSeriesID;
-            ForceRefresh = forced;
-            Priority = (int) DefaultPriority;
-            SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(tvDBSeriesID)?.SeriesName ?? string.Intern("Name not Available");
-
-            GenerateCommandID();
+            SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(TvDBSeriesID)?.SeriesName ?? string.Intern("Name not Available");
         }
 
         protected override void Process()
@@ -109,6 +100,10 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_TvDBUpdateSeries(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

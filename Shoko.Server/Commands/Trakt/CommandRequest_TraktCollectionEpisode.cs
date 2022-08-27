@@ -32,19 +32,6 @@ namespace Shoko.Server.Commands
             extraParams = new[] {AnimeEpisodeID.ToString(), Action.ToString()}
         };
 
-        public CommandRequest_TraktCollectionEpisode()
-        {
-        }
-
-        public CommandRequest_TraktCollectionEpisode(int animeEpisodeID, TraktSyncAction action)
-        {
-            AnimeEpisodeID = animeEpisodeID;
-            Action = (int) action;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_TraktCollectionEpisode: {0}-{1}", AnimeEpisodeID, Action);
@@ -114,6 +101,10 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_TraktCollectionEpisode(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

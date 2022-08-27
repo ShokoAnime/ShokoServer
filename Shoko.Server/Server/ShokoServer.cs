@@ -81,9 +81,6 @@ namespace Shoko.Server.Server
         private static BackgroundWorker workerDeleteImportFolder = new BackgroundWorker();
         private static BackgroundWorker workerMediaInfo = new BackgroundWorker();
 
-        private static BackgroundWorker workerSyncHashes = new BackgroundWorker();
-        private static BackgroundWorker workerSyncMedias = new BackgroundWorker();
-
         internal static BackgroundWorker workerSetupDB = new BackgroundWorker();
         internal static BackgroundWorker LogRotatorWorker = new BackgroundWorker();
 
@@ -297,15 +294,6 @@ namespace Shoko.Server.Server
             workerScanDropFolders.WorkerReportsProgress = true;
             workerScanDropFolders.WorkerSupportsCancellation = true;
             workerScanDropFolders.DoWork += WorkerScanDropFolders_DoWork;
-
-
-            workerSyncHashes.WorkerReportsProgress = true;
-            workerSyncHashes.WorkerSupportsCancellation = true;
-            workerSyncHashes.DoWork += WorkerSyncHashes_DoWork;
-
-            workerSyncMedias.WorkerReportsProgress = true;
-            workerSyncMedias.WorkerSupportsCancellation = true;
-            workerSyncMedias.DoWork += WorkerSyncMedias_DoWork;
 
             workerRemoveMissing.WorkerReportsProgress = true;
             workerRemoveMissing.WorkerSupportsCancellation = true;
@@ -530,30 +518,6 @@ namespace Shoko.Server.Server
         }
 
         public static ShokoServer Instance { get; private set; } = new ShokoServer();
-
-        private void WorkerSyncHashes_DoWork(object sender, DoWorkEventArgs e)
-        {
-            try
-            {
-                Importer.SyncHashes();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
-
-        private void WorkerSyncMedias_DoWork(object sender, DoWorkEventArgs e)
-        {
-            try
-            {
-                Importer.SyncMedia();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
 
         private static void WorkerFileEvents_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
@@ -1054,7 +1018,6 @@ namespace Shoko.Server.Server
             Importer.CheckForTraktTokenUpdate(false);
             Importer.CheckForMyListStatsUpdate(false);
             Importer.CheckForAniDBFileUpdate(false);
-            Importer.UpdateAniDBTitles();
         }
 
         public static void StartWatchingFiles(bool log = true)
@@ -1167,18 +1130,6 @@ namespace Shoko.Server.Server
         {
             if (!workerScanDropFolders.IsBusy)
                 workerScanDropFolders.RunWorkerAsync();
-        }
-
-        public static void SyncHashes()
-        {
-            if (!workerSyncHashes.IsBusy)
-                workerSyncHashes.RunWorkerAsync();
-        }
-
-        public static void SyncMedias()
-        {
-            if (!workerSyncMedias.IsBusy)
-                workerSyncMedias.RunWorkerAsync();
         }
 
         public static void ScanFolder(int importFolderID)

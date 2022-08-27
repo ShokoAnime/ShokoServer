@@ -30,17 +30,6 @@ namespace Shoko.Server.Commands
             extraParams = new string[0]
         };
 
-        public CommandRequest_TraktUpdateAllSeries()
-        {
-        }
-
-        public CommandRequest_TraktUpdateAllSeries(bool forced)
-        {
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_TraktUpdateAllSeries");
@@ -127,6 +116,10 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_TraktUpdateAllSeries(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

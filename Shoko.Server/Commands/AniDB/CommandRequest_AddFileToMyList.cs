@@ -23,6 +23,7 @@ namespace Shoko.Server.Commands.AniDB
     public class CommandRequest_AddFileToMyList : CommandRequestImplementation
     {
         private readonly IRequestFactory _requestFactory;
+        private readonly ICommandRequestFactory _commandFactory;
 
         public string Hash { get; set; }
         public bool ReadStates { get; set; } = true;
@@ -191,8 +192,13 @@ namespace Shoko.Server.Commands.AniDB
                 {
                     foreach (var aep in _videoLocal.GetAnimeEpisodes())
                     {
-                        var cmdSyncTrakt =
-                            new CommandRequest_TraktCollectionEpisode(aep.AnimeEpisodeID, TraktSyncAction.Add);
+                        var cmdSyncTrakt = _commandFactory.Create<CommandRequest_TraktCollectionEpisode>(
+                            c =>
+                            {
+                                c.AnimeEpisodeID = aep.AnimeEpisodeID;
+                                c.Action = (int)TraktSyncAction.Add;
+                            }
+                        );
                         cmdSyncTrakt.Save();
                     }
                 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NHibernate.Util;
 using NLog;
@@ -21,6 +22,7 @@ using Shoko.Server.ImageDownload;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
@@ -1100,7 +1102,8 @@ namespace Shoko.Server.Models
 
         public void QueueUpdateStats()
         {
-            CommandRequest_RefreshAnime cmdRefreshAnime = new CommandRequest_RefreshAnime(AniDB_ID);
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+            var cmdRefreshAnime = commandFactory.Create<CommandRequest_RefreshAnime>(c => c.AnimeID = AniDB_ID);
             cmdRefreshAnime.Save();
         }
 

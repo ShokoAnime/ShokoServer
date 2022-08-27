@@ -30,19 +30,6 @@ namespace Shoko.Server.Commands
             extraParams = new[] {SeriesName}
         };
 
-        public CommandRequest_TraktSyncCollectionSeries()
-        {
-        }
-
-        public CommandRequest_TraktSyncCollectionSeries(int animeSeriesID, string seriesName)
-        {
-            AnimeSeriesID = animeSeriesID;
-            SeriesName = seriesName;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_TraktSyncCollectionSeries");
@@ -111,6 +98,10 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_TraktSyncCollectionSeries(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

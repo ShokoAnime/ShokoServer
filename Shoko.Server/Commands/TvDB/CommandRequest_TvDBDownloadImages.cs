@@ -27,22 +27,6 @@ namespace Shoko.Server.Commands
             extraParams = new[] {TvDBSeriesID.ToString()}
         };
 
-
-        public CommandRequest_TvDBDownloadImages()
-        {
-        }
-
-
-        public CommandRequest_TvDBDownloadImages(int tvDBSeriesID, bool forced)
-        {
-            TvDBSeriesID = tvDBSeriesID;
-            ForceRefresh = forced;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
-
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_TvDBDownloadImages: {0}", TvDBSeriesID);
@@ -100,6 +84,10 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_TvDBDownloadImages(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

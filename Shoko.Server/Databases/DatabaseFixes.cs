@@ -11,6 +11,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
@@ -427,6 +428,7 @@ namespace Shoko.Server.Databases
             int i = 0;
             var list = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.Description))
                 .Select(a => a.AnimeID).Distinct().ToList();
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             foreach (var animeID in list)
             {
                 if (i % 10 == 0)
@@ -436,15 +438,15 @@ namespace Shoko.Server.Databases
                 i++;
                 try
                 {
-                    var command = new CommandRequest_GetAnimeHTTP
+                    var command = commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
                     {
-                        CacheOnly = true,
-                        DownloadRelations = false,
-                        AnimeID = animeID,
-                        CreateSeriesEntry = false,
-                        BubbleExceptions = true,
-                    };
-                    command.ProcessCommand(ShokoServer.ServiceContainer);
+                        c.CacheOnly = true;
+                        c.DownloadRelations = false;
+                        c.AnimeID = animeID;
+                        c.CreateSeriesEntry = false;
+                        c.BubbleExceptions = true;
+                    });
+                    command.ProcessCommand();
                 }
                 catch (Exception e)
                 {

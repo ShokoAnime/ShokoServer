@@ -29,21 +29,6 @@ namespace Shoko.Server.Commands.TvDB
             extraParams = new[] {animeID.ToString()}
         };
 
-        public CommandRequest_LinkAniDBTvDB()
-        {
-        }
-
-        public CommandRequest_LinkAniDBTvDB(int animeID, int tvDBID, bool additiveLink = false)
-        {
-            this.animeID = animeID;
-            this.tvDBID = tvDBID;
-            this.additiveLink = additiveLink;
-
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_LinkAniDBTvDB: {0}", animeID);
@@ -103,6 +88,10 @@ namespace Shoko.Server.Commands.TvDB
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_LinkAniDBTvDB(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

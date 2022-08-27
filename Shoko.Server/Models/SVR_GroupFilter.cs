@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using FluentNHibernate.MappingModel;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -13,6 +14,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Models
 {
@@ -1334,8 +1336,8 @@ namespace Shoko.Server.Models
 
         public void QueueUpdate()
         {
-            CommandRequest_RefreshGroupFilter cmdRefreshGroupFilter =
-                new CommandRequest_RefreshGroupFilter(GroupFilterID);
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+            var cmdRefreshGroupFilter = commandFactory.Create<CommandRequest_RefreshGroupFilter>(c => c.GroupFilterID = GroupFilterID);
             cmdRefreshGroupFilter.Save();
         }
 

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Resources;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
@@ -22,6 +23,7 @@ using Shoko.Server.PlexAndKodi.Plex;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Directory = Shoko.Models.Plex.Libraries.Directory;
 using MediaContainer = Shoko.Models.PlexAndKodi.MediaContainer;
@@ -771,6 +773,7 @@ namespace Shoko.Server.PlexAndKodi
                 if (!int.TryParse(userid, out int usid))
                     return rsp;
 
+                var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
                 if (vt == (int) AniDBVoteType.Episode)
                 {
                     SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(objid);
@@ -815,8 +818,14 @@ namespace Shoko.Server.PlexAndKodi
                     thisVote.VoteValue = iVoteValue;
                     RepoFactory.AniDB_Vote.Save(thisVote);
 
-                    CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt,
-                        Convert.ToDecimal(vvalue));
+                    var cmdVote = commandFactory.Create<CommandRequest_VoteAnime>(
+                        c =>
+                        {
+                            c.AnimeID = anime.AnimeID;
+                            c.VoteType = vt;
+                            c.VoteValue = Convert.ToDecimal(vvalue);
+                        }
+                    );
                     cmdVote.Save();
                 }
 
@@ -857,8 +866,14 @@ namespace Shoko.Server.PlexAndKodi
                     logger.Info(msg);
                     thisVote.VoteValue = iVoteValue;
                     RepoFactory.AniDB_Vote.Save(thisVote);
-                    CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt,
-                        Convert.ToDecimal(vvalue));
+                    var cmdVote = commandFactory.Create<CommandRequest_VoteAnime>(
+                        c =>
+                        {
+                            c.AnimeID = anime.AnimeID;
+                            c.VoteType = vt;
+                            c.VoteValue = Convert.ToDecimal(vvalue);
+                        }
+                    );
                     cmdVote.Save();
                 }
                 rsp.Code = "200";

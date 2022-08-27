@@ -26,19 +26,6 @@ namespace Shoko.Server.Commands
             extraParams = new[] {TraktID}
         };
 
-        public CommandRequest_TraktUpdateInfo()
-        {
-        }
-
-        public CommandRequest_TraktUpdateInfo(string traktID)
-        {
-            TraktID = traktID;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
-
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_TraktUpdateInfo: {0}", TraktID);
@@ -94,6 +81,10 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_TraktUpdateInfo(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

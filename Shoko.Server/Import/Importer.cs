@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using FluentNHibernate.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
@@ -41,6 +42,7 @@ namespace Shoko.Server
 
         public static void RunImport_IntegrityCheck()
         {
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             // files which have not been hashed yet
             // or files which do not have a VideoInfo record
             var filesToHash = RepoFactory.VideoLocal.GetVideosWithoutHash();
@@ -50,7 +52,7 @@ namespace Shoko.Server
                 dictFilesToHash[vl.VideoLocalID] = vl;
                 var p = vl.GetBestVideoLocalPlace(true);
                 if (p == null) continue;
-                var cmd = new CommandRequest_HashFile(p.FullServerPath, false);
+                var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = p.FullServerPath);
                 cmd.Save();
             }
 
@@ -63,7 +65,7 @@ namespace Shoko.Server
                     var p = vl.GetBestVideoLocalPlace(true);
                     if (p != null)
                     {
-                        var cmd = new CommandRequest_HashFile(p.FullServerPath, false);
+                        var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = p.FullServerPath);
                         cmd.Save();
                     }
                 }
@@ -78,7 +80,7 @@ namespace Shoko.Server
             foreach (var v in RepoFactory.VideoLocal.GetVideosWithoutEpisode()
                 .Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
-                var cmd = new CommandRequest_ProcessFile(v.VideoLocalID, false);
+                var cmd = commandFactory.Create<CommandRequest_ProcessFile>(c => c.VideoLocalID = v.VideoLocalID);
                 cmd.Save();
             }
 
@@ -93,7 +95,7 @@ namespace Shoko.Server
                     if (xref.CrossRefSource != (int) CrossRefSource.AniDB) continue;
                     if (aniFile == null)
                     {
-                        var cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, false);
+                        var cmd = commandFactory.Create<CommandRequest_ProcessFile>(c => c.VideoLocalID = vl.VideoLocalID);
                         cmd.Save();
                     }
                 }
@@ -112,104 +114,15 @@ namespace Shoko.Server
                 if (missingEpisodes)
                 {
                     // this will then download the anime etc
-                    var cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, false);
+                    var cmd = commandFactory.Create<CommandRequest_ProcessFile>(c => c.VideoLocalID = vl.VideoLocalID);
                     cmd.Save();
                 }
             }
         }
 
-        public static void SyncMedia()
-        {
-            if (!ServerSettings.Instance.WebCache.Enabled) return; 
-            var allfiles = RepoFactory.VideoLocal.GetAll().ToList();
-            AzureWebAPI.Send_Media(allfiles);
-        }
-
-        public static void SyncHashes()
-        {
-            if (!ServerSettings.Instance.WebCache.Enabled) return; 
-            var paused = ShokoService.CmdProcessorHasher.Paused;
-            ShokoService.CmdProcessorHasher.Paused = true;
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                var allfiles = RepoFactory.VideoLocal.GetAll().ToList();
-                var missfiles = allfiles.Where(
-                        a =>
-                            string.IsNullOrEmpty(a.CRC32) || string.IsNullOrEmpty(a.SHA1) ||
-                            string.IsNullOrEmpty(a.MD5) || a.SHA1 == "0000000000000000000000000000000000000000" ||
-                            a.MD5 == "00000000000000000000000000000000")
-                    .ToList();
-                var withfiles = allfiles.Except(missfiles).ToList();
-                //Check if we can populate md5,sha and crc from AniDB_Files
-                foreach (var v in missfiles.ToList())
-                {
-                    ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
-                    {
-                        message = "Checking File for Hashes: {0}",
-                        queueState = QueueStateEnum.CheckingFile,
-                        extraParams = new[] {v.FileName}
-                    };
-                    var ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
-                    if (ls != null)
-                    {
-                        ls = ls.Where(
-                                a =>
-                                    !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) &&
-                                    !string.IsNullOrEmpty(a.SHA1))
-                            .ToList();
-                        if (ls.Count > 0)
-                        {
-                            v.CRC32 = ls[0].CRC32.ToUpperInvariant();
-                            v.MD5 = ls[0].MD5.ToUpperInvariant();
-                            v.SHA1 = ls[0].SHA1.ToUpperInvariant();
-                            RepoFactory.VideoLocal.Save(v, false);
-                            missfiles.Remove(v);
-                        }
-                    }
-                }
-                //We need to recalculate the sha1, md5 and crc32 of the missing ones.
-                var tosend = new List<SVR_VideoLocal>();
-                foreach (var v in missfiles)
-                {
-                    try
-                    {
-                        var p = v.GetBestVideoLocalPlace(true);
-                        if (p != null)
-                        {
-                            ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
-                            {
-                                message = "Hashing File: {0}",
-                                queueState = QueueStateEnum.HashingFile,
-                                extraParams = new[] {v.FileName}
-                            };
-                            var h = FileHashHelper.GetHashInfo(p.FullServerPath, true, ShokoServer.OnHashProgress,
-                                true,
-                                true,
-                                true);
-
-                            v.Hash = h.ED2K;
-                            v.CRC32 = h.CRC32;
-                            v.MD5 = h.MD5;
-                            v.SHA1 = h.SHA1;
-                            v.HashSource = (int) HashSource.DirectHash;
-                            withfiles.Add(v);
-                        }
-                    }
-                    catch
-                    {
-                        //Ignored
-                    }
-                }
-                //Send the hashes
-                AzureWebAPI.Send_FileHash(withfiles);
-                Logger.Info("Sync Hashes Complete");
-            }
-            ShokoService.CmdProcessorHasher.Paused = paused;
-        }
-
-
         public static void RunImport_ScanFolder(int importFolderID, bool skipMyList = false)
         {
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             // get a complete list of files
             var fileList = new List<string>();
             int filesFound = 0, videosFound = 0;
@@ -274,7 +187,12 @@ namespace Shoko.Server
 
                     videosFound++;
 
-                    new CommandRequest_HashFile(fileName, false, skipMyList).Save();
+                    commandFactory.Create<CommandRequest_HashFile>(c =>
+                        {
+                            c.FileName = fileName;
+                            c.SkipMyList = skipMyList;
+                        }
+                    ).Save();
                 }
                 Logger.Debug("Found {0} new files", filesFound);
                 Logger.Debug("Found {0} videos", videosFound);
@@ -288,6 +206,7 @@ namespace Shoko.Server
 
         public static void RunImport_DropFolders()
         {
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             // get a complete list of files
             var fileList = new List<string>();
             foreach (var share in RepoFactory.ImportFolder.GetAll())
@@ -324,7 +243,7 @@ namespace Shoko.Server
 
                 videosFound++;
 
-                var cr_hashfile = new CommandRequest_HashFile(fileName, false);
+                var cr_hashfile = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = fileName);
                 cr_hashfile.Save();
             }
             Logger.Debug("Found {0} files", filesFound);
@@ -333,6 +252,7 @@ namespace Shoko.Server
 
         public static void RunImport_NewFiles()
         {
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             // first build a list of files that we already know about, as we don't want to process them again
             var filesAll = RepoFactory.VideoLocalPlace.GetAll();
             var dictFilesExisting = new Dictionary<string, SVR_VideoLocal_Place>();
@@ -410,7 +330,7 @@ namespace Shoko.Server
                 var tup = VideoLocal_PlaceRepository.GetFromFullPath(fileName);
                 ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(fileName));
 
-                var cr_hashfile = new CommandRequest_HashFile(fileName, false);
+                var cr_hashfile = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = fileName);
                 cr_hashfile.Save();
             }
             Logger.Debug("Found {0} files", filesFound);
@@ -419,20 +339,16 @@ namespace Shoko.Server
 
         public static void RunImport_GetImages()
         {
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             // AniDB posters
             foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
             {
-                if (anime.AnimeID == 8580)
-                    Console.Write("");
-
                 if (string.IsNullOrEmpty(anime.PosterPath)) continue;
 
                 var fileExists = File.Exists(anime.PosterPath);
-                if (!fileExists)
-                {
-                    var cmd = new CommandRequest_DownloadAniDBImages(anime.AnimeID, false);
-                    cmd.Save();
-                }
+                if (fileExists) continue;
+                var cmd = commandFactory.Create<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = anime.AnimeID);
+                cmd.Save();
             }
 
             // TvDB Posters
@@ -447,13 +363,11 @@ namespace Shoko.Server
                     if (string.IsNullOrEmpty(tvPoster.GetFullImagePath())) continue;
                     var fileExists = File.Exists(tvPoster.GetFullImagePath());
 
-                    if (fileExists)
-                    {
-                        if (postersCount.ContainsKey(tvPoster.SeriesID))
-                            postersCount[tvPoster.SeriesID] = postersCount[tvPoster.SeriesID] + 1;
-                        else
-                            postersCount[tvPoster.SeriesID] = 1;
-                    }
+                    if (!fileExists) continue;
+                    if (postersCount.ContainsKey(tvPoster.SeriesID))
+                        postersCount[tvPoster.SeriesID] += 1;
+                    else
+                        postersCount[tvPoster.SeriesID] = 1;
                 }
 
                 foreach (var tvPoster in allPosters)
@@ -465,17 +379,20 @@ namespace Shoko.Server
                     if (postersCount.ContainsKey(tvPoster.SeriesID))
                         postersAvailable = postersCount[tvPoster.SeriesID];
 
-                    if (!fileExists && postersAvailable < ServerSettings.Instance.TvDB.AutoPostersAmount)
-                    {
-                        var cmd = new CommandRequest_DownloadImage(tvPoster.TvDB_ImagePosterID,
-                            ImageEntityType.TvDB_Cover, false);
-                        cmd.Save();
+                    if (fileExists || postersAvailable >= ServerSettings.Instance.TvDB.AutoPostersAmount) continue;
+                    var cmd = commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = tvPoster.TvDB_ImagePosterID;
+                            c.EntityType = (int)ImageEntityType.TvDB_Cover;
+                        }
+                    );
+                    cmd.Save();
 
-                        if (postersCount.ContainsKey(tvPoster.SeriesID))
-                            postersCount[tvPoster.SeriesID] = postersCount[tvPoster.SeriesID] + 1;
-                        else
-                            postersCount[tvPoster.SeriesID] = 1;
-                    }
+                    if (postersCount.ContainsKey(tvPoster.SeriesID))
+                        postersCount[tvPoster.SeriesID] += 1;
+                    else
+                        postersCount[tvPoster.SeriesID] = 1;
                 }
             }
 
@@ -490,13 +407,11 @@ namespace Shoko.Server
                     if (string.IsNullOrEmpty(tvFanart.GetFullImagePath())) continue;
                     var fileExists = File.Exists(tvFanart.GetFullImagePath());
 
-                    if (fileExists)
-                    {
-                        if (fanartCount.ContainsKey(tvFanart.SeriesID))
-                            fanartCount[tvFanart.SeriesID] = fanartCount[tvFanart.SeriesID] + 1;
-                        else
-                            fanartCount[tvFanart.SeriesID] = 1;
-                    }
+                    if (!fileExists) continue;
+                    if (fanartCount.ContainsKey(tvFanart.SeriesID))
+                        fanartCount[tvFanart.SeriesID] += 1;
+                    else
+                        fanartCount[tvFanart.SeriesID] = 1;
                 }
 
                 foreach (var tvFanart in allFanart)
@@ -508,17 +423,20 @@ namespace Shoko.Server
                     if (fanartCount.ContainsKey(tvFanart.SeriesID))
                         fanartAvailable = fanartCount[tvFanart.SeriesID];
 
-                    if (!fileExists && fanartAvailable < ServerSettings.Instance.TvDB.AutoFanartAmount)
-                    {
-                        var cmd = new CommandRequest_DownloadImage(tvFanart.TvDB_ImageFanartID,
-                            ImageEntityType.TvDB_FanArt, false);
-                        cmd.Save();
+                    if (fileExists || fanartAvailable >= ServerSettings.Instance.TvDB.AutoFanartAmount) continue;
+                    var cmd = commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = tvFanart.TvDB_ImageFanartID;
+                            c.EntityType = (int)ImageEntityType.TvDB_FanArt;
+                        }
+                    );
+                    cmd.Save();
 
-                        if (fanartCount.ContainsKey(tvFanart.SeriesID))
-                            fanartCount[tvFanart.SeriesID] = fanartCount[tvFanart.SeriesID] + 1;
-                        else
-                            fanartCount[tvFanart.SeriesID] = 1;
-                    }
+                    if (fanartCount.ContainsKey(tvFanart.SeriesID))
+                        fanartCount[tvFanart.SeriesID] += 1;
+                    else
+                        fanartCount[tvFanart.SeriesID] = 1;
                 }
             }
 
@@ -534,13 +452,11 @@ namespace Shoko.Server
                     if (string.IsNullOrEmpty(tvBanner.GetFullImagePath())) continue;
                     var fileExists = File.Exists(tvBanner.GetFullImagePath());
 
-                    if (fileExists)
-                    {
-                        if (fanartCount.ContainsKey(tvBanner.SeriesID))
-                            fanartCount[tvBanner.SeriesID] = fanartCount[tvBanner.SeriesID] + 1;
-                        else
-                            fanartCount[tvBanner.SeriesID] = 1;
-                    }
+                    if (!fileExists) continue;
+                    if (fanartCount.ContainsKey(tvBanner.SeriesID))
+                        fanartCount[tvBanner.SeriesID] += 1;
+                    else
+                        fanartCount[tvBanner.SeriesID] = 1;
                 }
 
                 foreach (var tvBanner in allBanners)
@@ -552,18 +468,20 @@ namespace Shoko.Server
                     if (fanartCount.ContainsKey(tvBanner.SeriesID))
                         bannersAvailable = fanartCount[tvBanner.SeriesID];
 
-                    if (!fileExists && bannersAvailable < ServerSettings.Instance.TvDB.AutoWideBannersAmount)
-                    {
-                        var cmd =
-                            new CommandRequest_DownloadImage(tvBanner.TvDB_ImageWideBannerID,
-                                ImageEntityType.TvDB_Banner, false);
-                        cmd.Save();
+                    if (fileExists || bannersAvailable >= ServerSettings.Instance.TvDB.AutoWideBannersAmount) continue;
+                    var cmd = commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = tvBanner.TvDB_ImageWideBannerID;
+                            c.EntityType = (int)ImageEntityType.TvDB_Banner;
+                        }
+                    );
+                    cmd.Save();
 
-                        if (fanartCount.ContainsKey(tvBanner.SeriesID))
-                            fanartCount[tvBanner.SeriesID] = fanartCount[tvBanner.SeriesID] + 1;
-                        else
-                            fanartCount[tvBanner.SeriesID] = 1;
-                    }
+                    if (fanartCount.ContainsKey(tvBanner.SeriesID))
+                        fanartCount[tvBanner.SeriesID] += 1;
+                    else
+                        fanartCount[tvBanner.SeriesID] = 1;
                 }
             }
 
@@ -573,12 +491,15 @@ namespace Shoko.Server
             {
                 if (string.IsNullOrEmpty(tvEpisode.GetFullImagePath())) continue;
                 var fileExists = File.Exists(tvEpisode.GetFullImagePath());
-                if (!fileExists)
-                {
-                    var cmd = new CommandRequest_DownloadImage(tvEpisode.TvDB_EpisodeID,
-                        ImageEntityType.TvDB_Episode, false);
-                    cmd.Save();
-                }
+                if (fileExists) continue;
+                var cmd = commandFactory.Create<CommandRequest_DownloadImage>(
+                    c =>
+                    {
+                        c.EntityID = tvEpisode.TvDB_EpisodeID;
+                        c.EntityType = (int)ImageEntityType.TvDB_Episode;
+                    }
+                );
+                cmd.Save();
             }
 
             // MovieDB Posters
@@ -593,13 +514,11 @@ namespace Shoko.Server
                     if (string.IsNullOrEmpty(moviePoster.GetFullImagePath())) continue;
                     var fileExists = File.Exists(moviePoster.GetFullImagePath());
 
-                    if (fileExists)
-                    {
-                        if (postersCount.ContainsKey(moviePoster.MovieId))
-                            postersCount[moviePoster.MovieId] = postersCount[moviePoster.MovieId] + 1;
-                        else
-                            postersCount[moviePoster.MovieId] = 1;
-                    }
+                    if (!fileExists) continue;
+                    if (postersCount.ContainsKey(moviePoster.MovieId))
+                        postersCount[moviePoster.MovieId] += 1;
+                    else
+                        postersCount[moviePoster.MovieId] = 1;
                 }
 
                 foreach (var moviePoster in allPosters)
@@ -611,18 +530,20 @@ namespace Shoko.Server
                     if (postersCount.ContainsKey(moviePoster.MovieId))
                         postersAvailable = postersCount[moviePoster.MovieId];
 
-                    if (!fileExists && postersAvailable < ServerSettings.Instance.MovieDb.AutoPostersAmount)
-                    {
-                        var cmd = new CommandRequest_DownloadImage(
-                            moviePoster.MovieDB_PosterID,
-                            ImageEntityType.MovieDB_Poster, false);
-                        cmd.Save();
+                    if (fileExists || postersAvailable >= ServerSettings.Instance.MovieDb.AutoPostersAmount) continue;
+                    var cmd = commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = moviePoster.MovieDB_PosterID;
+                            c.EntityType = (int)ImageEntityType.MovieDB_Poster;
+                        }
+                    );
+                    cmd.Save();
 
-                        if (postersCount.ContainsKey(moviePoster.MovieId))
-                            postersCount[moviePoster.MovieId] = postersCount[moviePoster.MovieId] + 1;
-                        else
-                            postersCount[moviePoster.MovieId] = 1;
-                    }
+                    if (postersCount.ContainsKey(moviePoster.MovieId))
+                        postersCount[moviePoster.MovieId] += 1;
+                    else
+                        postersCount[moviePoster.MovieId] = 1;
                 }
             }
 
@@ -638,13 +559,11 @@ namespace Shoko.Server
                     if (string.IsNullOrEmpty(movieFanart.GetFullImagePath())) continue;
                     var fileExists = File.Exists(movieFanart.GetFullImagePath());
 
-                    if (fileExists)
-                    {
-                        if (fanartCount.ContainsKey(movieFanart.MovieId))
-                            fanartCount[movieFanart.MovieId] = fanartCount[movieFanart.MovieId] + 1;
-                        else
-                            fanartCount[movieFanart.MovieId] = 1;
-                    }
+                    if (!fileExists) continue;
+                    if (fanartCount.ContainsKey(movieFanart.MovieId))
+                        fanartCount[movieFanart.MovieId] += 1;
+                    else
+                        fanartCount[movieFanart.MovieId] = 1;
                 }
 
                 foreach (var movieFanart in RepoFactory.MovieDB_Fanart.GetAll())
@@ -656,18 +575,20 @@ namespace Shoko.Server
                     if (fanartCount.ContainsKey(movieFanart.MovieId))
                         fanartAvailable = fanartCount[movieFanart.MovieId];
 
-                    if (!fileExists && fanartAvailable < ServerSettings.Instance.MovieDb.AutoFanartAmount)
-                    {
-                        var cmd = new CommandRequest_DownloadImage(
-                            movieFanart.MovieDB_FanartID,
-                            ImageEntityType.MovieDB_FanArt, false);
-                        cmd.Save();
+                    if (fileExists || fanartAvailable >= ServerSettings.Instance.MovieDb.AutoFanartAmount) continue;
+                    var cmd = commandFactory.Create<CommandRequest_DownloadImage>(
+                        c =>
+                        {
+                            c.EntityID = movieFanart.MovieDB_FanartID;
+                            c.EntityType = (int)ImageEntityType.MovieDB_FanArt;
+                        }
+                    );
+                    cmd.Save();
 
-                        if (fanartCount.ContainsKey(movieFanart.MovieId))
-                            fanartCount[movieFanart.MovieId] = fanartCount[movieFanart.MovieId] + 1;
-                        else
-                            fanartCount[movieFanart.MovieId] = 1;
-                    }
+                    if (fanartCount.ContainsKey(movieFanart.MovieId))
+                        fanartCount[movieFanart.MovieId] += 1;
+                    else
+                        fanartCount[movieFanart.MovieId] = 1;
                 }
             }
 
@@ -682,8 +603,7 @@ namespace Shoko.Server
                     var AnimeID = RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID)?.FirstOrDefault()
                                       ?.AnimeID ?? 0;
                     if (AnimeID == 0) continue;
-                    var cmd =
-                        new CommandRequest_DownloadAniDBImages(AnimeID, false);
+                    var cmd = commandFactory.Create<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = AnimeID);
                     cmd.Save();
                 }
             }
@@ -701,8 +621,7 @@ namespace Shoko.Server
                     var AnimeID = RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID)?.FirstOrDefault()
                                       ?.AnimeID ?? 0;
                     if (AnimeID == 0) continue;
-                    var cmd =
-                        new CommandRequest_DownloadAniDBImages(AnimeID, false);
+                    var cmd = commandFactory.Create<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = AnimeID);
                     cmd.Save();
                 }
             }
@@ -710,9 +629,10 @@ namespace Shoko.Server
 
         public static void ValidateAllImages()
         {
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             Analytics.PostEvent("Management", nameof(ValidateAllImages));
 
-            var cmd = new CommandRequest_ValidateAllImages();
+            var cmd = commandFactory.Create<CommandRequest_ValidateAllImages>();
             cmd.Save();
         }
 
@@ -744,17 +664,25 @@ namespace Shoko.Server
 
         public static void RunImport_UpdateAllAniDB()
         {
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             Analytics.PostEvent("Management", nameof(RunImport_UpdateAllAniDB));
 
             foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
             {
-                var cmd = new CommandRequest_GetAnimeHTTP(anime.AnimeID, true, false, false);
+                var cmd = commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                    c =>
+                    {
+                        c.AnimeID = anime.AnimeID;
+                        c.ForceRefresh = true;
+                    }
+                );
                 cmd.Save();
             }
         }
 
         public static void RemoveRecordsWithoutPhysicalFiles(bool removeMyList = true)
         {
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             Logger.Info("Remove Missing Files: Start");
             var seriesToUpdate = new HashSet<SVR_AnimeSeries>();
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -875,13 +803,24 @@ namespace Shoko.Server
                             {
                                 var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                                 if (ep == null) continue;
-                                var cmdDel = new CommandRequest_DeleteFileFromMyList { AnimeID = xref.AnimeID, EpisodeType = ep.GetEpisodeTypeEnum(), EpisodeNumber = ep.EpisodeNumber };
+                                var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(c =>
+                                {
+                                    c.AnimeID = xref.AnimeID;
+                                    c.EpisodeType = ep.GetEpisodeTypeEnum();
+                                    c.EpisodeNumber = ep.EpisodeNumber;
+                                });
                                 cmdDel.Save();
                             }
                         }
                         else
                         {
-                            var cmdDel = new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                            var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+                                c =>
+                                {
+                                    c.Hash = v.Hash;
+                                    c.FileSize = v.FileSize;
+                                }
+                            );
                             cmdDel.Save();
                         }
                     }
@@ -953,6 +892,7 @@ namespace Shoko.Server
 
         public static void UpdateAllStats()
         {
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             Analytics.PostEvent("Management", "Update All Stats");
             foreach (var ser in RepoFactory.AnimeSeries.GetAll())
             {
@@ -964,13 +904,14 @@ namespace Shoko.Server
                 gf.QueueUpdate();
             }
 
-            var cmd = new CommandRequest_RefreshGroupFilter(0);
+            var cmd = commandFactory.Create<CommandRequest_RefreshGroupFilter>(c => c.GroupFilterID = 0);
             cmd.Save();
         }
 
 
         public static int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly)
         {
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             var vidsToUpdate = new List<int>();
             try
             {
@@ -994,7 +935,13 @@ namespace Shoko.Server
                 {
                     foreach (var id in vidsToUpdate)
                     {
-                        var cmd = new CommandRequest_GetFile(id, true);
+                        var cmd = commandFactory.Create<CommandRequest_GetFile>(
+                            c =>
+                            {
+                                c.VideoLocalID = id;
+                                c.ForceAniDB = true;
+                            }
+                        );
                         cmd.Save();
                     }
                 }
@@ -1052,6 +999,7 @@ namespace Shoko.Server
         public static void CheckForTvDBUpdates(bool forceRefresh)
         {
             if (ServerSettings.Instance.TvDB.UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TvDB.UpdateFrequency);
 
             // update tvdb info every 12 hours
@@ -1077,9 +1025,13 @@ namespace Shoko.Server
                 {
                     // download and update series info, episode info and episode images
                     // will also download fanart, posters and wide banners
-                    var cmdSeriesEps =
-                        new CommandRequest_TvDBUpdateSeries(tvid,
-                            true);
+                    var cmdSeriesEps = commandFactory.Create<CommandRequest_TvDBUpdateSeries>(
+                        c =>
+                        {
+                            c.TvDBSeriesID = tvid;
+                            c.ForceRefresh = true;
+                        }
+                    );
                     cmdSeriesEps.Save();
                 }
             }
@@ -1101,6 +1053,7 @@ namespace Shoko.Server
 
         public static void CheckForCalendarUpdate(bool forceRefresh)
         {
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             if (ServerSettings.Instance.AniDb.Calendar_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
                 return;
             var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Calendar_UpdateFrequency);
@@ -1121,12 +1074,13 @@ namespace Shoko.Server
                 }
             }
 
-            var cmd = new CommandRequest_GetCalendar(forceRefresh);
+            var cmd = commandFactory.Create<CommandRequest_GetCalendar>(c => c.ForceRefresh = forceRefresh);
             cmd.Save();
         }
 
         public static void CheckForAnimeUpdate(bool forceRefresh)
         {
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             if (ServerSettings.Instance.AniDb.Anime_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
             var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Anime_UpdateFrequency);
 
@@ -1143,7 +1097,7 @@ namespace Shoko.Server
                 }
             }
 
-            var cmd = new CommandRequest_GetUpdated(true);
+            var cmd = commandFactory.Create<CommandRequest_GetUpdated>(c => c.ForceRefresh = true);
             cmd.Save();
         }
 
@@ -1155,6 +1109,7 @@ namespace Shoko.Server
         public static void CheckForMyListSyncUpdate(bool forceRefresh)
         {
             if (ServerSettings.Instance.AniDb.MyList_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.MyList_UpdateFrequency);
 
             // update the calendar every 24 hours
@@ -1172,7 +1127,7 @@ namespace Shoko.Server
                 }
             }
 
-            var cmd = new CommandRequest_SyncMyList(forceRefresh);
+            var cmd = commandFactory.Create<CommandRequest_SyncMyList>(c => c.ForceRefresh = forceRefresh);
             cmd.Save();
         }
 
@@ -1180,6 +1135,7 @@ namespace Shoko.Server
         {
             if (!ServerSettings.Instance.TraktTv.Enabled) return;
             if (ServerSettings.Instance.TraktTv.SyncFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TraktTv.SyncFrequency);
 
             // update the calendar every xxx hours
@@ -1198,7 +1154,7 @@ namespace Shoko.Server
 
             if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
             {
-                var cmd = new CommandRequest_TraktSyncCollection(false);
+                var cmd = commandFactory.Create<CommandRequest_TraktSyncCollection>();
                 cmd.Save();
             }
         }
@@ -1207,6 +1163,7 @@ namespace Shoko.Server
         {
             if (!ServerSettings.Instance.TraktTv.Enabled) return;
             if (ServerSettings.Instance.TraktTv.UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TraktTv.UpdateFrequency);
 
             // update the calendar every xxx hours
@@ -1222,7 +1179,7 @@ namespace Shoko.Server
                 }
             }
 
-            var cmd = new CommandRequest_TraktUpdateAllSeries(false);
+            var cmd = commandFactory.Create<CommandRequest_TraktUpdateAllSeries>();
             cmd.Save();
         }
 
@@ -1269,6 +1226,7 @@ namespace Shoko.Server
         {
             if (ServerSettings.Instance.AniDb.File_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
             var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.File_UpdateFrequency);
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
 
             // check for any updated anime info every 12 hours
 
@@ -1291,7 +1249,13 @@ namespace Shoko.Server
 
             foreach (var vl in filesWithoutEpisode)
             {
-                var cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
+                var cmd = commandFactory.Create<CommandRequest_ProcessFile>(
+                    c =>
+                    {
+                        c.VideoLocalID = vl.VideoLocalID;
+                        c.ForceAniDB = true;
+                    }
+                );
                 cmd.Save();
             }
 
@@ -1337,39 +1301,6 @@ namespace Shoko.Server
             {
                 Logger.Error(ex, string.Format("Error in CheckForPreviouslyIgnored: {0}", ex));
             }
-        }
-
-        public static void UpdateAniDBTitles()
-        {
-            var freqHours = 100;
-
-            var process = false;
-
-            if (!process) return;
-
-            // check for any updated anime info every 100 hours
-
-            var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBTitles);
-            if (sched != null)
-            {
-                // if we have run this in the last 100 hours and are not forcing it, then exit
-                var tsLastRun = DateTime.Now - sched.LastUpdate;
-                if (tsLastRun.TotalHours < freqHours) return;
-            }
-
-            if (sched == null)
-            {
-                sched = new ScheduledUpdate
-                {
-                    UpdateType = (int)ScheduledUpdateType.AniDBTitles,
-                    UpdateDetails = string.Empty
-                };
-            }
-            sched.LastUpdate = DateTime.Now;
-            RepoFactory.ScheduledUpdate.Save(sched);
-
-            var cmd = new CommandRequest_GetAniDBTitles();
-            cmd.Save();
         }
     }
 }

@@ -38,19 +38,6 @@ namespace Shoko.Server.Commands
             extraParams = new[] {AnimeID.ToString()}
         };
 
-        public CommandRequest_TvDBSearchAnime()
-        {
-        }
-
-        public CommandRequest_TvDBSearchAnime(int animeID, bool forced)
-        {
-            AnimeID = animeID;
-            ForceRefresh = forced;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
         protected override void Process()
         {
             Logger.LogInformation("Processing CommandRequest_TvDBSearchAnime: {0}", AnimeID);
@@ -266,6 +253,10 @@ namespace Shoko.Server.Commands
                 DateTimeUpdated = DateTime.Now
             };
             return cq;
+        }
+
+        public CommandRequest_TvDBSearchAnime(ILoggerFactory loggerFactory) : base(loggerFactory)
+        {
         }
     }
 }

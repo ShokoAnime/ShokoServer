@@ -752,6 +752,7 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
 
         public SVR_AnimeSeries CreateAnimeSeriesAndGroup(ISessionWrapper session, SVR_AnimeSeries existingSeries = null, int? existingGroupID = null)
         {
+            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             // Create a new AnimeSeries record
             SVR_AnimeSeries series = existingSeries ?? new SVR_AnimeSeries();
 
@@ -778,22 +779,21 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
             {
                 if (ServerSettings.Instance.TvDB.AutoLink)
                 {
-                    CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(AnimeID, forced: false);
+                    var cmd = commandFactory.Create<CommandRequest_TvDBSearchAnime>(c => c.AnimeID = AnimeID);
                     cmd.Save();
                 }
 
                 // check for Trakt associations
                 if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                 {
-                    CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(AnimeID, forced: false);
-                    cmd2.Save();
+                    var cmd = commandFactory.Create<CommandRequest_TraktSearchAnime>(c => c.AnimeID = AnimeID);
+                    cmd.Save();
                 }
 
                 if (AnimeType == (int) Shoko.Models.Enums.AnimeType.Movie)
                 {
-                    CommandRequest_MovieDBSearchAnime cmd3 =
-                        new CommandRequest_MovieDBSearchAnime(AnimeID, false);
-                    cmd3.Save();
+                    var cmd = commandFactory.Create<CommandRequest_MovieDBSearchAnime>(c => c.AnimeID = AnimeID);
+                    cmd.Save();
                 }
             }
 
