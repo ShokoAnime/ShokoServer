@@ -20,6 +20,7 @@ namespace Shoko.Server.Models
 {
     public class SVR_GroupFilter : GroupFilter
     {
+        private readonly object _lock = new();
         public int GroupsIdsVersion { get; set; }
         public string GroupsIdsString { get; set; }
 
@@ -76,32 +77,46 @@ namespace Shoko.Server.Models
         {
             get
             {
-                if (_groupsId.Count == 0 && GroupsIdsVersion == GROUPFILTER_VERSION)
+                lock (_lock)
                 {
-                    Dictionary<int, List<int>> vals =
-                        JsonConvert.DeserializeObject<Dictionary<int, List<int>>>(GroupsIdsString);
-                    if (vals != null)
-                        _groupsId = vals.ToDictionary(a => a.Key, a => new HashSet<int>(a.Value));
+
+                    if (_groupsId.Count == 0 && GroupsIdsVersion == GROUPFILTER_VERSION)
+                    {
+                        Dictionary<int, List<int>> vals =
+                            JsonConvert.DeserializeObject<Dictionary<int, List<int>>>(GroupsIdsString);
+                        if (vals != null)
+                            _groupsId = vals.ToDictionary(a => a.Key, a => new HashSet<int>(a.Value));
+                    }
+
+                    return _groupsId;
                 }
-                return _groupsId;
             }
-            set => _groupsId = value;
+            set
+            {
+                lock (_lock) _groupsId = value;
+            }
         }
 
         public virtual Dictionary<int, HashSet<int>> SeriesIds
         {
             get
             {
-                if (_seriesId.Count == 0 && SeriesIdsVersion == SERIEFILTER_VERSION)
+                lock (_lock)
                 {
-                    Dictionary<int, List<int>> vals =
-                        JsonConvert.DeserializeObject<Dictionary<int, List<int>>>(SeriesIdsString);
-                    if (vals != null)
-                        _seriesId = vals.ToDictionary(a => a.Key, a => new HashSet<int>(a.Value));
+                    if (_seriesId.Count == 0 && SeriesIdsVersion == SERIEFILTER_VERSION)
+                    {
+                        Dictionary<int, List<int>> vals =
+                            JsonConvert.DeserializeObject<Dictionary<int, List<int>>>(SeriesIdsString);
+                        if (vals != null)
+                            _seriesId = vals.ToDictionary(a => a.Key, a => new HashSet<int>(a.Value));
+                    }
+
+                    return _seriesId;
                 }
-                return _seriesId;
             }
-            set => _seriesId = value;
+            set {
+                lock (_lock) _seriesId = value;
+            }
         }
 
         public virtual List<GroupFilterCondition> Conditions
@@ -227,14 +242,19 @@ namespace Shoko.Server.Models
                 GroupCount = 0,
                 SeriesCount = 0
             };
-            if (GroupsIds.ContainsKey(user.JMMUserID))
+            lock (_lock)
             {
-                contract.GroupCount = GroupsIds[user.JMMUserID].Count;
+                if (GroupsIds.ContainsKey(user.JMMUserID))
+                {
+                    contract.GroupCount = GroupsIds[user.JMMUserID].Count;
+                }
+
+                if (SeriesIds.ContainsKey(user.JMMUserID))
+                {
+                    contract.SeriesCount = SeriesIds[user.JMMUserID].Count;
+                }
             }
-            if (SeriesIds.ContainsKey(user.JMMUserID))
-            {
-                contract.SeriesCount = SeriesIds[user.JMMUserID].Count;
-            }
+
             return contract;
         }
 
@@ -245,12 +265,10 @@ namespace Shoko.Server.Models
             if (ApplyToSeries == 1)
             {
                 result = CalculateGroupFilterSeries(ser, user);
-                if (result)
-                {
-                    GroupsIds[user?.JMMUserID ?? 0] = SeriesIds[user?.JMMUserID ?? 0]
-                        .Select(a => RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
-                        .Where(a => a != -1).ToHashSet();
-                }
+                if (!result) return false;
+                lock (_lock) GroupsIds[user?.JMMUserID ?? 0] = SeriesIds[user?.JMMUserID ?? 0]
+                    .Select(a => RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
+                    .Where(a => a != -1).ToHashSet();
             }
             else
             {
@@ -277,13 +295,11 @@ namespace Shoko.Server.Models
                 if (contract == null) return false;
 
                 result |= CalculateGroupFilterGroups(contract, user);
-                if (result)
-                {
-                    SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0]
-                        .SelectMany(a =>
-                            RepoFactory.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
-                        .Where(a => a != -1).ToHashSet();
-                }
+                if (!result) return false;
+                lock (_lock) SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0]
+                    .SelectMany(a =>
+                        RepoFactory.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
+                    .Where(a => a != -1).ToHashSet();
             }
             return result;
         }
@@ -306,26 +322,22 @@ namespace Shoko.Server.Models
                     result |= CalculateGroupFilterSeries(contract, user);
                 }
 
-                if (result)
-                {
-                    GroupsIds[user?.JMMUserID ?? 0] = SeriesIds[user?.JMMUserID ?? 0]
-                        .Select(a => RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
-                        .Where(a => a != -1).ToHashSet();
-                }
+                if (!result) return false;
+                lock (_lock) GroupsIds[user?.JMMUserID ?? 0] = SeriesIds[user?.JMMUserID ?? 0]
+                    .Select(a => RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
+                    .Where(a => a != -1).ToHashSet();
             }
             else
             {
                 result = CalculateGroupFilterGroups(grp, user);
-                if (result)
-                {
-                    SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0].SelectMany(a => RepoFactory.AnimeGroup.GetByID(a)
-                            ?.GetAllSeries()
-                            ?.Select(b => b?.AnimeSeriesID ?? -1))
-                        .Where(a => a != -1)
-                        .ToHashSet();
-                }
+                if (!result) return false;
+                lock (_lock) SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0].SelectMany(a => RepoFactory.AnimeGroup.GetByID(a)
+                        ?.GetAllSeries()
+                        ?.Select(b => b?.AnimeSeriesID ?? -1))
+                    .Where(a => a != -1)
+                    .ToHashSet();
             }
-            return result;
+            return true;
         }
 
 
@@ -335,25 +347,26 @@ namespace Shoko.Server.Models
 
             bool change = false;
 
-            SeriesIds.TryGetValue(user?.JMMUserID ?? 0, out HashSet<int> seriesIds);
+            HashSet<int> seriesIds;
+            lock (_lock) SeriesIds.TryGetValue(user?.JMMUserID ?? 0, out seriesIds);
 
             if (seriesIds == null)
             {
                 seriesIds = new HashSet<int>();
-                SeriesIds[user?.JMMUserID ?? 0] = seriesIds;
+                lock (_lock) SeriesIds[user?.JMMUserID ?? 0] = seriesIds;
             }
             else
             {
-                change = seriesIds.RemoveWhere(a => RepoFactory.AnimeSeries.GetByID(a) == null) > 0;
+                lock (_lock) change = seriesIds.RemoveWhere(a => RepoFactory.AnimeSeries.GetByID(a) == null) > 0;
             }
 
             if (EvaluateGroupFilter(ser, user))
             {
-                change |= seriesIds.Add(ser.AnimeSeriesID);
+                lock (_lock) change |= seriesIds.Add(ser.AnimeSeriesID);
             }
             else
             {
-                change |= seriesIds.Remove(ser.AnimeSeriesID);
+                lock (_lock) change |= seriesIds.Remove(ser.AnimeSeriesID);
             }
 
             return change;
@@ -364,25 +377,26 @@ namespace Shoko.Server.Models
             if (grp == null) return false;
             bool change = false;
 
-            GroupsIds.TryGetValue(user?.JMMUserID ?? 0, out HashSet<int> groupIds);
+            HashSet<int> groupIds;
+            lock (_lock) GroupsIds.TryGetValue(user?.JMMUserID ?? 0, out groupIds);
 
             if (groupIds == null)
             {
                 groupIds = new HashSet<int>();
-                GroupsIds[user?.JMMUserID ?? 0] = groupIds;
+                lock (_lock) GroupsIds[user?.JMMUserID ?? 0] = groupIds;
             }
             else
             {
-                change = groupIds.RemoveWhere(a => RepoFactory.AnimeGroup.GetByID(a) == null) > 0;
+                lock (_lock) change = groupIds.RemoveWhere(a => RepoFactory.AnimeGroup.GetByID(a) == null) > 0;
             }
 
             if (EvaluateGroupFilter(grp, user))
             {
-                change |= groupIds.Add(grp.AnimeGroupID);
+                lock (_lock) change |= groupIds.Add(grp.AnimeGroupID);
             }
             else
             {
-                change |= groupIds.Remove(grp.AnimeGroupID);
+                lock (_lock) change |= groupIds.Remove(grp.AnimeGroupID);
             }
 
             return change;
@@ -394,10 +408,12 @@ namespace Shoko.Server.Models
             {
                 EvaluateAnimeSeries();
 
-                HashSet<int> erroredSeries = new HashSet<int>();
-                foreach (int user in SeriesIds.Keys)
+                var erroredSeries = new HashSet<int>();
+                int[] keys;
+                lock (_lock) keys = SeriesIds.Keys.ToArray();
+                foreach (var user in keys)
                 {
-                    GroupsIds[user] = SeriesIds[user].Select(a =>
+                    lock (_lock) GroupsIds[user] = SeriesIds[user].Select(a =>
                         {
                             int id = RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1;
                             if (id == -1)
@@ -419,12 +435,17 @@ namespace Shoko.Server.Models
 
                 foreach (int user in GroupsIds.Keys)
                 {
-                    HashSet<int> ids = GroupsIds[user];
-                    SeriesIds[user] = ids.SelectMany(a => RepoFactory.AnimeGroup.GetByID(a)
-                            ?.GetAllSeries()
-                            ?.Select(b => b?.AnimeSeriesID ?? -1))
-                        .Where(a => a != -1)
-                        .ToHashSet();
+                    lock (_lock)
+                    {
+                        var ids = GroupsIds[user];
+                        SeriesIds[user] = ids.SelectMany(
+                                a => RepoFactory.AnimeGroup.GetByID(a)
+                                    ?.GetAllSeries()
+                                    ?.Select(b => b?.AnimeSeriesID ?? -1)
+                            )
+                            .Where(a => a != -1)
+                            .ToHashSet();
+                    }
                 }
             }
             if ((FilterType & (int) GroupFilterType.Tag) == (int) GroupFilterType.Tag)
@@ -469,9 +490,11 @@ namespace Shoko.Server.Models
             {
                 gf.EvaluateAnimeSeries();
 
-                foreach (int user in gf.SeriesIds.Keys)
+                int[] keys;
+                lock (gf._lock) keys = gf.SeriesIds.Keys.ToArray();
+                foreach (var user in keys)
                 {
-                    gf.GroupsIds[user] = gf.SeriesIds[user].Select(a => RepoFactory.AnimeSeries.GetByID(a)?
+                    lock (gf._lock) gf.GroupsIds[user] = gf.SeriesIds[user].Select(a => RepoFactory.AnimeSeries.GetByID(a)?
                                                                             .TopLevelAnimeGroup?.AnimeGroupID ?? -1).Where(a => a != -1)
                         .ToHashSet();
                 }
@@ -480,9 +503,11 @@ namespace Shoko.Server.Models
             {
                 gf.EvaluateAnimeGroups();
 
-                foreach (int user in gf.GroupsIds.Keys)
+                int[] keys;
+                lock (gf._lock) keys = gf.GroupsIds.Keys.ToArray();
+                foreach (var user in keys)
                 {
-                    gf.SeriesIds[user] = gf.GroupsIds[user].SelectMany(a => RepoFactory.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
+                    lock (gf._lock) gf.SeriesIds[user] = gf.GroupsIds[user].SelectMany(a => RepoFactory.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
                         .Where(a => a != -1)
                         .ToHashSet();
                 }
