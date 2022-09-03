@@ -9,6 +9,7 @@
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <AssemblyName>ShokoServer</AssemblyName>
         <LangVersion>latest</LangVersion>
+        <EnableWindowsTargeting>true</EnableWindowsTargeting>
         <UseWPF>true</UseWPF>
         <UseWindowsForms>true</UseWindowsForms>
         <Configurations>Debug;Release;ApiLogging</Configurations>
