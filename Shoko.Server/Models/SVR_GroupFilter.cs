@@ -1347,15 +1347,19 @@ namespace Shoko.Server.Models
         /// <param name="updateSeries"><c>true</c> to update <see cref="SeriesIds"/>; otherwise, <c>false</c>.</param>
         public void UpdateEntityReferenceStrings(bool updateGroups = true, bool updateSeries = true)
         {
-            if (updateGroups)
+            lock (_lock)
             {
-                GroupsIdsString = JsonConvert.SerializeObject(GroupsIds);
-                GroupsIdsVersion = GROUPFILTER_VERSION;
-            }
-            if (updateSeries)
-            {
-                SeriesIdsString = JsonConvert.SerializeObject(SeriesIds);
-                SeriesIdsVersion = SERIEFILTER_VERSION;
+                if (updateGroups)
+                {
+                    GroupsIdsString = JsonConvert.SerializeObject(GroupsIds);
+                    GroupsIdsVersion = GROUPFILTER_VERSION;
+                }
+
+                if (updateSeries)
+                {
+                    SeriesIdsString = JsonConvert.SerializeObject(SeriesIds);
+                    SeriesIdsVersion = SERIEFILTER_VERSION;
+                }
             }
         }
 
