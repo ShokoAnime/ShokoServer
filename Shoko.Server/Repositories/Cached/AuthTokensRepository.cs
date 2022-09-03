@@ -14,7 +14,7 @@ namespace Shoko.Server.Repositories.Cached
         public AuthTokens GetByToken(string token)
         {
             if (string.IsNullOrEmpty(token)) return null;
-            lock (Cache)
+            lock (GlobalLock)
             {
                 var tokens = Tokens.GetMultiple(token.ToLowerInvariant().Trim()).ToList();
                 var auth = tokens.FirstOrDefault();
@@ -27,7 +27,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public void DeleteAllWithUserID(int id)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 UserIDs.GetMultiple(id).ToList().ForEach(Delete);
             }
@@ -35,7 +35,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public void DeleteWithToken(string token)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 if (!string.IsNullOrEmpty(token)) Tokens.GetMultiple(token).ToList().ForEach(Delete);
             }
@@ -43,7 +43,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<AuthTokens> GetByUserID(int userID)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return UserIDs.GetMultiple(userID).ToList();
             }
@@ -67,7 +67,7 @@ namespace Shoko.Server.Repositories.Cached
 
             if (userrecord == null) return string.Empty;
 
-            lock (Cache)
+            lock (GlobalLock)
             {
                 int uid = userrecord.JMMUserID;
                 var tokens = UserIDs

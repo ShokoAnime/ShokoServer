@@ -52,7 +52,7 @@ namespace Shoko.Server.Repositories.Cached
             {
                 UpdatePlexKodiContracts(obj);
                 SVR_AnimeSeries_User old;
-                lock (globalDBLock)
+                lock (GlobalLock)
                 {
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
@@ -83,7 +83,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeSeries_User GetByUserAndSeriesID(int userid, int seriesid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return UsersSeries.GetOne(userid, seriesid);
             }
@@ -91,7 +91,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeSeries_User> GetByUserID(int userid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Users.GetMultiple(userid);
             }
@@ -99,7 +99,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeSeries_User> GetBySeriesID(int seriesid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Series.GetMultiple(seriesid);
             }

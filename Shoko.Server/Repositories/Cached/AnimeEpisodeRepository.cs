@@ -42,7 +42,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode> GetBySeriesID(int seriesid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Series.GetMultiple(seriesid);
             }
@@ -51,7 +51,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeEpisode GetByAniDBEpisodeID(int epid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.
                 return EpisodeIDs.GetOne(epid);
@@ -94,7 +94,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
         {
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 string ignoreVariationsQuery =
                     @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";

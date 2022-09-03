@@ -29,7 +29,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_ImportFolder GetByImportLocation(string importloc)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Cache.Values.FirstOrDefault(a =>
                     a.ImportFolderLocation?.Replace('\\', Path.DirectorySeparatorChar)

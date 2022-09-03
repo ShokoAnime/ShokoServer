@@ -85,22 +85,19 @@ namespace Shoko.Server.Repositories
 
         public void Save(SVR_AniDB_Anime obj, bool generateTvDBMatches)
         {
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
-                lock (obj)
+                if (obj.AniDB_AnimeID == 0)
                 {
-                    if (obj.AniDB_AnimeID == 0)
-                    {
-                        obj.Contract = null;
-                        base.Save(obj);
-                    }
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                    {
-                        obj.UpdateContractDetailed(session.Wrap());
-                    }
-                    // populate the database
+                    obj.Contract = null;
                     base.Save(obj);
                 }
+                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                {
+                    obj.UpdateContractDetailed(session.Wrap());
+                }
+                // populate the database
+                base.Save(obj);
             }
             if (generateTvDBMatches)
             {
@@ -111,7 +108,7 @@ namespace Shoko.Server.Repositories
 
         public bool TryGetByAnimeID(int id, out SVR_AniDB_Anime anime)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 anime = Animes.GetOne(id);
                 return anime != null;
@@ -120,7 +117,7 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_Anime GetByAnimeID(int id)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Animes.GetOne(id);
             }
@@ -128,7 +125,7 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_Anime GetByAnimeID(ISessionWrapper session, int id)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Animes.GetOne(id);
             }
@@ -136,7 +133,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Cache.Values.Where(a =>
                     a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate).ToList();
@@ -145,7 +142,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_Anime> SearchByName(string queryText)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Cache.Values.Where(a =>
                     a.AllTitles.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0).ToList();
@@ -154,7 +151,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_Anime> SearchByTag(string queryText)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Cache.Values
                     .Where(a => a.AllTags.IndexOf(queryText, StringComparison.InvariantCultureIgnoreCase) >= 0)
@@ -173,7 +170,8 @@ namespace Shoko.Server.Repositories
 
             if (animeIds.Length == 0) return defImagesByAnime;
 
-            lock (globalDBLock)
+            // treating cache as a global DB lock, as well
+            lock (GlobalLock)
             {
                 // TODO: Determine if joining on the correct columns
                 var results = session.CreateSQLQuery(@"

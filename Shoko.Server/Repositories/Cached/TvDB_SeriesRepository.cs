@@ -18,7 +18,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public TvDB_Series GetByTvDBID(int id)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return TvDBIDs.GetOne(id);
             }
@@ -37,7 +37,7 @@ namespace Shoko.Server.Repositories.Cached
                 return EmptyLookup<int, Tuple<CrossRef_AniDB_TvDB, TvDB_Series>>.Instance;
             }
 
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 var tvDbSeriesByAnime = session.CreateSQLQuery(@"
                 SELECT {cr.*}, {series.*}

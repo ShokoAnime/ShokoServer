@@ -61,7 +61,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode_User> GetBySeriesID(int seriesid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Series.GetMultiple(seriesid);
             }
@@ -69,7 +69,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeEpisode_User GetByUserIDAndEpisodeID(int userid, int epid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return UsersEpisodes.GetOne((ulong) userid << 48 | (ulong) epid);
             }
@@ -78,7 +78,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode_User> GetByUserID(int userid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Users.GetMultiple(userid);
             }
@@ -93,7 +93,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeEpisode_User GetLastWatchedEpisode()
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Cache.Values.Where(a => a.WatchedCount > 0).OrderByDescending(a => a.WatchedDate)
                     .FirstOrDefault();
@@ -102,7 +102,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int seriesid, int userid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return UsersSeries.GetMultiple((ulong) userid << 48 | (ulong) seriesid).Where(a => a.WatchedCount > 0)
                     .OrderByDescending(a => a.WatchedDate).FirstOrDefault();
@@ -111,7 +111,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode_User> GetByEpisodeID(int epid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Episodes.GetMultiple(epid);
             }
@@ -119,7 +119,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode_User> GetByUserIDAndSeriesID(int userid, int seriesid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return UsersSeries.GetMultiple((ulong) userid << 48 | (ulong) seriesid);
             }

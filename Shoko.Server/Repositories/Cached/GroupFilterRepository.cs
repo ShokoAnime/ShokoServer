@@ -504,24 +504,20 @@ namespace Shoko.Server.Repositories.Cached
                 throw new ArgumentNullException(nameof(session));
             if (groupFilters == null)
                 throw new ArgumentNullException(nameof(groupFilters));
-
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
-                lock (Cache)
+                foreach (SVR_GroupFilter groupFilter in groupFilters)
                 {
-                    foreach (SVR_GroupFilter groupFilter in groupFilters)
-                    {
-                        session.Update(groupFilter);
-                        Cache.Update(groupFilter);
-                        Changes.AddOrUpdate(groupFilter.GroupFilterID);
-                    }
+                    session.Update(groupFilter);
+                    Cache.Update(groupFilter);
+                    Changes.AddOrUpdate(groupFilter.GroupFilterID);
                 }
             }
         }
 
         public List<SVR_GroupFilter> GetByParentID(int parentid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Parents.GetMultiple(parentid);
             }
@@ -529,7 +525,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> GetTopLevel()
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Parents.GetMultiple(0);
             }
@@ -634,12 +630,9 @@ namespace Shoko.Server.Repositories.Cached
 
         private void DropAllTagFilters(ISessionWrapper session)
         {
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
-                lock (Cache)
-                {
-                    ClearCache();
-                }
+                ClearCache();
 
                 using (ITransaction trans = session.BeginTransaction())
                 {
@@ -713,18 +706,15 @@ namespace Shoko.Server.Repositories.Cached
                 toAdd.Add(yf);
             }
 
-            lock (Cache)
+            lock (GlobalLock)
             {
                 Populate(session, false);
-                lock (globalDBLock)
+                foreach (var filters in toAdd.Batch(50))
                 {
-                    foreach (var filters in toAdd.Batch(50))
+                    using (ITransaction trans = session.BeginTransaction())
                     {
-                        using (ITransaction trans = session.BeginTransaction())
-                        {
-                            BatchUpdate(session, filters);
-                            trans.Commit();
-                        }
+                        BatchUpdate(session, filters);
+                        trans.Commit();
                     }
                 }
             }
@@ -732,7 +722,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> GetLockedGroupFilters()
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Cache.Values.Where(a => a.Locked == 1).ToList();
             }
@@ -740,7 +730,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> GetWithConditionTypesAndAll(HashSet<GroupFilterConditionType> types)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 HashSet<int> filters = new HashSet<int>(Cache.Values
                     .Where(a => a.FilterType == (int) GroupFilterType.All)
@@ -754,7 +744,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> GetWithConditionsTypes(HashSet<GroupFilterConditionType> types)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 HashSet<int> filters = new HashSet<int>();
                 foreach (GroupFilterConditionType t in types)

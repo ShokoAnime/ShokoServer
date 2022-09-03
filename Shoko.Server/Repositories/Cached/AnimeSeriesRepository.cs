@@ -133,7 +133,7 @@ namespace Shoko.Server.Repositories.Cached
                     start = DateTime.Now;
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        lock (globalDBLock)
+                        lock (GlobalLock)
                         {
 
                             oldSeries = session.Get<SVR_AnimeSeries>(obj.AnimeSeriesID);
@@ -258,13 +258,10 @@ namespace Shoko.Server.Repositories.Cached
 
             foreach (SVR_AnimeSeries series in seriesBatch)
             {
-                lock (globalDBLock)
+                lock (GlobalLock)
                 {
                     session.Update(series);
-                    lock (Cache)
-                    {
-                        Cache.Update(series);
-                    }
+                    Cache.Update(series);
                 }
                 Changes.AddOrUpdate(series.AnimeSeriesID);
             }
@@ -272,7 +269,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeSeries GetByAnimeID(int id)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return AniDBIds.GetOne(id);
             }
@@ -281,7 +278,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeSeries> GetByGroupID(int groupid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Groups.GetMultiple(groupid);
             }
@@ -290,7 +287,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeSeries> GetWithMissingEpisodes()
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return
                     Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
@@ -302,7 +299,7 @@ namespace Shoko.Server.Repositories.Cached
         public List<SVR_AnimeSeries> GetMostRecentlyAdded(int maxResults, int userID)
         {
             var user = RepoFactory.JMMUser.GetByID(userID);
-            lock (Cache)
+            lock (GlobalLock)
             {
                 if (user == null)
                     return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();

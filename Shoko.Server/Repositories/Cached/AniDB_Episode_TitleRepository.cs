@@ -40,7 +40,7 @@ namespace Shoko.Server.Repositories
                 return EmptyLookup<int, SVR_AniDB_Episode_Title>.Instance;
             }
 
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 var titles = session.CreateCriteria<SVR_AniDB_Episode_Title>()
                     .Add(Restrictions.InG(nameof(SVR_AniDB_Episode_Title.AniDB_EpisodeID), ids))
@@ -53,7 +53,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_Episode_Title> GetByEpisodeIDAndLanguage(int id, TitleLanguage language)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Episodes.GetMultiple(id).Where(a => a.Language == language).ToList();
             }
@@ -61,7 +61,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_Episode_Title> GetByEpisodeID(int ID)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Episodes.GetMultiple(ID);
             }

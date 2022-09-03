@@ -30,7 +30,7 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Anime_Tag GetByAnimeIDAndTagID(int animeid, int tagid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Animes.GetMultiple(animeid).FirstOrDefault(a => a.TagID == tagid);
             }
@@ -39,7 +39,7 @@ namespace Shoko.Server.Repositories
 
         public List<AniDB_Anime_Tag> GetByAnimeID(int id)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Animes.GetMultiple(id);
             }
@@ -56,7 +56,7 @@ namespace Shoko.Server.Repositories
                 return EmptyLookup<int, AniDB_Anime_Tag>.Instance;
             }
 
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return ids.SelectMany(Animes.GetMultiple).ToLookup(t => t.AnimeID);
             }

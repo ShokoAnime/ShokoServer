@@ -28,7 +28,7 @@ namespace Shoko.Server.Repositories
 
         public List<CrossRef_CustomTag> GetByAnimeID(int id)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Refs.GetMultiple(id, (int) CustomTagCrossRefType.Anime);
             }
@@ -37,7 +37,7 @@ namespace Shoko.Server.Repositories
 
         public List<CrossRef_CustomTag> GetByCustomTagID(int id)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Tags.GetMultiple(id);
             }
@@ -46,7 +46,7 @@ namespace Shoko.Server.Repositories
 
         public List<CrossRef_CustomTag> GetByUniqueID(int customTagID, int crossRefType, int crossRefID)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Refs.GetMultiple(crossRefID, crossRefType).Where(a => a.CustomTagID == customTagID).ToList();
             }

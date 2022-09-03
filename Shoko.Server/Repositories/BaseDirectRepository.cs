@@ -9,9 +9,8 @@ using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
 {
-    public class BaseDirectRepository<T, S> : IRepository<T, S> where T : class
+    public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> where T : class
     {
-        protected readonly object globalDBLock = new object();
         public Action<T> BeginDeleteCallback { get; set; }
         public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
         public Action<T> EndDeleteCallback { get; set; }
@@ -21,7 +20,7 @@ namespace Shoko.Server.Repositories
 
         public virtual T GetByID(S id)
         {
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
@@ -32,7 +31,7 @@ namespace Shoko.Server.Repositories
 
         public virtual T GetByID(ISession session, S id)
         {
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 return session.Get<T>(id);
             }
@@ -40,7 +39,7 @@ namespace Shoko.Server.Repositories
 
         public virtual T GetByID(ISessionWrapper session, S id)
         {
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 return session.Get<T>(id);
             }
@@ -48,7 +47,7 @@ namespace Shoko.Server.Repositories
 
         public virtual IReadOnlyList<T> GetAll()
         {
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
@@ -59,7 +58,7 @@ namespace Shoko.Server.Repositories
 
         public virtual IReadOnlyList<T> GetAll(ISession session)
         {
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 return session.CreateCriteria(typeof(T)).List<T>().ToList();
             }
@@ -67,7 +66,7 @@ namespace Shoko.Server.Repositories
 
         public virtual IReadOnlyList<T> GetAll(ISessionWrapper session)
         {
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 return session.CreateCriteria(typeof(T)).List<T>().ToList();
             }
@@ -82,7 +81,7 @@ namespace Shoko.Server.Repositories
         public virtual void Delete(T cr)
         {
             if (cr == null) return;
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 BeginDeleteCallback?.Invoke(cr);
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -102,7 +101,7 @@ namespace Shoko.Server.Repositories
         {
             if (objs.Count == 0)
                 return;
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 foreach (T obj in objs) BeginDeleteCallback?.Invoke(obj);
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -131,7 +130,7 @@ namespace Shoko.Server.Repositories
         public virtual void DeleteWithOpenTransaction(ISession session, T cr)
         {
             if (cr == null) return;
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 session.Delete(cr);
             }
@@ -141,7 +140,7 @@ namespace Shoko.Server.Repositories
         public void DeleteWithOpenTransaction(ISession session, List<T> objs)
         {
             if (objs.Count == 0) return;
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 foreach (T cr in objs)
                 {
@@ -156,7 +155,7 @@ namespace Shoko.Server.Repositories
 
         public virtual void Save(T obj)
         {
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 lock (obj)
                 {
@@ -179,7 +178,7 @@ namespace Shoko.Server.Repositories
         {
             if (objs.Count == 0)
                 return;
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
@@ -205,7 +204,7 @@ namespace Shoko.Server.Repositories
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
         public virtual void SaveWithOpenTransaction(ISession session, T obj)
         {
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 lock (obj)
                 {
@@ -219,7 +218,7 @@ namespace Shoko.Server.Repositories
         {
             if (objs.Count == 0)
                 return;
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 foreach (T obj in objs)
                 {

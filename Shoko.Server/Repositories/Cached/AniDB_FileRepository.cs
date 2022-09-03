@@ -52,7 +52,7 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_File GetByHash(string hash)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Hashes.GetOne(hash);
             }
@@ -60,7 +60,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_File> GetByInternalVersion(int version)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return InternalVersions.GetMultiple(version);
             }
@@ -68,7 +68,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_File> GetWithWithMissingChapters()
         {
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 // the only containers that support chapters (and will have data on anidb)
                 // < 0 instead of = -1 to avoid any issues with bit data types
@@ -84,7 +84,7 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_File GetByHashAndFileSize(string hash, long fsize)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 var list = Hashes.GetMultiple(hash);
                 return list.Count == 1 ? list.First() : list.FirstOrDefault(a => a.FileSize == fsize);
@@ -93,7 +93,7 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_File GetByFileID(int fileID)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return FileIds.GetOne(fileID);
             }

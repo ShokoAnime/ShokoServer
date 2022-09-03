@@ -96,13 +96,10 @@ namespace Shoko.Server.Repositories.Cached
 
             foreach (SVR_AnimeGroup_User groupUser in groupUsers)
             {
-                lock (globalDBLock)
+                lock (GlobalLock)
                 {
                     session.Insert(groupUser);
-                    lock (Cache)
-                    {
-                        Cache.Update(groupUser);
-                    }
+                    Cache.Update(groupUser);
                 }
 
                 if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
@@ -134,13 +131,10 @@ namespace Shoko.Server.Repositories.Cached
 
             foreach (SVR_AnimeGroup_User groupUser in groupUsers)
             {
-                lock (globalDBLock)
+                lock (GlobalLock)
                 {
                     session.Update(groupUser);
-                    lock (Cache)
-                    {
-                        Cache.Update(groupUser);
-                    }
+                    Cache.Update(groupUser);
                 }
 
                 if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
@@ -166,13 +160,13 @@ namespace Shoko.Server.Repositories.Cached
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
-
-            // First, get all of the current user/groups so that we can inform the change tracker that they have been removed later
-            var usrGrpMap = GetAll()
-                .GroupBy(g => g.JMMUserID, g => g.AnimeGroupID);
-
-            lock (globalDBLock)
+            IEnumerable<IGrouping<int, int>> usrGrpMap;
+            lock (GlobalLock)
             {
+                // First, get all of the current user/groups so that we can inform the change tracker that they have been removed later
+                usrGrpMap = GetAll()
+                    .GroupBy(g => g.JMMUserID, g => g.AnimeGroupID);
+
                 // Then, actually delete the AnimeGroup_Users
                 session.CreateQuery("delete SVR_AnimeGroup_User agu").ExecuteUpdate();
             }
@@ -198,7 +192,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return UsersGroups.GetOne(userid, groupid);
             }
@@ -206,7 +200,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeGroup_User> GetByUserID(int userid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Users.GetMultiple(userid);
             }
@@ -214,7 +208,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeGroup_User> GetByGroupID(int groupid)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Groups.GetMultiple(groupid);
             }

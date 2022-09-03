@@ -19,7 +19,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public CrossRef_AniDB_TvDB_Episode_Override GetByAniDBAndTvDBEpisodeIDs(int anidbID, int tvdbID)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return EpisodeIDs.GetMultiple(anidbID).FirstOrDefault(a => a.TvDBEpisodeID == tvdbID);
             }
@@ -27,7 +27,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_TvDB_Episode_Override> GetByAniDBEpisodeID(int id)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return EpisodeIDs.GetMultiple(id);
             }
@@ -35,7 +35,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_TvDB_Episode_Override> GetByAnimeID(int id)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return AnimeIDs.GetMultiple(id);
             }

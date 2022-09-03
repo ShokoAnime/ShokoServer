@@ -109,7 +109,7 @@ namespace Shoko.Server.Repositories.Cached
                 return EmptyLookup<int, CrossRef_AniDB_TraktV2>.Instance;
             }
 
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
                     .ToLookup(xref => xref.AnimeID);

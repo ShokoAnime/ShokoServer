@@ -40,7 +40,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_Anime_Title> GetByAnimeID(int id)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return Animes.GetMultiple(id);
             }
@@ -58,7 +58,7 @@ namespace Shoko.Server.Repositories
                 return EmptyLookup<int, SVR_AniDB_Anime_Title>.Instance;
             }
 
-            lock (globalDBLock)
+            lock (GlobalLock)
             {
                 var titles = session.CreateCriteria<SVR_AniDB_Anime_Title>()
                     .Add(Restrictions.InG(nameof(SVR_AniDB_Anime_Title.AnimeID), ids))

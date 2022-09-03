@@ -47,14 +47,14 @@ namespace Shoko.Server.Repositories.Cached
 
         public AniDB_Vote GetByEntityAndType(int entID, AniDBVoteType voteType)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 List<AniDB_Vote> cr = EntityIDs.GetMultiple(entID)?.Where(a => a.VoteType == (int) voteType).ToList();
 
                 if (cr == null) return null;
                 if (cr.Count <= 1) return cr.FirstOrDefault();
 
-                lock (globalDBLock)
+                lock (GlobalLock)
                 {
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
@@ -81,7 +81,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<AniDB_Vote> GetByEntity(int entID)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return EntityIDs.GetMultiple(entID)?.ToList();
             }

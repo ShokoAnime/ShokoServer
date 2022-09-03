@@ -22,7 +22,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_TvDB> GetByAnimeID(int id)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return AnimeIDs.GetMultiple(id);
             }
@@ -30,7 +30,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_TvDB> GetByTvDBID(int id)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return TvDBIDs.GetMultiple(id);
             }
@@ -46,7 +46,7 @@ namespace Shoko.Server.Repositories.Cached
                 return EmptyLookup<int, CrossRef_AniDB_TvDB>.Instance;
             }
 
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
                     .ToLookup(xref => xref.AniDBID);
@@ -55,7 +55,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public CrossRef_AniDB_TvDB GetByAniDBAndTvDBID(int animeID, int tvdbID)
         {
-            lock (Cache)
+            lock (GlobalLock)
             {
                 return TvDBIDs.GetMultiple(tvdbID).FirstOrDefault(xref => xref.AniDBID == animeID);
             }
