@@ -1123,12 +1123,12 @@ namespace Shoko.Server.Models
             if (watchedStats)
             {
                 var vls = RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID).Where(a => !string.IsNullOrEmpty(a?.Hash)).Select(xref => (xref.EpisodeID, VideoLocal: RepoFactory.VideoLocal.GetByHash(xref.Hash)))
-                    .ToLookup(a => a.EpisodeID, b => b.VideoLocal);
+                    .Where(a => a.VideoLocal != null).ToLookup(a => a.EpisodeID, b => b.VideoLocal);
                 var vlUsers = vls.SelectMany(
                     xref =>
                     {
-                        var users = xref.SelectMany(a => RepoFactory.VideoLocalUser.GetByVideoLocalID(a.VideoLocalID));
-                        return users.Select(a => (EpisodeID: xref.Key, VideoLocalUser: a));
+                        var users = xref?.SelectMany(a => RepoFactory.VideoLocalUser.GetByVideoLocalID(a.VideoLocalID));
+                        return users?.Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)) ?? Array.Empty<(int EpisodeID, SVR_VideoLocal_User VideoLocalUser)>();
                     }
                 ).Where(a => a.VideoLocalUser != null).ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.JMMUserID), b => b.VideoLocalUser);
 
