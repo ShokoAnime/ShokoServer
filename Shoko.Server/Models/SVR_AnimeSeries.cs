@@ -1122,15 +1122,15 @@ namespace Shoko.Server.Models
 
             if (watchedStats)
             {
-                var vlUsers = RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID).Where(a => !string.IsNullOrEmpty(a?.Hash)).SelectMany(
+                var vls = RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID).Where(a => !string.IsNullOrEmpty(a?.Hash)).Select(xref => (xref.EpisodeID, VideoLocal: RepoFactory.VideoLocal.GetByHash(xref.Hash)))
+                    .ToLookup(a => a.EpisodeID, b => b.VideoLocal);
+                var vlUsers = vls.SelectMany(
                     xref =>
                     {
-                        var vl = RepoFactory.VideoLocal.GetByHash(xref.Hash);
-                        if (vl == null) return Array.Empty<(int EpisodeID, SVR_VideoLocal_User VideoLocalUser)>();
-                        var users = RepoFactory.VideoLocalUser.GetByVideoLocalID(vl.VideoLocalID);
-                        return users?.Select(a => (xref.EpisodeID, VideoLocalUser: a));
+                        var users = xref.SelectMany(a => RepoFactory.VideoLocalUser.GetByVideoLocalID(a.VideoLocalID));
+                        return users.Select(a => (EpisodeID: xref.Key, VideoLocalUser: a));
                     }
-                ).Where(a => a.VideoLocalUser != null).ToLookup(a => (a.EpisodeID, a.VideoLocalUser.JMMUserID), b => b.VideoLocalUser);
+                ).Where(a => a.VideoLocalUser != null).ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.JMMUserID), b => b.VideoLocalUser);
 
                 foreach (var juser in RepoFactory.JMMUser.GetAll())
                 {
@@ -1144,10 +1144,12 @@ namespace Shoko.Server.Models
 
                     var lck = new object();
                     
-                    eps.AsParallel().Where(ep => vlUsers.Contains((ep.AniDB_EpisodeID, juser.JMMUserID)) && ep.EpisodeTypeEnum is EpisodeType.Episode or EpisodeType.Special).ForAll(
+                    eps.AsParallel().Where(ep => vls.Contains(ep.AniDB_EpisodeID) && ep.EpisodeTypeEnum is EpisodeType.Episode or EpisodeType.Special).ForAll(
                         ep =>
                         {
-                            var epUserRecord = vlUsers[(ep.AniDB_EpisodeID, juser.JMMUserID)].OrderByDescending(a => a.LastUpdated).FirstOrDefault(a => a.WatchedDate != null);
+                            SVR_VideoLocal_User epUserRecord = null;
+                            if (vlUsers.Contains((ep.AniDB_EpisodeID, juser.JMMUserID))) epUserRecord = vlUsers[(ep.AniDB_EpisodeID, juser.JMMUserID)].OrderByDescending(a => a.LastUpdated)
+                                .FirstOrDefault(a => a.WatchedDate != null);
                             var lastUpdated = epUserRecord?.LastUpdated;
 
                             if (epUserRecord?.WatchedDate == null)
