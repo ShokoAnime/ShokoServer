@@ -681,14 +681,14 @@ namespace Shoko.Server.API.v3.Controllers
                 return BadRequest("`fileIDs` must contain at least one element.");
 
             // Validate all the file ids.
-            var files = new List<SVR_VideoLocal>(body.fileIDs.Length);
-            for (int index = 0, fileID = body.fileIDs[0]; index < body.fileIDs.Length; fileID = body.fileIDs[++index])
+            var files = new List<SVR_VideoLocal>();
+            foreach (var fileID in body.fileIDs)
             {
                 var file = RepoFactory.VideoLocal.GetByID(fileID);
                 if (file == null)
-                    return BadRequest($"Unable to find file entry for `fileIDs[{index}]`.");
+                    return BadRequest($"Unable to find file entry for File ID {fileID}.");
 
-                files[index] = file;
+                files.Add(file);
             }
 
             var episode = RepoFactory.AnimeEpisode.GetByID(body.episodeID);
