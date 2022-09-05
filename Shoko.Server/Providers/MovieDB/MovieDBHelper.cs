@@ -260,12 +260,32 @@ namespace Shoko.Server.Providers.MovieDB
                 logger.Error(ex, "Error in UpdateMovieInfo: " + ex);
             }
         }
+        
+        public static void UpdateSeriesInfo(ISession session, int movieID, bool saveImages)
+        {
+            try
+            {
+                TMDbClient client = new TMDbClient(apiKey);
+                Movie movie = client.GetTvShows(movieID,TvShowMethods.AlternativeTitles|TvShowMethods.Credits|TvShowMethods.ExternalIds|TvShowMethods.Images|TvShowMethods.ContentRatings);
+                ImagesWithId imgs = client.GetMovieImages(movieID);
 
-        public static void LinkAniDBMovieDB(int animeID, int movieDBID, bool fromWebCache)
+                MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();
+                searchResult.Populate(movie, imgs);
+
+                // save to the DB
+                SaveMovieToDatabase(session, searchResult, saveImages, false);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in UpdateMovieInfo: " + ex);
+            }
+        }
+        public static void LinkAniDBMovieDB(int animeID, int movieDBID, bool fromWebCache, MediaType media=MediaType.Movie)
         {
             // check if we have this information locally
             // if not download it now
 
+            //TODO mpiva
             MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieDBID);
             if (movie == null)
             {
@@ -279,7 +299,7 @@ namespace Shoko.Server.Providers.MovieDB
             // download and update series info and images
             UpdateMovieInfo(movieDBID, true);
 
-            CrossRef_AniDB xref = RepoFactory.CrossRef_AniDB.GetByAniDB(animeID, Shoko.Models.Constants.Providers.MovieDB).FirstOrDefault(a=>a.ProviderMediaType==MediaType.Movie);
+            CrossRef_AniDB xref = RepoFactory.CrossRef_AniDB.GetByAniDB(animeID, Shoko.Models.Constants.Providers.MovieDB).FirstOrDefault(a=>a.ProviderMediaType==media);
             if (xref == null)
                 xref = new CrossRef_AniDB();
 
@@ -288,7 +308,7 @@ namespace Shoko.Server.Providers.MovieDB
                 xref.CrossRefSource = CrossRefSource.WebCache;
             else
                 xref.CrossRefSource = CrossRefSource.User;
-            xref.ProviderMediaType = MediaType.Movie;
+            xref.ProviderMediaType = media;
             xref.Provider = Shoko.Models.Constants.Providers.MovieDB;
             xref.ProviderID = movieDBID.ToString();
             RepoFactory.CrossRef_AniDB.Save(xref);

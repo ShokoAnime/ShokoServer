@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
     <OutputType>Library</OutputType>
@@ -91,7 +91,7 @@
     <!-- This needs to be explicit because of https://github.com/MySqlBackupNET/MySqlBackup.Net/issues/61 -->
     <PackageReference Include="System.Threading.ThreadPool" Version="4.3.0" />
     <PackageReference Include="TaskScheduler" Version="2.8.19" />
-    <PackageReference Include="TMDbLib" Version="1.6.0" />
+    <PackageReference Include="TMDbLib" Version="1.9.2" />
     <PackageReference Include="Trinet.Core.IO.Ntfs" Version="4.1.1" />
     <PackageReference Include="TvDbSharper" Version="3.2.0" />
   </ItemGroup>
