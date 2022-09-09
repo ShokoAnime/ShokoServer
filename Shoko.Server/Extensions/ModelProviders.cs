@@ -180,11 +180,13 @@ namespace Shoko.Server.Extensions
 
         public static void Populate(this MovieDB_Movie m, MovieDB_Movie_Result result)
         {
-            m.MovieId = result.MovieID;
+            m.MovieId = result.MovieId;
             m.MovieName = result.MovieName;
             m.OriginalName = result.OriginalName;
             m.Overview = result.Overview;
-            m.Rating = (int) Math.Round(result.Rating * 10D);
+            m.Blob = result.Blob;
+            m.Lastupdated = result.Lastupdated;
+            m.Rating = result.Rating;
         }
 
         public static void Populate(this MovieDB_Poster m, MovieDB_Image_Result result, int movieID)

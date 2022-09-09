@@ -1,16 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
-using Newtonsoft.Json;
 using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using TMDbLib.Objects.General;
-using TMDbLib.Objects.Movies;
+using TMDbLib.Objects.TvShows;
 
 namespace Shoko.Server.Providers.MovieDB
 {
-    public class MovieDB_Movie_Result : MovieDB_Movie
+    public class MovieDB_Series_Result : MovieDB_Series
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -18,24 +16,24 @@ namespace Shoko.Server.Providers.MovieDB
 
         public override string ToString()
         {
-            return "MovieDBSearchResult: " + MovieId + ": " + MovieName;
+            return "MovieDBTVSeriesSearchResult: " + SeriesID + ": " + SeriesName;
         }
 
-        public bool Populate(Movie movie)
+        public bool Populate(TvShow show)
         {
             try
             {
-                Blob = LZ4.CompressionHelper.SerializeObject(movie, out int _);
+                Blob = LZ4.CompressionHelper.SerializeObject(show, out int _);
                 Images = new List<MovieDB_Image_Result>();
-                MovieId = movie.Id;
-                MovieName = movie.Title;
-                OriginalName = movie.Title;
-                Overview = movie.Overview;
-                Rating = (int)Math.Round(movie.VoteAverage * 10D);
+                SeriesID = show.Id;
+                SeriesName = show.Name;
+                OriginalName = show.OriginalName;
+                Overview = show.Overview;
+                Rating = (int)Math.Round(show.VoteAverage * 10D);
                 Lastupdated = DateTimeOffset.UtcNow.ToString("o");
-                if (movie.Images?.Backdrops != null)
+                if (show.Images?.Backdrops != null)
                 {
-                    foreach (ImageData img in movie.Images.Backdrops)
+                    foreach (ImageData img in show.Images.Backdrops)
                     {
                         MovieDB_Image_Result imageResult = new MovieDB_Image_Result();
                         if (imageResult.Populate(img, "backdrop"))
@@ -43,9 +41,9 @@ namespace Shoko.Server.Providers.MovieDB
                     }
                 }
 
-                if (movie.Images?.Posters != null)
+                if (show.Images?.Posters != null)
                 {
-                    foreach (ImageData img in movie.Images.Posters)
+                    foreach (ImageData img in show.Images.Posters)
                     {
                         MovieDB_Image_Result imageResult = new MovieDB_Image_Result();
                         if (imageResult.Populate(img, "poster"))
@@ -62,12 +60,12 @@ namespace Shoko.Server.Providers.MovieDB
             return true;
         }
 
-        public CL_MovieDBMovieSearch_Response ToContract()
+        public CL_MovieDBTVSeriesSearch_Response ToContract()
         {
-            CL_MovieDBMovieSearch_Response cl = new CL_MovieDBMovieSearch_Response
+            CL_MovieDBTVSeriesSearch_Response cl = new CL_MovieDBTVSeriesSearch_Response
             {
-                MovieID = MovieId,
-                MovieName = MovieName,
+                SeriesID = SeriesID,
+                SeriesName = SeriesName,
                 OriginalName = OriginalName,
                 Overview = Overview
             };

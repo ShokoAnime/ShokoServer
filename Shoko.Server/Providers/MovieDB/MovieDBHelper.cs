@@ -36,6 +36,13 @@ namespace Shoko.Server.Providers.MovieDB
                 SaveMovieToDatabase(session, searchResult, saveImages, isTrakt);
             }
         }
+        public static void SaveShowToDatabase(MovieDB_Series_Result searchResult, bool saveImages, bool isTrakt)
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                SaveShowToDatabase(session, searchResult, saveImages, isTrakt);
+            }
+        }
 
         public static void SaveMovieToDatabase(ISession session, MovieDB_Movie_Result searchResult, bool saveImages,
             bool isTrakt)
@@ -43,7 +50,7 @@ namespace Shoko.Server.Providers.MovieDB
             ISessionWrapper sessionWrapper = session.Wrap();
 
             // save to the DB
-            MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(searchResult.MovieID);
+            MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(searchResult.MovieId);
             if (movie == null) movie = new MovieDB_Movie();
             movie.Populate(searchResult);
 
@@ -147,6 +154,116 @@ namespace Shoko.Server.Providers.MovieDB
             }
         }
 
+
+        public static void SaveShowToDatabase(ISession session, MovieDB_Series_Result searchResult, bool saveImages,
+            bool isTrakt)
+        {
+            ISessionWrapper sessionWrapper = session.Wrap();
+
+            // save to the DB
+            MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(searchResult.MovieId);
+            if (movie == null) movie = new MovieDB_Movie();
+            movie.Populate(searchResult);
+
+            // Only save movie info if source is not trakt, this presents adding tv shows as movies
+            // Needs better fix later on
+
+            if (!isTrakt)
+            {
+                RepoFactory.MovieDb_Movie.Save(movie);
+            }
+
+            if (!saveImages) return;
+
+            int numFanartDownloaded = 0;
+            int numPostersDownloaded = 0;
+
+            // save data to the DB and determine the number of images we already have
+            foreach (MovieDB_Image_Result img in searchResult.Images)
+            {
+                if (img.ImageType.Equals("poster", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    MovieDB_Poster poster = RepoFactory.MovieDB_Poster.GetByOnlineID(session, img.URL);
+                    if (poster == null) poster = new MovieDB_Poster();
+                    poster.Populate(img, movie.MovieId);
+                    RepoFactory.MovieDB_Poster.Save(poster);
+
+                    if (!string.IsNullOrEmpty(poster.GetFullImagePath()) && File.Exists(poster.GetFullImagePath()))
+                        numPostersDownloaded++;
+                }
+                else
+                {
+                    // fanart (backdrop)
+                    MovieDB_Fanart fanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(session, img.URL);
+                    if (fanart == null) fanart = new MovieDB_Fanart();
+                    fanart.Populate(img, movie.MovieId);
+                    RepoFactory.MovieDB_Fanart.Save(fanart);
+
+                    if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()))
+                        numFanartDownloaded++;
+                }
+            }
+
+            // download the posters
+            if (ServerSettings.Instance.MovieDb.AutoPosters || isTrakt)
+            {
+                foreach (MovieDB_Poster poster in RepoFactory.MovieDB_Poster.GetByMovieID(sessionWrapper, movie.MovieId)
+                )
+                {
+                    if (numPostersDownloaded < ServerSettings.Instance.MovieDb.AutoPostersAmount)
+                    {
+                        // download the image
+                        if (!string.IsNullOrEmpty(poster.GetFullImagePath()) && !File.Exists(poster.GetFullImagePath()))
+                        {
+                            CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID,
+                                ImageEntityType.MovieDB_Poster, false);
+                            cmd.Save();
+                            numPostersDownloaded++;
+                        }
+                    }
+                    else
+                    {
+                        //The MovieDB_AutoPostersAmount should prevent from saving image info without image
+                        // we should clean those image that we didn't download because those dont exists in local repo
+                        // first we check if file was downloaded
+                        if (!File.Exists(poster.GetFullImagePath()))
+                        {
+                            RepoFactory.MovieDB_Poster.Delete(poster.MovieDB_PosterID);
+                        }
+                    }
+                }
+            }
+
+            // download the fanart
+            if (ServerSettings.Instance.MovieDb.AutoFanart || isTrakt)
+            {
+                foreach (MovieDB_Fanart fanart in RepoFactory.MovieDB_Fanart.GetByMovieID(sessionWrapper, movie.MovieId)
+                )
+                {
+                    if (numFanartDownloaded < ServerSettings.Instance.MovieDb.AutoFanartAmount)
+                    {
+                        // download the image
+                        if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && !File.Exists(fanart.GetFullImagePath()))
+                        {
+                            CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID,
+                                ImageEntityType.MovieDB_FanArt, false);
+                            cmd.Save();
+                            numFanartDownloaded++;
+                        }
+                    }
+                    else
+                    {
+                        //The MovieDB_AutoFanartAmount should prevent from saving image info without image
+                        // we should clean those image that we didn't download because those dont exists in local repo
+                        // first we check if file was downloaded
+                        if (!File.Exists(fanart.GetFullImagePath()))
+                        {
+                            RepoFactory.MovieDB_Fanart.Delete(fanart.MovieDB_FanartID);
+                        }
+                    }
+                }
+            }
+        }
         public static List<MovieDB_Movie_Result> Search(string criteria)
         {
             List<MovieDB_Movie_Result> results = new List<MovieDB_Movie_Result>();
@@ -160,9 +277,34 @@ namespace Shoko.Server.Providers.MovieDB
                 foreach (SearchMovie result in resultsTemp.Results)
                 {
                     MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();
-                    Movie movie = client.GetMovie(result.Id);
-                    ImagesWithId imgs = client.GetMovieImages(result.Id);
-                    searchResult.Populate(movie, imgs);
+                    Movie movie = client.GetMovie(result.Id, MovieMethods.AlternativeTitles|MovieMethods.Images|MovieMethods.Credits|MovieMethods.ExternalIds);
+                    searchResult.Populate(movie);
+                    results.Add(searchResult);
+                    SaveMovieToDatabase(searchResult, false, false);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Error in MovieDB Search: " + ex.Message);
+            }
+
+            return results;
+        }
+        public static List<MovieDB_Series_Result> SearchSeries(string criteria)
+        {
+            List<MovieDB_Series_Result> results = new List<MovieDB_Series_Result>();
+
+            try
+            {
+                TMDbClient client = new TMDbClient(apiKey);
+                SearchContainer<SearchTv> resultsTemp = client.SearchTvShow(HttpUtility.UrlDecode(criteria));
+
+                logger.Info($"Got {resultsTemp.Results.Count} of {resultsTemp.TotalResults} results");
+                foreach (SearchTv result in resultsTemp.Results)
+                {
+                    MovieDB_Series_Result searchResult = new MovieDB_Series_Result();
+                    TvShow show= client.GetTvShow(result.Id, TvShowMethods.AlternativeTitles | TvShowMethods.Credits | TvShowMethods.EpisodeGroups | TvShowMethods.ExternalIds | TvShowMethods.Images);
+                    searchResult.Populate(show);
                     results.Add(searchResult);
                     SaveMovieToDatabase(searchResult, false, false);
                 }
