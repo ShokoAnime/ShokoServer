@@ -59,23 +59,6 @@ namespace Shoko.Server.Models
             StoppedCount = 0;
         }
 
-        public static HashSet<GroupFilterConditionType> GetConditionTypesChanged(SVR_AnimeGroup_User oldcontract,
-            SVR_AnimeGroup_User newcontract)
-        {
-            HashSet<GroupFilterConditionType> h = new HashSet<GroupFilterConditionType>();
-
-            if (oldcontract == null ||
-                oldcontract.UnwatchedEpisodeCount > 0 != newcontract.UnwatchedEpisodeCount > 0)
-                h.Add(GroupFilterConditionType.HasUnwatchedEpisodes);
-            if (oldcontract == null || oldcontract.IsFave != newcontract.IsFave)
-                h.Add(GroupFilterConditionType.Favourite);
-            if (oldcontract == null || oldcontract.WatchedDate != newcontract.WatchedDate)
-                h.Add(GroupFilterConditionType.EpisodeWatchedDate);
-            if (oldcontract == null || oldcontract.WatchedEpisodeCount > 0 != newcontract.WatchedEpisodeCount > 0)
-                h.Add(GroupFilterConditionType.HasWatchedEpisodes);
-            return h;
-        }
-
 
         public void UpdateGroupFilter(HashSet<GroupFilterConditionType> types)
         {

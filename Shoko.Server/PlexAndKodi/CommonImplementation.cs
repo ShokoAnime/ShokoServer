@@ -89,7 +89,7 @@ namespace Shoko.Server.PlexAndKodi
                         if (pp != null)
                             dirs.Add(prov, pp, info);
                     }
-                    List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().ToList();
+                    List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted();
                     if (vids.Count > 0)
                     {
                         Shoko.Models.PlexAndKodi.Directory pp = new Shoko.Models.PlexAndKodi.Directory {Type = "show"};

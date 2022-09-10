@@ -12,6 +12,7 @@ namespace Shoko.Server.Repositories.Cached
     public class AniDB_VoteRepository : BaseCachedRepository<AniDB_Vote, int>
     {
         private PocoIndex<int, AniDB_Vote, int> EntityIDs;
+        private PocoIndex<int, AniDB_Vote, (int, AniDBVoteType)> EntityIDAndTypes;
 
         public AniDB_VoteRepository()
         {
@@ -24,7 +25,7 @@ namespace Shoko.Server.Repositories.Cached
                         SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
                         break;
                     case (int) AniDBVoteType.Episode:
-                        SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
+                        var ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
                         RepoFactory.AnimeEpisode.Save(ep);
                         break;
                 }
@@ -38,7 +39,7 @@ namespace Shoko.Server.Repositories.Cached
                         SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
                         break;
                     case (int) AniDBVoteType.Episode:
-                        SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
+                        var ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
                         RepoFactory.AnimeEpisode.Save(ep);
                         break;
                 }
@@ -47,44 +48,33 @@ namespace Shoko.Server.Repositories.Cached
 
         public AniDB_Vote GetByEntityAndType(int entID, AniDBVoteType voteType)
         {
-            lock (GlobalLock)
+            Lock.EnterReadLock();
+            var cr = EntityIDAndTypes.GetMultiple((entID, voteType));
+            Lock.ExitReadLock();
+
+            if (cr == null) return null;
+            if (cr.Count <= 1) return cr.FirstOrDefault();
+
+            lock (GlobalDBLock)
             {
-                List<AniDB_Vote> cr = EntityIDs.GetMultiple(entID)?.Where(a => a.VoteType == (int) voteType).ToList();
-
-                if (cr == null) return null;
-                if (cr.Count <= 1) return cr.FirstOrDefault();
-
-                lock (GlobalLock)
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                foreach (var dbVote in cr.Skip(1))
                 {
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                    {
-                        bool first = true;
-                        foreach (AniDB_Vote dbVote in cr)
-                        {
-                            if (first)
-                            {
-                                first = false;
-                                continue;
-                            }
-                            using (var transact = session.BeginTransaction())
-                            {
-                                RepoFactory.AniDB_Vote.DeleteWithOpenTransaction(session, dbVote);
-                                transact.Commit();
-                            }
-                        }
-
-                        return cr.FirstOrDefault();
-                    }
+                    using var transact = session.BeginTransaction();
+                    RepoFactory.AniDB_Vote.DeleteWithOpenTransaction(session, dbVote);
+                    transact.Commit();
                 }
+
+                return cr.FirstOrDefault();
             }
         }
 
         public List<AniDB_Vote> GetByEntity(int entID)
         {
-            lock (GlobalLock)
-            {
-                return EntityIDs.GetMultiple(entID)?.ToList();
-            }
+            Lock.EnterReadLock();
+            var result = EntityIDs.GetMultiple(entID)?.ToList();
+            Lock.ExitReadLock();
+            return result;
         }
 
         public AniDB_Vote GetByAnimeID(int animeID)
@@ -98,8 +88,7 @@ namespace Shoko.Server.Repositories.Cached
             if (animeIDs == null)
                 throw new ArgumentNullException(nameof(animeIDs));
 
-            var votesByAnime = animeIDs.Where(a => GetByAnimeID(a) != null).ToDictionary(a => a, GetByAnimeID);
-
+            var votesByAnime = animeIDs.Select(a => new { AnimeID = a, Vote = GetByAnimeID(a) }).Where(a => a.Vote != null).ToDictionary(a => a.AnimeID, a => a.Vote);
             return votesByAnime;
         }
 
@@ -108,6 +97,7 @@ namespace Shoko.Server.Repositories.Cached
         public override void PopulateIndexes()
         {
             EntityIDs = new PocoIndex<int, AniDB_Vote, int>(Cache, a => a.EntityID);
+            EntityIDAndTypes = new PocoIndex<int, AniDB_Vote, (int, AniDBVoteType)>(Cache, a => (a.EntityID, (AniDBVoteType)a.VoteType));
         }
 
         public override void RegenerateDb()

@@ -613,7 +613,7 @@ namespace Shoko.Server.Extensions
             int epsInSeason = RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
             if (ep.EpisodeNumber == epsInSeason)
             {
-                int numberOfSeasons = RepoFactory.TvDB_Episode.getLastSeasonForSeries(ep.SeriesID);
+                int numberOfSeasons = RepoFactory.TvDB_Episode.GetLastSeasonForSeries(ep.SeriesID);
                 if (ep.SeasonNumber == numberOfSeasons) return (0, 0);
                 return (ep.SeasonNumber + 1, 1);
             }
@@ -638,7 +638,7 @@ namespace Shoko.Server.Extensions
         {
             if (ep.SeasonNumber == 1 || ep.SeasonNumber == 0) return ep.EpisodeNumber;
             int number = ep.EpisodeNumber;
-            for (int season = 1; season < RepoFactory.TvDB_Episode.getLastSeasonForSeries(ep.SeriesID); season++)
+            for (int season = 1; season < RepoFactory.TvDB_Episode.GetLastSeasonForSeries(ep.SeriesID); season++)
                 number += RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
 
             return number;

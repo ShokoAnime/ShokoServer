@@ -26,7 +26,6 @@ namespace Shoko.Server.Repositories
         public static CommandRequestRepository CommandRequest { get; } = new CommandRequestRepository();
         public static Trakt_ShowRepository Trakt_Show { get; } = new Trakt_ShowRepository();
         public static Trakt_SeasonRepository Trakt_Season { get; } = new Trakt_SeasonRepository();
-        public static Trakt_FriendRepository Trakt_Friend { get; } = new Trakt_FriendRepository();
         public static Trakt_EpisodeRepository Trakt_Episode { get; } = new Trakt_EpisodeRepository();
         public static ScheduledUpdateRepository ScheduledUpdate { get; } = new ScheduledUpdateRepository();
         public static RenameScriptRepository RenameScript { get; } = new RenameScriptRepository();
@@ -36,7 +35,6 @@ namespace Shoko.Server.Repositories
         public static MovieDb_MovieRepository MovieDb_Movie { get; } = new MovieDb_MovieRepository();
         public static IgnoreAnimeRepository IgnoreAnime { get; } = new IgnoreAnimeRepository();
         public static FileNameHashRepository FileNameHash { get; } = new FileNameHashRepository();
-        public static FileFfdshowPresetRepository FileFfdshowPreset { get; } = new FileFfdshowPresetRepository();
         public static DuplicateFileRepository DuplicateFile { get; } = new DuplicateFileRepository();
         public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate { get; } = new AniDB_AnimeUpdateRepository();
         public static CrossRef_Subtitles_AniDB_FileRepository CrossRef_Subtitles_AniDB_File { get; } = new CrossRef_Subtitles_AniDB_FileRepository();
@@ -46,13 +44,10 @@ namespace Shoko.Server.Repositories
         public static BookmarkedAnimeRepository BookmarkedAnime { get; } = new BookmarkedAnimeRepository();
         public static AniDB_SeiyuuRepository AniDB_Seiyuu { get; } = new AniDB_SeiyuuRepository();
         public static AniDB_ReleaseGroupRepository AniDB_ReleaseGroup { get; } = new AniDB_ReleaseGroupRepository();
-        public static AniDB_RecommendationRepository AniDB_Recommendation { get; } = new AniDB_RecommendationRepository();
-        public static AniDB_MylistStatsRepository AniDB_MylistStats { get; } = new AniDB_MylistStatsRepository();
         public static AniDB_GroupStatusRepository AniDB_GroupStatus { get; } = new AniDB_GroupStatusRepository();
         public static AniDB_CharacterRepository AniDB_Character { get; } = new AniDB_CharacterRepository();
         public static AniDB_Character_SeiyuuRepository AniDB_Character_Seiyuu { get; } = new AniDB_Character_SeiyuuRepository();
         public static AniDB_Anime_SimilarRepository AniDB_Anime_Similar { get; } = new AniDB_Anime_SimilarRepository();
-        public static AniDB_Anime_ReviewRepository AniDB_Anime_Review { get; } = new AniDB_Anime_ReviewRepository();
         public static AniDB_Anime_RelationRepository AniDB_Anime_Relation { get; } = new AniDB_Anime_RelationRepository();
         public static AniDB_Anime_DefaultImageRepository AniDB_Anime_DefaultImage { get; } = new AniDB_Anime_DefaultImageRepository();
         public static AniDB_Anime_CharacterRepository AniDB_Anime_Character { get; } = new AniDB_Anime_CharacterRepository();

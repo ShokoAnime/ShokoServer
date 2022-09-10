@@ -5,7 +5,6 @@ using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
@@ -36,7 +35,7 @@ namespace Shoko.Server.Repositories.Cached
                 if (cr.AnimeGroupID <= 0) return;
                 logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}",
                     cr.AnimeGroupID);
-                SVR_AnimeGroup oldGroup = RepoFactory.AnimeGroup.GetByID(cr.AnimeGroupID);
+                var oldGroup = RepoFactory.AnimeGroup.GetByID(cr.AnimeGroupID);
                 if (oldGroup != null)
                     RepoFactory.AnimeGroup.Save(oldGroup, true, true);
             };
@@ -58,18 +57,18 @@ namespace Shoko.Server.Repositories.Cached
         {
             try
             {
-                int cnt = 0;
-                List<SVR_AnimeSeries> sers =
+                var sers =
                     Cache.Values.Where(
                             a => a.ContractVersion < SVR_AnimeSeries.CONTRACT_VERSION ||
                                  a.Contract?.AniDBAnime?.AniDBAnime == null)
                         .ToList();
-                int max = sers.Count;
+                var max = sers.Count;
                 ServerState.Instance.ServerStartingStatus = string.Format(
                     Resources.Database_Validating, typeof(AnimeSeries).Name, " DbRegen");
                 if (max <= 0) return;
-                foreach (SVR_AnimeSeries s in sers)
+                for (var i = 0; i < sers.Count; i++)
                 {
+                    var s = sers[i];
                     try
                     {
                         Save(s, false, false, true);
@@ -78,14 +77,15 @@ namespace Shoko.Server.Repositories.Cached
                     {
                     }
 
-                    cnt++;
-                    if (cnt % 10 == 0)
+                    if (i % 10 == 0)
                     {
                         ServerState.Instance.ServerStartingStatus = string.Format(
                             Resources.Database_Validating, typeof(AnimeSeries).Name,
-                            " DbRegen - " + cnt + "/" + max);
+                            " DbRegen - " + i + "/" + max
+                        );
                     }
                 }
+
                 ServerState.Instance.ServerStartingStatus = string.Format(
                     Resources.Database_Validating, typeof(AnimeSeries).Name,
                     " DbRegen - " + max + "/" + max);
@@ -117,11 +117,11 @@ namespace Shoko.Server.Repositories.Cached
         {
             DateTime start;
             TimeSpan ts;
-            bool newSeries = false;
+            var newSeries = false;
             SVR_AnimeGroup oldGroup = null;
             // Updated Now
             obj.DateTimeUpdated = DateTime.Now;
-            bool isMigrating = false;
+            var isMigrating = false;
             lock (obj)
             {
                 if (obj.AnimeSeriesID == 0)
@@ -131,13 +131,10 @@ namespace Shoko.Server.Repositories.Cached
                     // get the old version from the DB
                     SVR_AnimeSeries oldSeries;
                     start = DateTime.Now;
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    lock (GlobalDBLock)
                     {
-                        lock (GlobalLock)
-                        {
-
-                            oldSeries = session.Get<SVR_AnimeSeries>(obj.AnimeSeriesID);
-                        }
+                        using var session = DatabaseFactory.SessionFactory.OpenSession();
+                        oldSeries = session.Get<SVR_AnimeSeries>(obj.AnimeSeriesID);
                     }
 
                     ts = DateTime.Now - start;
@@ -149,7 +146,7 @@ namespace Shoko.Server.Repositories.Cached
                         if (oldSeries.AnimeGroupID != obj.AnimeGroupID)
                         {
                             oldGroup = RepoFactory.AnimeGroup.GetByID(oldSeries.AnimeGroupID);
-                            SVR_AnimeGroup newGroup = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
+                            var newGroup = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
                             if (newGroup != null && newGroup.GroupName.Equals("AAA Migrating Groups AAA"))
                                 isMigrating = true;
                             newSeries = true;
@@ -171,7 +168,7 @@ namespace Shoko.Server.Repositories.Cached
                 if (seasons == null || seasons.Count == 0)
                 {
                     start = DateTime.Now;
-                    SVR_AniDB_Anime anime = obj.GetAnime();
+                    var anime = obj.GetAnime();
                     if (anime != null)
                         RepoFactory.AniDB_Anime.Save(anime, true);
                     ts = DateTime.Now - start;
@@ -179,7 +176,7 @@ namespace Shoko.Server.Repositories.Cached
                 }
 
                 start = DateTime.Now;
-                HashSet<GroupFilterConditionType> types = obj.UpdateContract(onlyupdatestats);
+                var types = obj.UpdateContract(onlyupdatestats);
                 ts = DateTime.Now - start;
                 logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updated Contract in {ts.Milliseconds}ms");
                 start = DateTime.Now;
@@ -191,12 +188,12 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     start = DateTime.Now;
                     logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updating Group");
-                    SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
+                    var grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
                     if (grp != null)
                         RepoFactory.AnimeGroup.Save(grp, true, true);
 
                     // Last ditch to make sure we aren't just updating the same group twice (shouldn't be)
-                    if (oldGroup != null && grp.AnimeGroupID != oldGroup.AnimeGroupID)
+                    if (oldGroup != null && grp?.AnimeGroupID != oldGroup.AnimeGroupID)
                     {
                         logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updating Previous Group (moved series)");
                         RepoFactory.AnimeGroup.Save(oldGroup, true, true);
@@ -208,9 +205,9 @@ namespace Shoko.Server.Repositories.Cached
                 if (!skipgroupfilters && !isMigrating)
                 {
                     start = DateTime.Now;
-                    int endyear = obj.Contract?.AniDBAnime?.AniDBAnime?.EndYear ?? 0;
+                    var endyear = obj.Contract?.AniDBAnime?.AniDBAnime?.EndYear ?? 0;
                     if (endyear == 0) endyear = DateTime.Today.Year;
-                    int startyear = obj.Contract?.AniDBAnime?.AniDBAnime?.BeginYear ?? 0;
+                    var startyear = obj.Contract?.AniDBAnime?.AniDBAnime?.BeginYear ?? 0;
                     if (endyear < startyear) endyear = startyear;
                     HashSet<int> allyears = null;
                     if (startyear != 0)
@@ -237,7 +234,7 @@ namespace Shoko.Server.Repositories.Cached
             {
                 logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updating Episodes");
                 start = DateTime.Now;
-                List<SVR_AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetBySeriesID(obj.AnimeSeriesID);
+                var eps = RepoFactory.AnimeEpisode.GetBySeriesID(obj.AnimeSeriesID);
                 RepoFactory.AnimeEpisode.Save(eps);
                 ts = DateTime.Now - start;
                 logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updated Episodes in {ts.Milliseconds}ms");
@@ -256,56 +253,51 @@ namespace Shoko.Server.Repositories.Cached
                 return;
             }
 
-            foreach (SVR_AnimeSeries series in seriesBatch)
+            foreach (var series in seriesBatch)
             {
-                lock (GlobalLock)
-                {
-                    session.Update(series);
-                    Cache.Update(series);
-                }
+                session.Update(series);
+                UpdateCache(series);
                 Changes.AddOrUpdate(series.AnimeSeriesID);
             }
         }
 
         public SVR_AnimeSeries GetByAnimeID(int id)
         {
-            lock (GlobalLock)
-            {
-                return AniDBIds.GetOne(id);
-            }
+            Lock.EnterReadLock();
+            var result = AniDBIds.GetOne(id);
+            Lock.ExitReadLock();
+            return result;
         }
 
 
         public List<SVR_AnimeSeries> GetByGroupID(int groupid)
         {
-            lock (GlobalLock)
-            {
-                return Groups.GetMultiple(groupid);
-            }
+            Lock.EnterReadLock();
+            var result = Groups.GetMultiple(groupid);
+            Lock.ExitReadLock();
+            return result;
         }
 
 
         public List<SVR_AnimeSeries> GetWithMissingEpisodes()
         {
-            lock (GlobalLock)
-            {
-                return
-                    Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
-                        .OrderByDescending(a => a.EpisodeAddedDate)
-                        .ToList();
-            }
+            Lock.EnterReadLock();
+            var result = Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
+                .OrderByDescending(a => a.EpisodeAddedDate)
+                .ToList();
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_AnimeSeries> GetMostRecentlyAdded(int maxResults, int userID)
         {
             var user = RepoFactory.JMMUser.GetByID(userID);
-            lock (GlobalLock)
-            {
-                if (user == null)
-                    return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
-                return Cache.Values.Where(a => user.AllowedSeries(a))
-                    .OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
-            }
+            Lock.EnterReadLock();
+            var result = user == null
+                ? Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList()
+                : Cache.Values.Where(a => user.AllowedSeries(a)).OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
+            Lock.ExitReadLock();
+            return result;
         }
     }
 }

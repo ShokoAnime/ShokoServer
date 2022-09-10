@@ -7,9 +7,7 @@ using FluentNHibernate.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
@@ -18,7 +16,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
@@ -920,7 +917,10 @@ namespace Shoko.Server
             {
                 if (missingInfo)
                 {
-                    vidsToUpdate.AddRange(RepoFactory.VideoLocal.GetWithMissingChapters().Where(vid => !vidsToUpdate.Contains(vid.VideoLocalID)).Select(a => a.VideoLocalID));
+                    vidsToUpdate.AddRange(RepoFactory.AniDB_File.GetWithWithMissingChapters()
+                        .Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash))
+                        .Where(vid => vid != null && !vidsToUpdate.Contains(vid.VideoLocalID))
+                            .Select(a => a.VideoLocalID));
                 }
 
                 if (outOfDate)

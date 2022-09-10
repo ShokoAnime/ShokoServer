@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
@@ -19,18 +18,18 @@ namespace Shoko.Server.Repositories.Cached
 
         public TvDB_Episode GetByTvDBID(int id)
         {
-            lock (GlobalLock)
-            {
-                return EpisodeIDs.GetOne(id);
-            }
+            Lock.EnterReadLock();
+            var result = EpisodeIDs.GetOne(id);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<TvDB_Episode> GetBySeriesID(int seriesID)
         {
-            lock (GlobalLock)
-            {
-                return SeriesIDs.GetMultiple(seriesID);
-            }
+            Lock.EnterReadLock();
+            var result = SeriesIDs.GetMultiple(seriesID);
+            Lock.ExitReadLock();
+            return result;
         }
 
         /// <summary>
@@ -40,10 +39,7 @@ namespace Shoko.Server.Repositories.Cached
         /// <returns>distinct list of integers</returns>
         public List<int> GetSeasonNumbersForSeries(int seriesID)
         {
-            lock (GlobalLock)
-            {
-                return SeriesIDs.GetMultiple(seriesID).Select(xref => xref.SeasonNumber).Distinct().ToList();
-            }
+            return GetBySeriesID(seriesID).Select(xref => xref.SeasonNumber).Distinct().ToList();
         }
 
         /// <summary>
@@ -51,27 +47,11 @@ namespace Shoko.Server.Repositories.Cached
         /// </summary>
         /// <param name="seriesID">The TvDB series ID</param>
         /// <returns>The last TvDB Season Number, or -1 if unable</returns>
-        public int getLastSeasonForSeries(int seriesID)
+        public int GetLastSeasonForSeries(int seriesID)
         {
-            lock (GlobalLock)
-            {
-                if (SeriesIDs.GetMultiple(seriesID).Count == 0) return -1;
-                return SeriesIDs.GetMultiple(seriesID).Max(xref => xref.SeasonNumber);
-            }
-        }
-
-        /// <summary>
-        /// Gets all episodes for a series and season
-        /// </summary>
-        /// <param name="seriesID">AnimeSeries ID</param>
-        /// <param name="seasonNumber">TvDB season number</param>
-        /// <returns>List of TvDB_Episodes</returns>
-        public List<TvDB_Episode> GetBySeriesIDAndSeasonNumber(int seriesID, int seasonNumber)
-        {
-            lock (GlobalLock)
-            {
-                return SeriesIDs.GetMultiple(seriesID).Where(xref => xref.SeasonNumber == seasonNumber).ToList();
-            }
+            var seriesIDs = GetBySeriesID(seriesID);
+            if (seriesIDs.Count == 0) return -1;
+            return seriesIDs.Max(xref => xref.SeasonNumber);
         }
 
         /// <summary>
@@ -83,20 +63,8 @@ namespace Shoko.Server.Repositories.Cached
         /// <returns></returns>
         public TvDB_Episode GetBySeriesIDSeasonNumberAndEpisode(int seriesID, int seasonNumber, int epNumber)
         {
-            lock (GlobalLock)
-            {
-                return SeriesIDs.GetMultiple(seriesID).FirstOrDefault(xref => xref.SeasonNumber == seasonNumber &&
-                                                                              xref.EpisodeNumber == epNumber);
-            }
-        }
-
-        public TvDB_Episode GetBySeriesIDAndDate(int seriesID, DateTime date)
-        {
-            lock (GlobalLock)
-            {
-                return SeriesIDs.GetMultiple(seriesID).FirstOrDefault(a =>
-                    a.SeasonNumber > 0 && a.AirDate != null && Math.Abs((a.AirDate.Value - date).TotalDays) <= 2D);
-            }
+            return GetBySeriesID(seriesID).FirstOrDefault(xref => xref.SeasonNumber == seasonNumber &&
+                                                                          xref.EpisodeNumber == epNumber);
         }
 
         /// <summary>
@@ -107,25 +75,7 @@ namespace Shoko.Server.Repositories.Cached
         /// <returns>int</returns>
         public int GetNumberOfEpisodesForSeason(int seriesID, int seasonNumber)
         {
-            lock (GlobalLock)
-            {
-                return SeriesIDs.GetMultiple(seriesID).Count(xref => xref.SeasonNumber == seasonNumber);
-            }
-        }
-
-        /// <summary>
-        /// Returns a sorted list of all episodes in a season
-        /// </summary>
-        /// <param name="seriesID"></param>
-        /// <param name="seasonNumber"></param>
-        /// <returns></returns>
-        public List<TvDB_Episode> GetBySeriesIDAndSeasonNumberSorted(int seriesID, int seasonNumber)
-        {
-            lock (GlobalLock)
-            {
-                return Cache.Values.Where(xref => xref.SeriesID == seriesID && xref.SeasonNumber == seasonNumber)
-                    .OrderBy(xref => xref.EpisodeNumber).ToList();
-            }
+            return GetBySeriesID(seriesID).Count(xref => xref.SeasonNumber == seasonNumber);
         }
 
         public override void RegenerateDb()

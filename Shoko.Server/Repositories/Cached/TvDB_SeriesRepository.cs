@@ -18,10 +18,10 @@ namespace Shoko.Server.Repositories.Cached
 
         public TvDB_Series GetByTvDBID(int id)
         {
-            lock (GlobalLock)
-            {
-                return TvDBIDs.GetOne(id);
-            }
+            Lock.EnterReadLock();
+            var result = TvDBIDs.GetOne(id);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public ILookup<int, Tuple<CrossRef_AniDB_TvDB, TvDB_Series>> GetByAnimeIDs(ISessionWrapper session,
@@ -37,7 +37,7 @@ namespace Shoko.Server.Repositories.Cached
                 return EmptyLookup<int, Tuple<CrossRef_AniDB_TvDB, TvDB_Series>>.Instance;
             }
 
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 var tvDbSeriesByAnime = session.CreateSQLQuery(@"
                 SELECT {cr.*}, {series.*}

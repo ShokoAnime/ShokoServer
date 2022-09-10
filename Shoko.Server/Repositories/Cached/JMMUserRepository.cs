@@ -29,68 +29,60 @@ namespace Shoko.Server.Repositories.Cached
 
         public void Save(SVR_JMMUser obj, bool updateGroupFilters)
         {
-            lock (obj)
+            var isNew = false;
+            if (obj.JMMUserID == 0)
             {
-                bool isNew = false;
-                if (obj.JMMUserID == 0)
+                isNew = true;
+                base.Save(obj);
+            }
+            if (updateGroupFilters)
+            {
+                SVR_JMMUser old = null;
+                if (!isNew)
                 {
-                    isNew = true;
-                    base.Save(obj);
-                }
-                if (updateGroupFilters)
-                {
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    lock (GlobalDBLock)
                     {
-                        SVR_JMMUser old = isNew ? null : session.Get<SVR_JMMUser>(obj.JMMUserID);
-                        updateGroupFilters = SVR_JMMUser.CompareUser(old, obj);
+                        using var session = DatabaseFactory.SessionFactory.OpenSession();
+                        old = session.Get<SVR_JMMUser>(obj.JMMUserID);
                     }
                 }
-                base.Save(obj);
-                if (updateGroupFilters)
-                {
-                    logger.Trace("Updating group filter stats by user from JMMUserRepository.Save: {0}", obj.JMMUserID);
-                    obj.UpdateGroupFilters();
-                }
+
+                updateGroupFilters = SVR_JMMUser.CompareUser(old, obj);
             }
-        }
-
-
-        public SVR_JMMUser GetByUsername(string username)
-        {
-            lock (GlobalLock)
+            base.Save(obj);
+            if (updateGroupFilters)
             {
-                return Cache.Values.FirstOrDefault(x =>
-                    x.Username.Equals(username, StringComparison.InvariantCultureIgnoreCase));
+                logger.Trace("Updating group filter stats by user from JMMUserRepository.Save: {0}", obj.JMMUserID);
+                obj.UpdateGroupFilters();
             }
         }
-
 
         public List<SVR_JMMUser> GetAniDBUsers()
         {
-            lock (GlobalLock)
-            {
-                return Cache.Values.Where(a => a.IsAniDBUser == 1).ToList();
-            }
+            Lock.EnterReadLock();
+            var result = Cache.Values.Where(a => a.IsAniDBUser == 1).ToList();
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_JMMUser> GetTraktUsers()
         {
-            lock (GlobalLock)
-            {
-                return Cache.Values.Where(a => a.IsTraktUser == 1).ToList();
-            }
+            Lock.EnterReadLock();
+            var result = Cache.Values.Where(a => a.IsTraktUser == 1).ToList();
+            Lock.ExitReadLock();
+            return result;
         }
 
         public SVR_JMMUser AuthenticateUser(string userName, string password)
         {
             if (password == null) password = string.Empty;
-            string hashedPassword = Digest.Hash(password);
-            lock (GlobalLock)
-            {
-                return Cache.Values.FirstOrDefault(a =>
-                    a.Username.Equals(userName, StringComparison.InvariantCultureIgnoreCase) &&
-                    a.Password.Equals(hashedPassword));
-            }
+            var hashedPassword = Digest.Hash(password);
+            Lock.EnterReadLock();
+            var result = Cache.Values.FirstOrDefault(a =>
+                a.Username.Equals(userName, StringComparison.InvariantCultureIgnoreCase) &&
+                a.Password.Equals(hashedPassword));
+            Lock.ExitReadLock();
+            return result;
         }
 
         public bool RemoveUser(int userID, bool skipValidation = false)
@@ -106,7 +98,8 @@ namespace Shoko.Server.Repositories.Cached
             var toSave = RepoFactory.GroupFilter.GetAll().Select(
                 a =>
                 {
-                    bool changed = false;
+                    var changed = false;
+                    a._lock.EnterWriteLock();
                     if (a.GroupsIds.ContainsKey(userID))
                     {
                         a.GroupsIds.Remove(userID);
@@ -118,11 +111,11 @@ namespace Shoko.Server.Repositories.Cached
                         a.SeriesIds.Remove(userID);
                         changed = true;
                     }
+                    a._lock.ExitWriteLock();
 
                     if (!changed) return null;
                     a.UpdateEntityReferenceStrings();
                     return a;
-
                 }).Where(a => a != null).ToList();
             RepoFactory.GroupFilter.Save(toSave);
 
@@ -133,14 +126,6 @@ namespace Shoko.Server.Repositories.Cached
 
             Delete(user);
             return true;
-        }
-
-        public long GetTotalRecordCount()
-        {
-            lock (GlobalLock)
-            {
-                return Cache.Keys.Count;
-            }
         }
     }
 }

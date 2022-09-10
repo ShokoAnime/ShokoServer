@@ -613,10 +613,6 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
             }
         }
 
-        public List<AniDB_Recommendation> GetRecommendations() => RepoFactory.AniDB_Recommendation.GetByAnimeID(AnimeID);
-
-        public List<AniDB_Recommendation> GetRecommendations(ISessionWrapper session) => RepoFactory.AniDB_Recommendation.GetByAnimeID(session, AnimeID);
-
         public List<SVR_AniDB_Anime_Relation> GetRelatedAnime(ISessionWrapper session) => RepoFactory.AniDB_Anime_Relation.GetByAnimeID(session, AnimeID);
 
         public List<AniDB_Anime_Similar> GetSimilarAnime()
@@ -628,9 +624,6 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
         }
 
         public List<AniDB_Anime_Similar> GetSimilarAnime(ISession session) => RepoFactory.AniDB_Anime_Similar.GetByAnimeID(session, AnimeID);
-
-        [XmlIgnore]
-        public List<AniDB_Anime_Review> AnimeReviews => RepoFactory.AniDB_Anime_Review.GetByAnimeID(AnimeID);
 
         public List<SVR_AniDB_Anime> GetAllRelatedAnime()
         {
@@ -1162,107 +1155,7 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
             Contract = cl;
         }
 
-
-        public Azure_AnimeFull ToAzure()
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return ToAzure(session.Wrap());
-            }
-        }
-
-        public Azure_AnimeFull ToAzure(ISessionWrapper session)
-        {
-            var handler = ShokoServer.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
-            Azure_AnimeFull contract = new Azure_AnimeFull
-            {
-                Detail = new Azure_AnimeDetail(),
-                Characters = new List<Azure_AnimeCharacter>(),
-                Comments = new List<Azure_AnimeComment>()
-            };
-            contract.Detail.AllTags = TagsString;
-            contract.Detail.AllCategories = TagsString;
-            contract.Detail.AnimeID = AnimeID;
-            contract.Detail.AnimeName = MainTitle;
-            contract.Detail.AnimeType = this.GetAnimeTypeDescription();
-            contract.Detail.Description = Description;
-            contract.Detail.EndDateLong = AniDB.GetAniDBDateAsSeconds(EndDate);
-            contract.Detail.StartDateLong = AniDB.GetAniDBDateAsSeconds(AirDate);
-            contract.Detail.EpisodeCountNormal = EpisodeCountNormal;
-            contract.Detail.EpisodeCountSpecial = EpisodeCountSpecial;
-            contract.Detail.FanartURL = GetDefaultFanartOnlineURL();
-            contract.Detail.OverallRating = this.GetAniDBRating();
-            contract.Detail.PosterURL = string.Format(handler.ImageServerUrl, Picname);
-            contract.Detail.TotalVotes = this.GetAniDBTotalVotes();
-
-
-            List<AniDB_Anime_Character> animeChars = RepoFactory.AniDB_Anime_Character.GetByAnimeID(session, AnimeID);
-
-            if (animeChars != null && animeChars.Count > 0)
-            {
-                // first get all the main characters
-                foreach (
-                    AniDB_Anime_Character animeChar in
-                    animeChars.Where(
-                        item =>
-                            item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase)))
-                {
-                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(session, animeChar.CharID);
-                    if (chr != null)
-                        contract.Characters.Add(chr.ToContractAzure(animeChar));
-                }
-
-                // now get the rest
-                foreach (
-                    AniDB_Anime_Character animeChar in
-                    animeChars.Where(
-                        item =>
-                            !item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase))
-                )
-                {
-                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(session, animeChar.CharID);
-                    if (chr != null)
-                        contract.Characters.Add(chr.ToContractAzure(animeChar));
-                }
-            }
-
-
-            foreach (AniDB_Recommendation rec in RepoFactory.AniDB_Recommendation.GetByAnimeID(session, AnimeID))
-            {
-                Azure_AnimeComment comment = new Azure_AnimeComment
-                {
-                    UserID = rec.UserID,
-                    UserName = string.Empty,
-
-                    // Comment details
-                    CommentText = rec.RecommendationText,
-                    IsSpoiler = false,
-                    CommentDateLong = 0,
-
-                    ImageURL = string.Empty
-                };
-                AniDBRecommendationType recType = (AniDBRecommendationType) rec.RecommendationType;
-                switch (recType)
-                {
-                    case AniDBRecommendationType.ForFans:
-                        comment.CommentType = (int) WhatPeopleAreSayingType.AniDBForFans;
-                        break;
-                    case AniDBRecommendationType.MustSee:
-                        comment.CommentType = (int) WhatPeopleAreSayingType.AniDBMustSee;
-                        break;
-                    case AniDBRecommendationType.Recommended:
-                        comment.CommentType = (int) WhatPeopleAreSayingType.AniDBRecommendation;
-                        break;
-                }
-
-                comment.Source = "AniDB";
-                contract.Comments.Add(comment);
-            }
-
-            return contract;
-        }
-
-        #endregion
+#endregion
 
         public static void UpdateStatsByAnimeID(int id)
         {

@@ -12,9 +12,10 @@ namespace Shoko.Server.Repositories.Direct
     {
         public BookmarkedAnime GetByAnimeID(int animeID)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
-                BookmarkedAnime cr = session
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                var cr = session
                     .CreateCriteria(typeof(BookmarkedAnime))
                     .Add(Restrictions.Eq("AnimeID", animeID))
                     .UniqueResult<BookmarkedAnime>();

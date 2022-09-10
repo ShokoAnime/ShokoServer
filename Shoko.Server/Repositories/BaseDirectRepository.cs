@@ -20,7 +20,7 @@ namespace Shoko.Server.Repositories
 
         public virtual T GetByID(S id)
         {
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
@@ -31,7 +31,7 @@ namespace Shoko.Server.Repositories
 
         public virtual T GetByID(ISession session, S id)
         {
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 return session.Get<T>(id);
             }
@@ -39,7 +39,7 @@ namespace Shoko.Server.Repositories
 
         public virtual T GetByID(ISessionWrapper session, S id)
         {
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 return session.Get<T>(id);
             }
@@ -47,7 +47,7 @@ namespace Shoko.Server.Repositories
 
         public virtual IReadOnlyList<T> GetAll()
         {
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
@@ -58,7 +58,7 @@ namespace Shoko.Server.Repositories
 
         public virtual IReadOnlyList<T> GetAll(ISession session)
         {
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 return session.CreateCriteria(typeof(T)).List<T>().ToList();
             }
@@ -66,7 +66,7 @@ namespace Shoko.Server.Repositories
 
         public virtual IReadOnlyList<T> GetAll(ISessionWrapper session)
         {
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 return session.CreateCriteria(typeof(T)).List<T>().ToList();
             }
@@ -81,7 +81,7 @@ namespace Shoko.Server.Repositories
         public virtual void Delete(T cr)
         {
             if (cr == null) return;
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 BeginDeleteCallback?.Invoke(cr);
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -101,7 +101,7 @@ namespace Shoko.Server.Repositories
         {
             if (objs.Count == 0)
                 return;
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 foreach (T obj in objs) BeginDeleteCallback?.Invoke(obj);
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -130,7 +130,7 @@ namespace Shoko.Server.Repositories
         public virtual void DeleteWithOpenTransaction(ISession session, T cr)
         {
             if (cr == null) return;
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 session.Delete(cr);
             }
@@ -140,7 +140,7 @@ namespace Shoko.Server.Repositories
         public void DeleteWithOpenTransaction(ISession session, List<T> objs)
         {
             if (objs.Count == 0) return;
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 foreach (T cr in objs)
                 {
@@ -155,7 +155,7 @@ namespace Shoko.Server.Repositories
 
         public virtual void Save(T obj)
         {
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 lock (obj)
                 {
@@ -178,7 +178,7 @@ namespace Shoko.Server.Repositories
         {
             if (objs.Count == 0)
                 return;
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
@@ -204,7 +204,7 @@ namespace Shoko.Server.Repositories
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
         public virtual void SaveWithOpenTransaction(ISession session, T obj)
         {
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 lock (obj)
                 {
@@ -218,7 +218,7 @@ namespace Shoko.Server.Repositories
         {
             if (objs.Count == 0)
                 return;
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 foreach (T obj in objs)
                 {

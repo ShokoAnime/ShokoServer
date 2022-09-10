@@ -24,10 +24,10 @@ namespace Shoko.Server.Repositories
 
         public AnimeStaff GetByAniDBID(int id)
         {
-            lock (GlobalLock)
-            {
-                return AniDBIDs.GetOne(id);
-            }
+            Lock.EnterReadLock();
+            var result = AniDBIDs.GetOne(id);
+            Lock.ExitReadLock();
+            return result;
         }
     }
 }

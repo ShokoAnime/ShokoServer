@@ -8,9 +8,10 @@ namespace Shoko.Server.Repositories.Direct
     {
         public ScheduledUpdate GetByUpdateType(int uptype)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
-                ScheduledUpdate cr = session
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                var cr = session
                     .CreateCriteria(typeof(ScheduledUpdate))
                     .Add(Restrictions.Eq("UpdateType", uptype))
                     .UniqueResult<ScheduledUpdate>();

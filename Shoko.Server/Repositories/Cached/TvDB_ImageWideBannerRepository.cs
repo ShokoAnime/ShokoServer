@@ -31,18 +31,18 @@ namespace Shoko.Server.Repositories.Cached
 
         public TvDB_ImageWideBanner GetByTvDBID(int id)
         {
-            lock (GlobalLock)
-            {
-                return TvDBIDs.GetOne(id);
-            }
+            Lock.EnterReadLock();
+            var result = TvDBIDs.GetOne(id);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<TvDB_ImageWideBanner> GetBySeriesID(int seriesID)
         {
-            lock (GlobalLock)
-            {
-                return SeriesIDs.GetMultiple(seriesID);
-            }
+            Lock.EnterReadLock();
+            var result = SeriesIDs.GetMultiple(seriesID);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public ILookup<int, TvDB_ImageWideBanner> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
@@ -57,7 +57,7 @@ namespace Shoko.Server.Repositories.Cached
                 return EmptyLookup<int, TvDB_ImageWideBanner>.Instance;
             }
 
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 var bannersByAnime = session.CreateSQLQuery(@"
                 SELECT DISTINCT crAdbTvTb.AniDBID, {tvdbBanner.*}

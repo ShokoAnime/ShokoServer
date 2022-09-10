@@ -1,25 +1,19 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using NHibernate;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
-using Shoko.Models.Client;
 using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Cached
 {
     public class AnimeEpisode_UserRepository : BaseCachedRepository<SVR_AnimeEpisode_User, int>
     {
-        private PocoIndex<int, SVR_AnimeEpisode_User, int> Series;
-        private PocoIndex<int, SVR_AnimeEpisode_User, ulong> UsersEpisodes;
+        private PocoIndex<int, SVR_AnimeEpisode_User, (int UserID, int EpisodeID)> UsersEpisodes;
         private PocoIndex<int, SVR_AnimeEpisode_User, int> Users;
         private PocoIndex<int, SVR_AnimeEpisode_User, int> Episodes;
-        private PocoIndex<int, SVR_AnimeEpisode_User, ulong> UsersSeries;
+        private PocoIndex<int, SVR_AnimeEpisode_User, (int UserID, int SeriesID)> UsersSeries;
 
         protected override int SelectKey(SVR_AnimeEpisode_User entity)
         {
@@ -28,24 +22,23 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void PopulateIndexes()
         {
-            Series = Cache.CreateIndex(a => a.AnimeSeriesID);
-            UsersEpisodes = Cache.CreateIndex(a => (ulong) a.JMMUserID << 48 | (ulong) a.AnimeEpisodeID);
+            UsersEpisodes = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeEpisodeID));
             Users = Cache.CreateIndex(a => a.JMMUserID);
             Episodes = Cache.CreateIndex(a => a.AnimeEpisodeID);
-            UsersSeries = Cache.CreateIndex(a => (ulong) a.JMMUserID << 48 | (ulong) a.AnimeSeriesID);
+            UsersSeries = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeSeriesID));
         }
 
         public override void RegenerateDb()
         {
-            int cnt = 0;
-            List<SVR_AnimeEpisode_User> sers =
+            var cnt = 0;
+            var sers =
                 Cache.Values.Where(a => a.AnimeEpisode_UserID == 0)
                     .ToList();
-            int max = sers.Count;
+            var max = sers.Count;
             ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
                 typeof(AnimeEpisode_User).Name, " DbRegen");
             if (max <= 0) return;
-            foreach (SVR_AnimeEpisode_User g in sers)
+            foreach (var g in sers)
             {
                 Save(g);
                 cnt++;
@@ -59,29 +52,21 @@ namespace Shoko.Server.Repositories.Cached
                 " DbRegen - " + max + "/" + max);
         }
 
-        public List<SVR_AnimeEpisode_User> GetBySeriesID(int seriesid)
-        {
-            lock (GlobalLock)
-            {
-                return Series.GetMultiple(seriesid);
-            }
-        }
-
         public SVR_AnimeEpisode_User GetByUserIDAndEpisodeID(int userid, int epid)
         {
-            lock (GlobalLock)
-            {
-                return UsersEpisodes.GetOne((ulong) userid << 48 | (ulong) epid);
-            }
+            Lock.EnterReadLock();
+            var result = UsersEpisodes.GetOne((userid, epid));
+            Lock.ExitReadLock();
+            return result;
         }
 
 
         public List<SVR_AnimeEpisode_User> GetByUserID(int userid)
         {
-            lock (GlobalLock)
-            {
-                return Users.GetMultiple(userid);
-            }
+            Lock.EnterReadLock();
+            var result = Users.GetMultiple(userid);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_AnimeEpisode_User> GetMostRecentlyWatched(int userid, int maxresults = 100)
@@ -90,39 +75,26 @@ namespace Shoko.Server.Repositories.Cached
                 .Take(maxresults).ToList();
         }
 
-
-        public SVR_AnimeEpisode_User GetLastWatchedEpisode()
-        {
-            lock (GlobalLock)
-            {
-                return Cache.Values.Where(a => a.WatchedCount > 0).OrderByDescending(a => a.WatchedDate)
-                    .FirstOrDefault();
-            }
-        }
-
         public SVR_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int seriesid, int userid)
         {
-            lock (GlobalLock)
-            {
-                return UsersSeries.GetMultiple((ulong) userid << 48 | (ulong) seriesid).Where(a => a.WatchedCount > 0)
-                    .OrderByDescending(a => a.WatchedDate).FirstOrDefault();
-            }
+            return GetByUserIDAndSeriesID(userid, seriesid).Where(a => a.WatchedCount > 0)
+                .OrderByDescending(a => a.WatchedDate).FirstOrDefault();
         }
 
         public List<SVR_AnimeEpisode_User> GetByEpisodeID(int epid)
         {
-            lock (GlobalLock)
-            {
-                return Episodes.GetMultiple(epid);
-            }
+            Lock.EnterReadLock();
+            var result = Episodes.GetMultiple(epid);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_AnimeEpisode_User> GetByUserIDAndSeriesID(int userid, int seriesid)
         {
-            lock (GlobalLock)
-            {
-                return UsersSeries.GetMultiple((ulong) userid << 48 | (ulong) seriesid);
-            }
+            Lock.EnterReadLock();
+            var result = UsersSeries.GetMultiple((userid, seriesid));
+            Lock.ExitReadLock();
+            return result;
         }
     }
 }

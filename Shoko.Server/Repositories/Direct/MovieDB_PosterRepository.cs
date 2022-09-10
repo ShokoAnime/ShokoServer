@@ -12,43 +12,52 @@ namespace Shoko.Server.Repositories.Direct
     {
         public MovieDB_Poster GetByOnlineID(string url)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return GetByOnlineID(session, url);
             }
         }
 
         public MovieDB_Poster GetByOnlineID(ISession session, string url)
         {
-            MovieDB_Poster cr = session
-                .CreateCriteria(typeof(MovieDB_Poster))
-                .Add(Restrictions.Eq("URL", url))
-                .List<MovieDB_Poster>().FirstOrDefault();
-            return cr;
+            lock (GlobalDBLock)
+            {
+                var cr = session
+                    .CreateCriteria(typeof(MovieDB_Poster))
+                    .Add(Restrictions.Eq("URL", url))
+                    .List<MovieDB_Poster>().FirstOrDefault();
+                return cr;
+            }
         }
 
         public List<MovieDB_Poster> GetByMovieID(int id)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return GetByMovieID(session.Wrap(), id);
             }
         }
 
         public List<MovieDB_Poster> GetByMovieID(ISessionWrapper session, int id)
         {
-            var objs = session
-                .CreateCriteria(typeof(MovieDB_Poster))
-                .Add(Restrictions.Eq("MovieId", id))
-                .List<MovieDB_Poster>();
+            lock (GlobalDBLock)
+            {
+                var objs = session
+                    .CreateCriteria(typeof(MovieDB_Poster))
+                    .Add(Restrictions.Eq("MovieId", id))
+                    .List<MovieDB_Poster>();
 
-            return new List<MovieDB_Poster>(objs);
+                return new List<MovieDB_Poster>(objs);
+            }
         }
 
         public List<MovieDB_Poster> GetAllOriginal()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var objs = session
                     .CreateCriteria(typeof(MovieDB_Poster))
                     .Add(Restrictions.Eq("ImageSize", Shoko.Models.Constants.MovieDBImageSize.Original))

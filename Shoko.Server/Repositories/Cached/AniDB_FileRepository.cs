@@ -10,7 +10,7 @@ namespace Shoko.Server.Repositories
 {
     public class AniDB_FileRepository : BaseCachedRepository<SVR_AniDB_File, int>
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         private PocoIndex<int, SVR_AniDB_File, string> Hashes;
         private PocoIndex<int, SVR_AniDB_File, int> FileIds;
@@ -41,62 +41,54 @@ namespace Shoko.Server.Repositories
         public void Save(SVR_AniDB_File obj, bool updateStats)
         {
             base.Save(obj);
-            if (updateStats)
-            {
-                logger.Trace("Updating group stats by file from AniDB_FileRepository.Save: {0}", obj.Hash);
-                var anime = RepoFactory.CrossRef_File_Episode.GetByHash(obj.Hash).Select(a => a.AnimeID).Distinct();
-                anime.ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
-            }
+            if (!updateStats) return;
+            Logger.Trace("Updating group stats by file from AniDB_FileRepository.Save: {Hash}", obj.Hash);
+            var anime = RepoFactory.CrossRef_File_Episode.GetByHash(obj.Hash).Select(a => a.AnimeID).Distinct();
+            anime.ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
         }
 
 
         public SVR_AniDB_File GetByHash(string hash)
         {
-            lock (GlobalLock)
-            {
-                return Hashes.GetOne(hash);
-            }
+            Lock.EnterReadLock();
+            var result = Hashes.GetOne(hash);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_AniDB_File> GetByInternalVersion(int version)
         {
-            lock (GlobalLock)
-            {
-                return InternalVersions.GetMultiple(version);
-            }
+            Lock.EnterReadLock();
+            var result = InternalVersions.GetMultiple(version);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_AniDB_File> GetWithWithMissingChapters()
         {
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 // the only containers that support chapters (and will have data on anidb)
                 // < 0 instead of = -1 to avoid any issues with bit data types
-                List<SVR_AniDB_File> list = DatabaseFactory.SessionFactory.OpenSession()
-                    .CreateSQLQuery(
-                        @"SELECT FileID FROM AniDB_File WHERE IsChaptered IS NULL OR IsChaptered < 0 AND (FileName LIKE '%.mkv' OR FileName LIKE '%.ogm')")
-                    .List<int>()
-                    .Select(GetByFileID)
-                    .ToList();
+                var list = DatabaseFactory.SessionFactory.OpenSession().Query<SVR_AniDB_File>().Where(a => !a.IsChaptered && (a.FileName.EndsWith(".mkv") || a.FileName.EndsWith(".ogm"))).ToList();
                 return list;
             }
         }
 
         public SVR_AniDB_File GetByHashAndFileSize(string hash, long fsize)
         {
-            lock (GlobalLock)
-            {
-                var list = Hashes.GetMultiple(hash);
-                return list.Count == 1 ? list.First() : list.FirstOrDefault(a => a.FileSize == fsize);
-            }
+            Lock.EnterReadLock();
+            var list = Hashes.GetMultiple(hash);
+            Lock.ExitReadLock();
+            return list.Count == 1 ? list.FirstOrDefault() : list.FirstOrDefault(a => a.FileSize == fsize);
         }
 
         public SVR_AniDB_File GetByFileID(int fileID)
         {
-            lock (GlobalLock)
-            {
-                return FileIds.GetOne(fileID);
-            }
+            Lock.EnterReadLock();
+            var result = FileIds.GetOne(fileID);
+            Lock.ExitReadLock();
+            return result;
         }
     }
 }

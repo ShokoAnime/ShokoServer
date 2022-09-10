@@ -14,39 +14,40 @@ namespace Shoko.Server.Repositories.Cached
         public AuthTokens GetByToken(string token)
         {
             if (string.IsNullOrEmpty(token)) return null;
-            lock (GlobalLock)
-            {
-                var tokens = Tokens.GetMultiple(token.ToLowerInvariant().Trim()).ToList();
-                var auth = tokens.FirstOrDefault();
-                if (tokens.Count <= 1) return auth;
-                tokens.Remove(auth);
-                tokens.ForEach(Delete);
-                return auth;
-            }
+
+            Lock.EnterReadLock();
+            var tokens = Tokens.GetMultiple(token.ToLowerInvariant().Trim()).ToList();
+            Lock.ExitReadLock();
+            var auth = tokens.FirstOrDefault();
+            if (tokens.Count <= 1) return auth;
+            tokens.Remove(auth);
+            tokens.ForEach(Delete);
+            return auth;
         }
 
         public void DeleteAllWithUserID(int id)
         {
-            lock (GlobalLock)
-            {
-                UserIDs.GetMultiple(id).ToList().ForEach(Delete);
-            }
+            Lock.EnterReadLock();
+            var ids = UserIDs.GetMultiple(id);
+            Lock.ExitReadLock();
+            ids.ForEach(Delete);
         }
 
         public void DeleteWithToken(string token)
         {
-            lock (GlobalLock)
-            {
-                if (!string.IsNullOrEmpty(token)) Tokens.GetMultiple(token).ToList().ForEach(Delete);
-            }
+            if (string.IsNullOrEmpty(token)) return;
+            Lock.EnterReadLock();
+            var tokens = Tokens.GetMultiple(token);
+            Lock.ExitReadLock();
+            tokens.ForEach(Delete);
         }
 
         public List<AuthTokens> GetByUserID(int userID)
         {
-            lock (GlobalLock)
-            {
-                return UserIDs.GetMultiple(userID).ToList();
-            }
+            Lock.EnterReadLock();
+            var result = UserIDs.GetMultiple(userID);
+            Lock.ExitReadLock();
+            return result;
         }
 
         protected override int SelectKey(AuthTokens entity) => entity.AuthID;
@@ -67,33 +68,31 @@ namespace Shoko.Server.Repositories.Cached
 
             if (userrecord == null) return string.Empty;
 
-            lock (GlobalLock)
+            var uid = userrecord.JMMUserID;
+            Lock.EnterReadLock();
+            var ids = UserIDs.GetMultiple(uid);
+            Lock.ExitReadLock();
+            var tokens = ids.Where(a => string.IsNullOrEmpty(a.Token) ||
+                                             a.DeviceName.Trim().Equals(device.Trim(),
+                                                 StringComparison.InvariantCultureIgnoreCase))
+                .ToList();
+            var auth = tokens.FirstOrDefault(a => !string.IsNullOrEmpty(a.Token) &&
+                                                  a.DeviceName.Trim().Equals(device.Trim(),
+                                                      StringComparison.InvariantCultureIgnoreCase));
+            if (tokens.Count > 1)
             {
-                int uid = userrecord.JMMUserID;
-                var tokens = UserIDs
-                    .GetMultiple(uid).Where(a => string.IsNullOrEmpty(a.Token) ||
-                                                 a.DeviceName.Trim().Equals(device.Trim(),
-                                                     StringComparison.InvariantCultureIgnoreCase))
-                    .ToList();
-                var auth = tokens.FirstOrDefault(a => !string.IsNullOrEmpty(a.Token) &&
-                                                      a.DeviceName.Trim().Equals(device.Trim(),
-                                                          StringComparison.InvariantCultureIgnoreCase));
-                if (tokens.Count > 1)
-                {
-                    if (auth != null) tokens.Remove(auth);
-                    tokens.ForEach(Delete);
-                }
-                string apiKey = auth?.Token.ToLowerInvariant().Trim() ?? string.Empty;
-
-                if (!string.IsNullOrEmpty(apiKey)) return apiKey;
-
-                apiKey = Guid.NewGuid().ToString().ToLowerInvariant().Trim();
-                AuthTokens newToken =
-                    new AuthTokens {UserID = uid, DeviceName = device.Trim().ToLowerInvariant(), Token = apiKey};
-                Save(newToken);
-
-                return apiKey;
+                if (auth != null) tokens.Remove(auth);
+                tokens.ForEach(Delete);
             }
+            var apiKey = auth?.Token.ToLowerInvariant().Trim() ?? string.Empty;
+
+            if (!string.IsNullOrEmpty(apiKey)) return apiKey;
+
+            apiKey = Guid.NewGuid().ToString().ToLowerInvariant().Trim();
+            var newToken = new AuthTokens {UserID = uid, DeviceName = device.Trim().ToLowerInvariant(), Token = apiKey};
+            Save(newToken);
+
+            return apiKey;
         }
     }
 }

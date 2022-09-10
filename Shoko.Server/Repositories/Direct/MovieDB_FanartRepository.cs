@@ -15,37 +15,45 @@ namespace Shoko.Server.Repositories.Direct
     {
         public MovieDB_Fanart GetByOnlineID(string url)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return GetByOnlineID(session, url);
             }
         }
 
         public MovieDB_Fanart GetByOnlineID(ISession session, string url)
         {
-            MovieDB_Fanart cr = session
-                .CreateCriteria(typeof(MovieDB_Fanart))
-                .Add(Restrictions.Eq("URL", url))
-                .List<MovieDB_Fanart>().FirstOrDefault();
-            return cr;
+            lock (GlobalDBLock)
+            {
+                var cr = session
+                    .CreateCriteria(typeof(MovieDB_Fanart))
+                    .Add(Restrictions.Eq("URL", url))
+                    .List<MovieDB_Fanart>().FirstOrDefault();
+                return cr;
+            }
         }
 
         public List<MovieDB_Fanart> GetByMovieID(int id)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return GetByMovieID(session.Wrap(), id);
             }
         }
 
         public List<MovieDB_Fanart> GetByMovieID(ISessionWrapper session, int id)
         {
-            var objs = session
-                .CreateCriteria(typeof(MovieDB_Fanart))
-                .Add(Restrictions.Eq("MovieId", id))
-                .List<MovieDB_Fanart>();
+            lock (GlobalDBLock)
+            {
+                var objs = session
+                    .CreateCriteria(typeof(MovieDB_Fanart))
+                    .Add(Restrictions.Eq("MovieId", id))
+                    .List<MovieDB_Fanart>();
 
-            return new List<MovieDB_Fanart>(objs);
+                return new List<MovieDB_Fanart>(objs);
+            }
         }
 
         public ILookup<int, MovieDB_Fanart> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
@@ -60,26 +68,32 @@ namespace Shoko.Server.Repositories.Direct
                 return EmptyLookup<int, MovieDB_Fanart>.Instance;
             }
 
-            var fanartByAnime = session.CreateSQLQuery(@"
+            lock (GlobalDBLock)
+            {
+                var fanartByAnime = session.CreateSQLQuery(
+                        @"
                 SELECT DISTINCT adbOther.AnimeID, {mdbFanart.*}
                     FROM CrossRef_AniDB_Other AS adbOther
                         INNER JOIN MovieDB_Fanart AS mdbFanart
                             ON mdbFanart.MovieId = adbOther.CrossRefID
-                    WHERE adbOther.CrossRefType = :crossRefType AND adbOther.AnimeID IN (:animeIds)")
-                .AddScalar("AnimeID", NHibernateUtil.Int32)
-                .AddEntity("mdbFanart", typeof(MovieDB_Fanart))
-                .SetInt32("crossRefType", (int) CrossRefType.MovieDB)
-                .SetParameterList("animeIds", animeIds)
-                .List<object[]>()
-                .ToLookup(r => (int) r[0], r => (MovieDB_Fanart) r[1]);
+                    WHERE adbOther.CrossRefType = :crossRefType AND adbOther.AnimeID IN (:animeIds)"
+                    )
+                    .AddScalar("AnimeID", NHibernateUtil.Int32)
+                    .AddEntity("mdbFanart", typeof(MovieDB_Fanart))
+                    .SetInt32("crossRefType", (int)CrossRefType.MovieDB)
+                    .SetParameterList("animeIds", animeIds)
+                    .List<object[]>()
+                    .ToLookup(r => (int)r[0], r => (MovieDB_Fanart)r[1]);
 
-            return fanartByAnime;
+                return fanartByAnime;
+            }
         }
 
         public List<MovieDB_Fanart> GetAllOriginal()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var objs = session
                     .CreateCriteria(typeof(MovieDB_Fanart))
                     .Add(Restrictions.Eq("ImageSize", Shoko.Models.Constants.MovieDBImageSize.Original))

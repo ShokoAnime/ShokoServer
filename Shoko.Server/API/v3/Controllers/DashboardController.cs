@@ -61,7 +61,7 @@ namespace Shoko.Server.API.v3.Controllers
             int missing = series.Sum(a => a.MissingEpisodeCount);
             int missingCollecting = series.Sum(a => a.MissingEpisodeCountGroups);
 
-            int unrecognized = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().Count();
+            int unrecognized = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().Count;
 
             int missingLinks = series.Count(MissingBothTvDBAndMovieDBLink);
 

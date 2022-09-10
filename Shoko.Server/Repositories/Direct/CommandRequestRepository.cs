@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NHibernate.Criterion;
 using NLog;
@@ -14,7 +13,7 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int>
     {
-        private readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
         private static readonly HashSet<int> CommandTypesHasher = new HashSet<int>
         {
@@ -90,24 +89,28 @@ namespace Shoko.Server.Repositories.Direct
 
         public CommandRequest GetByCommandID(string cmdid)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return GetByCommandID(session, cmdid);
             }
         }
 
         public CommandRequest GetByCommandID(ISession session, string cmdid)
         {
-            var crs = session
-                .CreateCriteria(typeof(CommandRequest))
-                .Add(Restrictions.Eq("CommandID", cmdid))
-                .List<CommandRequest>().ToList();
-            var cr = crs.FirstOrDefault();
-            if (crs.Count <= 1) return cr;
+            lock (GlobalDBLock)
+            {
+                var crs = session
+                    .CreateCriteria(typeof(CommandRequest))
+                    .Add(Restrictions.Eq("CommandID", cmdid))
+                    .List<CommandRequest>().ToList();
+                var cr = crs.FirstOrDefault();
+                if (crs.Count <= 1) return cr;
 
-            crs.Remove(cr);
-            foreach (var crd in crs) Delete(crd);
-            return cr;
+                crs.Remove(cr);
+                foreach (var crd in crs) Delete(crd);
+                return cr;
+            }
         }
 
 
@@ -115,45 +118,50 @@ namespace Shoko.Server.Repositories.Direct
         {
             try
             {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var types = CommandTypesGeneral;
-                var noUDP = udpHandler.IsBanned || !udpHandler.IsNetworkAvailable;
-                // This is called very often, so speed it up as much as possible
-                // We can spare bytes of RAM to speed up the command queue
-                if (httpHandler.IsBanned && noUDP)
+                lock (GlobalDBLock)
                 {
-                    types = CommandTypesGeneralFullBan;
-                }
-                else if (noUDP)
-                {
-                    types = CommandTypesGeneralUDPBan;
-                }
-                else if (httpHandler.IsBanned)
-                {
-                    types = CommandTypesGeneralHTTPBan;
-                }
-                //don't need all rows, just first
-                var cr = session.QueryOver<CommandRequest>()
-                    .WhereRestrictionOn(field => field.CommandType)
-                    .IsIn(types.ToArray())
-                    .OrderBy(r => r.Priority).Asc
-                    .ThenBy(r => r.DateTimeUpdated).Asc
-                    .Take(1)
-                    .SingleOrDefault<CommandRequest>();
+                    using var session = DatabaseFactory.SessionFactory.OpenSession();
+                    var types = CommandTypesGeneral;
+                    var noUDP = udpHandler.IsBanned || !udpHandler.IsNetworkAvailable;
+                    // This is called very often, so speed it up as much as possible
+                    // We can spare bytes of RAM to speed up the command queue
+                    if (httpHandler.IsBanned && noUDP)
+                    {
+                        types = CommandTypesGeneralFullBan;
+                    }
+                    else if (noUDP)
+                    {
+                        types = CommandTypesGeneralUDPBan;
+                    }
+                    else if (httpHandler.IsBanned)
+                    {
+                        types = CommandTypesGeneralHTTPBan;
+                    }
 
-                return cr;
+                    //don't need all rows, just first
+                    var cr = session.QueryOver<CommandRequest>()
+                        .WhereRestrictionOn(field => field.CommandType)
+                        .IsIn(types.ToArray())
+                        .OrderBy(r => r.Priority).Asc
+                        .ThenBy(r => r.DateTimeUpdated).Asc
+                        .Take(1)
+                        .SingleOrDefault<CommandRequest>();
+
+                    return cr;
+                }
             }
             catch (Exception e)
             {
-                logger.Error($"There was an error retrieving the next command for the General Queue: {e}");
+                _logger.Error($"There was an error retrieving the next command for the General Queue: {e}");
                 return null;
             }
         }
 
         public List<CommandRequest> GetAllCommandRequestGeneral()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 // This is used to clear the queue, we don't need order
                 var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesGeneral.ToArray())
@@ -167,8 +175,9 @@ namespace Shoko.Server.Repositories.Direct
         {
             try
             {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                lock (GlobalDBLock)
                 {
+                    using var session = DatabaseFactory.SessionFactory.OpenSession();
                     var crs = session.QueryOver<CommandRequest>()
                         .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesHasher.ToArray())
                         .OrderBy(cr => cr.Priority).Asc
@@ -176,21 +185,22 @@ namespace Shoko.Server.Repositories.Direct
                         .Take(1)
                         .List<CommandRequest>();
                     if (crs.Count > 0) return crs[0];
-
-                    return null;
                 }
+
+                return null;
             }
             catch (Exception e)
             {
-                logger.Error($"There was an error retrieving the next command for the Hasher Queue: {e}");
+                _logger.Error($"There was an error retrieving the next command for the Hasher Queue: {e}");
                 return null;
             }
         }
 
         public List<CommandRequest> GetAllCommandRequestHasher()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesHasher.ToArray())
                     .OrderBy(cr => cr.Priority).Asc
@@ -205,8 +215,9 @@ namespace Shoko.Server.Repositories.Direct
         {
             try
             {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                lock (GlobalDBLock)
                 {
+                    using var session = DatabaseFactory.SessionFactory.OpenSession();
                     var crs = session.QueryOver<CommandRequest>()
                         .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesImages.ToArray())
                         .OrderBy(cr => cr.Priority).Asc
@@ -214,21 +225,22 @@ namespace Shoko.Server.Repositories.Direct
                         .Take(1)
                         .List<CommandRequest>();
                     if (crs.Count > 0) return crs[0];
-
-                    return null;
                 }
+
+                return null;
             }
             catch (Exception e)
             {
-                logger.Error($"There was an error retrieving the next command for the Image Queue: {e}");
+                _logger.Error($"There was an error retrieving the next command for the Image Queue: {e}");
                 return null;
             }
         }
 
         public List<CommandRequest> GetAllCommandRequestImages()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesImages.ToArray())
                     .OrderBy(cr => cr.Priority).Asc
@@ -241,8 +253,9 @@ namespace Shoko.Server.Repositories.Direct
 
         public int GetQueuedCommandCountGeneral()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(f => f.CommandType)
                     .IsIn(CommandTypesGeneral.ToArray())
@@ -254,8 +267,9 @@ namespace Shoko.Server.Repositories.Direct
 
         public int GetQueuedCommandCountHasher()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesHasher.ToArray())
                     .RowCount();
@@ -266,8 +280,9 @@ namespace Shoko.Server.Repositories.Direct
 
         public int GetQueuedCommandCountImages()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesImages.ToArray())
                     .RowCount();
@@ -278,8 +293,9 @@ namespace Shoko.Server.Repositories.Direct
 
         public List<CommandRequest> GetByCommandTypes(int[] types)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(types)
                     .OrderBy(cr => cr.Priority).Asc
@@ -292,28 +308,30 @@ namespace Shoko.Server.Repositories.Direct
 
         public void ClearGeneralQueue()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var currentCommand = ShokoService.CmdProcessorGeneral.CurrentCommand;
-                using (var transaction = session.BeginTransaction())
+                using var transaction = session.BeginTransaction();
+                if (currentCommand != null)
                 {
-                    if (currentCommand != null)
-                    {
-                        session
-                            .CreateSQLQuery(
-                                "DELETE FROM CommandRequest WHERE CommandRequestID != :currentid AND CommandType IN (:comtypes)")
-                            .SetInt32("currentid", currentCommand.CommandRequestID)
-                            .SetParameterList("comtypes", CommandTypesGeneral).ExecuteUpdate();
-                    }
-                    else
-                    {
-                        session
-                            .CreateSQLQuery(
-                                "DELETE FROM CommandRequest WHERE CommandType IN (:comtypes)")
-                            .SetParameterList("comtypes", CommandTypesGeneral).ExecuteUpdate();
-                    }
-                    transaction.Commit();
+                    session
+                        .CreateSQLQuery(
+                            "DELETE FROM CommandRequest WHERE CommandRequestID != :currentid AND CommandType IN (:comtypes)"
+                        )
+                        .SetInt32("currentid", currentCommand.CommandRequestID)
+                        .SetParameterList("comtypes", CommandTypesGeneral).ExecuteUpdate();
                 }
+                else
+                {
+                    session
+                        .CreateSQLQuery(
+                            "DELETE FROM CommandRequest WHERE CommandType IN (:comtypes)"
+                        )
+                        .SetParameterList("comtypes", CommandTypesGeneral).ExecuteUpdate();
+                }
+
+                transaction.Commit();
             }
 
             ShokoService.CmdProcessorGeneral.QueueCount = GetQueuedCommandCountGeneral();
@@ -321,28 +339,30 @@ namespace Shoko.Server.Repositories.Direct
 
         public void ClearHasherQueue()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var currentCommand = ShokoService.CmdProcessorHasher.CurrentCommand;
-                using (var transaction = session.BeginTransaction())
+                using var transaction = session.BeginTransaction();
+                if (currentCommand != null)
                 {
-                    if (currentCommand != null)
-                    {
-                        session
-                            .CreateSQLQuery(
-                                "DELETE FROM CommandRequest WHERE CommandRequestID != :currentid AND CommandType IN (:comtypes)")
-                            .SetInt32("currentid", currentCommand.CommandRequestID)
-                            .SetParameterList("comtypes", CommandTypesHasher).ExecuteUpdate();
-                    }
-                    else
-                    {
-                        session
-                            .CreateSQLQuery(
-                                "DELETE FROM CommandRequest WHERE CommandType IN (:comtypes)")
-                            .SetParameterList("comtypes", CommandTypesHasher).ExecuteUpdate();
-                    }
-                    transaction.Commit();
+                    session
+                        .CreateSQLQuery(
+                            "DELETE FROM CommandRequest WHERE CommandRequestID != :currentid AND CommandType IN (:comtypes)"
+                        )
+                        .SetInt32("currentid", currentCommand.CommandRequestID)
+                        .SetParameterList("comtypes", CommandTypesHasher).ExecuteUpdate();
                 }
+                else
+                {
+                    session
+                        .CreateSQLQuery(
+                            "DELETE FROM CommandRequest WHERE CommandType IN (:comtypes)"
+                        )
+                        .SetParameterList("comtypes", CommandTypesHasher).ExecuteUpdate();
+                }
+
+                transaction.Commit();
             }
 
             ShokoService.CmdProcessorHasher.QueueCount = GetQueuedCommandCountHasher();
@@ -350,28 +370,30 @@ namespace Shoko.Server.Repositories.Direct
 
         public void ClearImageQueue()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var currentCommand = ShokoService.CmdProcessorImages.CurrentCommand;
-                using (var transaction = session.BeginTransaction())
+                using var transaction = session.BeginTransaction();
+                if (currentCommand != null)
                 {
-                    if (currentCommand != null)
-                    {
-                        session
-                            .CreateSQLQuery(
-                                "DELETE FROM CommandRequest WHERE CommandRequestID != :currentid AND CommandType IN (:comtypes)")
-                            .SetInt32("currentid", currentCommand.CommandRequestID)
-                            .SetParameterList("comtypes", CommandTypesImages).ExecuteUpdate();
-                    }
-                    else
-                    {
-                        session
-                            .CreateSQLQuery(
-                                "DELETE FROM CommandRequest WHERE CommandType IN (:comtypes)")
-                            .SetParameterList("comtypes", CommandTypesImages).ExecuteUpdate();
-                    }
-                    transaction.Commit();
+                    session
+                        .CreateSQLQuery(
+                            "DELETE FROM CommandRequest WHERE CommandRequestID != :currentid AND CommandType IN (:comtypes)"
+                        )
+                        .SetInt32("currentid", currentCommand.CommandRequestID)
+                        .SetParameterList("comtypes", CommandTypesImages).ExecuteUpdate();
                 }
+                else
+                {
+                    session
+                        .CreateSQLQuery(
+                            "DELETE FROM CommandRequest WHERE CommandType IN (:comtypes)"
+                        )
+                        .SetParameterList("comtypes", CommandTypesImages).ExecuteUpdate();
+                }
+
+                transaction.Commit();
             }
 
             ShokoService.CmdProcessorImages.QueueCount = GetQueuedCommandCountImages();

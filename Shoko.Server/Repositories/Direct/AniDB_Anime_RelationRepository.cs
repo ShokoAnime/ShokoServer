@@ -10,74 +10,72 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Anime_Relation, int>
     {
-        public SVR_AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetByAnimeIDAndRelationID(session, animeid, relatedanimeid);
-            }
-        }
-
         public SVR_AniDB_Anime_Relation GetByAnimeIDAndRelationID(ISession session, int animeid, int relatedanimeid)
         {
-            SVR_AniDB_Anime_Relation cr = session
-                .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
-                .Add(Restrictions.Eq("AnimeID", animeid))
-                .Add(Restrictions.Eq("RelatedAnimeID", relatedanimeid))
-                .UniqueResult<SVR_AniDB_Anime_Relation>();
-            return cr;
+            lock (GlobalDBLock)
+            {
+                var cr = session
+                    .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
+                    .Add(Restrictions.Eq("AnimeID", animeid))
+                    .Add(Restrictions.Eq("RelatedAnimeID", relatedanimeid))
+                    .UniqueResult<SVR_AniDB_Anime_Relation>();
+                return cr;
+            }
         }
 
         public List<SVR_AniDB_Anime_Relation> GetByAnimeID(int id)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return GetByAnimeID(session.Wrap(), id);
             }
         }
 
         public List<SVR_AniDB_Anime_Relation> GetByAnimeID(IEnumerable<int> ids)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
-                return GetByAnimeID(session.Wrap(), ids);
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                var cats = session
+                    .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
+                    .Add(Restrictions.In("AnimeID", ids.ToArray()))
+                    .List<SVR_AniDB_Anime_Relation>();
+
+                return new List<SVR_AniDB_Anime_Relation>(cats);
             }
         }
 
         public List<SVR_AniDB_Anime_Relation> GetByAnimeID(ISessionWrapper session, int id)
         {
-            var cats = session
-                .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
-                .Add(Restrictions.Eq("AnimeID", id))
-                .List<SVR_AniDB_Anime_Relation>();
+            lock (GlobalDBLock)
+            {
+                var cats = session
+                    .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
+                    .Add(Restrictions.Eq("AnimeID", id))
+                    .List<SVR_AniDB_Anime_Relation>();
 
-            return new List<SVR_AniDB_Anime_Relation>(cats);
-        }
-
-        public List<SVR_AniDB_Anime_Relation> GetByAnimeID(ISessionWrapper session, IEnumerable<int> ids)
-        {
-            var cats = session
-                .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
-                .Add(Restrictions.In("AnimeID", ids.ToArray()))
-                .List<SVR_AniDB_Anime_Relation>();
-
-            return new List<SVR_AniDB_Anime_Relation>(cats);
+                return new List<SVR_AniDB_Anime_Relation>(cats);
+            }
         }
 
         /// SELECT AnimeID FROM AniDB_Anime_Relation WHERE (RelationType = 'Prequel' OR RelationType = 'Sequel') AND (AnimeID = 10445 OR RelatedAnimeID = 10445)
         /// UNION
         /// SELECT RelatedAnimeID AS AnimeID FROM AniDB_Anime_Relation WHERE (RelationType = 'Prequel' OR RelationType = 'Sequel') AND (AnimeID = 10445 OR RelatedAnimeID = 10445)
-        public HashSet<int> GetLinearRelations(ISession session, int id)
+        private HashSet<int> GetLinearRelations(ISession session, int id)
         {
-            var cats = (from relation in session.QueryOver<SVR_AniDB_Anime_Relation>()
-                where (relation.AnimeID == id || relation.RelatedAnimeID == id) &&
-                      (relation.RelationType == "Prequel" || relation.RelationType == "Sequel")
-                select relation.AnimeID).Future<int>();
-            var cats2 = (from relation in session.QueryOver<SVR_AniDB_Anime_Relation>()
-                where (relation.AnimeID == id || relation.RelatedAnimeID == id) &&
-                      (relation.RelationType == "Prequel" || relation.RelationType == "Sequel")
-                select relation.RelatedAnimeID).Future<int>();
-            return new HashSet<int>(cats.Concat(cats2));
+            lock (GlobalDBLock)
+            {
+                var cats = (from relation in session.QueryOver<SVR_AniDB_Anime_Relation>()
+                            where (relation.AnimeID == id || relation.RelatedAnimeID == id) &&
+                                  (relation.RelationType == "Prequel" || relation.RelationType == "Sequel")
+                            select relation.AnimeID).List<int>();
+                var cats2 = (from relation in session.QueryOver<SVR_AniDB_Anime_Relation>()
+                             where (relation.AnimeID == id || relation.RelatedAnimeID == id) &&
+                                   (relation.RelationType == "Prequel" || relation.RelationType == "Sequel")
+                             select relation.RelatedAnimeID).List<int>();
+                return new HashSet<int>(cats.Concat(cats2));
+            }
         }
 
         /// <summary>
@@ -87,11 +85,12 @@ namespace Shoko.Server.Repositories.Direct
         /// <returns></returns>
         public List<int> GetFullLinearRelationTree(int animeID)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var allRelations = GetLinearRelations(session, animeID);
-                HashSet<int> visitedNodes = new HashSet<int> { animeID };
-                HashSet<int> resultRelations = new HashSet<int>(allRelations);
+                var visitedNodes = new HashSet<int> { animeID };
+                var resultRelations = new HashSet<int>(allRelations);
                 GetAllRelationsByTypeRecursive(session, allRelations, ref visitedNodes, ref resultRelations);
 
                 return resultRelations.OrderBy(a => a).ToList();

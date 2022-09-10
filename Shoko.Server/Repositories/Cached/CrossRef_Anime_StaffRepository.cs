@@ -16,7 +16,7 @@ namespace Shoko.Server.Repositories.Cached
         private PocoIndex<int, CrossRef_Anime_Staff, StaffRoleType> RoleTypes;
 
         public static readonly Dictionary<string, CharacterAppearanceType> Roles =
-            new Dictionary<string, CharacterAppearanceType>
+            new()
             {
                 {"main character in", CharacterAppearanceType.Main_Character},
                 {"secondary cast in", CharacterAppearanceType.Minor_Character},
@@ -34,8 +34,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            var list = Cache.Values.Where(animeStaff => animeStaff.RoleID != null && !string.IsNullOrEmpty(animeStaff.Role) && Roles.ContainsKey(animeStaff.Role) && Roles[animeStaff.Role].ToString().Contains("_"))
-                .ToList();
+            var list = Cache.Values.Where(animeStaff => animeStaff.RoleID != null && !string.IsNullOrEmpty(animeStaff.Role) && Roles.ContainsKey(animeStaff.Role) && Roles[animeStaff.Role].ToString().Contains("_")).ToList();
             for (var index = 0; index < list.Count; index++)
             {
                 var animeStaff = list[index];
@@ -56,51 +55,45 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_Anime_Staff> GetByStaffID(int id)
         {
-            lock (GlobalLock)
-            {
-                return StaffIDs.GetMultiple(id);
-            }
+            Lock.EnterReadLock();
+            var result = StaffIDs.GetMultiple(id);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<CrossRef_Anime_Staff> GetByRoleID(int id)
         {
-            lock (GlobalLock)
-            {
-                return RoleIDs.GetMultiple(id);
-            }
+            Lock.EnterReadLock();
+            var result = RoleIDs.GetMultiple(id);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<CrossRef_Anime_Staff> GetByRoleType(StaffRoleType type)
         {
-            lock (GlobalLock)
-            {
-                return RoleTypes.GetMultiple(type);
-            }
+            Lock.EnterReadLock();
+            var result = RoleTypes.GetMultiple(type);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<CrossRef_Anime_Staff> GetByAnimeID(int id)
         {
-            lock (GlobalLock)
-            {
-                return AnimeIDs.GetMultiple(id);
-            }
+            Lock.EnterReadLock();
+            var result = AnimeIDs.GetMultiple(id);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<CrossRef_Anime_Staff> GetByAnimeIDAndRoleType(int id, StaffRoleType type)
         {
-            lock (GlobalLock)
-            {
-                return AnimeIDs.GetMultiple(id).Where(xref => xref.RoleType == (int) type).ToList();
-            }
+            return GetByAnimeID(id).Where(xref => xref.RoleType == (int) type).ToList();
         }
 
         public CrossRef_Anime_Staff GetByParts(int AnimeID, int? RoleID, int StaffID, StaffRoleType RoleType)
         {
-            lock (GlobalLock)
-            {
-                return AnimeIDs.GetMultiple(AnimeID).FirstOrDefault(a =>
-                    a.RoleID == RoleID && a.StaffID == StaffID && a.RoleType == (int) RoleType);
-            }
+            return GetByAnimeID(AnimeID).FirstOrDefault(a =>
+                a.RoleID == RoleID && a.StaffID == StaffID && a.RoleType == (int) RoleType);
         }
     }
 }

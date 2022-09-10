@@ -15,19 +15,23 @@ namespace Shoko.Server.Repositories.Direct
     {
         public AniDB_Character GetByCharID(int id)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return GetByCharID(session.Wrap(), id);
             }
         }
 
         public AniDB_Character GetByCharID(ISessionWrapper session, int id)
         {
-            AniDB_Character cr = session
-                .CreateCriteria(typeof(AniDB_Character))
-                .Add(Restrictions.Eq("CharID", id))
-                .UniqueResult<AniDB_Character>();
-            return cr;
+            lock (GlobalDBLock)
+            {
+                var cr = session
+                    .CreateCriteria(typeof(AniDB_Character))
+                    .Add(Restrictions.Eq("CharID", id))
+                    .UniqueResult<AniDB_Character>();
+                return cr;
+            }
         }
 
         public ILookup<int, AnimeCharacterAndSeiyuu> GetCharacterAndSeiyuuByAnime(ISessionWrapper session,
@@ -43,8 +47,11 @@ namespace Shoko.Server.Repositories.Direct
                 return EmptyLookup<int, AnimeCharacterAndSeiyuu>.Instance;
             }
 
-            // The below query makes sure that only one seiyuu is returned for each anime/character combiniation
-            var animeChars = session.CreateSQLQuery(@"
+            lock (GlobalDBLock)
+            {
+                // The below query makes sure that only one seiyuu is returned for each anime/character combiniation
+                var animeChars = session.CreateSQLQuery(
+                        @"
                 SELECT animeChr.AnimeID, {chr.*}, {seiyuu.*}, animeChr.CharType
                     FROM AniDB_Anime_Character AS animeChr
                         INNER JOIN AniDB_Character AS chr
@@ -60,18 +67,24 @@ namespace Shoko.Server.Repositories.Direct
                                 AND chrSeiyuu.AnimeID = animeChr.AnimeID
                         LEFT OUTER JOIN AniDB_Seiyuu AS seiyuu
                             ON seiyuu.SeiyuuID = chrSeiyuu.SeiyuuID
-                    WHERE animeChr.AnimeID IN (:animeIds)")
-                .AddScalar("AnimeID", NHibernateUtil.Int32)
-                .AddEntity("chr", typeof(AniDB_Character))
-                .AddEntity("seiyuu", typeof(AniDB_Seiyuu))
-                .AddScalar("CharType", NHibernateUtil.String)
-                .SetParameterList("animeIds", animeIds)
-                .List<object[]>()
-                .Select(r => new AnimeCharacterAndSeiyuu((int) r[0], (AniDB_Character) r[1], (AniDB_Seiyuu) r[2],
-                    (string) r[3]))
-                .ToLookup(ac => ac.AnimeID);
+                    WHERE animeChr.AnimeID IN (:animeIds)"
+                    )
+                    .AddScalar("AnimeID", NHibernateUtil.Int32)
+                    .AddEntity("chr", typeof(AniDB_Character))
+                    .AddEntity("seiyuu", typeof(AniDB_Seiyuu))
+                    .AddScalar("CharType", NHibernateUtil.String)
+                    .SetParameterList("animeIds", animeIds)
+                    .List<object[]>()
+                    .Select(
+                        r => new AnimeCharacterAndSeiyuu(
+                            (int)r[0], (AniDB_Character)r[1], (AniDB_Seiyuu)r[2],
+                            (string)r[3]
+                        )
+                    )
+                    .ToLookup(ac => ac.AnimeID);
 
-            return animeChars;
+                return animeChars;
+            }
         }
     }
 

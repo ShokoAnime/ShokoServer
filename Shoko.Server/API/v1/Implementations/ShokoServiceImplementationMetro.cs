@@ -927,104 +927,13 @@ namespace Shoko.Server
         [HttpGet("Anime/Comment/{animeID}/{maxRecords}")]
         public List<Metro_Comment> GetTraktCommentsForAnime(int animeID, int maxRecords)
         {
-            List<Metro_Comment> comments = new List<Metro_Comment>();
-
-            try
-            {
-                List<TraktV2Comment> commentsTemp = _traktHelper.GetShowCommentsV2(animeID);
-
-                if (commentsTemp == null || commentsTemp.Count == 0) return comments;
-
-                int cnt = 0;
-                foreach (TraktV2Comment sht in commentsTemp)
-                {
-                    Metro_Comment comment = new Metro_Comment();
-
-                    Trakt_Friend traktFriend = RepoFactory.Trakt_Friend.GetByUsername(sht.user.username);
-
-                    // user details
-                    CL_Trakt_User user = new CL_Trakt_User();
-                    if (traktFriend == null)
-                        comment.UserID = 0;
-                    else
-                        comment.UserID = traktFriend.Trakt_FriendID;
-
-                    comment.UserName = sht.user.username;
-
-                    // shout details
-                    comment.CommentText = sht.comment;
-                    comment.IsSpoiler = sht.spoiler;
-                    comment.CommentDate = sht.CreatedAtDate;
-
-                    //shout.ImageURL = sht.user.avatar;
-                    comment.CommentType = (int) WhatPeopleAreSayingType.TraktComment;
-                    comment.Source = "Trakt";
-
-                    cnt++;
-                    comments.Add(comment);
-
-                    if (cnt == maxRecords) break;
-                }
-                comments = comments.OrderBy(a => a.CommentDate).ToList();
-                
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return comments;
+            return new List<Metro_Comment>();
         }
 
         [HttpGet("Anime/Recommendation/{animeID}/{maxRecords}")]
         public List<Metro_Comment> GetAniDBRecommendationsForAnime(int animeID, int maxRecords)
         {
-            List<Metro_Comment> contracts = new List<Metro_Comment>();
-            try
-            {
-                int cnt = 0;
-                foreach (AniDB_Recommendation rec in RepoFactory.AniDB_Recommendation.GetByAnimeID(animeID))
-                {
-                    Metro_Comment shout = new Metro_Comment
-                    {
-                        UserID = rec.UserID,
-                        UserName = string.Empty,
-
-                        // shout details
-                        CommentText = rec.RecommendationText,
-                        IsSpoiler = false,
-                        CommentDate = null,
-
-                        ImageURL = string.Empty
-                    };
-                    AniDBRecommendationType recType = (AniDBRecommendationType) rec.RecommendationType;
-                    switch (recType)
-                    {
-                        case AniDBRecommendationType.ForFans:
-                            shout.CommentType = (int) WhatPeopleAreSayingType.AniDBForFans;
-                            break;
-                        case AniDBRecommendationType.MustSee:
-                            shout.CommentType = (int) WhatPeopleAreSayingType.AniDBMustSee;
-                            break;
-                        case AniDBRecommendationType.Recommended:
-                            shout.CommentType = (int) WhatPeopleAreSayingType.AniDBRecommendation;
-                            break;
-                    }
-
-                    shout.Source = "AniDB";
-
-                    cnt++;
-                    contracts.Add(shout);
-
-                    if (cnt == maxRecords) break;
-                }
-
-                return contracts;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return contracts;
-            }
+            return new List<Metro_Comment>();
         }
 
         [HttpGet("Anime/Similar/{animeID}/{maxRecords}/{userID}")]

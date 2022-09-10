@@ -11,11 +11,12 @@ namespace Shoko.Server.Repositories.Direct
     {
         public List<ScanFile> GetWaiting(int scanid)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return session.CreateCriteria(typeof(ScanFile))
                     .Add(Restrictions.Eq("ScanID", scanid))
-                    .Add(Restrictions.Eq("Status", (int) ScanFileStatus.Waiting))
+                    .Add(Restrictions.Eq("Status", (int)ScanFileStatus.Waiting))
                     .AddOrder(Order.Asc("CheckDate"))
                     .List<ScanFile>()
                     .ToList();
@@ -24,23 +25,11 @@ namespace Shoko.Server.Repositories.Direct
 
         public List<ScanFile> GetByScanID(int scanid)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return session.CreateCriteria(typeof(ScanFile))
                     .Add(Restrictions.Eq("ScanID", scanid))
-                    .List<ScanFile>()
-                    .ToList();
-            }
-        }
-
-        public List<ScanFile> GetProcessedOK(int scanid)
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return session.CreateCriteria(typeof(ScanFile))
-                    .Add(Restrictions.Eq("ScanID", scanid))
-                    .Add(Restrictions.Eq("Status", (int) ScanFileStatus.ProcessedOK))
-                    .AddOrder(Order.Asc("CheckDate"))
                     .List<ScanFile>()
                     .ToList();
             }
@@ -48,11 +37,12 @@ namespace Shoko.Server.Repositories.Direct
 
         public List<ScanFile> GetWithError(int scanid)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return session.CreateCriteria(typeof(ScanFile))
                     .Add(Restrictions.Eq("ScanID", scanid))
-                    .Add(Restrictions.Gt("Status", (int) ScanFileStatus.ProcessedOK))
+                    .Add(Restrictions.Gt("Status", (int)ScanFileStatus.ProcessedOK))
                     .AddOrder(Order.Asc("CheckDate"))
                     .List<ScanFile>()
                     .ToList();
@@ -61,11 +51,12 @@ namespace Shoko.Server.Repositories.Direct
 
         public int GetWaitingCount(int scanid)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
-                return (int) session.CreateCriteria(typeof(ScanFile))
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                return (int)session.CreateCriteria(typeof(ScanFile))
                     .Add(Restrictions.Eq("ScanID", scanid))
-                    .Add(Restrictions.Eq("Status", (int) ScanFileStatus.Waiting))
+                    .Add(Restrictions.Eq("Status", (int)ScanFileStatus.Waiting))
                     .SetProjection(Projections.Count("ScanFileID"))
                     .UniqueResult();
             }

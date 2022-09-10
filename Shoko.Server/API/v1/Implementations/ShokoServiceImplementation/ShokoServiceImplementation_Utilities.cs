@@ -252,61 +252,19 @@ namespace Shoko.Server
         [HttpGet("FFDShowPreset/{videoLocalID}")]
         public FileFfdshowPreset GetFFDPreset(int videoLocalID)
         {
-            try
-            {
-                var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-                if (vid == null) return null;
-
-                return RepoFactory.FileFfdshowPreset.GetByHashAndSize(vid.Hash, vid.FileSize);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
             return null;
         }
 
         [HttpDelete("FFDShowPreset/{videoLocalID}")]
         public void DeleteFFDPreset(int videoLocalID)
         {
-            try
-            {
-                var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-                if (vid == null) return;
-
-                var ffd = RepoFactory.FileFfdshowPreset.GetByHashAndSize(vid.Hash, vid.FileSize);
-                if (ffd == null) return;
-
-                RepoFactory.FileFfdshowPreset.Delete(ffd.FileFfdshowPresetID);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
+            // noop
         }
 
         [HttpPost("FFDShowPreset")]
         public void SaveFFDPreset(FileFfdshowPreset preset)
         {
-            try
-            {
-                var vid = RepoFactory.VideoLocal.GetByHashAndSize(preset.Hash, preset.FileSize);
-                if (vid == null) return;
-
-
-                var ffd = RepoFactory.FileFfdshowPreset.GetByHashAndSize(preset.Hash, preset.FileSize);
-                if (ffd == null) ffd = new FileFfdshowPreset();
-
-                ffd.FileSize = preset.FileSize;
-                ffd.Hash = preset.Hash;
-                ffd.Preset = preset.Preset;
-
-                RepoFactory.FileFfdshowPreset.Save(ffd);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
+            // noop
         }
 
         [HttpGet("File/Search/{searchType}/{searchCriteria}/{userID}")]
@@ -693,15 +651,7 @@ namespace Shoko.Server
         [HttpGet("AniDB/Recommendation/{animeID}")]
         public List<AniDB_Recommendation> GetAniDBRecommendations(int animeID)
         {
-            try
-            {
-                return RepoFactory.AniDB_Recommendation.GetByAnimeID(animeID).ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new List<AniDB_Recommendation>();
-            }
+            return new List<AniDB_Recommendation>();
         }
 
         [HttpGet("AniDB/Anime/Search/{titleQuery}")]

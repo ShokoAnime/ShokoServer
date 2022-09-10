@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Collections;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
 {
@@ -28,43 +24,17 @@ namespace Shoko.Server.Repositories
         {
         }
 
-        public ILookup<int, SVR_AniDB_Episode_Title> GetByEpisodeIDs(ISessionWrapper session, ICollection<int> ids)
-        {
-            if (session == null)
-                throw new ArgumentNullException(nameof(session));
-            if (ids == null)
-                throw new ArgumentNullException(nameof(ids));
-
-            if (ids.Count == 0)
-            {
-                return EmptyLookup<int, SVR_AniDB_Episode_Title>.Instance;
-            }
-
-            lock (GlobalLock)
-            {
-                var titles = session.CreateCriteria<SVR_AniDB_Episode_Title>()
-                    .Add(Restrictions.InG(nameof(SVR_AniDB_Episode_Title.AniDB_EpisodeID), ids))
-                    .List<SVR_AniDB_Episode_Title>()
-                    .ToLookup(t => t.AniDB_EpisodeID);
-
-                return titles;
-            }
-        }
-
         public List<SVR_AniDB_Episode_Title> GetByEpisodeIDAndLanguage(int id, TitleLanguage language)
         {
-            lock (GlobalLock)
-            {
-                return Episodes.GetMultiple(id).Where(a => a.Language == language).ToList();
-            }
+            return GetByEpisodeID(id).Where(a => a.Language == language).ToList();
         }
 
-        public List<SVR_AniDB_Episode_Title> GetByEpisodeID(int ID)
+        public List<SVR_AniDB_Episode_Title> GetByEpisodeID(int id)
         {
-            lock (GlobalLock)
-            {
-                return Episodes.GetMultiple(ID);
-            }
+            Lock.EnterReadLock();
+            var result = Episodes.GetMultiple(id);
+            Lock.ExitReadLock();
+            return result;
         }
     }
 }

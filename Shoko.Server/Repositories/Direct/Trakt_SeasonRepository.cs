@@ -10,8 +10,9 @@ namespace Shoko.Server.Repositories.Direct
     {
         public List<Trakt_Season> GetByShowID(int id)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var objs = session
                     .CreateCriteria(typeof(Trakt_Season))
                     .Add(Restrictions.Eq("Trakt_ShowID", id))
@@ -23,21 +24,25 @@ namespace Shoko.Server.Repositories.Direct
 
         public Trakt_Season GetByShowIDAndSeason(int id, int season)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return GetByShowIDAndSeason(session, id, season);
             }
         }
 
         public Trakt_Season GetByShowIDAndSeason(ISession session, int id, int season)
         {
-            Trakt_Season obj = session
-                .CreateCriteria(typeof(Trakt_Season))
-                .Add(Restrictions.Eq("Trakt_ShowID", id))
-                .Add(Restrictions.Eq("Season", season))
-                .UniqueResult<Trakt_Season>();
+            lock (GlobalDBLock)
+            {
+                var obj = session
+                    .CreateCriteria(typeof(Trakt_Season))
+                    .Add(Restrictions.Eq("Trakt_ShowID", id))
+                    .Add(Restrictions.Eq("Season", season))
+                    .UniqueResult<Trakt_Season>();
 
-            return obj;
+                return obj;
+            }
         }
     }
 }

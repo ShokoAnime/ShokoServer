@@ -14,7 +14,6 @@ using Shoko.Server.Commands.TvDB;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
@@ -261,8 +260,7 @@ namespace Shoko.Server
         {
             try
             {
-                if (!ServerSettings.Instance.WebCache.Enabled) return new List<Azure_CrossRef_AniDB_TvDB>();
-                return AzureWebAPI.Get_CrossRefAniDBTvDB(animeID);
+                return new List<Azure_CrossRef_AniDB_TvDB>();
             }
             catch (Exception ex)
             {
@@ -647,8 +645,7 @@ namespace Shoko.Server
         {
             try
             {
-                if (!ServerSettings.Instance.WebCache.Enabled) return new List<Azure_CrossRef_AniDB_Trakt>();
-                return AzureWebAPI.Get_CrossRefAniDBTrakt(animeID);
+                return new List<Azure_CrossRef_AniDB_Trakt>();
             }
             catch (Exception ex)
             {
@@ -1004,48 +1001,7 @@ namespace Shoko.Server
         [HttpGet("Trakt/Comment/{animeID}")]
         public List<CL_Trakt_CommentUser> GetTraktCommentsForAnime(int animeID)
         {
-            List<CL_Trakt_CommentUser> comments = new List<CL_Trakt_CommentUser>();
-
-            try
-            {
-                List<TraktV2Comment> commentsTemp = _traktHelper.GetShowCommentsV2(animeID);
-                if (commentsTemp == null || commentsTemp.Count == 0) return comments;
-
-                foreach (TraktV2Comment sht in commentsTemp)
-                {
-                    CL_Trakt_CommentUser comment = new CL_Trakt_CommentUser();
-
-                    Trakt_Friend traktFriend = RepoFactory.Trakt_Friend.GetByUsername(sht.user.username);
-
-                    // user details
-                    comment.User = new CL_Trakt_User();
-                    if (traktFriend == null)
-                        comment.User.Trakt_FriendID = 0;
-                    else
-                        comment.User.Trakt_FriendID = traktFriend.Trakt_FriendID;
-
-                    comment.User.Username = sht.user.username;
-                    comment.User.Full_name = sht.user.name;
-
-                    // comment details
-                    comment.Comment = new CL_Trakt_Comment
-                    {
-                        CommentType = (int)TraktActivityType.Show, // episode or show
-                        Text = sht.comment,
-                        Spoiler = sht.spoiler,
-                        Inserted = sht.CreatedAtDate,
-
-                        // urls
-                        Comment_Url = string.Format(TraktURIs.WebsiteComment, sht.id)
-                    };
-                    comments.Add(comment);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return comments;
+            return new List<CL_Trakt_CommentUser>();
         }
 
         [HttpGet("Trakt/DeviceCode")]
@@ -1076,8 +1032,7 @@ namespace Shoko.Server
         {
             try
             {
-                if (!ServerSettings.Instance.WebCache.Enabled) return new CL_CrossRef_AniDB_Other_Response();
-                return AzureWebAPI.Get_CrossRefAniDBOther(animeID, (CrossRefType) crossRefType);
+                return new CL_CrossRef_AniDB_Other_Response();
             }
             catch (Exception ex)
             {

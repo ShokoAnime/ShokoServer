@@ -14,8 +14,8 @@ namespace Shoko.Server.Repositories.Cached
     {
         private PocoIndex<int, SVR_AnimeSeries_User, int> Users;
         private PocoIndex<int, SVR_AnimeSeries_User, int> Series;
-        private PocoIndex<int, SVR_AnimeSeries_User, int, int> UsersSeries;
-        private Dictionary<int, ChangeTracker<int>> Changes = new Dictionary<int, ChangeTracker<int>>();
+        private PocoIndex<int, SVR_AnimeSeries_User, (int UserID, int SeriesID)> UsersSeries;
+        private Dictionary<int, ChangeTracker<int>> Changes = new();
 
         public AnimeSeries_UserRepository()
         {
@@ -38,7 +38,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             Users = Cache.CreateIndex(a => a.JMMUserID);
             Series = Cache.CreateIndex(a => a.AnimeSeriesID);
-            UsersSeries = Cache.CreateIndex(a => a.JMMUserID, a => a.AnimeSeriesID);
+            UsersSeries = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeSeriesID));
         }
 
         public override void RegenerateDb()
@@ -48,33 +48,26 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void Save(SVR_AnimeSeries_User obj)
         {
-            lock (obj)
+            UpdatePlexKodiContracts(obj);
+            SVR_AnimeSeries_User old;
+            lock (GlobalDBLock)
             {
-                UpdatePlexKodiContracts(obj);
-                SVR_AnimeSeries_User old;
-                lock (GlobalLock)
-                {
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                    {
-                        old = session.Get<SVR_AnimeSeries_User>(obj.AnimeSeries_UserID);
-                    }
-                }
-                HashSet<GroupFilterConditionType> types = SVR_AnimeSeries_User.GetConditionTypesChanged(old, obj);
-                base.Save(obj);
-                if (!Changes.ContainsKey(obj.JMMUserID))
-                    Changes[obj.JMMUserID] = new ChangeTracker<int>();
-                Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
-
-                obj.UpdateGroupFilter(types);
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                old = session.Get<SVR_AnimeSeries_User>(obj.AnimeSeries_UserID);
             }
-            //logger.Trace("Updating group stats by series from AnimeSeries_UserRepository.Save: {0}", obj.AnimeSeriesID);
-            //StatsCache.Instance.UpdateUsingSeries(obj.AnimeSeriesID);
+            var types = SVR_AnimeSeries_User.GetConditionTypesChanged(old, obj);
+            base.Save(obj);
+            if (!Changes.ContainsKey(obj.JMMUserID))
+                Changes[obj.JMMUserID] = new ChangeTracker<int>();
+            Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
+
+            obj.UpdateGroupFilter(types);
         }
 
         private void UpdatePlexKodiContracts(SVR_AnimeSeries_User ugrp)
         {
-            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(ugrp.AnimeSeriesID);
-            CL_AnimeSeries_User con = ser?.GetUserContract(ugrp.JMMUserID);
+            var ser = RepoFactory.AnimeSeries.GetByID(ugrp.AnimeSeriesID);
+            var con = ser?.GetUserContract(ugrp.JMMUserID);
             if (con == null)
                 return;
             ugrp.PlexContract = Helper.GenerateFromSeries(con, ser, ser.GetAnime(), ugrp.JMMUserID);
@@ -83,26 +76,26 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeSeries_User GetByUserAndSeriesID(int userid, int seriesid)
         {
-            lock (GlobalLock)
-            {
-                return UsersSeries.GetOne(userid, seriesid);
-            }
+            Lock.EnterReadLock();
+            var result = UsersSeries.GetOne((userid, seriesid));
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_AnimeSeries_User> GetByUserID(int userid)
         {
-            lock (GlobalLock)
-            {
-                return Users.GetMultiple(userid);
-            }
+            Lock.EnterReadLock();
+            var result = Users.GetMultiple(userid);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_AnimeSeries_User> GetBySeriesID(int seriesid)
         {
-            lock (GlobalLock)
-            {
-                return Series.GetMultiple(seriesid);
-            }
+            Lock.EnterReadLock();
+            var result = Series.GetMultiple(seriesid);
+            Lock.ExitReadLock();
+            return result;
         }
 
 
@@ -118,10 +111,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public ChangeTracker<int> GetChangeTracker(int userid)
         {
-            if (Changes.ContainsKey(userid))
-                return Changes[userid];
-
-            return new ChangeTracker<int>();
+            return Changes.ContainsKey(userid) ? Changes[userid] : new ChangeTracker<int>();
         }
     }
 }

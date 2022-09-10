@@ -28,28 +28,26 @@ namespace Shoko.Server.Repositories
 
         public List<CrossRef_CustomTag> GetByAnimeID(int id)
         {
-            lock (GlobalLock)
-            {
-                return Refs.GetMultiple(id, (int) CustomTagCrossRefType.Anime);
-            }
+            Lock.EnterReadLock();
+            var result = Refs.GetMultiple(id, (int) CustomTagCrossRefType.Anime);
+            Lock.ExitReadLock();
+            return result;
         }
-
 
         public List<CrossRef_CustomTag> GetByCustomTagID(int id)
         {
-            lock (GlobalLock)
-            {
-                return Tags.GetMultiple(id);
-            }
+            Lock.EnterReadLock();
+            var result = Tags.GetMultiple(id);
+            Lock.ExitReadLock();
+            return result;
         }
-
 
         public List<CrossRef_CustomTag> GetByUniqueID(int customTagID, int crossRefType, int crossRefID)
         {
-            lock (GlobalLock)
-            {
-                return Refs.GetMultiple(crossRefID, crossRefType).Where(a => a.CustomTagID == customTagID).ToList();
-            }
+            Lock.EnterReadLock();
+            var result = Refs.GetMultiple(crossRefID, crossRefType).Where(a => a.CustomTagID == customTagID).ToList();
+            Lock.ExitReadLock();
+            return result;
         }
     }
 }

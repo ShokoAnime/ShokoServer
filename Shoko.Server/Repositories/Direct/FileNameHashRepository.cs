@@ -9,8 +9,9 @@ namespace Shoko.Server.Repositories.Direct
     {
         public List<FileNameHash> GetByHash(string hash)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var xrefs = session
                     .CreateCriteria(typeof(FileNameHash))
                     .Add(Restrictions.Eq("Hash", hash))
@@ -22,8 +23,9 @@ namespace Shoko.Server.Repositories.Direct
 
         public List<FileNameHash> GetByFileNameAndSize(string filename, long filesize)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var fnhashes = session
                     .CreateCriteria(typeof(FileNameHash))
                     .Add(Restrictions.Eq("FileName", filename))
@@ -31,21 +33,6 @@ namespace Shoko.Server.Repositories.Direct
                     .List<FileNameHash>();
 
                 return new List<FileNameHash>(fnhashes);
-            }
-        }
-
-        public FileNameHash GetByNameSizeAndHash(string filename, long filesize, string hash)
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                FileNameHash fnhash = session
-                    .CreateCriteria(typeof(FileNameHash))
-                    .Add(Restrictions.Eq("Hash", hash))
-                    .Add(Restrictions.Eq("FileName", filename))
-                    .Add(Restrictions.Eq("FileSize", filesize))
-                    .UniqueResult<FileNameHash>();
-
-                return fnhash;
             }
         }
     }

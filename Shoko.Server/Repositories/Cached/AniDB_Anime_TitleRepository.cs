@@ -27,23 +27,23 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
+            // Don't need lock in init
             ServerState.Instance.ServerStartingStatus = string.Format(
                 Resources.Database_Validating, typeof(SVR_AniDB_Anime_Title).Name, " DbRegen");
-            List<SVR_AniDB_Anime_Title> titles = Cache.Values.Where(title => title.Title.Contains('`')).ToList();
-            foreach (SVR_AniDB_Anime_Title title in titles)
+            var titles = Cache.Values.Where(title => title.Title.Contains('`')).ToList();
+            foreach (var title in titles)
             {
                 title.Title = title.Title.Replace('`', '\'');
                 Save(title);
             }
         }
 
-
         public List<SVR_AniDB_Anime_Title> GetByAnimeID(int id)
         {
-            lock (GlobalLock)
-            {
-                return Animes.GetMultiple(id);
-            }
+            Lock.EnterReadLock();
+            var result = Animes.GetMultiple(id);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public ILookup<int, SVR_AniDB_Anime_Title> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)
@@ -58,7 +58,7 @@ namespace Shoko.Server.Repositories
                 return EmptyLookup<int, SVR_AniDB_Anime_Title>.Instance;
             }
 
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 var titles = session.CreateCriteria<SVR_AniDB_Anime_Title>()
                     .Add(Restrictions.InG(nameof(SVR_AniDB_Anime_Title.AnimeID), ids))

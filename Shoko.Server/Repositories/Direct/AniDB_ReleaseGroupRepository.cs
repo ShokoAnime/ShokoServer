@@ -1,5 +1,4 @@
 ﻿using NHibernate.Criterion;
-using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
@@ -9,9 +8,10 @@ namespace Shoko.Server.Repositories.Direct
     {
         public AniDB_ReleaseGroup GetByGroupID(int id)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
-                AniDB_ReleaseGroup cr = session
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                var cr = session
                     .CreateCriteria(typeof(AniDB_ReleaseGroup))
                     .Add(Restrictions.Eq("GroupID", id))
                     .UniqueResult<AniDB_ReleaseGroup>();

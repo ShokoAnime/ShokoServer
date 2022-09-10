@@ -9,8 +9,9 @@ namespace Shoko.Server.Repositories.Direct
     {
         public List<CrossRef_Subtitles_AniDB_File> GetByFileID(int id)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var files = session
                     .CreateCriteria(typeof(CrossRef_Subtitles_AniDB_File))
                     .Add(Restrictions.Eq("FileID", id))

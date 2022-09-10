@@ -18,14 +18,16 @@ namespace Shoko.Server.Repositories.Cached
 
         private PocoIndex<int, SVR_AnimeGroup, int> Parents;
 
-        private ChangeTracker<int> Changes = new ChangeTracker<int>();
+        private ChangeTracker<int> Changes = new();
 
         public AnimeGroupRepository()
         {
             BeginDeleteCallback = cr =>
             {
+                Lock.EnterWriteLock();
                 RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByGroupID(cr.AnimeGroupID));
                 cr.DeleteFromFilters();
+                Lock.EnterWriteLock();
             };
             EndDeleteCallback = cr =>
             {
@@ -33,7 +35,7 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     logger.Trace("Updating group stats by group from AnimeGroupRepository.Delete: {0}",
                         cr.AnimeGroupParentID.Value);
-                    SVR_AnimeGroup ngrp = GetByID(cr.AnimeGroupParentID.Value);
+                    var ngrp = GetByID(cr.AnimeGroupParentID.Value);
                     if (ngrp != null)
                         Save(ngrp, false, true);
                 }
@@ -53,14 +55,14 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            List<SVR_AnimeGroup> grps = Cache.Values.Where(a => a.ContractVersion < SVR_AnimeGroup.CONTRACT_VERSION)
+            var grps = Cache.Values.Where(a => a.ContractVersion < SVR_AnimeGroup.CONTRACT_VERSION)
                 .ToList();
-            int max = grps.Count;
-            int cnt = 0;
+            var max = grps.Count;
+            var cnt = 0;
             ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
                 typeof(AnimeGroup).Name, " DbRegen");
             if (max <= 0) return;
-            foreach (SVR_AnimeGroup g in grps)
+            foreach (var g in grps)
             {
                 g.Description = g.Description?.Replace('`', '\'');
                 g.GroupName = g.GroupName?.Replace('`', '\'');
@@ -85,52 +87,50 @@ namespace Shoko.Server.Repositories.Cached
         }
 
         public void Save(SVR_AnimeGroup grp, bool updategrpcontractstats, bool recursive,
-            bool verifylockedFilters = true)
+                         bool verifylockedFilters = true)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var sessionWrapper = session.Wrap();
+            lock (GlobalDBLock)
             {
-                ISessionWrapper sessionWrapper = session.Wrap();
-                lock (GlobalLock)
+                //We are creating one, and we need the AnimeGroupID before Update the contracts
+                if (grp.AnimeGroupID == 0)
                 {
-                    lock (grp)
-                    {
-                        if (grp.AnimeGroupID == 0)
-                            //We are creating one, and we need the AnimeGroupID before Update the contracts
-                        {
-                            grp.Contract = null;
-                            using (var transaction = session.BeginTransaction())
-                            {
-                                session.SaveOrUpdate(grp);
-                                transaction.Commit();
-                                Cache.Update(grp);
-                            }
-                        }
-                        var types = grp.UpdateContract(sessionWrapper, updategrpcontractstats);
-                        //Types will contains the affected GroupFilterConditionTypes
-                        using (var transaction = session.BeginTransaction())
-                        {
-                            SaveWithOpenTransaction(session, grp);
-                            transaction.Commit();
-                        }
-                        Changes.AddOrUpdate(grp.AnimeGroupID);
+                    grp.Contract = null;
+                    using var transaction = session.BeginTransaction();
+                    session.SaveOrUpdate(grp);
+                    transaction.Commit();
+                }
+            }
 
-                        if (verifylockedFilters)
-                        {
-                            RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false, grp.Contract.Stat_AllTags,
-                                grp.Contract.Stat_AllYears, grp.Contract.Stat_AllSeasons);
-                            //This call will create extra years or tags if the Group have a new year or tag
-                            grp.UpdateGroupFilters(types);
-                        }
-                    }
-                }
-                if (grp.AnimeGroupParentID.HasValue && recursive)
+            UpdateCache(grp);
+            var types = grp.UpdateContract(sessionWrapper, updategrpcontractstats);
+            lock (GlobalDBLock)
+            {
+                //Types will contains the affected GroupFilterConditionTypes
+                using (var transaction = session.BeginTransaction())
                 {
-                    SVR_AnimeGroup pgroup = GetByID(grp.AnimeGroupParentID.Value);
-                    // This will avoid the recursive error that would be possible, it won't update it, but that would be
-                    // the least of the issues
-                    if (pgroup != null && pgroup.AnimeGroupParentID == grp.AnimeGroupID)
-                        Save(pgroup, updategrpcontractstats, true, verifylockedFilters);
+                    SaveWithOpenTransaction(session, grp);
+                    transaction.Commit();
                 }
+            }
+
+            Changes.AddOrUpdate(grp.AnimeGroupID);
+
+            if (verifylockedFilters)
+            {
+                RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false, grp.Contract?.Stat_AllTags, grp.Contract?.Stat_AllYears, grp.Contract?.Stat_AllSeasons);
+                //This call will create extra years or tags if the Group have a new year or tag
+                grp.UpdateGroupFilters(types);
+            }
+
+            if (grp.AnimeGroupParentID.HasValue && recursive)
+            {
+                var pgroup = GetByID(grp.AnimeGroupParentID.Value);
+                // This will avoid the recursive error that would be possible, it won't update it, but that would be
+                // the least of the issues
+                if (pgroup != null && pgroup.AnimeGroupParentID == grp.AnimeGroupID)
+                    Save(pgroup, updategrpcontractstats, true, verifylockedFilters);
             }
         }
 
@@ -141,17 +141,12 @@ namespace Shoko.Server.Repositories.Cached
             if (groups == null)
                 throw new ArgumentNullException(nameof(groups));
 
-            foreach (SVR_AnimeGroup group in groups)
+            foreach (var group in groups)
             {
-                lock (GlobalLock)
-                {
-                    lock (group)
-                    {
-                        session.Insert(group);
-                        Cache.Update(group);
-                    }
-                }
+                session.Insert(group);
+                UpdateCache(group);
             }
+
             Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
         }
 
@@ -162,17 +157,12 @@ namespace Shoko.Server.Repositories.Cached
             if (groups == null)
                 throw new ArgumentNullException(nameof(groups));
 
-            foreach (SVR_AnimeGroup group in groups)
+            foreach (var group in groups)
             {
-                lock (GlobalLock)
-                {
-                    lock (group)
-                    {
-                        session.Update(group);
-                        Cache.Update(group);
-                    }
-                }
+                session.Update(group);
+                UpdateCache(group);
             }
+
             Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
         }
 
@@ -193,7 +183,7 @@ namespace Shoko.Server.Repositories.Cached
             // First, get all of the current groups so that we can inform the change tracker that they have been removed later
             var allGrps = GetAll();
 
-            lock (GlobalLock)
+            lock (GlobalDBLock)
             {
                 // Then, actually delete the AnimeGroups
                 if (excludeGroupId != null)
@@ -201,50 +191,50 @@ namespace Shoko.Server.Repositories.Cached
                     session.CreateQuery("delete SVR_AnimeGroup ag where ag.id <> :excludeId")
                         .SetInt32("excludeId", excludeGroupId.Value)
                         .ExecuteUpdate();
-                    Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID)
-                        .Where(id => id != excludeGroupId.Value));
                 }
                 else
                 {
                     session.CreateQuery("delete SVR_AnimeGroup ag")
                         .ExecuteUpdate();
-
-                    Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID));
                 }
+            }
+
+            if (excludeGroupId != null)
+            {
+                Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID)
+                    .Where(id => id != excludeGroupId.Value));
+            }
+            else
+            {
+                Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID));
             }
 
             // Finally, we need to clear the cache so that it is in sync with the database
             ClearCache();
 
-            // If we're exlcuding a group from deletion, and it was in the cache originally, then re-add it back in
+            // If we're excluding a group from deletion, and it was in the cache originally, then re-add it back in
             if (excludeGroupId != null)
             {
-                SVR_AnimeGroup excludedGroup = allGrps.FirstOrDefault(g => g.AnimeGroupID == excludeGroupId.Value);
+                var excludedGroup = allGrps.FirstOrDefault(g => g.AnimeGroupID == excludeGroupId.Value);
 
                 if (excludedGroup != null)
                 {
-                    lock (GlobalLock)
-                    {
-                        Cache.Update(excludedGroup);
-                    }
+                    UpdateCache(excludedGroup);
                 }
             }
         }
 
         public List<SVR_AnimeGroup> GetByParentID(int parentid)
         {
-            lock (GlobalLock)
-            {
-                return Parents.GetMultiple(parentid);
-            }
+            Lock.EnterReadLock();
+            var result = Parents.GetMultiple(parentid);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_AnimeGroup> GetAllTopLevelGroups()
         {
-            lock (GlobalLock)
-            {
-                return Parents.GetMultiple(0);
-            }
+            return GetByParentID(0);
         }
 
         public ChangeTracker<int> GetChangeTracker()

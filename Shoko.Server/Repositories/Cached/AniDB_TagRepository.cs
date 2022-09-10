@@ -5,7 +5,6 @@ using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
 {
@@ -24,9 +23,8 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-            List<AniDB_Tag> tags = Cache.Values
-                .Where(tag => (tag.TagDescription?.Contains('`') ?? false) || tag.TagName.Contains('`')).ToList();
-            foreach (AniDB_Tag tag in tags)
+            var tags = Cache.Values.Where(tag => (tag.TagDescription?.Contains('`') ?? false) || tag.TagName.Contains('`')).ToList();
+            foreach (var tag in tags)
             {
                 tag.TagDescription = tag.TagDescription?.Replace('`', '\'');
                 tag.TagName = tag.TagName.Replace('`', '\'');
@@ -60,20 +58,18 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Tag GetByTagID(int id)
         {
-            lock (GlobalLock)
-            {
-                return Tags.GetOne(id);
-            }
+            Lock.EnterReadLock();
+            var result = Tags.GetOne(id);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<AniDB_Tag> GetByName(string name)
         {
-            return Names.GetMultiple(name);
-        }
-
-        public List<string> GetAllTagNames(ISessionWrapper session)
-        {
-            return session.CreateQuery("SELECT DISTINCT TagName FROM AniDB_Tag").List<string>().ToList();
+            Lock.EnterReadLock();
+            var result = Names.GetMultiple(name);
+            Lock.ExitReadLock();
+            return result;
         }
 
 

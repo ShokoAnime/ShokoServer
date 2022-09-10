@@ -2520,7 +2520,7 @@ namespace Shoko.Server.API.v2.Modules
             }
 
             // Include 'Unsort'
-            var vids = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().ToList();
+            var vids = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted();
             if (vids.Any())
             {
                 Filter filter = new Filter

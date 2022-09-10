@@ -14,7 +14,6 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -45,53 +44,6 @@ namespace Shoko.Server.Commands
 
             try
             {
-                // first check if the user wants to use the web cache
-                if (ServerSettings.Instance.WebCache.Enabled && ServerSettings.Instance.WebCache.TvDB_Get)
-                {
-                    try
-                    {
-                        List<Azure_CrossRef_AniDB_TvDB> cacheResults =
-                            AzureWebAPI.Get_CrossRefAniDBTvDB(AnimeID);
-                        if (cacheResults != null && cacheResults.Count > 0)
-                        {
-                            // check again to see if there are any links, user may have manually added links while
-                            // this command was in the queue
-                            List<CrossRef_AniDB_TvDB> xrefTemp =
-                                RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
-                            if (xrefTemp != null && xrefTemp.Count > 0) return;
-
-                            // Add overrides for specials
-                            List<Azure_CrossRef_AniDB_TvDB> specialXRefs = cacheResults.Where(a => a.TvDBSeasonNumber == 0)
-                                .OrderBy(a => a.AniDBStartEpisodeType).ThenBy(a => a.AniDBStartEpisodeNumber)
-                                .ToList();
-                            if (specialXRefs.Count != 0)
-                            {
-                                List<CrossRef_AniDB_TvDB_Episode_Override> overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(specialXRefs);
-                                foreach (CrossRef_AniDB_TvDB_Episode_Override episodeOverride in overrides)
-                                {
-                                    CrossRef_AniDB_TvDB_Episode_Override exists =
-                                        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
-                                            episodeOverride.AniDBEpisodeID, episodeOverride.TvDBEpisodeID);
-                                    if (exists != null) continue;
-                                    RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Save(episodeOverride);
-                                }
-                            }
-                            foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)
-                            {
-                                TvDB_Series tvser = _helper.GetSeriesInfoOnline(xref.TvDBID, false);
-                                if (tvser == null) continue;
-                                Logger.LogTrace("Found tvdb match on web cache for {0}", AnimeID);
-                                _helper.LinkAniDBTvDB(AnimeID, xref.TvDBID, true);
-                            }
-                            return;
-                        }
-                    }
-                    catch
-                    {
-                        // ignored
-                    }
-                }
-
                 if (!ServerSettings.Instance.TvDB.AutoLink) return;
 
                 // try to pull a link from a prequel/sequel

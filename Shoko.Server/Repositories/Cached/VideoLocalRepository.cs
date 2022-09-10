@@ -183,7 +183,7 @@ namespace Shoko.Server.Repositories.Cached
         public List<SVR_VideoLocal> GetByImportFolder(int importFolderID)
         {
             return RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID)
-                .Select(a => a.VideoLocal)
+                .Select(a => GetByID(a.VideoLocalID))
                 .Where(a => a != null)
                 .Distinct()
                 .ToList();
@@ -199,7 +199,7 @@ namespace Shoko.Server.Repositories.Cached
         public override void Delete(SVR_VideoLocal obj)
         {
             var list = obj.GetAnimeEpisodes();
-            lock (GlobalLock) base.Delete(obj);
+            base.Delete(obj);
             list.Where(a => a != null).ForEach(a => RepoFactory.AnimeEpisode.Save(a));
         }
 
@@ -210,150 +210,145 @@ namespace Shoko.Server.Repositories.Cached
 
         public void Save(SVR_VideoLocal obj, bool updateEpisodes)
         {
-            lock (GlobalLock)
+            if (obj.VideoLocalID == 0)
             {
-                if (obj.VideoLocalID == 0)
-                {
-                    obj.Media = null;
-                    base.Save(obj);
-                }
-
-                UpdateMediaContracts(obj);
+                obj.Media = null;
                 base.Save(obj);
             }
+
+            UpdateMediaContracts(obj);
+            base.Save(obj);
 
             if (updateEpisodes)
                 RepoFactory.AnimeEpisode.Save(obj.GetAnimeEpisodes());
         }
 
-
         public SVR_VideoLocal GetByHash(string hash)
         {
-            lock (GlobalLock)
-            {
-                return _hashes.GetOne(hash);
-            }
+            Lock.EnterReadLock();
+            var result = _hashes.GetOne(hash);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public SVR_VideoLocal GetByMD5(string hash)
         {
-            lock (GlobalLock)
-            {
-                return _md5.GetOne(hash);
-            }
+            Lock.EnterReadLock();
+            var result = _md5.GetOne(hash);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public SVR_VideoLocal GetBySHA1(string hash)
         {
-            lock (GlobalLock)
-            {
-                return _sha1.GetOne(hash);
-            }
-        }
-
-        public long GetTotalRecordCount()
-        {
-            lock (GlobalLock)
-            {
-                return Cache.Keys.Count;
-            }
+            Lock.EnterReadLock();
+            var result = _sha1.GetOne(hash);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public SVR_VideoLocal GetByHashAndSize(string hash, long fsize)
         {
-            lock (GlobalLock)
-            {
-                return _hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
-            }
+            Lock.EnterReadLock();
+            var result = _hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_VideoLocal> GetByName(string fileName)
         {
-            lock (GlobalLock)
-            {
-                return Cache.Values.Where(p => p.Places.Any(
-                        a => a.FilePath.FuzzyMatches(fileName)))
-                    .ToList();
-            }
+            Lock.EnterReadLock();
+            var result = Cache.Values.Where(p => p.Places.Any(
+                    a => a.FilePath.FuzzyMatches(fileName)))
+                .ToList();
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_VideoLocal> GetMostRecentlyAdded(int maxResults, int jmmuserID)
         {
             var user = RepoFactory.JMMUser.GetByID(jmmuserID);
-            lock (GlobalLock)
+            List<SVR_VideoLocal> result;
+            if (user == null)
             {
-                if (user == null)
-                {
+                Lock.EnterReadLock();
+                result = maxResults == -1 ? Cache.Values.OrderByDescending(a => a.DateTimeCreated).ToList() : Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
+                Lock.ExitReadLock();
+                return result;
+            }
 
-                    if (maxResults == -1)
-                        return Cache.Values.OrderByDescending(a => a.DateTimeCreated).ToList();
-                    return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
-                }
-
-                if (maxResults == -1)
-                    return Cache.Values
-                        .Where(
-                            a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
-                                .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries)
-                        ).OrderByDescending(a => a.DateTimeCreated)
-                        .ToList();
-                return Cache.Values
+            if (maxResults == -1)
+            {
+                Lock.EnterReadLock();
+                result = Cache.Values
                     .Where(
                         a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
                             .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries)
                     ).OrderByDescending(a => a.DateTimeCreated)
-                    .Take(maxResults).ToList();
+                    .ToList();
+                Lock.ExitReadLock();
+                return result;
             }
+
+            Lock.EnterReadLock();
+            result = Cache.Values
+                .Where(
+                    a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
+                        .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries)
+                ).OrderByDescending(a => a.DateTimeCreated)
+                .Take(maxResults).ToList();
+            Lock.ExitReadLock();
+            return result;
         }
 
-        public List<SVR_VideoLocal> GetMostRecentlyAdded(int take, int skip, int jmmuserID = -1)
+        public List<SVR_VideoLocal> GetMostRecentlyAdded(int take, int skip, int jmmuserID)
         {
             if (skip < 0) skip = 0;
             if (take == 0) return new List<SVR_VideoLocal>();
 
             var user = jmmuserID == -1 ? null : RepoFactory.JMMUser.GetByID(jmmuserID);
-            lock (GlobalLock)
+            Lock.EnterReadLock();
+            List<SVR_VideoLocal> result;
+            if (user == null)
             {
-                if (user == null)
-                {
+                result = take == -1 ? Cache.Values.OrderByDescending(a => a.DateTimeCreated).Skip(skip).ToList() : Cache.Values.OrderByDescending(a => a.DateTimeCreated).Skip(skip).Take(take).ToList();
+                Lock.ExitReadLock();
+                return result;
+            }
 
-                    if (take == -1)
-                        return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Skip(skip).ToList();
-                    return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Skip(skip).Take(take).ToList();
-                }
-
-                if (take == -1)
-                    return Cache.Values
-                        .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null).DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries))
-                        .OrderByDescending(a => a.DateTimeCreated)
-                        .Skip(skip)
-                        .ToList();
-
-                return Cache.Values
+            result = take == -1
+                ? Cache.Values
+                    .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null).DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries))
+                    .OrderByDescending(a => a.DateTimeCreated)
+                    .Skip(skip)
+                    .ToList()
+                : Cache.Values
                     .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null).DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries))
                     .OrderByDescending(a => a.DateTimeCreated)
                     .Skip(skip)
                     .Take(take)
                     .ToList();
-            }
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_VideoLocal> GetRandomFiles(int maxResults)
         {
-            lock (GlobalLock)
+            Lock.EnterReadLock();
+            var values = Cache.Values.ToList();
+            Lock.ExitReadLock();
+
+            using var en = new UniqueRandoms(0, values.Count - 1).GetEnumerator();
+            var vids = new List<SVR_VideoLocal>();
+            if (maxResults > values.Count) maxResults = values.Count;
+
+            for (var x = 0; x < maxResults; x++)
             {
-                var en = new UniqueRandoms(0, Cache.Values.Count - 1).GetEnumerator();
-                var vids = new List<SVR_VideoLocal>();
-                if (maxResults > Cache.Values.Count)
-                    maxResults = Cache.Values.Count;
-                for (var x = 0; x < maxResults; x++)
-                {
-                    en.MoveNext();
-                    vids.Add(Cache.Values.ElementAt(en.Current));
-                }
-                en.Dispose();
-                return vids;
+                en.MoveNext();
+                vids.Add(values.ElementAt(en.Current));
             }
+
+            return vids;
         }
 
         public class UniqueRandoms : IEnumerable<int>
@@ -418,14 +413,6 @@ namespace Shoko.Server.Repositories.Cached
                 .ToList();
         }
 
-        public List<SVR_VideoLocal> GetWithMissingChapters()
-        {
-            return RepoFactory.AniDB_File.GetWithWithMissingChapters()
-                .Select(a => GetByHash(a.Hash))
-                .Where(a => a != null)
-                .ToList();
-        }
-
         /// <summary>
         /// returns all the VideoLocal records associate with an AniDB_Anime Record
         /// </summary>
@@ -442,46 +429,36 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal> GetVideosWithoutHash()
         {
-            lock (GlobalLock)
-            {
-                return _hashes.GetMultiple("").ToList();
-            }
-        }
-
-        public List<SVR_VideoLocal> GetVideosWithoutVideoInfo()
-        {
-            lock (GlobalLock)
-            {
-                return Cache.Values.Where(a => a.Media == null || a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
-                    .ToList();
-            }
+            Lock.EnterReadLock();
+            var result = _hashes.GetMultiple("");
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_VideoLocal> GetVideosWithoutEpisode()
         {
-            lock (GlobalLock)
-            {
-                return Cache.Values
-                    .Where(a =>
-                    {
-                        if (a.IsIgnored != 0) return false;
-                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
-                        if (!xrefs.Any()) return true;
-                        return RepoFactory.AniDB_Anime.GetByAnimeID(xrefs.FirstOrDefault().AnimeID) == null;
-                    })
-                    .OrderByNatural(local => local?.GetBestVideoLocalPlace()?.FilePath)
-                    .ThenBy(local => local?.VideoLocalID ?? 0)
-                    .ToList();
-            }
+            Lock.EnterReadLock();
+            var result = Cache.Values
+                .Where(a =>
+                {
+                    if (a.IsIgnored != 0) return false;
+                    var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
+                    if (!xrefs.Any()) return true;
+                    return RepoFactory.AniDB_Anime.GetByAnimeID(xrefs.First().AnimeID) == null;
+                })
+                .OrderByNatural(local => local?.GetBestVideoLocalPlace()?.FilePath)
+                .ThenBy(local => local?.VideoLocalID ?? 0)
+                .ToList();
+            Lock.ExitReadLock();
+            return result;
         }
 
-        public IEnumerable<SVR_VideoLocal> GetVideosWithoutEpisodeUnsorted()
+        public List<SVR_VideoLocal> GetVideosWithoutEpisodeUnsorted()
         {
-            lock (GlobalLock)
-            {
-                return Cache.Values
-                    .Where(a => a.IsIgnored == 0 && !RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash).Any());
-            }
+            Lock.EnterReadLock();
+            var result = Cache.Values.Where(a => a.IsIgnored == 0 && !RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash).Any()).ToList();
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_VideoLocal> GetManuallyLinkedVideos()
@@ -501,23 +478,25 @@ namespace Shoko.Server.Repositories.Cached
                     .GroupBy(a => a.VideoLocalID)
                     .Select(a => a.ToArray())
                     .Where(a => a.Length > 1)
-                    .Select(a => GetByID(a.FirstOrDefault().VideoLocalID))
+                    .Select(a => GetByID(a[0].VideoLocalID))
                     .Where(a => a != null)
                     .ToList();
         }
 
         public List<SVR_VideoLocal> GetIgnoredVideos()
         {
-            lock (GlobalLock)
-            {
-                return _ignored.GetMultiple(1);
-            }
+            Lock.EnterReadLock();
+            var result = _ignored.GetMultiple(1);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public SVR_VideoLocal GetByMyListID(int myListID)
         {
-            lock (GlobalLock)
-                return Cache.Values.FirstOrDefault(a => a.MyListID == myListID);
+            Lock.EnterReadLock();
+            var result = Cache.Values.FirstOrDefault(a => a.MyListID == myListID);
+            Lock.ExitReadLock();
+            return result;
         }
     }
 }

@@ -9,9 +9,10 @@ namespace Shoko.Server.Repositories.Direct
     {
         public AniDB_Seiyuu GetBySeiyuuID(int id)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
-                AniDB_Seiyuu cr = session
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                var cr = session
                     .CreateCriteria(typeof(AniDB_Seiyuu))
                     .Add(Restrictions.Eq("SeiyuuID", id))
                     .UniqueResult<AniDB_Seiyuu>();
@@ -21,11 +22,14 @@ namespace Shoko.Server.Repositories.Direct
 
         public AniDB_Seiyuu GetBySeiyuuID(ISession session, int id)
         {
-            AniDB_Seiyuu cr = session
-                .CreateCriteria(typeof(AniDB_Seiyuu))
-                .Add(Restrictions.Eq("SeiyuuID", id))
-                .UniqueResult<AniDB_Seiyuu>();
-            return cr;
+            lock (GlobalDBLock)
+            {
+                var cr = session
+                    .CreateCriteria(typeof(AniDB_Seiyuu))
+                    .Add(Restrictions.Eq("SeiyuuID", id))
+                    .UniqueResult<AniDB_Seiyuu>();
+                return cr;
+            }
         }
     }
 }

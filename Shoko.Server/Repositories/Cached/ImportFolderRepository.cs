@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
@@ -12,8 +10,6 @@ namespace Shoko.Server.Repositories.Cached
 {
     public class ImportFolderRepository : BaseCachedRepository<SVR_ImportFolder, int>
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
         protected override int SelectKey(SVR_ImportFolder entity)
         {
             return entity.ImportFolderID;
@@ -29,17 +25,17 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_ImportFolder GetByImportLocation(string importloc)
         {
-            lock (GlobalLock)
-            {
-                return Cache.Values.FirstOrDefault(a =>
-                    a.ImportFolderLocation?.Replace('\\', Path.DirectorySeparatorChar)
-                        .Replace('/', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar)
-                        .Equals(
-                            importloc?.Replace('\\', Path.DirectorySeparatorChar)
-                                .Replace('/', Path.DirectorySeparatorChar)
-                                .TrimEnd(Path.DirectorySeparatorChar),
-                            StringComparison.InvariantCultureIgnoreCase) ?? false);
-            }
+            Lock.EnterReadLock();
+            var result = Cache.Values.FirstOrDefault(a =>
+                a.ImportFolderLocation?.Replace('\\', Path.DirectorySeparatorChar)
+                    .Replace('/', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar)
+                    .Equals(
+                        importloc?.Replace('\\', Path.DirectorySeparatorChar)
+                            .Replace('/', Path.DirectorySeparatorChar)
+                            .TrimEnd(Path.DirectorySeparatorChar),
+                        StringComparison.InvariantCultureIgnoreCase) ?? false);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public SVR_ImportFolder SaveImportFolder(ImportFolder folder)
@@ -83,7 +79,7 @@ namespace Shoko.Server.Repositories.Cached
             ns.ImportFolderType = folder.ImportFolderType;
 
             Save(ns);
-            
+
             Utils.MainThreadDispatch(() => { ServerInfo.Instance.RefreshImportFolders(); });
             ShokoServer.StopWatchingFiles();
             ShokoServer.StartWatchingFiles();

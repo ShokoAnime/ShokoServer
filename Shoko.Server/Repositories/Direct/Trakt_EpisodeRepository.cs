@@ -9,8 +9,9 @@ namespace Shoko.Server.Repositories.Direct
     {
         public List<Trakt_Episode> GetByShowID(int showID)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var objs = session
                     .CreateCriteria(typeof(Trakt_Episode))
                     .Add(Restrictions.Eq("Trakt_ShowID", showID))
@@ -22,8 +23,9 @@ namespace Shoko.Server.Repositories.Direct
 
         public List<Trakt_Episode> GetByShowIDAndSeason(int showID, int seasonNumber)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var objs = session
                     .CreateCriteria(typeof(Trakt_Episode))
                     .Add(Restrictions.Eq("Trakt_ShowID", showID))
@@ -36,9 +38,10 @@ namespace Shoko.Server.Repositories.Direct
 
         public Trakt_Episode GetByShowIDSeasonAndEpisode(int showID, int seasonNumber, int epnumber)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
-                Trakt_Episode obj = session
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                var obj = session
                     .CreateCriteria(typeof(Trakt_Episode))
                     .Add(Restrictions.Eq("Trakt_ShowID", showID))
                     .Add(Restrictions.Eq("Season", seasonNumber))
@@ -47,29 +50,6 @@ namespace Shoko.Server.Repositories.Direct
 
                 return obj;
             }
-        }
-
-        public List<int> GetSeasonNumbersForSeries(int showID)
-        {
-            List<int> seasonNumbers = new List<int>();
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                var objs = session
-                    .CreateCriteria(typeof(Trakt_Episode))
-                    .Add(Restrictions.Eq("Trakt_ShowID", showID))
-                    .AddOrder(Order.Asc("Season"))
-                    .List<Trakt_Episode>();
-
-                List<Trakt_Episode> eps = new List<Trakt_Episode>(objs);
-
-                foreach (Trakt_Episode ep in eps)
-                {
-                    if (!seasonNumbers.Contains(ep.Season))
-                        seasonNumbers.Add(ep.Season);
-                }
-            }
-
-            return seasonNumbers;
         }
     }
 }

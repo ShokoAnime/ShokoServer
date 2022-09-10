@@ -22,18 +22,18 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_TvDB> GetByAnimeID(int id)
         {
-            lock (GlobalLock)
-            {
-                return AnimeIDs.GetMultiple(id);
-            }
+            Lock.EnterReadLock();
+            var result = AnimeIDs.GetMultiple(id);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<CrossRef_AniDB_TvDB> GetByTvDBID(int id)
         {
-            lock (GlobalLock)
-            {
-                return TvDBIDs.GetMultiple(id);
-            }
+            Lock.EnterReadLock();
+            var result = TvDBIDs.GetMultiple(id);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public ILookup<int, CrossRef_AniDB_TvDB> GetByAnimeIDs(IReadOnlyCollection<int> animeIds)
@@ -46,19 +46,19 @@ namespace Shoko.Server.Repositories.Cached
                 return EmptyLookup<int, CrossRef_AniDB_TvDB>.Instance;
             }
 
-            lock (GlobalLock)
-            {
-                return animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
-                    .ToLookup(xref => xref.AniDBID);
-            }
+            Lock.EnterReadLock();
+            var result = animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
+                .ToLookup(xref => xref.AniDBID);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public CrossRef_AniDB_TvDB GetByAniDBAndTvDBID(int animeID, int tvdbID)
         {
-            lock (GlobalLock)
-            {
-                return TvDBIDs.GetMultiple(tvdbID).FirstOrDefault(xref => xref.AniDBID == animeID);
-            }
+            Lock.EnterReadLock();
+            var result = TvDBIDs.GetMultiple(tvdbID).FirstOrDefault(xref => xref.AniDBID == animeID);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_AnimeSeries> GetSeriesWithoutLinks()
@@ -84,15 +84,12 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_TvDBV2> GetV2LinksFromAnime(int animeID)
         {
-
-
-           
             var overrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID);
             var normals = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID);
-            List<(int anidb_episode, int tvdb_episode)> ls=new List<(int anidb_episode, int tvdb_episode)>();
-            foreach (CrossRef_AniDB_TvDB_Episode epo in normals)
+            var ls = new List<(int anidb_episode, int tvdb_episode)>();
+            foreach (var epo in normals)
             {
-                CrossRef_AniDB_TvDB_Episode_Override ov = overrides.FirstOrDefault(a => a.AniDBEpisodeID == epo.AniDBEpisodeID);
+                var ov = overrides.FirstOrDefault(a => a.AniDBEpisodeID == epo.AniDBEpisodeID);
                 if (ov != null)
                 {
                     ls.Add((ov.AniDBEpisodeID,ov.TvDBEpisodeID));
@@ -103,47 +100,37 @@ namespace Shoko.Server.Repositories.Cached
                     ls.Add((epo.AniDBEpisodeID,epo.TvDBEpisodeID));
                 }
             }
-            foreach(CrossRef_AniDB_TvDB_Episode_Override ov in overrides)
-                ls.Add((ov.AniDBEpisodeID,ov.TvDBEpisodeID));
 
-            List<(AniDB_Episode AniDB, TvDB_Episode TvDB)> eplinks = ls.ToLookup(a=> RepoFactory.AniDB_Episode.GetByEpisodeID(a.anidb_episode),b=>RepoFactory.TvDB_Episode.GetByTvDBID(b.tvdb_episode))
+            ls.AddRange(overrides.Select(ov => (ov.AniDBEpisodeID, ov.TvDBEpisodeID)));
+            var eplinks = ls.ToLookup(a=> RepoFactory.AniDB_Episode.GetByEpisodeID(a.anidb_episode), b => RepoFactory.TvDB_Episode.GetByTvDBID(b.tvdb_episode))
                 .Select(a => (AniDB: a.Key, TvDB: a.FirstOrDefault())).Where(a => a.AniDB != null && a.TvDB != null)
                 .OrderBy(a => a.AniDB.EpisodeType).ThenBy(a => a.AniDB.EpisodeNumber).ToList();
 
-            List<(int EpisodeType, int EpisodeNumber, int TvDBSeries, int TvDBSeason, int TvDBNumber)> output =
-                new List<(int EpisodeType, int EpisodeNumber, int TvDBSeries, int TvDBSeason, int TvDBNumber)>();
-
-            for (int i = 0; i < eplinks.Count; i++)
+            var output = new List<(int EpisodeType, int EpisodeNumber, int TvDBSeries, int TvDBSeason, int TvDBNumber)>();
+            for (var i = 0; i < eplinks.Count; i++)
             {
                 // Cases:
                 // - first ep
                 // - new type/season
                 // - the next episode is not a simple increment
-
                 var b = eplinks[i];
-
                 if (i == 0)
                 {
                     if (b.AniDB == null || b.TvDB == null) return new List<CrossRef_AniDB_TvDBV2>();
-                    output.Add((b.AniDB.EpisodeType, b.AniDB.EpisodeNumber, b.TvDB.SeriesID, b.TvDB.SeasonNumber,
-                        b.TvDB.EpisodeNumber));
+                    output.Add((b.AniDB.EpisodeType, b.AniDB.EpisodeNumber, b.TvDB.SeriesID, b.TvDB.SeasonNumber, b.TvDB.EpisodeNumber));
                     continue;
                 }
 
                 var a = eplinks[i - 1];
-
                 if (a.AniDB.EpisodeType != b.AniDB.EpisodeType || b.TvDB.SeasonNumber != a.TvDB.SeasonNumber)
                 {
-                    output.Add((b.AniDB.EpisodeType, b.AniDB.EpisodeNumber, b.TvDB.SeriesID, b.TvDB.SeasonNumber,
-                        b.TvDB.EpisodeNumber));
+                    output.Add((b.AniDB.EpisodeType, b.AniDB.EpisodeNumber, b.TvDB.SeriesID, b.TvDB.SeasonNumber, b.TvDB.EpisodeNumber));
                     continue;
                 }
 
-                if (b.AniDB.EpisodeNumber - a.AniDB.EpisodeNumber != 1 ||
-                    b.TvDB.EpisodeNumber - a.TvDB.EpisodeNumber != 1)
+                if (b.AniDB.EpisodeNumber - a.AniDB.EpisodeNumber != 1 || b.TvDB.EpisodeNumber - a.TvDB.EpisodeNumber != 1)
                 {
-                    output.Add((b.AniDB.EpisodeType, b.AniDB.EpisodeNumber, b.TvDB.SeriesID, b.TvDB.SeasonNumber,
-                        b.TvDB.EpisodeNumber));
+                    output.Add((b.AniDB.EpisodeType, b.AniDB.EpisodeNumber, b.TvDB.SeriesID, b.TvDB.SeasonNumber, b.TvDB.EpisodeNumber));
                 }
             }
 

@@ -12,7 +12,6 @@ using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
@@ -50,41 +49,6 @@ namespace Shoko.Server.Commands
                 {
                     ISessionWrapper sessionWrapper = session.Wrap();
                     bool doReturn = false;
-
-                    // first check if the user wants to use the web cache
-                    if (ServerSettings.Instance.WebCache.Enabled && ServerSettings.Instance.WebCache.Trakt_Get)
-                    {
-                        try
-                        {
-                            List<Azure_CrossRef_AniDB_Trakt> contracts =
-                                new List<Azure_CrossRef_AniDB_Trakt>();
-
-                            List<Azure_CrossRef_AniDB_Trakt> resultsCache =
-                                AzureWebAPI.Get_CrossRefAniDBTrakt(AnimeID);
-                            if (resultsCache != null && resultsCache.Count > 0)
-                            {
-                                foreach (Azure_CrossRef_AniDB_Trakt xref in resultsCache)
-                                {
-                                    TraktV2ShowExtended showInfo = _helper.GetShowInfoV2(xref.TraktID);
-                                    if (showInfo == null) continue;
-
-                                    Logger.LogTrace("Found trakt match on web cache for {0} - id = {1}", AnimeID,
-                                        showInfo.title);
-                                    _helper.LinkAniDBTrakt(AnimeID,
-                                        (EpisodeType) xref.AniDBStartEpisodeType,
-                                        xref.AniDBStartEpisodeNumber,
-                                        xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber, true);
-                                    doReturn = true;
-                                }
-                                if (doReturn) return;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.LogError(ex, ex.ToString());
-                        }
-                    }
-
 
                     // lets try to see locally if we have a tvDB link for this anime
                     // Trakt allows the use of TvDB ID's or their own Trakt ID's

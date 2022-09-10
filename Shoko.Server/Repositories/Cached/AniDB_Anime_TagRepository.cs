@@ -30,21 +30,19 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Anime_Tag GetByAnimeIDAndTagID(int animeid, int tagid)
         {
-            lock (GlobalLock)
-            {
-                return Animes.GetMultiple(animeid).FirstOrDefault(a => a.TagID == tagid);
-            }
+            Lock.EnterReadLock();
+            var result = Animes.GetMultiple(animeid).FirstOrDefault(a => a.TagID == tagid);
+            Lock.ExitReadLock();
+            return result;
         }
-
 
         public List<AniDB_Anime_Tag> GetByAnimeID(int id)
         {
-            lock (GlobalLock)
-            {
-                return Animes.GetMultiple(id);
-            }
+            Lock.EnterReadLock();
+            var result = Animes.GetMultiple(id);
+            Lock.ExitReadLock();
+            return result;
         }
-
 
         public ILookup<int, AniDB_Anime_Tag> GetByAnimeIDs(ICollection<int> ids)
         {
@@ -56,10 +54,10 @@ namespace Shoko.Server.Repositories
                 return EmptyLookup<int, AniDB_Anime_Tag>.Instance;
             }
 
-            lock (GlobalLock)
-            {
-                return ids.SelectMany(Animes.GetMultiple).ToLookup(t => t.AnimeID);
-            }
+            Lock.EnterReadLock();
+            var result = ids.SelectMany(Animes.GetMultiple).ToLookup(t => t.AnimeID);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public List<SVR_AnimeSeries> GetAnimeWithTag(string tagName)
@@ -72,13 +70,16 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AnimeSeries> GetAnimeWithTag(int tagID)
         {
-            return TagIDs.GetMultiple(tagID).Select(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID))
+            return GetByTagID(tagID).Select(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID))
                 .Where(a => a != null).ToList();
         }
 
         public List<AniDB_Anime_Tag> GetByTagID(int tagID)
         {
-            return TagIDs.GetMultiple(tagID);
+            Lock.EnterReadLock();
+            var result = TagIDs.GetMultiple(tagID);
+            Lock.ExitReadLock();
+            return result;
         }
 
         /// <summary>

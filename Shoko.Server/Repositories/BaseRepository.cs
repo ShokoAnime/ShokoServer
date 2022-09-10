@@ -2,6 +2,6 @@
 {
     public class BaseRepository
     {
-        internal static readonly object GlobalLock = new();
+        internal static readonly object GlobalDBLock = new();
     }
 }

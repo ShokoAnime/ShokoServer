@@ -12,7 +12,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(int animeid, ImageSizeType imageType)
         {
-            return Animes.GetMultiple(animeid).FirstOrDefault(a => a.ImageType == (int) imageType);
+            return GetByAnimeID(animeid).FirstOrDefault(a => a.ImageType == (int) imageType);
         }
 
         public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeTypeAndImageEntityType(int animeid, ImageSizeType imageType, ImageEntityType entityType)
@@ -23,12 +23,15 @@ namespace Shoko.Server.Repositories.Cached
 
         public AniDB_Anime_DefaultImage GetByAnimeIDAndImageEntityType(int animeid, ImageEntityType entityType)
         {
-            return Animes.GetMultiple(animeid).FirstOrDefault(a => a.ImageParentType == (int) entityType);
+            return GetByAnimeID(animeid).FirstOrDefault(a => a.ImageParentType == (int) entityType);
         }
 
         public List<AniDB_Anime_DefaultImage> GetByAnimeID(int id)
         {
-            return Animes.GetMultiple(id);
+            Lock.EnterReadLock();
+            var result = Animes.GetMultiple(id);
+            Lock.ExitReadLock();
+            return result;
         }
 
         protected override int SelectKey(AniDB_Anime_DefaultImage entity)

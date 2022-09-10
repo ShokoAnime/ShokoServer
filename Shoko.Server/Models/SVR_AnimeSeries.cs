@@ -1131,6 +1131,13 @@ namespace Shoko.Server.Models
                         return users?.Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)) ?? Array.Empty<(int EpisodeID, SVR_VideoLocal_User VideoLocalUser)>();
                     }
                 ).Where(a => a.VideoLocalUser != null).ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.JMMUserID), b => b.VideoLocalUser);
+                var epUsers = eps.SelectMany(
+                    ep =>
+                    {
+                        var users = RepoFactory.AnimeEpisode_User.GetByEpisodeID(ep.AnimeEpisodeID);
+                        return users.Select(a => (EpisodeID: ep.AniDB_EpisodeID, AnimeEpisode_User: a));
+                    }
+                ).Where(a => a.AnimeEpisode_User != null).ToLookup(a => (a.EpisodeID, UserID: a.AnimeEpisode_User.JMMUserID), b => b.AnimeEpisode_User);
 
                 foreach (var juser in RepoFactory.JMMUser.GetAll())
                 {
@@ -1147,12 +1154,15 @@ namespace Shoko.Server.Models
                     eps.AsParallel().Where(ep => vls.Contains(ep.AniDB_EpisodeID) && ep.EpisodeTypeEnum is EpisodeType.Episode or EpisodeType.Special).ForAll(
                         ep =>
                         {
-                            SVR_VideoLocal_User epUserRecord = null;
-                            if (vlUsers.Contains((ep.AniDB_EpisodeID, juser.JMMUserID))) epUserRecord = vlUsers[(ep.AniDB_EpisodeID, juser.JMMUserID)].OrderByDescending(a => a.LastUpdated)
+                            SVR_VideoLocal_User vlUser = null;
+                            if (vlUsers.Contains((ep.AniDB_EpisodeID, juser.JMMUserID))) vlUser = vlUsers[(ep.AniDB_EpisodeID, juser.JMMUserID)].OrderByDescending(a => a.LastUpdated)
                                 .FirstOrDefault(a => a.WatchedDate != null);
-                            var lastUpdated = epUserRecord?.LastUpdated;
+                            var lastUpdated = vlUser?.LastUpdated;
 
-                            if (epUserRecord?.WatchedDate == null)
+                            SVR_AnimeEpisode_User epUser = null;
+                            if (epUsers.Contains((ep.AniDB_EpisodeID, juser.JMMUserID))) epUser = epUsers[(ep.AniDB_EpisodeID, juser.JMMUserID)].FirstOrDefault(a => a.WatchedDate != null);
+
+                            if (vlUser?.WatchedDate == null && epUser?.WatchedDate == null)
                             {
                                 Interlocked.Increment(ref unwatchedCount);
                                 return;
@@ -1160,15 +1170,24 @@ namespace Shoko.Server.Models
 
                             lock (lck)
                             {
-                                if (watchedDate == null || epUserRecord.WatchedDate != null && epUserRecord.WatchedDate.Value > watchedDate.Value)
-                                    watchedDate = epUserRecord.WatchedDate;
+                                if (vlUser != null)
+                                {
+                                    if (watchedDate == null || vlUser.WatchedDate != null && vlUser.WatchedDate.Value > watchedDate.Value)
+                                        watchedDate = vlUser.WatchedDate;
 
-                                if (lastEpisodeUpdate == null || lastUpdated.Value > lastEpisodeUpdate.Value)
-                                    lastEpisodeUpdate = lastUpdated;
+                                    if (lastEpisodeUpdate == null || lastUpdated.Value > lastEpisodeUpdate.Value)
+                                        lastEpisodeUpdate = lastUpdated;
+                                }
+
+                                if (epUser != null)
+                                {
+                                    if (watchedDate == null || epUser.WatchedDate != null && epUser.WatchedDate.Value > watchedDate.Value)
+                                        watchedDate = epUser.WatchedDate;
+                                }
                             }
 
                             Interlocked.Increment(ref watchedEpisodeCount);
-                            Interlocked.Add(ref watchedCount, epUserRecord.WatchedCount);
+                            Interlocked.Add(ref watchedCount, vlUser?.WatchedCount ?? epUser.WatchedCount);
                         });
                     userRecord.UnwatchedEpisodeCount = unwatchedCount;
                     userRecord.WatchedEpisodeCount = watchedEpisodeCount;

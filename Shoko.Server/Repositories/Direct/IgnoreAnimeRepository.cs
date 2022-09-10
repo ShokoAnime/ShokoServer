@@ -9,9 +9,10 @@ namespace Shoko.Server.Repositories.Direct
     {
         public IgnoreAnime GetByAnimeUserType(int animeID, int userID, int ignoreType)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
-                IgnoreAnime obj = session
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                var obj = session
                     .CreateCriteria(typeof(IgnoreAnime))
                     .Add(Restrictions.Eq("AnimeID", animeID))
                     .Add(Restrictions.Eq("JMMUserID", userID))
@@ -24,8 +25,9 @@ namespace Shoko.Server.Repositories.Direct
 
         public List<IgnoreAnime> GetByUserAndType(int userID, int ignoreType)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var objs = session
                     .CreateCriteria(typeof(IgnoreAnime))
                     .Add(Restrictions.Eq("JMMUserID", userID))
@@ -38,8 +40,9 @@ namespace Shoko.Server.Repositories.Direct
 
         public List<IgnoreAnime> GetByUser(int userID)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            lock (GlobalDBLock)
             {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var objs = session
                     .CreateCriteria(typeof(IgnoreAnime))
                     .Add(Restrictions.Eq("JMMUserID", userID))

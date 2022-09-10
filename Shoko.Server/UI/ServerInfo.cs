@@ -12,7 +12,6 @@ using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -212,18 +211,6 @@ namespace Shoko.Server
             try
             {
                 AdminMessagesAvailable = false;
-                if (!ServerSettings.Instance.WebCache.Enabled) return; 
-                List<Azure_AdminMessage> msgs = AzureWebAPI.Get_AdminMessages();
-                if (msgs == null || msgs.Count == 0)
-                {
-                    AdminMessagesAvailable = false;
-                    return;
-                }
-
-                foreach (Azure_AdminMessage msg in msgs)
-                    AdminMessages.Add(msg);
-
-                AdminMessagesAvailable = true;
             }
             catch (Exception ex)
             {

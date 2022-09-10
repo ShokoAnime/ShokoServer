@@ -7,7 +7,6 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
-using Shoko.Server.PlexAndKodi;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -42,20 +41,19 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode> GetBySeriesID(int seriesid)
         {
-            lock (GlobalLock)
-            {
-                return Series.GetMultiple(seriesid);
-            }
+            Lock.EnterReadLock();
+            var result = Series.GetMultiple(seriesid);
+            Lock.ExitReadLock();
+            return result;
         }
 
 
         public SVR_AnimeEpisode GetByAniDBEpisodeID(int epid)
         {
-            lock (GlobalLock)
-            {
-                //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.
-                return EpisodeIDs.GetOne(epid);
-            }
+            Lock.EnterReadLock();
+            var result = EpisodeIDs.GetOne(epid);
+            Lock.ExitReadLock();
+            return result;
         }
 
 
@@ -70,8 +68,8 @@ namespace Shoko.Server.Repositories.Cached
             return RepoFactory.VideoLocalPlace.GetAll()
                 .Where(v => name.Equals(v?.FilePath?.Split(Path.DirectorySeparatorChar).LastOrDefault(),
                     StringComparison.InvariantCultureIgnoreCase))
-                .Where(a => a?.VideoLocal != null)
-                .SelectMany(a => a.VideoLocal.GetAnimeEpisodes())
+                .Select(a => RepoFactory.VideoLocal.GetByID(a.VideoLocalID)).Where(a => a != null)
+                .SelectMany(a => GetByHash(a.Hash))
                 .FirstOrDefault();
         }
 
@@ -94,25 +92,24 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
         {
-            lock (GlobalLock)
+            IList<int> ids;
+            lock (GlobalDBLock)
             {
-                string ignoreVariationsQuery =
-                    @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
-                string countVariationsQuery =
-                    @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                {
-                    IList<int> ids = ignoreVariations
-                        ? session.CreateSQLQuery(ignoreVariationsQuery).List<int>()
-                        : session.CreateSQLQuery(countVariationsQuery).List<int>();
-                    return ids.Select(GetByAniDBEpisodeID).Where(a => a != null).ToList();
-                }
+                const string ignoreVariationsQuery = @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
+                const string countVariationsQuery = @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
+
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                ids = ignoreVariations
+                    ? session.CreateSQLQuery(ignoreVariationsQuery).List<int>()
+                    : session.CreateSQLQuery(countVariationsQuery).List<int>();
             }
+
+            return ids.Select(GetByAniDBEpisodeID).Where(a => a != null).ToList();
         }
 
         public List<SVR_AnimeEpisode> GetUnwatchedEpisodes(int seriesid, int userid)
         {
-            List<int> eps =
+            var eps =
                 RepoFactory.AnimeEpisode_User.GetByUserIDAndSeriesID(userid, seriesid)
                     .Where(a => a.WatchedDate.HasValue)
                     .Select(a => a.AnimeEpisodeID)
@@ -122,18 +119,13 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode> GetAllWatchedEpisodes(int userid, DateTime? after_date)
         {
-            List<SVR_AnimeEpisode_User> eps = RepoFactory.AnimeEpisode_User.GetByUserID(userid).Where(a => a.IsWatched()).Where(a => a.WatchedDate > after_date).OrderBy(a => a.WatchedDate).ToList();
-            List<SVR_AnimeEpisode> list = new List<SVR_AnimeEpisode>();
-            foreach (SVR_AnimeEpisode_User ep in eps)
+            var eps = RepoFactory.AnimeEpisode_User.GetByUserID(userid).Where(a => a.IsWatched()).Where(a => a.WatchedDate > after_date).OrderBy(a => a.WatchedDate).ToList();
+            var list = new List<SVR_AnimeEpisode>();
+            foreach (var ep in eps)
             {
                 list.Add(GetByID(ep.AnimeEpisodeID));
             }
             return list;
-        }
-
-        public List<SVR_AnimeEpisode> GetMostRecentlyAdded(int seriesID)
-        {
-            return GetBySeriesID(seriesID).OrderByDescending(a => a.DateTimeCreated).ToList();
         }
 
         public List<SVR_AnimeEpisode> GetEpisodesWithNoFiles(bool includeSpecials)

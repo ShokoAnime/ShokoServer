@@ -13,6 +13,16 @@ namespace Shoko.Server.Repositories.Cached
         private PocoIndex<int, SVR_VideoLocal_Place, int> ImportFolders;
         private PocoIndex<int, SVR_VideoLocal_Place, string> Paths;
 
+        public VideoLocal_PlaceRepository()
+        {
+            BeginDeleteCallback = place =>
+            {
+                // Remove associated duplicate file records
+                var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(place.FilePath, place.ImportFolderID);
+                if (dups is { Count: > 0 }) dups.ForEach(RepoFactory.DuplicateFile.Delete);
+            };
+        }
+
         protected override int SelectKey(SVR_VideoLocal_Place entity)
         {
             return entity.VideoLocal_Place_ID;
@@ -31,60 +41,38 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal_Place> GetByImportFolder(int importFolderID)
         {
-            lock (GlobalLock)
-            {
-                return ImportFolders.GetMultiple(importFolderID);
-            }
+            Lock.EnterReadLock();
+            var result = ImportFolders.GetMultiple(importFolderID);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public SVR_VideoLocal_Place GetByFilePathAndImportFolderID(string filePath, int nshareID)
         {
-            lock (GlobalLock)
-            {
-                return Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID);
-            }
-        }
-
-        public List<SVR_VideoLocal_Place> GetByFilePathAndImportFolderType(string filePath, int folderType)
-        {
-            lock (GlobalLock)
-            {
-                return Paths.GetMultiple(filePath).FindAll(a => a.ImportFolderType == folderType);
-            }
-        }
-
-        public void DeleteWithoutChecking(SVR_VideoLocal_Place obj)
-        {
-            base.Delete(obj);
-        }
-
-        public override void Delete(SVR_VideoLocal_Place obj)
-        {
-            // Remove associated duplicate file records
-            var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(obj.FilePath, obj.ImportFolderID);
-            if (dups != null && dups.Count > 0) dups.ForEach(RepoFactory.DuplicateFile.Delete);
-
-            base.Delete(obj);
+            Lock.EnterReadLock();
+            var result = Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID);
+            Lock.ExitReadLock();
+            return result;
         }
 
         public static Tuple<SVR_ImportFolder, string> GetFromFullPath(string fullPath)
         {
-            IReadOnlyList<SVR_ImportFolder> shares = RepoFactory.ImportFolder.GetAll();
+            var shares = RepoFactory.ImportFolder.GetAll();
 
             // TODO make sure that import folders are not sub folders of each other
             // TODO make sure import folders do not contain a trailing "\"
-            foreach (SVR_ImportFolder ifolder in shares)
+            foreach (var ifolder in shares)
             {
-                string importLocation = ifolder.ImportFolderLocation;
-                string importLocationFull = importLocation.TrimEnd(Path.DirectorySeparatorChar);
+                var importLocation = ifolder.ImportFolderLocation;
+                var importLocationFull = importLocation.TrimEnd(Path.DirectorySeparatorChar);
 
                 // add back the trailing back slashes
-                importLocationFull = importLocationFull + $"{Path.DirectorySeparatorChar}";
+                importLocationFull += $"{Path.DirectorySeparatorChar}";
 
                 importLocation = importLocation.TrimEnd(Path.DirectorySeparatorChar);
                 if (fullPath.StartsWith(importLocationFull, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    string filePath = fullPath.Replace(importLocation, string.Empty);
+                    var filePath = fullPath.Replace(importLocation, string.Empty);
                     filePath = filePath.TrimStart(Path.DirectorySeparatorChar);
                     return new Tuple<SVR_ImportFolder, string>(ifolder, filePath);
                 }
@@ -94,10 +82,10 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal_Place> GetByVideoLocal(int videolocalid)
         {
-            lock (GlobalLock)
-            {
-                return VideoLocals.GetMultiple(videolocalid);
-            }
+            Lock.EnterReadLock();
+            var result = VideoLocals.GetMultiple(videolocalid);
+            Lock.ExitReadLock();
+            return result;
         }
     }
 }
