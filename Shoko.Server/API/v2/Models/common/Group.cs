@@ -315,42 +315,42 @@ namespace Shoko.Server.API.v2.Models.common
                     {
                         eps++;
                         if (local) local_eps++;
-                        if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_eps++;
+                        if (ep.GetUserRecord(uid)?.WatchedDate != null) watched_eps++;
                         break;
                     }
                     case EpisodeType.Credits:
                     {
                         credits++;
                         if (local) local_credits++;
-                        if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_credits++;
+                        if (ep.GetUserRecord(uid)?.WatchedDate != null) watched_credits++;
                         break;
                     }
                     case EpisodeType.Special:
                     {
                         specials++;
                         if (local) local_specials++;
-                        if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_specials++;
+                        if (ep.GetUserRecord(uid)?.WatchedDate != null) watched_specials++;
                         break;
                     }
                     case EpisodeType.Trailer:
                     {
                         trailers++;
                         if (local) local_trailers++;
-                        if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_trailers++;
+                        if (ep.GetUserRecord(uid)?.WatchedDate != null) watched_trailers++;
                         break;
                     }
                     case EpisodeType.Parody:
                     {
                         parodies++;
                         if (local) local_parodies++;
-                        if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_parodies++;
+                        if (ep.GetUserRecord(uid)?.WatchedDate != null) watched_parodies++;
                         break;
                     }
                     case EpisodeType.Other:
                     {
                         others++;
                         if (local) local_others++;
-                        if ((ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0) watched_others++;
+                        if (ep.GetUserRecord(uid)?.WatchedDate != null) watched_others++;
                         break;
                     }
                 }

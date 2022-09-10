@@ -145,7 +145,7 @@ namespace Shoko.Server.API.v2.Models.common
                 }
             }
 
-            if (!nocast)
+            if (!notag)
             {
                 var tags = anime.GetAllTags();
                 if (tags != null)
@@ -243,7 +243,7 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 if (ep?.AniDB_Episode == null) continue;
                 var local = ep.GetVideoLocals().Any();
-                bool watched = (ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0;
+                var watched = ep.GetUserRecord(uid)?.WatchedDate != null;
                 switch (ep.EpisodeTypeEnum)
                 {
                     case EpisodeType.Episode:
