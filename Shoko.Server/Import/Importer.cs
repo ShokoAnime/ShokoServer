@@ -915,14 +915,6 @@ namespace Shoko.Server
             var vidsToUpdate = new List<int>();
             try
             {
-                if (missingInfo)
-                {
-                    vidsToUpdate.AddRange(RepoFactory.AniDB_File.GetWithWithMissingChapters()
-                        .Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash))
-                        .Where(vid => vid != null && !vidsToUpdate.Contains(vid.VideoLocalID))
-                            .Select(a => a.VideoLocalID));
-                }
-
                 if (outOfDate)
                 {
                     var vids = RepoFactory.VideoLocal.GetByInternalVersion(1);
@@ -1246,8 +1238,6 @@ namespace Shoko.Server
                     if (!forceRefresh) return;
                 }
             }
-
-            UpdateAniDBFileData(true, false, false);
 
             // files which have been hashed, but don't have an associated episode
             var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();

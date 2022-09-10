@@ -64,17 +64,6 @@ namespace Shoko.Server.Repositories
             return result;
         }
 
-        public List<SVR_AniDB_File> GetWithWithMissingChapters()
-        {
-            lock (GlobalDBLock)
-            {
-                // the only containers that support chapters (and will have data on anidb)
-                // < 0 instead of = -1 to avoid any issues with bit data types
-                var list = DatabaseFactory.SessionFactory.OpenSession().Query<SVR_AniDB_File>().Where(a => !a.IsChaptered && (a.FileName.EndsWith(".mkv") || a.FileName.EndsWith(".ogm"))).ToList();
-                return list;
-            }
-        }
-
         public SVR_AniDB_File GetByHashAndFileSize(string hash, long fsize)
         {
             Lock.EnterReadLock();
