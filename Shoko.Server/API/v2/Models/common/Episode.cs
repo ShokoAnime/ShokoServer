@@ -92,7 +92,7 @@ namespace Shoko.Server.API.v2.Models.common
                 ep.votes = cae.AniDB_Votes;
                 ep.rating = cae.AniDB_Rating;
 
-                ep.view = cae.IsWatched() ? 1 : 0;
+                ep.view = cae.WatchedDate != null ? 1 : 0;
                 ep.view_date = cae.WatchedDate;
                 ep.epnumber = cae.EpisodeNumber;
             }
