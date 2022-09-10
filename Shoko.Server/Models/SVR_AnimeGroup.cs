@@ -580,7 +580,7 @@ namespace Shoko.Server.Models
             IReadOnlyCollection<SVR_AnimeSeries> seriesList,
             IEnumerable<SVR_JMMUser> allUsers, Action<SVR_AnimeGroup_User, bool> newAnimeGroupUsers)
         {
-            allUsers.AsParallel().ForAll(juser =>
+            allUsers.ForEach(juser =>
             {
                 SVR_AnimeGroup_User userRecord = animeGroup.GetUserRecord(juser.JMMUserID);
                 bool isNewRecord = false;
