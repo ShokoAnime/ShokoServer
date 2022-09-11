@@ -8,6 +8,7 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
+using Shoko.Server.Commands.Import;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
@@ -129,6 +130,7 @@ namespace Shoko.Server.Commands.AniDB
                 ProcessRelations(session, response, _requestFactory, _handler, _animeCreator);
 
                 // Request an image download
+                _commandFactory.Create<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = anime.AnimeID).Save();
             }
             catch (AniDBBannedException ex)
             {
