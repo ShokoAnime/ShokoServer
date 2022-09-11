@@ -702,7 +702,7 @@ namespace Shoko.Server.PlexAndKodi
         {
             Video v = new Directory();
             Dictionary<SVR_AnimeEpisode, CL_AnimeEpisode_User> episodes = ser.GetAnimeEpisodes()
-                .ToDictionary(a => a, a => a.GetUserContract(userid, session));
+                .ToDictionary(a => a, a => a.GetUserContract(userid));
             episodes = episodes.Where(a => a.Value == null || a.Value.LocalFileCount > 0)
                 .ToDictionary(a => a.Key, a => a.Value);
             FillSerie(v, ser, episodes, anidb, cserie, userid);

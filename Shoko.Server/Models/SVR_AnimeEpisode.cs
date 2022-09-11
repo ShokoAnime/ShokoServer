@@ -4,11 +4,8 @@ using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
-using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
-using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Utilities;
@@ -27,27 +24,6 @@ namespace Shoko.Server.Models
         {
             return RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, AnimeEpisodeID);
         }
-
-        public SVR_AnimeEpisode_User GetOrCreateUserRecord(int userID, ISessionWrapper session = null)
-        {
-            var userRecord = GetUserRecord(userID);
-            if (userRecord != null)
-                return userRecord;
-            userRecord = new SVR_AnimeEpisode_User(userID, AnimeEpisodeID, AnimeSeriesID)
-            {
-                WatchedDate = GetVideoLocals()
-                    .Select(file => file.GetUserRecord(userID))
-                    .Where(record => record?.WatchedDate != null)
-                    .OrderBy(record => record.WatchedDate)
-                    .FirstOrDefault()?.WatchedDate,
-            };
-            if (session != null)
-                RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, userRecord);
-            else
-                RepoFactory.AnimeEpisode_User.Save(userRecord);
-            return userRecord;
-        }
-
 
         /// <summary>
         /// Gets the AnimeSeries this episode belongs to
@@ -141,11 +117,11 @@ namespace Shoko.Server.Models
                 .Select(v => v.ToClientDetailed(userID)).ToList();
         }
 
-        public CL_AnimeEpisode_User GetUserContract(int userID, ISessionWrapper session = null)
+        public CL_AnimeEpisode_User GetUserContract(int userID)
         {
             var anidbEpisode = AniDB_Episode;
             var seriesUserRecord = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, AnimeSeriesID);
-            var episodeUserRecord = GetOrCreateUserRecord(userID, session);
+            var episodeUserRecord = GetUserRecord(userID);
             var contract = new CL_AnimeEpisode_User
             {
                 AniDB_EpisodeID = AniDB_EpisodeID,
@@ -153,10 +129,10 @@ namespace Shoko.Server.Models
                 AnimeSeriesID = AnimeSeriesID,
                 DateTimeCreated = DateTimeCreated,
                 DateTimeUpdated = DateTimeUpdated,
-                PlayedCount = episodeUserRecord.PlayedCount,
-                StoppedCount = episodeUserRecord.StoppedCount,
-                WatchedCount = episodeUserRecord.WatchedCount,
-                WatchedDate = episodeUserRecord.WatchedDate,
+                PlayedCount = episodeUserRecord?.PlayedCount ?? 0,
+                StoppedCount = episodeUserRecord?.StoppedCount ?? 0,
+                WatchedCount = episodeUserRecord?.WatchedCount ?? 0,
+                WatchedDate = episodeUserRecord?.WatchedDate,
                 AniDB_EnglishName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.English)
                     .FirstOrDefault()?.Title,
                 AniDB_RomajiName = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.Romaji)
