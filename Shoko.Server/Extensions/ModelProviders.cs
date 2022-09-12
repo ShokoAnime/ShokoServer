@@ -167,9 +167,10 @@ namespace Shoko.Server.Extensions
             };
         }
 
-        public static void Populate(this MovieDB_Fanart m, MovieDB_Image_Result result, int movieID)
+        public static void PopulateMovie(this MovieDB_Fanart m, MovieDB_Image_Result result, int movieID)
         {
             m.MovieId = movieID;
+            m.SeriesId = 0;
             m.ImageID = result.ImageID;
             m.ImageType = result.ImageType;
             m.ImageSize = result.ImageSize;
@@ -177,7 +178,17 @@ namespace Shoko.Server.Extensions
             m.ImageHeight = result.ImageHeight;
             m.Enabled = 1;
         }
-
+        public static void PopulateSeries(this MovieDB_Fanart m, MovieDB_Image_Result result, int seriesID)
+        {
+            m.SeriesId = seriesID;
+            m.MovieId = 0;
+            m.ImageID = result.ImageID;
+            m.ImageType = result.ImageType;
+            m.ImageSize = result.ImageSize;
+            m.ImageWidth = result.ImageWidth;
+            m.ImageHeight = result.ImageHeight;
+            m.Enabled = 1;
+        }
         public static void Populate(this MovieDB_Movie m, MovieDB_Movie_Result result)
         {
             m.MovieId = result.MovieId;
@@ -185,13 +196,35 @@ namespace Shoko.Server.Extensions
             m.OriginalName = result.OriginalName;
             m.Overview = result.Overview;
             m.Blob = result.Blob;
-            m.Lastupdated = result.Lastupdated;
+            m.MD5 = result.MD5;
             m.Rating = result.Rating;
         }
-
-        public static void Populate(this MovieDB_Poster m, MovieDB_Image_Result result, int movieID)
+        public static void Populate(this MovieDB_Series m, MovieDB_Series_Result result)
+        {
+            m.SeriesID = result.SeriesID;
+            m.SeriesName = result.SeriesName;
+            m.OriginalName = result.OriginalName;
+            m.Overview = result.Overview;
+            m.Blob = result.Blob;
+            m.MD5 = result.MD5;
+            m.Rating = result.Rating;
+        }
+        public static void PopulateMovie(this MovieDB_Poster m, MovieDB_Image_Result result, int movieID)
         {
             m.MovieId = movieID;
+            m.SeriesId = 0;
+            m.ImageID = result.ImageID;
+            m.ImageType = result.ImageType;
+            m.ImageSize = result.ImageSize;
+            m.URL = result.URL;
+            m.ImageWidth = result.ImageWidth;
+            m.ImageHeight = result.ImageHeight;
+            m.Enabled = 1;
+        }
+        public static void PopulateSeries(this MovieDB_Poster m, MovieDB_Image_Result result, int seriesID)
+        {
+            m.SeriesId = seriesID;
+            m.MovieId = 0;
             m.ImageID = result.ImageID;
             m.ImageType = result.ImageType;
             m.ImageSize = result.ImageSize;

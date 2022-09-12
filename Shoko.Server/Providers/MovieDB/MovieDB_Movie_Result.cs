@@ -23,16 +23,17 @@ namespace Shoko.Server.Providers.MovieDB
 
         public bool Populate(Movie movie)
         {
+            
             try
             {
-                Blob = LZ4.CompressionHelper.SerializeObject(movie, out int _);
+                Blob = LZ4.CompressionHelper.SerializeObjectInclSize(movie);
                 Images = new List<MovieDB_Image_Result>();
                 MovieId = movie.Id;
                 MovieName = movie.Title;
                 OriginalName = movie.Title;
                 Overview = movie.Overview;
                 Rating = (int)Math.Round(movie.VoteAverage * 10D);
-                Lastupdated = DateTimeOffset.UtcNow.ToString("o");
+                MD5 = BitConverter.ToString(System.Security.Cryptography.MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(movie)))).Replace("-", "").ToLowerInvariant();
                 if (movie.Images?.Backdrops != null)
                 {
                     foreach (ImageData img in movie.Images.Backdrops)

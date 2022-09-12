@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
 using NHibernate.Criterion;
@@ -34,7 +34,13 @@ namespace Shoko.Server.Repositories.Direct
                 return GetByMovieID(session.Wrap(), id);
             }
         }
-
+        public List<MovieDB_Poster> GetBySeriesID(int id)
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                return GetBySeriesID(session.Wrap(), id);
+            }
+        }
         public List<MovieDB_Poster> GetByMovieID(ISessionWrapper session, int id)
         {
             var objs = session
@@ -44,7 +50,15 @@ namespace Shoko.Server.Repositories.Direct
 
             return new List<MovieDB_Poster>(objs);
         }
+        public List<MovieDB_Poster> GetBySeriesID(ISessionWrapper session, int id)
+        {
+            var objs = session
+                .CreateCriteria(typeof(MovieDB_Poster))
+                .Add(Restrictions.Eq("SeriesId", id))
+                .List<MovieDB_Poster>();
 
+            return new List<MovieDB_Poster>(objs);
+        }
         public List<MovieDB_Poster> GetAllOriginal()
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

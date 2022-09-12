@@ -1,4 +1,4 @@
-﻿using FluentNHibernate.Mapping;
+using FluentNHibernate.Mapping;
 using Shoko.Models.Server;
 
 namespace Shoko.Server.Mappings
@@ -17,6 +17,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.ImageType);
             Map(x => x.ImageWidth).Not.Nullable();
             Map(x => x.MovieId).Not.Nullable();
+            Map(x => x.SeriesId).Not.Nullable();
             Map(x => x.URL);
         }
     }

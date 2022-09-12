@@ -83,7 +83,7 @@ namespace Shoko.Server.Repositories
             Save(obj, true);
         }
 
-        public void Save(SVR_AniDB_Anime obj, bool generateTvDBMatches)
+        public void Save(SVR_AniDB_Anime obj, bool generateEpisodeMatches)
         {
             lock (globalDBLock)
             {
@@ -102,10 +102,12 @@ namespace Shoko.Server.Repositories
                     base.Save(obj);
                 }
             }
-            if (generateTvDBMatches)
+            if (generateEpisodeMatches)
             {
                 // Update TvDB Linking. Doing it here as updating anime updates episode info in batch
                 TvShowsLinkingHelper.GenerateEpisodeMatches(obj.AnimeID, Shoko.Models.Constants.Providers.TvDB);
+                TvShowsLinkingHelper.GenerateEpisodeMatches(obj.AnimeID, Shoko.Models.Constants.Providers.Trakt);
+                TvShowsLinkingHelper.GenerateEpisodeMatches(obj.AnimeID, Shoko.Models.Constants.Providers.MovieDB);
             }
         }
 

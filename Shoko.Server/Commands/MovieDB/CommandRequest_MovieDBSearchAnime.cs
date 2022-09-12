@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
 using NHibernate;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
@@ -64,23 +65,44 @@ namespace Shoko.Server.Commands
                         try
                         {
                             Azure_CrossRef_AniDB crossRef = AzureWebAPI.Get_CrossRefAniDB(AnimeID)
-                                .FirstOrDefault(a => a.Provider == Constants.Providers.MovieDB && a.ProviderMediaType == MediaType.Movie);
+                                .FirstOrDefault(a => a.Provider == Constants.Providers.MovieDB);
                             if (crossRef != null)
                             {
-                                int movieID = int.Parse(crossRef.ProviderID);
-                                MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(sessionWrapper, movieID);
-                                if (movie == null)
+                                if (crossRef.ProviderMediaType == MediaType.Movie)
                                 {
-                                    // update the info from online
-                                    MovieDBHelper.UpdateMovieInfo(session, movieID, true);
-                                    movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieID);
-                                }
+                                    int movieID = int.Parse(crossRef.ProviderID);
+                                    MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(sessionWrapper, movieID);
+                                    if (movie == null)
+                                    {
+                                        // update the info from online
+                                        MovieDBHelper.UpdateMovieInfo(session, movieID, true);
+                                        movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieID);
+                                    }
 
-                                if (movie != null)
+                                    if (movie != null)
+                                    {
+                                        // since we are using the web cache result, let's save it
+                                        MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, true, MediaType.Movie);
+                                        return;
+                                    }
+                                }
+                                else
                                 {
-                                    // since we are using the web cache result, let's save it
-                                    MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, true);
-                                    return;
+                                    int seriesId = int.Parse(crossRef.ProviderID);
+                                    MovieDB_Series series = RepoFactory.MovieDb_Series.GetByOnlineID(sessionWrapper, seriesId);
+                                    if (series == null)
+                                    {
+                                        // update the info from online
+                                        MovieDBHelper.UpdateSeriesInfo(session, seriesId, true);
+                                        series = RepoFactory.MovieDb_Series.GetByOnlineID(seriesId);
+                                    }
+
+                                    if (series != null)
+                                    {
+                                        // since we are using the web cache result, let's save it
+                                        MovieDBHelper.LinkAniDBMovieDB(AnimeID, seriesId, true, MediaType.TvShow);
+                                        return;
+                                    }
                                 }
                             }
                         }
@@ -98,25 +120,16 @@ namespace Shoko.Server.Commands
 
                     searchCriteria = anime.PreferredTitle;
 
-                    // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-                    List<MovieDB_Movie_Result> results = MovieDBHelper.Search(searchCriteria);
-                    logger.Trace("Found {0} moviedb results for {1} on MovieDB", results.Count, searchCriteria);
-                    if (ProcessSearchResults(session, results, searchCriteria)) return;
-
-
-                    if (results.Count == 0)
+                    if (anime.GetAnimeTypeEnum()==AnimeType.Movie)
                     {
-                        foreach (AniDB_Anime_Title title in anime.GetTitles())
-                        {
-                            if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
-                                continue;
+                        if (!ProcessMovies(session, searchCriteria, anime))
+                            ProcessSeries(session, searchCriteria, anime);
+                    }
+                    else
+                    {
+                        if (!ProcessSeries(session, searchCriteria, anime))
+                            ProcessMovies(session, searchCriteria, anime);
 
-                            if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
-
-                            results = MovieDBHelper.Search(title.Title);
-                            logger.Trace("Found {0} moviedb results for search on {1}", results.Count, title.Title);
-                            if (ProcessSearchResults(session, results, title.Title)) return;
-                        }
                     }
                 }
             }
@@ -126,23 +139,88 @@ namespace Shoko.Server.Commands
             }
         }
 
+        private bool ProcessMovies(ISession session, string searchCriteria, SVR_AniDB_Anime anime)
+        {
+            // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
+            List<MovieDB_Movie_Result> results = MovieDBHelper.Search(searchCriteria);
+            logger.Trace("Found {0} moviedb movies results for {1} on MovieDB", results.Count, searchCriteria);
+            if (ProcessSearchResults(session, results, searchCriteria)) return true;
+
+
+            if (results.Count == 0)
+            {
+                foreach (AniDB_Anime_Title title in anime.GetTitles())
+                {
+                    if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
+                        continue;
+
+                    if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
+
+                    results = MovieDBHelper.Search(title.Title);
+                    logger.Trace("Found {0} moviedb movies results for search on {1}", results.Count, title.Title);
+                    if (ProcessSearchResults(session, results, title.Title)) return true;
+                }
+            }
+
+            return false;
+        }
+        private bool ProcessSeries(ISession session, string searchCriteria, SVR_AniDB_Anime anime)
+        {
+            // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
+            List<MovieDB_Series_Result> results = MovieDBHelper.SearchSeries(searchCriteria);
+            logger.Trace("Found {0} moviedb series results for {1} on MovieDB", results.Count, searchCriteria);
+            if (ProcessSearchResults(session, results, searchCriteria)) return true;
+
+
+            if (results.Count == 0)
+            {
+                foreach (AniDB_Anime_Title title in anime.GetTitles())
+                {
+                    if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
+                        continue;
+
+                    if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
+
+                    results = MovieDBHelper.SearchSeries(title.Title);
+                    logger.Trace("Found {0} moviedb series results for search on {1}", results.Count, title.Title);
+                    if (ProcessSearchResults(session, results, title.Title)) return true;
+                }
+            }
+
+            return false;
+        }
         private bool ProcessSearchResults(ISession session, List<MovieDB_Movie_Result> results, string searchCriteria)
         {
             if (results.Count == 1)
             {
                 // since we are using this result, lets download the info
-                logger.Trace("Found 1 moviedb results for search on {0} --- Linked to {1} ({2})", searchCriteria,
-                    results[0].MovieName, results[0].MovieID);
+                logger.Trace("Found 1 moviedb movie results for search on {0} --- Linked to {1} ({2})", searchCriteria,
+                    results[0].MovieName, results[0].MovieId);
 
-                int movieID = results[0].MovieID;
+                int movieID = results[0].MovieId;
                 MovieDBHelper.UpdateMovieInfo(session, movieID, true);
-                MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, false);
+                MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, false, MediaType.Movie);
                 return true;
             }
 
             return false;
         }
+        private bool ProcessSearchResults(ISession session, List<MovieDB_Series_Result> results, string searchCriteria)
+        {
+            if (results.Count == 1)
+            {
+                // since we are using this result, lets download the info
+                logger.Trace("Found 1 moviedb series results for search on {0} --- Linked to {1} ({2})", searchCriteria,
+                    results[0].SeriesName, results[0].SeriesID);
 
+                int seriesId = results[0].SeriesID;
+                MovieDBHelper.UpdateSeriesInfo(session, seriesId, true);
+                MovieDBHelper.LinkAniDBMovieDB(AnimeID, seriesId, false, MediaType.TvShow);
+                return true;
+            }
+
+            return false;
+        }
         public override void GenerateCommandID()
         {
             CommandID = $"CommandRequest_MovieDBSearchAnime{AnimeID}";

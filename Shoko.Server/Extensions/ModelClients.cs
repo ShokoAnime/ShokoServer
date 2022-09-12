@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
@@ -8,6 +8,8 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using TMDbLib.Objects.Movies;
+using TMDbLib.Objects.TvShows;
 
 namespace Shoko.Server.Extensions
 {
@@ -15,6 +17,30 @@ namespace Shoko.Server.Extensions
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        public static TvShow ToTvShow(this MovieDB_Series series)
+        {
+            if (series.Blob == null)
+                return null;
+            return LZ4.CompressionHelper.DeserializeObjectInclSize<TvShow>(series.Blob);
+        }
+
+        public static TvGroupCollection GetBestGroup(this TvShow show)
+        {
+            TvGroupCollection group = show.EpisodeGroups.Results.FirstOrDefault(a => a.Type == TvGroupType.Absolute);
+            if (group == null)
+                group = show.EpisodeGroups.Results.FirstOrDefault(a => a.Type == TvGroupType.TV);
+            if (group == null)
+                group = show.EpisodeGroups.Results.FirstOrDefault(a => a.Type == TvGroupType.DVD);
+            if (group == null)
+                group = show.EpisodeGroups.Results.FirstOrDefault();
+            return group;
+        }
+        public static Movie ToMovie(this MovieDB_Movie movie)
+        {
+            if (movie.Blob == null)
+                return null;
+            return LZ4.CompressionHelper.DeserializeObjectInclSize<Movie>(movie.Blob);
+        }
         public static CL_AniDB_Anime ToClient(this SVR_AniDB_Anime anime)
         {
             return new CL_AniDB_Anime

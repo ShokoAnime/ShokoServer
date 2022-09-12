@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
+using TMDbLib.Objects.TvShows;
 
 namespace Shoko.Server.Providers
 {
@@ -26,6 +27,20 @@ namespace Shoko.Server.Providers
             Repo = RepoFromProvider(provider);
         }
 
+        public GenericEpisode(TvGroupEpisode episode)
+        {
+            ProviderId = episode.ShowId.ToString();
+            if (episode.Id == null)
+                ProviderEpisodeId = episode.ShowId.ToString() + "#" + episode.SeasonNumber.ToString() + "#" + episode.EpisodeNumber.ToString();
+            else
+                ProviderEpisodeId = episode.ShowId.ToString()+"_"+episode.Id.ToString();
+            EpisodeNumber = episode.EpisodeNumber;
+            SeasonNumber = episode.SeasonNumber;
+            Title = episode.Name;
+            AirDate = episode.AirDate;
+            Provider = Shoko.Models.Constants.Providers.MovieDBSeries;
+            Repo = RepoFromProvider(Provider);
+        }
         public GenericEpisode(TvDB_Episode episode)
         {
             ProviderId = episode.SeriesID.ToString();
@@ -37,6 +52,7 @@ namespace Shoko.Server.Providers
             Provider = Shoko.Models.Constants.Providers.TvDB;
             Repo = RepoFromProvider(Provider);
         }
+
         public GenericEpisode(Trakt_Episode episode)
         {
             ProviderId = episode.Trakt_ShowID.ToString();
@@ -57,6 +73,8 @@ namespace Shoko.Server.Providers
                     return RepoFactory.TvDB_Episode;
                 case Shoko.Models.Constants.Providers.Trakt:
                     return RepoFactory.Trakt_Episode;
+                case Shoko.Models.Constants.Providers.MovieDB:
+                    return RepoFactory.MovieDb_Series;
             }
 
             return null;

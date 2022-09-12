@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
 using NHibernate.Criterion;
 using Shoko.Commons.Collections;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -37,7 +38,13 @@ namespace Shoko.Server.Repositories.Direct
                 return GetByMovieID(session.Wrap(), id);
             }
         }
-
+        public List<MovieDB_Fanart> GetBySeriesID(int id)
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                return GetBySeriesID(session.Wrap(), id);
+            }
+        }
         public List<MovieDB_Fanart> GetByMovieID(ISessionWrapper session, int id)
         {
             var objs = session
@@ -47,7 +54,15 @@ namespace Shoko.Server.Repositories.Direct
 
             return new List<MovieDB_Fanart>(objs);
         }
+        public List<MovieDB_Fanart> GetBySeriesID(ISessionWrapper session, int id)
+        {
+            var objs = session
+                .CreateCriteria(typeof(MovieDB_Fanart))
+                .Add(Restrictions.Eq("SeriesId", id))
+                .List<MovieDB_Fanart>();
 
+            return new List<MovieDB_Fanart>(objs);
+        }
         public ILookup<int, MovieDB_Fanart> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
         {
             if (session == null)
@@ -60,20 +75,36 @@ namespace Shoko.Server.Repositories.Direct
                 return EmptyLookup<int, MovieDB_Fanart>.Instance;
             }
 
-            var fanartByAnime = session.CreateSQLQuery(@"
+
+            var fanartByAnimeMovies = session.CreateSQLQuery(@"
                 SELECT DISTINCT adbOther.AnimeID, {mdbFanart.*}
-                    FROM CrossRef_AniDB_Other AS adbOther
+                    FROM CrossRef_AniDB AS adbOther
                         INNER JOIN MovieDB_Fanart AS mdbFanart
                             ON mdbFanart.MovieId = adbOther.CrossRefID
-                    WHERE adbOther.CrossRefType = :crossRefType AND adbOther.AnimeID IN (:animeIds)")
+                    WHERE adbOther.CrossRefType = :crossRefType AND 
+                    adbOther.ProviderMediaType = :mediaType AND adbOther.AnimeID IN (:animeIds)")
                 .AddScalar("AnimeID", NHibernateUtil.Int32)
                 .AddEntity("mdbFanart", typeof(MovieDB_Fanart))
-                .SetInt32("crossRefType", (int) CrossRefType.MovieDB)
+                .SetInt32("crossRefTypeMovie", (int) CrossRefType.MovieDB)
+                .SetInt32("mediaType", (int)MediaType.Movie)
                 .SetParameterList("animeIds", animeIds)
                 .List<object[]>()
                 .ToLookup(r => (int) r[0], r => (MovieDB_Fanart) r[1]);
-
-            return fanartByAnime;
+            var fanartByAnimeSeries = session.CreateSQLQuery(@"
+                SELECT DISTINCT adbOther.AnimeID, {mdbFanart.*}
+                    FROM CrossRef_AniDB AS adbOther
+                        INNER JOIN MovieDB_Fanart AS mdbFanart
+                            ON mdbFanart.SeriesId = adbOther.CrossRefID
+                    WHERE adbOther.CrossRefType = :crossRefType AND 
+                    adbOther.ProviderMediaType = :mediaType AND adbOther.AnimeID IN (:animeIds)")
+                .AddScalar("AnimeID", NHibernateUtil.Int32)
+                .AddEntity("mdbFanart", typeof(MovieDB_Fanart))
+                .SetInt32("crossRefTypeMovie", (int)CrossRefType.MovieDB)
+                .SetInt32("mediaType", (int)MediaType.TvShow)
+                .SetParameterList("animeIds", animeIds)
+                .List<object[]>()
+                .ToLookup(r => (int)r[0], r => (MovieDB_Fanart)r[1]);
+            return fanartByAnimeSeries.Union(fanartByAnimeMovies);
         }
 
         public List<MovieDB_Fanart> GetAllOriginal()

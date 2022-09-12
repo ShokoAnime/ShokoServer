@@ -38,7 +38,7 @@ namespace Shoko.Server.Repositories.Cached
                 return ProviderIDs.GetMultiple(providerId, provider);
             }
         }
-        public ILookup<int, CrossRef_AniDB> GetByAniDBIDs(IReadOnlyCollection<int> aniDbIds, string provider = null)
+        public ILookup<int, CrossRef_AniDB> GetByAniDBIDs(IReadOnlyCollection<int> aniDbIds, string provider = null, MediaType media=MediaType.Unknown)
         {
             if (aniDbIds == null)
                 throw new ArgumentNullException(nameof(aniDbIds));
@@ -50,12 +50,19 @@ namespace Shoko.Server.Repositories.Cached
 
             lock (Cache)
             {
-                if (provider==null)
-                    return aniDbIds.SelectMany(id => AnimeIDs.GetMultiple(id))
-                        .ToLookup(xref => xref.AniDBID);
+                if (provider == null)
+                {
+                    if (media != MediaType.Unknown)
+                        return aniDbIds.SelectMany(id => AnimeIDs.GetMultiple(id)).Where(a => a.ProviderMediaType == media).ToLookup(xref => xref.AniDBID);
+                    return aniDbIds.SelectMany(id => AnimeIDs.GetMultiple(id)).ToLookup(xref => xref.AniDBID);
+                }
+
                 else
-                    return aniDbIds.SelectMany(id => AnimeProviderIDs.GetMultiple(id, provider))
-                        .ToLookup(xref => xref.AniDBID);
+                {
+                    if (media != MediaType.Unknown)
+                        return aniDbIds.SelectMany(id => AnimeProviderIDs.GetMultiple(id, provider)).Where(a => a.ProviderMediaType == media).ToLookup(xref => xref.AniDBID);
+                    return aniDbIds.SelectMany(id => AnimeProviderIDs.GetMultiple(id, provider)).ToLookup(xref => xref.AniDBID);
+                }
             }
         }
 

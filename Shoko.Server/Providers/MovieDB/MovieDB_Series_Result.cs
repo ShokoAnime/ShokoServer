@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
+using System.Text;
 using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using TMDbLib.Objects.General;
+using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.TvShows;
 
 namespace Shoko.Server.Providers.MovieDB
@@ -23,14 +26,14 @@ namespace Shoko.Server.Providers.MovieDB
         {
             try
             {
-                Blob = LZ4.CompressionHelper.SerializeObject(show, out int _);
+                Blob = LZ4.CompressionHelper.SerializeObjectInclSize(show);
                 Images = new List<MovieDB_Image_Result>();
                 SeriesID = show.Id;
                 SeriesName = show.Name;
                 OriginalName = show.OriginalName;
                 Overview = show.Overview;
                 Rating = (int)Math.Round(show.VoteAverage * 10D);
-                Lastupdated = DateTimeOffset.UtcNow.ToString("o");
+                MD5 = BitConverter.ToString(System.Security.Cryptography.MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(show)))).Replace("-", "").ToLowerInvariant();
                 if (show.Images?.Backdrops != null)
                 {
                     foreach (ImageData img in show.Images.Backdrops)

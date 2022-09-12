@@ -39,7 +39,7 @@ namespace Shoko.Server.Repositories.Direct
             {
                 return new Dictionary<int, (CrossRef_AniDB, MovieDB_Movie)>();
             }
-            ILookup<int, CrossRef_AniDB> lk = RepoFactory.CrossRef_AniDB.GetByAniDBIDs(animeIds, Shoko.Models.Constants.Providers.MovieDB);
+            ILookup<int, CrossRef_AniDB> lk = RepoFactory.CrossRef_AniDB.GetByAniDBIDs(animeIds, Shoko.Models.Constants.Providers.MovieDB, MediaType.Movie);
             List<int> movieids = lk.SelectMany(a => a).Select(a => int.Parse(a.ProviderID)).ToList();
             Dictionary<int, MovieDB_Movie> cr = session
                  .CreateCriteria(typeof(MovieDB_Movie))

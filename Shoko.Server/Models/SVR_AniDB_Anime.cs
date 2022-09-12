@@ -865,7 +865,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
 
             // save now for FK purposes
-            RepoFactory.AniDB_Anime.Save(this, generateTvDBMatches: false);
+            RepoFactory.AniDB_Anime.Save(this, generateEpisodeMatches: false);
 
             taskTimer.Start();
 

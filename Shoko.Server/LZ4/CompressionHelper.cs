@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Buffers.Binary;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -36,6 +37,22 @@ namespace Shoko.Server.LZ4
             return Encode(data, 0, data.Length);
         }
 
+        public static byte[] SerializeObjectInclSize(object obj, bool multiinheritance = false)
+        {
+            int size = 0;
+            byte[] data = SerializeObject(obj, out size, multiinheritance);
+            byte[] ret = new byte[data.Length + 4];
+            BinaryPrimitives.WriteInt32LittleEndian(ret, size);
+            Array.Copy(data,0, ret,4, data.Length);
+            return ret;
+        }
+        public static T DeserializeObjectInclSize<T>(byte[] data, JsonConverter[] converters = null) where T : class
+        {
+            byte[] ret = new byte[data.Length - 4];
+            Array.Copy(data,4,ret,0,data.Length);
+            int size = BinaryPrimitives.ReadInt32LittleEndian(data);
+            return DeserializeObject<T>(ret, size, converters);
+        }
         public static T DeserializeObject<T>(byte[] data, int originalsize, JsonConverter[] converters = null) where T : class
         {
             if (data == null || data.Length == 0)
