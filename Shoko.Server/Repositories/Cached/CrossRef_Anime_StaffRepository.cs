@@ -55,34 +55,22 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_Anime_Staff> GetByStaffID(int id)
         {
-            Lock.EnterReadLock();
-            var result = StaffIDs.GetMultiple(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => StaffIDs.GetMultiple(id));
         }
 
         public List<CrossRef_Anime_Staff> GetByRoleID(int id)
         {
-            Lock.EnterReadLock();
-            var result = RoleIDs.GetMultiple(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => RoleIDs.GetMultiple(id));
         }
 
         public List<CrossRef_Anime_Staff> GetByRoleType(StaffRoleType type)
         {
-            Lock.EnterReadLock();
-            var result = RoleTypes.GetMultiple(type);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => RoleTypes.GetMultiple(type));
         }
 
         public List<CrossRef_Anime_Staff> GetByAnimeID(int id)
         {
-            Lock.EnterReadLock();
-            var result = AnimeIDs.GetMultiple(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => AnimeIDs.GetMultiple(id));
         }
 
         public List<CrossRef_Anime_Staff> GetByAnimeIDAndRoleType(int id, StaffRoleType type)

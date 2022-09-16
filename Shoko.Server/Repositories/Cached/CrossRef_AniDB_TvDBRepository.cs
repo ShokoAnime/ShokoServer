@@ -22,18 +22,12 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_TvDB> GetByAnimeID(int id)
         {
-            Lock.EnterReadLock();
-            var result = AnimeIDs.GetMultiple(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => AnimeIDs.GetMultiple(id));
         }
 
         public List<CrossRef_AniDB_TvDB> GetByTvDBID(int id)
         {
-            Lock.EnterReadLock();
-            var result = TvDBIDs.GetMultiple(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => TvDBIDs.GetMultiple(id));
         }
 
         public ILookup<int, CrossRef_AniDB_TvDB> GetByAnimeIDs(IReadOnlyCollection<int> animeIds)
@@ -46,19 +40,13 @@ namespace Shoko.Server.Repositories.Cached
                 return EmptyLookup<int, CrossRef_AniDB_TvDB>.Instance;
             }
 
-            Lock.EnterReadLock();
-            var result = animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
-                .ToLookup(xref => xref.AniDBID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
+                .ToLookup(xref => xref.AniDBID));
         }
 
         public CrossRef_AniDB_TvDB GetByAniDBAndTvDBID(int animeID, int tvdbID)
         {
-            Lock.EnterReadLock();
-            var result = TvDBIDs.GetMultiple(tvdbID).FirstOrDefault(xref => xref.AniDBID == animeID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => TvDBIDs.GetMultiple(tvdbID).FirstOrDefault(xref => xref.AniDBID == animeID));
         }
 
         public List<SVR_AnimeSeries> GetSeriesWithoutLinks()

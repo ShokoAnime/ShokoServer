@@ -16,10 +16,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_MAL> GetByAnimeID(int id)
         {
-            Lock.EnterReadLock();
-            var result = _animeIDs.GetMultiple(id).OrderBy(a => a.StartEpisodeType).ThenBy(a => a.StartEpisodeNumber).ToList();
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => _animeIDs.GetMultiple(id).OrderBy(a => a.StartEpisodeType).ThenBy(a => a.StartEpisodeNumber).ToList());
         }
 
         public ILookup<int, CrossRef_AniDB_MAL> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
@@ -49,10 +46,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_MAL> GetByMALID(int id)
         {
-            Lock.EnterReadLock();
-            var result = _MALIDs.GetMultiple(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => _MALIDs.GetMultiple(id));
         }
 
         protected override int SelectKey(CrossRef_AniDB_MAL entity)

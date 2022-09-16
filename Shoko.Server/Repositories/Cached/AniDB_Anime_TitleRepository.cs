@@ -40,10 +40,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_Anime_Title> GetByAnimeID(int id)
         {
-            Lock.EnterReadLock();
-            var result = Animes.GetMultiple(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Animes.GetMultiple(id));
         }
 
         public ILookup<int, SVR_AniDB_Anime_Title> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)

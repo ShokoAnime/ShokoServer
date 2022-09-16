@@ -454,19 +454,22 @@ namespace Shoko.Server.Repositories.Cached
 
         public void Save(SVR_GroupFilter obj, bool onlyconditions)
         {
-            Lock.EnterWriteLock();
-            if (!onlyconditions)
-                obj.UpdateEntityReferenceStrings();
-            var resaveConditions = obj.GroupFilterID == 0;
-            obj.GroupConditions = JsonConvert.SerializeObject(obj._conditions);
-            obj.GroupConditionsVersion = SVR_GroupFilter.GROUPCONDITIONS_VERSION;
-            base.Save(obj);
-            if (resaveConditions)
-            {
-                obj.Conditions.ForEach(a => a.GroupFilterID = obj.GroupFilterID);
-                Save(obj, true);
-            }
-            Lock.ExitWriteLock();
+            WriteLock(
+                () =>
+                {
+                    if (!onlyconditions)
+                        obj.UpdateEntityReferenceStrings();
+                    var resaveConditions = obj.GroupFilterID == 0;
+                    obj.GroupConditions = JsonConvert.SerializeObject(obj._conditions);
+                    obj.GroupConditionsVersion = SVR_GroupFilter.GROUPCONDITIONS_VERSION;
+                    base.Save(obj);
+                    if (resaveConditions)
+                    {
+                        obj.Conditions.ForEach(a => a.GroupFilterID = obj.GroupFilterID);
+                        Save(obj, true);
+                    }
+                }
+            );
         }
 
         public override void Save(IReadOnlyCollection<SVR_GroupFilter> objs)
@@ -512,10 +515,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> GetByParentID(int parentid)
         {
-            Lock.EnterReadLock();
-            var result = Parents.GetMultiple(parentid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Parents.GetMultiple(parentid));
         }
 
         public List<SVR_GroupFilter> GetTopLevel()
@@ -711,35 +711,38 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> GetLockedGroupFilters()
         {
-            Lock.EnterReadLock();
-            var result = Cache.Values.Where(a => a.Locked == 1).ToList();
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Cache.Values.Where(a => a.Locked == 1).ToList());
         }
 
         public List<SVR_GroupFilter> GetWithConditionTypesAndAll(HashSet<GroupFilterConditionType> types)
         {
-            Lock.EnterReadLock();
-            var filters = new HashSet<int>(Cache.Values
-                .Where(a => a.FilterType == (int) GroupFilterType.All)
-                .Select(a => a.GroupFilterID));
-            foreach (var t in types)
-                filters.UnionWith(Types.FindInverse(t));
+            return ReadLock(
+                () =>
+                {
+                    var filters = new HashSet<int>(
+                        Cache.Values
+                            .Where(a => a.FilterType == (int)GroupFilterType.All)
+                            .Select(a => a.GroupFilterID)
+                    );
+                    foreach (var t in types)
+                        filters.UnionWith(Types.FindInverse(t));
 
-            var result = filters.Select(a => Cache.Get(a)).ToList();
-            Lock.ExitReadLock();
-            return result;
+                    return filters.Select(a => Cache.Get(a)).ToList();
+                }
+            );
         }
 
         public List<SVR_GroupFilter> GetWithConditionsTypes(HashSet<GroupFilterConditionType> types)
         {
-            Lock.EnterReadLock();
-            var filters = new HashSet<int>();
-            foreach (var t in types)
-                filters.UnionWith(Types.FindInverse(t));
-            var result = filters.Select(a => Cache.Get(a)).ToList();
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(
+                () =>
+                {
+                    var filters = new HashSet<int>();
+                    foreach (var t in types)
+                        filters.UnionWith(Types.FindInverse(t));
+                    return filters.Select(a => Cache.Get(a)).ToList();
+                }
+            );
         }
 
         public ChangeTracker<int> GetChangeTracker()

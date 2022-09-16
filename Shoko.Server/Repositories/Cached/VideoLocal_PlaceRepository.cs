@@ -41,18 +41,12 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal_Place> GetByImportFolder(int importFolderID)
         {
-            Lock.EnterReadLock();
-            var result = ImportFolders.GetMultiple(importFolderID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => ImportFolders.GetMultiple(importFolderID));
         }
 
         public SVR_VideoLocal_Place GetByFilePathAndImportFolderID(string filePath, int nshareID)
         {
-            Lock.EnterReadLock();
-            var result = Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID));
         }
 
         public static Tuple<SVR_ImportFolder, string> GetFromFullPath(string fullPath)
@@ -82,10 +76,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal_Place> GetByVideoLocal(int videolocalid)
         {
-            Lock.EnterReadLock();
-            var result = VideoLocals.GetMultiple(videolocalid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => VideoLocals.GetMultiple(videolocalid));
         }
     }
 }

@@ -23,26 +23,17 @@ namespace Shoko.Server.Repositories.Cached
 
         public CrossRef_AniDB_TvDB_Episode GetByAniDBAndTvDBEpisodeIDs(int anidbID, int tvdbID)
         {
-            Lock.EnterReadLock();
-            var result = EpisodeIDs.GetMultiple(anidbID).FirstOrDefault(a => a.TvDBEpisodeID == tvdbID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => EpisodeIDs.GetMultiple(anidbID).FirstOrDefault(a => a.TvDBEpisodeID == tvdbID));
         }
 
         public List<CrossRef_AniDB_TvDB_Episode> GetByAniDBEpisodeID(int id)
         {
-            Lock.EnterReadLock();
-            var result = EpisodeIDs.GetMultiple(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => EpisodeIDs.GetMultiple(id));
         }
 
         public List<CrossRef_AniDB_TvDB_Episode> GetByAnimeID(int id)
         {
-            Lock.EnterReadLock();
-            var result = AnimeIDs.GetMultiple(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => AnimeIDs.GetMultiple(id));
         }
 
         public override void RegenerateDb()

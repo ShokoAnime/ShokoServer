@@ -30,30 +30,21 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Episode GetByEpisodeID(int id)
         {
-            Lock.EnterReadLock();
-            var result = EpisodesIds.GetOne(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => EpisodesIds.GetOne(id));
         }
 
         public List<AniDB_Episode> GetByAnimeID(int id)
         {
-            Lock.EnterReadLock();
-            var result = Animes.GetMultiple(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Animes.GetMultiple(id));
             
         }
 
         public List<AniDB_Episode> GetForDate(DateTime startDate, DateTime endDate)
         {
-            Lock.EnterReadLock();
-            var result = Cache.Values.Where(a => {
+            return ReadLock(() => Cache.Values.Where(a => {
                 var date = a.GetAirDateAsDate();
                 return date.HasValue && date.Value >= startDate && date.Value <= endDate;
-            }).ToList();
-            Lock.ExitReadLock();
-            return result;
+            }).ToList());
         }
 
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)

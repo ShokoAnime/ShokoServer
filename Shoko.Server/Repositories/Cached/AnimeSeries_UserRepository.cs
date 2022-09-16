@@ -76,26 +76,17 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeSeries_User GetByUserAndSeriesID(int userid, int seriesid)
         {
-            Lock.EnterReadLock();
-            var result = UsersSeries.GetOne((userid, seriesid));
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => UsersSeries.GetOne((userid, seriesid)));
         }
 
         public List<SVR_AnimeSeries_User> GetByUserID(int userid)
         {
-            Lock.EnterReadLock();
-            var result = Users.GetMultiple(userid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Users.GetMultiple(userid));
         }
 
         public List<SVR_AnimeSeries_User> GetBySeriesID(int seriesid)
         {
-            Lock.EnterReadLock();
-            var result = Series.GetMultiple(seriesid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Series.GetMultiple(seriesid));
         }
 
 

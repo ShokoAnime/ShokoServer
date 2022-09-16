@@ -263,41 +263,27 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeSeries GetByAnimeID(int id)
         {
-            Lock.EnterReadLock();
-            var result = AniDBIds.GetOne(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => AniDBIds.GetOne(id));
         }
-
 
         public List<SVR_AnimeSeries> GetByGroupID(int groupid)
         {
-            Lock.EnterReadLock();
-            var result = Groups.GetMultiple(groupid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Groups.GetMultiple(groupid));
         }
-
 
         public List<SVR_AnimeSeries> GetWithMissingEpisodes()
         {
-            Lock.EnterReadLock();
-            var result = Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
+            return ReadLock(() => Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
                 .OrderByDescending(a => a.EpisodeAddedDate)
-                .ToList();
-            Lock.ExitReadLock();
-            return result;
+                .ToList());
         }
 
         public List<SVR_AnimeSeries> GetMostRecentlyAdded(int maxResults, int userID)
         {
             var user = RepoFactory.JMMUser.GetByID(userID);
-            Lock.EnterReadLock();
-            var result = user == null
+            return ReadLock(() => user == null
                 ? Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList()
-                : Cache.Values.Where(a => user.AllowedSeries(a)).OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
-            Lock.ExitReadLock();
-            return result;
+                : Cache.Values.Where(a => user.AllowedSeries(a)).OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList());
         }
     }
 }

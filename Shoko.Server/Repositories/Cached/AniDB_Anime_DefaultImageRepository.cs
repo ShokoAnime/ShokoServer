@@ -28,10 +28,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<AniDB_Anime_DefaultImage> GetByAnimeID(int id)
         {
-            Lock.EnterReadLock();
-            var result = Animes.GetMultiple(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Animes.GetMultiple(id));
         }
 
         protected override int SelectKey(AniDB_Anime_DefaultImage entity)

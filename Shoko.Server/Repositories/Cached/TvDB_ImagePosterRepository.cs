@@ -26,18 +26,12 @@ namespace Shoko.Server.Repositories.Cached
 
         public TvDB_ImagePoster GetByTvDBID(int id)
         {
-            Lock.EnterReadLock();
-            var result = TvDBIDs.GetOne(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => TvDBIDs.GetOne(id));
         }
 
         public List<TvDB_ImagePoster> GetBySeriesID(int seriesID)
         {
-            Lock.EnterReadLock();
-            var result = SeriesIDs.GetMultiple(seriesID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => SeriesIDs.GetMultiple(seriesID));
         }
     }
 }

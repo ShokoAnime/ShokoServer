@@ -28,11 +28,9 @@ namespace Shoko.Server.Repositories.Cached
                     Changes[cr.JMMUserID] = new ChangeTracker<int>();
                 Changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
 
-                Lock.EnterWriteLock();
                 logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Delete: {0}",
                     cr.AnimeGroupID);
                 cr.DeleteFromFilters();
-                Lock.ExitWriteLock();
             };
         }
 
@@ -68,7 +66,6 @@ namespace Shoko.Server.Repositories.Cached
                 old = session.Get<SVR_AnimeGroup_User>(obj.AnimeGroup_UserID);
             }
 
-            Lock.EnterWriteLock();
             obj.UpdatePlexKodiContracts();
             var types = GetConditionTypesChanged(old, obj);
             base.Save(obj);
@@ -76,7 +73,6 @@ namespace Shoko.Server.Repositories.Cached
                 Changes[obj.JMMUserID] = new ChangeTracker<int>();
             Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeGroupID);
             obj.UpdateGroupFilter(types);
-            Lock.ExitWriteLock();
         }
 
         private static HashSet<GroupFilterConditionType> GetConditionTypesChanged(SVR_AnimeGroup_User oldcontract, SVR_AnimeGroup_User newcontract)
@@ -202,35 +198,22 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
         {
-            Lock.EnterReadLock();
-            var result = UsersGroups.GetOne(userid, groupid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => UsersGroups.GetOne(userid, groupid));
         }
 
         public List<SVR_AnimeGroup_User> GetByUserID(int userid)
         {
-            Lock.EnterReadLock();
-            var result = Users.GetMultiple(userid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Users.GetMultiple(userid));
         }
 
         public List<SVR_AnimeGroup_User> GetByGroupID(int groupid)
         {
-            Lock.EnterReadLock();
-            var result = Groups.GetMultiple(groupid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Groups.GetMultiple(groupid));
         }
 
         public ChangeTracker<int> GetChangeTracker(int userid)
         {
-            Lock.EnterReadLock();
-            var result = Changes.ContainsKey(userid) ? Changes[userid] : new ChangeTracker<int>();
-            Lock.ExitReadLock();
-
-            return result;
+            return ReadLock(() => Changes.ContainsKey(userid) ? Changes[userid] : new ChangeTracker<int>());
         }
     }
 }

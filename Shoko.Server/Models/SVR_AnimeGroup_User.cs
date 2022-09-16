@@ -73,6 +73,7 @@ namespace Shoko.Server.Models
             foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
             {
                 bool change = false;
+                gf._lock.ExitWriteLock();
                 if (gf.GroupsIds.ContainsKey(JMMUserID))
                 {
                     if (gf.GroupsIds[JMMUserID].Contains(AnimeGroupID))
@@ -81,6 +82,8 @@ namespace Shoko.Server.Models
                         change = true;
                     }
                 }
+                gf._lock.ExitReadLock();
+
                 if (change)
                     RepoFactory.GroupFilter.Save(gf);
             }

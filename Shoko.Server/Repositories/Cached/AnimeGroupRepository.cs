@@ -24,10 +24,8 @@ namespace Shoko.Server.Repositories.Cached
         {
             BeginDeleteCallback = cr =>
             {
-                Lock.EnterWriteLock();
                 RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByGroupID(cr.AnimeGroupID));
                 cr.DeleteFromFilters();
-                Lock.EnterWriteLock();
             };
             EndDeleteCallback = cr =>
             {
@@ -226,10 +224,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeGroup> GetByParentID(int parentid)
         {
-            Lock.EnterReadLock();
-            var result = Parents.GetMultiple(parentid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Parents.GetMultiple(parentid));
         }
 
         public List<SVR_AnimeGroup> GetAllTopLevelGroups()

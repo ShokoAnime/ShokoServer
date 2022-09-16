@@ -54,19 +54,13 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_AnimeEpisode_User GetByUserIDAndEpisodeID(int userid, int epid)
         {
-            Lock.EnterReadLock();
-            var result = UsersEpisodes.GetOne((userid, epid));
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => UsersEpisodes.GetOne((userid, epid)));
         }
 
 
         public List<SVR_AnimeEpisode_User> GetByUserID(int userid)
         {
-            Lock.EnterReadLock();
-            var result = Users.GetMultiple(userid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Users.GetMultiple(userid));
         }
 
         public List<SVR_AnimeEpisode_User> GetMostRecentlyWatched(int userid, int maxresults = 100)
@@ -83,18 +77,12 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode_User> GetByEpisodeID(int epid)
         {
-            Lock.EnterReadLock();
-            var result = Episodes.GetMultiple(epid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Episodes.GetMultiple(epid));
         }
 
         public List<SVR_AnimeEpisode_User> GetByUserIDAndSeriesID(int userid, int seriesid)
         {
-            Lock.EnterReadLock();
-            var result = UsersSeries.GetMultiple((userid, seriesid));
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => UsersSeries.GetMultiple((userid, seriesid)));
         }
     }
 }

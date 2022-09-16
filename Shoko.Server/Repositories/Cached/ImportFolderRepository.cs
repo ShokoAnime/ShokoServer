@@ -25,17 +25,14 @@ namespace Shoko.Server.Repositories.Cached
 
         public SVR_ImportFolder GetByImportLocation(string importloc)
         {
-            Lock.EnterReadLock();
-            var result = Cache.Values.FirstOrDefault(a =>
+            return ReadLock(() => Cache.Values.FirstOrDefault(a =>
                 a.ImportFolderLocation?.Replace('\\', Path.DirectorySeparatorChar)
                     .Replace('/', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar)
                     .Equals(
                         importloc?.Replace('\\', Path.DirectorySeparatorChar)
                             .Replace('/', Path.DirectorySeparatorChar)
                             .TrimEnd(Path.DirectorySeparatorChar),
-                        StringComparison.InvariantCultureIgnoreCase) ?? false);
-            Lock.ExitReadLock();
-            return result;
+                        StringComparison.InvariantCultureIgnoreCase) ?? false));
         }
 
         public SVR_ImportFolder SaveImportFolder(ImportFolder folder)

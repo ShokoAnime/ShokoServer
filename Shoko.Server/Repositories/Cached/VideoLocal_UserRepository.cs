@@ -28,26 +28,17 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal_User> GetByVideoLocalID(int vidid)
         {
-            Lock.EnterReadLock();
-            var result = VideoLocalIDs.GetMultiple(vidid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => VideoLocalIDs.GetMultiple(vidid));
         }
 
         public List<SVR_VideoLocal_User> GetByUserID(int userid)
         {
-            Lock.EnterReadLock();
-            var result = Users.GetMultiple(userid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Users.GetMultiple(userid));
         }
 
         public SVR_VideoLocal_User GetByUserIDAndVideoLocalID(int userid, int vidid)
         {
-            Lock.EnterReadLock();
-            var result = UsersVideoLocals.GetOne((userid, vidid));
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => UsersVideoLocals.GetOne((userid, vidid)));
         }
     }
 }

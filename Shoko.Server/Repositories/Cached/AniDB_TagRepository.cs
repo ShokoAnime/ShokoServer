@@ -58,18 +58,12 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Tag GetByTagID(int id)
         {
-            Lock.EnterReadLock();
-            var result = Tags.GetOne(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Tags.GetOne(id));
         }
 
         public List<AniDB_Tag> GetByName(string name)
         {
-            Lock.EnterReadLock();
-            var result = Names.GetMultiple(name);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Names.GetMultiple(name));
         }
 
 

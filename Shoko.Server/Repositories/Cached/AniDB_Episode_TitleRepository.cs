@@ -31,10 +31,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_Episode_Title> GetByEpisodeID(int id)
         {
-            Lock.EnterReadLock();
-            var result = Episodes.GetMultiple(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Episodes.GetMultiple(id));
         }
     }
 }

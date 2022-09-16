@@ -48,9 +48,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public AniDB_Vote GetByEntityAndType(int entID, AniDBVoteType voteType)
         {
-            Lock.EnterReadLock();
-            var cr = EntityIDAndTypes.GetMultiple((entID, voteType));
-            Lock.ExitReadLock();
+            var cr = ReadLock(() => EntityIDAndTypes.GetMultiple((entID, voteType)));
 
             if (cr == null) return null;
             if (cr.Count <= 1) return cr.FirstOrDefault();
@@ -71,10 +69,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<AniDB_Vote> GetByEntity(int entID)
         {
-            Lock.EnterReadLock();
-            var result = EntityIDs.GetMultiple(entID)?.ToList();
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => EntityIDs.GetMultiple(entID)?.ToList());
         }
 
         public AniDB_Vote GetByAnimeID(int animeID)

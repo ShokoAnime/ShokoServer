@@ -103,10 +103,7 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_Anime GetByAnimeID(int id)
         {
-            Lock.EnterReadLock();
-            var result = Animes.GetOne(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Animes.GetOne(id));
         }
 
         public SVR_AniDB_Anime GetByAnimeID(ISessionWrapper session, int id)
@@ -116,18 +113,12 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)
         {
-            Lock.EnterReadLock();
-            var result = Cache.Values.Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate).ToList();
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Cache.Values.Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate).ToList());
         }
 
         public List<SVR_AniDB_Anime> SearchByName(string queryText)
         {
-            Lock.EnterReadLock();
-            var result = Cache.Values.Where(a => a.AllTitles.Contains(queryText, StringComparison.InvariantCultureIgnoreCase)).ToList();
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Cache.Values.Where(a => a.AllTitles.Contains(queryText, StringComparison.InvariantCultureIgnoreCase)).ToList());
         }
 
         public Dictionary<int, DefaultAnimeImages> GetDefaultImagesByAnime(ISessionWrapper session, int[] animeIds)

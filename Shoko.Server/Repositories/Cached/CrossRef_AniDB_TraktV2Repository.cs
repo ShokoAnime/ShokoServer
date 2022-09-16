@@ -107,11 +107,8 @@ namespace Shoko.Server.Repositories.Cached
                 return EmptyLookup<int, CrossRef_AniDB_TraktV2>.Instance;
             }
 
-            Lock.EnterReadLock();
-            var result = animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
-                .ToLookup(xref => xref.AnimeID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
+                .ToLookup(xref => xref.AnimeID));
         }
 
         protected override int SelectKey(CrossRef_AniDB_TraktV2 entity)

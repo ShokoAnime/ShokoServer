@@ -14,10 +14,8 @@ namespace Shoko.Server.Repositories.Cached
         public AuthTokens GetByToken(string token)
         {
             if (string.IsNullOrEmpty(token)) return null;
-
-            Lock.EnterReadLock();
-            var tokens = Tokens.GetMultiple(token.ToLowerInvariant().Trim()).ToList();
-            Lock.ExitReadLock();
+            
+            var tokens = ReadLock(Tokens.GetMultiple(token.ToLowerInvariant().Trim()).ToList);
             var auth = tokens.FirstOrDefault();
             if (tokens.Count <= 1) return auth;
             tokens.Remove(auth);
@@ -27,27 +25,20 @@ namespace Shoko.Server.Repositories.Cached
 
         public void DeleteAllWithUserID(int id)
         {
-            Lock.EnterReadLock();
-            var ids = UserIDs.GetMultiple(id);
-            Lock.ExitReadLock();
+            var ids = ReadLock(() => UserIDs.GetMultiple(id));
             ids.ForEach(Delete);
         }
 
         public void DeleteWithToken(string token)
         {
             if (string.IsNullOrEmpty(token)) return;
-            Lock.EnterReadLock();
-            var tokens = Tokens.GetMultiple(token);
-            Lock.ExitReadLock();
+            var tokens = ReadLock(() => Tokens.GetMultiple(token));
             tokens.ForEach(Delete);
         }
 
         public List<AuthTokens> GetByUserID(int userID)
         {
-            Lock.EnterReadLock();
-            var result = UserIDs.GetMultiple(userID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => UserIDs.GetMultiple(userID));
         }
 
         protected override int SelectKey(AuthTokens entity) => entity.AuthID;
@@ -69,9 +60,7 @@ namespace Shoko.Server.Repositories.Cached
             if (userrecord == null) return string.Empty;
 
             var uid = userrecord.JMMUserID;
-            Lock.EnterReadLock();
-            var ids = UserIDs.GetMultiple(uid);
-            Lock.ExitReadLock();
+            var ids = ReadLock(() => UserIDs.GetMultiple(uid));
             var tokens = ids.Where(a => string.IsNullOrEmpty(a.Token) ||
                                              a.DeviceName.Trim().Equals(device.Trim(),
                                                  StringComparison.InvariantCultureIgnoreCase))

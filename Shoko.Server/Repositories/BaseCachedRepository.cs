@@ -14,7 +14,7 @@ namespace Shoko.Server.Repositories
     // ReSharper disable once InconsistentNaming
     public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedRepository, IRepository<T, S> where T : class, new()
     {
-        protected ReaderWriterLockSlim Lock = new(LockRecursionPolicy.SupportsRecursion);
+        private readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.SupportsRecursion);
         internal PocoCache<S, T> Cache;
 
         public virtual Action<T> BeginDeleteCallback { get; set; }
@@ -49,18 +49,13 @@ namespace Shoko.Server.Repositories
 
         public void ClearCache()
         {
-            Lock.EnterWriteLock();
-            Cache.Clear();
-            Lock.ExitWriteLock();
+            WriteLock(Cache.Clear);
         }
 
         // ReSharper disable once InconsistentNaming
         public virtual T GetByID(S id)
         {
-            Lock.EnterReadLock();
-            var result = GetByIDUnsafe(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => GetByIDUnsafe(id));
         }
 
         public T GetByID(ISession session, S id)
@@ -75,18 +70,12 @@ namespace Shoko.Server.Repositories
 
         public virtual IReadOnlyList<T> GetAll()
         {
-            Lock.EnterReadLock();
-            var result = GetAllUnsafe();
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(GetAllUnsafe);
         }
 
         public IReadOnlyList<T> GetAll(int maxLimit)
         {
-            Lock.EnterReadLock();
-            var result = GetAllUnsafe(maxLimit);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => GetAllUnsafe(maxLimit));
         }
 
         public IReadOnlyList<T> GetAll(ISession session)
@@ -119,16 +108,12 @@ namespace Shoko.Server.Repositories
 
         protected void DeleteFromCache(T cr)
         {
-            Lock.EnterWriteLock();
-            DeleteFromCacheUnsafe(cr);
-            Lock.ExitWriteLock();
+            WriteLock(() => DeleteFromCacheUnsafe(cr));
         }
 
         protected void UpdateCache(T cr)
         {
-            Lock.EnterWriteLock();
-            UpdateCacheUnsafe(cr);
-            Lock.ExitWriteLock();
+            WriteLock(() => UpdateCacheUnsafe(cr));
         }
 
         public virtual void Delete(IReadOnlyCollection<T> objs)
@@ -141,11 +126,14 @@ namespace Shoko.Server.Repositories
                 DeleteFromDatabaseUnsafe(objs);
             }
 
-            Lock.EnterWriteLock();
-            foreach (var cr in objs) DeleteFromCacheUnsafe(cr);
-            Lock.ExitWriteLock();
+            WriteLock(
+                () =>
+                {
+                    foreach (var cr in objs) DeleteFromCacheUnsafe(cr);
+                }
+            );
 
-            foreach (T cr in objs) EndDeleteCallback?.Invoke(cr);
+            foreach (var cr in objs) EndDeleteCallback?.Invoke(cr);
         }
 
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
@@ -163,9 +151,7 @@ namespace Shoko.Server.Repositories
                 DeleteWithOpenTransactionCallback?.Invoke(session, cr);
                 session.Delete(cr);
             }
-            Lock.EnterWriteLock();
-            DeleteFromCacheUnsafe(cr);
-            Lock.ExitWriteLock();
+            WriteLock(() => DeleteFromCacheUnsafe(cr));
         }
 
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
@@ -182,12 +168,12 @@ namespace Shoko.Server.Repositories
                 }
             }
 
-            Lock.EnterWriteLock();
-            foreach (var cr in objs)
-            {
-                DeleteFromCacheUnsafe(cr);
-            }
-            Lock.ExitWriteLock();
+            WriteLock(
+                () =>
+                {
+                    foreach (var cr in objs) DeleteFromCacheUnsafe(cr);
+                }
+            );
         }
 
         public virtual void Save(T obj)
@@ -202,9 +188,7 @@ namespace Shoko.Server.Repositories
                 transaction.Commit();
             }
 
-            Lock.EnterWriteLock();
-            UpdateCacheUnsafe(obj);
-            Lock.ExitWriteLock();
+            WriteLock(() => UpdateCacheUnsafe(obj));
 
             EndSaveCallback?.Invoke(obj);
         }
@@ -214,10 +198,7 @@ namespace Shoko.Server.Repositories
             if (objs.Count == 0)
                 return;
 
-            foreach (var obj in objs)
-            {
-                BeginSaveCallback?.Invoke(obj);
-            }
+            foreach (var obj in objs) BeginSaveCallback?.Invoke(obj);
 
             lock (GlobalDBLock)
             {
@@ -232,12 +213,12 @@ namespace Shoko.Server.Repositories
                 transaction.Commit();
             }
 
-            Lock.EnterWriteLock();
-            foreach (var obj in objs)
-            {
-                UpdateCacheUnsafe(obj);
-            }
-            Lock.ExitWriteLock();
+            WriteLock(
+                () =>
+                {
+                    foreach (var obj in objs) UpdateCacheUnsafe(obj);
+                }
+            );
 
             foreach (var obj in objs)
             {
@@ -257,9 +238,7 @@ namespace Shoko.Server.Repositories
             }
 
             SaveWithOpenTransactionCallback?.Invoke(session, obj);
-            Lock.EnterWriteLock();
-            UpdateCacheUnsafe(obj);
-            Lock.ExitWriteLock();
+            WriteLock(() => UpdateCacheUnsafe(obj));
         }
 
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
@@ -271,9 +250,8 @@ namespace Shoko.Server.Repositories
             }
 
             SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
-            Lock.EnterWriteLock();
-            UpdateCacheUnsafe(obj);
-            Lock.ExitWriteLock();
+
+            WriteLock(() => UpdateCacheUnsafe(obj));
         }
 
         //This function do not run the BeginDeleteCallback and the EndDeleteCallback
@@ -284,10 +262,7 @@ namespace Shoko.Server.Repositories
 
             lock (GlobalDBLock)
             {
-                foreach (var obj in objs)
-                {
-                    session.SaveOrUpdate(obj);
-                }
+                foreach (var obj in objs) session.SaveOrUpdate(obj);
             }
 
             foreach (var obj in objs)
@@ -297,9 +272,59 @@ namespace Shoko.Server.Repositories
 
             foreach (var obj in objs)
             {
-                Lock.EnterWriteLock();
-                UpdateCacheUnsafe(obj);
-                Lock.ExitWriteLock();
+                WriteLock(() => UpdateCacheUnsafe(obj));
+            }
+        }
+
+        protected void ReadLock(Action action)
+        {
+            _lock.EnterReadLock();
+            try
+            {
+                action.Invoke();
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
+        }
+
+        protected T5 ReadLock<T5>(Func<T5> action)
+        {
+            _lock.EnterReadLock();
+            try
+            {
+                return action.Invoke();
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
+        }
+        
+        protected void WriteLock(Action action)
+        {
+            _lock.EnterWriteLock();
+            try
+            {
+                action.Invoke();
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
+        }
+        
+        protected T5 WriteLock<T5>(Func<T5> action)
+        {
+            _lock.EnterWriteLock();
+            try
+            {
+                return action.Invoke();
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
             }
         }
 

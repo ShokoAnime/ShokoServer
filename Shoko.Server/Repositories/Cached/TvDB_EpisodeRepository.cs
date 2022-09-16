@@ -18,18 +18,12 @@ namespace Shoko.Server.Repositories.Cached
 
         public TvDB_Episode GetByTvDBID(int id)
         {
-            Lock.EnterReadLock();
-            var result = EpisodeIDs.GetOne(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => EpisodeIDs.GetOne(id));
         }
 
         public List<TvDB_Episode> GetBySeriesID(int seriesID)
         {
-            Lock.EnterReadLock();
-            var result = SeriesIDs.GetMultiple(seriesID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => SeriesIDs.GetMultiple(seriesID));
         }
 
         /// <summary>

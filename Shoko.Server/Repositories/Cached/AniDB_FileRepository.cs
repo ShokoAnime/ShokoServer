@@ -3,7 +3,6 @@ using System.Linq;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories
@@ -50,34 +49,23 @@ namespace Shoko.Server.Repositories
 
         public SVR_AniDB_File GetByHash(string hash)
         {
-            Lock.EnterReadLock();
-            var result = Hashes.GetOne(hash);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Hashes.GetOne(hash));
         }
 
         public List<SVR_AniDB_File> GetByInternalVersion(int version)
         {
-            Lock.EnterReadLock();
-            var result = InternalVersions.GetMultiple(version);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => InternalVersions.GetMultiple(version));
         }
 
         public SVR_AniDB_File GetByHashAndFileSize(string hash, long fsize)
         {
-            Lock.EnterReadLock();
-            var list = Hashes.GetMultiple(hash);
-            Lock.ExitReadLock();
+            var list = ReadLock(() => Hashes.GetMultiple(hash));
             return list.Count == 1 ? list.FirstOrDefault() : list.FirstOrDefault(a => a.FileSize == fsize);
         }
 
         public SVR_AniDB_File GetByFileID(int fileID)
         {
-            Lock.EnterReadLock();
-            var result = FileIds.GetOne(fileID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => FileIds.GetOne(fileID));
         }
     }
 }

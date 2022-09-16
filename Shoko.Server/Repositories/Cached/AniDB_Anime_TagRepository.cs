@@ -30,18 +30,12 @@ namespace Shoko.Server.Repositories
 
         public AniDB_Anime_Tag GetByAnimeIDAndTagID(int animeid, int tagid)
         {
-            Lock.EnterReadLock();
-            var result = Animes.GetMultiple(animeid).FirstOrDefault(a => a.TagID == tagid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Animes.GetMultiple(animeid).FirstOrDefault(a => a.TagID == tagid));
         }
 
         public List<AniDB_Anime_Tag> GetByAnimeID(int id)
         {
-            Lock.EnterReadLock();
-            var result = Animes.GetMultiple(id);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Animes.GetMultiple(id));
         }
 
         public ILookup<int, AniDB_Anime_Tag> GetByAnimeIDs(ICollection<int> ids)
@@ -54,10 +48,7 @@ namespace Shoko.Server.Repositories
                 return EmptyLookup<int, AniDB_Anime_Tag>.Instance;
             }
 
-            Lock.EnterReadLock();
-            var result = ids.SelectMany(Animes.GetMultiple).ToLookup(t => t.AnimeID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => ids.SelectMany(Animes.GetMultiple).ToLookup(t => t.AnimeID));
         }
 
         public List<SVR_AnimeSeries> GetAnimeWithTag(string tagName)
@@ -76,10 +67,7 @@ namespace Shoko.Server.Repositories
 
         public List<AniDB_Anime_Tag> GetByTagID(int tagID)
         {
-            Lock.EnterReadLock();
-            var result = TagIDs.GetMultiple(tagID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => TagIDs.GetMultiple(tagID));
         }
 
         /// <summary>

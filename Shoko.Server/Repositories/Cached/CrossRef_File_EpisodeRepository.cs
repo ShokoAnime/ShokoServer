@@ -51,28 +51,19 @@ namespace Shoko.Server.Repositories
 
         public List<CrossRef_File_Episode> GetByHash(string hash)
         {
-            Lock.EnterReadLock();
-            var result = Hashes.GetMultiple(hash).OrderBy(a => a.EpisodeOrder).ToList();
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Hashes.GetMultiple(hash).OrderBy(a => a.EpisodeOrder).ToList());
         }
 
 
         public List<CrossRef_File_Episode> GetByAnimeID(int animeID)
         {
-            Lock.EnterReadLock();
-            var result = Animes.GetMultiple(animeID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Animes.GetMultiple(animeID));
         }
 
 
         public List<CrossRef_File_Episode> GetByFileNameAndSize(string filename, long filesize)
         {
-            Lock.EnterReadLock();
-            var result = Filenames.GetMultiple(filename).Where(a => a.FileSize == filesize).ToList();
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Filenames.GetMultiple(filename).Where(a => a.FileSize == filesize).ToList());
         }
 
         /// <summary>
@@ -83,18 +74,12 @@ namespace Shoko.Server.Repositories
         /// <returns></returns>
         public CrossRef_File_Episode GetByHashAndEpisodeID(string hash, int episodeID)
         {
-            Lock.EnterReadLock();
-            var result = Hashes.GetMultiple(hash).FirstOrDefault(a => a.EpisodeID == episodeID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Hashes.GetMultiple(hash).FirstOrDefault(a => a.EpisodeID == episodeID));
         }
 
         public List<CrossRef_File_Episode> GetByEpisodeID(int episodeID)
         {
-            Lock.EnterReadLock();
-            var result = Episodes.GetMultiple(episodeID);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Episodes.GetMultiple(episodeID));
         }
     }
 }

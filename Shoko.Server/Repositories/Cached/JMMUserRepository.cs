@@ -59,30 +59,21 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_JMMUser> GetAniDBUsers()
         {
-            Lock.EnterReadLock();
-            var result = Cache.Values.Where(a => a.IsAniDBUser == 1).ToList();
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Cache.Values.Where(a => a.IsAniDBUser == 1).ToList());
         }
 
         public List<SVR_JMMUser> GetTraktUsers()
         {
-            Lock.EnterReadLock();
-            var result = Cache.Values.Where(a => a.IsTraktUser == 1).ToList();
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Cache.Values.Where(a => a.IsTraktUser == 1).ToList());
         }
 
         public SVR_JMMUser AuthenticateUser(string userName, string password)
         {
-            if (password == null) password = string.Empty;
+            password ??= string.Empty;
             var hashedPassword = Digest.Hash(password);
-            Lock.EnterReadLock();
-            var result = Cache.Values.FirstOrDefault(a =>
+            return ReadLock(() => Cache.Values.FirstOrDefault(a =>
                 a.Username.Equals(userName, StringComparison.InvariantCultureIgnoreCase) &&
-                a.Password.Equals(hashedPassword));
-            Lock.ExitReadLock();
-            return result;
+                a.Password.Equals(hashedPassword)));
         }
 
         public bool RemoveUser(int userID, bool skipValidation = false)

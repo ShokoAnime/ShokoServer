@@ -41,19 +41,13 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode> GetBySeriesID(int seriesid)
         {
-            Lock.EnterReadLock();
-            var result = Series.GetMultiple(seriesid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => Series.GetMultiple(seriesid));
         }
 
 
         public SVR_AnimeEpisode GetByAniDBEpisodeID(int epid)
         {
-            Lock.EnterReadLock();
-            var result = EpisodeIDs.GetOne(epid);
-            Lock.ExitReadLock();
-            return result;
+            return ReadLock(() => EpisodeIDs.GetOne(epid));
         }
 
 
