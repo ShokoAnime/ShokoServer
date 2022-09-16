@@ -51,7 +51,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                     // remove the header info
                     var sDetails = response.Response.Split('\n');
 
-                    if (sDetails.Length <= 2) throw new UnexpectedUDPResponseException("The number of lines was less than expected", code, receivedData);
+                    if (sDetails.Length <= 1) throw new UnexpectedUDPResponseException("The number of lines was less than expected", code, receivedData);
 
                     // first item will be the status command, and last will be empty
                     foreach (var t in sDetails)
