@@ -7,7 +7,6 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Utilities;
 using AnimeTitle = Shoko.Plugin.Abstractions.DataModels.AnimeTitle;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
