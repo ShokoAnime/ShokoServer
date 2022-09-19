@@ -5,7 +5,6 @@ using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
-using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
@@ -14,7 +13,6 @@ using Shoko.Server.Commands.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Server;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Shoko.Server.Commands.Generic
 {
