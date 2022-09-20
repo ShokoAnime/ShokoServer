@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using NLog;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
@@ -60,7 +61,7 @@ namespace Shoko.Server.Models
         }
 
 
-        public void UpdateGroupFilter(HashSet<GroupFilterConditionType> types)
+        public void UpdateGroupFilters(HashSet<GroupFilterConditionType> types)
         {
             SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
             SVR_JMMUser usr = RepoFactory.JMMUser.GetByID(JMMUserID);
@@ -70,23 +71,8 @@ namespace Shoko.Server.Models
 
         public void DeleteFromFilters()
         {
-            foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetAll())
-            {
-                bool change = false;
-                gf._lock.ExitWriteLock();
-                if (gf.GroupsIds.ContainsKey(JMMUserID))
-                {
-                    if (gf.GroupsIds[JMMUserID].Contains(AnimeGroupID))
-                    {
-                        gf.GroupsIds[JMMUserID].Remove(AnimeGroupID);
-                        change = true;
-                    }
-                }
-                gf._lock.ExitReadLock();
-
-                if (change)
-                    RepoFactory.GroupFilter.Save(gf);
-            }
+            var toSave = RepoFactory.GroupFilter.GetAll().AsParallel().Where(gf => gf.DeleteGroupFromFilters(JMMUserID, AnimeGroupID)).ToList();
+            RepoFactory.GroupFilter.Save(toSave);
         }
 
         public void UpdatePlexKodiContracts(ISessionWrapper session = null)

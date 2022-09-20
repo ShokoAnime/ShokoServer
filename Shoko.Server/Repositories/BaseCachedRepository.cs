@@ -17,12 +17,12 @@ namespace Shoko.Server.Repositories
         private readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.SupportsRecursion);
         internal PocoCache<S, T> Cache;
 
-        public virtual Action<T> BeginDeleteCallback { get; set; }
-        public virtual Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
-        public virtual Action<T> EndDeleteCallback { get; set; }
-        public virtual Action<T> BeginSaveCallback { get; set; }
-        public virtual Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
-        public virtual Action<T> EndSaveCallback { get; set; }
+        public Action<T> BeginDeleteCallback { get; set; }
+        public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
+        public Action<T> EndDeleteCallback { get; set; }
+        public Action<T> BeginSaveCallback { get; set; }
+        public Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
+        public Action<T> EndSaveCallback { get; set; }
 
         public BaseCachedRepository()
         {

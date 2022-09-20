@@ -20,7 +20,7 @@ namespace Shoko.Server.Models
 {
     public class SVR_GroupFilter : GroupFilter
     {
-        internal readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.SupportsRecursion);
+        private readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.SupportsRecursion);
         public int GroupsIdsVersion { get; set; }
         public string GroupsIdsString { get; set; }
 
@@ -158,6 +158,46 @@ namespace Shoko.Server.Models
                 SortingCriteria = string.Join("|", crts);
             }
         }
+        
+        public bool DeleteGroupFromFilters(int userID, int groupID)
+        {
+            return WriteLock(
+                () =>
+                {
+                    if (!GroupsIds.ContainsKey(userID)) return false;
+                    if (!GroupsIds[userID].Contains(groupID)) return false;
+                    GroupsIds[userID].Remove(groupID);
+                    return true;
+                }
+            );
+        }
+
+        public bool RemoveUser(int userID)
+        {
+            var changed = WriteLock(
+                () =>
+                {
+                    var changed = false;
+                    if (GroupsIds.ContainsKey(userID))
+                    {
+                        GroupsIds.Remove(userID);
+                        changed = true;
+                    }
+
+                    if (SeriesIds.ContainsKey(userID))
+                    {
+                        SeriesIds.Remove(userID);
+                        changed = true;
+                    }
+
+                    return changed;
+                }
+            );
+
+            if (!changed) return false;
+            UpdateEntityReferenceStrings();
+            return true;
+        }
 
         public CL_GroupFilter ToClient()
         {
@@ -217,17 +257,20 @@ namespace Shoko.Server.Models
                 SeriesCount = 0
             };
 
-            _lock.EnterReadLock();
-            if (GroupsIds.ContainsKey(user.JMMUserID))
-            {
-                contract.GroupCount = GroupsIds[user.JMMUserID].Count;
-            }
+            ReadLock(
+                () =>
+                {
+                    if (GroupsIds.ContainsKey(user.JMMUserID))
+                    {
+                        contract.GroupCount = GroupsIds[user.JMMUserID].Count;
+                    }
 
-            if (SeriesIds.ContainsKey(user.JMMUserID))
-            {
-                contract.SeriesCount = SeriesIds[user.JMMUserID].Count;
-            }
-            _lock.ExitReadLock();
+                    if (SeriesIds.ContainsKey(user.JMMUserID))
+                    {
+                        contract.SeriesCount = SeriesIds[user.JMMUserID].Count;
+                    }
+                }
+            );
 
             return contract;
         }
@@ -240,11 +283,14 @@ namespace Shoko.Server.Models
             {
                 result = CalculateGroupFilterSeries(ser, user);
                 if (!result) return false;
-                _lock.EnterWriteLock();
-                GroupsIds[user?.JMMUserID ?? 0] = SeriesIds[user?.JMMUserID ?? 0]
-                    .Select(a => RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
-                    .Where(a => a != -1).ToHashSet();
-                _lock.ExitWriteLock();
+                WriteLock(
+                    () =>
+                    {
+                        GroupsIds[user?.JMMUserID ?? 0] = SeriesIds[user?.JMMUserID ?? 0]
+                            .Select(a => RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
+                            .Where(a => a != -1).ToHashSet();
+                    }
+                );
             }
             else
             {
@@ -272,12 +318,17 @@ namespace Shoko.Server.Models
 
                 result |= CalculateGroupFilterGroups(contract, user);
                 if (!result) return false;
-                _lock.EnterWriteLock();
-                SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0]
-                    .SelectMany(a =>
-                        RepoFactory.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
-                    .Where(a => a != -1).ToHashSet();
-                _lock.ExitWriteLock();
+                WriteLock(
+                    () =>
+                    {
+                        SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0]
+                            .SelectMany(
+                                a =>
+                                    RepoFactory.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1)
+                            )
+                            .Where(a => a != -1).ToHashSet();
+                    }
+                );
             }
             return true;
         }
@@ -301,23 +352,31 @@ namespace Shoko.Server.Models
                 }
 
                 if (!result) return false;
-                _lock.EnterWriteLock();
-                GroupsIds[user?.JMMUserID ?? 0] = SeriesIds[user?.JMMUserID ?? 0]
-                    .Select(a => RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
-                    .Where(a => a != -1).ToHashSet();
-                _lock.ExitWriteLock();
+                WriteLock(
+                    () =>
+                    {
+                        GroupsIds[user?.JMMUserID ?? 0] = SeriesIds[user?.JMMUserID ?? 0]
+                            .Select(a => RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
+                            .Where(a => a != -1).ToHashSet();
+                    }
+                );
             }
             else
             {
                 result = CalculateGroupFilterGroups(grp, user);
                 if (!result) return false;
-                _lock.EnterWriteLock();
-                SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0].SelectMany(a => RepoFactory.AnimeGroup.GetByID(a)
-                        ?.GetAllSeries()
-                        ?.Select(b => b?.AnimeSeriesID ?? -1))
-                    .Where(a => a != -1)
-                    .ToHashSet();
-                _lock.ExitWriteLock();
+                WriteLock(
+                    () =>
+                    {
+                        SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0].SelectMany(
+                                a => RepoFactory.AnimeGroup.GetByID(a)
+                                    ?.GetAllSeries()
+                                    ?.Select(b => b?.AnimeSeriesID ?? -1)
+                            )
+                            .Where(a => a != -1)
+                            .ToHashSet();
+                    }
+                );
             }
             return true;
         }
@@ -327,12 +386,7 @@ namespace Shoko.Server.Models
         {
             if (ser == null) return false;
 
-            _lock.EnterReadLock();
-            if (SeriesIds.TryGetValue(user?.JMMUserID ?? 0, out var seriesIds))
-            {
-                seriesIds = new HashSet<int>(seriesIds);
-            }
-            _lock.ExitReadLock();
+            var seriesIds = ReadLock(() => SeriesIds.TryGetValue(user?.JMMUserID ?? 0, out var seriesIds) ? new HashSet<int>(seriesIds) : null);
 
             seriesIds ??= new HashSet<int>();
             var change = seriesIds.RemoveWhere(a => RepoFactory.AnimeSeries.GetByID(a) == null) > 0;
@@ -342,9 +396,7 @@ namespace Shoko.Server.Models
             else
                 change |= seriesIds.Remove(ser.AnimeSeriesID);
 
-            _lock.EnterWriteLock();
-            SeriesIds[user?.JMMUserID ?? 0] = seriesIds;
-            _lock.ExitWriteLock();
+            WriteLock(() => SeriesIds[user?.JMMUserID ?? 0] = seriesIds);
 
             return change;
         }
@@ -353,12 +405,7 @@ namespace Shoko.Server.Models
         {
             if (grp == null) return false;
 
-            _lock.EnterReadLock();
-            if (GroupsIds.TryGetValue(user?.JMMUserID ?? 0, out var groupIds))
-            {
-                groupIds = new HashSet<int>(groupIds);
-            }
-            _lock.ExitReadLock();
+            var groupIds = ReadLock(() => GroupsIds.TryGetValue(user?.JMMUserID ?? 0, out var groupIds) ? new HashSet<int>(groupIds) : null);
 
             groupIds ??= new HashSet<int>();
             var change = groupIds.RemoveWhere(a => RepoFactory.AnimeGroup.GetByID(a) == null) > 0;
@@ -372,9 +419,7 @@ namespace Shoko.Server.Models
                 change |= groupIds.Remove(grp.AnimeGroupID);
             }
 
-            _lock.EnterWriteLock();
-            GroupsIds[user?.JMMUserID ?? 0] = groupIds;
-            _lock.ExitWriteLock();
+            WriteLock(() => GroupsIds[user?.JMMUserID ?? 0] = groupIds);
 
             return change;
         }
@@ -386,19 +431,24 @@ namespace Shoko.Server.Models
                 EvaluateAnimeSeries();
 
                 var erroredSeries = new HashSet<int>();
-                _lock.EnterWriteLock();
-                foreach (var user in SeriesIds.Keys)
-                {
-                    GroupsIds[user] = SeriesIds[user].Select(a =>
+                WriteLock(
+                    () =>
+                    {
+                        foreach (var user in SeriesIds.Keys)
                         {
-                            var id = RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1;
-                            if (id == -1)
-                                erroredSeries.Add(a);
-                            return id;
-                        }).Where(a => a != -1)
-                        .ToHashSet();
-                }
-                _lock.ExitWriteLock();
+                            GroupsIds[user] = SeriesIds[user].Select(
+                                    a =>
+                                    {
+                                        var id = RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1;
+                                        if (id == -1)
+                                            erroredSeries.Add(a);
+                                        return id;
+                                    }
+                                ).Where(a => a != -1)
+                                .ToHashSet();
+                        }
+                    }
+                );
                 foreach (var id in erroredSeries.OrderBy(a => a).ToList())
                 {
                     var ser = RepoFactory.AnimeSeries.GetByID(id);
@@ -410,15 +460,20 @@ namespace Shoko.Server.Models
             {
                 EvaluateAnimeGroups();
 
-                _lock.EnterWriteLock();
-                foreach (var user in GroupsIds.Keys)
-                {
-                    var ids = GroupsIds[user];
-                    SeriesIds[user] = ids.SelectMany(a => 
-                        RepoFactory.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
-                        .Where(a => a != -1).ToHashSet();
-                }
-                _lock.ExitWriteLock();
+                WriteLock(
+                    () =>
+                    {
+                        foreach (var user in GroupsIds.Keys)
+                        {
+                            var ids = GroupsIds[user];
+                            SeriesIds[user] = ids.SelectMany(
+                                    a =>
+                                        RepoFactory.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1)
+                                )
+                                .Where(a => a != -1).ToHashSet();
+                        }
+                    }
+                );
             }
             if ((FilterType & (int) GroupFilterType.Tag) == (int) GroupFilterType.Tag)
                 GroupFilterName = GroupFilterName.Replace('`', '\'');
@@ -462,23 +517,29 @@ namespace Shoko.Server.Models
             {
                 gf.EvaluateAnimeSeries();
 
-                gf._lock.EnterWriteLock();
-                foreach (var user in gf.SeriesIds.Keys)
-                {
-                    gf.GroupsIds[user] = gf.SeriesIds[user].Select(a => RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1).Where(a => a != -1).ToHashSet();
-                }
-                gf._lock.ExitWriteLock();
+                gf.WriteLock(
+                    () =>
+                    {
+                        foreach (var user in gf.SeriesIds.Keys)
+                        {
+                            gf.GroupsIds[user] = gf.SeriesIds[user].Select(a => RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1).Where(a => a != -1).ToHashSet();
+                        }
+                    }
+                );
             }
             else
             {
                 gf.EvaluateAnimeGroups();
 
-                gf._lock.EnterWriteLock();
-                foreach (var user in gf.GroupsIds.Keys)
-                {
-                    gf.SeriesIds[user] = gf.GroupsIds[user].SelectMany(a => RepoFactory.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1)).Where(a => a != -1).ToHashSet();
-                }
-                gf._lock.ExitWriteLock();
+                gf.WriteLock(
+                    () =>
+                    {
+                        foreach (var user in gf.GroupsIds.Keys)
+                        {
+                            gf.SeriesIds[user] = gf.GroupsIds[user].SelectMany(a => RepoFactory.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1)).Where(a => a != -1).ToHashSet();
+                        }
+                    }
+                );
             }
 
             return gf.ToClient();
@@ -1315,19 +1376,22 @@ namespace Shoko.Server.Models
         /// <param name="updateSeries"><c>true</c> to update <see cref="SeriesIds"/>; otherwise, <c>false</c>.</param>
         public void UpdateEntityReferenceStrings(bool updateGroups = true, bool updateSeries = true)
         {
-            _lock.EnterWriteLock();
-            if (updateGroups)
-            {
-                GroupsIdsString = JsonConvert.SerializeObject(GroupsIds);
-                GroupsIdsVersion = GROUPFILTER_VERSION;
-            }
+            WriteLock(
+                () =>
+                {
+                    if (updateGroups)
+                    {
+                        GroupsIdsString = JsonConvert.SerializeObject(GroupsIds);
+                        GroupsIdsVersion = GROUPFILTER_VERSION;
+                    }
 
-            if (updateSeries)
-            {
-                SeriesIdsString = JsonConvert.SerializeObject(SeriesIds);
-                SeriesIdsVersion = SERIEFILTER_VERSION;
-            }
-            _lock.ExitWriteLock();
+                    if (updateSeries)
+                    {
+                        SeriesIdsString = JsonConvert.SerializeObject(SeriesIds);
+                        SeriesIdsVersion = SERIEFILTER_VERSION;
+                    }
+                }
+            );
         }
 
         public void QueueUpdate()
@@ -1369,6 +1433,58 @@ namespace Shoko.Server.Models
         public override int GetHashCode()
         {
             return 0; // Always use equals
+        }
+
+        private void ReadLock(Action action)
+        {
+            _lock.EnterReadLock();
+            try
+            {
+                action.Invoke();
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
+        }
+
+        private T ReadLock<T>(Func<T> action)
+        {
+            _lock.EnterReadLock();
+            try
+            {
+                return action.Invoke();
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
+        }
+
+        private void WriteLock(Action action)
+        {
+            _lock.EnterWriteLock();
+            try
+            {
+                action.Invoke();
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
+        }
+        
+        private T WriteLock<T>(Func<T> action)
+        {
+            _lock.EnterWriteLock();
+            try
+            {
+                return action.Invoke();
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
         }
     }
 }

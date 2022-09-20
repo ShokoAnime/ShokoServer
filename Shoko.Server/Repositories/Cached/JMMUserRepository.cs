@@ -86,28 +86,7 @@ namespace Shoko.Server.Repositories.Cached
                 if (allAdmins.Count < 1) return false;
             }
 
-            var toSave = RepoFactory.GroupFilter.GetAll().Select(
-                a =>
-                {
-                    var changed = false;
-                    a._lock.EnterWriteLock();
-                    if (a.GroupsIds.ContainsKey(userID))
-                    {
-                        a.GroupsIds.Remove(userID);
-                        changed = true;
-                    }
-
-                    if (a.SeriesIds.ContainsKey(userID))
-                    {
-                        a.SeriesIds.Remove(userID);
-                        changed = true;
-                    }
-                    a._lock.ExitWriteLock();
-
-                    if (!changed) return null;
-                    a.UpdateEntityReferenceStrings();
-                    return a;
-                }).Where(a => a != null).ToList();
+            var toSave = RepoFactory.GroupFilter.GetAll().AsParallel().Where(a => a.RemoveUser(userID)).ToList();
             RepoFactory.GroupFilter.Save(toSave);
 
             RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetByUserID(userID));

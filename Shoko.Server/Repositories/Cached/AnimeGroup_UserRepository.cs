@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
 using Shoko.Server.Databases;
@@ -12,8 +11,6 @@ namespace Shoko.Server.Repositories.Cached
 {
     public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_User, int>
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
         private PocoIndex<int, SVR_AnimeGroup_User, int> Groups;
         private PocoIndex<int, SVR_AnimeGroup_User, int> Users;
         private PocoIndex<int, SVR_AnimeGroup_User, int, int> UsersGroups;
@@ -28,8 +25,6 @@ namespace Shoko.Server.Repositories.Cached
                     Changes[cr.JMMUserID] = new ChangeTracker<int>();
                 Changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
 
-                logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Delete: {0}",
-                    cr.AnimeGroupID);
                 cr.DeleteFromFilters();
             };
         }
@@ -72,7 +67,7 @@ namespace Shoko.Server.Repositories.Cached
             if (!Changes.ContainsKey(obj.JMMUserID))
                 Changes[obj.JMMUserID] = new ChangeTracker<int>();
             Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeGroupID);
-            obj.UpdateGroupFilter(types);
+            obj.UpdateGroupFilters(types);
         }
 
         private static HashSet<GroupFilterConditionType> GetConditionTypesChanged(SVR_AnimeGroup_User oldcontract, SVR_AnimeGroup_User newcontract)
