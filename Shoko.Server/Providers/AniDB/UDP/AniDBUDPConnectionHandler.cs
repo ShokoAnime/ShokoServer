@@ -243,7 +243,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             // parts[0] => 200 FILE
             // parts[1] => Response
             // parts[2] => empty, since we ended with a newline
-            if (decodedParts.Length < 2) throw new UnexpectedUDPResponseException {Response = decodedString};
+            if (decodedParts.Length < 2) throw new UnexpectedUDPResponseException(decodedString);
 
             if (truncated)
             {
@@ -260,11 +260,10 @@ namespace Shoko.Server.Providers.AniDB.UDP
             // If we don't have 2 parts of the first line, then it's not in the expected
             // 200 FILE
             // Format
-            if (firstLineParts.Length != 2) throw new UnexpectedUDPResponseException { Response = decodedString };
+            if (firstLineParts.Length != 2) throw new UnexpectedUDPResponseException(response:decodedString);
 
             // Can't parse the code
-            if (!int.TryParse(firstLineParts[0], out var code))
-                throw new UnexpectedUDPResponseException { Response = decodedString };
+            if (!int.TryParse(firstLineParts[0], out var code)) throw new UnexpectedUDPResponseException(response:decodedString);
 
             var status = (UDPReturnCode) code;
 
@@ -300,7 +299,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
                     break;
                 }
                 case UDPReturnCode.UNKNOWN_COMMAND:
-                    throw new UnexpectedUDPResponseException { Response = decodedString, ReturnCode = UDPReturnCode.UNKNOWN_COMMAND };
+                    throw new UnexpectedUDPResponseException(response:decodedString, code:status);
             }
 
             if (returnFullResponse) return new UDPResponse<string> {Code = status, Response = decodedString};

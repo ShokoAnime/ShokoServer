@@ -30,6 +30,7 @@ namespace Shoko.Server.Repositories.Direct
 
         private static readonly HashSet<int> AniDbUdpCommands = new HashSet<int>
         {
+            (int) CommandRequestType.ProcessFile,
             (int) CommandRequestType.AniDB_AddFileUDP,
             (int) CommandRequestType.AniDB_DeleteFileUDP,
             (int) CommandRequestType.AniDB_GetCalendar,

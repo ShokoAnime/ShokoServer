@@ -74,12 +74,11 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                      */
                     //file already exists: read 'watched' status
                     var arrStatus = receivedData.Split('|');
-                    if (!int.TryParse(arrStatus[0], out var myListID)) throw new UnexpectedUDPResponseException
-                    {
-                        Message = "MyListID was not provided. Use AniDBMyList_RequestAddEpisode for generic files.",
-                        Response = receivedData,
-                        ReturnCode = code,
-                    };
+                    if (!int.TryParse(arrStatus[0], out var myListID)) throw new UnexpectedUDPResponseException(
+                        message:"MyListID was not provided. Use AniDBMyList_RequestAddEpisode for generic files.",
+                        response: receivedData,
+                        code:code
+                    );
 
                     var state = (MyList_State) int.Parse(arrStatus[6]);
 
