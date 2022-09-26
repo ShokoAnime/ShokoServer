@@ -138,6 +138,7 @@ namespace Shoko.Server.Providers.TvDB
                 _logger.LogTrace("Search TvDB Series: {Criteria}", criteria);
 
                 TvDBRateLimiter.Instance.EnsureRate();
+                criteria = criteria.Replace("+", " ");
                 var response = await _client.Search.SearchSeriesByNameAsync(criteria);
                 var series = response?.Data;
                 if (series == null) return results;
