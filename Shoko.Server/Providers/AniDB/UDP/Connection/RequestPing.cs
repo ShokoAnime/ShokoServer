@@ -24,7 +24,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
 
         public override UDPResponse<Void> Execute()
         {
-            var rawResponse = Handler.CallAniDBUDPDirectly(BaseCommand, true, true, true);
+            var rawResponse = Handler.CallAniDBUDPDirectly(BaseCommand, true, true, isPing: true);
             var response = ParseResponse(rawResponse);
             return response;
         }

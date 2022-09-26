@@ -39,11 +39,11 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             UDPResponse<string> rawResponse;
             try
             {
-                rawResponse = Handler.CallAniDBUDPDirectly(Command, false, true, false, true);
+                rawResponse = Handler.CallAniDBUDPDirectly(Command, false, true, false, false, true);
             }
             catch (NotLoggedInException)
             {
-                rawResponse = Handler.CallAniDBUDPDirectly(Command, true, true, false, true);
+                rawResponse = Handler.CallAniDBUDPDirectly(Command, true, true, false, false, true);
             }
 
             var response = ParseResponse(rawResponse);

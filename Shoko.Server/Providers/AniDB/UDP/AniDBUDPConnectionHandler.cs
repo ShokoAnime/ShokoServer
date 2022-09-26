@@ -159,10 +159,11 @@ namespace Shoko.Server.Providers.AniDB.UDP
         /// <param name="command">The request to be made (AUTH user=baka&amp;pass....)</param>
         /// <param name="needsUnicode">Only for Login, specify whether to ask for UTF16</param>
         /// <param name="disableLogging">Some commands have sensitive data</param>
+        /// <param name="shouldRelog">Should it attempt to relog when an invalid session is received</param>
         /// <param name="isPing">is it a ping command</param>
         /// <returns></returns>
         public UDPResponse<string> CallAniDBUDP(string command, bool needsUnicode = true,
-            bool disableLogging = false, bool isPing = false)
+                                                bool disableLogging = false, bool shouldRelog = true, bool isPing = false)
         {
             // Steps:
             // 1. Check Ban state and throw if Banned
@@ -185,19 +186,19 @@ namespace Shoko.Server.Providers.AniDB.UDP
             // Actually Call AniDB
             try
             {
-                return CallAniDBUDPDirectly(command, needsUnicode, disableLogging, isPing);
+                return CallAniDBUDPDirectly(command, needsUnicode, disableLogging, shouldRelog, isPing);
             }
             catch (NotLoggedInException)
             {
                 Logger.LogTrace("FORCING Logout because of invalid session");
                 ForceLogout();
                 if (!Login()) throw new NotLoggedInException();
-                return CallAniDBUDPDirectly(command, needsUnicode, disableLogging, isPing);
+                return CallAniDBUDPDirectly(command, needsUnicode, disableLogging, shouldRelog, isPing);
             }
         }
 
         public UDPResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode=true, bool disableLogging=false,
-            bool isPing=false, bool returnFullResponse=false)
+            bool shouldRelog=true, bool isPing=false, bool returnFullResponse=false)
         {
             // 1. Call AniDB
             // 2. Decode the response, converting Unicode and decompressing, as needed
@@ -276,15 +277,14 @@ namespace Shoko.Server.Providers.AniDB.UDP
 
             switch (status)
             {
-                // 598 UNKNOWN COMMAND usually means we had connections issue
                 // 506 INVALID SESSION
                 // 505 ILLEGAL INPUT OR ACCESS DENIED
                 // reset login status to start again
                 case UDPReturnCode.INVALID_SESSION:
                 case UDPReturnCode.ILLEGAL_INPUT_OR_ACCESS_DENIED:
-                case UDPReturnCode.UNKNOWN_COMMAND:
                     IsInvalidSession = true;
-                    throw new NotLoggedInException();
+                    if (shouldRelog) Login(); else throw new NotLoggedInException();
+                    break;
                 // 600 INTERNAL SERVER ERROR
                 // 601 ANIDB OUT OF SERVICE - TRY AGAIN LATER
                 // 602 SERVER BUSY - TRY AGAIN LATER
@@ -299,6 +299,8 @@ namespace Shoko.Server.Providers.AniDB.UDP
                     ExtendBanTimer(300, errorMessage);
                     break;
                 }
+                case UDPReturnCode.UNKNOWN_COMMAND:
+                    throw new UnexpectedUDPResponseException { Response = decodedString, ReturnCode = UDPReturnCode.UNKNOWN_COMMAND };
             }
 
             if (returnFullResponse) return new UDPResponse<string> {Code = status, Response = decodedString};
