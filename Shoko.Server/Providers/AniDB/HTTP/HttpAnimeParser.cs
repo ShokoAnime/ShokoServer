@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Web;
 using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
@@ -197,7 +198,7 @@ namespace Shoko.Server.Providers.AniDB.HTTP
             foreach (XmlNode node in titleItems)
             {
                 if (string.IsNullOrEmpty(node?.Attributes?["xml:lang"]?.Value.Trim().ToLower())) continue;
-                var titleValue = node.InnerText.Trim();
+                var titleValue = UnescapeXml(node.InnerText.Trim());
                 if (string.IsNullOrEmpty(titleValue)) continue;
 
                 var titleType = node.Attributes?["type"]?.Value.Trim().ToLower();
@@ -235,7 +236,7 @@ namespace Shoko.Server.Providers.AniDB.HTTP
             if (!Enum.TryParse(titleType, true, out TitleType type)) return null;
             var language = TryGetAttribute(node, "xml:lang");
             var langEnum = language.GetTitleLanguage();
-            var title = node.InnerText.Trim().Replace('`', '\'');
+            var title = UnescapeXml(node.InnerText.Trim()).Replace('`', '\'');
             return new ResponseTitle { Title = title, TitleType = type, Language = langEnum };
         }
 #endregion
@@ -289,7 +290,7 @@ namespace Shoko.Server.Providers.AniDB.HTTP
                             episodeTitle = new ResponseTitle
                             {
                                 Language = nodeChild?.Attributes?["xml:lang"]?.Value.GetTitleLanguage() ?? TitleLanguage.Unknown,
-                                Title = nodeChild?.InnerText.Trim().Replace('`', '\''),
+                                Title = UnescapeXml(nodeChild?.InnerText.Trim()).Replace('`', '\''),
                                 TitleType = TitleType.None,
                             },
                         })
@@ -425,7 +426,7 @@ namespace Shoko.Server.Providers.AniDB.HTTP
         {
             if (!int.TryParse(TryGetAttribute(node, "id"), out var creatorID)) return null;
             var creatorType = TryGetAttribute(node, "type");
-            var creatorName = node.InnerText.Replace('`', '\'');
+            var creatorName = UnescapeXml(node.InnerText).Replace('`', '\'');
             return new ResponseStaff
             {
                 AnimeID = animeID,
@@ -473,7 +474,7 @@ namespace Shoko.Server.Providers.AniDB.HTTP
                 if (nodeChild?.Name != "seiyuu") continue;
                 if (!int.TryParse(nodeChild.Attributes?["id"]?.Value, out var seiyuuID)) continue;
                 var seiyuuPic = nodeChild.Attributes["picture"]?.Value ?? string.Empty;
-                var seiyuuName = nodeChild.InnerText.Replace('`', '\'');
+                var seiyuuName = UnescapeXml(nodeChild.InnerText).Replace('`', '\'');
                 seiyuus.Add(new ResponseSeiyuu { SeiyuuID = seiyuuID, SeiyuuName = seiyuuName, PicName = seiyuuPic });
             }
 
@@ -501,7 +502,7 @@ namespace Shoko.Server.Providers.AniDB.HTTP
                 {
                     foreach (XmlNode child in node.ChildNodes)
                     {
-                        var resourceID = child["identifier"]?.InnerText ?? child["url"]?.InnerText;
+                        var resourceID = UnescapeXml(child["identifier"]?.InnerText) ?? UnescapeXml(child["url"]?.InnerText);
                         if (!int.TryParse(TryGetAttribute(node, "type"), out var typeInt)) continue;
                         var resource = new ResponseResource { AnimeID = animeID, ResourceID = resourceID, ResourceType = (AniDB_ResourceLinkType)typeInt };
                         result.Add(resource);
@@ -587,13 +588,13 @@ namespace Shoko.Server.Providers.AniDB.HTTP
         private static string TryGetProperty(XmlNode doc, string keyName, string propertyName)
         {
             if (doc == null || string.IsNullOrEmpty(keyName) || string.IsNullOrEmpty(propertyName)) return string.Empty;
-            return doc[keyName]?[propertyName]?.InnerText.Trim() ?? string.Empty;
+            return UnescapeXml(doc[keyName]?[propertyName]?.InnerText.Trim()) ?? string.Empty;
         }
 
         private static string TryGetProperty(XmlNode node, string propertyName)
         {
             if (node == null || string.IsNullOrEmpty(propertyName)) return string.Empty;
-            return node[propertyName]?.InnerText.Trim() ?? string.Empty;
+            return UnescapeXml(node[propertyName]?.InnerText.Trim()) ?? string.Empty;
         }
 
         private static string TryGetAttribute(XmlNode parentnode, string nodeName, string attName)
@@ -619,6 +620,20 @@ namespace Shoko.Server.Providers.AniDB.HTTP
             var day = dateXml.Trim().Length > 7 ? int.Parse(dateXml.Trim().Substring(8, 2)) : isStartDate ? 1 : DateTime.DaysInMonth(year, month);
 
             return new DateTime(year, month, day, 0, 0, 0);
+        }
+
+        private static string UnescapeXml(string xml)
+        {
+            string result = null;
+            // 5 as a maximum depth is arbitrary, but if we have data that is escaped 5 levels deep, then there's a serious issue.
+            for (var i = 0; i < 5; i++)
+            {
+                var temp = HttpUtility.HtmlDecode(xml);
+                if (temp.Equals(result)) return result;
+                result = temp;
+            }
+
+            return result;
         }
 
 #endregion
