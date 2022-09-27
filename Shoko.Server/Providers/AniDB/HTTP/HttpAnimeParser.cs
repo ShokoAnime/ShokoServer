@@ -290,7 +290,7 @@ namespace Shoko.Server.Providers.AniDB.HTTP
                             episodeTitle = new ResponseTitle
                             {
                                 Language = nodeChild?.Attributes?["xml:lang"]?.Value.GetTitleLanguage() ?? TitleLanguage.Unknown,
-                                Title = UnescapeXml(nodeChild?.InnerText.Trim()).Replace('`', '\''),
+                                Title = UnescapeXml(nodeChild?.InnerText.Trim())?.Replace('`', '\''),
                                 TitleType = TitleType.None,
                             },
                         })
@@ -624,6 +624,7 @@ namespace Shoko.Server.Providers.AniDB.HTTP
 
         private static string UnescapeXml(string xml)
         {
+            if (xml == null) return null;
             string result = null;
             // 5 as a maximum depth is arbitrary, but if we have data that is escaped 5 levels deep, then there's a serious issue.
             for (var i = 0; i < 5; i++)
