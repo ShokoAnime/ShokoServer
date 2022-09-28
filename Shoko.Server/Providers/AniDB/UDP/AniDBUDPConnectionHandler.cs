@@ -404,6 +404,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
 
             try
             {
+                Logger.LogTrace("Failed to login to AniDB. Issuing a Logout command and retrying");
                 ForceLogout();
                 return Login(settings.AniDb.Username, settings.AniDb.Password);
             }
@@ -439,6 +440,20 @@ namespace Shoko.Server.Providers.AniDB.UDP
                 );
                 // Never give Execute a null SessionID, except here
                 response = login.Execute();
+            }
+            catch (UnexpectedUDPResponseException e)
+            {
+                if (e.ReturnCode == UDPReturnCode.UNKNOWN_COMMAND)
+                {
+                    Logger.LogTrace("Received Unknown Command while logging in, this usually happens when a logout was not issued. Relogging");
+                    IsInvalidSession = true;
+                    IsLoggedOn = true;
+                    SessionID = null;
+                    return false;
+                }
+
+                Logger.LogError(e, "Unable to login to AniDB: {Ex}", e);
+                response = new UDPResponse<ResponseLogin>();
             }
             catch (Exception e)
             {
