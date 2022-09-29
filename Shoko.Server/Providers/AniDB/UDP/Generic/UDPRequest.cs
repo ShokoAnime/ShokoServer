@@ -69,11 +69,6 @@ namespace Shoko.Server.Providers.AniDB.UDP.Generic
             // parts[2] => empty, since we ended with a newline
             if (decodedParts.Length < 2) throw new UnexpectedUDPResponseException(response);
 
-            if (truncated)
-            {
-                Logger.LogTrace("AniDB Response Truncated: Expected a response line, but none was returned:\n{DecodedString}", response);
-            }
-
             var firstLineParts = decodedParts[0].Split(' ', 2);
             // If we don't have 2 parts of the first line, then it's not in the expected
             // 200 FILE
@@ -117,6 +112,11 @@ namespace Shoko.Server.Providers.AniDB.UDP.Generic
                 }
                 case UDPReturnCode.UNKNOWN_COMMAND:
                     throw new UnexpectedUDPResponseException(response:response, code:status);
+            }
+
+            if (truncated)
+            {
+                Logger.LogTrace("AniDB Response Truncated: Expected a response line, but none was returned:\n{DecodedString}", response);
             }
 
             if (returnFullResponse) return new UDPResponse<string> {Code = status, Response = response};
