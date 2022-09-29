@@ -45,6 +45,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             {
                 rawResponse = Handler.CallAniDBUDPDirectly(Command, true, true, false, false, true);
             }
+            catch (UnexpectedUDPResponseException)
+            {
+                rawResponse = Handler.CallAniDBUDPDirectly(Command, true, true, false, false, true);
+            }
 
             var response = ParseResponse(rawResponse);
             return response;

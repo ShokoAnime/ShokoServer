@@ -447,7 +447,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
                 {
                     Logger.LogTrace("Received Unknown Command while logging in, this usually happens when a logout was not issued. Relogging");
                     IsInvalidSession = true;
-                    IsLoggedOn = true;
+                    IsLoggedOn = false;
                     SessionID = null;
                     return false;
                 }
