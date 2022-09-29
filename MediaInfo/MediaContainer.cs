@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MessagePack;
 using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions.DataModels;
 
@@ -14,50 +15,98 @@ namespace Shoko.Models.MediaInfo
     /// Because of this, they can be looked up on https://mediaarea.net/en/MediaInfo/Support/Tags, then converted as needed by specific clients.
     /// If the client is open source, then usually, they already have mappings, as most clients use MediaInfo, anyway.
     /// </summary>
+    [MessagePackObject]
     public class MediaContainer : IMediaContainer
     {
+        [Key(0)]
         public Media media { get; set; }
 
         // Cache to prevent excessive enumeration on things that will be called A LOT
+        [IgnoreMember]
         private GeneralStream _general { get; set; }
+        [IgnoreMember]
         private VideoStream _video { get; set; }
+        [IgnoreMember]
         private List<AudioStream> _audios { get; set; }
+        [IgnoreMember]
         private List<TextStream> _texts { get; set; }
+        [IgnoreMember]
         private List<MenuStream> _menus { get; set; }
 
         [JsonIgnore]
+        [IgnoreMember]
         public GeneralStream GeneralStream =>
             _general ?? (_general = media?.track?.FirstOrDefault(a => a?.type == StreamType.General) as GeneralStream);
 
         [JsonIgnore]
+        [IgnoreMember]
         public VideoStream VideoStream =>
             _video ?? (_video = media?.track?.FirstOrDefault(a => a?.type == StreamType.Video) as VideoStream);
 
         [JsonIgnore]
+        [IgnoreMember]
         public List<AudioStream> AudioStreams => _audios ?? (_audios =
             media?.track?.Where(a => a?.type == StreamType.Audio)
                 .Select(a => a as AudioStream).ToList());
 
         [JsonIgnore]
+        [IgnoreMember]
         public List<TextStream> TextStreams => _texts ?? (_texts =
             media?.track?.Where(a => a?.type == StreamType.Text)
                 .Select(a => a as TextStream).ToList());
 
         [JsonIgnore]
+        [IgnoreMember]
         public List<MenuStream> MenuStreams => _menus ?? (_menus =
             media?.track?.Where(a => a?.type == StreamType.Menu)
                 .Select(a => a as MenuStream).ToList());
 
+        [JsonIgnore]
+        [IgnoreMember]
         public IGeneralStream General => GeneralStream;
+        [JsonIgnore]
+        [IgnoreMember]
         public IVideoStream Video => VideoStream;
+        [JsonIgnore]
+        [IgnoreMember]
         public IReadOnlyList<IAudioStream> Audio => AudioStreams.Cast<IAudioStream>().ToList();
+        [JsonIgnore]
+        [IgnoreMember]
         public IReadOnlyList<ITextStream> Subs => TextStreams.Cast<ITextStream>().ToList();
+        [JsonIgnore]
+        [IgnoreMember]
         public bool Chaptered => MenuStreams.Any();
+
+        protected bool Equals(MediaContainer other) => Equals(media, other.media);
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((MediaContainer)obj);
+        }
+
+        public override int GetHashCode() => (media != null ? media.GetHashCode() : 0);
     }
 
+    [MessagePackObject]
     public class Media
     {
+        [Key(0)]
         public List<Stream> track { get; set; }
+
+        protected bool Equals(Media other) => track.SequenceEqual(other.track);
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((Media)obj);
+        }
+
+        public override int GetHashCode() => (track != null ? track.GetHashCode() : 0);
     }
 
     public enum StreamType
@@ -69,6 +118,12 @@ namespace Shoko.Models.MediaInfo
         Menu
     }
 
+    [MessagePackObject(true)]
+    [Union(0, typeof(GeneralStream))]
+    [Union(1, typeof(VideoStream))]
+    [Union(2, typeof(AudioStream))]
+    [Union(3, typeof(TextStream))]
+    [Union(4, typeof(MenuStream))]
     public abstract class Stream
     {
         /// <summary>
@@ -77,9 +132,9 @@ namespace Shoko.Models.MediaInfo
         /// This isn't generally needed, anyway
         /// </summary>
         public string UniqueID { get; set; }
-        
+
         public int ID { get; set; }
-        
+
         public abstract StreamType type { get; }
         
         public string Title { get; set; }
@@ -126,8 +181,51 @@ namespace Shoko.Models.MediaInfo
         public bool Default { get; set; }
         
         public bool Forced { get; set; }
+
+        protected bool Equals(Stream other) =>
+            UniqueID == other.UniqueID && ID == other.ID && type == other.type && Title == other.Title && StreamOrder == other.StreamOrder && Format == other.Format && Format_Profile == other.Format_Profile
+            && Format_Settings == other.Format_Settings && Format_Level == other.Format_Level && Format_Commercial_IfAny == other.Format_Commercial_IfAny && Format_Tier == other.Format_Tier
+            && Format_AdditionalFeatures == other.Format_AdditionalFeatures && Format_Settings_Endianness == other.Format_Settings_Endianness && Codec == other.Codec && CodecID == other.CodecID
+            && Language == other.Language && LanguageCode == other.LanguageCode && LanguageName == other.LanguageName && Default == other.Default && Forced == other.Forced;
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((Stream)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = (UniqueID != null ? UniqueID.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ ID;
+                hashCode = (hashCode * 397) ^ (int)type;
+                hashCode = (hashCode * 397) ^ (Title != null ? Title.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ StreamOrder;
+                hashCode = (hashCode * 397) ^ (Format != null ? Format.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Format_Profile != null ? Format_Profile.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Format_Settings != null ? Format_Settings.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Format_Level != null ? Format_Level.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Format_Commercial_IfAny != null ? Format_Commercial_IfAny.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Format_Tier != null ? Format_Tier.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Format_AdditionalFeatures != null ? Format_AdditionalFeatures.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Format_Settings_Endianness != null ? Format_Settings_Endianness.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Codec != null ? Codec.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (CodecID != null ? CodecID.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Language != null ? Language.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (LanguageCode != null ? LanguageCode.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (LanguageName != null ? LanguageName.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ Default.GetHashCode();
+                hashCode = (hashCode * 397) ^ Forced.GetHashCode();
+                return hashCode;
+            }
+        }
     }
 
+    [MessagePackObject(true)]
     public class GeneralStream : Stream, IGeneralStream
     {
         public override StreamType type => StreamType.General;
@@ -145,8 +243,37 @@ namespace Shoko.Models.MediaInfo
         public bool IsStreamable { get; set; }
         
         public DateTime? Encoded_Date { get; set; }
+
+        protected bool Equals(GeneralStream other) =>
+            base.Equals(other) && Duration.Equals(other.Duration) && OverallBitRate == other.OverallBitRate && FileExtension == other.FileExtension && Format_Version == other.Format_Version
+            && FrameRate == other.FrameRate && IsStreamable == other.IsStreamable && Nullable.Equals(Encoded_Date, other.Encoded_Date);
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((GeneralStream)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ Duration.GetHashCode();
+                hashCode = (hashCode * 397) ^ OverallBitRate;
+                hashCode = (hashCode * 397) ^ (FileExtension != null ? FileExtension.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ Format_Version;
+                hashCode = (hashCode * 397) ^ FrameRate.GetHashCode();
+                hashCode = (hashCode * 397) ^ IsStreamable.GetHashCode();
+                hashCode = (hashCode * 397) ^ Encoded_Date.GetHashCode();
+                return hashCode;
+            }
+        }
     }
 
+    [MessagePackObject(true)]
     public class VideoStream : Stream, IVideoStream
     {
         public override StreamType type => StreamType.Video;
@@ -210,8 +337,63 @@ namespace Shoko.Models.MediaInfo
         public string MaxCLL { get; set; }
 
         public string MaxFALL { get; set; }
+
+        protected bool Equals(VideoStream other) =>
+            base.Equals(other) && Format_Settings_CABAC == other.Format_Settings_CABAC && Format_Settings_BVOP == other.Format_Settings_BVOP && Format_Settings_QPel == other.Format_Settings_QPel
+            && Format_Settings_GMC == other.Format_Settings_GMC && Format_Settings_RefFrames == other.Format_Settings_RefFrames && BitRate == other.BitRate && Width == other.Width && Height == other.Height
+            && PixelAspectRatio == other.PixelAspectRatio && FrameRate == other.FrameRate && FrameRate_Mode == other.FrameRate_Mode && FrameCount == other.FrameCount && ColorSpace == other.ColorSpace
+            && ChromaSubsampling == other.ChromaSubsampling && BitDepth == other.BitDepth && ScanType == other.ScanType && Encoded_Library_Name == other.Encoded_Library_Name && MuxingMode == other.MuxingMode
+            && HDR_Format == other.HDR_Format && HDR_Format_Compatibility == other.HDR_Format_Compatibility && colour_range == other.colour_range && colour_primaries == other.colour_primaries
+            && transfer_characteristics == other.transfer_characteristics && matrix_coefficients == other.matrix_coefficients && MasteringDisplay_ColorPrimaries == other.MasteringDisplay_ColorPrimaries
+            && MasteringDisplay_Luminance == other.MasteringDisplay_Luminance && MaxCLL == other.MaxCLL && MaxFALL == other.MaxFALL;
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((VideoStream)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ Format_Settings_CABAC.GetHashCode();
+                hashCode = (hashCode * 397) ^ Format_Settings_BVOP.GetHashCode();
+                hashCode = (hashCode * 397) ^ Format_Settings_QPel.GetHashCode();
+                hashCode = (hashCode * 397) ^ (Format_Settings_GMC != null ? Format_Settings_GMC.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ Format_Settings_RefFrames;
+                hashCode = (hashCode * 397) ^ BitRate;
+                hashCode = (hashCode * 397) ^ Width;
+                hashCode = (hashCode * 397) ^ Height;
+                hashCode = (hashCode * 397) ^ PixelAspectRatio.GetHashCode();
+                hashCode = (hashCode * 397) ^ FrameRate.GetHashCode();
+                hashCode = (hashCode * 397) ^ (FrameRate_Mode != null ? FrameRate_Mode.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ FrameCount;
+                hashCode = (hashCode * 397) ^ (ColorSpace != null ? ColorSpace.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (ChromaSubsampling != null ? ChromaSubsampling.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ BitDepth;
+                hashCode = (hashCode * 397) ^ (ScanType != null ? ScanType.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Encoded_Library_Name != null ? Encoded_Library_Name.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (MuxingMode != null ? MuxingMode.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (HDR_Format != null ? HDR_Format.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (HDR_Format_Compatibility != null ? HDR_Format_Compatibility.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (colour_range != null ? colour_range.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (colour_primaries != null ? colour_primaries.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (transfer_characteristics != null ? transfer_characteristics.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (matrix_coefficients != null ? matrix_coefficients.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (MasteringDisplay_ColorPrimaries != null ? MasteringDisplay_ColorPrimaries.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (MasteringDisplay_Luminance != null ? MasteringDisplay_Luminance.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (MaxCLL != null ? MaxCLL.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (MaxFALL != null ? MaxFALL.GetHashCode() : 0);
+                return hashCode;
+            }
+        }
     }
 
+    [MessagePackObject(true)]
     public class AudioStream : Stream, IAudioStream
     {
         public override StreamType type => StreamType.Audio;
@@ -234,8 +416,39 @@ namespace Shoko.Models.MediaInfo
 
         public AudioExtra extra { get; set; }
         string IAudioStream.SimplifiedCodec => LegacyMediaUtils.TranslateCodec(this);
+
+        protected bool Equals(AudioStream other) =>
+            base.Equals(other) && Channels == other.Channels && ChannelLayout == other.ChannelLayout && SamplesPerFrame == other.SamplesPerFrame && SamplingRate == other.SamplingRate
+            && Compression_Mode == other.Compression_Mode && BitRate == other.BitRate && BitRate_Mode == other.BitRate_Mode && BitDepth == other.BitDepth && Equals(extra, other.extra);
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((AudioStream)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ Channels;
+                hashCode = (hashCode * 397) ^ (ChannelLayout != null ? ChannelLayout.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ SamplesPerFrame;
+                hashCode = (hashCode * 397) ^ SamplingRate;
+                hashCode = (hashCode * 397) ^ (Compression_Mode != null ? Compression_Mode.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ BitRate;
+                hashCode = (hashCode * 397) ^ (BitRate_Mode != null ? BitRate_Mode.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ BitDepth;
+                hashCode = (hashCode * 397) ^ (extra != null ? extra.GetHashCode() : 0);
+                return hashCode;
+            }
+        }
     }
 
+    [MessagePackObject(true)]
     public class AudioExtra
     {
         // Audio
@@ -277,8 +490,48 @@ namespace Shoko.Models.MediaInfo
         public double dynrng_Maximum { get; set; }
 
         public int dynrng_Count { get; set; }
+
+        protected bool Equals(AudioExtra other) =>
+            NumberOfDynamicObjects == other.NumberOfDynamicObjects && bsid == other.bsid && dialnorm.Equals(other.dialnorm) && compr.Equals(other.compr) && dynrng.Equals(other.dynrng) && acmod.Equals(other.acmod)
+            && lfeon.Equals(other.lfeon) && dialnorm_Average.Equals(other.dialnorm_Average) && dialnorm_Minimum.Equals(other.dialnorm_Minimum) && compr_Average.Equals(other.compr_Average)
+            && compr_Minimum.Equals(other.compr_Minimum) && compr_Maximum.Equals(other.compr_Maximum) && compr_Count == other.compr_Count && dynrng_Average.Equals(other.dynrng_Average)
+            && dynrng_Minimum.Equals(other.dynrng_Minimum) && dynrng_Maximum.Equals(other.dynrng_Maximum) && dynrng_Count == other.dynrng_Count;
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((AudioExtra)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = (NumberOfDynamicObjects != null ? NumberOfDynamicObjects.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ bsid;
+                hashCode = (hashCode * 397) ^ dialnorm.GetHashCode();
+                hashCode = (hashCode * 397) ^ compr.GetHashCode();
+                hashCode = (hashCode * 397) ^ dynrng.GetHashCode();
+                hashCode = (hashCode * 397) ^ acmod.GetHashCode();
+                hashCode = (hashCode * 397) ^ lfeon.GetHashCode();
+                hashCode = (hashCode * 397) ^ dialnorm_Average.GetHashCode();
+                hashCode = (hashCode * 397) ^ dialnorm_Minimum.GetHashCode();
+                hashCode = (hashCode * 397) ^ compr_Average.GetHashCode();
+                hashCode = (hashCode * 397) ^ compr_Minimum.GetHashCode();
+                hashCode = (hashCode * 397) ^ compr_Maximum.GetHashCode();
+                hashCode = (hashCode * 397) ^ compr_Count;
+                hashCode = (hashCode * 397) ^ dynrng_Average.GetHashCode();
+                hashCode = (hashCode * 397) ^ dynrng_Minimum.GetHashCode();
+                hashCode = (hashCode * 397) ^ dynrng_Maximum.GetHashCode();
+                hashCode = (hashCode * 397) ^ dynrng_Count;
+                return hashCode;
+            }
+        }
     }
 
+    [MessagePackObject(true)]
     public class TextStream : Stream, ITextStream
     {
         public override StreamType type => StreamType.Text;
@@ -298,8 +551,31 @@ namespace Shoko.Models.MediaInfo
         /// </summary>
         public string Filename { get; set; }
         string ITextStream.SimplifiedCodec => LegacyMediaUtils.TranslateCodec(this);
+
+        protected bool Equals(TextStream other) => base.Equals(other) && SubTitle == other.SubTitle && External == other.External && Filename == other.Filename;
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((TextStream)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ (SubTitle != null ? SubTitle.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ External.GetHashCode();
+                hashCode = (hashCode * 397) ^ (Filename != null ? Filename.GetHashCode() : 0);
+                return hashCode;
+            }
+        }
     }
 
+    [MessagePackObject(true)]
     public class MenuStream : Stream
     {
         public override StreamType type => StreamType.Menu;
@@ -308,5 +584,23 @@ namespace Shoko.Models.MediaInfo
         /// Chapters are stored in the format "_hh_mm_ss_fff" : "Chapter Name" 
         /// </summary>
         public Dictionary<string, string> extra { get; set; }
+
+        protected bool Equals(MenuStream other) => base.Equals(other) && extra.SequenceEqual(other.extra);
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((MenuStream)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (base.GetHashCode() * 397) ^ (extra != null ? extra.GetHashCode() : 0);
+            }
+        }
     }
 }

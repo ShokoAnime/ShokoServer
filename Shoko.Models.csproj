@@ -9,6 +9,7 @@
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="MessagePack.Annotations" Version="2.1.143" />
     <PackageReference Include="Nancy.Rest.Annotations" Version="1.4.4" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="Shoko.Plugin.Abstractions" Version="2.2.0" />
