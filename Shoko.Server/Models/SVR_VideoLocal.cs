@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using MessagePack;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NLog;
@@ -57,7 +58,7 @@ namespace Shoko.Server.Models
         public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
 
 
-        public const int MEDIA_VERSION = 4;
+        public const int MEDIA_VERSION = 5;
 
 
         private MediaContainer _media { get; set; }
@@ -68,15 +69,23 @@ namespace Shoko.Server.Models
             {
                 if (MediaVersion == MEDIA_VERSION && (_media?.GeneralStream?.Duration ?? 0) == 0 && MediaBlob != null &&
                     MediaBlob.Length > 0 && MediaSize > 0)
-                    _media = CompressionHelper.DeserializeObject<MediaContainer>(MediaBlob, MediaSize,
-                        new JsonConverter[] {new StreamJsonConverter()});
+                {
+                    try
+                    {
+                        _media = MessagePackSerializer.Deserialize<MediaContainer>(MediaBlob, MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray));
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error(e, "Unable to Deserialize MediaContainer as MessagePack: {Ex}", e);
+                    }
+                }
                 return _media;
             }
             set
             {
                 _media = value;
-                MediaBlob = CompressionHelper.SerializeObject(value, out int outsize);
-                MediaSize = outsize;
+                MediaBlob = MessagePackSerializer.Serialize(_media, MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray));
+                MediaSize = MediaBlob.Length;
                 MediaVersion = MEDIA_VERSION;
             }
         }

@@ -4,16 +4,20 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentNHibernate.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Utils;
+using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
+using Shoko.Server.LZ4;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities.MediaInfoLib;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -67,9 +71,33 @@ namespace Shoko.Server.Repositories.Cached
                 Resources.Database_Validating, nameof(VideoLocal), " Checking Media Info");
             var count = 0;
             int max;
+
+            List<SVR_VideoLocal> list = Cache.Values.Where(a => a is { MediaVersion: 5, MediaBlob: { Length: > 0 }}).ToList();
+            max = list.Count;
+
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using (var transaction = session.BeginTransaction())
+            {
+                list.ForEach(
+                    a =>
+                    {
+                        var media = CompressionHelper.DeserializeObject<MediaContainer>(a.MediaBlob, a.MediaSize, new JsonConverter[] {new StreamJsonConverter()});
+                        a.Media = media;
+                        RepoFactory.VideoLocal.SaveWithOpenTransaction(session, a);
+                        count++;
+                        ServerState.Instance.ServerStartingStatus = string.Format(
+                            Resources.Database_Validating, nameof(VideoLocal),
+                            " Converting MediaInfo to MessagePack - " + count + "/" + max
+                        );
+                    }
+                );
+                transaction.Commit();
+            }
+
+            count = 0;
             try
             {
-                var list = Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null)
+                list = Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION && !(SVR_VideoLocal.MEDIA_VERSION == 5 && a.MediaVersion == 4) || a.MediaBlob == null)
                     .ToList();
                 max = list.Count;
 
@@ -90,7 +118,6 @@ namespace Shoko.Server.Repositories.Cached
                 // ignore
             }
 
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
             var locals = Cache.Values
                 .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
                 .GroupBy(a => a.Hash)
@@ -100,7 +127,7 @@ namespace Shoko.Server.Repositories.Cached
                 " Cleaning Empty Records");
             using (var transaction = session.BeginTransaction())
             {
-                var list = Cache.Values.Where(a => a.IsEmpty()).ToList();
+                list = Cache.Values.Where(a => a.IsEmpty()).ToList();
                 count = 0;
                 max = list.Count;
                 foreach (var remove in list)
@@ -162,12 +189,12 @@ namespace Shoko.Server.Repositories.Cached
                 " Cleaning Fragmented Records");
             using (var transaction = session.BeginTransaction())
             {
-                var list = Cache.Values.SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
+                var list2 = Cache.Values.SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
                     .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
                                 a.GetEpisode() == null).ToArray();
                 count = 0;
-                max = list.Length;
-                foreach (var xref in list)
+                max = list2.Length;
+                foreach (var xref in list2)
                 {
                     // We don't need to update anything since they don't exist
                     RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
