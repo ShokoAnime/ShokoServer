@@ -82,6 +82,8 @@ namespace Shoko.Server.Providers.AniDB.UDP
             CloseConnections();
         }
 
+        public void ExtendBanTimer(int time, string message) => base.ExtendBanTimer(time, message);
+
         public bool Init(string username, string password, string serverName, ushort serverPort, ushort clientPort)
         {
             var settings = SettingsProvider.Settings;
@@ -159,11 +161,9 @@ namespace Shoko.Server.Providers.AniDB.UDP
         /// <param name="command">The request to be made (AUTH user=baka&amp;pass....)</param>
         /// <param name="needsUnicode">Only for Login, specify whether to ask for UTF16</param>
         /// <param name="disableLogging">Some commands have sensitive data</param>
-        /// <param name="shouldRelog">Should it attempt to relog when an invalid session is received</param>
         /// <param name="isPing">is it a ping command</param>
         /// <returns></returns>
-        public UDPResponse<string> CallAniDBUDP(string command, bool needsUnicode = true,
-                                                bool disableLogging = false, bool shouldRelog = true, bool isPing = false)
+        public string CallAniDBUDP(string command, bool needsUnicode = true, bool disableLogging = false, bool isPing = false)
         {
             // Steps:
             // 1. Check Ban state and throw if Banned
@@ -184,21 +184,10 @@ namespace Shoko.Server.Providers.AniDB.UDP
                 throw new NotLoggedInException();
 
             // Actually Call AniDB
-            try
-            {
-                return CallAniDBUDPDirectly(command, needsUnicode, disableLogging, shouldRelog, isPing);
-            }
-            catch (NotLoggedInException)
-            {
-                Logger.LogTrace("FORCING Logout because of invalid session");
-                ForceLogout();
-                if (!Login()) throw new NotLoggedInException();
-                return CallAniDBUDPDirectly(command, needsUnicode, disableLogging, shouldRelog, isPing);
-            }
+            return CallAniDBUDPDirectly(command, needsUnicode, disableLogging, isPing);
         }
 
-        public UDPResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode=true, bool disableLogging=false,
-            bool shouldRelog=true, bool isPing=false, bool returnFullResponse=false)
+        public string CallAniDBUDPDirectly(string command, bool needsUnicode=true, bool disableLogging=false, bool isPing=false)
         {
             // 1. Call AniDB
             // 2. Decode the response, converting Unicode and decompressing, as needed
@@ -232,79 +221,9 @@ namespace Shoko.Server.Providers.AniDB.UDP
             if (decodedString[0] == 0xFEFF) // remove BOM
                 decodedString = decodedString[1..];
 
-            // there should be 2 newline characters in each response
-            // the first is after the command .e.g "220 FILE"
-            // the second is at the end of the data
-            var decodedParts = decodedString.Split('\n');
-            var truncated = decodedString.Count(a => a == '\n') < 2 || !decodedString.EndsWith('\n');
-            var decodedResponse = string.Join('\n', decodedString.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Skip(1)); 
-
-            // If the parts don't have at least 2 items, then we don't have a valid response
-            // parts[0] => 200 FILE
-            // parts[1] => Response
-            // parts[2] => empty, since we ended with a newline
-            if (decodedParts.Length < 2) throw new UnexpectedUDPResponseException(decodedString);
-
-            if (truncated)
-            {
-                var ts = DateTime.Now - start;
-                Logger.LogTrace("AniDB Response Truncated: Received in {Time:ss'.'ffff}s\n{DecodedString}", ts, decodedString);
-            }
-            else
-            {
-                var ts = DateTime.Now - start;
-                Logger.LogTrace("AniDB Response: Received in {Time:ss'.'ffff}s\n{DecodedPart1}\n{DecodedPart2}", ts, decodedParts[0], decodedResponse);
-            }
-
-            var firstLineParts = decodedParts[0].Split(' ', 2);
-            // If we don't have 2 parts of the first line, then it's not in the expected
-            // 200 FILE
-            // Format
-            if (firstLineParts.Length != 2) throw new UnexpectedUDPResponseException(response:decodedString);
-
-            // Can't parse the code
-            if (!int.TryParse(firstLineParts[0], out var code)) throw new UnexpectedUDPResponseException(response:decodedString);
-
-            var status = (UDPReturnCode) code;
-
-            // if we get banned pause the command processor for a while
-            // so we don't make the ban worse
-            IsBanned = status == UDPReturnCode.BANNED;
-            
-            // if banned, then throw the ban exception. There will be no data in the response
-            if (IsBanned) throw new AniDBBannedException { BanType = UpdateType.UDPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength) };
-
-            switch (status)
-            {
-                // 506 INVALID SESSION
-                // 505 ILLEGAL INPUT OR ACCESS DENIED
-                // reset login status to start again
-                case UDPReturnCode.INVALID_SESSION:
-                case UDPReturnCode.ILLEGAL_INPUT_OR_ACCESS_DENIED:
-                    IsInvalidSession = true;
-                    if (shouldRelog) Login(); else throw new NotLoggedInException();
-                    break;
-                // 600 INTERNAL SERVER ERROR
-                // 601 ANIDB OUT OF SERVICE - TRY AGAIN LATER
-                // 602 SERVER BUSY - TRY AGAIN LATER
-                // 604 TIMEOUT - DELAY AND RESUBMIT
-                case UDPReturnCode.INTERNAL_SERVER_ERROR:
-                case UDPReturnCode.ANIDB_OUT_OF_SERVICE:
-                case UDPReturnCode.SERVER_BUSY:
-                case UDPReturnCode.TIMEOUT_DELAY_AND_RESUBMIT:
-                {
-                    var errorMessage = $"{(int) status} {status}";
-                    Logger.LogTrace("Waiting. AniDB returned {StatusCode} {Status}", (int) status, status);
-                    ExtendBanTimer(300, errorMessage);
-                    break;
-                }
-                case UDPReturnCode.UNKNOWN_COMMAND:
-                    throw new UnexpectedUDPResponseException(response:decodedString, code:status);
-            }
-
-            if (returnFullResponse) return new UDPResponse<string> {Code = status, Response = decodedString};
-            // things like group status have more than 2 lines, so rebuild the data from the original string. split, remove empty, and skip the code
-            return new UDPResponse<string> { Code = status, Response = decodedResponse };
+            var ts = DateTime.Now - start;
+            if (!disableLogging) Logger.LogTrace("AniDB Response: Received in {Time:ss'.'ffff}s\n{DecodedString}", ts, decodedString);
+            return decodedString;
         }
         
         public void ForceReconnection()
@@ -438,22 +357,20 @@ namespace Shoko.Server.Providers.AniDB.UDP
                         r.Password = password;
                     }
                 );
-                // Never give Execute a null SessionID, except here
                 response = login.Execute();
             }
-            catch (UnexpectedUDPResponseException e)
+            catch (UnexpectedUDPResponseException)
             {
-                if (e.ReturnCode == UDPReturnCode.UNKNOWN_COMMAND)
-                {
-                    Logger.LogTrace("Received Unknown Command while logging in, this usually happens when a logout was not issued. Relogging");
-                    IsInvalidSession = true;
-                    IsLoggedOn = false;
-                    SessionID = null;
-                    return false;
-                }
-
-                Logger.LogError(e, "Unable to login to AniDB: {Ex}", e);
-                response = new UDPResponse<ResponseLogin>();
+                Logger.LogTrace("Received an UnexpectedUDPResponseException on Login. This usually happens because of an unexpected shutdown. Relogging using Unicode");
+                var login = _requestFactory.Create<RequestLogin>(
+                    r =>
+                    {
+                        r.Username = username;
+                        r.Password = password;
+                        r.UseUnicode = true;
+                    }
+                );
+                response = login.Execute();
             }
             catch (Exception e)
             {

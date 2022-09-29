@@ -26,7 +26,8 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
         {
             var rawResponse = Handler.CallAniDBUDPDirectly(BaseCommand, true, true, isPing: true);
             var response = ParseResponse(rawResponse);
-            return response;
+            var parsedResponse = ParseResponse(response);
+            return parsedResponse;
         }
 
         public RequestPing(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)

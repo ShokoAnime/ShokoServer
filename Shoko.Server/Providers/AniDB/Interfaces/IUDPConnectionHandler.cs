@@ -9,6 +9,7 @@ namespace Shoko.Server.Providers.AniDB.Interfaces
         string SessionID { get; }
         string ImageServerUrl { get; }
         IServiceProvider ServiceProvider { get; }
+        bool IsInvalidSession { set; get; }
         bool IsNetworkAvailable { get; }
         event EventHandler LoginFailed;
         bool SetCredentials(string username, string password);
@@ -17,9 +18,10 @@ namespace Shoko.Server.Providers.AniDB.Interfaces
         void ForceLogout();
         void CloseConnections();
         void ForceReconnection();
+        void ExtendBanTimer(int time, string message);
         bool Init(string username, string password, string serverName, ushort serverPort, ushort clientPort);
         bool TestLogin(string username, string password);
-        UDPResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode=true, bool disableLogging=false, bool shouldRelog=true, bool isPing=false, bool returnFullResponse=false);
-        UDPResponse<string> CallAniDBUDP(string command, bool needsUnicode = true, bool disableLogging = false, bool shouldRelog=true, bool isPing = false);
+        string CallAniDBUDPDirectly(string command, bool needsUnicode=true, bool disableLogging=false, bool isPing=false);
+        string CallAniDBUDP(string command, bool needsUnicode = true, bool disableLogging = false, bool isPing = false);
     }
 }

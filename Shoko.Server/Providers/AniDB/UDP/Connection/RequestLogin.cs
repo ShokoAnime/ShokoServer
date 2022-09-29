@@ -11,6 +11,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
     {
         public string Username { get; set; }
         public string Password { get; set; }
+        public bool UseUnicode { get; set; }
 
         protected override string BaseCommand => $"AUTH user={Username}&pass={Password}&protover=3&client=ommserver&clientver=2&comp=1&imgserver=1&enc=utf-16";
 
@@ -36,22 +37,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
         {
             Command = BaseCommand;
             // LOGIN commands have special needs, so we want to handle this differently
-            UDPResponse<string> rawResponse;
-            try
-            {
-                rawResponse = Handler.CallAniDBUDPDirectly(Command, false, true, false, false, true);
-            }
-            catch (NotLoggedInException)
-            {
-                rawResponse = Handler.CallAniDBUDPDirectly(Command, true, true, false, false, true);
-            }
-            catch (UnexpectedUDPResponseException)
-            {
-                rawResponse = Handler.CallAniDBUDPDirectly(Command, true, true, false, false, true);
-            }
-
-            var response = ParseResponse(rawResponse);
-            return response;
+            var rawResponse = Handler.CallAniDBUDPDirectly(Command, UseUnicode, true);
+            var response = ParseResponse(rawResponse, true);
+            var parsedResponse = ParseResponse(response);
+            return parsedResponse;
         }
 
         public RequestLogin(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
