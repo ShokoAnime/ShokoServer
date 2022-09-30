@@ -86,7 +86,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
         {
-            IList<int> ids;
+            IEnumerable<int> ids;
             lock (GlobalDBLock)
             {
                 const string ignoreVariationsQuery = @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
@@ -94,8 +94,8 @@ namespace Shoko.Server.Repositories.Cached
 
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
                 ids = ignoreVariations
-                    ? session.CreateSQLQuery(ignoreVariationsQuery).List<int>()
-                    : session.CreateSQLQuery(countVariationsQuery).List<int>();
+                    ? session.CreateSQLQuery(ignoreVariationsQuery).List().Cast<int>()
+                    : session.CreateSQLQuery(countVariationsQuery).List().Cast<int>();
             }
 
             return ids.Select(GetByAniDBEpisodeID).Where(a => a != null).ToList();
