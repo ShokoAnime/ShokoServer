@@ -31,19 +31,6 @@ namespace Shoko.Commons.Extensions
             return list.ElementAt(random.Next(list.Count));
         }
 
-        public static IEnumerable<TSource> DistinctBy<TSource, TKey>
-            (this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
-        {
-            HashSet<TKey> seenKeys = new HashSet<TKey>();
-            foreach (TSource element in source)
-            {
-                if (seenKeys.Add(keySelector(element)))
-                {
-                    yield return element;
-                }
-            }
-        }
-
         public static IOrderedEnumerable<TSource> OrderByNatural<TSource>(this IEnumerable<TSource> items, Func<TSource, string> selector, StringComparer stringComparer = null)
         {
             var regex = new Regex(@"\d+", RegexOptions.Compiled);
@@ -205,6 +192,19 @@ namespace Shoko.Commons.Extensions
             }
         }
 
+#if !NET6_0_OR_GREATER
+        public static IEnumerable<TSource> DistinctBy<TSource, TKey>
+            (this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
+        {
+            HashSet<TKey> seenKeys = new HashSet<TKey>();
+            foreach (TSource element in source)
+            {
+                if (seenKeys.Add(keySelector(element)))
+                {
+                    yield return element;
+                }
+            }
+        }
 
         // These next few for MaxBy are borrowed from MoreLINQ
          public static IEnumerable<TSource> MaxBy<TSource, TKey>(this IEnumerable<TSource> source,
@@ -238,6 +238,7 @@ namespace Shoko.Commons.Extensions
             comparer = comparer ?? Comparer<TKey>.Default;
             return ExtremaBy(source, selector, (x, y) => comparer.Compare(y, x));
         }
+#endif
 
         static IEnumerable<TSource> ExtremaBy<TSource, TKey>(IEnumerable<TSource> source,
             Func<TSource, TKey> selector, Func<TKey, TKey, int> comparer)
