@@ -94,8 +94,8 @@ namespace Shoko.Server.Repositories.Cached
 
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
                 ids = ignoreVariations
-                    ? session.CreateSQLQuery(ignoreVariationsQuery).List().Cast<int>()
-                    : session.CreateSQLQuery(countVariationsQuery).List().Cast<int>();
+                    ? session.CreateSQLQuery(ignoreVariationsQuery).List<object>().Select(Convert.ToInt32)
+                    : session.CreateSQLQuery(countVariationsQuery).List<object>().Select(Convert.ToInt32);
             }
 
             return ids.Select(GetByAniDBEpisodeID).Where(a => a != null).ToList();
