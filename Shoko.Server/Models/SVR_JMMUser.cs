@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using System.Security.Principal;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
@@ -23,20 +24,20 @@ namespace Shoko.Server.Models
         public bool AllowedSeries(SVR_AnimeSeries ser)
         {
             if (this.GetHideCategories().Count == 0) return true;
-            if (ser?.Contract?.AniDBAnime == null) return false;
-            return !this.GetHideCategories().FindInEnumerable(ser.Contract.AniDBAnime.AniDBAnime.GetAllTags());
+            var anime = ser?.GetAnime();
+            if (anime == null) return false;
+            return !this.GetHideCategories().FindInEnumerable(anime.GetTags().Select(a => a.TagName));
         }
 
         /// <summary>
         /// Returns whether a user is allowed to view this anime
         /// </summary>
-        /// <param name="ser"></param>
+        /// <param name="anime"></param>
         /// <returns></returns>
         public bool AllowedAnime(SVR_AniDB_Anime anime)
         {
             if (this.GetHideCategories().Count == 0) return true;
-            if (anime?.Contract?.AnimeTitles == null) return false;
-            return !this.GetHideCategories().FindInEnumerable(anime.Contract.AniDBAnime.GetAllTags());
+            return !this.GetHideCategories().FindInEnumerable(anime.GetTags().Select(a => a.TagName));
         }
 
         public bool AllowedGroup(SVR_AnimeGroup grp)
