@@ -82,7 +82,7 @@ namespace Shoko.Server.Extensions
                 {
                     // get the last watched file
                     var vlUser = vlUsers.Where(a => a.JMMUserID == uid && a.WatchedDate != null)
-                        .MaxBy(a => a.WatchedDate).FirstOrDefault();
+                        .MaxBy(a => a.WatchedDate);
                     // create or update the record
                     var epUser = existingEp.GetUserRecord(uid);
                     if (epUser == null)

@@ -173,8 +173,12 @@ namespace Shoko.Server.API.v2.Models.common
             if (season != null)
                 sr.season = season.Value.ToString();
 
-            var tvdbseriesID = ael.Select(a => a.TvDBEpisode).Where(a => a != null).GroupBy(a => a.SeriesID)
-                .MaxBy(a => a.Count()).FirstOrDefault()?.Key;
+            var tvdbseriesID = ael.Select(a => a.TvDBEpisode)
+                                  .Where(a => a != null)
+                                  .GroupBy(a => a.SeriesID)
+                                  .MaxBy(a => a.Count())
+                                 ?.Key;
+            
             if (tvdbseriesID != null)
             {
                 var tvdbseries = RepoFactory.TvDB_Series.GetByTvDBID(tvdbseriesID.Value);
