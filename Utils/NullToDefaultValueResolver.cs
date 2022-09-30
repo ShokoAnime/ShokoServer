@@ -50,9 +50,11 @@ namespace Shoko.Commons.Utils
             {
                 // Could be handled as "(value ?? _innerProvider.GetValue(target)) ?? _defaultValue"
                 // I think this shows more explicit definition of the order of fallback
-                object result = value;
-                result ??= _innerProvider.GetValue(target);
-                result ??= _defaultValue;
+                var result = value;
+                if (result == null)
+                    result = _innerProvider.GetValue(target);
+                if (result == null)
+                    result = _defaultValue;
                 _innerProvider.SetValue(target, result);
             }
 
