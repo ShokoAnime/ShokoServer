@@ -51,9 +51,13 @@ public static class Program
 #region IConfigurationBuilderExtensions
     private static IConfigurationBuilder AddCommandLineIfNotNull(this IConfigurationBuilder configurationBuilder)
     {
-        var args = Environment.GetCommandLineArgs();
-        if (args is not null)
-            configurationBuilder.AddCommandLine(args);
+        var tmpArgs = Environment.GetCommandLineArgs();
+        var args = tmpArgs.Length > 1 ? new string[tmpArgs.Length - 1] : null;
+        if (args is null)
+            return configurationBuilder;
+        
+        Array.Copy(tmpArgs, 1, args, 0, args.Length);
+        configurationBuilder.AddCommandLine(args);
         return configurationBuilder;
     }
 
