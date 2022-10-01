@@ -1,174 +1,167 @@
-﻿using System;
+﻿#region
+using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Net.NetworkInformation;
+using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
 using NLog;
-using Shoko.Models.Interfaces;
-using Shoko.Server;
-using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.UDP.Generic;
-using Shoko.Server.Providers.AniDB.UDP.Info;
+using Shoko.Server.Commands;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+#endregion
+namespace Shoko.TrayService;
 
-namespace Shoko.TrayService
+/// <summary>
+/// Interaction logic for App.xaml
+/// </summary>
+public partial class App
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
-    public partial class App : Application
+    private static          TaskbarIcon? _icon;
+    private static readonly Logger       Logger = LogManager.GetCurrentClassLogger();
+
+    private void OnStartup(object a, StartupEventArgs e)
     {
-        public static TaskbarIcon Icon { get; set; }
-        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        private void OnStartup(object a, StartupEventArgs e)
+        Console.CancelKeyPress += OnConsoleOnCancelKeyPress;
+        InitialiseTaskbarIcon();
+        StartServer.StartupServer(AddEventHandlers, ServerStart);
+    }
+
+    private static bool ServerStart() 
+        => ShokoServer.Instance.StartUpServer();
+
+    private void AddEventHandlers()
+    {
+        ShokoServer.Instance.ServerShutdown                       += OnInstanceOnServerShutdown;
+        Utils.YesNoRequired                                       += OnUtilsOnYesNoRequired;
+        ServerState.Instance.PropertyChanged                      += OnInstanceOnPropertyChanged;
+        ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnCmdProcessorGeneralOnOnQueueStateChangedEvent;
+    }
+    
+    private void OnCmdProcessorGeneralOnOnQueueStateChangedEvent(QueueStateEventArgs ev) 
+        => Console.WriteLine($"General Queue state change: {ev.QueueState.formatMessage()}");
+    
+    private static void OnUtilsOnYesNoRequired(object? _, Utils.CancelReasonEventArgs e) 
+        => e.Cancel = true;
+    
+    private void OnInstanceOnServerShutdown(object? o, EventArgs eventArgs) 
+        => Shutdown();
+
+    private static void OnInstanceOnPropertyChanged(object? _, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
+            Console.WriteLine("Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
+    }
+
+    private void InitialiseTaskbarIcon()
+    {
+        _icon = new TaskbarIcon{
+                                   ToolTipText = "Shoko Server", ContextMenu = CreateContextMenu(), MenuActivation = PopupActivationMode.All, Visibility = Visibility.Visible,
+                               };
+        using var iconStream = GetResourceStream(new Uri("pack://application:,,,/ShokoServer;component/db.ico"))?.Stream;
+        if (iconStream is not null)
+            _icon.Icon = new Icon(iconStream);
+    }
+    
+    private ContextMenu CreateContextMenu()
+    {
+        var menu  = new ContextMenu();
+        var webui = new MenuItem{Header = "Open WebUI"};
+        webui.Click += OnWebuiOpenWebUIClick;
+        menu.Items.Add(webui);
+        webui       =  new MenuItem{Header = "Exit"};
+        webui.Click += OnWebuiExit;
+        menu.Items.Add(webui);
+        return menu;
+    }
+    
+    private void OnWebuiExit(object? sender, RoutedEventArgs args) 
+        => Dispatcher.Invoke(Shutdown);
+
+    private static void OnWebuiOpenWebUIClick(object? sender, RoutedEventArgs args)
+    {
+        string? ip = null;
+        try
         {
-            Console.CancelKeyPress += (sender, args) => Dispatcher.Invoke(() =>
-            {
-                args.Cancel = true;
-                Shutdown();
-            });
-            Icon = new TaskbarIcon();
-            using (var iconStream = GetResourceStream(new Uri("pack://application:,,,/ShokoServer;component/db.ico"))
-                ?.Stream)
-            {
-                if (iconStream != null) Icon.Icon = new Icon(iconStream);
-            }
-            Icon.ToolTipText = "Shoko Server";
-            ContextMenu menu = new ContextMenu();
-            MenuItem webui = new MenuItem();
-            webui.Header = "Open WebUI";
-            webui.Click += (sender, args) =>
-            {
-                try
-                {
-                    string IP = GetLocalIPv4(NetworkInterfaceType.Ethernet);
-                    if (string.IsNullOrEmpty(IP))
-                        IP = "127.0.0.1";
-
-                    string url = $"http://{IP}:{ServerSettings.Instance.ServerPort}";
-                    OpenUrl(url);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, ex.ToString());
-                }
-            };
-            menu.Items.Add(webui);
-            webui = new MenuItem();
-            webui.Header = "Exit";
-            webui.Click += (sender, args) => Dispatcher.Invoke(Shutdown);
-            menu.Items.Add(webui);
-            Icon.ContextMenu = menu;
-            Icon.MenuActivation = PopupActivationMode.All;
-            Icon.Visibility = Visibility.Visible;
-
-            string instance = null;
-            for (int x = 0; x < e.Args.Length; x++)
-            {
-                if (!e.Args[x].Equals("instance", StringComparison.InvariantCultureIgnoreCase)) continue;
-                if (x + 1 >= e.Args.Length) continue;
-                instance = e.Args[x + 1];
-                break;
-            }
-
-            var arguments = new ProgramArguments {Instance = instance};
-            if (!string.IsNullOrEmpty(arguments.Instance)) ServerSettings.DefaultInstance = arguments.Instance;
-
-            ShokoServer.Instance.InitLogger();
-            
-            ServerSettings.LoadSettings();
-            ServerState.Instance.LoadSettings();
-
-            if (!ShokoServer.Instance.StartUpServer()) return;
-
-            if (!ServerSettings.Instance.FirstRun)
-                ShokoServer.RunWorkSetupDB();
-            else Logger.Warn("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
-
-            ShokoServer.Instance.ServerShutdown += (sender, eventArgs) => Shutdown();
-            Utils.YesNoRequired += (sender, e) =>
-            {
-                e.Cancel = true;
-            };
-
-            ServerState.Instance.PropertyChanged += (sender, e) =>
-            {
-                if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
-                {
-                    Console.WriteLine("Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
-                }
-            };
-            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent +=
-                ev => Console.WriteLine($"General Queue state change: {ev.QueueState.formatMessage()}");
+            ip = GetLocalIPv6();
         }
+        catch (Exception) { /*ok no IPv6 available.*/ }
 
-        protected override void OnExit(ExitEventArgs e)
-        {
-            base.OnExit(e);
-            Logger.Info("Exit was Requested. Shutting Down.");
-            ShokoService.CancelAndWaitForQueues();
-            Icon.Visibility = Visibility.Hidden;
-        }
+        if (string.IsNullOrWhiteSpace(ip))
+            ip = GetLocalIpv4OrFallback();
+        else
+            ip = $"[{ip}]";
         
-        private void OpenUrl(string url)
+        var url = $"http://{ip}:{ServerSettings.Instance.ServerPort}";
+        try
         {
-            try
-            {
-                Process.Start(url);
-            }
-            catch
-            {
-                // hack because of this: https://github.com/dotnet/corefx/issues/10361
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    url = url.Replace("&", "^&");
-                    Process.Start(new ProcessStartInfo("cmd", $"/c start {url}") { CreateNoWindow = true });
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    Process.Start("xdg-open", url);
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    Process.Start("open", url);
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            OpenUrl(url);
         }
-        
-        internal static string GetLocalIPv4(NetworkInterfaceType _type)
+        catch (Exception e)
         {
-            string output = "";
-            foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
-            {
-                if (item.NetworkInterfaceType == _type && item.OperationalStatus == OperationalStatus.Up)
-                {
-                    IPInterfaceProperties adapterProperties = item.GetIPProperties();
-
-                    if (adapterProperties.GatewayAddresses.FirstOrDefault() != null)
-                    {
-                        foreach (UnicastIPAddressInformation ip in adapterProperties.UnicastAddresses)
-                        {
-                            if (ip.Address.AddressFamily == AddressFamily.InterNetwork)
-                            {
-                                output = ip.Address.ToString();
-                            }
-                        }
-                    }
-                }
-            }
-
-            return output;
+            Logger.Error(e);
         }
     }
+
+    private static string GetLocalIpv4OrFallback()
+    {
+        string? ip;
+        try
+        {
+            ip = GetLocalIPv4();
+        }
+        catch (Exception e)
+        {
+            ip = null;
+            Logger.Error(e);
+        }
+        if (string.IsNullOrWhiteSpace(ip))
+            ip = "127.0.0.1";
+        return ip;
+    }
+    
+    private void OnConsoleOnCancelKeyPress(object? sender, ConsoleCancelEventArgs args)
+        => Dispatcher.Invoke(() =>
+                             {
+                                 args.Cancel = true;
+                                 Shutdown();
+                             }
+                            );
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        base.OnExit(e);
+        Logger.Info("Exit was Requested. Shutting Down.");
+        ShokoService.CancelAndWaitForQueues();
+        if (_icon is not null)
+            _icon.Visibility = Visibility.Hidden;
+    }
+
+    ///hack because of this: https://github.com/dotnet/corefx/issues/10361
+    private static void OpenUrl(string url)
+    {
+        try
+        {
+            Process.Start(url);
+        }
+        catch
+        {
+            url = url.Replace("&", "^&");
+            Process.Start(new ProcessStartInfo("cmd", $"/c start {url}"){CreateNoWindow = true});
+        }
+    }
+
+    private static string? GetLocalIPv4()                          
+        => GetLocalIP(AddressFamily.InterNetwork);
+    
+    private static string? GetLocalIPv6()                          
+        => GetLocalIP(AddressFamily.InterNetworkV6);
+    
+    private static string? GetLocalIP(AddressFamily addressFamily) 
+        => Dns.GetHostEntry(Dns.GetHostName(), addressFamily).AddressList.FirstOrDefault()?.ToString();
 }
