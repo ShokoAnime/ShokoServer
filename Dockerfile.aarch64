@@ -8,7 +8,7 @@ WORKDIR /usr/src/app/source
 
 RUN dotnet build -c=Release -o=/usr/src/app/build/ -r=linux-arm64 Shoko.CLI/Shoko.CLI.csproj
 
-FROM mcr.microsoft.com/dotnet/aspnet:5.0
+FROM mcr.microsoft.com/dotnet/aspnet:6.0
 ENV PUID=1000 \
     PGID=100 \
     AVDUMP_MONO=false \
