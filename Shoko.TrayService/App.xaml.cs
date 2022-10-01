@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Versioning;
 using System.Windows;
 using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
@@ -29,7 +30,7 @@ public partial class App
     {
         Console.CancelKeyPress += OnConsoleOnCancelKeyPress;
         InitialiseTaskbarIcon();
-        StartServer.StartupServer(AddEventHandlers, ServerStart);
+        new StartServer().StartupServer(AddEventHandlers, ServerStart);
     }
 
     private static bool ServerStart() 
@@ -60,12 +61,17 @@ public partial class App
 
     private void InitialiseTaskbarIcon()
     {
+#pragma warning disable CA1416
         _icon = new TaskbarIcon{
-                                   ToolTipText = "Shoko Server", ContextMenu = CreateContextMenu(), MenuActivation = PopupActivationMode.All, Visibility = Visibility.Visible,
+                                   ToolTipText = "Shoko Server",
+                                   ContextMenu = CreateContextMenu(),
+                                   MenuActivation = PopupActivationMode.All,
+                                   Visibility = Visibility.Visible,
                                };
         using var iconStream = GetResourceStream(new Uri("pack://application:,,,/ShokoServer;component/db.ico"))?.Stream;
         if (iconStream is not null)
             _icon.Icon = new Icon(iconStream);
+#pragma warning restore CA1416
     }
     
     private ContextMenu CreateContextMenu()

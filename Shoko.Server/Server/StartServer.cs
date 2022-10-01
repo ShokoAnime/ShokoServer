@@ -3,10 +3,12 @@ using Shoko.Server.Settings;
 using NLog;
 namespace Shoko.Server.Server;
 #nullable enable
-public static class StartServer
+public class StartServer
 {
+    public StartServer() { }
+
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-    public static void StartupServer(Action? addEventHandlers, Func<bool> serverStart)
+    public void StartupServer(Action? addEventHandlers, Func<bool> serverStart)
     {
         SetInstanceIfNeeded();
         InitInstanceLogger();
@@ -17,7 +19,7 @@ public static class StartServer
         addEventHandlers?.Invoke();
     }
 
-    public static string? GetInstanceFromCommandLineArguments()
+    public string? GetInstanceFromCommandLineArguments()
     {
         const int notFound = -1;
         var       args     = Environment.GetCommandLineArgs();
@@ -30,7 +32,7 @@ public static class StartServer
     }
     
     ///Ensure that the AniDB socket is initialized. Try to Login, then start the server if successful.
-    private static void EnsureAniDBSocketInitialized()
+    private void EnsureAniDBSocketInitialized()
     {
         if (ServerSettings.Instance.FirstRun is false)
             ShokoServer.RunWorkSetupDB();
@@ -38,16 +40,16 @@ public static class StartServer
             Logger.Warn("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
     }
 
-    private static void InitInstanceLogger() => ShokoServer.Instance.InitLogger();
+    private void InitInstanceLogger() => ShokoServer.Instance.InitLogger();
 
-    private static void SetInstanceIfNeeded()
+    private void SetInstanceIfNeeded()
     {
         var instance = GetInstanceFromCommandLineArguments();
         if (string.IsNullOrWhiteSpace(instance) is false)
             ServerSettings.DefaultInstance = instance;
     }
 
-    private static void LoadSettings()
+    private void LoadSettings()
     {
         ServerSettings.LoadSettings();
         ServerState.Instance.LoadSettings();

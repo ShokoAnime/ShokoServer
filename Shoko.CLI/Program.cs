@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NLog.Web;
+using Shoko.Server.Server;
 #endregion
 namespace Shoko.CLI;
 
@@ -46,7 +47,11 @@ public static class Program
         options.ValidateOnBuild = isDevelopment;
     }
 
-    private static void ConfigureServices(IServiceCollection services) => services.AddHostedService<Worker>();
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        services.AddHostedService<Worker>();
+        services.AddSingleton<StartServer>();
+    }
 
 #region IConfigurationBuilderExtensions
     private static IConfigurationBuilder AddCommandLineIfNotNull(this IConfigurationBuilder configurationBuilder)
