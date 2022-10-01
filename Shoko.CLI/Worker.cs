@@ -12,17 +12,23 @@ namespace Shoko.CLI;
 
 public class Worker : BackgroundService
 {
-    private readonly        IHostApplicationLifetime? _appLifetime;
+    private readonly IHostApplicationLifetime? _appLifetime;
+    private readonly StartServer               _startServer;
+    
     public Worker() { }
-    public Worker(IHostApplicationLifetime lifetime) => _appLifetime = lifetime;
+    public Worker(IHostApplicationLifetime lifetime, StartServer startServer)
+    {
+        _appLifetime      = lifetime;
+        _startServer = startServer;
+    }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        StartServer.StartupServer(AddEventHandlers, ServerCouldStart);
+        _startServer.StartupServer(AddEventHandlers, ServerCouldStart);
         return Task.CompletedTask;
     }
     
-    private static bool ServerCouldStart() => ShokoServer.Instance.StartUpServer();
+    private bool ServerCouldStart() => ShokoServer.Instance.StartUpServer();
 
     private void AddEventHandlers()
     {
@@ -32,16 +38,16 @@ public class Worker : BackgroundService
         ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnCmdProcessorGeneralOnOnQueueStateChangedEvent;
     }
 
-    private static void OnCmdProcessorGeneralOnOnQueueStateChangedEvent(QueueStateEventArgs ev) 
+    private void OnCmdProcessorGeneralOnOnQueueStateChangedEvent(QueueStateEventArgs ev) 
         => Console.WriteLine($"General Queue state change: {ev.QueueState.formatMessage()}");
 
-    private static void OnInstanceOnPropertyChanged(object? _, PropertyChangedEventArgs e)
+    private void OnInstanceOnPropertyChanged(object? _, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
             Console.WriteLine("Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
     }
 
-    private static void OnUtilsOnYesNoRequired(object? _, Utils.CancelReasonEventArgs e) => e.Cancel = true;
+    private void OnUtilsOnYesNoRequired(object? _, Utils.CancelReasonEventArgs e) => e.Cancel = true;
 
     private void OnInstanceOnServerShutdown(object? _, EventArgs eventArgs) => _appLifetime?.StopApplication();
 

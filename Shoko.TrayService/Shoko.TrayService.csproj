@@ -15,7 +15,6 @@
         <Configurations>Debug;Release;ApiLogging</Configurations>
         <ApplicationIcon>..\Shoko.Server\db.ico</ApplicationIcon>
         <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
-        <NoWarn>CA1416</NoWarn>
         <Nullable>enable</Nullable>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
