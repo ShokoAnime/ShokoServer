@@ -1,41 +1,40 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
-    <PropertyGroup>
-        <TargetFramework>net5.0</TargetFramework>
-        <RuntimeIdentifiers>win10-x64;linux-x64</RuntimeIdentifiers>
-        <OutputType>exe</OutputType>
-        <Platforms>x64;AnyCPU</Platforms>
-        <Deterministic>false</Deterministic>
-        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-        <LangVersion>latest</LangVersion>
-        <Configurations>Debug;Release;ApiLogging</Configurations>
-        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-        <OutputPath>..\Shoko.Server\bin\Debug\</OutputPath>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-        <OutputPath>..\Shoko.Server\bin\Release\</OutputPath>
-    </PropertyGroup>
-    <ItemGroup>
-        <Compile Include="..\SharedAssemblyInfo.cs">
-            <Link>Properties\SharedAssemblyInfo.cs</Link>
-        </Compile>
-    </ItemGroup>
-    <ItemGroup>
-        <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
-    </ItemGroup>
-    <ItemGroup>
-        <WCFMetadata Include="Connected Services\" />
-    </ItemGroup>
-    <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0-preview.6.20305.6" />
-        <PackageReference Include="NLog" Version="4.6.2" />
-        <PackageReference Include="NLog.Extensions.Logging" Version="1.4.0" />
-    </ItemGroup>
-    <ItemGroup>
-        <Resource Include="..\Shoko.Server\db.ico">
-            <Link>db.ico</Link>
-        </Resource>
-    </ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <RuntimeIdentifiers>win10-x64;linux-x64</RuntimeIdentifiers>
+    <OutputType>exe</OutputType>
+    <Platforms>x64;AnyCPU</Platforms>
+    <Deterministic>false</Deterministic>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <LangVersion>latest</LangVersion>
+    <Configurations>Debug;Release;ApiLogging</Configurations>
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>..\Shoko.Server\bin\Debug\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>..\Shoko.Server\bin\Release\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\SharedAssemblyInfo.cs">
+      <Link>Properties\SharedAssemblyInfo.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Connected Services\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0-preview.6.20305.6" />
+    <PackageReference Include="NLog" Version="4.6.2" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="1.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="..\Shoko.Server\db.ico">
+      <Link>db.ico</Link>
+    </Resource>
+  </ItemGroup>
 </Project>
