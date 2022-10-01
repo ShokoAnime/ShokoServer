@@ -125,7 +125,7 @@ namespace Shoko.Server.Databases
 
         internal void PreFillVersions(IEnumerable<DatabaseCommand> commands)
         {
-            if (AllVersions.Count != 1 || AllVersions.Values.ElementAt(0).Count != 1) return;
+            if (AllVersions.Count <= 1 || AllVersions.Values.ElementAt(0).Count != 1) return;
 
             Versions v = AllVersions.Values.ElementAt(0).Values.ElementAt(0);
             string value = v.VersionValue;

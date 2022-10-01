@@ -32,8 +32,8 @@
         <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hardcodet.NotifyIcon.Wpf.NetCore" Version="1.0.14" />
-        <PackageReference Include="NLog" Version="4.6.2" />
+        <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
+        <PackageReference Include="NLog" Version="5.0.4" />
     </ItemGroup>
     <ItemGroup>
         <Resource Include="..\Shoko.Server\db.ico">
