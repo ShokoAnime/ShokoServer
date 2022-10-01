@@ -28,4 +28,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: Shoko.TrayService-Framework-Dependent
-          path: Shoko.Server/bin/Release/net5.0-windows/publish/
+          path: Shoko.Server/bin/Release/net6.0-windows/publish/

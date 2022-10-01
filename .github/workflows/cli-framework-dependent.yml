@@ -30,4 +30,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: CLI-Framework-Dependent
-          path: Shoko.Server/bin/Release/net5.0/publish/
+          path: Shoko.Server/bin/Release/net6.0/publish/

@@ -32,14 +32,14 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ matrix.dotnet }}
-      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net5.0-windows Shoko.TrayService
+      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net6.0-windows Shoko.TrayService
       - uses: actions/upload-artifact@v2
         with:
           name: Shoko.TrayService
-          path: Shoko.Server/bin/Release/net5.0-windows/win10-x64/publish/
+          path: Shoko.Server/bin/Release/net6.0-windows/win10-x64/publish/
       - name: Archive Release
         shell: powershell
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net5.0-windows\\win10-x64\\publish .\\ShokoServer.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\ShokoServer.zip
       - name: Upload Daily to shokoanime.com
         shell: powershell
         env:
