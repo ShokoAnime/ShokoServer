@@ -85,22 +85,9 @@ public partial class App
 
     private static void OnWebuiOpenWebUIClick(object? sender, RoutedEventArgs args)
     {
-        string? ip = null;
         try
         {
-            ip = GetLocalIPv6();
-        }
-        catch (Exception) { /*ok no IPv6 available.*/ }
-
-        if (string.IsNullOrWhiteSpace(ip))
-            ip = GetLocalIpv4OrFallback();
-        else
-            ip = $"[{ip}]";
-        
-        var url = $"http://{ip}:{ServerSettings.Instance.ServerPort}";
-        try
-        {
-            OpenUrl(url);
+            OpenUrl($"http://localhost:{ServerSettings.Instance.ServerPort}");
         }
         catch (Exception e)
         {
@@ -108,23 +95,6 @@ public partial class App
         }
     }
 
-    private static string GetLocalIpv4OrFallback()
-    {
-        string? ip;
-        try
-        {
-            ip = GetLocalIPv4();
-        }
-        catch (Exception e)
-        {
-            ip = null;
-            Logger.Error(e);
-        }
-        if (string.IsNullOrWhiteSpace(ip))
-            ip = "127.0.0.1";
-        return ip;
-    }
-    
     private void OnConsoleOnCancelKeyPress(object? sender, ConsoleCancelEventArgs args)
         => Dispatcher.Invoke(() =>
                              {
@@ -155,13 +125,4 @@ public partial class App
             Process.Start(new ProcessStartInfo("cmd", $"/c start {url}"){CreateNoWindow = true});
         }
     }
-
-    private static string? GetLocalIPv4()                          
-        => GetLocalIP(AddressFamily.InterNetwork);
-    
-    private static string? GetLocalIPv6()                          
-        => GetLocalIP(AddressFamily.InterNetworkV6);
-    
-    private static string? GetLocalIP(AddressFamily addressFamily) 
-        => Dns.GetHostEntry(Dns.GetHostName(), addressFamily).AddressList.FirstOrDefault()?.ToString();
 }
