@@ -12,7 +12,6 @@ using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.SqlServer.Management.Smo;
 using NLog;
 using Shoko.Commons;
 using Shoko.Models.Client;
@@ -428,12 +427,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("database/sqlserverinstance")]
         public ActionResult<List<string>> GetMSSQLInstances()
         {
-            List<string> instances = new List<string>();
-
-            DataTable dt = SmoApplication.EnumAvailableSqlServers();
-            if (dt?.Rows.Count > 0) instances.AddRange(from DataRow row in dt.Rows select row[0].ToString());
-
-            return instances;
+            return new ActionResult<List<string>>(new List<string>());
         }
         #endregion
 

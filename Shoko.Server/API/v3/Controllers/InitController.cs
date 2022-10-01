@@ -8,7 +8,6 @@ using System.Reflection;
 using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.SqlServer.Management.Smo;
 using NLog;
 using Shoko.Commons;
 using Shoko.Models.Server;
@@ -240,22 +239,6 @@ namespace Shoko.Server.API.v3.Controllers
                 return Ok();
 
             return BadRequest("Failed to Connect");
-        }
-
-        /// <summary>
-        /// Get SQL Server Instances Running on this Machine
-        /// </summary>
-        /// <returns>List of strings that may be passed as sqlserver_databaseserver</returns>
-        [Authorize("init")]
-        [HttpGet("Database/SQLServerInstance")]
-        public ActionResult<List<string>> GetMSSQLInstances()
-        {
-            List<string> instances = new List<string>();
-
-            DataTable dt = SmoApplication.EnumAvailableSqlServers();
-            if (dt?.Rows.Count > 0) instances.AddRange(from DataRow row in dt.Rows select row[0].ToString());
-
-            return instances;
         }
     }
 }
