@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
-using Microsoft.Win32;
 using NHibernate;
 using NHibernate.AdoNet;
 using Shoko.Commons.Extensions;
@@ -23,7 +22,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 93;
+        public int RequiredVersion { get; } = 94;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -137,14 +136,14 @@ namespace Shoko.Server.Databases
             return count > 0;
         }
 
-        private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>
+        private List<DatabaseCommand> createVersionTable = new()
         {
             new DatabaseCommand(0, 1,
                 "CREATE TABLE [Versions]( [VersionsID] [int] IDENTITY(1,1) NOT NULL, [VersionType] [varchar](100) NOT NULL, [VersionValue] [varchar](100) NOT NULL,  CONSTRAINT [PK_Versions] PRIMARY KEY CLUSTERED  ( [VersionsID] ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
             new DatabaseCommand(0, 2, "CREATE UNIQUE INDEX UIX_Versions_VersionType ON Versions(VersionType)"),
         };
 
-        private List<DatabaseCommand> createTables = new List<DatabaseCommand>
+        private List<DatabaseCommand> createTables = new()
         {
             new DatabaseCommand(1, 1,
                 "CREATE TABLE AniDB_Anime( AniDB_AnimeID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, EpisodeCount int NOT NULL, AirDate datetime NULL, EndDate datetime NULL, URL varchar(max) NULL, Picname varchar(max) NULL, BeginYear int NOT NULL, EndYear int NOT NULL, AnimeType int NOT NULL, MainTitle nvarchar(500) NOT NULL, AllTitles nvarchar(1500) NOT NULL, AllCategories nvarchar(MAX) NOT NULL, AllTags nvarchar(MAX) NOT NULL, Description varchar(max) NOT NULL, EpisodeCountNormal int NOT NULL, EpisodeCountSpecial int NOT NULL, Rating int NOT NULL, VoteCount int NOT NULL, TempRating int NOT NULL, TempVoteCount int NOT NULL, AvgReviewRating int NOT NULL, ReviewCount int NOT NULL, DateTimeUpdated datetime NOT NULL, DateTimeDescUpdated datetime NOT NULL, ImageEnabled int NOT NULL, AwardList varchar(max) NOT NULL, Restricted int NOT NULL, AnimePlanetID int NULL, ANNID int NULL, AllCinemaID int NULL, AnimeNfo int NULL, [LatestEpisodeNumber] [int] NULL, CONSTRAINT [PK_AniDB_Anime] PRIMARY KEY CLUSTERED  ( [AniDB_AnimeID] ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
@@ -341,7 +340,7 @@ namespace Shoko.Server.Databases
                 "CREATE UNIQUE INDEX UIX_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID)"),
         };
 
-        private List<DatabaseCommand> patchCommands = new List<DatabaseCommand>
+        private List<DatabaseCommand> patchCommands = new()
         {
             new DatabaseCommand(2, 1,
                 "CREATE TABLE IgnoreAnime( IgnoreAnimeID int IDENTITY(1,1) NOT NULL, JMMUserID int NOT NULL, AnimeID int NOT NULL, IgnoreType int NOT NULL, CONSTRAINT [PK_IgnoreAnime] PRIMARY KEY CLUSTERED  ( IgnoreAnimeID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY]"),
@@ -635,6 +634,13 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(93, 5, "UPDATE c SET LanguageName = l.LanguageName FROM CrossRef_Subtitles_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';"),
             new DatabaseCommand(93, 6, "ALTER TABLE CrossRef_Subtitles_AniDB_File DROP COLUMN LanguageID;"),
             new DatabaseCommand(93, 7, "DROP TABLE Language;"),
+            new DatabaseCommand(94, 1, "DROP TABLE AniDB_Anime_Category"),
+            new DatabaseCommand(94, 2, "DROP TABLE AniDB_Anime_Review"),
+            new DatabaseCommand(94, 3, "DROP TABLE AniDB_Category"),
+            new DatabaseCommand(94, 4, "DROP TABLE AniDB_MylistStats"),
+            new DatabaseCommand(94, 5, "DROP TABLE AniDB_Review"),
+            new DatabaseCommand(94, 6, "DROP TABLE CloudAccount"),
+            new DatabaseCommand(94, 7, "DROP TABLE FileFfdshowPreset"),
         };
 
         private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
@@ -650,7 +656,7 @@ namespace Shoko.Server.Databases
             return Tuple.Create<bool, string>(true, null);
         }
 
-        private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
+        private List<DatabaseCommand> updateVersionTable = new()
         {
             new DatabaseCommand("ALTER TABLE Versions ADD VersionRevision varchar(100) NULL;"),
             new DatabaseCommand("ALTER TABLE Versions ADD VersionCommand nvarchar(max) NULL;"),
@@ -792,67 +798,6 @@ namespace Shoko.Server.Databases
 
                 ExecuteWithException(myConn, patchCommands);
             });
-        }
-
-        public string GetDatabasePath(string serverName)
-        {
-            // normally installed versions of sql server
-            var dbPath = GetDatabasePath(serverName, @"SOFTWARE\Microsoft\Microsoft SQL Server");
-            if (dbPath.Length > 0) return dbPath;
-
-            // sql server 32bit version installed on 64bit OS
-            dbPath = GetDatabasePath(serverName, @"SOFTWARE\Wow6432Node\Microsoft\Microsoft SQL Server");
-            return dbPath;
-        }
-
-        public string GetDatabasePath(string serverName, string registryPoint)
-        {
-            string instName = GetInstanceNameFromServerName(serverName).Trim().ToUpper();
-
-
-            //
-            using (RegistryKey sqlServerKey = Registry.LocalMachine.OpenSubKey(registryPoint))
-            {
-                if (sqlServerKey == null)
-                    return string.Empty;
-                foreach (string subKeyName in sqlServerKey.GetSubKeyNames())
-                {
-                    if (subKeyName.StartsWith("MSSQL"))
-                    {
-                        using (RegistryKey instanceKey = sqlServerKey.OpenSubKey(subKeyName))
-                        {
-                            if (instanceKey == null)
-                                return string.Empty;
-                            object val = instanceKey.GetValue("");
-                            if (val != null)
-                            {
-                                string instanceName = val.ToString().Trim().ToUpper();
-
-                                if (instanceName == instName) //say
-                                {
-                                    RegistryKey pkey = instanceKey.OpenSubKey(@"Setup");
-                                    if (pkey == null)
-                                        return string.Empty;
-                                    string path = pkey.GetValue("SQLDataRoot").ToString();
-                                    path = Path.Combine(path, "Data");
-                                    return path;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return string.Empty;
-        }
-
-        public string GetInstanceNameFromServerName(string servername)
-        {
-            if (!servername.Contains('\\')) return "MSSQLSERVER"; //default instance
-
-            int pos = servername.IndexOf('\\');
-            string instancename = servername.Substring(pos + 1, servername.Length - pos - 1);
-
-            return instancename;
         }
     }
 }
