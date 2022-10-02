@@ -641,6 +641,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(94, 5, "DROP TABLE AniDB_Review"),
             new DatabaseCommand(94, 6, "DROP TABLE CloudAccount"),
             new DatabaseCommand(94, 7, "DROP TABLE FileFfdshowPreset"),
+            new DatabaseCommand(94, 8, "DROP TABLE CrossRef_AniDB_Trakt"),
+            new DatabaseCommand(94, 9, "DROP TABLE Trakt_Friend"),
         };
 
         private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

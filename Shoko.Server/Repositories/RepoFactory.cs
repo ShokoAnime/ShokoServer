@@ -95,11 +95,6 @@ namespace Shoko.Server.Repositories
         public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; } = new CrossRef_Anime_StaffRepository();
         public static GroupFilterRepository GroupFilter { get; } = new GroupFilterRepository();
 
-
-        /************** Might need to be DEPRECATED **************/
-        public static CrossRef_AniDB_Trakt_EpisodeRepository CrossRef_AniDB_Trakt_Episode { get; } = new CrossRef_AniDB_Trakt_EpisodeRepository();
-
-
         /************** DEPRECATED **************/
         /* We need to delete them at some point */
 
