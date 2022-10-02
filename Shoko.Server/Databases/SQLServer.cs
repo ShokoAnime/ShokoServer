@@ -643,6 +643,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(94, 7, "DROP TABLE FileFfdshowPreset"),
             new DatabaseCommand(94, 8, "DROP TABLE CrossRef_AniDB_Trakt"),
             new DatabaseCommand(94, 9, "DROP TABLE Trakt_Friend"),
+            new DatabaseCommand(94, 10, "CREATE UNIQUE INDEX UIX_AniDB_File_FileID ON AniDB_File(FileID);"),
         };
 
         private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

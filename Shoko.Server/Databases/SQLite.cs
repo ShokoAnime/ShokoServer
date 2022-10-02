@@ -587,6 +587,16 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(89, 7, "DROP TABLE FileFfdshowPreset"),
             new DatabaseCommand(89, 8, "DROP TABLE CrossRef_AniDB_Trakt"),
             new DatabaseCommand(89, 9, "DROP TABLE Trakt_Friend"),
+            new DatabaseCommand(89, 10, "ALTER TABLE AniDB_Anime RENAME COLUMN DisableExternalLinksFlag TO DisableExternalLinksFlag_old; ALTER TABLE AniDB_Anime ADD DisableExternalLinksFlag INT NOT NULL DEFAULT 0; UPDATE AniDB_Anime SET DisableExternalLinksFlag = DisableExternalLinksFlag_old WHERE DisableExternalLinksFlag_old > 0; ALTER TABLE AniDB_Anime DROP COLUMN DisableExternalLinksFlag_old;"),
+            new DatabaseCommand(89, 11, "ALTER TABLE ImportFolder RENAME COLUMN IsWatched TO IsWatched_old; ALTER TABLE ImportFolder ADD IsWatched INT NOT NULL DEFAULT 0; UPDATE ImportFolder SET IsWatched = IsWatched_old WHERE IsWatched_old > 0; ALTER TABLE ImportFolder DROP COLUMN IsWatched_old;"),
+            new DatabaseCommand(89, 12, "ALTER TABLE VideoLocal RENAME COLUMN IsVariation TO IsVariation_old; ALTER TABLE VideoLocal ADD IsVariation INT NOT NULL DEFAULT 0; UPDATE VideoLocal SET IsVariation = IsVariation_old WHERE IsVariation_old > 0; ALTER TABLE VideoLocal DROP COLUMN IsVariation_old;"),
+            new DatabaseCommand(89, 13, "DROP INDEX UIX2_AniDB_Anime_AnimeID; CREATE UNIQUE INDEX UIX_AniDB_Anime_AnimeID ON AniDB_Anime(AnimeID);"),
+            new DatabaseCommand(89, 14, "DROP INDEX IX_AniDB_File_File_Source;"),
+            new DatabaseCommand(89, 15, "DROP INDEX IX_CrossRef_File_Episode_EpisodeID;"),
+            new DatabaseCommand(89, 16, "DROP INDEX IX_CrossRef_File_Episode_Hash;"),
+            new DatabaseCommand(89, 17, "DROP INDEX UIX2_VideoLocal_Hash; CREATE UNIQUE INDEX UIX_VideoLocal_Hash ON VideoLocal(Hash);"),
+            new DatabaseCommand(89, 18, "DROP INDEX UIX2_VideoLocal_User_User_VideoLocalID; CREATE UNIQUE INDEX UIX_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);"),
+            new DatabaseCommand(89, 19, "DROP INDEX \"UIX_VideoLocal_ VideoLocal_Place_ID\";"),
         };
 
         private static Tuple<bool, string> DropLanguage(object connection)
