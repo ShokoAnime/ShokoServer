@@ -666,6 +666,13 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(101, 7, "DROP TABLE FileFfdshowPreset"),
             new DatabaseCommand(101, 8, "DROP TABLE CrossRef_AniDB_Trakt"),
             new DatabaseCommand(101, 9, "DROP TABLE Trakt_Friend"),
+            new DatabaseCommand(101, 10, "ALTER TABLE VideoLocal DROP COLUMN VideoBitDepth;"),
+            new DatabaseCommand(101, 11, "ALTER TABLE AniDB_File ADD INDEX IX_AniDB_File_FileID (FileID);"),
+            new DatabaseCommand(101, 12, "ALTER TABLE CrossRef_File_Episode DROP INDEX IX_Xref_Epid; ALTER TABLE CrossRef_File_Episode ADD INDEX IX_CrossRef_File_Episode_EpisodeID (EpisodeID);"),
+            new DatabaseCommand(101, 13, "ALTER TABLE CrossRef_Languages_AniDB_File DROP INDEX IX_Xref_Epid;"),
+            new DatabaseCommand(101, 14, "ALTER TABLE CrossRef_Subtitles_AniDB_File DROP INDEX IX_Xref_Sub_AniDBFile;"),
+            new DatabaseCommand(101, 15, "ALTER TABLE GroupFilter DROP INDEX IX_groupfilter_GroupFilterName;"),
+            new DatabaseCommand(101, 16, "ALTER TABLE VideoLocal DROP INDEX IX_VideoLocal_Hash; ALTER TABLE VideoLocal ADD UNIQUE INDEX UIX_VideoLocal_Hash (Hash);"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
