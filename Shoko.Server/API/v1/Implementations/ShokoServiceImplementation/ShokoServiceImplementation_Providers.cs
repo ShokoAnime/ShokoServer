@@ -716,15 +716,7 @@ namespace Shoko.Server
         [HttpGet("Trakt/CrossRef/Episode/{animeID}")]
         public List<CrossRef_AniDB_Trakt_Episode> GetTraktCrossRefEpisode(int animeID)
         {
-            try
-            {
-                return RepoFactory.CrossRef_AniDB_Trakt_Episode.GetByAnimeID(animeID);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return new();
-            }
+            return new List<CrossRef_AniDB_Trakt_Episode>();
         }
 
         [HttpGet("Trakt/Search/{criteria}")]

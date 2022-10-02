@@ -20,7 +20,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 100;
+        public int RequiredVersion { get; } = 101;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>
@@ -657,6 +657,15 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(100, 5, "UPDATE CrossRef_Subtitles_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID SET c.LanguageName = l.LanguageName WHERE c.LanguageName = '';"),
             new DatabaseCommand(100, 6, "ALTER TABLE CrossRef_Subtitles_AniDB_File DROP COLUMN LanguageID;"),
             new DatabaseCommand(100, 7, "DROP TABLE Language;"),
+            new DatabaseCommand(101, 1, "DROP TABLE AniDB_Anime_Category"),
+            new DatabaseCommand(101, 2, "DROP TABLE AniDB_Anime_Review"),
+            new DatabaseCommand(101, 3, "DROP TABLE AniDB_Category"),
+            new DatabaseCommand(101, 4, "DROP TABLE AniDB_MylistStats"),
+            new DatabaseCommand(101, 5, "DROP TABLE AniDB_Review"),
+            new DatabaseCommand(101, 6, "DROP TABLE CloudAccount"),
+            new DatabaseCommand(101, 7, "DROP TABLE FileFfdshowPreset"),
+            new DatabaseCommand(101, 8, "DROP TABLE CrossRef_AniDB_Trakt"),
+            new DatabaseCommand(101, 9, "DROP TABLE Trakt_Friend"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

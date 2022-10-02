@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 88;
+        public int RequiredVersion { get; } = 89;
 
 
         public void BackupDatabase(string fullfilename)
@@ -578,6 +578,15 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(87, 4, DropAniDB_Anime_CharacterColumns),
             new DatabaseCommand(87, 5, DropAniDB_AnimeColumns),
             new DatabaseCommand(88, 1, DropLanguage),
+            new DatabaseCommand(89, 1, "DROP TABLE AniDB_Anime_Category"),
+            new DatabaseCommand(89, 2, "DROP TABLE AniDB_Anime_Review"),
+            new DatabaseCommand(89, 3, "DROP TABLE AniDB_Category"),
+            new DatabaseCommand(89, 4, "DROP TABLE AniDB_MylistStats"),
+            new DatabaseCommand(89, 5, "DROP TABLE AniDB_Review"),
+            new DatabaseCommand(89, 6, "DROP TABLE CloudAccount"),
+            new DatabaseCommand(89, 7, "DROP TABLE FileFfdshowPreset"),
+            new DatabaseCommand(89, 8, "DROP TABLE CrossRef_AniDB_Trakt"),
+            new DatabaseCommand(89, 9, "DROP TABLE Trakt_Friend"),
         };
 
         private static Tuple<bool, string> DropLanguage(object connection)
