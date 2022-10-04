@@ -19,239 +19,281 @@ using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.Utilities
+namespace Shoko.Server.Utilities;
+
+public class Scanner : INotifyPropertyChangedExt
 {
-    public class Scanner : INotifyPropertyChangedExt
+    private BackgroundWorker workerIntegrityScanner = new();
+
+    public Scanner()
     {
-        private BackgroundWorker workerIntegrityScanner = new BackgroundWorker();
+        workerIntegrityScanner.WorkerReportsProgress = true;
+        workerIntegrityScanner.WorkerSupportsCancellation = true;
+        workerIntegrityScanner.DoWork += WorkerIntegrityScanner_DoWork;
+    }
 
-        public Scanner()
+    public static Scanner Instance { get; set; } = new();
+
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    public void NotifyPropertyChanged(string propname)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
+    }
+
+    private int queueCount = 0;
+
+    public int QueueCount
+    {
+        get => queueCount;
+        set => this.SetField(() => queueCount, value);
+    }
+
+    public void Init()
+    {
+        Utils.MainThreadDispatch(() => { RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a)); });
+        var runscan = Scans.FirstOrDefault(a => a.GetScanStatus() == ScanStatus.Running);
+        if (runscan != null)
         {
-            workerIntegrityScanner.WorkerReportsProgress = true;
-            workerIntegrityScanner.WorkerSupportsCancellation = true;
-            workerIntegrityScanner.DoWork += WorkerIntegrityScanner_DoWork;
+            ActiveScan = runscan;
+            StartScan();
+        }
+    }
+
+    public void StartScan()
+    {
+        if (ActiveScan == null)
+        {
+            return;
         }
 
-        public static Scanner Instance { get; set; } = new Scanner();
+        RunScan = ActiveScan;
+        cancelIntegrityCheck = false;
+        workerIntegrityScanner.RunWorkerAsync();
+    }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        public void NotifyPropertyChanged(string propname)
+    public void ClearScan()
+    {
+        if (ActiveScan == null)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
+            return;
         }
 
-        private int queueCount = 0;
-
-        public int QueueCount
+        if (workerIntegrityScanner.IsBusy && RunScan == ActiveScan)
         {
-            get { return queueCount; }
-            set { this.SetField(() => queueCount, value); }
+            CancelScan();
         }
 
-        public void Init()
+        RepoFactory.ScanFile.Delete(RepoFactory.ScanFile.GetByScanID(ActiveScan.ScanID));
+        RepoFactory.Scan.Delete(ActiveScan);
+        Utils.MainThreadDispatch(() => { Scans.Remove(ActiveScan); });
+        ActiveScan = null;
+    }
+
+
+    public void CancelScan()
+    {
+        if (ActiveScan == null)
         {
-            Utils.MainThreadDispatch(() => { RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a)); });
-            SVR_Scan runscan = Scans.FirstOrDefault(a => a.GetScanStatus() == ScanStatus.Running);
-            if (runscan != null)
+            return;
+        }
+
+        if (workerIntegrityScanner.IsBusy)
+        {
+            cancelIntegrityCheck = true;
+            while (workerIntegrityScanner.IsBusy)
             {
-                ActiveScan = runscan;
-                StartScan();
+                Utils.DoEvents();
+                Thread.Sleep(100);
             }
-        }
-        
-        public void StartScan()
-        {
-            if (ActiveScan == null)
-                return;
-            RunScan = ActiveScan;
+
             cancelIntegrityCheck = false;
-            workerIntegrityScanner.RunWorkerAsync();
         }
+    }
 
-        public void ClearScan()
+    public bool Finished => (ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Finish) ||
+                            ActiveScan == null;
+
+    public string QueueState => ActiveScan != null ? ActiveScan.GetStatusText() : string.Empty;
+    public bool QueuePaused => ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Standby;
+    public bool QueueRunning => ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Running;
+    public bool Exists => ActiveScan != null;
+    private SVR_Scan activeScan;
+
+    public SVR_Scan ActiveScan
+    {
+        get => activeScan;
+        set
         {
-            if (ActiveScan == null)
-                return;
-            if (workerIntegrityScanner.IsBusy && RunScan == ActiveScan)
-                CancelScan();
-            RepoFactory.ScanFile.Delete(RepoFactory.ScanFile.GetByScanID(ActiveScan.ScanID));
-            RepoFactory.Scan.Delete(ActiveScan);
-            Utils.MainThreadDispatch(() => { Scans.Remove(ActiveScan); });
-            ActiveScan = null;
-        }
-
-
-
-        public void CancelScan()
-        {
-            if (ActiveScan == null)
-                return;
-            if (workerIntegrityScanner.IsBusy)
+            if (value != activeScan)
             {
-                cancelIntegrityCheck = true;
-                while (workerIntegrityScanner.IsBusy)
-                {
-                    Utils.DoEvents();
-                    Thread.Sleep(100);
-                }
-                cancelIntegrityCheck = false;
-            }
-        }
-
-        public bool Finished => (ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Finish) ||
-                                ActiveScan == null;
-
-        public string QueueState => ActiveScan != null ? ActiveScan.GetStatusText() : string.Empty;
-        public bool QueuePaused => ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Standby;
-        public bool QueueRunning => ActiveScan != null && ActiveScan.GetScanStatus() == ScanStatus.Running;
-        public bool Exists => (ActiveScan != null);
-        private SVR_Scan activeScan;
-
-        public SVR_Scan ActiveScan
-        {
-            get { return activeScan; }
-            set
-            {
-                if (value != activeScan)
-                {
-                    activeScan = value;
-                    Refresh();
-                    Utils.MainThreadDispatch(() => {
-                        ActiveErrorFiles.Clear();
-                        if (value != null)
-                            RepoFactory.ScanFile.GetWithError(value.ScanID).ForEach(a => ActiveErrorFiles.Add(a));
-                    });
-                }
-            }
-        }
-
-        public void Refresh()
-        {
-            this.OnPropertyChanged(() => Exists, () => Finished, () => QueueState, () => QueuePaused,
-                () => QueueRunning);
-            if (activeScan != null)
-                QueueCount = RepoFactory.ScanFile.GetWaitingCount(activeScan.ScanID);
-        }
-
-        public ObservableCollection<SVR_Scan> Scans { get; set; } = new ObservableCollection<SVR_Scan>();
-
-        public ObservableCollection<ScanFile> ActiveErrorFiles { get; set; } = new ObservableCollection<ScanFile>();
-
-        public bool HasFiles => Finished && ActiveErrorFiles.Count > 0;
-
-        public void AddErrorScan(ScanFile file)
-        {
-
-            Utils.MainThreadDispatch(() =>
-            {
-                if (ActiveScan != null && ActiveScan.ScanID == file.ScanID)
-                    ActiveErrorFiles.Add(file);
-            });
-        }
-
-        public void DeleteAllErroredFiles()
-        {
-            if (ActiveScan == null) return;
-            var files = ActiveErrorFiles.ToList();
-            ActiveErrorFiles.Clear();
-            HashSet<SVR_AnimeEpisode> episodesToUpdate = new HashSet<SVR_AnimeEpisode>();
-            HashSet<SVR_AnimeSeries> seriesToUpdate = new HashSet<SVR_AnimeSeries>();
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                files.ForEach(file =>
-                {
-                    SVR_VideoLocal_Place place = RepoFactory.VideoLocalPlace.GetByID(file.VideoLocal_Place_ID);
-                    place.RemoveAndDeleteFileWithOpenTransaction(session, seriesToUpdate);
-                });
-                // update everything we modified
-                foreach (SVR_AnimeSeries ser in seriesToUpdate)
-                {
-                    ser?.QueueUpdateStats();
-                }
-            }
-            RepoFactory.ScanFile.Delete(files);
-        }
-
-        private bool cancelIntegrityCheck;
-        internal SVR_Scan RunScan;
-
-        public static int OnHashProgress(string fileName, int percentComplete)
-        {
-            return 1; //continue hashing (return 0 to abort)
-        }
-
-        private void WorkerIntegrityScanner_DoWork(object sender, DoWorkEventArgs e)
-        {
-            if (RunScan != null && RunScan.GetScanStatus() != ScanStatus.Finish)
-            {
-                bool paused = ShokoService.CmdProcessorHasher.Paused;
-                ShokoService.CmdProcessorHasher.Paused = true;
-                SVR_Scan s = RunScan;
-                s.Status = (int) ScanStatus.Running;
-                RepoFactory.Scan.Save(s);
+                activeScan = value;
                 Refresh();
-                List<ScanFile> files = RepoFactory.ScanFile.GetWaiting(s.ScanID);
-                int cnt = 0;
-                foreach (ScanFile sf in files)
+                Utils.MainThreadDispatch(() =>
                 {
-                    try
+                    ActiveErrorFiles.Clear();
+                    if (value != null)
                     {
-                        if (!File.Exists(sf.FullName))
-                            sf.Status = (int) ScanFileStatus.ErrorFileNotFound;
+                        RepoFactory.ScanFile.GetWithError(value.ScanID).ForEach(a => ActiveErrorFiles.Add(a));
+                    }
+                });
+            }
+        }
+    }
+
+    public void Refresh()
+    {
+        this.OnPropertyChanged(() => Exists, () => Finished, () => QueueState, () => QueuePaused,
+            () => QueueRunning);
+        if (activeScan != null)
+        {
+            QueueCount = RepoFactory.ScanFile.GetWaitingCount(activeScan.ScanID);
+        }
+    }
+
+    public ObservableCollection<SVR_Scan> Scans { get; set; } = new();
+
+    public ObservableCollection<ScanFile> ActiveErrorFiles { get; set; } = new();
+
+    public bool HasFiles => Finished && ActiveErrorFiles.Count > 0;
+
+    public void AddErrorScan(ScanFile file)
+    {
+        Utils.MainThreadDispatch(() =>
+        {
+            if (ActiveScan != null && ActiveScan.ScanID == file.ScanID)
+            {
+                ActiveErrorFiles.Add(file);
+            }
+        });
+    }
+
+    public void DeleteAllErroredFiles()
+    {
+        if (ActiveScan == null)
+        {
+            return;
+        }
+
+        var files = ActiveErrorFiles.ToList();
+        ActiveErrorFiles.Clear();
+        var episodesToUpdate = new HashSet<SVR_AnimeEpisode>();
+        var seriesToUpdate = new HashSet<SVR_AnimeSeries>();
+        using (var session = DatabaseFactory.SessionFactory.OpenSession())
+        {
+            files.ForEach(file =>
+            {
+                var place = RepoFactory.VideoLocalPlace.GetByID(file.VideoLocal_Place_ID);
+                place.RemoveAndDeleteFileWithOpenTransaction(session, seriesToUpdate);
+            });
+            // update everything we modified
+            foreach (var ser in seriesToUpdate)
+            {
+                ser?.QueueUpdateStats();
+            }
+        }
+
+        RepoFactory.ScanFile.Delete(files);
+    }
+
+    private bool cancelIntegrityCheck;
+    internal SVR_Scan RunScan;
+
+    public static int OnHashProgress(string fileName, int percentComplete)
+    {
+        return 1; //continue hashing (return 0 to abort)
+    }
+
+    private void WorkerIntegrityScanner_DoWork(object sender, DoWorkEventArgs e)
+    {
+        if (RunScan != null && RunScan.GetScanStatus() != ScanStatus.Finish)
+        {
+            var paused = ShokoService.CmdProcessorHasher.Paused;
+            ShokoService.CmdProcessorHasher.Paused = true;
+            var s = RunScan;
+            s.Status = (int)ScanStatus.Running;
+            RepoFactory.Scan.Save(s);
+            Refresh();
+            var files = RepoFactory.ScanFile.GetWaiting(s.ScanID);
+            var cnt = 0;
+            foreach (var sf in files)
+            {
+                try
+                {
+                    if (!File.Exists(sf.FullName))
+                    {
+                        sf.Status = (int)ScanFileStatus.ErrorFileNotFound;
+                    }
+                    else
+                    {
+                        var f = new FileInfo(sf.FullName);
+                        if (sf.FileSize != f.Length)
+                        {
+                            sf.Status = (int)ScanFileStatus.ErrorInvalidSize;
+                        }
                         else
                         {
-                            FileInfo f = new FileInfo(sf.FullName);
-                            if (sf.FileSize != f.Length)
-                                sf.Status = (int) ScanFileStatus.ErrorInvalidSize;
+                            ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
+                            {
+                                message = "Hashing File: {0}",
+                                queueState = QueueStateEnum.HashingFile,
+                                extraParams = new[] { sf.FullName }
+                            };
+                            var hashes =
+                                FileHashHelper.GetHashInfo(sf.FullName, true, OnHashProgress, false, false, false);
+                            if (string.IsNullOrEmpty(hashes.ED2K))
+                            {
+                                sf.Status = (int)ScanFileStatus.ErrorMissingHash;
+                            }
                             else
                             {
-                                ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
+                                sf.HashResult = hashes.ED2K;
+                                if (!sf.Hash.Equals(sf.HashResult, StringComparison.InvariantCultureIgnoreCase))
                                 {
-                                    message = "Hashing File: {0}",
-                                    queueState = QueueStateEnum.HashingFile,
-                                    extraParams = new[] { sf.FullName }
-                                };
-                                Hashes hashes =
-                                    FileHashHelper.GetHashInfo(sf.FullName, true, OnHashProgress, false, false, false);
-                                if (string.IsNullOrEmpty(hashes.ED2K))
-                                {
-                                    sf.Status = (int) ScanFileStatus.ErrorMissingHash;
+                                    sf.Status = (int)ScanFileStatus.ErrorInvalidHash;
                                 }
                                 else
                                 {
-                                    sf.HashResult = hashes.ED2K;
-                                    if (!sf.Hash.Equals(sf.HashResult, StringComparison.InvariantCultureIgnoreCase))
-                                        sf.Status = (int) ScanFileStatus.ErrorInvalidHash;
-                                    else
-                                        sf.Status = (int) ScanFileStatus.ProcessedOK;
+                                    sf.Status = (int)ScanFileStatus.ProcessedOK;
                                 }
                             }
                         }
                     }
-                    catch (Exception)
-                    {
-                        sf.Status = (int) ScanFileStatus.ErrorIOError;
-                    }
-                    cnt++;
-                    sf.CheckDate = DateTime.Now;
-                    RepoFactory.ScanFile.Save(sf);
-                    if (sf.Status > (int) ScanFileStatus.ProcessedOK)
-                        Instance.AddErrorScan(sf);
-                    Refresh();
-
-                    if (cancelIntegrityCheck)
-                        break;
                 }
-                if (files.Any(a => a.GetScanFileStatus() == ScanFileStatus.Waiting))
-                    s.Status = (int) ScanStatus.Standby;
-                else
-                    s.Status = (int) ScanStatus.Finish;
-                RepoFactory.Scan.Save(s);
+                catch (Exception)
+                {
+                    sf.Status = (int)ScanFileStatus.ErrorIOError;
+                }
+
+                cnt++;
+                sf.CheckDate = DateTime.Now;
+                RepoFactory.ScanFile.Save(sf);
+                if (sf.Status > (int)ScanFileStatus.ProcessedOK)
+                {
+                    Instance.AddErrorScan(sf);
+                }
+
                 Refresh();
-                RunScan = null;
-                ShokoService.CmdProcessorHasher.Paused = paused;
+
+                if (cancelIntegrityCheck)
+                {
+                    break;
+                }
             }
+
+            if (files.Any(a => a.GetScanFileStatus() == ScanFileStatus.Waiting))
+            {
+                s.Status = (int)ScanStatus.Standby;
+            }
+            else
+            {
+                s.Status = (int)ScanStatus.Finish;
+            }
+
+            RepoFactory.Scan.Save(s);
+            Refresh();
+            RunScan = null;
+            ShokoService.CmdProcessorHasher.Paused = paused;
         }
     }
 }

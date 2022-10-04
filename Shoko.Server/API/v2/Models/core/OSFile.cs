@@ -1,7 +1,6 @@
-﻿namespace Shoko.Server.API.v2.Models.core
+﻿namespace Shoko.Server.API.v2.Models.core;
+
+internal class OSFile
 {
-    class OSFile
-    {
-        public string name { get; set; }
-    }
+    public string name { get; set; }
 }

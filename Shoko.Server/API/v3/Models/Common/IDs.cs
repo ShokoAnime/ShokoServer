@@ -1,17 +1,16 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Shoko.Server.API.v3.Models.Common
+namespace Shoko.Server.API.v3.Models.Common;
+
+/// <summary>
+/// A collection of the IDs that are relevant to an object. Each one Extends this if needed.
+/// All models should use this, even if there's only one ID. It's just more consistent that way.
+/// </summary>
+public class IDs
 {
     /// <summary>
-    /// A collection of the IDs that are relevant to an object. Each one Extends this if needed.
-    /// All models should use this, even if there's only one ID. It's just more consistent that way.
+    /// The Shoko internal ID, for easy lookup
     /// </summary>
-    public class IDs
-    {
-        /// <summary>
-        /// The Shoko internal ID, for easy lookup
-        /// </summary>
-        [Required]
-        public int ID { get; set; }
-    }
+    [Required]
+    public int ID { get; set; }
 }

@@ -2,12 +2,11 @@
 using System.IO;
 using Shoko.Models.MediaInfo;
 
-namespace Shoko.Server.FileHelper.Subtitles
-{
-    public interface ISubtitles
-    {
-        List<TextStream> GetStreams(FileInfo file);
+namespace Shoko.Server.FileHelper.Subtitles;
 
-        bool IsSubtitleFile(string path);
-    }
+public interface ISubtitles
+{
+    List<TextStream> GetStreams(FileInfo file);
+
+    bool IsSubtitleFile(string path);
 }

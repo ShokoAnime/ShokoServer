@@ -4,46 +4,36 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
-namespace Shoko.Server.Providers.AniDB.UDP.User
+namespace Shoko.Server.Providers.AniDB.UDP.User;
+
+/// <summary>
+/// Add a file to MyList. If it doesn't exist, it will return the MyListID for future updates.
+/// If it exists, it will return the current status on AniDB.
+/// </summary>
+public class RequestGetFile : UDPRequest<ResponseMyListFile>
 {
-    /// <summary>
-    /// Add a file to MyList. If it doesn't exist, it will return the MyListID for future updates.
-    /// If it exists, it will return the current status on AniDB.
-    /// </summary>
-    public class RequestGetFile : UDPRequest<ResponseMyListFile>
+    // These are dependent on context
+    protected override string BaseCommand => $"MYLIST size={Size}&ed2k={Hash}";
+
+    public string Hash { get; set; }
+
+    public long Size { get; set; }
+
+    public GetFile_State State { get; set; }
+
+    public bool IsWatched { get; set; }
+
+    public DateTime? WatchedDate { get; set; }
+
+    protected override UDPResponse<ResponseMyListFile> ParseResponse(UDPResponse<string> response)
     {
-        // These are dependent on context
-        protected override string BaseCommand
+        var code = response.Code;
+        var receivedData = response.Response;
+        switch (code)
         {
-            get
-            {
-                return $"MYLIST size={Size}&ed2k={Hash}";
-            }
-        }
-
-        public string Hash { get; set; }
-
-        public long Size { get; set; }
-
-        public GetFile_State State { get; set; }
-
-        public bool IsWatched { get; set; }
-
-        public DateTime? WatchedDate { get; set; }
-
-        protected override UDPResponse<ResponseMyListFile> ParseResponse(UDPResponse<string> response)
-        {
-            var code = response.Code;
-            var receivedData = response.Response;
-            switch (code)
-            {
-                case UDPReturnCode.NO_SUCH_ENTRY:
-                    return new UDPResponse<ResponseMyListFile>
-                    {
-                        Code = code,
-                        Response = null,
-                    };
-                case UDPReturnCode.MYLIST:
+            case UDPReturnCode.NO_SUCH_ENTRY:
+                return new UDPResponse<ResponseMyListFile> { Code = code, Response = null };
+            case UDPReturnCode.MYLIST:
                 {
                     /* Response Format
                      * {int4 lid}|{int4 fid}|{int4 eid}|{int4 aid}|{int4 gid}|{int4 date}|{int2 state}|{int4 viewdate}|{str storage}|{str source}|{str other}|{int2 filestate}
@@ -51,14 +41,17 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                     //file already exists: read 'watched' status
                     var arrStatus = receivedData.Split('|');
                     var hasMyListID = int.TryParse(arrStatus[0], out var myListID);
-                    if (!hasMyListID) throw new UnexpectedUDPResponseException
-                    (
-                        message:"MyListID was not provided. Use AniDBMyList_RequestAddEpisode for generic files.",
-                        response:receivedData,
-                        code:code
-                    );
+                    if (!hasMyListID)
+                    {
+                        throw new UnexpectedUDPResponseException
+                        (
+                            "MyListID was not provided. Use AniDBMyList_RequestAddEpisode for generic files.",
+                            response: receivedData,
+                            code: code
+                        );
+                    }
 
-                    var state = (MyList_State) int.Parse(arrStatus[6]);
+                    var state = (MyList_State)int.Parse(arrStatus[6]);
 
                     var viewdate = int.Parse(arrStatus[7]);
                     var updatedate = int.Parse(arrStatus[5]);
@@ -66,13 +59,18 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                     DateTime? updatedAt = null;
                     DateTime? watchedDate = null;
                     if (updatedate > 0)
+                    {
                         updatedAt = DateTime.UnixEpoch
-                        .AddSeconds(updatedate)
-                        .ToLocalTime();
+                            .AddSeconds(updatedate)
+                            .ToLocalTime();
+                    }
+
                     if (watched)
+                    {
                         watchedDate = DateTime.UnixEpoch
                             .AddSeconds(viewdate)
                             .ToLocalTime();
+                    }
 
                     return new UDPResponse<ResponseMyListFile>
                     {
@@ -83,16 +81,16 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                             State = state,
                             IsWatched = watched,
                             WatchedDate = watchedDate,
-                            UpdatedAt = updatedAt,
-                        },
+                            UpdatedAt = updatedAt
+                        }
                     };
                 }
-            }
-            throw new UnexpectedUDPResponseException(code, receivedData);
         }
 
-        public RequestGetFile(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
-        {
-        }
+        throw new UnexpectedUDPResponseException(code, receivedData);
+    }
+
+    public RequestGetFile(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    {
     }
 }

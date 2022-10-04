@@ -2,36 +2,35 @@
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 
-namespace Shoko.Server.Repositories.Cached
+namespace Shoko.Server.Repositories.Cached;
+
+public class TvDB_ImagePosterRepository : BaseCachedRepository<TvDB_ImagePoster, int>
 {
-    public class TvDB_ImagePosterRepository : BaseCachedRepository<TvDB_ImagePoster, int>
+    private PocoIndex<int, TvDB_ImagePoster, int> SeriesIDs;
+    private PocoIndex<int, TvDB_ImagePoster, int> TvDBIDs;
+
+    public override void PopulateIndexes()
     {
-        private PocoIndex<int, TvDB_ImagePoster, int> SeriesIDs;
-        private PocoIndex<int, TvDB_ImagePoster, int> TvDBIDs;
+        SeriesIDs = new PocoIndex<int, TvDB_ImagePoster, int>(Cache, a => a.SeriesID);
+        TvDBIDs = new PocoIndex<int, TvDB_ImagePoster, int>(Cache, a => a.Id);
+    }
 
-        public override void PopulateIndexes()
-        {
-            SeriesIDs = new PocoIndex<int, TvDB_ImagePoster, int>(Cache, a => a.SeriesID);
-            TvDBIDs = new PocoIndex<int, TvDB_ImagePoster, int>(Cache, a => a.Id);
-        }
+    public override void RegenerateDb()
+    {
+    }
 
-        public override void RegenerateDb()
-        {
-        }
+    protected override int SelectKey(TvDB_ImagePoster entity)
+    {
+        return entity.TvDB_ImagePosterID;
+    }
 
-        protected override int SelectKey(TvDB_ImagePoster entity)
-        {
-            return entity.TvDB_ImagePosterID;
-        }
+    public TvDB_ImagePoster GetByTvDBID(int id)
+    {
+        return ReadLock(() => TvDBIDs.GetOne(id));
+    }
 
-        public TvDB_ImagePoster GetByTvDBID(int id)
-        {
-            return ReadLock(() => TvDBIDs.GetOne(id));
-        }
-
-        public List<TvDB_ImagePoster> GetBySeriesID(int seriesID)
-        {
-            return ReadLock(() => SeriesIDs.GetMultiple(seriesID));
-        }
+    public List<TvDB_ImagePoster> GetBySeriesID(int seriesID)
+    {
+        return ReadLock(() => SeriesIDs.GetMultiple(seriesID));
     }
 }

@@ -3,50 +3,53 @@ using NHibernate.Criterion;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
-namespace Shoko.Server.Repositories
+namespace Shoko.Server.Repositories;
+
+public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
 {
-    public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
+    public RenameScript GetDefaultScript()
     {
-        public RenameScript GetDefaultScript()
+        lock (GlobalDBLock)
         {
-            lock (GlobalDBLock)
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var cr = session
-                    .CreateCriteria(typeof(RenameScript))
-                    .Add(Restrictions.Eq("IsEnabledOnImport", 1))
-                    .UniqueResult<RenameScript>();
-                return cr;
-            }
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var cr = session
+                .CreateCriteria(typeof(RenameScript))
+                .Add(Restrictions.Eq("IsEnabledOnImport", 1))
+                .UniqueResult<RenameScript>();
+            return cr;
         }
+    }
 
-        public RenameScript GetDefaultOrFirst()
+    public RenameScript GetDefaultOrFirst()
+    {
+        lock (GlobalDBLock)
         {
-            lock (GlobalDBLock)
-            {
-                // This should list the enabled one first, falling back if none are
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var cr = session
-                    .CreateCriteria(typeof(RenameScript))
-                    .AddOrder(Order.Desc("IsEnabledOnImport"))
-                    .AddOrder(Order.Asc("RenameScriptID"))
-                    .List<RenameScript>().FirstOrDefault();
-                return cr;
-            }
+            // This should list the enabled one first, falling back if none are
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var cr = session
+                .CreateCriteria(typeof(RenameScript))
+                .AddOrder(Order.Desc("IsEnabledOnImport"))
+                .AddOrder(Order.Asc("RenameScriptID"))
+                .List<RenameScript>().FirstOrDefault();
+            return cr;
         }
+    }
 
-        public RenameScript GetByName(string scriptName)
+    public RenameScript GetByName(string scriptName)
+    {
+        lock (GlobalDBLock)
         {
-            lock (GlobalDBLock)
+            if (string.IsNullOrEmpty(scriptName))
             {
-                if (string.IsNullOrEmpty(scriptName)) return null;
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var cr = session
-                    .CreateCriteria(typeof(RenameScript))
-                    .Add(Restrictions.Eq("ScriptName", scriptName))
-                    .List<RenameScript>().FirstOrDefault();
-                return cr;
+                return null;
             }
+
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var cr = session
+                .CreateCriteria(typeof(RenameScript))
+                .Add(Restrictions.Eq("ScriptName", scriptName))
+                .List<RenameScript>().FirstOrDefault();
+            return cr;
         }
     }
 }

@@ -6,47 +6,46 @@ using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands;
+
+[Command(CommandRequestType.NullCommand)]
+internal class CommandRequest_Null : CommandRequestImplementation
 {
-    [Command(CommandRequestType.NullCommand)]
-    class CommandRequest_Null : CommandRequestImplementation
+    protected override void Process()
     {
-        protected override void Process()
-        {
-            
-        }
+    }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
-        {
-            return true;
-        }
+    public override bool LoadFromDBCommand(CommandRequest cq)
+    {
+        return true;
+    }
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct();
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-            return new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                DateTimeUpdated = DateTime.Now,
-                CommandDetails = ""
-            };
-        }
+    public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
+    public override QueueStateStruct PrettyDescription => new();
 
-        public override void GenerateCommandID()
+    public override CommandRequest ToDatabaseObject()
+    {
+        GenerateCommandID();
+        return new CommandRequest
         {
-            CommandID = nameof(CommandRequest_Null);
-        }
+            CommandID = CommandID,
+            CommandType = CommandType,
+            Priority = Priority,
+            DateTimeUpdated = DateTime.Now,
+            CommandDetails = ""
+        };
+    }
 
-        public CommandRequest_Null(ILoggerFactory loggerFactory) : base(loggerFactory)
-        {
-        }
-        
-        protected CommandRequest_Null()
-        {
-        }
+    public override void GenerateCommandID()
+    {
+        CommandID = nameof(CommandRequest_Null);
+    }
+
+    public CommandRequest_Null(ILoggerFactory loggerFactory) : base(loggerFactory)
+    {
+    }
+
+    protected CommandRequest_Null()
+    {
     }
 }

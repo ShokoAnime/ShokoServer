@@ -1,7 +1,6 @@
-﻿namespace Shoko.Server.Settings.DI
+﻿namespace Shoko.Server.Settings.DI;
+
+public class SettingsProvider
 {
-    public class SettingsProvider
-    {
-        public ServerSettings Settings => ServerSettings.Instance;
-    }
+    public ServerSettings Settings => ServerSettings.Instance;
 }

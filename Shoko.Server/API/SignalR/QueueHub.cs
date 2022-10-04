@@ -5,36 +5,35 @@ using Microsoft.AspNetCore.SignalR;
 using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.API.SignalR
+namespace Shoko.Server.API.SignalR;
+
+public class QueueHub : Hub
 {
-    public class QueueHub : Hub
+    private readonly QueueEmitter _eventEmitter;
+
+    public QueueHub(QueueEmitter eventEmitter)
     {
-        private readonly QueueEmitter _eventEmitter;
+        _eventEmitter = eventEmitter;
+    }
 
-        public QueueHub(QueueEmitter eventEmitter)
+    public void ChangeQueueProcessingState(string queue, bool paused)
+    {
+        switch (queue.ToLower())
         {
-            _eventEmitter = eventEmitter;
+            case "general":
+                ShokoService.CmdProcessorGeneral.Paused = paused;
+                break;
+            case "hasher":
+                ShokoService.CmdProcessorHasher.Paused = paused;
+                break;
+            case "images":
+                ShokoService.CmdProcessorImages.Paused = paused;
+                break;
         }
+    }
 
-        public void ChangeQueueProcessingState(string queue, bool paused)
-        {
-            switch (queue.ToLower())
-            {
-                case "general":
-                    ShokoService.CmdProcessorGeneral.Paused = paused;
-                    break;
-                case "hasher":
-                    ShokoService.CmdProcessorHasher.Paused = paused;
-                    break;
-                case "images":
-                    ShokoService.CmdProcessorImages.Paused = paused;
-                    break;
-            }
-        }
-
-        public override async Task OnConnectedAsync()
-        {
-            await _eventEmitter.OnConnectedAsync(Clients.Caller);
-        }
+    public override async Task OnConnectedAsync()
+    {
+        await _eventEmitter.OnConnectedAsync(Clients.Caller);
     }
 }

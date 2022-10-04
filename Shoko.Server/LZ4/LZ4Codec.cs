@@ -38,7 +38,6 @@ NOTE:
 // ReSharper disable InconsistentNaming
 
 #if UNSAFE
-
 namespace LZ4pn
 #else
 namespace LZ4ps
@@ -66,9 +65,9 @@ namespace LZ4ps
         private const int NOTCOMPRESSIBLE_DETECTIONLEVEL = 6;
 
 #if !UNSAFE
-/// <summary>Buffer length when Buffer.BlockCopy becomes faster than straight loop.
-/// Please note that safe implementation REQUIRES it to be greater (not even equal) than 8.</summary>
-		private const int BLOCK_COPY_LIMIT = 16;
+        /// <summary>Buffer length when Buffer.BlockCopy becomes faster than straight loop.
+        /// Please note that safe implementation REQUIRES it to be greater (not even equal) than 8.</summary>
+        private const int BLOCK_COPY_LIMIT = 16;
 
 #endif
 
@@ -117,21 +116,18 @@ namespace LZ4ps
         private const int HASHHC_ADJUST = MINMATCH * 8 - HASHHC_LOG;
         //private const int HASHHC_MASK = HASHHC_TABLESIZE - 1;
 
-        private static readonly int[] DECODER_TABLE_32 = {0, 3, 2, 3, 0, 0, 0, 0};
-        private static readonly int[] DECODER_TABLE_64 = {0, 0, 0, -1, 0, 1, 2, 3};
+        private static readonly int[] DECODER_TABLE_32 = { 0, 3, 2, 3, 0, 0, 0, 0 };
+        private static readonly int[] DECODER_TABLE_64 = { 0, 0, 0, -1, 0, 1, 2, 3 };
 
         private static readonly int[] DEBRUIJN_TABLE_32 =
         {
-            0, 0, 3, 0, 3, 1, 3, 0, 3, 2, 2, 1, 3, 2, 0, 1,
-            3, 3, 1, 2, 2, 2, 2, 0, 3, 1, 2, 0, 1, 0, 1, 1
+            0, 0, 3, 0, 3, 1, 3, 0, 3, 2, 2, 1, 3, 2, 0, 1, 3, 3, 1, 2, 2, 2, 2, 0, 3, 1, 2, 0, 1, 0, 1, 1
         };
 
         private static readonly int[] DEBRUIJN_TABLE_64 =
         {
-            0, 0, 0, 0, 0, 1, 1, 2, 0, 3, 1, 3, 1, 4, 2, 7,
-            0, 2, 3, 6, 1, 5, 3, 5, 1, 3, 4, 4, 2, 5, 6, 7,
-            7, 0, 1, 2, 3, 3, 4, 6, 2, 6, 5, 5, 3, 4, 5, 6,
-            7, 1, 2, 4, 6, 4, 4, 5, 7, 2, 6, 5, 7, 6, 7, 7
+            0, 0, 0, 0, 0, 1, 1, 2, 0, 3, 1, 3, 1, 4, 2, 7, 0, 2, 3, 6, 1, 5, 3, 5, 1, 3, 4, 4, 2, 5, 6, 7, 7, 0, 1,
+            2, 3, 3, 4, 6, 2, 6, 5, 5, 3, 4, 5, 6, 7, 1, 2, 4, 6, 4, 4, 5, 7, 2, 6, 5, 7, 6, 7, 7
         };
 
         private const int MAX_NB_ATTEMPTS = 256;
@@ -157,21 +153,41 @@ namespace LZ4ps
             byte[] input, int inputOffset, ref int inputLength,
             byte[] output, int outputOffset, ref int outputLength)
         {
-            if (inputLength < 0) inputLength = input.Length - inputOffset;
+            if (inputLength < 0)
+            {
+                inputLength = input.Length - inputOffset;
+            }
+
             if (inputLength == 0)
             {
                 outputLength = 0;
                 return;
             }
 
-            if (input == null) throw new ArgumentNullException("input");
-            if (inputOffset < 0 || inputOffset + inputLength > input.Length)
-                throw new ArgumentException("inputOffset and inputLength are invalid for given input");
+            if (input == null)
+            {
+                throw new ArgumentNullException("input");
+            }
 
-            if (outputLength < 0) outputLength = output.Length - outputOffset;
-            if (output == null) throw new ArgumentNullException("output");
+            if (inputOffset < 0 || inputOffset + inputLength > input.Length)
+            {
+                throw new ArgumentException("inputOffset and inputLength are invalid for given input");
+            }
+
+            if (outputLength < 0)
+            {
+                outputLength = output.Length - outputOffset;
+            }
+
+            if (output == null)
+            {
+                throw new ArgumentNullException("output");
+            }
+
             if (outputOffset < 0 || outputOffset + outputLength > output.Length)
+            {
                 throw new ArgumentException("outputOffset and outputLength are invalid for given output");
+            }
         }
 
         #endregion

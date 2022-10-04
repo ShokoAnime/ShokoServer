@@ -1,9 +1,8 @@
 using System;
 
-namespace Shoko.Server.API.Annotations
+namespace Shoko.Server.API.Annotations;
+
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
+public class DatabaseBlockedExemptAttribute : Attribute
 {
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
-    public class DatabaseBlockedExemptAttribute : Attribute
-    {
-    }
 }

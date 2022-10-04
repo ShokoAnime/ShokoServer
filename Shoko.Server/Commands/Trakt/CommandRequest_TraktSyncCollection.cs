@@ -12,117 +12,121 @@ using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands;
+
+[Serializable]
+[Command(CommandRequestType.Trakt_SyncCollection)]
+public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
 {
-    [Serializable]
-    [Command(CommandRequestType.Trakt_SyncCollection)]
-    public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
+    private readonly TraktTVHelper _helper;
+    public bool ForceRefresh { get; set; }
+
+    public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
+
+    public override QueueStateStruct PrettyDescription => new()
     {
-        private readonly TraktTVHelper _helper;
-        public bool ForceRefresh { get; set; }
+        message = "Syncing Trakt collection", queueState = QueueStateEnum.SyncTrakt, extraParams = new string[0]
+    };
 
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
+    protected override void Process()
+    {
+        Logger.LogInformation("Processing CommandRequest_TraktSyncCollection");
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
+        try
         {
-            message = "Syncing Trakt collection",
-            queueState = QueueStateEnum.SyncTrakt,
-            extraParams = new string[0]
-        };
-
-        protected override void Process()
-        {
-            Logger.LogInformation("Processing CommandRequest_TraktSyncCollection");
-
-            try
+            if (!ServerSettings.Instance.TraktTv.Enabled ||
+                string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
             {
-                if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken)) return;
+                return;
+            }
 
-                ScheduledUpdate sched =
-                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktSync);
-                if (sched == null)
+            var sched =
+                RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync);
+            if (sched == null)
+            {
+                sched = new ScheduledUpdate
                 {
-                    sched = new ScheduledUpdate
-                    {
-                        UpdateType = (int)ScheduledUpdateType.TraktSync,
-                        UpdateDetails = string.Empty
-                    };
-                }
-                else
-                {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TraktTv.SyncFrequency);
+                    UpdateType = (int)ScheduledUpdateType.TraktSync, UpdateDetails = string.Empty
+                };
+            }
+            else
+            {
+                var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TraktTv.SyncFrequency);
 
-                    // if we have run this in the last xxx hours then exit
-                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-                    if (tsLastRun.TotalHours < freqHours)
+                // if we have run this in the last xxx hours then exit
+                var tsLastRun = DateTime.Now - sched.LastUpdate;
+                if (tsLastRun.TotalHours < freqHours)
+                {
+                    if (!ForceRefresh)
                     {
-                        if (!ForceRefresh) return;
+                        return;
                     }
                 }
-                sched.LastUpdate = DateTime.Now;
-                RepoFactory.ScheduledUpdate.Save(sched);
-
-                _helper.SyncCollectionToTrakt();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError("Error processing CommandRequest_TraktSyncCollection: {0}", ex);
-            }
-        }
-
-        /// <summary>
-        /// This should generate a unique key for a command
-        /// It will be used to check whether the command has already been queued before adding it
-        /// </summary>
-        public override void GenerateCommandID()
-        {
-            CommandID = "CommandRequest_TraktSyncCollection";
-        }
-
-        public override bool LoadFromDBCommand(CommandRequest cq)
-        {
-            CommandID = cq.CommandID;
-            CommandRequestID = cq.CommandRequestID;
-            Priority = cq.Priority;
-            CommandDetails = cq.CommandDetails;
-            DateTimeUpdated = cq.DateTimeUpdated;
-
-            // read xml to get parameters
-            if (CommandDetails.Trim().Length > 0)
-            {
-                XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(CommandDetails);
-
-                // populate the fields
-                ForceRefresh =
-                    bool.Parse(TryGetProperty(docCreator, "CommandRequest_TraktSyncCollection", "ForceRefresh"));
             }
 
-            return true;
-        }
+            sched.LastUpdate = DateTime.Now;
+            RepoFactory.ScheduledUpdate.Save(sched);
 
-        public override CommandRequest ToDatabaseObject()
+            _helper.SyncCollectionToTrakt();
+        }
+        catch (Exception ex)
         {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
+            Logger.LogError("Error processing CommandRequest_TraktSyncCollection: {0}", ex);
         }
+    }
 
-        public CommandRequest_TraktSyncCollection(ILoggerFactory loggerFactory, TraktTVHelper helper) : base(loggerFactory)
+    /// <summary>
+    /// This should generate a unique key for a command
+    /// It will be used to check whether the command has already been queued before adding it
+    /// </summary>
+    public override void GenerateCommandID()
+    {
+        CommandID = "CommandRequest_TraktSyncCollection";
+    }
+
+    public override bool LoadFromDBCommand(CommandRequest cq)
+    {
+        CommandID = cq.CommandID;
+        CommandRequestID = cq.CommandRequestID;
+        Priority = cq.Priority;
+        CommandDetails = cq.CommandDetails;
+        DateTimeUpdated = cq.DateTimeUpdated;
+
+        // read xml to get parameters
+        if (CommandDetails.Trim().Length > 0)
         {
-            _helper = helper;
+            var docCreator = new XmlDocument();
+            docCreator.LoadXml(CommandDetails);
+
+            // populate the fields
+            ForceRefresh =
+                bool.Parse(TryGetProperty(docCreator, "CommandRequest_TraktSyncCollection", "ForceRefresh"));
         }
 
-        protected CommandRequest_TraktSyncCollection()
+        return true;
+    }
+
+    public override CommandRequest ToDatabaseObject()
+    {
+        GenerateCommandID();
+
+        var cq = new CommandRequest
         {
-        }
+            CommandID = CommandID,
+            CommandType = CommandType,
+            Priority = Priority,
+            CommandDetails = ToXML(),
+            DateTimeUpdated = DateTime.Now
+        };
+        return cq;
+    }
+
+    public CommandRequest_TraktSyncCollection(ILoggerFactory loggerFactory, TraktTVHelper helper) : base(loggerFactory)
+    {
+        _helper = helper;
+    }
+
+    protected CommandRequest_TraktSyncCollection()
+    {
     }
 }

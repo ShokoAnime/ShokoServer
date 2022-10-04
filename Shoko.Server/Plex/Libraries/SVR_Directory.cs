@@ -4,24 +4,23 @@ using Shoko.Models.Plex.Collection;
 using Shoko.Models.Plex.Libraries;
 using MediaContainer = Shoko.Models.Plex.Collection.MediaContainer;
 
-namespace Shoko.Server.Plex.Libraries
+namespace Shoko.Server.Plex.Libraries;
+
+internal class SVR_Directory : Directory
 {
-    class SVR_Directory : Directory
+    public SVR_Directory(PlexHelper helper)
     {
-        public SVR_Directory(PlexHelper helper)
-        {
-            Helper = helper;
-        }
+        Helper = helper;
+    }
 
-        private PlexHelper Helper { get; }
+    private PlexHelper Helper { get; }
 
-        public PlexLibrary[] GetShows()
-        {
-            var (_, json) = Helper.RequestFromPlexAsync($"/library/sections/{Key}/all").ConfigureAwait(false)
-                .GetAwaiter().GetResult();
-            return JsonConvert
-                .DeserializeObject<MediaContainer<MediaContainer>>(json, Helper.SerializerSettings)
-                .Container.Metadata;
-        }
+    public PlexLibrary[] GetShows()
+    {
+        var (_, json) = Helper.RequestFromPlexAsync($"/library/sections/{Key}/all").ConfigureAwait(false)
+            .GetAwaiter().GetResult();
+        return JsonConvert
+            .DeserializeObject<MediaContainer<MediaContainer>>(json, Helper.SerializerSettings)
+            .Container.Metadata;
     }
 }

@@ -5,76 +5,76 @@ using Shoko.Models.Client;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Movies;
 
-namespace Shoko.Server.Providers.MovieDB
+namespace Shoko.Server.Providers.MovieDB;
+
+public class MovieDB_Movie_Result
 {
-    public class MovieDB_Movie_Result
+    private static Logger logger = LogManager.GetCurrentClassLogger();
+
+    public int MovieID { get; set; }
+    public string MovieName { get; set; }
+    public string OriginalName { get; set; }
+    public string Overview { get; set; }
+    public double Rating { get; set; }
+
+    public List<MovieDB_Image_Result> Images { get; set; }
+
+    public override string ToString()
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        return "MovieDBSearchResult: " + MovieID + ": " + MovieName;
+    }
 
-        public int MovieID { get; set; }
-        public string MovieName { get; set; }
-        public string OriginalName { get; set; }
-        public string Overview { get; set; }
-        public double Rating { get; set; }
-
-        public List<MovieDB_Image_Result> Images { get; set; }
-
-        public override string ToString()
+    public bool Populate(Movie movie, ImagesWithId imgs)
+    {
+        try
         {
-            return "MovieDBSearchResult: " + MovieID + ": " + MovieName;
-        }
+            Images = new List<MovieDB_Image_Result>();
 
-        public bool Populate(Movie movie, ImagesWithId imgs)
-        {
-            try
+            MovieID = movie.Id;
+            MovieName = movie.Title;
+            OriginalName = movie.Title;
+            Overview = movie.Overview;
+            Rating = movie.VoteAverage;
+
+            if (imgs != null && imgs.Backdrops != null)
             {
-                Images = new List<MovieDB_Image_Result>();
-
-                MovieID = movie.Id;
-                MovieName = movie.Title;
-                OriginalName = movie.Title;
-                Overview = movie.Overview;
-                Rating = movie.VoteAverage;
-
-                if (imgs != null && imgs.Backdrops != null)
+                foreach (var img in imgs.Backdrops)
                 {
-                    foreach (ImageData img in imgs.Backdrops)
+                    var imageResult = new MovieDB_Image_Result();
+                    if (imageResult.Populate(img, "backdrop"))
                     {
-                        MovieDB_Image_Result imageResult = new MovieDB_Image_Result();
-                        if (imageResult.Populate(img, "backdrop"))
-                            Images.Add(imageResult);
-                    }
-                }
-
-                if (imgs != null && imgs.Posters != null)
-                {
-                    foreach (ImageData img in imgs.Posters)
-                    {
-                        MovieDB_Image_Result imageResult = new MovieDB_Image_Result();
-                        if (imageResult.Populate(img, "poster"))
-                            Images.Add(imageResult);
+                        Images.Add(imageResult);
                     }
                 }
             }
-            catch (Exception ex)
+
+            if (imgs != null && imgs.Posters != null)
             {
-                logger.Error(ex, ex.ToString());
-                return false;
+                foreach (var img in imgs.Posters)
+                {
+                    var imageResult = new MovieDB_Image_Result();
+                    if (imageResult.Populate(img, "poster"))
+                    {
+                        Images.Add(imageResult);
+                    }
+                }
             }
-
-            return true;
         }
-
-        public CL_MovieDBMovieSearch_Response ToContract()
+        catch (Exception ex)
         {
-            CL_MovieDBMovieSearch_Response cl = new CL_MovieDBMovieSearch_Response
-            {
-                MovieID = MovieID,
-                MovieName = MovieName,
-                OriginalName = OriginalName,
-                Overview = Overview
-            };
-            return cl;
+            logger.Error(ex, ex.ToString());
+            return false;
         }
+
+        return true;
+    }
+
+    public CL_MovieDBMovieSearch_Response ToContract()
+    {
+        var cl = new CL_MovieDBMovieSearch_Response
+        {
+            MovieID = MovieID, MovieName = MovieName, OriginalName = OriginalName, Overview = Overview
+        };
+        return cl;
     }
 }

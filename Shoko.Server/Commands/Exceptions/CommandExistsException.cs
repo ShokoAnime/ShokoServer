@@ -1,9 +1,8 @@
 ﻿using System;
 
-namespace Shoko.Server.Commands.Exceptions
+namespace Shoko.Server.Commands.Exceptions;
+
+public class CommandExistsException : Exception
 {
-    public class CommandExistsException : Exception
-    {
-        public string CommandID { get; set; }
-    }
+    public string CommandID { get; set; }
 }

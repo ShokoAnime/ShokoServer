@@ -1,9 +1,8 @@
-﻿namespace Shoko.Server.Commands
+﻿namespace Shoko.Server.Commands;
+
+public enum CommandConflict
 {
-    public enum CommandConflict
-    {
-        Ignore = 0,
-        Replace = 1,
-        Error = 2,
-    }
+    Ignore = 0,
+    Replace = 1,
+    Error = 2
 }

@@ -26,443 +26,450 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
-namespace Shoko.Server.API.v2.Modules
+namespace Shoko.Server.API.v2.Modules;
+
+[ApiController]
+[Route("/plex")]
+[ApiVersionNeutral]
+public class PlexWebhook : BaseController
 {
-    [ApiController]
-    [Route("/plex")]
-    [ApiVersionNeutral]
-    public class PlexWebhook : BaseController
+    private readonly ILogger<PlexWebhook> _logger;
+    private readonly ICommandRequestFactory _commandFactory;
+    private readonly TraktTVHelper _traktHelper;
+
+    public PlexWebhook(ICommandRequestFactory commandFactory, ILogger<PlexWebhook> logger, TraktTVHelper traktHelper)
     {
-        private readonly ILogger<PlexWebhook> _logger;
-        private readonly ICommandRequestFactory _commandFactory;
-        private readonly TraktTVHelper _traktHelper;
+        _commandFactory = commandFactory;
+        _logger = logger;
+        _traktHelper = traktHelper;
+    }
 
-        public PlexWebhook(ICommandRequestFactory commandFactory, ILogger<PlexWebhook> logger, TraktTVHelper traktHelper)
+    //The second one is to just make sure 
+    [HttpPost]
+    [HttpPost("/plex.json")]
+    public ActionResult WebhookPost([FromForm] [ModelBinder(BinderType = typeof(PlexBinder))] PlexEvent payload)
+    {
+        /*PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload,
+            new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()});*/
+        if (!ModelState.IsValid)
         {
-            _commandFactory = commandFactory;
-            _logger = logger;
-            _traktHelper = traktHelper;
+            return BadRequest(ModelState);
         }
 
-        //The second one is to just make sure 
-        [HttpPost, HttpPost("/plex.json")]
-        public ActionResult WebhookPost([FromForm, ModelBinder(BinderType = typeof(PlexBinder))] PlexEvent payload)
+        _logger.LogTrace($"{payload.Event}: {payload.Metadata.Guid}");
+        switch (payload.Event)
         {
-            /*PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload,
-                new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()});*/
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            _logger.LogTrace($"{payload.Event}: {payload.Metadata.Guid}");
-            switch (payload.Event)
-            {
-                case "media.scrobble":
-                    Scrobble(payload);
-                    break;
-                case "media.resume":
-                case "media.play":
-                    TraktScrobble(payload, ScrobblePlayingStatus.Start);
-                    break;
-                case "media.pause":
-                    TraktScrobble(payload, ScrobblePlayingStatus.Pause);
-                    break;
-                case "media.stop":
-                    TraktScrobble(payload, ScrobblePlayingStatus.Stop);
-                    break;
-            }
-
-            return Ok(); //doesn't need to be an ApiStatus.OK() since really, all I take is plex.   
+            case "media.scrobble":
+                Scrobble(payload);
+                break;
+            case "media.resume":
+            case "media.play":
+                TraktScrobble(payload, ScrobblePlayingStatus.Start);
+                break;
+            case "media.pause":
+                TraktScrobble(payload, ScrobblePlayingStatus.Pause);
+                break;
+            case "media.stop":
+                TraktScrobble(payload, ScrobblePlayingStatus.Stop);
+                break;
         }
 
-        #region Plex events
+        return Ok(); //doesn't need to be an ApiStatus.OK() since really, all I take is plex.   
+    }
 
-        [NonAction]
-        private void TraktScrobble(PlexEvent evt, ScrobblePlayingStatus type)
+    #region Plex events
+
+    [NonAction]
+    private void TraktScrobble(PlexEvent evt, ScrobblePlayingStatus type)
+    {
+        var metadata = evt.Metadata;
+        (var episode, var anime) = GetEpisode(metadata);
+
+        if (episode == null)
         {
-            PlexEvent.PlexMetadata metadata = evt.Metadata;
-            (SVR_AnimeEpisode episode, SVR_AnimeSeries anime) = GetEpisode(metadata);
-
-            if (episode == null) return;
-
-            var vl = RepoFactory.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
-
-            float per = 100 * (metadata.ViewOffset / (float)vl.Duration); //this will be nice if plex would ever give me the duration, so I don't have to guess it.
-
-            ScrobblePlayingType scrobbleType = episode.GetAnimeSeries()?.GetAnime()?.AnimeType == (int) AnimeType.Movie
-                ? ScrobblePlayingType.movie
-                : ScrobblePlayingType.episode;
-
-            _traktHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), type, per);
+            return;
         }
 
-        [NonAction]
-        private void Scrobble(PlexEvent data)
+        var vl = RepoFactory.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
+
+        var per = 100 *
+                  (metadata.ViewOffset /
+                   (float)vl.Duration); //this will be nice if plex would ever give me the duration, so I don't have to guess it.
+
+        var scrobbleType = episode.GetAnimeSeries()?.GetAnime()?.AnimeType == (int)AnimeType.Movie
+            ? ScrobblePlayingType.movie
+            : ScrobblePlayingType.episode;
+
+        _traktHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), type, per);
+    }
+
+    [NonAction]
+    private void Scrobble(PlexEvent data)
+    {
+        var metadata = data.Metadata;
+        (var episode, var anime) = GetEpisode(metadata);
+        if (episode == null)
         {
-            PlexEvent.PlexMetadata metadata = data.Metadata;
-            (SVR_AnimeEpisode episode, SVR_AnimeSeries anime) = GetEpisode(metadata);
-            if (episode == null)
-            {
-                _logger.LogInformation("No episode returned, aborting scrobble. This might not have been a ShokoMetadata library");
-                return;
-            }
-
-            _logger.LogTrace($"Got anime: {anime}, ep: {episode.AniDB_Episode.EpisodeNumber}");
-
-            var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
-            if (user == null)
-            {
-                _logger.LogInformation($"Unable to determine who \"{data.Account.Title}\" is in Shoko, make sure this is set under user settings in Desktop");
-                return; //At this point in time, we don't want to scrobble for unknown users
-            }
-
-            episode.ToggleWatchedStatus(true, true, FromUnixTime(metadata.LastViewedAt), false, user.JMMUserID,
-                true);
-            anime.UpdateStats(true, false, true);
+            _logger.LogInformation(
+                "No episode returned, aborting scrobble. This might not have been a ShokoMetadata library");
+            return;
         }
 
-        #endregion
+        _logger.LogTrace($"Got anime: {anime}, ep: {episode.AniDB_Episode.EpisodeNumber}");
 
-        [NonAction]
-        private (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
+        var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
+        if (user == null)
         {
-            Uri guid = new Uri(metadata.Guid);
-            if (guid.Scheme != "com.plexapp.agents.shoko") return (null, null);
-
-            PathString ps = guid.AbsolutePath;
-
-            int animeId = int.Parse(guid.Authority);
-            int series = int.Parse(guid.AbsolutePath.Split('/')[1]);
-            int episodeNumber = int.Parse(guid.AbsolutePath.Split('/')[2]);
-
-            //if (!metadata.Guid.StartsWith("com.plexapp.agents.shoko://")) return (null, null);
-
-            //string[] parts = metadata.Guid.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-            //int animeId = int.Parse(parts[1]);
-            //int series = int.Parse(parts[2]);
-
-            var anime = RepoFactory.AnimeSeries.GetByID(animeId);
-
-            EpisodeType episodeType;
-            switch (series) //I hate magic number's but this is just about how I can do this, also the rest of this is for later.
-            {
-                case -4:
-                    episodeType = EpisodeType.Parody;
-                    break;
-                case -3:
-                    episodeType = EpisodeType.Trailer;
-                    break;
-                case -2:
-                    episodeType = EpisodeType.Other;
-                    break;
-                case -1:
-                    episodeType = EpisodeType.Credits;
-                    break;
-                case 0:
-                    episodeType = EpisodeType.Special;
-                    break;
-                default:
-                    episodeType = EpisodeType.Episode;
-                    break;
-            }
-
-            if (episodeType != EpisodeType.Episode ||
-                metadata.Index == 0) //metadata.index = 0 when it's something else.
-                return (null, anime); //right now no clean way to detect the episode. I could do by title.
-
-
-            var animeEps = anime
-                    .GetAnimeEpisodes().Where(a => a.AniDB_Episode != null)
-                    .Where(a => a.EpisodeTypeEnum == episodeType)
-                    .Where(a => a.AniDB_Episode.EpisodeNumber == episodeNumber);
-
-            //if only one possible match
-            if (animeEps.Count() == 1) return (animeEps.First(), anime);
-
-            //if TvDB matched.
-            SVR_AnimeEpisode result;
-            if ((result = animeEps.FirstOrDefault(a => a?.TvDBEpisode?.SeasonNumber == series)) != null)
-                return (result, anime);
-
-
-            //catch all
-            _logger.LogInformation($"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multipl episodes linked, but no tvdb link.");
-            return (null, anime);
+            _logger.LogInformation(
+                $"Unable to determine who \"{data.Account.Title}\" is in Shoko, make sure this is set under user settings in Desktop");
+            return; //At this point in time, we don't want to scrobble for unknown users
         }
 
-        [NonAction]
-        public DateTime FromUnixTime(long unixTime)
+        episode.ToggleWatchedStatus(true, true, FromUnixTime(metadata.LastViewedAt), false, user.JMMUserID,
+            true);
+        anime.UpdateStats(true, false, true);
+    }
+
+    #endregion
+
+    [NonAction]
+    private (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
+    {
+        var guid = new Uri(metadata.Guid);
+        if (guid.Scheme != "com.plexapp.agents.shoko")
         {
-            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(unixTime);
+            return (null, null);
         }
 
-        [Authorize]
-        [HttpGet("loginurl")]
-        public string GetLoginUrl() => CallPlexHelper(h => h.LoginUrl);
+        PathString ps = guid.AbsolutePath;
 
-        [Authorize]
-        [HttpGet("pin/authenticated")]
-        public bool IsAuthenticated() => CallPlexHelper(h => h.IsAuthenticated);
+        var animeId = int.Parse(guid.Authority);
+        var series = int.Parse(guid.AbsolutePath.Split('/')[1]);
+        var episodeNumber = int.Parse(guid.AbsolutePath.Split('/')[2]);
 
-        [Authorize]
-        [HttpGet("token/invalidate")]
-        public bool InvalidateToken() => CallPlexHelper(h => { h.InvalidateToken(); return true; });
+        //if (!metadata.Guid.StartsWith("com.plexapp.agents.shoko://")) return (null, null);
 
-        [Authorize]
-        [HttpGet("sync")]
-        public ActionResult Sync()
+        //string[] parts = metadata.Guid.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+        //int animeId = int.Parse(parts[1]);
+        //int series = int.Parse(parts[2]);
+
+        var anime = RepoFactory.AnimeSeries.GetByID(animeId);
+
+        EpisodeType episodeType;
+        switch
+            (series) //I hate magic number's but this is just about how I can do this, also the rest of this is for later.
         {
-            Analytics.PostEvent("Plex", "SyncOne");
-
-            _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser()).Save();
-            return APIStatus.OK();
+            case -4:
+                episodeType = EpisodeType.Parody;
+                break;
+            case -3:
+                episodeType = EpisodeType.Trailer;
+                break;
+            case -2:
+                episodeType = EpisodeType.Other;
+                break;
+            case -1:
+                episodeType = EpisodeType.Credits;
+                break;
+            case 0:
+                episodeType = EpisodeType.Special;
+                break;
+            default:
+                episodeType = EpisodeType.Episode;
+                break;
         }
 
-        [Authorize("admin")]
-        [HttpGet("sync/all")]
-        public ActionResult SyncAll()
+        if (episodeType != EpisodeType.Episode ||
+            metadata.Index == 0) //metadata.index = 0 when it's something else.
         {
-            ShokoServer.Instance.SyncPlex();
-            return APIStatus.OK();
+            return (null, anime); //right now no clean way to detect the episode. I could do by title.
         }
 
-        [Authorize("admin")]
-        [HttpGet("sync/{id}")]
-        public ActionResult SyncForUser(int uid)
+
+        var animeEps = anime
+            .GetAnimeEpisodes().Where(a => a.AniDB_Episode != null)
+            .Where(a => a.EpisodeTypeEnum == episodeType)
+            .Where(a => a.AniDB_Episode.EpisodeNumber == episodeNumber);
+
+        //if only one possible match
+        if (animeEps.Count() == 1)
         {
-            JMMUser user = HttpContext.GetUser();
-            ShokoServer.Instance.SyncPlex();
-            return APIStatus.OK();
+            return (animeEps.First(), anime);
         }
+
+        //if TvDB matched.
+        SVR_AnimeEpisode result;
+        if ((result = animeEps.FirstOrDefault(a => a?.TvDBEpisode?.SeasonNumber == series)) != null)
+        {
+            return (result, anime);
+        }
+
+
+        //catch all
+        _logger.LogInformation(
+            $"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multipl episodes linked, but no tvdb link.");
+        return (null, anime);
+    }
+
+    [NonAction]
+    public DateTime FromUnixTime(long unixTime)
+    {
+        return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(unixTime);
+    }
+
+    [Authorize]
+    [HttpGet("loginurl")]
+    public string GetLoginUrl()
+    {
+        return CallPlexHelper(h => h.LoginUrl);
+    }
+
+    [Authorize]
+    [HttpGet("pin/authenticated")]
+    public bool IsAuthenticated()
+    {
+        return CallPlexHelper(h => h.IsAuthenticated);
+    }
+
+    [Authorize]
+    [HttpGet("token/invalidate")]
+    public bool InvalidateToken()
+    {
+        return CallPlexHelper(h =>
+        {
+            h.InvalidateToken();
+            return true;
+        });
+    }
+
+    [Authorize]
+    [HttpGet("sync")]
+    public ActionResult Sync()
+    {
+        Analytics.PostEvent("Plex", "SyncOne");
+
+        _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser()).Save();
+        return APIStatus.OK();
+    }
+
+    [Authorize("admin")]
+    [HttpGet("sync/all")]
+    public ActionResult SyncAll()
+    {
+        ShokoServer.Instance.SyncPlex();
+        return APIStatus.OK();
+    }
+
+    [Authorize("admin")]
+    [HttpGet("sync/{id}")]
+    public ActionResult SyncForUser(int uid)
+    {
+        JMMUser user = HttpContext.GetUser();
+        ShokoServer.Instance.SyncPlex();
+        return APIStatus.OK();
+    }
 
 
 #if DEBUG
-        [Authorize]
-        [HttpGet("test/dir")]
-        public Directory[] GetDirectories() => CallPlexHelper(h => h.GetDirectories());
+    [Authorize]
+    [HttpGet("test/dir")]
+    public Directory[] GetDirectories()
+    {
+        return CallPlexHelper(h => h.GetDirectories());
+    }
 
-        [Authorize]
-        [HttpGet("test/lib/{id}")]
-        public PlexLibrary[] GetShowsForDirectory(int id) => CallPlexHelper(h => ((SVR_Directory)h.GetDirectories().FirstOrDefault(d => d.Key == id))?.GetShows());
+    [Authorize]
+    [HttpGet("test/lib/{id}")]
+    public PlexLibrary[] GetShowsForDirectory(int id)
+    {
+        return CallPlexHelper(h => ((SVR_Directory)h.GetDirectories().FirstOrDefault(d => d.Key == id))?.GetShows());
+    }
 #endif
 
-        [NonAction]
-        private T CallPlexHelper<T>(Func<PlexHelper, T> act)
-        {
-            JMMUser user = HttpContext.GetUser();
-            return act(PlexHelper.GetForUser(user));
-        }
+    [NonAction]
+    private T CallPlexHelper<T>(Func<PlexHelper, T> act)
+    {
+        JMMUser user = HttpContext.GetUser();
+        return act(PlexHelper.GetForUser(user));
+    }
 
-        #region plexapi
-        #pragma warning disable 0649
+    #region plexapi
+
+#pragma warning disable 0649
+
+    [DataContract]
+    public class PlexEvent
+    {
+        [Required] [DataMember(Name = "event")]
+        public string Event;
+
+        [DataMember(Name = "user")] public bool User;
+
+        [DataMember(Name = "owner")] public bool Owner;
+
+        [Required] [DataMember(Name = "Account")]
+        public PlexAccount Account;
+
+        [Required] [DataMember(Name = "Server")]
+        public PlexBasicInfo Server;
+
+        [DataMember(Name = "Player")] public PlexPlayerInfo Player;
+
+        [DataMember(Name = "Metadata")] [Required]
+        public PlexMetadata Metadata;
 
         [DataContract]
-        public class PlexEvent
+        public class PlexAccount
         {
-            [Required]
-            [DataMember(Name = "event")]
-            public string Event;
+            [DataMember(Name = "id")] public int Id;
 
-            [DataMember(Name = "user")]
-            public bool User;
+            [DataMember(Name = "thumb")] public string Thumbnail;
 
-            [DataMember(Name = "owner")]
-            public bool Owner;
+            [DataMember(Name = "title")] public string Title;
+        }
 
-            [Required]
-            [DataMember(Name = "Account")]
-            public PlexAccount Account;
+        [DataContract]
+        public class PlexBasicInfo
+        {
+            [DataMember(Name = "title")] public string Title;
 
-            [Required]
-            [DataMember(Name = "Server")]
-            public PlexBasicInfo Server;
+            [DataMember(Name = "uuid")] public string Uuid;
+        }
 
-            [DataMember(Name = "Player")]
-            public PlexPlayerInfo Player;
+        [DataContract]
+        public class PlexPlayerInfo : PlexBasicInfo
+        {
+            [DataMember(Name = "local")] public bool Local;
 
-            [DataMember(Name = "Metadata")]
-            [Required]
-            public PlexMetadata Metadata;
+            [DataMember(Name = "publicAddress")] public string PublicAdress;
+        }
 
-            [DataContract]
-            public class PlexAccount
-            {
-                [DataMember(Name = "id")]
-                public int Id;
+        [DataContract]
+        public class PlexMetadata
+        {
+            #region Library information
 
-                [DataMember(Name = "thumb")]
-                public string Thumbnail;
+            [DataMember(Name = "librarySectionType")]
+            public string LibrarySectionType;
 
-                [DataMember(Name = "title")]
-                public string Title;
-            }
+            [DataMember(Name = "librarySectionTitle")]
+            public string LibrarySectionTitle;
 
-            [DataContract]
-            public class PlexBasicInfo
-            {
-                [DataMember(Name = "title")]
-                public string Title;
+            [DataMember(Name = "librarySectionId")]
+            public int LibrarySectionId;
 
-                [DataMember(Name = "uuid")]
-                public string Uuid;
-            }
+            [DataMember(Name = "librarySectionKey")]
+            public string LibrarySectionKey;
 
-            [DataContract]
-            public class PlexPlayerInfo : PlexBasicInfo
-            {
-                [DataMember(Name = "local")]
-                public bool Local;
+            #endregion
 
-                [DataMember(Name = "publicAddress")]
-                public string PublicAdress;
-            }
+            #region Item information
 
-            [DataContract]
-            public class PlexMetadata
-            {
-                #region Library information
+            [Required] [DataMember(Name = "guid")] public string Guid;
 
-                [DataMember(Name = "librarySectionType")]
-                public string LibrarySectionType;
+            [DataMember(Name = "key")] public string Key;
 
-                [DataMember(Name = "librarySectionTitle")]
-                public string LibrarySectionTitle;
+            [DataMember(Name = "index")] public int? Index;
 
-                [DataMember(Name = "librarySectionId")]
-                public int LibrarySectionId;
+            [DataMember(Name = "type")] public string Type;
 
-                [DataMember(Name = "librarySectionKey")]
-                public string LibrarySectionKey;
+            [DataMember(Name = "contentRating")] public string ContentRating;
 
-                #endregion
-                #region Item information
+            [DataMember(Name = "studio")] public string Studio;
 
-                [Required]
-                [DataMember(Name = "guid")]
-                public string Guid;
+            [DataMember(Name = "title")] public string Title;
 
-                [DataMember(Name = "key")]
-                public string Key;
+            [DataMember(Name = "originalTitle")] public string OriginalTitle;
 
-                [DataMember(Name = "index")]
-                public int? Index;
+            [DataMember(Name = "summary")] public string Summary;
 
-                [DataMember(Name = "type")]
-                public string Type;
+            [DataMember(Name = "thumb")] public string Thumbnail;
 
-                [DataMember(Name = "contentRating")]
-                public string ContentRating;
+            [DataMember(Name = "art")] public string Art;
 
-                [DataMember(Name = "studio")]
-                public string Studio;
+            [DataMember(Name = "addedAt")] public int AddedAt;
 
-                [DataMember(Name = "title")]
-                public string Title;
+            [DataMember(Name = "updatedAt")] public int UpdatedAt;
 
-                [DataMember(Name = "originalTitle")]
-                public string OriginalTitle;
+            [DataMember(Name = "lastViewedAt")] public int LastViewedAt;
 
-                [DataMember(Name = "summary")]
-                public string Summary;
+            [DataMember(Name = "viewOffset")] public int ViewOffset;
 
-                [DataMember(Name = "thumb")]
-                public string Thumbnail;
+            [DataMember(Name = "duration")] public int? Duration;
 
-                [DataMember(Name = "art")]
-                public string Art;
+            [DataMember(Name = "Guid")] public PlexProviderInfo[] Providers;
 
-                [DataMember(Name = "addedAt")]
-                public int AddedAt;
+            #endregion
 
-                [DataMember(Name = "updatedAt")]
-                public int UpdatedAt;
+            #region Parent item information
 
-                [DataMember(Name = "lastViewedAt")]
-                public int LastViewedAt;
+            [Required] [DataMember(Name = "parentGuid")]
+            public string ParentGuid;
 
-                [DataMember(Name = "viewOffset")]
-                public int ViewOffset;
+            [DataMember(Name = "parentIndex")] public int ParentIndex;
 
-                [DataMember(Name = "duration")]
-                public int? Duration;
+            [DataMember(Name = "parentTitle")] public string ParentTitle;
 
-                [DataMember(Name = "Guid")]
-                public PlexProviderInfo[] Providers;
+            [DataMember(Name = "parentThumb")] public string ParentThumbnail;
 
-                #endregion
-                #region Parent item information
+            #endregion
 
-                [Required]
-                [DataMember(Name = "parentGuid")]
-                public string ParentGuid;
+            #region Grand-parent item information
 
-                [DataMember(Name = "parentIndex")]
-                public int ParentIndex;
+            [Required] [DataMember(Name = "grandParentGuid")]
+            public string GrandParentGuid;
 
-                [DataMember(Name = "parentTitle")]
-                public string ParentTitle;
+            [DataMember(Name = "grandParentTitle")]
+            public string GrandParentTitle;
 
-                [DataMember(Name = "parentThumb")]
-                public string ParentThumbnail;
+            [DataMember(Name = "grandparentThumb")]
+            public string GrandParentThumbnail;
 
-                #endregion
-                #region Grand-parent item information
+            [DataMember(Name = "grandparentArt")] public string GrandparentArt;
 
-                [Required]
-                [DataMember(Name = "grandParentGuid")]
-                public string GrandParentGuid;
+            [DataMember(Name = "grandparentTheme")]
+            public string GrandparentTheme;
 
-                [DataMember(Name = "grandParentTitle")]
-                public string GrandParentTitle;
+            #endregion
+        }
 
-                [DataMember(Name = "grandparentThumb")]
-                public string GrandParentThumbnail;
-
-                [DataMember(Name = "grandparentArt")]
-                public string GrandparentArt;
-
-                [DataMember(Name = "grandparentTheme")]
-                public string GrandparentTheme;
-
-                #endregion
-            }
-
-            [DataContract]
-            public class PlexProviderInfo {
-                [DataMember(Name = "id")]
-                public string Id;
-            }
+        [DataContract]
+        public class PlexProviderInfo
+        {
+            [DataMember(Name = "id")] public string Id;
         }
     }
-
-    internal class PlexBinder : IModelBinder //credit to https://stackoverflow.com/a/46344854
-    {
-        public Task BindModelAsync(ModelBindingContext bindingContext)
-        {
-            if (bindingContext == null)
-            {
-                throw new ArgumentNullException(nameof(bindingContext));
-            }
-
-            // Check the value sent in
-            var valueProviderResult = bindingContext.ValueProvider.GetValue(bindingContext.ModelName);
-            if (valueProviderResult != ValueProviderResult.None)
-            {
-                bindingContext.ModelState.SetModelValue(bindingContext.ModelName, valueProviderResult);
-
-                // Attempt to convert the input value
-                var valueAsString = valueProviderResult.FirstValue;
-                var result = JsonConvert.DeserializeObject(valueAsString, bindingContext.ModelType);
-                if (result != null)
-                {
-                    
-                    bindingContext.Result = ModelBindingResult.Success(result);
-                    return Task.CompletedTask;
-                }
-            }
-
-            return Task.CompletedTask;
-        }
-    }
-
-    #pragma warning restore 0649
-    #endregion
 }
+
+internal class PlexBinder : IModelBinder //credit to https://stackoverflow.com/a/46344854
+{
+    public Task BindModelAsync(ModelBindingContext bindingContext)
+    {
+        if (bindingContext == null)
+        {
+            throw new ArgumentNullException(nameof(bindingContext));
+        }
+
+        // Check the value sent in
+        var valueProviderResult = bindingContext.ValueProvider.GetValue(bindingContext.ModelName);
+        if (valueProviderResult != ValueProviderResult.None)
+        {
+            bindingContext.ModelState.SetModelValue(bindingContext.ModelName, valueProviderResult);
+
+            // Attempt to convert the input value
+            var valueAsString = valueProviderResult.FirstValue;
+            var result = JsonConvert.DeserializeObject(valueAsString, bindingContext.ModelType);
+            if (result != null)
+            {
+                bindingContext.Result = ModelBindingResult.Success(result);
+                return Task.CompletedTask;
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+}
+
+#pragma warning restore 0649
+
+#endregion

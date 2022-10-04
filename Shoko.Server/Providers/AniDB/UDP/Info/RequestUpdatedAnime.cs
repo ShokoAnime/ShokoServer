@@ -4,24 +4,35 @@ using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Info
+namespace Shoko.Server.Providers.AniDB.UDP.Info;
+
+public class RequestUpdatedAnime : UDPRequest<ResponseUpdatedAnime>
 {
-    public class RequestUpdatedAnime : UDPRequest<ResponseUpdatedAnime>
+    public DateTime LastUpdated { get; set; }
+
+    protected override string BaseCommand =>
+        $"UPDATED entity=1&time={Commons.Utils.AniDB.GetAniDBDateAsSeconds(LastUpdated)}";
+
+    protected override UDPResponse<ResponseUpdatedAnime> ParseResponse(UDPResponse<string> response)
     {
-        public DateTime LastUpdated { get; set; }
-        protected override string BaseCommand => $"UPDATED entity=1&time={Commons.Utils.AniDB.GetAniDBDateAsSeconds(LastUpdated)}";
-
-        protected override UDPResponse<ResponseUpdatedAnime> ParseResponse(UDPResponse<string> response)
+        var code = response.Code;
+        if (code != UDPReturnCode.UPDATED)
         {
-            var code = response.Code;
-            if (code != UDPReturnCode.UPDATED) return new UDPResponse<ResponseUpdatedAnime> { Code = code, Response = null };
-            var fields = response.Response.Split('|');
-            var result = new ResponseUpdatedAnime { Count = int.Parse(fields[1]), LastUpdated = DateTime.UnixEpoch.AddSeconds(long.Parse(fields[2])), AnimeIDs = fields[3].Trim().Split(',').Select(int.Parse).ToList() };
-            return new UDPResponse<ResponseUpdatedAnime> { Code = code, Response = result };
+            return new UDPResponse<ResponseUpdatedAnime> { Code = code, Response = null };
         }
 
-        public RequestUpdatedAnime(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+        var fields = response.Response.Split('|');
+        var result = new ResponseUpdatedAnime
         {
-        }
+            Count = int.Parse(fields[1]),
+            LastUpdated = DateTime.UnixEpoch.AddSeconds(long.Parse(fields[2])),
+            AnimeIDs = fields[3].Trim().Split(',').Select(int.Parse).ToList()
+        };
+        return new UDPResponse<ResponseUpdatedAnime> { Code = code, Response = result };
+    }
+
+    public RequestUpdatedAnime(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory,
+        handler)
+    {
     }
 }

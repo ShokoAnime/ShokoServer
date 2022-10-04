@@ -1,11 +1,10 @@
-namespace Shoko.Server.Providers.AniDB.UDP.Info
+namespace Shoko.Server.Providers.AniDB.UDP.Info;
+
+public class ResponseGetEpisode
 {
-    public class ResponseGetEpisode
-    {
-        /// AniDB File ID
-        public int EpisodeID { get; set; }
-        /// AniDB Anime ID
-        public int AnimeID { get; set; }
-        
-    }
+    /// AniDB File ID
+    public int EpisodeID { get; set; }
+
+    /// AniDB Anime ID
+    public int AnimeID { get; set; }
 }

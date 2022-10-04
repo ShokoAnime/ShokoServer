@@ -4,26 +4,28 @@ using Shoko.Commons.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
-namespace Shoko.Server.Repositories.Direct
+namespace Shoko.Server.Repositories.Direct;
+
+public class AniDB_AnimeUpdateRepository : BaseDirectRepository<AniDB_AnimeUpdate, int>
 {
-    public class AniDB_AnimeUpdateRepository : BaseDirectRepository<AniDB_AnimeUpdate, int>
+    public AniDB_AnimeUpdate GetByAnimeID(int id)
     {
-        public AniDB_AnimeUpdate GetByAnimeID(int id)
+        lock (GlobalDBLock)
         {
-            lock (GlobalDBLock)
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var cats = session
+                .CreateCriteria(typeof(AniDB_AnimeUpdate))
+                .Add(Restrictions.Eq("AnimeID", id))
+                .List<AniDB_AnimeUpdate>();
+
+            var cat = cats.FirstOrDefault();
+            cats.Remove(cat);
+            if (cats.Count > 1)
             {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var cats = session
-                    .CreateCriteria(typeof(AniDB_AnimeUpdate))
-                    .Add(Restrictions.Eq("AnimeID", id))
-                    .List<AniDB_AnimeUpdate>();
-
-                var cat = cats.FirstOrDefault();
-                cats.Remove(cat);
-                if (cats.Count > 1) cats.ForEach(Delete);
-
-                return cat;
+                cats.ForEach(Delete);
             }
+
+            return cat;
         }
     }
 }

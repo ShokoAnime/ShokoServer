@@ -1,13 +1,12 @@
-namespace Shoko.Server.Settings
+namespace Shoko.Server.Settings;
+
+public class LogRotatorSettings
 {
-    public class LogRotatorSettings
-    {
-        public bool Enabled { get; set; } = true;
+    public bool Enabled { get; set; } = true;
 
-        public bool Zip { get; set; } = true;
+    public bool Zip { get; set; } = true;
 
-        public bool Delete { get; set; } = true;
+    public bool Delete { get; set; } = true;
 
-        public string Delete_Days { get; set; } = "";
-    }
+    public string Delete_Days { get; set; } = "";
 }

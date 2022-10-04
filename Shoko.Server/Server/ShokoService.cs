@@ -5,157 +5,159 @@ using NLog;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Generic;
 
-namespace Shoko.Server.Server
+namespace Shoko.Server.Server;
+
+public class ShokoService
 {
-    public class ShokoService
+    private static Logger logger = LogManager.GetCurrentClassLogger();
+
+    private static readonly object cmdLockGeneral = new();
+    private static readonly object cmdLockHasher = new();
+    private static readonly object cmdLockImages = new();
+    private static readonly object lockLastAniDBMessage = new();
+    private static readonly object lockLastAniDBUDPMessage = new();
+    private static readonly object lockLastAniDBHTTPMessage = new();
+    private static readonly object lockLastAniDBMessageNonPing = new();
+    private static readonly object lockLastAniDBPing = new();
+
+    public static bool DebugFlag = false;
+
+    public static void LogToSystem(string logType, string logMessage)
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        logger.Trace($"{logType} - {logMessage}");
+    }
 
-        private static readonly object cmdLockGeneral = new object();
-        private static readonly object cmdLockHasher = new object();
-        private static readonly object cmdLockImages = new object();
-        private static readonly object lockLastAniDBMessage = new object();
-        private static readonly object lockLastAniDBUDPMessage = new object();
-        private static readonly object lockLastAniDBHTTPMessage = new object();
-        private static readonly object lockLastAniDBMessageNonPing = new object();
-        private static readonly object lockLastAniDBPing = new object();
+    private static DateTime lastAniDBMessage = DateTime.Now;
 
-        public static bool DebugFlag = false;
-
-        public static void LogToSystem(string logType, string logMessage)
+    public static DateTime LastAniDBMessage
+    {
+        get
         {
-            logger.Trace($"{logType} - {logMessage}");
-        }
-
-        private static DateTime lastAniDBMessage = DateTime.Now;
-
-        public static DateTime LastAniDBMessage
-        {
-            get
+            lock (lockLastAniDBMessage)
             {
-                lock (lockLastAniDBMessage)
-                {
-                    return lastAniDBMessage;
-                }
-            }
-            set { lastAniDBMessage = value; }
-        }
-
-        private static DateTime lastAniDBUDPMessage = DateTime.Now;
-
-        public static DateTime LastAniDBUDPMessage
-        {
-            get
-            {
-                lock (lockLastAniDBUDPMessage)
-                {
-                    return lastAniDBUDPMessage;
-                }
-            }
-            set { lastAniDBUDPMessage = value; }
-        }
-
-        private static DateTime lastAniDBHTTPMessage = DateTime.Now;
-
-        public static DateTime LastAniDBHTTPMessage
-        {
-            get
-            {
-                lock (lockLastAniDBHTTPMessage)
-                {
-                    return lastAniDBHTTPMessage;
-                }
-            }
-            set { lastAniDBHTTPMessage = value; }
-        }
-
-
-        private static DateTime lastAniDBMessageNonPing = DateTime.Now;
-
-        public static DateTime LastAniDBMessageNonPing
-        {
-            get
-            {
-                lock (lockLastAniDBMessageNonPing)
-                {
-                    return lastAniDBMessageNonPing;
-                }
-            }
-            set { lastAniDBMessageNonPing = value; }
-        }
-
-        private static DateTime lastAniDBPing = DateTime.Now;
-
-        public static DateTime LastAniDBPing
-        {
-            get
-            {
-                lock (lockLastAniDBPing)
-                {
-                    return lastAniDBPing;
-                }
-            }
-            set { lastAniDBPing = value; }
-        }
-
-        private static readonly CommandProcessorGeneral _cmdProcessorGeneral = new();
-
-        public static CommandProcessorGeneral CmdProcessorGeneral
-        {
-            get
-            {
-                lock (cmdLockGeneral)
-                {
-                    return _cmdProcessorGeneral;
-                }
+                return lastAniDBMessage;
             }
         }
+        set => lastAniDBMessage = value;
+    }
 
-        private static readonly CommandProcessorImages _cmdProcessorImages = new();
+    private static DateTime lastAniDBUDPMessage = DateTime.Now;
 
-        public static CommandProcessorImages CmdProcessorImages
+    public static DateTime LastAniDBUDPMessage
+    {
+        get
         {
-            get
+            lock (lockLastAniDBUDPMessage)
             {
-                lock (cmdLockImages)
-                {
-                    return _cmdProcessorImages;
-                }
+                return lastAniDBUDPMessage;
             }
         }
+        set => lastAniDBUDPMessage = value;
+    }
 
-        private static readonly CommandProcessorHasher _cmdProcessorHasher = new();
+    private static DateTime lastAniDBHTTPMessage = DateTime.Now;
 
-        public static CommandProcessorHasher CmdProcessorHasher
+    public static DateTime LastAniDBHTTPMessage
+    {
+        get
         {
-            get
+            lock (lockLastAniDBHTTPMessage)
             {
-                lock (cmdLockHasher)
-                {
-                    return _cmdProcessorHasher;
-                }
+                return lastAniDBHTTPMessage;
             }
         }
+        set => lastAniDBHTTPMessage = value;
+    }
 
-        public static void CancelAndWaitForQueues()
-        {
-            CmdProcessorGeneral.Stop();
-            CmdProcessorHasher.Stop();
-            CmdProcessorImages.Stop();
-            var queues = new[] { WaitForQueue(CmdProcessorGeneral), WaitForQueue(CmdProcessorHasher), WaitForQueue(CmdProcessorImages) };
-            var done = Task.WhenAll(queues);
-            done.Wait();
-        }
 
-        private static Task WaitForQueue(CommandProcessor queue)
+    private static DateTime lastAniDBMessageNonPing = DateTime.Now;
+
+    public static DateTime LastAniDBMessageNonPing
+    {
+        get
         {
-            return Task.Run(() =>
+            lock (lockLastAniDBMessageNonPing)
             {
-                while (queue.IsWorkerBusy)
-                {
-                    Thread.Sleep(250);
-                }
-            });
+                return lastAniDBMessageNonPing;
+            }
         }
+        set => lastAniDBMessageNonPing = value;
+    }
+
+    private static DateTime lastAniDBPing = DateTime.Now;
+
+    public static DateTime LastAniDBPing
+    {
+        get
+        {
+            lock (lockLastAniDBPing)
+            {
+                return lastAniDBPing;
+            }
+        }
+        set => lastAniDBPing = value;
+    }
+
+    private static readonly CommandProcessorGeneral _cmdProcessorGeneral = new();
+
+    public static CommandProcessorGeneral CmdProcessorGeneral
+    {
+        get
+        {
+            lock (cmdLockGeneral)
+            {
+                return _cmdProcessorGeneral;
+            }
+        }
+    }
+
+    private static readonly CommandProcessorImages _cmdProcessorImages = new();
+
+    public static CommandProcessorImages CmdProcessorImages
+    {
+        get
+        {
+            lock (cmdLockImages)
+            {
+                return _cmdProcessorImages;
+            }
+        }
+    }
+
+    private static readonly CommandProcessorHasher _cmdProcessorHasher = new();
+
+    public static CommandProcessorHasher CmdProcessorHasher
+    {
+        get
+        {
+            lock (cmdLockHasher)
+            {
+                return _cmdProcessorHasher;
+            }
+        }
+    }
+
+    public static void CancelAndWaitForQueues()
+    {
+        CmdProcessorGeneral.Stop();
+        CmdProcessorHasher.Stop();
+        CmdProcessorImages.Stop();
+        var queues = new[]
+        {
+            WaitForQueue(CmdProcessorGeneral), WaitForQueue(CmdProcessorHasher), WaitForQueue(CmdProcessorImages)
+        };
+        var done = Task.WhenAll(queues);
+        done.Wait();
+    }
+
+    private static Task WaitForQueue(CommandProcessor queue)
+    {
+        return Task.Run(() =>
+        {
+            while (queue.IsWorkerBusy)
+            {
+                Thread.Sleep(250);
+            }
+        });
     }
 }

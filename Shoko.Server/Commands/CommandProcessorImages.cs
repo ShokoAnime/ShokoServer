@@ -9,89 +9,102 @@ using Shoko.Server.Commands.Generic;
 using Shoko.Server.Commands.Interfaces;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands;
+
+public class CommandProcessorImages : CommandProcessor
 {
-    public class CommandProcessorImages : CommandProcessor
+    protected override void UpdateQueueCount()
     {
-        protected override void UpdateQueueCount()
-        {
-            QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountImages();
-        }
+        QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountImages();
+    }
 
-        protected override string QueueType { get; } = "Image";
+    protected override string QueueType { get; } = "Image";
 
-        protected override void UpdatePause(bool pauseState)
-        {
-            ServerInfo.Instance.ImagesQueuePaused = pauseState;
-            ServerInfo.Instance.ImagesQueueRunning = !pauseState;
-        }
+    protected override void UpdatePause(bool pauseState)
+    {
+        ServerInfo.Instance.ImagesQueuePaused = pauseState;
+        ServerInfo.Instance.ImagesQueueRunning = !pauseState;
+    }
 
-        public override void Init(IServiceProvider provider)
+    public override void Init(IServiceProvider provider)
+    {
+        base.Init(provider);
+        QueueState = new QueueStateStruct
         {
-            base.Init(provider);
-            QueueState = new QueueStateStruct
+            message = "Starting image downloading command worker",
+            queueState = QueueStateEnum.StartingImages,
+            extraParams = new string[0]
+        };
+    }
+
+    protected override void WorkerCommands_DoWork(object sender, DoWorkEventArgs e)
+    {
+        while (true)
+        {
+            if (WorkerCommands.CancellationPending)
             {
-                message = "Starting image downloading command worker",
-                queueState = QueueStateEnum.StartingImages,
-                extraParams = new string[0]
-            };
-        }
+                return;
+            }
 
-        protected override void WorkerCommands_DoWork(object sender, DoWorkEventArgs e)
-        {
-            while (true)
+            // if paused we will sleep for 5 seconds, and the try again
+            if (Paused)
             {
-                if (WorkerCommands.CancellationPending)
-                    return;
-
-                // if paused we will sleep for 5 seconds, and the try again
-                if (Paused)
-                {
-                    try
-                    {
-                        if (WorkerCommands.CancellationPending)
-                            return;
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-                    Thread.Sleep(200);
-                    continue;
-                }
-
-                CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestImages();
-                if (crdb == null) return;
-
-                if (WorkerCommands.CancellationPending)
-                    return;
-
-                ICommandRequest icr = CommandHelper.GetCommand(ServiceProvider, crdb);
-                if (icr == null)
-                    return;
-
-                if (WorkerCommands.CancellationPending)
-                    return;
-
-                QueueState = icr.PrettyDescription;
-
                 try
                 {
-                    CurrentCommand = crdb;
-                    icr.ProcessCommand();
+                    if (WorkerCommands.CancellationPending)
+                    {
+                        return;
+                    }
                 }
-                catch (Exception ex)
+                catch
                 {
-                    Logger.LogError(ex, "ProcessCommand exception: {CommandID}\n{Ex}", crdb.CommandID, ex);
-                }
-                finally
-                {
-                    CurrentCommand = null;
+                    // ignore
                 }
 
-                RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
-                UpdateQueueCount();
+                Thread.Sleep(200);
+                continue;
             }
+
+            var crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestImages();
+            if (crdb == null)
+            {
+                return;
+            }
+
+            if (WorkerCommands.CancellationPending)
+            {
+                return;
+            }
+
+            var icr = CommandHelper.GetCommand(ServiceProvider, crdb);
+            if (icr == null)
+            {
+                return;
+            }
+
+            if (WorkerCommands.CancellationPending)
+            {
+                return;
+            }
+
+            QueueState = icr.PrettyDescription;
+
+            try
+            {
+                CurrentCommand = crdb;
+                icr.ProcessCommand();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "ProcessCommand exception: {CommandID}\n{Ex}", crdb.CommandID, ex);
+            }
+            finally
+            {
+                CurrentCommand = null;
+            }
+
+            RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
+            UpdateQueueCount();
         }
     }
 }

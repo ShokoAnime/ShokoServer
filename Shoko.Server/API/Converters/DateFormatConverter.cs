@@ -1,12 +1,11 @@
 ﻿using Newtonsoft.Json.Converters;
 
-namespace Shoko.Server.API.Converters
+namespace Shoko.Server.API.Converters;
+
+public class DateFormatConverter : IsoDateTimeConverter
 {
-    public class DateFormatConverter : IsoDateTimeConverter
+    public DateFormatConverter(string format)
     {
-        public DateFormatConverter(string format)
-        {
-            DateTimeFormat = format;
-        }
+        DateTimeFormat = format;
     }
 }

@@ -1,31 +1,30 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Shoko.Models.PlexAndKodi;
 
-namespace Shoko.Server.PlexAndKodi
+namespace Shoko.Server.PlexAndKodi;
+
+public interface IProvider
 {
-    public interface IProvider
-    {
-        MediaContainer NewMediaContainer(MediaContainerTypes type, string title = null, bool allowsync = true,
-            bool nocache = true, BreadCrumbs info = null);
+    MediaContainer NewMediaContainer(MediaContainerTypes type, string title = null, bool allowsync = true,
+        bool nocache = true, BreadCrumbs info = null);
 
-        //void AddResponseHeaders();
-        string ServiceAddress { get; }
+    //void AddResponseHeaders();
+    string ServiceAddress { get; }
 
-        int ServicePort { get; }
-        bool UseBreadCrumbs { get; }
-        bool ConstructFakeIosParent { get; }
-        bool AutoWatch { get; }
-        string Proxyfy(string url);
-        string ShortUrl(string url);
-        bool EnableRolesInLists { get; }
-        bool EnableAnimeTitlesInLists { get; }
-        bool EnableGenresInLists { get; }
-        bool AddPlexSearchItem { get; }
-        bool AddPlexPrefsItem { get; }
-        bool RemoveFileAttribute { get; } // This will force the transcoder in plex to use the stream instead the file.
-        bool AddEpisodeNumberToTitlesOnUnsupportedClients { get; }
-        HttpContext HttpContext { get; set; }
+    int ServicePort { get; }
+    bool UseBreadCrumbs { get; }
+    bool ConstructFakeIosParent { get; }
+    bool AutoWatch { get; }
+    string Proxyfy(string url);
+    string ShortUrl(string url);
+    bool EnableRolesInLists { get; }
+    bool EnableAnimeTitlesInLists { get; }
+    bool EnableGenresInLists { get; }
+    bool AddPlexSearchItem { get; }
+    bool AddPlexPrefsItem { get; }
+    bool RemoveFileAttribute { get; } // This will force the transcoder in plex to use the stream instead the file.
+    bool AddEpisodeNumberToTitlesOnUnsupportedClients { get; }
+    HttpContext HttpContext { get; set; }
 
-        string ExcludeTags { get; }
-    }
+    string ExcludeTags { get; }
 }

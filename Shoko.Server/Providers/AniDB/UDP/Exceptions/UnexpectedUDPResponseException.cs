@@ -1,29 +1,29 @@
 using System;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Exceptions
+namespace Shoko.Server.Providers.AniDB.UDP.Exceptions;
+
+[Serializable]
+public class UnexpectedUDPResponseException : Exception
 {
-    [Serializable]
-    public class UnexpectedUDPResponseException : Exception
+    public string Response { get; set; }
+    public UDPReturnCode ReturnCode { get; set; }
+
+    public UnexpectedUDPResponseException(UDPReturnCode code, string response) : base(
+        $"Unexpected AniDB Response: {code} | {response}")
     {
-        public string Response { get; set; }
-        public UDPReturnCode ReturnCode { get; set; }
+        Response = response;
+        ReturnCode = code;
+    }
 
-        public UnexpectedUDPResponseException(UDPReturnCode code, string response) : base($"Unexpected AniDB Response: {code} | {response}")
-        {
-            Response = response;
-            ReturnCode = code;
-        }
-        
-        public UnexpectedUDPResponseException(string message, UDPReturnCode code, string response) : base(message)
-        {
-            Response = response;
-            ReturnCode = code;
-        }
+    public UnexpectedUDPResponseException(string message, UDPReturnCode code, string response) : base(message)
+    {
+        Response = response;
+        ReturnCode = code;
+    }
 
-        public UnexpectedUDPResponseException(string response) : base($"Unexpected AniDB Response: {response}")
-        {
-            Response = response;
-            ReturnCode = UDPReturnCode.UNKNOWN_COMMAND;
-        }
+    public UnexpectedUDPResponseException(string response) : base($"Unexpected AniDB Response: {response}")
+    {
+        Response = response;
+        ReturnCode = UDPReturnCode.UNKNOWN_COMMAND;
     }
 }

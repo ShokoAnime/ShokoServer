@@ -1,3 +1,1 @@
-﻿namespace Shoko.Server.Providers.TraktTV.Contracts
-{
-}
+﻿namespace Shoko.Server.Providers.TraktTV.Contracts;

@@ -1,45 +1,57 @@
-﻿namespace Shoko.Server.API.v2.Models.common
+﻿namespace Shoko.Server.API.v2.Models.common;
+
+public class Role
 {
-    public class Role
+    public string character { get; set; }
+    public string character_image { get; set; }
+    public string character_description { get; set; }
+    public string staff { get; set; }
+    public string staff_image { get; set; }
+    public string staff_description { get; set; }
+    public string role { get; set; }
+    public string type { get; set; }
+
+    protected bool Equals(Role other)
     {
-        public string character { get; set; }
-        public string character_image { get; set; }
-        public string character_description { get; set; }
-        public string staff { get; set; }
-        public string staff_image { get; set; }
-        public string staff_description { get; set; }
-        public string role { get; set; }
-        public string type { get; set; }
+        return string.Equals(character, other.character) && string.Equals(staff, other.staff);
+    }
 
-        protected bool Equals(Role other)
+    public override bool Equals(object obj)
+    {
+        if (ReferenceEquals(null, obj))
         {
-            return string.Equals(character, other.character) && string.Equals(staff, other.staff);
+            return false;
         }
 
-        public override bool Equals(object obj)
+        if (ReferenceEquals(this, obj))
         {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != GetType()) return false;
-            return Equals((Role) obj);
+            return true;
         }
 
-        public override int GetHashCode()
+        if (obj.GetType() != GetType())
         {
-            unchecked
-            {
-                return ((character != null ? character.GetHashCode() : 0) * 397) ^ (staff != null ? staff.GetHashCode() : 0);
-            }
+            return false;
         }
 
-        public static bool operator ==(Role left, Role right)
-        {
-            return Equals(left, right);
-        }
+        return Equals((Role)obj);
+    }
 
-        public static bool operator !=(Role left, Role right)
+    public override int GetHashCode()
+    {
+        unchecked
         {
-            return !Equals(left, right);
+            return ((character != null ? character.GetHashCode() : 0) * 397) ^
+                   (staff != null ? staff.GetHashCode() : 0);
         }
+    }
+
+    public static bool operator ==(Role left, Role right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(Role left, Role right)
+    {
+        return !Equals(left, right);
     }
 }
