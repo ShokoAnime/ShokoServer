@@ -42,27 +42,14 @@ namespace Shoko.Server.Commands.AniDB
 
         protected override void Process()
         {
-            /*Logger.LogInformation("Processing CommandRequest_SyncMyList");
+            Logger.LogInformation("Processing CommandRequest_SyncMyList");
+            #if !DEBUG
+            throw new NotSupportedException("I'm working on it...")
+            #endif
 
             try
             {
-                // we will always assume that an anime was downloaded via http first
-                var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
-                if (sched == null)
-                {
-                    sched = new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBMyListSync, UpdateDetails = string.Empty };
-                }
-                else
-                {
-                    var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.MyList_UpdateFrequency);
-
-                    // if we have run this in the last 24 hours and are not forcing it, then exit
-                    var tsLastRun = DateTime.Now - sched.LastUpdate;
-                    if (tsLastRun.TotalHours < freqHours)
-                    {
-                        if (!ForceRefresh) return;
-                    }
-                }
+                if (ShouldRun()) return;
 
                 // Get the list from AniDB
                 var request = _requestFactory.Create<RequestMyList>(
@@ -88,26 +75,9 @@ namespace Shoko.Server.Commands.AniDB
                 var onlineFiles = response.Response.Where(a => a.FileID.HasValue).ToLookup(a => a.FileID);
                 var onlineEpisodes = response.Response.Where(a => !a.FileID.HasValue && a.AnimeID.HasValue && a.EpisodeID.HasValue).ToLookup(a => (a.AnimeID, a.EpisodeID));
                 var dictAniFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
+                var dictAniEps = RepoFactory.CrossRef_File_Episode.GetAll().Where(a => !dictAniFiles.Contains(a.Hash)).ToLookup(a => a.Hash);
 
-                var missingFiles = 0;
-                foreach (var vid in RepoFactory.VideoLocal.GetAll()
-                    .Where(a => !string.IsNullOrEmpty(a.Hash)).ToList())
-                {
-                    // Does it have a linked AniFile
-                    if (!TryParseFileID(dictAniFiles, vid, onlineFiles))
-                    {
-                        if (!TryParseEpisode(vid, onlineEpisodes)) continue;
-                    }
-
-                    // means we have found a file in our local collection, which is not recorded online
-                    if (ServerSettings.Instance.AniDb.MyList_AddFiles)
-                    {
-                        var cmdAddFile = new CommandRequest_AddFileToMyList(vid.Hash);
-                        cmdAddFile.Save();
-                    }
-                    missingFiles++;
-                }
-                Logger.LogInformation($"MYLIST Missing Files: {missingFiles} Added to queue for inclusion");
+                var missingFiles = AddMissingFiles(dictAniFiles, onlineFiles, dictAniEps, onlineEpisodes);
 
                 var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
                 var modifiedSeries = new LinkedHashSet<SVR_AnimeSeries>();
@@ -222,7 +192,13 @@ namespace Shoko.Server.Commands.AniDB
                 {
                     foreach (var vl in filesToRemove)
                     {
-                        var deleteCommand = new CommandRequest_DeleteFileFromMyList(vl.ED2KHash, vl.FileSize);
+                        var deleteCommand = _commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+                            a =>
+                            {
+                                a.Hash = vl.ED2KHash;
+                                a.FileSize = vl.FileSize;
+                            }
+                        );
                         deleteCommand.Save();
                     }
                 }
@@ -243,48 +219,102 @@ namespace Shoko.Server.Commands.AniDB
                 modifiedSeries.ForEach(a => a.QueueUpdateStats());
 
                 Logger.LogInformation("Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {WatchedItems} Watched, {ModifiedItems} Modified", totalItems, missingFiles, filesToRemove.Count, watchedItems, modifiedItems);
-
-                sched.LastUpdate = DateTime.Now;
-                RepoFactory.ScheduledUpdate.Save(sched);
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error processing CommandRequest_SyncMyList: {Ex} ", ex);
-            }*/
+            }
         }
 
-        /*private static bool TryParseFileID(ILookup<string, SVR_AniDB_File> dictAniFiles, SVR_VideoLocal vid, ILookup<int?, ResponseMyList> onlineFiles)
+        private bool ShouldRun()
         {
-            if (!dictAniFiles.Contains(vid.Hash)) return false;
-
-            var fileID = dictAniFiles[vid.Hash].FirstOrDefault()?.FileID ?? 0;
-            if (fileID == 0) return false;
-            // Is it in MyList
-            if (!onlineFiles.Contains(fileID)) return false;
-            var file = onlineFiles[fileID].FirstOrDefault(a => a != null);
-
-            if (file == null) return false;
-            if (vid.MyListID == 0 && file.MyListID.HasValue)
+            // we will always assume that an anime was downloaded via http first
+            var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
+            if (sched == null)
             {
-                vid.MyListID = file.MyListID.Value;
-                RepoFactory.VideoLocal.Save(vid);
+                sched = new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBMyListSync, UpdateDetails = string.Empty };
+            }
+            else
+            {
+                var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.MyList_UpdateFrequency);
+
+                // if we have run this in the last 24 hours and are not forcing it, then exit
+                var tsLastRun = DateTime.Now - sched.LastUpdate;
+                if (tsLastRun.TotalHours < freqHours)
+                {
+                    if (!ForceRefresh) return true;
+                }
             }
 
-            // Update file state if deleted
-            if ((int)file.State == (int)ServerSettings.Instance.AniDb.MyList_StorageState) return true;
+            sched.LastUpdate = DateTime.Now;
+            RepoFactory.ScheduledUpdate.Save(sched);
 
-            var seconds = Commons.Utils.AniDB.GetAniDBDateAsSeconds(file.ViewedAt);
-            var cmdUpdateFile = new CommandRequest_UpdateMyListFileStatus(vid.Hash, file.ViewedAt.HasValue, false, seconds);
-            cmdUpdateFile.Save();
+            return false;
+        }
 
+        private int AddMissingFiles(ILookup<string, SVR_AniDB_File> dictAniFiles, ILookup<int?, ResponseMyList> onlineFiles, ILookup<string, CrossRef_File_Episode> dictAniEps, ILookup<(int? AnimeID, int? EpisodeID), ResponseMyList> onlineEpisodes)
+        {
+            var missingFiles = 0;
+            var missingEps = 0;
+            foreach (var vid in RepoFactory.VideoLocal.GetAll()
+                         .Where(a => !string.IsNullOrEmpty(a.Hash)).ToList())
+            {
+                // Does it have a linked AniFile
+                if (TryGetFileID(dictAniFiles, vid.Hash, out var fileID))
+                {
+                    // Is it in MyList
+                    if (onlineFiles.Contains(fileID)) continue;
+
+                    // means we have found a file in our local collection, which is not recorded online
+                    if (!ServerSettings.Instance.AniDb.MyList_AddFiles) continue;
+                    missingFiles++;
+                }
+                else if (TryGetEpisode(dictAniEps, vid.Hash, out var episodeXrefs))
+                {
+                    foreach (var (animeID, episodeID) in episodeXrefs)
+                    {
+                        // Is it in MyList
+                        if (onlineEpisodes.Contains((animeID, episodeID))) continue;
+
+                        // means we have found a file in our local collection, which is not recorded online
+                        if (!ServerSettings.Instance.AniDb.MyList_AddFiles) continue;
+                        missingEps++;
+                    }
+                }
+
+                var cmdAddFile = _commandFactory.Create<CommandRequest_AddFileToMyList>(a => a.Hash = vid.Hash);
+                cmdAddFile.Save();
+            }
+
+            Logger.LogInformation("MYLIST Missing Files: {MissingFiles} Missing Episodes: {MissingEps} Added to queue for inclusion", missingFiles, missingEps);
+            return missingFiles;
+        }
+
+        private static bool TryGetFileID(ILookup<string, SVR_AniDB_File> dictAniFiles, string hash, out int fileID)
+        {
+            fileID = 0;
+            if (!dictAniFiles.Contains(hash)) return false;
+            var file = dictAniFiles[hash].FirstOrDefault();
+            if (file == null) return false;
+            if (file.FileID == 0) return false;
+            fileID = file.FileID;
             return true;
         }
 
-        private static bool TryParseEpisode(SVR_VideoLocal vid, ILookup<(int? AnimeID, int? EpisodeID),ResponseMyList> onlineEpisodes)
+        private static bool TryGetEpisode(ILookup<string, CrossRef_File_Episode> dictAniEps, string hash, out IReadOnlyList<(int AnimeID, int EpisodeID)> Episodes)
         {
+            var output = new List<(int AnimeID, int EpisodeID)>();
+            Episodes = output;
+            if (!dictAniEps.Contains(hash)) return false;
+            var xrefs = dictAniEps[hash];
+            foreach (var xref in xrefs)
+            {
+                if (xref == null) continue;
+                output.Add((xref.AnimeID, xref.EpisodeID));
+            }
 
-            return true;
-        }*/
+            return output.Any();
+        }
 
         public override void GenerateCommandID()
         {
