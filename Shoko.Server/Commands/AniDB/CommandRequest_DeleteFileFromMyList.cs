@@ -30,20 +30,28 @@ namespace Shoko.Server.Commands.AniDB
         public EpisodeType EpisodeType { get; set; }
         public int EpisodeNumber { get; set; }
         public int AnimeID { get; set; }
+        public int MyListID { get; set; }
+        public int FileID { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            message = string.IsNullOrEmpty(Hash) ? "Deleting file from MyList: {0}, Episode: {1} {2}" : "Deleting file from MyList: {0}",
+            message =
+                string.IsNullOrEmpty(Hash)
+                    ? "Deleting file from MyList: {0}, Episode: {1} {2}"
+                    : "Deleting file from MyList: {0}",
             queueState = QueueStateEnum.AniDB_MyListDelete,
-            extraParams = string.IsNullOrEmpty(Hash) ? new[] { AnimeID.ToString(), EpisodeType.ToString(), EpisodeNumber.ToString() } : new[] { Hash },
+            extraParams = string.IsNullOrEmpty(Hash)
+                ? new[] { AnimeID.ToString(), EpisodeType.ToString(), EpisodeNumber.ToString() }
+                : new[] { Hash },
         };
 
         protected override void Process()
         {
             // there will be a road bump the first time we start up, as some people may have requests with MyListID. I don't care. It'll get there.
-            Logger.LogInformation("Processing CommandRequest_DeleteFileFromMyList: Hash: {Hash}, FileSize: {Size}", Hash, FileSize);
+            Logger.LogInformation("Processing CommandRequest_DeleteFileFromMyList: Hash: {Hash}, FileSize: {Size}",
+                Hash, FileSize);
 
             try
             {
@@ -51,20 +59,7 @@ namespace Shoko.Server.Commands.AniDB
                 switch (ServerSettings.Instance.AniDb.MyList_DeleteType)
                 {
                     case AniDBFileDeleteType.Delete:
-                        if (string.IsNullOrEmpty(Hash))
-                        {
-                            request = _requestFactory.Create<RequestRemoveEpisode>(
-                                r =>
-                                {
-                                    r.AnimeID = AnimeID;
-                                    r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
-                                    r.EpisodeNumber = EpisodeNumber;
-                                }
-                            );
-                            Logger.LogInformation("Deleting Episode from MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID, EpisodeType, EpisodeNumber);
-                            request.Execute();
-                        }
-                        else
+                        if (!string.IsNullOrEmpty(Hash))
                         {
                             request = _requestFactory.Create<RequestRemoveFile>(
                                 r =>
@@ -74,7 +69,46 @@ namespace Shoko.Server.Commands.AniDB
                                 }
                             );
                             Logger.LogInformation("Deleting file from MyList: Hash: {Hash}", Hash);
-                            request.Execute();                            
+                            request.Execute();
+                        }
+                        else if (MyListID != 0)
+                        {
+                            request = _requestFactory.Create<RequestRemoveMyListID>(
+                                r =>
+                                {
+                                    r.MyListID = MyListID;
+                                }
+                            );
+                            Logger.LogInformation(
+                                "Deleting File from MyList: MyListID: {MyListID}", MyListID);
+                            request.Execute();
+                        }
+                        else if (FileID != 0)
+                        {
+                            request = _requestFactory.Create<RequestRemoveFileID>(
+                                r =>
+                                {
+                                    r.FileID = FileID;
+                                }
+                            );
+                            Logger.LogInformation(
+                                "Deleting File from MyList: FileID: {FileID}", FileID);
+                            request.Execute();
+                        }
+                        else
+                        {
+                            request = _requestFactory.Create<RequestRemoveEpisode>(
+                                r =>
+                                {
+                                    r.AnimeID = AnimeID;
+                                    r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
+                                    r.EpisodeNumber = EpisodeNumber;
+                                }
+                            );
+                            Logger.LogInformation(
+                                "Deleting Episode from MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID,
+                                EpisodeType, EpisodeNumber);
+                            request.Execute();
                         }
 
                         break;
@@ -90,7 +124,9 @@ namespace Shoko.Server.Commands.AniDB
                                     r.State = MyList_State.Deleted;
                                 }
                             );
-                            Logger.LogInformation("Marking Episode as deleted in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID, EpisodeType, EpisodeNumber);
+                            Logger.LogInformation(
+                                "Marking Episode as deleted in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}",
+                                AnimeID, EpisodeType, EpisodeNumber);
                             request.Execute();
                         }
                         else
@@ -120,7 +156,9 @@ namespace Shoko.Server.Commands.AniDB
                                     r.State = MyList_State.Unknown;
                                 }
                             );
-                            Logger.LogInformation("Marking Episode as unknown in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID, EpisodeType, EpisodeNumber);
+                            Logger.LogInformation(
+                                "Marking Episode as unknown in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}",
+                                AnimeID, EpisodeType, EpisodeNumber);
                             request.Execute();
                         }
                         else
@@ -139,7 +177,8 @@ namespace Shoko.Server.Commands.AniDB
 
                         break;
                     case AniDBFileDeleteType.DeleteLocalOnly:
-                        Logger.LogInformation("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", Hash);
+                        Logger.LogInformation(
+                            "Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", Hash);
                         break;
                     case AniDBFileDeleteType.MarkExternalStorage:
                         if (string.IsNullOrEmpty(Hash))
@@ -153,7 +192,9 @@ namespace Shoko.Server.Commands.AniDB
                                     r.State = MyList_State.Remote;
                                 }
                             );
-                            Logger.LogInformation("Marking Episode as remote in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID, EpisodeType, EpisodeNumber);
+                            Logger.LogInformation(
+                                "Marking Episode as remote in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}",
+                                AnimeID, EpisodeType, EpisodeNumber);
                             request.Execute();
                         }
                         else
@@ -169,6 +210,7 @@ namespace Shoko.Server.Commands.AniDB
                             Logger.LogInformation("Marking file as remote in MyList: Hash: {Hash}", Hash);
                             request.Execute();
                         }
+
                         break;
                     case AniDBFileDeleteType.MarkDisk:
                         if (string.IsNullOrEmpty(Hash))
@@ -182,7 +224,9 @@ namespace Shoko.Server.Commands.AniDB
                                     r.State = MyList_State.Disk;
                                 }
                             );
-                            Logger.LogInformation("Marking Episode as Disk in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID, EpisodeType, EpisodeNumber);
+                            Logger.LogInformation(
+                                "Marking Episode as Disk in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID,
+                                EpisodeType, EpisodeNumber);
                             request.Execute();
                         }
                         else
@@ -198,6 +242,7 @@ namespace Shoko.Server.Commands.AniDB
                             Logger.LogInformation("Marking file as Disk in MyList: Hash: {Hash}", Hash);
                             request.Execute();
                         }
+
                         break;
                 }
             }
@@ -230,7 +275,8 @@ namespace Shoko.Server.Commands.AniDB
                 var docCreator = new XmlDocument();
                 docCreator.LoadXml(CommandDetails);
 
-                if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "MyListID"), out var mylistID))
+                if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "MyListID"),
+                        out var mylistID))
                 {
                     var vid = RepoFactory.VideoLocal.GetByMyListID(mylistID);
                     if (vid != null)
@@ -247,11 +293,16 @@ namespace Shoko.Server.Commands.AniDB
                         TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(FileSize))
                     );
 
-                    if (Enum.TryParse<EpisodeType>(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeType)), out var episodeType))
+                    if (Enum.TryParse<EpisodeType>(
+                            TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeType)),
+                            out var episodeType))
                         EpisodeType = episodeType;
-                    if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeNumber)), out var epNum))
+                    if (int.TryParse(
+                            TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeNumber)),
+                            out var epNum))
                         EpisodeNumber = epNum;
-                    if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(AnimeID)), out var animeID))
+                    if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(AnimeID)),
+                            out var animeID))
                         AnimeID = animeID;
                 }
             }
@@ -277,12 +328,13 @@ namespace Shoko.Server.Commands.AniDB
             return cq;
         }
 
-        public CommandRequest_DeleteFileFromMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory) : base(loggerFactory)
+        public CommandRequest_DeleteFileFromMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory) : base(
+            loggerFactory)
         {
             _requestFactory = requestFactory;
             EpisodeType = EpisodeType.Episode; // default
         }
-        
+
         protected CommandRequest_DeleteFileFromMyList()
         {
             EpisodeType = EpisodeType.Episode; // default
