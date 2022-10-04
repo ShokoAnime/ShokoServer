@@ -26,7 +26,6 @@ namespace Shoko.Server.Commands.AniDB;
 public class CommandRequest_SyncMyList : CommandRequestImplementation
 {
     private readonly IRequestFactory _requestFactory;
-    private readonly IHttpConnectionHandler _handler;
     private readonly ICommandRequestFactory _commandFactory;
     public bool ForceRefresh { get; set; }
 
@@ -43,12 +42,12 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_SyncMyList");
 #if !DEBUG
-            throw new NotSupportedException("I'm working on it...");
+        throw new NotSupportedException("I'm working on it...");
 #endif
 
         try
         {
-            if (ShouldRun()) return;
+            if (!ShouldRun()) return;
 
             // Get the list from AniDB
             var request = _requestFactory.Create<RequestMyList>(
@@ -172,10 +171,16 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
     }
 
     private int ProcessStates(List<SVR_JMMUser> aniDBUsers, SVR_VideoLocal vl, ResponseMyList myitem,
-        int modifiedItems,
-        LinkedHashSet<SVR_AnimeSeries> modifiedSeries)
+        int modifiedItems, ISet<SVR_AnimeSeries> modifiedSeries)
     {
         // check watched states, read the states if needed, and update differences
+        // aggregate and assume if one AniDB User has watched it, it should be marked
+        // if multiple have, then take the latest
+        // compare the states and update if needed
+
+        var localWatchedDate = aniDBUsers.Select(a => vl.GetUserRecord(a.JMMUserID)).Where(a => a?.WatchedDate != null)
+            .MaxBy(a => a.WatchedDate)?.WatchedDate;
+        var localState = ServerSettings.Instance.AniDb.MyList_StorageState;
         foreach (var juser in aniDBUsers)
         {
             var localStatus = false;
@@ -252,14 +257,14 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
             var tsLastRun = DateTime.Now - sched.LastUpdate;
             if (tsLastRun.TotalHours < freqHours)
             {
-                if (!ForceRefresh) return true;
+                if (!ForceRefresh) return false;
             }
         }
 
         sched.LastUpdate = DateTime.Now;
         RepoFactory.ScheduledUpdate.Save(sched);
 
-        return false;
+        return true;
     }
 
     private int AddMissingFiles(ILookup<string, SVR_AniDB_File> dictAniFiles,
@@ -373,13 +378,9 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
     }
 
     public CommandRequest_SyncMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory,
-        IHttpConnectionHandler handler) : base(loggerFactory)
+        ICommandRequestFactory commandFactory) : base(loggerFactory)
     {
         _requestFactory = requestFactory;
-        _handler = handler;
-    }
-
-    protected CommandRequest_SyncMyList()
-    {
+        _commandFactory = commandFactory;
     }
 }
