@@ -9,40 +9,48 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.API
+namespace Shoko.Server.API;
+
+public static class APIHelper
 {
-    public static class APIHelper
+    public static string ConstructImageLinkFromTypeAndId(HttpContext ctx, int type, int id, bool short_url = true)
     {
-        public static string ConstructImageLinkFromTypeAndId(HttpContext ctx, int type, int id, bool short_url = true)
+        var imgType = (ImageEntityType)type;
+        return ProperURL(ctx,
+            $"/api/v3/image/{Image.GetSourceFromType(imgType)}/{Image.GetSimpleTypeFromImageType(imgType)}/{id}",
+            short_url);
+    }
+
+    public static string ProperURL(HttpContext ctx, string path, bool short_url = false)
+    {
+        if (!string.IsNullOrEmpty(path))
         {
-            var imgType = (ImageEntityType) type;
-            return ProperURL(ctx,
-                $"/api/v3/image/{Image.GetSourceFromType(imgType)}/{Image.GetSimpleTypeFromImageType(imgType)}/{id}",
-                short_url);
+            return !short_url
+                ? ctx.Request.Scheme + "://" + ctx.Request.Host.Host + ":" + ctx.Request.Host.Port + path
+                : path;
         }
 
-        public static string ProperURL(HttpContext ctx, string path, bool short_url = false)
+        return string.Empty;
+    }
+
+    public static SVR_JMMUser GetUser(this ClaimsPrincipal identity)
+    {
+        if (!ServerState.Instance.ServerOnline)
         {
-            if (!string.IsNullOrEmpty(path))
-            {
-                return !short_url
-                    ? ctx.Request.Scheme + "://" + ctx.Request.Host.Host + ":" + ctx.Request.Host.Port + path
-                    : path;
-            }
-            return string.Empty;
+            return InitUser.Instance;
         }
 
-        public static SVR_JMMUser GetUser(this ClaimsPrincipal identity)
+        if (!(identity?.Identity?.IsAuthenticated ?? false))
         {
-            if (!ServerState.Instance.ServerOnline)
-                return InitUser.Instance;
-
-            if (!(identity?.Identity?.IsAuthenticated ?? false)) return null;
-
-            var nameIdentifier = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            return nameIdentifier == null ? null : RepoFactory.JMMUser.GetByID(int.Parse(nameIdentifier));
+            return null;
         }
 
-        public static SVR_JMMUser GetUser(this HttpContext ctx) => ctx.User.GetUser();
+        var nameIdentifier = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        return nameIdentifier == null ? null : RepoFactory.JMMUser.GetByID(int.Parse(nameIdentifier));
+    }
+
+    public static SVR_JMMUser GetUser(this HttpContext ctx)
+    {
+        return ctx.User.GetUser();
     }
 }

@@ -4,22 +4,22 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Info
+namespace Shoko.Server.Providers.AniDB.UDP.Info;
+
+public class RequestReleaseGroup : UDPRequest<ResponseReleaseGroup>
 {
-    public class RequestReleaseGroup : UDPRequest<ResponseReleaseGroup>
+    public int ReleaseGroupID { get; set; }
+
+
+    protected override string BaseCommand => $"GROUP gid={ReleaseGroupID}";
+
+    protected override UDPResponse<ResponseReleaseGroup> ParseResponse(UDPResponse<string> response)
     {
-        public int ReleaseGroupID { get; set; }
-
-        
-        protected override string BaseCommand => $"GROUP gid={ReleaseGroupID}";
-
-        protected override UDPResponse<ResponseReleaseGroup> ParseResponse(UDPResponse<string> response)
+        var code = response.Code;
+        var receivedData = response.Response;
+        switch (code)
         {
-            var code = response.Code;
-            var receivedData = response.Response;
-            switch (code)
-            {
-                case UDPReturnCode.GROUP:
+            case UDPReturnCode.GROUP:
                 {
                     // {int gid}|{int4 rating}|{int votes}|{int4 acount}|{int fcount}|{str name}|{str short}|{str irc channel}|{str irc server}|{str url}|{str picname}|{int4 foundeddate}|{int4 disbandeddate}|{int2 dateflags}|{int4 lastreleasedate}|{int4 lastactivitydate}|{list grouprelations}
                     /*
@@ -39,13 +39,33 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                         5 => "Now known as"
                         6 => "Other"
                      */
-                    string[] parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
-                    if (!int.TryParse(parts[0], out int gid)) throw new UnexpectedUDPResponseException("Group ID was not an int", code, receivedData);
-                    if (!int.TryParse(parts[1], out int intRating)) throw new UnexpectedUDPResponseException("Rating was not an int", code, receivedData);
-                    decimal rating = intRating / 100M;
-                    if (!int.TryParse(parts[2], out int votes)) throw new UnexpectedUDPResponseException("Votes was not an int", code, receivedData);
-                    if (!int.TryParse(parts[3], out int aCount)) throw new UnexpectedUDPResponseException("Anime Count was not an int", code, receivedData);
-                    if (!int.TryParse(parts[4], out int fCount)) throw new UnexpectedUDPResponseException("File Count was not an int", code, receivedData);
+                    var parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
+                    if (!int.TryParse(parts[0], out var gid))
+                    {
+                        throw new UnexpectedUDPResponseException("Group ID was not an int", code, receivedData);
+                    }
+
+                    if (!int.TryParse(parts[1], out var intRating))
+                    {
+                        throw new UnexpectedUDPResponseException("Rating was not an int", code, receivedData);
+                    }
+
+                    var rating = intRating / 100M;
+                    if (!int.TryParse(parts[2], out var votes))
+                    {
+                        throw new UnexpectedUDPResponseException("Votes was not an int", code, receivedData);
+                    }
+
+                    if (!int.TryParse(parts[3], out var aCount))
+                    {
+                        throw new UnexpectedUDPResponseException("Anime Count was not an int", code, receivedData);
+                    }
+
+                    if (!int.TryParse(parts[4], out var fCount))
+                    {
+                        throw new UnexpectedUDPResponseException("File Count was not an int", code, receivedData);
+                    }
+
                     var name = parts[5];
                     var shortName = parts[6];
                     var ircChannel = parts[7];
@@ -53,31 +73,35 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                     var url = parts[9];
                     var pic = parts[10];
 
-                    return new UDPResponse<ResponseReleaseGroup>() {Code = code, Response = new ResponseReleaseGroup
+                    return new UDPResponse<ResponseReleaseGroup>()
                     {
-                        ID = gid,
-                        Rating = rating,
-                        Votes = votes,
-                        AnimeCount = aCount,
-                        FileCount = fCount,
-                        Name = name,
-                        ShortName = shortName,
-                        IrcChannel = ircChannel,
-                        IrcServer = ircServer,
-                        URL = url,
-                        Picture = pic
-                    }};
+                        Code = code,
+                        Response = new ResponseReleaseGroup
+                        {
+                            ID = gid,
+                            Rating = rating,
+                            Votes = votes,
+                            AnimeCount = aCount,
+                            FileCount = fCount,
+                            Name = name,
+                            ShortName = shortName,
+                            IrcChannel = ircChannel,
+                            IrcServer = ircServer,
+                            URL = url,
+                            Picture = pic
+                        }
+                    };
                 }
-                case UDPReturnCode.NO_SUCH_GROUP:
+            case UDPReturnCode.NO_SUCH_GROUP:
                 {
-                    return new UDPResponse<ResponseReleaseGroup>() {Code = code, Response = null};
+                    return new UDPResponse<ResponseReleaseGroup>() { Code = code, Response = null };
                 }
-                default: throw new UnexpectedUDPResponseException(code, receivedData);
-            }
+            default: throw new UnexpectedUDPResponseException(code, receivedData);
         }
+    }
 
-        public RequestReleaseGroup(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
-        {
-        }
+    public RequestReleaseGroup(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory,
+        handler)
+    {
     }
 }

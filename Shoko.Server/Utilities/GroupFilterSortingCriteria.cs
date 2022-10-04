@@ -1,25 +1,24 @@
 ﻿using Shoko.Models.Enums;
 
-namespace Shoko.Server
+namespace Shoko.Server;
+
+public class GroupFilterSortingCriteria
 {
-    public class GroupFilterSortingCriteria
+    public int? GroupFilterID { get; set; }
+
+    private GroupFilterSorting sortType = GroupFilterSorting.AniDBRating;
+
+    public GroupFilterSorting SortType
     {
-        public int? GroupFilterID { get; set; }
+        get => sortType;
+        set => sortType = value;
+    }
 
-        private GroupFilterSorting sortType = GroupFilterSorting.AniDBRating;
+    private GroupFilterSortDirection sortDirection = GroupFilterSortDirection.Asc;
 
-        public GroupFilterSorting SortType
-        {
-            get { return sortType; }
-            set { sortType = value; }
-        }
-
-        private GroupFilterSortDirection sortDirection = GroupFilterSortDirection.Asc;
-
-        public GroupFilterSortDirection SortDirection
-        {
-            get { return sortDirection; }
-            set { sortDirection = value; }
-        }
+    public GroupFilterSortDirection SortDirection
+    {
+        get => sortDirection;
+        set => sortDirection = value;
     }
 }

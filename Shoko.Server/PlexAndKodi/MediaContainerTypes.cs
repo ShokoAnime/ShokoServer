@@ -1,13 +1,12 @@
-﻿namespace Shoko.Server.PlexAndKodi
+﻿namespace Shoko.Server.PlexAndKodi;
+
+public enum MediaContainerTypes
 {
-    public enum MediaContainerTypes
-    {
-        Show,
-        Video,
-        Episode,
-        Movie,
-        File,
-        Season,
-        None
-    }
+    Show,
+    Video,
+    Episode,
+    Movie,
+    File,
+    Season,
+    None
 }

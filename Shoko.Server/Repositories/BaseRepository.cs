@@ -1,7 +1,6 @@
-﻿namespace Shoko.Server.Repositories
+﻿namespace Shoko.Server.Repositories;
+
+public class BaseRepository
 {
-    public class BaseRepository
-    {
-        internal static readonly object GlobalDBLock = new();
-    }
+    internal static readonly object GlobalDBLock = new();
 }

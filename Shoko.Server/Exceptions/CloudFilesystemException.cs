@@ -1,19 +1,18 @@
 using System;
 
-namespace Shoko.Server.Exceptions
+namespace Shoko.Server.Exceptions;
+
+public class CloudFilesystemException : Exception
 {
-    public class CloudFilesystemException : Exception
+    public CloudFilesystemException()
     {
-        public CloudFilesystemException()
-        {
-        }
+    }
 
-        public CloudFilesystemException(string message) : base(message)
-        {
-        }
+    public CloudFilesystemException(string message) : base(message)
+    {
+    }
 
-        public CloudFilesystemException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
+    public CloudFilesystemException(string message, Exception innerException) : base(message, innerException)
+    {
     }
 }

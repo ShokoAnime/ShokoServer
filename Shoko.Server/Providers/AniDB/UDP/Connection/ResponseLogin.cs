@@ -1,8 +1,7 @@
-namespace Shoko.Server.Providers.AniDB.UDP.Connection
+namespace Shoko.Server.Providers.AniDB.UDP.Connection;
+
+public class ResponseLogin
 {
-    public class ResponseLogin
-    {
-        public string SessionID { get; set; }
-        public string ImageServer { get; set; }
-    }
+    public string SessionID { get; set; }
+    public string ImageServer { get; set; }
 }

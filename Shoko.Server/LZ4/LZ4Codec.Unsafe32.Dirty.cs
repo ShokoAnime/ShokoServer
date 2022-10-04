@@ -66,10 +66,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ReSharper disable TooWideLocalVariableScope
 // ReSharper disable JoinDeclarationAndInitializer
 
-namespace LZ4pn
-{
+namespace LZ4pn;
 #if UNSAFE
-
     public static partial class LZ4Codec
     {
         #region LZ4_compressCtx_32
@@ -825,7 +823,6 @@ namespace LZ4pn
     }
 
 #endif
-}
 
 // ReSharper restore JoinDeclarationAndInitializer
 // ReSharper restore TooWideLocalVariableScope

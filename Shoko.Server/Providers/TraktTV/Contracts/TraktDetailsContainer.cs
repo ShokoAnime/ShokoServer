@@ -5,180 +5,196 @@ using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Providers.TraktTV
+namespace Shoko.Server.Providers.TraktTV;
+
+public class TraktDetailsContainer
 {
-    public class TraktDetailsContainer
+    private static Logger logger = LogManager.GetCurrentClassLogger();
+
+    public string TraktID { get; set; }
+    public Trakt_Show Show { get; set; }
+
+    public TraktDetailsContainer(string traktID)
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        TraktID = traktID;
 
-        public string TraktID { get; set; }
-        public Trakt_Show Show { get; set; }
+        PopulateTraktDetails();
+    }
 
-        public TraktDetailsContainer(string traktID)
+
+    private Dictionary<int, Trakt_Episode> dictTraktEpisodes;
+
+    public Dictionary<int, Trakt_Episode> DictTraktEpisodes
+    {
+        get
         {
-            TraktID = traktID;
-
-            PopulateTraktDetails();
-        }
-
-
-        private Dictionary<int, Trakt_Episode> dictTraktEpisodes;
-
-        public Dictionary<int, Trakt_Episode> DictTraktEpisodes
-        {
-            get
+            if (dictTraktEpisodes == null)
             {
-                if (dictTraktEpisodes == null)
+                try
                 {
-                    try
+                    if (TraktEpisodes != null)
                     {
-                        if (TraktEpisodes != null)
+                        var start = DateTime.Now;
+
+                        dictTraktEpisodes = new Dictionary<int, Trakt_Episode>();
+                        // create a dictionary of absolute episode numbers for Trakt episodes
+                        // sort by season and episode number
+                        // ignore season 0, which is used for specials
+                        var eps = TraktEpisodes;
+
+
+                        var i = 1;
+                        foreach (var ep in eps)
                         {
-                            DateTime start = DateTime.Now;
-
-                            dictTraktEpisodes = new Dictionary<int, Trakt_Episode>();
-                            // create a dictionary of absolute episode numbers for Trakt episodes
-                            // sort by season and episode number
-                            // ignore season 0, which is used for specials
-                            List<Trakt_Episode> eps = TraktEpisodes;
-
-
-                            int i = 1;
-                            foreach (Trakt_Episode ep in eps)
+                            if (ep.EpisodeNumber > 0)
                             {
-                                if (ep.EpisodeNumber > 0)
-                                {
-                                    dictTraktEpisodes[i] = ep;
-                                    i++;
-                                }
-                            }
-                            TimeSpan ts = DateTime.Now - start;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, ex.ToString());
-                    }
-                }
-                return dictTraktEpisodes;
-            }
-        }
-
-        private Dictionary<int, int> dictTraktSeasons;
-
-        public Dictionary<int, int> DictTraktSeasons
-        {
-            get
-            {
-                if (dictTraktSeasons == null)
-                {
-                    try
-                    {
-                        if (TraktEpisodes != null)
-                        {
-                            DateTime start = DateTime.Now;
-
-                            dictTraktSeasons = new Dictionary<int, int>();
-                            // create a dictionary of season numbers and the first episode for that season
-
-                            List<Trakt_Episode> eps = TraktEpisodes;
-                            int i = 1;
-                            int lastSeason = -999;
-                            foreach (Trakt_Episode ep in eps)
-                            {
-                                if (ep.Season != lastSeason)
-                                    dictTraktSeasons[ep.Season] = i;
-
-                                lastSeason = ep.Season;
+                                dictTraktEpisodes[i] = ep;
                                 i++;
                             }
-                            TimeSpan ts = DateTime.Now - start;
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, ex.ToString());
+
+                        var ts = DateTime.Now - start;
                     }
                 }
-                return dictTraktSeasons;
-            }
-        }
-
-        private Dictionary<int, int> dictTraktSeasonsSpecials;
-
-        public Dictionary<int, int> DictTraktSeasonsSpecials
-        {
-            get
-            {
-                if (dictTraktSeasonsSpecials == null)
+                catch (Exception ex)
                 {
-                    try
+                    logger.Error(ex, ex.ToString());
+                }
+            }
+
+            return dictTraktEpisodes;
+        }
+    }
+
+    private Dictionary<int, int> dictTraktSeasons;
+
+    public Dictionary<int, int> DictTraktSeasons
+    {
+        get
+        {
+            if (dictTraktSeasons == null)
+            {
+                try
+                {
+                    if (TraktEpisodes != null)
                     {
-                        if (TraktEpisodes != null)
+                        var start = DateTime.Now;
+
+                        dictTraktSeasons = new Dictionary<int, int>();
+                        // create a dictionary of season numbers and the first episode for that season
+
+                        var eps = TraktEpisodes;
+                        var i = 1;
+                        var lastSeason = -999;
+                        foreach (var ep in eps)
                         {
-                            DateTime start = DateTime.Now;
-
-                            dictTraktSeasonsSpecials = new Dictionary<int, int>();
-                            // create a dictionary of season numbers and the first episode for that season
-
-                            List<Trakt_Episode> eps = TraktEpisodes;
-                            int i = 1;
-                            int lastSeason = -999;
-                            foreach (Trakt_Episode ep in eps)
+                            if (ep.Season != lastSeason)
                             {
-                                if (ep.Season > 0) continue;
-
-                                int thisSeason = 0;
-
-                                if (thisSeason != lastSeason)
-                                    dictTraktSeasonsSpecials[thisSeason] = i;
-
-                                lastSeason = thisSeason;
-                                i++;
+                                dictTraktSeasons[ep.Season] = i;
                             }
-                            TimeSpan ts = DateTime.Now - start;
-                            //logger.Trace("Got TvDB Seasons in {0} ms", ts.TotalMilliseconds);
+
+                            lastSeason = ep.Season;
+                            i++;
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, ex.ToString());
+
+                        var ts = DateTime.Now - start;
                     }
                 }
-                return dictTraktSeasonsSpecials;
-            }
-        }
-
-        private void PopulateTraktDetails()
-        {
-            try
-            {
-                Show = RepoFactory.Trakt_Show.GetByTraktSlug(TraktID);
-                if (Show == null) return;
-
-                traktEpisodes = RepoFactory.Trakt_Episode.GetByShowID(Show.Trakt_ShowID)
-                    .OrderBy(a => a.Season)
-                    .ThenBy(a => a.EpisodeNumber)
-                    .ToList();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
-
-        private List<Trakt_Episode> traktEpisodes;
-
-        public List<Trakt_Episode> TraktEpisodes
-        {
-            get
-            {
-                if (traktEpisodes == null)
+                catch (Exception ex)
                 {
-                    PopulateTraktDetails();
+                    logger.Error(ex, ex.ToString());
                 }
-                return traktEpisodes;
             }
+
+            return dictTraktSeasons;
+        }
+    }
+
+    private Dictionary<int, int> dictTraktSeasonsSpecials;
+
+    public Dictionary<int, int> DictTraktSeasonsSpecials
+    {
+        get
+        {
+            if (dictTraktSeasonsSpecials == null)
+            {
+                try
+                {
+                    if (TraktEpisodes != null)
+                    {
+                        var start = DateTime.Now;
+
+                        dictTraktSeasonsSpecials = new Dictionary<int, int>();
+                        // create a dictionary of season numbers and the first episode for that season
+
+                        var eps = TraktEpisodes;
+                        var i = 1;
+                        var lastSeason = -999;
+                        foreach (var ep in eps)
+                        {
+                            if (ep.Season > 0)
+                            {
+                                continue;
+                            }
+
+                            var thisSeason = 0;
+
+                            if (thisSeason != lastSeason)
+                            {
+                                dictTraktSeasonsSpecials[thisSeason] = i;
+                            }
+
+                            lastSeason = thisSeason;
+                            i++;
+                        }
+
+                        var ts = DateTime.Now - start;
+                        //logger.Trace("Got TvDB Seasons in {0} ms", ts.TotalMilliseconds);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, ex.ToString());
+                }
+            }
+
+            return dictTraktSeasonsSpecials;
+        }
+    }
+
+    private void PopulateTraktDetails()
+    {
+        try
+        {
+            Show = RepoFactory.Trakt_Show.GetByTraktSlug(TraktID);
+            if (Show == null)
+            {
+                return;
+            }
+
+            traktEpisodes = RepoFactory.Trakt_Episode.GetByShowID(Show.Trakt_ShowID)
+                .OrderBy(a => a.Season)
+                .ThenBy(a => a.EpisodeNumber)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, ex.ToString());
+        }
+    }
+
+    private List<Trakt_Episode> traktEpisodes;
+
+    public List<Trakt_Episode> TraktEpisodes
+    {
+        get
+        {
+            if (traktEpisodes == null)
+            {
+                PopulateTraktDetails();
+            }
+
+            return traktEpisodes;
         }
     }
 }

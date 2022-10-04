@@ -3,113 +3,131 @@ using System.Linq;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.PlexAndKodi.Plex;
 
-namespace Shoko.Server.PlexAndKodi
+namespace Shoko.Server.PlexAndKodi;
+
+public class BaseObject
 {
-    public class BaseObject
+    public int Start { get; set; }
+    public int Size { get; set; }
+
+    public MediaContainer MediaContainer { get; private set; }
+
+    private List<Video> LimitVideos(List<Video> list)
     {
-        public int Start { get; set; }
-        public int Size { get; set; }
+        MediaContainer.TotalSize = list.Count.ToString();
+        MediaContainer.Offset = Start.ToString();
+        var size = Size > list.Count - Start ? list.Count - Start : Size;
+        MediaContainer.TotalSize = list.Count.ToString();
+        MediaContainer.Size = size.ToString();
+        return list.Skip(Start).Take(size).ToList();
+    }
 
-        public MediaContainer MediaContainer { get; private set; }
+    public List<Video> Childrens
+    {
+        get => MediaContainer.Childrens;
+        set => MediaContainer.Childrens = LimitVideos(value);
+    }
 
-        private List<Video> LimitVideos(List<Video> list)
+
+    public MediaContainer GetStream(IProvider prov)
+    {
+        if (MediaContainer.Childrens.Count > 0 && MediaContainer.Childrens[0].Type == "movie")
         {
-            MediaContainer.TotalSize = list.Count.ToString();
-            MediaContainer.Offset = Start.ToString();
-            int size = Size > list.Count - Start ? list.Count - Start : Size;
-            MediaContainer.TotalSize = list.Count.ToString();
-            MediaContainer.Size = size.ToString();
-            return list.Skip(Start).Take(size).ToList();
+            MediaContainer.ViewGroup = null;
+            MediaContainer.ViewMode = null;
         }
 
-        public List<Video> Childrens
+        var isandroid = false;
+        var isios = false;
+        var dinfo = prov.GetPlexClient();
+        if (dinfo != null)
         {
-            get { return MediaContainer.Childrens; }
-            set { MediaContainer.Childrens = LimitVideos(value); }
+            if (dinfo.Client == PlexClient.Android)
+            {
+                isandroid = true;
+            }
+            else if (dinfo.Client == PlexClient.IOS)
+            {
+                isios = true;
+            }
         }
 
-
-        public MediaContainer GetStream(IProvider prov)
+        MediaContainer.Childrens.ForEach(a =>
         {
-            if (MediaContainer.Childrens.Count > 0 && MediaContainer.Childrens[0].Type == "movie")
+            a.Group = null;
+            if (prov.AddEpisodeNumberToTitlesOnUnsupportedClients && (isios || isandroid) && a.Type == "episode")
             {
-                MediaContainer.ViewGroup = null;
-                MediaContainer.ViewMode = null;
+                a.Title = a.EpisodeNumber + ". " + a.Title;
             }
-            bool isandroid = false;
-            bool isios = false;
-            PlexDeviceInfo dinfo = prov.GetPlexClient();
-            if (dinfo != null)
+
+            if (isandroid)
             {
-                if (dinfo.Client == PlexClient.Android)
-                    isandroid = true;
-                else if (dinfo.Client == PlexClient.IOS)
-                    isios = true;
+                a.Type = null;
             }
-            MediaContainer.Childrens.ForEach(a =>
+
+            if (prov.RemoveFileAttribute)
             {
-                a.Group = null;
-                if (prov.AddEpisodeNumberToTitlesOnUnsupportedClients && (isios || isandroid) && a.Type == "episode")
-                    a.Title = a.EpisodeNumber + ". " + a.Title;
-                if (isandroid)
-                    a.Type = null;
-                if (prov.RemoveFileAttribute)
+                if (a.Medias != null)
                 {
-                    if (a.Medias != null)
+                    foreach (var m in a.Medias)
                     {
-                        foreach (Media m in a.Medias)
+                        if (m.Parts != null)
                         {
-                            if (m.Parts != null)
+                            foreach (var p in m.Parts)
                             {
-                                foreach (Part p in m.Parts)
+                                if (p.Streams != null)
                                 {
-                                    if (p.Streams != null)
+                                    foreach (var s in p.Streams)
                                     {
-                                        foreach (Stream s in p.Streams)
-                                            s.File = null;
+                                        s.File = null;
                                     }
                                 }
                             }
                         }
                     }
                 }
-            });
-            return MediaContainer;
+            }
+        });
+        return MediaContainer;
+    }
+
+    public BaseObject(MediaContainer m)
+    {
+        MediaContainer = m;
+    }
+
+    public bool Init(IProvider prov)
+    {
+        Start = 0;
+        Size = int.MaxValue;
+        if (prov.HttpContext == null)
+        {
+            if (prov.HttpContext.Request.Method == "OPTIONS")
+            {
+                prov.AddResponseHeaders(HttpExtensions.GetOptions(), "text/plain");
+                return false;
+            }
         }
 
-        public BaseObject(MediaContainer m)
+        var nsize = prov.RequestHeader("X-Plex-Container-Size");
+        if (nsize != null)
         {
-            MediaContainer = m;
+            if (int.TryParse(nsize, out var max))
+            {
+                if (max < Size)
+                {
+                    Size = max;
+                }
+            }
         }
 
-        public bool Init(IProvider prov)
+        var nstart = prov.RequestHeader("X-Plex-Container-Start");
         {
-            Start = 0;
-            Size = int.MaxValue;
-            if (prov.HttpContext == null)
+            if (int.TryParse(nstart, out var start))
             {
-                if (prov.HttpContext.Request.Method == "OPTIONS")
-                {
-                    prov.AddResponseHeaders(HttpExtensions.GetOptions(), "text/plain");
-                    return false;
-                }
+                Start = start;
             }
-            
-            string nsize = prov.RequestHeader("X-Plex-Container-Size");
-            if (nsize != null)
-            {
-                if (int.TryParse(nsize, out int max))
-                {
-                    if (max < Size)
-                        Size = max;
-                }
-            }
-            string nstart = prov.RequestHeader("X-Plex-Container-Start");
-            {
-                if (int.TryParse(nstart, out int start))
-                    Start = start;
-            }
-            return true;
         }
+        return true;
     }
 }

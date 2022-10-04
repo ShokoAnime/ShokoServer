@@ -1,33 +1,31 @@
 using System;
 using System.Net;
 
-namespace Shoko.Server.Providers.AniDB.HTTP
+namespace Shoko.Server.Providers.AniDB.HTTP;
+
+[Serializable]
+public class UnexpectedHttpResponseException : Exception
 {
-    [Serializable]
-    public class UnexpectedHttpResponseException : Exception
+    public new string Message { get; set; }
+    public string Response { get; set; }
+    public HttpStatusCode ReturnCode { get; set; }
+
+    public UnexpectedHttpResponseException()
     {
-        public new string Message { get; set; }
-        public string Response { get; set; }
-        public HttpStatusCode ReturnCode { get; set; }
+    }
 
-        public UnexpectedHttpResponseException()
-        {
-            
-        }
+    public UnexpectedHttpResponseException(HttpStatusCode code, string response) : base(
+        $"Unexpected AniDB Response: {code} | {response}")
+    {
+        Response = response;
+        ReturnCode = code;
+    }
 
-        public UnexpectedHttpResponseException(HttpStatusCode code, string response) : base(
-            $"Unexpected AniDB Response: {code} | {response}")
-        {
-            Response = response;
-            ReturnCode = code;
-        }
-        
-        public UnexpectedHttpResponseException(string message, HttpStatusCode code, string response) : base(
-            $"Unexpected AniDB Response: {message} -- {code} | {response}")
-        {
-            Response = response;
-            ReturnCode = code;
-            Message = message;
-        }
+    public UnexpectedHttpResponseException(string message, HttpStatusCode code, string response) : base(
+        $"Unexpected AniDB Response: {message} -- {code} | {response}")
+    {
+        Response = response;
+        ReturnCode = code;
+        Message = message;
     }
 }

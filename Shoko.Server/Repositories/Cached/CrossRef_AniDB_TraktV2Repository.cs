@@ -8,121 +8,122 @@ using Shoko.Commons.Collections;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
-namespace Shoko.Server.Repositories.Cached
+namespace Shoko.Server.Repositories.Cached;
+
+public class CrossRef_AniDB_TraktV2Repository : BaseCachedRepository<CrossRef_AniDB_TraktV2, int>
 {
-    public class CrossRef_AniDB_TraktV2Repository : BaseCachedRepository<CrossRef_AniDB_TraktV2, int>
+    private PocoIndex<int, CrossRef_AniDB_TraktV2, int> AnimeIDs;
+
+    public List<CrossRef_AniDB_TraktV2> GetByAnimeID(int id)
     {
-        private PocoIndex<int, CrossRef_AniDB_TraktV2, int> AnimeIDs;
-
-        public List<CrossRef_AniDB_TraktV2> GetByAnimeID(int id)
+        lock (GlobalDBLock)
         {
-            lock (GlobalDBLock)
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                return GetByAnimeID(session, id);
-            }
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            return GetByAnimeID(session, id);
+        }
+    }
+
+    public List<CrossRef_AniDB_TraktV2> GetByAnimeID(ISession session, int id)
+    {
+        lock (GlobalDBLock)
+        {
+            var xrefs = session
+                .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
+                .Add(Restrictions.Eq("AnimeID", id))
+                .AddOrder(Order.Asc("AniDBStartEpisodeType"))
+                .AddOrder(Order.Asc("AniDBStartEpisodeNumber"))
+                .List<CrossRef_AniDB_TraktV2>();
+
+            return new List<CrossRef_AniDB_TraktV2>(xrefs);
+        }
+    }
+
+    public List<CrossRef_AniDB_TraktV2> GetByAnimeIDEpTypeEpNumber(ISession session, int id, int aniEpType,
+        int aniEpisodeNumber)
+    {
+        lock (GlobalDBLock)
+        {
+            var xrefs = session
+                .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
+                .Add(Restrictions.Eq("AnimeID", id))
+                .Add(Restrictions.Eq("AniDBStartEpisodeType", aniEpType))
+                .Add(Restrictions.Eq("AniDBStartEpisodeNumber", aniEpisodeNumber))
+                .List<CrossRef_AniDB_TraktV2>();
+
+            return new List<CrossRef_AniDB_TraktV2>(xrefs);
+        }
+    }
+
+    public CrossRef_AniDB_TraktV2 GetByTraktID(ISession session, string id, int season, int episodeNumber,
+        int animeID,
+        int aniEpType, int aniEpisodeNumber)
+    {
+        lock (GlobalDBLock)
+        {
+            var cr = session
+                .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
+                .Add(Restrictions.Eq("TraktID", id))
+                .Add(Restrictions.Eq("TraktSeasonNumber", season))
+                .Add(Restrictions.Eq("TraktStartEpisodeNumber", episodeNumber))
+                .Add(Restrictions.Eq("AnimeID", animeID))
+                .Add(Restrictions.Eq("AniDBStartEpisodeType", aniEpType))
+                .Add(Restrictions.Eq("AniDBStartEpisodeNumber", aniEpisodeNumber))
+                .UniqueResult<CrossRef_AniDB_TraktV2>();
+            return cr;
+        }
+    }
+
+    public CrossRef_AniDB_TraktV2 GetByTraktID(string id, int season, int episodeNumber, int animeID, int aniEpType,
+        int aniEpisodeNumber)
+    {
+        lock (GlobalDBLock)
+        {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            return GetByTraktID(session, id, season, episodeNumber, animeID, aniEpType, aniEpisodeNumber);
+        }
+    }
+
+    public List<CrossRef_AniDB_TraktV2> GetByTraktID(string traktID)
+    {
+        lock (GlobalDBLock)
+        {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var xrefs = session
+                .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
+                .Add(Restrictions.Eq("TraktID", traktID))
+                .List<CrossRef_AniDB_TraktV2>();
+
+            return new List<CrossRef_AniDB_TraktV2>(xrefs);
+        }
+    }
+
+    internal ILookup<int, CrossRef_AniDB_TraktV2> GetByAnimeIDs(IReadOnlyCollection<int> animeIds)
+    {
+        if (animeIds == null)
+        {
+            throw new ArgumentNullException(nameof(animeIds));
         }
 
-        public List<CrossRef_AniDB_TraktV2> GetByAnimeID(ISession session, int id)
+        if (animeIds.Count == 0)
         {
-            lock (GlobalDBLock)
-            {
-                var xrefs = session
-                    .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
-                    .Add(Restrictions.Eq("AnimeID", id))
-                    .AddOrder(Order.Asc("AniDBStartEpisodeType"))
-                    .AddOrder(Order.Asc("AniDBStartEpisodeNumber"))
-                    .List<CrossRef_AniDB_TraktV2>();
-
-                return new List<CrossRef_AniDB_TraktV2>(xrefs);
-            }
+            return EmptyLookup<int, CrossRef_AniDB_TraktV2>.Instance;
         }
 
-        public List<CrossRef_AniDB_TraktV2> GetByAnimeIDEpTypeEpNumber(ISession session, int id, int aniEpType,
-            int aniEpisodeNumber)
-        {
-            lock (GlobalDBLock)
-            {
-                var xrefs = session
-                    .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
-                    .Add(Restrictions.Eq("AnimeID", id))
-                    .Add(Restrictions.Eq("AniDBStartEpisodeType", aniEpType))
-                    .Add(Restrictions.Eq("AniDBStartEpisodeNumber", aniEpisodeNumber))
-                    .List<CrossRef_AniDB_TraktV2>();
+        return ReadLock(() => animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
+            .ToLookup(xref => xref.AnimeID));
+    }
 
-                return new List<CrossRef_AniDB_TraktV2>(xrefs);
-            }
-        }
+    protected override int SelectKey(CrossRef_AniDB_TraktV2 entity)
+    {
+        return entity.CrossRef_AniDB_TraktV2ID;
+    }
 
-        public CrossRef_AniDB_TraktV2 GetByTraktID(ISession session, string id, int season, int episodeNumber,
-            int animeID,
-            int aniEpType, int aniEpisodeNumber)
-        {
-            lock (GlobalDBLock)
-            {
-                var cr = session
-                    .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
-                    .Add(Restrictions.Eq("TraktID", id))
-                    .Add(Restrictions.Eq("TraktSeasonNumber", season))
-                    .Add(Restrictions.Eq("TraktStartEpisodeNumber", episodeNumber))
-                    .Add(Restrictions.Eq("AnimeID", animeID))
-                    .Add(Restrictions.Eq("AniDBStartEpisodeType", aniEpType))
-                    .Add(Restrictions.Eq("AniDBStartEpisodeNumber", aniEpisodeNumber))
-                    .UniqueResult<CrossRef_AniDB_TraktV2>();
-                return cr;
-            }
-        }
+    public override void PopulateIndexes()
+    {
+        AnimeIDs = new PocoIndex<int, CrossRef_AniDB_TraktV2, int>(Cache, a => a.AnimeID);
+    }
 
-        public CrossRef_AniDB_TraktV2 GetByTraktID(string id, int season, int episodeNumber, int animeID, int aniEpType,
-            int aniEpisodeNumber)
-        {
-            lock (GlobalDBLock)
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                return GetByTraktID(session, id, season, episodeNumber, animeID, aniEpType, aniEpisodeNumber);
-            }
-        }
-
-        public List<CrossRef_AniDB_TraktV2> GetByTraktID(string traktID)
-        {
-            lock (GlobalDBLock)
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var xrefs = session
-                    .CreateCriteria(typeof(CrossRef_AniDB_TraktV2))
-                    .Add(Restrictions.Eq("TraktID", traktID))
-                    .List<CrossRef_AniDB_TraktV2>();
-
-                return new List<CrossRef_AniDB_TraktV2>(xrefs);
-            }
-        }
-
-        internal ILookup<int, CrossRef_AniDB_TraktV2> GetByAnimeIDs(IReadOnlyCollection<int> animeIds)
-        {
-            if (animeIds == null)
-                throw new ArgumentNullException(nameof(animeIds));
-
-            if (animeIds.Count == 0)
-            {
-                return EmptyLookup<int, CrossRef_AniDB_TraktV2>.Instance;
-            }
-
-            return ReadLock(() => animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
-                .ToLookup(xref => xref.AnimeID));
-        }
-
-        protected override int SelectKey(CrossRef_AniDB_TraktV2 entity)
-        {
-            return entity.CrossRef_AniDB_TraktV2ID;
-        }
-
-        public override void PopulateIndexes()
-        {
-            AnimeIDs = new PocoIndex<int, CrossRef_AniDB_TraktV2, int>(Cache, a => a.AnimeID);
-        }
-
-        public override void RegenerateDb()
-        {
-        }
+    public override void RegenerateDb()
+    {
     }
 }

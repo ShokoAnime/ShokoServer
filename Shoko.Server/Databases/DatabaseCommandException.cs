@@ -1,21 +1,20 @@
 ﻿using System;
 
-namespace Shoko.Server.Databases
+namespace Shoko.Server.Databases;
+
+[Serializable]
+public class DatabaseCommandException : Exception
 {
-    [Serializable]
-    public class DatabaseCommandException : Exception
+    public DatabaseCommand DatabaseCommand { get; set; }
+
+    public DatabaseCommandException(string message, DatabaseCommand cmd) : base(message)
     {
-        public DatabaseCommand DatabaseCommand { get; set; }
+        DatabaseCommand = cmd;
+    }
 
-        public DatabaseCommandException(string message, DatabaseCommand cmd) : base(message)
-        {
-            DatabaseCommand = cmd;
-        }
-
-        public override string ToString()
-        {
-            return "DATABASE ERROR: " + DatabaseCommand.Version + "." + DatabaseCommand.Revision + " " +
-                   DatabaseCommand.CommandName + " | " + Message;
-        }
+    public override string ToString()
+    {
+        return "DATABASE ERROR: " + DatabaseCommand.Version + "." + DatabaseCommand.Revision + " " +
+               DatabaseCommand.CommandName + " | " + Message;
     }
 }

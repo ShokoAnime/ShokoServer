@@ -1,9 +1,7 @@
 using System;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Exceptions
+namespace Shoko.Server.Providers.AniDB.UDP.Exceptions;
+
+public class NotLoggedInException : Exception
 {
-    public class NotLoggedInException : Exception
-    {
-        
-    }
 }

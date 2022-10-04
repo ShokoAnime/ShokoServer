@@ -3,35 +3,38 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Connection
+namespace Shoko.Server.Providers.AniDB.UDP.Connection;
+
+public class RequestPing : UDPRequest<Void>
 {
-    public class RequestPing : UDPRequest<Void>
+    protected override string BaseCommand => "PING";
+
+    protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
     {
-        protected override string BaseCommand => "PING";
-
-        protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
+        var code = response.Code;
+        var receivedData = response.Response;
+        if (code != UDPReturnCode.PONG)
         {
-            var code = response.Code;
-            var receivedData = response.Response;
-            if (code != UDPReturnCode.PONG) throw new UnexpectedUDPResponseException(code, receivedData);
-            return new UDPResponse<Void> {Code = code};
+            throw new UnexpectedUDPResponseException(code, receivedData);
         }
 
-        protected override void PreExecute(string sessionID)
-        {
-            // Don't set the session for pings
-        }
+        return new UDPResponse<Void> { Code = code };
+    }
 
-        public override UDPResponse<Void> Execute()
-        {
-            var rawResponse = Handler.CallAniDBUDPDirectly(BaseCommand, true, true, isPing: true);
-            var response = ParseResponse(rawResponse);
-            var parsedResponse = ParseResponse(response);
-            return parsedResponse;
-        }
+    protected override void PreExecute(string sessionID)
+    {
+        // Don't set the session for pings
+    }
 
-        public RequestPing(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
-        {
-        }
+    public override UDPResponse<Void> Execute()
+    {
+        var rawResponse = Handler.CallAniDBUDPDirectly(BaseCommand, true, true, true);
+        var response = ParseResponse(rawResponse);
+        var parsedResponse = ParseResponse(response);
+        return parsedResponse;
+    }
+
+    public RequestPing(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    {
     }
 }

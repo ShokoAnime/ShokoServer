@@ -4,54 +4,38 @@ using System.Xml.Serialization;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
 
-namespace Shoko.Server.Providers.AniDB.Titles
+namespace Shoko.Server.Providers.AniDB.Titles;
+
+[XmlRoot("animetitles")]
+public class ResponseAniDBTitles
 {
-    [XmlRoot("animetitles")]
-    public class ResponseAniDBTitles
+    [XmlElement("anime")] public List<Anime> Animes { get; set; }
+
+    public class Anime
     {
-        [XmlElement("anime")]
-        public List<Anime> Animes { get; set; }
+        [XmlIgnore]
+        public virtual string MainTitle =>
+            (Titles?.FirstOrDefault(t => t.Language == TitleLanguage.Romaji && t.TitleType == TitleType.Main) ??
+             Titles?.FirstOrDefault())?.Title ?? "";
 
-        public class Anime
+        [XmlAttribute(DataType = "int", AttributeName = "aid")]
+        public int AnimeID { get; set; }
+
+        [XmlElement("title")] public List<AnimeTitle> Titles { get; set; }
+
+        public class AnimeTitle
         {
-            [XmlIgnore]
-            public virtual string MainTitle
+            [XmlText] public string Title { get; set; }
+
+            [XmlAttribute("type")] public TitleType TitleType { get; set; }
+
+            [XmlIgnore] public TitleLanguage Language { get; set; }
+
+            [XmlAttribute(DataType = "string", AttributeName = "xml:lang")]
+            public string LanguageCode
             {
-                get
-                {
-                    return (Titles?.FirstOrDefault(t => t.Language == TitleLanguage.Romaji && t.TitleType == TitleType.Main) ?? Titles?.FirstOrDefault())?.Title ?? "";
-                }
-            }
-
-            [XmlAttribute(DataType = "int", AttributeName = "aid")]
-            public int AnimeID { get; set; }
-
-            [XmlElement("title")]
-            public List<AnimeTitle> Titles { get; set; }
-
-            public class AnimeTitle
-            {
-                [XmlText]
-                public string Title { get; set; }
-
-                [XmlAttribute("type")]
-                public TitleType TitleType { get; set; }
-
-                [XmlIgnore]
-                public TitleLanguage Language { get; set; }
-
-                [XmlAttribute(DataType = "string", AttributeName = "xml:lang")]
-                public string LanguageCode
-                {
-                    get
-                    {
-                        return Language.GetString();
-                    }
-                    set
-                    {
-                        Language = value.GetTitleLanguage();
-                    }
-                }
+                get => Language.GetString();
+                set => Language = value.GetTitleLanguage();
             }
         }
     }

@@ -1,17 +1,13 @@
 ﻿using System.Runtime.Serialization;
 
-namespace Shoko.Server.Providers.TraktTV.Contracts
+namespace Shoko.Server.Providers.TraktTV.Contracts;
+
+[DataContract(Name = "airs")]
+public class TraktV2Airs
 {
-    [DataContract(Name = "airs")]
-    public class TraktV2Airs
-    {
-        [DataMember(Name = "day")]
-        public string day { get; set; }
+    [DataMember(Name = "day")] public string day { get; set; }
 
-        [DataMember(Name = "time")]
-        public string time { get; set; }
+    [DataMember(Name = "time")] public string time { get; set; }
 
-        [DataMember(Name = "timezone")]
-        public string timezone { get; set; }
-    }
+    [DataMember(Name = "timezone")] public string timezone { get; set; }
 }

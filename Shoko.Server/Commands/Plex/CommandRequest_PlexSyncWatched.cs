@@ -16,111 +16,134 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server.Commands.Plex
+namespace Shoko.Server.Commands.Plex;
+
+[Command(CommandRequestType.Plex_Sync)]
+internal class CommandRequest_PlexSyncWatched : CommandRequestImplementation
 {
-    [Command(CommandRequestType.Plex_Sync)]
-    class CommandRequest_PlexSyncWatched : CommandRequestImplementation
+    public JMMUser User;
+
+    protected override void Process()
     {
-        public JMMUser User;
+        Logger.LogInformation(
+            "Syncing watched videos for: {Username}, if nothing happens make sure you have your libraries configured in Shoko",
+            User.Username);
 
-        protected override void Process()
+        foreach (var section in PlexHelper.GetForUser(User).GetDirectories())
         {
-            Logger.LogInformation("Syncing watched videos for: {Username}, if nothing happens make sure you have your libraries configured in Shoko", User.Username);
-
-            foreach (var section in PlexHelper.GetForUser(User).GetDirectories())
+            if (!ServerSettings.Instance.Plex.Libraries.Contains(section.Key))
             {
-                if (!ServerSettings.Instance.Plex.Libraries.Contains(section.Key)) continue;
+                continue;
+            }
 
-                var allSeries = ((SVR_Directory) section).GetShows();
-                foreach (var series in allSeries)
+            var allSeries = ((SVR_Directory)section).GetShows();
+            foreach (var series in allSeries)
+            {
+                var episodes = ((SVR_PlexLibrary)series)?.GetEpisodes()?.Where(s => s != null);
+                if (episodes == null)
                 {
-                    var episodes = ((SVR_PlexLibrary) series)?.GetEpisodes()?.Where(s => s != null);
-                    if (episodes == null) continue;
-                    foreach (var ep in episodes)
+                    continue;
+                }
+
+                foreach (var ep in episodes)
+                {
+                    var episode = (SVR_Episode)ep;
+
+                    var animeEpisode = episode.AnimeEpisode;
+                    if (animeEpisode == null)
                     {
-                        var episode = (SVR_Episode) ep;
+                        continue;
+                    }
 
-                        var animeEpisode = episode.AnimeEpisode;
-                        if (animeEpisode == null) continue;
-                        var userRecord = animeEpisode.GetUserRecord(User.JMMUserID);
-                        var isWatched = episode.ViewCount is > 0;
-                        var lastWatched = userRecord?.WatchedDate;
-                        if (userRecord?.WatchedCount == 0 && isWatched && episode.LastViewedAt != null)
-                        {
-                            lastWatched = FromUnixTime((long) episode.LastViewedAt);
-                        }
+                    var userRecord = animeEpisode.GetUserRecord(User.JMMUserID);
+                    var isWatched = episode.ViewCount is > 0;
+                    var lastWatched = userRecord?.WatchedDate;
+                    if (userRecord?.WatchedCount == 0 && isWatched && episode.LastViewedAt != null)
+                    {
+                        lastWatched = FromUnixTime((long)episode.LastViewedAt);
+                    }
 
-                        var video = animeEpisode.GetVideoLocals()?.FirstOrDefault();
-                        if (video == null) continue;
-                        var alreadyWatched = animeEpisode.GetVideoLocals()
-                            .Select(a => a.GetUserRecord(User.JMMUserID))
-                            .Where(a => a != null)
-                            .Any(x => x.WatchedDate is not null || x.WatchedCount > 0);
+                    var video = animeEpisode.GetVideoLocals()?.FirstOrDefault();
+                    if (video == null)
+                    {
+                        continue;
+                    }
 
-                        if (!alreadyWatched && userRecord != null)
-                            alreadyWatched = userRecord.IsWatched();
+                    var alreadyWatched = animeEpisode.GetVideoLocals()
+                        .Select(a => a.GetUserRecord(User.JMMUserID))
+                        .Where(a => a != null)
+                        .Any(x => x.WatchedDate is not null || x.WatchedCount > 0);
 
-                        if (alreadyWatched && !isWatched) episode.Scrobble();
+                    if (!alreadyWatched && userRecord != null)
+                    {
+                        alreadyWatched = userRecord.IsWatched();
+                    }
 
-                        if (isWatched && !alreadyWatched)
-                            video.ToggleWatchedStatus(true, true, lastWatched, true, User.JMMUserID, true, true);
+                    if (alreadyWatched && !isWatched)
+                    {
+                        episode.Scrobble();
+                    }
+
+                    if (isWatched && !alreadyWatched)
+                    {
+                        video.ToggleWatchedStatus(true, true, lastWatched, true, User.JMMUserID, true, true);
                     }
                 }
             }
         }
+    }
 
-        public override void GenerateCommandID()
+    public override void GenerateCommandID()
+    {
+        CommandID = $"SyncPlex_{User.JMMUserID}";
+    }
+
+    public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
+
+    public override QueueStateStruct PrettyDescription => new()
+    {
+        message = "Syncing Plex for user: {0}",
+        queueState = QueueStateEnum.SyncPlex,
+        extraParams = new[] { User.Username }
+    };
+
+    public override bool LoadFromDBCommand(CommandRequest cq)
+    {
+        CommandID = cq.CommandID;
+        CommandRequestID = cq.CommandRequestID;
+        Priority = cq.Priority;
+        CommandDetails = cq.CommandDetails;
+        DateTimeUpdated = cq.DateTimeUpdated;
+        User = RepoFactory.JMMUser.GetByID(Convert.ToInt32(cq.CommandDetails));
+        return true;
+    }
+
+
+    public override CommandRequest ToDatabaseObject()
+    {
+        GenerateCommandID();
+        var cq = new CommandRequest
         {
-            CommandID = $"SyncPlex_{User.JMMUserID}";
-        }
-
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
-
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct
-        {
-            message = "Syncing Plex for user: {0}",
-            queueState = QueueStateEnum.SyncPlex,
-            extraParams = new[] {User.Username}
+            CommandID = CommandID,
+            CommandType = CommandType,
+            Priority = Priority,
+            CommandDetails = User.JMMUserID.ToString(CultureInfo.InvariantCulture),
+            DateTimeUpdated = DateTime.Now
         };
+        return cq;
+    }
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
-        {
-            CommandID = cq.CommandID;
-            CommandRequestID = cq.CommandRequestID;
-            Priority = cq.Priority;
-            CommandDetails = cq.CommandDetails;
-            DateTimeUpdated = cq.DateTimeUpdated;
-            User = RepoFactory.JMMUser.GetByID(Convert.ToInt32(cq.CommandDetails));
-            return true;
-        }
+    private DateTime FromUnixTime(long unixTime)
+    {
+        return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            .AddSeconds(unixTime);
+    }
 
+    public CommandRequest_PlexSyncWatched(ILoggerFactory loggerFactory) : base(loggerFactory)
+    {
+    }
 
-        public override CommandRequest ToDatabaseObject()
-        {
-            GenerateCommandID();
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = User.JMMUserID.ToString(CultureInfo.InvariantCulture),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
-        }
-
-        private DateTime FromUnixTime(long unixTime)
-        {
-            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-                .AddSeconds(unixTime);
-        }
-
-        public CommandRequest_PlexSyncWatched(ILoggerFactory loggerFactory) : base(loggerFactory)
-        {
-        }
-
-        protected CommandRequest_PlexSyncWatched()
-        {
-        }
+    protected CommandRequest_PlexSyncWatched()
+    {
     }
 }

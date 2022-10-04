@@ -1,23 +1,19 @@
 ﻿using System.Runtime.Serialization;
 
-namespace Shoko.Server.Providers.TraktTV.Contracts
+namespace Shoko.Server.Providers.TraktTV.Contracts;
+
+[DataContract]
+public class TraktAuthDeviceCodePoll
 {
-    [DataContract]
-    public class TraktAuthDeviceCodePoll
+    [DataMember(Name = "client_id")] public string ClientID { get; set; }
+
+    [DataMember(Name = "client_secret")] public string ClientSecret { get; set; }
+
+    [DataMember(Name = "code")] public string DeviceCode { get; set; }
+
+    public TraktAuthDeviceCodePoll()
     {
-        [DataMember(Name = "client_id")]
-        public string ClientID { get; set; }
-
-        [DataMember(Name = "client_secret")]
-        public string ClientSecret { get; set; }
-
-        [DataMember(Name = "code")]
-        public string DeviceCode { get; set; }
-
-        public TraktAuthDeviceCodePoll()
-        {
-            ClientID = TraktConstants.ClientID;
-            ClientSecret = TraktConstants.ClientSecret;
-        }
+        ClientID = TraktConstants.ClientID;
+        ClientSecret = TraktConstants.ClientSecret;
     }
 }

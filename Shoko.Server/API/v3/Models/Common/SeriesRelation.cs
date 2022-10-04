@@ -7,112 +7,110 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.API.v3.Models.Common
+namespace Shoko.Server.API.v3.Models.Common;
+
+/// <summary>
+/// Describes relations between two series entries.
+/// </summary>
+public class SeriesRelation
 {
     /// <summary>
-    /// Describes relations between two series entries.
+    /// The IDs of the series.
     /// </summary>
-    public class SeriesRelation
+    public RelationIDs IDs;
+
+    /// <summary>
+    /// The IDs of the related series.
+    /// </summary>
+    public RelationIDs RelatedIDs;
+
+    /// <summary>
+    /// The relation between <see cref="SeriesRelation.IDs"/> and <see cref="SeriesRelation.RelatedIDs"/>.
+    /// </summary>
+    [Required]
+    [JsonConverter(typeof(StringEnumConverter))]
+    public RelationType Type { get; set; }
+
+    /// <summary>
+    /// AniDB, etc.
+    /// </summary>
+    [Required]
+    public string Source { get; set; }
+
+    public SeriesRelation(HttpContext context, AniDB_Anime_Relation relation, AnimeSeries series = null,
+        AnimeSeries relatedSeries = null)
     {
-        /// <summary>
-        /// The IDs of the series.
-        /// </summary>
-        public RelationIDs IDs;
-
-        /// <summary>
-        /// The IDs of the related series.
-        /// </summary>
-        public RelationIDs RelatedIDs;
-
-        /// <summary>
-        /// The relation between <see cref="SeriesRelation.IDs"/> and <see cref="SeriesRelation.RelatedIDs"/>.
-        /// </summary>
-        [Required]
-        [JsonConverter(typeof(StringEnumConverter))]
-        public RelationType Type { get; set; }
-
-        /// <summary>
-        /// AniDB, etc.
-        /// </summary>
-        [Required]
-        public string Source { get; set; }
-
-        public SeriesRelation(HttpContext context, AniDB_Anime_Relation relation, AnimeSeries series = null, AnimeSeries relatedSeries = null)
+        if (series == null)
         {
-            if (series == null)
-                series = RepoFactory.AnimeSeries.GetByAnimeID(relation.AnimeID);
-            if (relatedSeries == null)
-                relatedSeries = RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID);
-            IDs = new()
-            {
-                AniDB = relation.AnimeID,
-                Shoko = series?.AnimeSeriesID,
-            };
-            RelatedIDs = new()
-            {
-                AniDB = relation.RelatedAnimeID,
-                Shoko = relatedSeries?.AnimeSeriesID,
-            };
-            Type = GetRelationTypeFromAnidbRelationType(relation.RelationType);
-            Source = "AniDB";
+            series = RepoFactory.AnimeSeries.GetByAnimeID(relation.AnimeID);
         }
 
-        internal static RelationType GetRelationTypeFromAnidbRelationType(string anidbType)
+        if (relatedSeries == null)
         {
-            return (anidbType.ToLowerInvariant()) switch
-            {
-                "prequel" => RelationType.Prequel,
-                "sequel" => RelationType.Sequel,
-                "parent story" => RelationType.MainStory,
-                "side story" => RelationType.SideStory,
-                "full story" => RelationType.FullStory,
-                "summary" => RelationType.Summary,
-                "other" => RelationType.Other,
-                "alternative setting" => RelationType.AlternativeSetting,
-                "alternative version" => RelationType.AlternativeVersion,
-                "same setting" => RelationType.SameSetting,
-                "character" => RelationType.SharedCharacters,
-                
-                _ => RelationType.Other,
-            };
+            relatedSeries = RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID);
         }
 
-        /// <summary>
-        /// Relation IDs.
-        /// </summary>
-        public class RelationIDs
-        {
-            /// <summary>
-            /// The ID of the <see cref="Series"/> entry.
-            /// </summary>
-            public int? Shoko { get; set; }
-
-            /// <summary>
-            /// The ID of the <see cref="Series.AniDB"/> entry.
-            /// </summary>
-            public int? AniDB { get; set; }
-        }
+        IDs = new RelationIDs { AniDB = relation.AnimeID, Shoko = series?.AnimeSeriesID };
+        RelatedIDs = new RelationIDs { AniDB = relation.RelatedAnimeID, Shoko = relatedSeries?.AnimeSeriesID };
+        Type = GetRelationTypeFromAnidbRelationType(relation.RelationType);
+        Source = "AniDB";
     }
 
-    public static class RelationExtensions
+    internal static RelationType GetRelationTypeFromAnidbRelationType(string anidbType)
+    {
+        return anidbType.ToLowerInvariant() switch
+        {
+            "prequel" => RelationType.Prequel,
+            "sequel" => RelationType.Sequel,
+            "parent story" => RelationType.MainStory,
+            "side story" => RelationType.SideStory,
+            "full story" => RelationType.FullStory,
+            "summary" => RelationType.Summary,
+            "other" => RelationType.Other,
+            "alternative setting" => RelationType.AlternativeSetting,
+            "alternative version" => RelationType.AlternativeVersion,
+            "same setting" => RelationType.SameSetting,
+            "character" => RelationType.SharedCharacters,
+
+            _ => RelationType.Other
+        };
+    }
+
+    /// <summary>
+    /// Relation IDs.
+    /// </summary>
+    public class RelationIDs
     {
         /// <summary>
-        /// Reverse the relation.
+        /// The ID of the <see cref="Series"/> entry.
         /// </summary>
-        /// <param name="type">The relation to reverse.</param>
-        /// <returns>The reversed relation.</returns>
-        public static RelationType Reverse(this RelationType type)
+        public int? Shoko { get; set; }
+
+        /// <summary>
+        /// The ID of the <see cref="Series.AniDB"/> entry.
+        /// </summary>
+        public int? AniDB { get; set; }
+    }
+}
+
+public static class RelationExtensions
+{
+    /// <summary>
+    /// Reverse the relation.
+    /// </summary>
+    /// <param name="type">The relation to reverse.</param>
+    /// <returns>The reversed relation.</returns>
+    public static RelationType Reverse(this RelationType type)
+    {
+        return type switch
         {
-            return type switch
-            {
-                RelationType.Prequel => RelationType.Sequel,
-                RelationType.Sequel => RelationType.Prequel,
-                RelationType.MainStory => RelationType.SideStory,
-                RelationType.SideStory => RelationType.MainStory,
-                RelationType.FullStory => RelationType.Summary,
-                RelationType.Summary => RelationType.FullStory,
-                _ => type,
-            };
-        }
+            RelationType.Prequel => RelationType.Sequel,
+            RelationType.Sequel => RelationType.Prequel,
+            RelationType.MainStory => RelationType.SideStory,
+            RelationType.SideStory => RelationType.MainStory,
+            RelationType.FullStory => RelationType.Summary,
+            RelationType.Summary => RelationType.FullStory,
+            _ => type
+        };
     }
 }

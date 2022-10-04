@@ -20,20 +20,20 @@
     <DefineConstants>LOGWEB;DEBUG</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="..\Dependencies\**\*" CopyToOutputDirectory="PreserveNewest" />
-    <Compile Include="..\SharedAssemblyInfo.cs" Link="Properties\SharedAssemblyInfo.cs" />
-    <Resource Include="db.ico" />
-    <Resource Include="Images\**\*.png" />
-    <Resource Include="Images\**\*.gif" />
-    <Resource Include="Images\db.ico" />
-    <Resource Include="**\*.txt" />
-    <Content Include="nlog.config" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="plugins\*.md" CopyToOutputDirectory="Always" />
-    <Content Include="webui\**\*" CopyToOutputDirectory="PreserveNewest" />
-    <Resource Remove="bin\**\*" />
-    <Resource Remove="obj\**\*" />
-    <Content Remove="bin\**\*" />
-    <Content Remove="obj\**\*" />
+    <Content Include="..\Dependencies\**\*" CopyToOutputDirectory="PreserveNewest"/>
+    <Compile Include="..\SharedAssemblyInfo.cs" Link="Properties\SharedAssemblyInfo.cs"/>
+    <Resource Include="db.ico"/>
+    <Resource Include="Images\**\*.png"/>
+    <Resource Include="Images\**\*.gif"/>
+    <Resource Include="Images\db.ico"/>
+    <Resource Include="**\*.txt"/>
+    <Content Include="nlog.config" CopyToOutputDirectory="PreserveNewest"/>
+    <Content Include="plugins\*.md" CopyToOutputDirectory="Always"/>
+    <Content Include="webui\**\*" CopyToOutputDirectory="PreserveNewest"/>
+    <Resource Remove="bin\**\*"/>
+    <Resource Remove="obj\**\*"/>
+    <Content Remove="bin\**\*"/>
+    <Content Remove="obj\**\*"/>
     <EmbeddedResource Update="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -45,64 +45,64 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
-    <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
-    <ProjectReference Include="..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj" />
+    <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj"/>
+    <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj"/>
+    <ProjectReference Include="..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj"/>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="DeepCloner" Version="0.10.4" />
-    <PackageReference Include="F23.StringSimilarity" Version="5.0.0" />
-    <PackageReference Include="FluentNHibernate" Version="3.1.0" />
-    <PackageReference Include="Libuv" Version="1.10.0" />
-    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="12.1.0" />
-    <PackageReference Include="MessagePack" Version="2.4.35" />
+    <PackageReference Include="DeepCloner" Version="0.10.4"/>
+    <PackageReference Include="F23.StringSimilarity" Version="5.0.0"/>
+    <PackageReference Include="FluentNHibernate" Version="3.1.0"/>
+    <PackageReference Include="Libuv" Version="1.10.0"/>
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="12.1.0"/>
+    <PackageReference Include="MessagePack" Version="2.4.35"/>
     <PackageReference Include="MessagePackAnalyzer" Version="2.4.35">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.ApplicationInsights.Agent.Intercept" Version="2.4.0" />
-    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.21.0" />
-    <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Analyzers" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.9" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.ResponseCaching" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.Agent.Intercept" Version="2.4.0"/>
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.21.0"/>
+    <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0"/>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.2.0"/>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0"/>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Analyzers" Version="2.2.0"/>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.9"/>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.0.0"/>
+    <PackageReference Include="Microsoft.AspNetCore.ResponseCaching" Version="2.2.0"/>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0"/>
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.1" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.9" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
-    <PackageReference Include="MimeMapping" Version="1.0.1.37" />
-    <PackageReference Include="MySql.Data" Version="8.0.30" />
-    <PackageReference Include="MySqlBackup.NET" Version="2.3.6.1" />
-    <PackageReference Include="Nancy.Rest.Annotations" Version="1.4.4" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="NHibernate" Version="5.3.13" />
-    <PackageReference Include="NLog" Version="5.0.4" />
-    <PackageReference Include="NLog.Web.AspNetCore" Version="5.1.4" />
-    <PackageReference Include="Sentry" Version="3.21.0" />
-    <PackageReference Include="Sentry.AspNetCore" Version="3.21.0" />
-    <PackageReference Include="Sentry.NLog" Version="3.21.0" />
-    <PackageReference Include="SharpCompress" Version="0.32.2" />
-    <PackageReference Include="SharpZipLib" Version="1.4.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="6.4.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.4.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.1"/>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.9"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0"/>
+    <PackageReference Include="MimeMapping" Version="1.0.1.37"/>
+    <PackageReference Include="MySql.Data" Version="8.0.30"/>
+    <PackageReference Include="MySqlBackup.NET" Version="2.3.6.1"/>
+    <PackageReference Include="Nancy.Rest.Annotations" Version="1.4.4"/>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1"/>
+    <PackageReference Include="NHibernate" Version="5.3.13"/>
+    <PackageReference Include="NLog" Version="5.0.4"/>
+    <PackageReference Include="NLog.Web.AspNetCore" Version="5.1.4"/>
+    <PackageReference Include="Sentry" Version="3.21.0"/>
+    <PackageReference Include="Sentry.AspNetCore" Version="3.21.0"/>
+    <PackageReference Include="Sentry.NLog" Version="3.21.0"/>
+    <PackageReference Include="SharpCompress" Version="0.32.2"/>
+    <PackageReference Include="SharpZipLib" Version="1.4.0"/>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0"/>
+    <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="6.4.0"/>
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.4.0"/>
     <!-- This needs to be explicit because of dep BS -->
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.1" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.3" />
-    <PackageReference Include="System.Diagnostics.EventLog" Version="6.0.0" />
-    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.1"/>
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.3"/>
+    <PackageReference Include="System.Diagnostics.EventLog" Version="6.0.0"/>
+    <PackageReference Include="System.Drawing.Common" Version="6.0.0"/>
     <!-- This needs to be explicit because of https://github.com/MySqlBackupNET/MySqlBackup.Net/issues/61 -->
-    <PackageReference Include="System.Threading.ThreadPool" Version="4.3.0" />
-    <PackageReference Include="TaskScheduler" Version="2.10.1" />
-    <PackageReference Include="TMDbLib" Version="1.6.0" />
-    <PackageReference Include="Trinet.Core.IO.Ntfs" Version="4.1.1" />
-    <PackageReference Include="TvDbSharper" Version="3.2.0" />
+    <PackageReference Include="System.Threading.ThreadPool" Version="4.3.0"/>
+    <PackageReference Include="TaskScheduler" Version="2.10.1"/>
+    <PackageReference Include="TMDbLib" Version="1.6.0"/>
+    <PackageReference Include="Trinet.Core.IO.Ntfs" Version="4.1.1"/>
+    <PackageReference Include="TvDbSharper" Version="3.2.0"/>
   </ItemGroup>
 </Project>

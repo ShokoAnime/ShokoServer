@@ -5,13 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Shoko.Server.Settings.DI
+namespace Shoko.Server.Settings.DI;
+
+internal static class DiExtensions
 {
-    static class DiExtensions
+    public static IServiceCollection AddSettings<T>(this IServiceCollection services, T setting)
     {
-        public static IServiceCollection AddSettings<T>(this IServiceCollection services, T setting)
-        {
-            return services.AddScoped<IConfiguration<T>>(_ => new Configuration<T>(setting));
-        }
+        return services.AddScoped<IConfiguration<T>>(_ => new Configuration<T>(setting));
     }
 }

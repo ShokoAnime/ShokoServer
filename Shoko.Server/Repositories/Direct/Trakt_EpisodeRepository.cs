@@ -3,53 +3,52 @@ using NHibernate.Criterion;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
-namespace Shoko.Server.Repositories.Direct
+namespace Shoko.Server.Repositories.Direct;
+
+public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode, int>
 {
-    public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode, int>
+    public List<Trakt_Episode> GetByShowID(int showID)
     {
-        public List<Trakt_Episode> GetByShowID(int showID)
+        lock (GlobalDBLock)
         {
-            lock (GlobalDBLock)
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var objs = session
-                    .CreateCriteria(typeof(Trakt_Episode))
-                    .Add(Restrictions.Eq("Trakt_ShowID", showID))
-                    .List<Trakt_Episode>();
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var objs = session
+                .CreateCriteria(typeof(Trakt_Episode))
+                .Add(Restrictions.Eq("Trakt_ShowID", showID))
+                .List<Trakt_Episode>();
 
-                return new List<Trakt_Episode>(objs);
-            }
+            return new List<Trakt_Episode>(objs);
         }
+    }
 
-        public List<Trakt_Episode> GetByShowIDAndSeason(int showID, int seasonNumber)
+    public List<Trakt_Episode> GetByShowIDAndSeason(int showID, int seasonNumber)
+    {
+        lock (GlobalDBLock)
         {
-            lock (GlobalDBLock)
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var objs = session
-                    .CreateCriteria(typeof(Trakt_Episode))
-                    .Add(Restrictions.Eq("Trakt_ShowID", showID))
-                    .Add(Restrictions.Eq("Season", seasonNumber))
-                    .List<Trakt_Episode>();
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var objs = session
+                .CreateCriteria(typeof(Trakt_Episode))
+                .Add(Restrictions.Eq("Trakt_ShowID", showID))
+                .Add(Restrictions.Eq("Season", seasonNumber))
+                .List<Trakt_Episode>();
 
-                return new List<Trakt_Episode>(objs);
-            }
+            return new List<Trakt_Episode>(objs);
         }
+    }
 
-        public Trakt_Episode GetByShowIDSeasonAndEpisode(int showID, int seasonNumber, int epnumber)
+    public Trakt_Episode GetByShowIDSeasonAndEpisode(int showID, int seasonNumber, int epnumber)
+    {
+        lock (GlobalDBLock)
         {
-            lock (GlobalDBLock)
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var obj = session
-                    .CreateCriteria(typeof(Trakt_Episode))
-                    .Add(Restrictions.Eq("Trakt_ShowID", showID))
-                    .Add(Restrictions.Eq("Season", seasonNumber))
-                    .Add(Restrictions.Eq("EpisodeNumber", epnumber))
-                    .UniqueResult<Trakt_Episode>();
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var obj = session
+                .CreateCriteria(typeof(Trakt_Episode))
+                .Add(Restrictions.Eq("Trakt_ShowID", showID))
+                .Add(Restrictions.Eq("Season", seasonNumber))
+                .Add(Restrictions.Eq("EpisodeNumber", epnumber))
+                .UniqueResult<Trakt_Episode>();
 
-                return obj;
-            }
+            return obj;
         }
     }
 }

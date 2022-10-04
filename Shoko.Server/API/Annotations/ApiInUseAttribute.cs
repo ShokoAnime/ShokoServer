@@ -5,69 +5,70 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.API.Annotations
+namespace Shoko.Server.API.Annotations;
+
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
+public class ApiInUseAttribute : Attribute, IAlwaysRunResultFilter
 {
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
-    public class ApiInUseAttribute : Attribute, IAlwaysRunResultFilter
+    static ApiInUseAttribute()
     {
-        static ApiInUseAttribute()
+        ConnectionTimer.Elapsed += TimerElapsed;
+    }
+
+    /// <summary>
+    ///  A list of open connections to the API
+    /// </summary>
+    private static readonly HashSet<string> OpenConnections = new();
+
+    /// <summary>
+    /// blur the connection state to 5s, as most media players and calls are spread.
+    /// This prevents flickering of the state for UI
+    /// </summary>
+    private static readonly Timer ConnectionTimer = new(5000);
+
+    private static void AddConnection(HttpContext ctx)
+    {
+        lock (OpenConnections)
         {
-            ConnectionTimer.Elapsed += TimerElapsed;
+            OpenConnections.Add(ctx.Connection.Id);
+            ServerState.Instance.ApiInUse = OpenConnections.Count > 0;
         }
-        
-        /// <summary>
-        ///  A list of open connections to the API
-        /// </summary>
-        private static readonly HashSet<string> OpenConnections = new HashSet<string>();
-        /// <summary>
-        /// blur the connection state to 5s, as most media players and calls are spread.
-        /// This prevents flickering of the state for UI
-        /// </summary>
-        private static readonly Timer ConnectionTimer = new Timer(5000);
-        
-        private static void AddConnection(HttpContext ctx)
+    }
+
+    private static void RemoveConnection(HttpContext ctx)
+    {
+        lock (OpenConnections)
         {
-            lock (OpenConnections)
-            {
-                OpenConnections.Add(ctx.Connection.Id);
-                ServerState.Instance.ApiInUse = OpenConnections.Count > 0;
-            }
-        }
-        
-        private static void RemoveConnection(HttpContext ctx)
-        {
-            lock (OpenConnections)
-            {
-                OpenConnections.Remove(ctx.Connection.Id);
-            }
-            ResetTimer();
+            OpenConnections.Remove(ctx.Connection.Id);
         }
 
-        private static void ResetTimer()
-        {
-            lock (ConnectionTimer)
-            {
-                ConnectionTimer.Stop();
-                ConnectionTimer.Start();
-            }
-        }
+        ResetTimer();
+    }
 
-        private static void TimerElapsed(object sender, ElapsedEventArgs e)
+    private static void ResetTimer()
+    {
+        lock (ConnectionTimer)
         {
-            lock (OpenConnections)
-            {
-                ServerState.Instance.ApiInUse = OpenConnections.Count > 0;
-            }
+            ConnectionTimer.Stop();
+            ConnectionTimer.Start();
         }
+    }
 
-        public void OnResultExecuting(ResultExecutingContext context)
+    private static void TimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        lock (OpenConnections)
         {
-            AddConnection(context.HttpContext);
+            ServerState.Instance.ApiInUse = OpenConnections.Count > 0;
         }
-        
-        public void OnResultExecuted(ResultExecutedContext context)
-        {
-            RemoveConnection(context.HttpContext);
-        }
+    }
+
+    public void OnResultExecuting(ResultExecutingContext context)
+    {
+        AddConnection(context.HttpContext);
+    }
+
+    public void OnResultExecuted(ResultExecutedContext context)
+    {
+        RemoveConnection(context.HttpContext);
     }
 }

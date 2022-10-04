@@ -1,13 +1,12 @@
-namespace Shoko.Server.Settings
+namespace Shoko.Server.Settings;
+
+public class MovieDbSettings
 {
-    public class MovieDbSettings
-    {
-        public bool AutoFanart { get; set; } = true;
+    public bool AutoFanart { get; set; } = true;
 
-        public int AutoFanartAmount { get; set; } = 10;
+    public int AutoFanartAmount { get; set; } = 10;
 
-        public bool AutoPosters { get; set; } = true;
+    public bool AutoPosters { get; set; } = true;
 
-        public int AutoPostersAmount { get; set; } = 10;
-    }
+    public int AutoPostersAmount { get; set; } = 10;
 }

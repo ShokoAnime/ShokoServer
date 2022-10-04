@@ -64,10 +64,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // ReSharper disable InconsistentNaming
 
-namespace LZ4pn
-{
+namespace LZ4pn;
 #if UNSAFE
-
     public static partial class LZ4Codec
     {
         // Update chains up to ip (excluded)
@@ -528,6 +526,5 @@ namespace LZ4pn
     }
 
 #endif
-}
 
 // ReSharper restore InconsistentNaming

@@ -1,13 +1,12 @@
 ﻿using System;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Shoko.Server.API.Annotations
+namespace Shoko.Server.API.Annotations;
+
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+public sealed class ApiV3Attribute : ApiVersionAttribute
 {
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
-    public sealed class ApiV3Attribute : ApiVersionAttribute
+    public ApiV3Attribute() : base(new ApiVersion(3, 0))
     {
-        public ApiV3Attribute() : base(new ApiVersion(3, 0))
-        {
-        }
     }
 }

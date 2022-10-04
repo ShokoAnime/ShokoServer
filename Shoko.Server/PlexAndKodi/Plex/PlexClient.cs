@@ -1,16 +1,15 @@
-﻿namespace Shoko.Server.PlexAndKodi.Plex
+﻿namespace Shoko.Server.PlexAndKodi.Plex;
+
+public enum PlexClient
 {
-    public enum PlexClient
-    {
-        Android,
-        IOS,
-        Web,
-        PlexMediaPlayer,
-        PlexForWindows,
-        PlexMediaServer,
-        Kodi,
-        WebOs,
-        Other,
-        None
-    }
+    Android,
+    IOS,
+    Web,
+    PlexMediaPlayer,
+    PlexForWindows,
+    PlexMediaServer,
+    Kodi,
+    WebOs,
+    Other,
+    None
 }

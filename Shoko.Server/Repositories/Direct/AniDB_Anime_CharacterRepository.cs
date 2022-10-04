@@ -4,49 +4,48 @@ using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
 
-namespace Shoko.Server.Repositories.Direct
+namespace Shoko.Server.Repositories.Direct;
+
+public class AniDB_Anime_CharacterRepository : BaseDirectRepository<AniDB_Anime_Character, int>
 {
-    public class AniDB_Anime_CharacterRepository : BaseDirectRepository<AniDB_Anime_Character, int>
+    public List<AniDB_Anime_Character> GetByAnimeID(int id)
     {
-        public List<AniDB_Anime_Character> GetByAnimeID(int id)
+        lock (GlobalDBLock)
         {
-            lock (GlobalDBLock)
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var cats = session
-                    .CreateCriteria(typeof(AniDB_Anime_Character))
-                    .Add(Restrictions.Eq("AnimeID", id))
-                    .List<AniDB_Anime_Character>();
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var cats = session
+                .CreateCriteria(typeof(AniDB_Anime_Character))
+                .Add(Restrictions.Eq("AnimeID", id))
+                .List<AniDB_Anime_Character>();
 
-                return new List<AniDB_Anime_Character>(cats);
-            }
+            return new List<AniDB_Anime_Character>(cats);
         }
+    }
 
-        public List<AniDB_Anime_Character> GetByAnimeID(ISessionWrapper session, int id)
+    public List<AniDB_Anime_Character> GetByAnimeID(ISessionWrapper session, int id)
+    {
+        lock (GlobalDBLock)
         {
-            lock (GlobalDBLock)
-            {
-                var cats = session
-                    .CreateCriteria(typeof(AniDB_Anime_Character))
-                    .Add(Restrictions.Eq("AnimeID", id))
-                    .List<AniDB_Anime_Character>();
+            var cats = session
+                .CreateCriteria(typeof(AniDB_Anime_Character))
+                .Add(Restrictions.Eq("AnimeID", id))
+                .List<AniDB_Anime_Character>();
 
-                return new List<AniDB_Anime_Character>(cats);
-            }
+            return new List<AniDB_Anime_Character>(cats);
         }
+    }
 
-        public List<AniDB_Anime_Character> GetByCharID(int id)
+    public List<AniDB_Anime_Character> GetByCharID(int id)
+    {
+        lock (GlobalDBLock)
         {
-            lock (GlobalDBLock)
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var cats = session
-                    .CreateCriteria(typeof(AniDB_Anime_Character))
-                    .Add(Restrictions.Eq("CharID", id))
-                    .List<AniDB_Anime_Character>();
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var cats = session
+                .CreateCriteria(typeof(AniDB_Anime_Character))
+                .Add(Restrictions.Eq("CharID", id))
+                .List<AniDB_Anime_Character>();
 
-                return new List<AniDB_Anime_Character>(cats);
-            }
+            return new List<AniDB_Anime_Character>(cats);
         }
     }
 }

@@ -1,17 +1,16 @@
 ﻿using FluentNHibernate.Mapping;
 using Shoko.Models.Server;
 
-namespace Shoko.Server.Mappings
-{
-    public class CustomTagMap : ClassMap<CustomTag>
-    {
-        public CustomTagMap()
-        {
-            Not.LazyLoad();
-            Id(x => x.CustomTagID);
+namespace Shoko.Server.Mappings;
 
-            Map(x => x.TagName);
-            Map(x => x.TagDescription);
-        }
+public class CustomTagMap : ClassMap<CustomTag>
+{
+    public CustomTagMap()
+    {
+        Not.LazyLoad();
+        Id(x => x.CustomTagID);
+
+        Map(x => x.TagName);
+        Map(x => x.TagDescription);
     }
 }

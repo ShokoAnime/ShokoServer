@@ -1,30 +1,29 @@
 ﻿using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 
-namespace Shoko.Server.Repositories
+namespace Shoko.Server.Repositories;
+
+public class AnimeCharacterRepository : BaseCachedRepository<AnimeCharacter, int>
 {
-    public class AnimeCharacterRepository : BaseCachedRepository<AnimeCharacter, int>
+    private PocoIndex<int, AnimeCharacter, int> AniDBIDs;
+
+    public override void RegenerateDb()
     {
-        private PocoIndex<int, AnimeCharacter, int> AniDBIDs;
+    }
 
-        public override void RegenerateDb()
-        {
-        }
+    protected override int SelectKey(AnimeCharacter entity)
+    {
+        return entity.CharacterID;
+    }
 
-        protected override int SelectKey(AnimeCharacter entity)
-        {
-            return entity.CharacterID;
-        }
-
-        public override void PopulateIndexes()
-        {
-            AniDBIDs = new PocoIndex<int, AnimeCharacter, int>(Cache, a => a.AniDBID);
-        }
+    public override void PopulateIndexes()
+    {
+        AniDBIDs = new PocoIndex<int, AnimeCharacter, int>(Cache, a => a.AniDBID);
+    }
 
 
-        public AnimeCharacter GetByAniDBID(int id)
-        {
-            return ReadLock(() => AniDBIDs.GetOne(id));
-        }
+    public AnimeCharacter GetByAniDBID(int id)
+    {
+        return ReadLock(() => AniDBIDs.GetOne(id));
     }
 }

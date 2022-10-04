@@ -1,28 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Shoko.Server.Providers.AniDB.HTTP.GetAnime
+namespace Shoko.Server.Providers.AniDB.HTTP.GetAnime;
+
+public class ResponseEpisode
 {
-    public class ResponseEpisode
-    {
-        public int EpisodeID { get; set; }
+    public int EpisodeID { get; set; }
 
-        public int AnimeID { get; set; }
+    public int AnimeID { get; set; }
 
-        public int LengthSeconds { get; set; }
+    public int LengthSeconds { get; set; }
 
-        public decimal Rating { get; set; }
+    public decimal Rating { get; set; }
 
-        public int Votes { get; set; }
+    public int Votes { get; set; }
 
-        public int EpisodeNumber { get; set; }
+    public int EpisodeNumber { get; set; }
 
-        public EpisodeType EpisodeType { get; set; }
+    public EpisodeType EpisodeType { get; set; }
 
-        public string Description { get; set; }
+    public string Description { get; set; }
 
-        public DateTime? AirDate { get; set; }
+    public DateTime? AirDate { get; set; }
 
-        public List<ResponseTitle> Titles = new();
-    }
+    public List<ResponseTitle> Titles = new();
 }

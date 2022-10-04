@@ -1,49 +1,51 @@
 using System;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.API.v3.Models.Shoko
+namespace Shoko.Server.API.v3.Models.Shoko;
+
+public class ServerStatus
 {
-    public class ServerStatus
+    /// <summary>
+    /// The progress message for starting up
+    /// </summary>
+    public string StartupMessage { get; set; }
+
+    /// <summary>
+    /// The state of startup.
+    /// </summary>
+    public StartupState State { get; set; }
+
+    /// <summary>
+    /// Uptime in hh:mm:ss or null if not started. Uses hours may be greater than a day.
+    /// </summary>
+    public TimeSpan? Uptime { get; set; }
+
+    public enum StartupState
     {
         /// <summary>
-        /// The progress message for starting up
+        /// Starting up
         /// </summary>
-        public string StartupMessage { get; set; }
+        Starting = 1,
 
         /// <summary>
-        /// The state of startup.
+        /// Finished starting
         /// </summary>
-        public StartupState State { get; set; }
+        Started = 2,
 
         /// <summary>
-        /// Uptime in hh:mm:ss or null if not started. Uses hours may be greater than a day.
+        /// There was an error while starting
         /// </summary>
-        public TimeSpan? Uptime { get; set; }
+        Failed = 3,
 
-        public enum StartupState
-        {
-            /// <summary>
-            /// Starting up
-            /// </summary>
-            Starting = 1,
-            /// <summary>
-            /// Finished starting
-            /// </summary>
-            Started = 2,
-            /// <summary>
-            /// There was an error while starting
-            /// </summary>
-            Failed = 3,
-            /// <summary>
-            /// Waiting for setup
-            /// </summary>
-            Waiting = 4
-        }
-        
         /// <summary>
-        /// This is true in situations where there can be absolutely no write operations.
-        /// This is for polling. Ideally, a client will use the Events SignalR Hub.
+        /// Waiting for setup
         /// </summary>
-        public ServerState.DatabaseBlockedInfo DatabaseBlocked { get; set; }
+        Waiting = 4
     }
+
+    /// <summary>
+    /// This is true in situations where there can be absolutely no write operations.
+    /// This is for polling. Ideally, a client will use the Events SignalR Hub.
+    /// </summary>
+    public ServerState.DatabaseBlockedInfo DatabaseBlocked { get; set; }
 }

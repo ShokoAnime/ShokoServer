@@ -1,10 +1,9 @@
 ﻿using System.Runtime.Serialization;
 
-namespace Shoko.Server.Providers.TraktTV.Contracts
+namespace Shoko.Server.Providers.TraktTV.Contracts;
+
+[DataContract(Name = "logo")]
+public class TraktV2Logo
 {
-    [DataContract(Name = "logo")]
-    public class TraktV2Logo
-    {
-        public string full { get; set; }
-    }
+    public string full { get; set; }
 }

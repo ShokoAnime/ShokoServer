@@ -1,16 +1,14 @@
 ﻿using System.Runtime.Serialization;
 
-namespace Shoko.Server.Providers.TraktTV.Contracts
-{
-    [DataContract]
-    public class TraktAuthDeviceCode
-    {
-        [DataMember(Name = "client_id")]
-        public string ClientID { get; set; }
+namespace Shoko.Server.Providers.TraktTV.Contracts;
 
-        public TraktAuthDeviceCode()
-        {
-            ClientID = TraktConstants.ClientID;
-        }
+[DataContract]
+public class TraktAuthDeviceCode
+{
+    [DataMember(Name = "client_id")] public string ClientID { get; set; }
+
+    public TraktAuthDeviceCode()
+    {
+        ClientID = TraktConstants.ClientID;
     }
 }

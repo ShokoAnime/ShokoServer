@@ -2,118 +2,117 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.ComponentModel.DataAnnotations;
 
-namespace Shoko.Server.API.v3.Models.Common
+namespace Shoko.Server.API.v3.Models.Common;
+
+/// <summary>
+/// This is for cast/staff
+/// </summary>
+public class Role
 {
     /// <summary>
-    /// This is for cast/staff
+    /// Most will be Japanese. Once AniList is in, it will have multiple options
     /// </summary>
-    public class Role
+    [Required]
+    public string Language { get; set; }
+
+    /// <summary>
+    /// The person who plays a character, writes the music, etc.
+    /// </summary>
+    [Required]
+    public Person Staff { get; set; }
+
+    /// <summary>
+    /// The character played, if applicable
+    /// </summary>
+    public Person Character { get; set; }
+
+    /// <summary>
+    /// The role that the staff plays, cv, writer, director, etc
+    /// </summary>
+    [Required]
+    public CreatorRoleType RoleName { get; set; }
+
+    /// <summary>
+    /// Extra info about the role. For example, role can be voice actor, while role_details is Main Character
+    /// </summary>
+    public string RoleDetails { get; set; }
+
+    /// <summary>
+    /// A generic person object with the name, altname, description, and image
+    /// </summary>
+    public class Person
     {
         /// <summary>
-        /// Most will be Japanese. Once AniList is in, it will have multiple options
+        /// Main Name, romanized if needed
+        /// ex. Sawano Hiroyuki
         /// </summary>
         [Required]
-        public string Language { get; set; }
+        public string Name { get; set; }
 
         /// <summary>
-        /// The person who plays a character, writes the music, etc.
+        /// Alternate Name, this can be any other name, whether kanji, an alias, etc
+        /// ex. 澤野弘之
         /// </summary>
-        [Required]
-        public Person Staff { get; set; }
+        public string AlternateName { get; set; }
 
         /// <summary>
-        /// The character played, if applicable
+        /// A description, bio, etc
+        /// ex. Sawano Hiroyuki was born September 12, 1980 in Tokyo, Japan. He is a composer and arranger.
         /// </summary>
-        public Person Character { get; set; }
+        public string Description { get; set; }
 
         /// <summary>
-        /// The role that the staff plays, cv, writer, director, etc
+        /// image object, usually a profile picture of sorts
         /// </summary>
-        [Required]
-        public CreatorRoleType RoleName { get; set; }
+        public Image Image { get; set; }
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum CreatorRoleType
+    {
+        /// <summary>
+        /// Voice actor or voice actress.
+        /// </summary>
+        Seiyuu,
 
         /// <summary>
-        /// Extra info about the role. For example, role can be voice actor, while role_details is Main Character
+        /// This can be anything involved in writing the show.
         /// </summary>
-        public string RoleDetails { get; set; }
+        Staff,
 
         /// <summary>
-        /// A generic person object with the name, altname, description, and image
+        /// The studio responsible for publishing the show.
         /// </summary>
-        public class Person
-        {
-            /// <summary>
-            /// Main Name, romanized if needed
-            /// ex. Sawano Hiroyuki
-            /// </summary>
-            [Required]
-            public string Name { get; set; }
+        Studio,
 
-            /// <summary>
-            /// Alternate Name, this can be any other name, whether kanji, an alias, etc
-            /// ex. 澤野弘之
-            /// </summary>
-            public string AlternateName { get; set; }
+        /// <summary>
+        /// The main producer(s) for the show.
+        /// </summary>
+        Producer,
 
-            /// <summary>
-            /// A description, bio, etc
-            /// ex. Sawano Hiroyuki was born September 12, 1980 in Tokyo, Japan. He is a composer and arranger.
-            /// </summary>
-            public string Description { get; set; }
+        /// <summary>
+        /// Direction.
+        /// </summary>
+        Director,
 
-            /// <summary>
-            /// image object, usually a profile picture of sorts
-            /// </summary>
-            public Image Image { get; set; }
-        }
+        /// <summary>
+        /// Series Composition.
+        /// </summary>
+        SeriesComposer,
 
-        [JsonConverter(typeof(StringEnumConverter))]
-        public enum CreatorRoleType
-        {
-            /// <summary>
-            /// Voice actor or voice actress.
-            /// </summary>
-            Seiyuu,
+        /// <summary>
+        /// Character Design.
+        /// </summary>
+        CharacterDesign,
 
-            /// <summary>
-            /// This can be anything involved in writing the show.
-            /// </summary>
-            Staff,
+        /// <summary>
+        /// Music composer.
+        /// </summary>
+        Music,
 
-            /// <summary>
-            /// The studio responsible for publishing the show.
-            /// </summary>
-            Studio,
-
-            /// <summary>
-            /// The main producer(s) for the show.
-            /// </summary>
-            Producer,
-
-            /// <summary>
-            /// Direction.
-            /// </summary>
-            Director,
-
-            /// <summary>
-            /// Series Composition.
-            /// </summary>
-            SeriesComposer,
-
-            /// <summary>
-            /// Character Design.
-            /// </summary>
-            CharacterDesign,
-
-            /// <summary>
-            /// Music composer.
-            /// </summary>
-            Music,
-
-            /// <summary>
-            /// Responsible for the creation of the source work this show is detrived from.
-            /// </summary>
-            SourceWork,
-        }
+        /// <summary>
+        /// Responsible for the creation of the source work this show is detrived from.
+        /// </summary>
+        SourceWork
     }
 }

@@ -2,30 +2,29 @@
 using System.Data;
 using NHibernate;
 
-namespace Shoko.Server.Repositories.NHibernate
+namespace Shoko.Server.Repositories.NHibernate;
+
+public interface ISessionWrapper
 {
-    public interface ISessionWrapper
-    {
-        ICriteria CreateCriteria<T>() where T : class;
+    ICriteria CreateCriteria<T>() where T : class;
 
-        ICriteria CreateCriteria(Type type);
+    ICriteria CreateCriteria(Type type);
 
-        IQuery CreateQuery(string query);
+    IQuery CreateQuery(string query);
 
-        ISQLQuery CreateSQLQuery(string query);
+    ISQLQuery CreateSQLQuery(string query);
 
-        IQueryOver<T, T> QueryOver<T>() where T : class;
+    IQueryOver<T, T> QueryOver<T>() where T : class;
 
-        TObj Get<TObj>(object id);
+    TObj Get<TObj>(object id);
 
-        ITransaction BeginTransaction();
+    ITransaction BeginTransaction();
 
-        void Insert(object entity);
+    void Insert(object entity);
 
-        void Update(object entity);
+    void Update(object entity);
 
-        void Delete(object entity);
+    void Delete(object entity);
 
-        IDbConnection Connection { get; }
-    }
+    IDbConnection Connection { get; }
 }

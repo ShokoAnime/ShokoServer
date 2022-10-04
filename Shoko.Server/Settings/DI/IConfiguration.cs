@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Shoko.Server.Settings.DI
+namespace Shoko.Server.Settings.DI;
+
+public interface IConfiguration<T> : IDisposable
 {
-    public interface IConfiguration<T> : IDisposable
-    {
-        public T Instance { get; }
-    }
+    public T Instance { get; }
 }

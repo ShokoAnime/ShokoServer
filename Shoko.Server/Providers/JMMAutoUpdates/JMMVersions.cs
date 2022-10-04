@@ -1,16 +1,13 @@
 ﻿using System.Xml.Serialization;
 
-namespace Shoko.Server.Providers.JMMAutoUpdates
-{
-    /// <remarks/>
-    [XmlType(AnonymousType = true)]
-    [XmlRoot("jmmversions", Namespace = "", IsNullable = false)]
-    public class JMMVersions
-    {
-        [XmlElement("versions")]
-        public Versions versions { get; set; }
+namespace Shoko.Server.Providers.JMMAutoUpdates;
 
-        [XmlElement("updates")]
-        public Updates updates { get; set; }
-    }
+/// <remarks/>
+[XmlType(AnonymousType = true)]
+[XmlRoot("jmmversions", Namespace = "", IsNullable = false)]
+public class JMMVersions
+{
+    [XmlElement("versions")] public Versions versions { get; set; }
+
+    [XmlElement("updates")] public Updates updates { get; set; }
 }

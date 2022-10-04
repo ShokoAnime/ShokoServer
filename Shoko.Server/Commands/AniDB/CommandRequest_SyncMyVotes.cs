@@ -13,127 +13,136 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server.Commands.AniDB
+namespace Shoko.Server.Commands.AniDB;
+
+[Serializable]
+[Command(CommandRequestType.AniDB_SyncVotes)]
+public class CommandRequest_SyncMyVotes : CommandRequestImplementation
 {
-    [Serializable]
-    [Command(CommandRequestType.AniDB_SyncVotes)]
-    public class CommandRequest_SyncMyVotes : CommandRequestImplementation
+    private readonly IRequestFactory _requestFactory;
+    private readonly ICommandRequestFactory _commandFactory;
+    public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
+
+    public override QueueStateStruct PrettyDescription => new()
     {
-        private readonly IRequestFactory _requestFactory;
-        private readonly ICommandRequestFactory _commandFactory;
-        public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
+        message = "Upload Local Votes To AniDB",
+        queueState = QueueStateEnum.Actions_SyncVotes,
+        extraParams = Array.Empty<string>()
+    };
 
-        public override QueueStateStruct PrettyDescription => new()
+    protected override void Process()
+    {
+        Logger.LogInformation("Processing CommandRequest_SyncMyVotes");
+
+        try
         {
-            message = "Upload Local Votes To AniDB",
-            queueState = QueueStateEnum.Actions_SyncVotes,
-            extraParams = Array.Empty<string>(),
-        };
-
-        protected override void Process()
-        {
-            Logger.LogInformation("Processing CommandRequest_SyncMyVotes");
-
-            try
-            {
-                var request = _requestFactory.Create<RequestVotes>(
-                    r =>
-                    {
-                        r.Username = ServerSettings.Instance.AniDb.Username;
-                        r.Password = ServerSettings.Instance.AniDb.Password;
-                    }
-                );
-                var response = request.Execute();
-                if (response.Response == null) return;
-                foreach (var myVote in response.Response)
+            var request = _requestFactory.Create<RequestVotes>(
+                r =>
                 {
-                    var dbVotes = RepoFactory.AniDB_Vote.GetByEntity(myVote.EntityID);
-                    AniDB_Vote thisVote = null;
-                    foreach (var dbVote in dbVotes)
+                    r.Username = ServerSettings.Instance.AniDb.Username;
+                    r.Password = ServerSettings.Instance.AniDb.Password;
+                }
+            );
+            var response = request.Execute();
+            if (response.Response == null)
+            {
+                return;
+            }
+
+            foreach (var myVote in response.Response)
+            {
+                var dbVotes = RepoFactory.AniDB_Vote.GetByEntity(myVote.EntityID);
+                AniDB_Vote thisVote = null;
+                foreach (var dbVote in dbVotes)
+                {
+                    // we can only have anime permanent or anime temp but not both
+                    if (myVote.VoteType is AniDBVoteType.Anime or AniDBVoteType.AnimeTemp)
                     {
-                        // we can only have anime permanent or anime temp but not both
-                        if (myVote.VoteType is AniDBVoteType.Anime or AniDBVoteType.AnimeTemp)
-                        {
-                            if (dbVote.VoteType is (int) AniDBVoteType.Anime or (int) AniDBVoteType.AnimeTemp)
-                            {
-                                thisVote = dbVote;
-                            }
-                        }
-                        else
+                        if (dbVote.VoteType is (int)AniDBVoteType.Anime or (int)AniDBVoteType.AnimeTemp)
                         {
                             thisVote = dbVote;
                         }
                     }
-
-                    if (thisVote == null)
+                    else
                     {
-                        thisVote = new AniDB_Vote { EntityID = myVote.EntityID };
+                        thisVote = dbVote;
                     }
-                    thisVote.VoteType = (int) myVote.VoteType;
-                    thisVote.VoteValue = (int) (myVote.VoteValue * 100);
-
-                    RepoFactory.AniDB_Vote.Save(thisVote);
-
-                    if (myVote.VoteType is not (AniDBVoteType.Anime or AniDBVoteType.AnimeTemp)) continue;
-                    // download the anime info if the user doesn't already have it
-                    var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c => c.AnimeID = thisVote.EntityID);
-                    cmdAnime.Save();
                 }
 
-                Logger.LogInformation("Processed Votes: {Count} Items", response.Response.Count);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error processing CommandRequest_SyncMyVotes: {Ex} ", ex);
-            }
-        }
+                if (thisVote == null)
+                {
+                    thisVote = new AniDB_Vote { EntityID = myVote.EntityID };
+                }
 
-        public override void GenerateCommandID()
-        {
-            CommandID = "CommandRequest_SyncMyVotes";
-        }
+                thisVote.VoteType = (int)myVote.VoteType;
+                thisVote.VoteValue = (int)(myVote.VoteValue * 100);
 
-        public override bool LoadFromDBCommand(CommandRequest cq)
-        {
-            CommandID = cq.CommandID;
-            CommandRequestID = cq.CommandRequestID;
-            Priority = cq.Priority;
-            CommandDetails = cq.CommandDetails;
-            DateTimeUpdated = cq.DateTimeUpdated;
+                RepoFactory.AniDB_Vote.Save(thisVote);
 
-            // read xml to get parameters
-            if (CommandDetails.Trim().Length > 0)
-            {
-                XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(CommandDetails);
+                if (myVote.VoteType is not (AniDBVoteType.Anime or AniDBVoteType.AnimeTemp))
+                {
+                    continue;
+                }
+
+                // download the anime info if the user doesn't already have it
+                var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c => c.AnimeID = thisVote.EntityID);
+                cmdAnime.Save();
             }
 
-            return true;
+            Logger.LogInformation("Processed Votes: {Count} Items", response.Response.Count);
         }
-
-        public override CommandRequest ToDatabaseObject()
+        catch (Exception ex)
         {
-            GenerateCommandID();
-
-            CommandRequest cq = new CommandRequest
-            {
-                CommandID = CommandID,
-                CommandType = CommandType,
-                Priority = Priority,
-                CommandDetails = ToXML(),
-                DateTimeUpdated = DateTime.Now
-            };
-            return cq;
+            Logger.LogError(ex, "Error processing CommandRequest_SyncMyVotes: {Ex} ", ex);
         }
+    }
 
-        public CommandRequest_SyncMyVotes(ILoggerFactory loggerFactory, IRequestFactory requestFactory, ICommandRequestFactory commandFactory) : base(loggerFactory)
+    public override void GenerateCommandID()
+    {
+        CommandID = "CommandRequest_SyncMyVotes";
+    }
+
+    public override bool LoadFromDBCommand(CommandRequest cq)
+    {
+        CommandID = cq.CommandID;
+        CommandRequestID = cq.CommandRequestID;
+        Priority = cq.Priority;
+        CommandDetails = cq.CommandDetails;
+        DateTimeUpdated = cq.DateTimeUpdated;
+
+        // read xml to get parameters
+        if (CommandDetails.Trim().Length > 0)
         {
-            _requestFactory = requestFactory;
-            _commandFactory = commandFactory;
+            var docCreator = new XmlDocument();
+            docCreator.LoadXml(CommandDetails);
         }
 
-        protected CommandRequest_SyncMyVotes()
+        return true;
+    }
+
+    public override CommandRequest ToDatabaseObject()
+    {
+        GenerateCommandID();
+
+        var cq = new CommandRequest
         {
-        }
+            CommandID = CommandID,
+            CommandType = CommandType,
+            Priority = Priority,
+            CommandDetails = ToXML(),
+            DateTimeUpdated = DateTime.Now
+        };
+        return cq;
+    }
+
+    public CommandRequest_SyncMyVotes(ILoggerFactory loggerFactory, IRequestFactory requestFactory,
+        ICommandRequestFactory commandFactory) : base(loggerFactory)
+    {
+        _requestFactory = requestFactory;
+        _commandFactory = commandFactory;
+    }
+
+    protected CommandRequest_SyncMyVotes()
+    {
     }
 }

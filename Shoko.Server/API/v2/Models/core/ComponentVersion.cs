@@ -1,8 +1,7 @@
-﻿namespace Shoko.Server.API.v2.Models.core
+﻿namespace Shoko.Server.API.v2.Models.core;
+
+public class ComponentVersion
 {
-    public class ComponentVersion
-    {
-        public string name { get; set; }
-        public string version { get; set; }
-    }
+    public string name { get; set; }
+    public string version { get; set; }
 }

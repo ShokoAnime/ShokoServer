@@ -9,61 +9,65 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.Repositories
+namespace Shoko.Server.Repositories;
+
+public class AniDB_Anime_TitleRepository : BaseCachedRepository<SVR_AniDB_Anime_Title, int>
 {
-    public class AniDB_Anime_TitleRepository : BaseCachedRepository<SVR_AniDB_Anime_Title, int>
+    private PocoIndex<int, SVR_AniDB_Anime_Title, int> Animes;
+
+    public override void PopulateIndexes()
     {
-        private PocoIndex<int, SVR_AniDB_Anime_Title, int> Animes;
+        Animes = new PocoIndex<int, SVR_AniDB_Anime_Title, int>(Cache, a => a.AnimeID);
+    }
 
-        public override void PopulateIndexes()
+    protected override int SelectKey(SVR_AniDB_Anime_Title entity)
+    {
+        return entity.AniDB_Anime_TitleID;
+    }
+
+    public override void RegenerateDb()
+    {
+        // Don't need lock in init
+        ServerState.Instance.ServerStartingStatus = string.Format(
+            Resources.Database_Validating, typeof(SVR_AniDB_Anime_Title).Name, " DbRegen");
+        var titles = Cache.Values.Where(title => title.Title.Contains('`')).ToList();
+        foreach (var title in titles)
         {
-            Animes = new PocoIndex<int, SVR_AniDB_Anime_Title, int>(Cache, a => a.AnimeID);
+            title.Title = title.Title.Replace('`', '\'');
+            Save(title);
+        }
+    }
+
+    public List<SVR_AniDB_Anime_Title> GetByAnimeID(int id)
+    {
+        return ReadLock(() => Animes.GetMultiple(id));
+    }
+
+    public ILookup<int, SVR_AniDB_Anime_Title> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)
+    {
+        if (session == null)
+        {
+            throw new ArgumentNullException(nameof(session));
         }
 
-        protected override int SelectKey(SVR_AniDB_Anime_Title entity)
+        if (ids == null)
         {
-            return entity.AniDB_Anime_TitleID;
+            throw new ArgumentNullException(nameof(ids));
         }
 
-        public override void RegenerateDb()
+        if (ids.Count == 0)
         {
-            // Don't need lock in init
-            ServerState.Instance.ServerStartingStatus = string.Format(
-                Resources.Database_Validating, typeof(SVR_AniDB_Anime_Title).Name, " DbRegen");
-            var titles = Cache.Values.Where(title => title.Title.Contains('`')).ToList();
-            foreach (var title in titles)
-            {
-                title.Title = title.Title.Replace('`', '\'');
-                Save(title);
-            }
+            return EmptyLookup<int, SVR_AniDB_Anime_Title>.Instance;
         }
 
-        public List<SVR_AniDB_Anime_Title> GetByAnimeID(int id)
+        lock (GlobalDBLock)
         {
-            return ReadLock(() => Animes.GetMultiple(id));
-        }
+            var titles = session.CreateCriteria<SVR_AniDB_Anime_Title>()
+                .Add(Restrictions.InG(nameof(SVR_AniDB_Anime_Title.AnimeID), ids))
+                .List<SVR_AniDB_Anime_Title>()
+                .ToLookup(t => t.AnimeID);
 
-        public ILookup<int, SVR_AniDB_Anime_Title> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)
-        {
-            if (session == null)
-                throw new ArgumentNullException(nameof(session));
-            if (ids == null)
-                throw new ArgumentNullException(nameof(ids));
-
-            if (ids.Count == 0)
-            {
-                return EmptyLookup<int, SVR_AniDB_Anime_Title>.Instance;
-            }
-
-            lock (GlobalDBLock)
-            {
-                var titles = session.CreateCriteria<SVR_AniDB_Anime_Title>()
-                    .Add(Restrictions.InG(nameof(SVR_AniDB_Anime_Title.AnimeID), ids))
-                    .List<SVR_AniDB_Anime_Title>()
-                    .ToLookup(t => t.AnimeID);
-
-                return titles;
-            }
+            return titles;
         }
     }
 }

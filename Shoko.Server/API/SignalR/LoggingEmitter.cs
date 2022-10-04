@@ -7,30 +7,33 @@ using NLog;
 using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Commands;
 
-namespace Shoko.Server.API.SignalR
+namespace Shoko.Server.API.SignalR;
+
+public class LoggingEmitter : IDisposable
 {
-    public class LoggingEmitter : IDisposable
+    private IHubContext<LoggingHub> Hub { get; set; }
+    public SignalRTarget Target { get; set; }
+
+    public LoggingEmitter(IHubContext<LoggingHub> hub)
     {
-        private IHubContext<LoggingHub> Hub { get; set; }
-        public SignalRTarget Target { get; set; }
+        Hub = hub;
+        Target = LogManager.Configuration?.AllTargets?.Select(a => a as SignalRTarget).FirstOrDefault(a => a != null);
+        if (Target != null)
+        {
+            Target.LogEventHandler += OnLog;
+        }
+    }
 
-        public LoggingEmitter(IHubContext<LoggingHub> hub)
+    public void Dispose()
+    {
+        if (Target != null)
         {
-            Hub = hub;
-            Target = LogManager.Configuration?.AllTargets?.Select(a => a as SignalRTarget).FirstOrDefault(a => a != null);
-            if (Target != null)
-                Target.LogEventHandler += OnLog;
+            Target.LogEventHandler -= OnLog;
         }
+    }
 
-        public void Dispose()
-        {
-            if (Target != null)
-                Target.LogEventHandler -= OnLog;
-        }
-        
-        public async void OnLog(LogEvent e)
-        {
-            await Hub.Clients.All.SendAsync(Target.LogMethodName, e);
-        }
+    public async void OnLog(LogEvent e)
+    {
+        await Hub.Clients.All.SendAsync(Target.LogMethodName, e);
     }
 }
