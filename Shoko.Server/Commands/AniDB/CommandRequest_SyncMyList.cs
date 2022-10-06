@@ -380,4 +380,6 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         _requestFactory = requestFactory;
         _commandFactory = commandFactory;
     }
+
+    protected CommandRequest_SyncMyList() { }
 }
