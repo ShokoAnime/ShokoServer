@@ -41,9 +41,6 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
     protected override void Process()
     {
         Logger.LogInformation("Processing CommandRequest_SyncMyList");
-#if !DEBUG
-        throw new NotSupportedException("I'm working on it...");
-#endif
 
         try
         {
@@ -93,7 +90,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
                     totalItems++;
                     if (myitem.ViewedAt.HasValue) watchedItems++;
 
-                    var hash = string.Empty;
+                    string hash;
 
                     var anifile = myitem.FileID == null
                         ? null
@@ -181,59 +178,59 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         var localWatchedDate = aniDBUsers.Select(a => vl.GetUserRecord(a.JMMUserID)).Where(a => a?.WatchedDate != null)
             .MaxBy(a => a.WatchedDate)?.WatchedDate;
         var localState = ServerSettings.Instance.AniDb.MyList_StorageState;
-        foreach (var juser in aniDBUsers)
+        var shouldUpdate = false;
+        var updateDate = myitem.ViewedAt;
+
+        // we don't support multiple AniDB accounts, so we can just only iterate to set states
+        if (ServerSettings.Instance.AniDb.MyList_ReadWatched && localWatchedDate == null &&
+            myitem.ViewedAt != null)
         {
-            var localStatus = false;
-
-            // doesn't matter which anidb user we use
-            var jmmUserID = juser.JMMUserID;
-            var userRecord = vl.GetUserRecord(juser.JMMUserID);
-            if (userRecord != null) localStatus = userRecord.WatchedDate.HasValue;
-
-            var action = string.Empty;
-            if (localStatus == myitem.ViewedAt.HasValue) continue;
-
-            // localStatus and AniDB Status are different
-            DateTime? watchedDate = myitem.ViewedAt ?? DateTime.Now;
-            if (localStatus)
+            foreach (var juser in aniDBUsers)
             {
-                // local = watched, anidb = unwatched
-                if (ServerSettings.Instance.AniDb.MyList_ReadUnwatched)
-                {
-                    modifiedItems++;
-                    vl.ToggleWatchedStatus(false, false, watchedDate,
-                        false, jmmUserID, false,
-                        true);
-                    action = "Used AniDB Status";
-                }
-                else if (ServerSettings.Instance.AniDb.MyList_SetWatched)
-                {
-                    vl.ToggleWatchedStatus(true, true, userRecord.WatchedDate, false, jmmUserID,
-                        false, true);
-                }
+                var watchedDate = myitem.ViewedAt;
+                modifiedItems++;
+                vl.ToggleWatchedStatus(true, false, watchedDate, false, juser.JMMUserID, false, true);
+                vl.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).Where(a => a != null)
+                    .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
             }
-            else
-            {
-                // means local is un-watched, and anidb is watched
-                if (ServerSettings.Instance.AniDb.MyList_ReadWatched)
-                {
-                    modifiedItems++;
-                    vl.ToggleWatchedStatus(true, false, watchedDate, false,
-                        jmmUserID, false, true);
-                    action = "Updated Local record to Watched";
-                }
-                else if (ServerSettings.Instance.AniDb.MyList_SetUnwatched)
-                {
-                    vl.ToggleWatchedStatus(false, true, watchedDate, false, jmmUserID,
-                        false, true);
-                }
-            }
-
-            vl.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).Where(a => a != null)
-                .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
-            Logger.LogInformation(
-                $"MYLISTDIFF:: File {vl.FileName} - Local Status = {localStatus}, AniDB Status = {myitem.ViewedAt.HasValue} --- {action}");
         }
+        // if we did the previous, then we don't want to undo it
+        else if (ServerSettings.Instance.AniDb.MyList_ReadUnwatched && localWatchedDate != null &&
+                 myitem.ViewedAt == null)
+        {
+            foreach (var juser in aniDBUsers)
+            {
+                modifiedItems++;
+                vl.ToggleWatchedStatus(false, false, null, false, juser.JMMUserID, false, true);
+                vl.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).Where(a => a != null)
+                    .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
+            }
+        }
+        else if (ServerSettings.Instance.AniDb.MyList_SetWatched && localWatchedDate != null && !localWatchedDate.Equals(myitem.ViewedAt))
+        {
+            shouldUpdate = true;
+            updateDate = localWatchedDate;
+        }
+        else if (ServerSettings.Instance.AniDb.MyList_SetUnwatched && localWatchedDate == null && myitem.ViewedAt != null)
+        {
+            shouldUpdate = true;
+            updateDate = null;
+        }
+
+        // check if the state needs to be updated
+        if ((int)myitem.State != (int)localState) shouldUpdate = true;
+
+        if (!shouldUpdate) return modifiedItems;
+
+        var updateCommand =
+            _commandFactory.Create<CommandRequest_UpdateMyListFileStatus>(a =>
+            {
+                a.Hash = vl.Hash;
+                a.Watched = updateDate != null;
+                a.WatchedDateAsSecs = Commons.Utils.AniDB.GetAniDBDateAsSeconds(updateDate);
+                a.UpdateSeriesStats = false;
+            });
+        updateCommand.Save();
 
         return modifiedItems;
     }
