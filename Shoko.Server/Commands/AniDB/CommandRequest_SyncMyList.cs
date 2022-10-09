@@ -295,6 +295,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
                     missingEps++;
                 }
             }
+            else continue;
 
             var cmdAddFile = _commandFactory.Create<CommandRequest_AddFileToMyList>(a => a.Hash = vid.Hash);
             cmdAddFile.Save();
@@ -324,11 +325,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         Episodes = output;
         if (!dictAniEps.Contains(hash)) return false;
         var xrefs = dictAniEps[hash];
-        foreach (var xref in xrefs)
-        {
-            if (xref == null) continue;
-            output.Add((xref.AnimeID, xref.EpisodeID));
-        }
+        output.AddRange(xrefs.Where(xref => xref != null).Select(xref => (xref.AnimeID, xref.EpisodeID)));
 
         return output.Any();
     }
