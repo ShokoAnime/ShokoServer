@@ -113,7 +113,7 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
                 series.QueueUpdateStats();
             }
 
-            if (ServerSettings.Instance.AniDb.DownloadReleaseGroups && response is { Response: { Count: > 0 } })
+            if (ServerSettings.Instance.AniDb.DownloadReleaseGroups && response is { Response.Count: > 0 })
             {
                 // shouldn't need the where, but better safe than sorry.
                 response.Response.DistinctBy(a => a.GroupID).Where(a => a.GroupID != 0).Select(a =>
