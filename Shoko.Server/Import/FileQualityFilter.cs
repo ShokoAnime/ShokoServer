@@ -57,13 +57,11 @@ public static class FileQualityFilter
     public static bool CheckFileKeep(SVR_VideoLocal file)
     {
         var result = true;
+        var allowUnknown = ServerSettings.Instance.FileQualityPreferences.AllowDeletingFilesWithMissingInfo;
 
         var aniFile = file?.GetAniDBFile();
         // Don't delete files with missing info. If it's not getting updated, then do it manually
-        if (aniFile is { File_Source: "unknown" })
-        {
-            return true;
-        }
+        if (IsNullOrUnknown(aniFile) && !allowUnknown) return true;
 
         foreach (var type in Settings.RequiredTypes)
         {
