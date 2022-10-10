@@ -115,7 +115,8 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
 
             if (ServerSettings.Instance.AniDb.DownloadReleaseGroups && response is { Response: { Count: > 0 } })
             {
-                response.Response.DistinctBy(a => a.GroupID).Select(a =>
+                // shouldn't need the where, but better safe than sorry.
+                response.Response.DistinctBy(a => a.GroupID).Where(a => a.GroupID != 0).Select(a =>
                         _commandFactory.Create<CommandRequest_GetReleaseGroup>(c => c.GroupID = a.GroupID))
                     .ForEach(a => a.Save());
             }
