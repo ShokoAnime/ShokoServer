@@ -51,7 +51,7 @@ public class RequestReleaseGroupStatus : UDPRequest<List<ResponseReleaseGroupSta
                 // remove the header info
                 var sDetails = response.Response.Split('\n');
 
-                if (sDetails.Length <= 1)
+                if (sDetails.Length < 1)
                 {
                     throw new UnexpectedUDPResponseException("The number of lines was less than expected", code,
                         receivedData);
