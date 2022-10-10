@@ -21,7 +21,7 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
 {
     public string Name { get; } = "SQLite";
 
-    public int RequiredVersion { get; } = 89;
+    public int RequiredVersion { get; } = 90;
 
 
     public void BackupDatabase(string fullfilename)
@@ -613,7 +613,8 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
         new(89, 17, "DROP INDEX UIX2_VideoLocal_Hash; CREATE UNIQUE INDEX UIX_VideoLocal_Hash ON VideoLocal(Hash);"),
         new(89, 18,
             "DROP INDEX UIX2_VideoLocal_User_User_VideoLocalID; CREATE UNIQUE INDEX UIX_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);"),
-        new(89, 19, "DROP INDEX \"UIX_VideoLocal_ VideoLocal_Place_ID\";")
+        new(89, 19, "DROP INDEX \"UIX_VideoLocal_ VideoLocal_Place_ID\";"),
+        new(90, 1, "UPDATE AniDB_File SET File_Source = Web WHERE File_Source = www; UPDATE AniDB_File SET File_Source = BluRay WHERE File_Source = Blu-ray; UPDATE AniDB_File SET File_Source = LaserDisc WHERE File_Source = LD; UPDATE AniDB_File SET File_Source = Unknown WHERE File_Source = unknown;")
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)
