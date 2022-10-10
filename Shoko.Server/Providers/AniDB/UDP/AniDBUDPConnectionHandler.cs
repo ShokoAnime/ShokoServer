@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Timers;
 using Microsoft.Extensions.Logging;
@@ -436,28 +437,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         UDPResponse<ResponseLogin> response;
         try
         {
-            var login = _requestFactory.Create<RequestLogin>(
-                r =>
-                {
-                    r.Username = username;
-                    r.Password = password;
-                }
-            );
-            response = login.Execute();
-        }
-        catch (UnexpectedUDPResponseException)
-        {
-            Logger.LogTrace(
-                "Received an UnexpectedUDPResponseException on Login. This usually happens because of an unexpected shutdown. Relogging using Unicode");
-            var login = _requestFactory.Create<RequestLogin>(
-                r =>
-                {
-                    r.Username = username;
-                    r.Password = password;
-                    r.UseUnicode = true;
-                }
-            );
-            response = login.Execute();
+            response = LoginWithFallbacks(username, password);
         }
         catch (Exception e)
         {
@@ -488,6 +468,56 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
 
         return false;
+    }
+
+    private UDPResponse<ResponseLogin> LoginWithFallbacks(string username, string password)
+    {
+        try
+        {
+            var login = _requestFactory.Create<RequestLogin>(
+                r =>
+                {
+                    r.Username = username;
+                    r.Password = password;
+                }
+            );
+            return login.Execute();
+        }
+        catch (UnexpectedUDPResponseException)
+        {
+            Logger.LogTrace(
+                "Received an UnexpectedUDPResponseException on Login. This usually happens because of an unexpected shutdown. Relogging using Unicode");
+            var login = _requestFactory.Create<RequestLogin>(
+                r =>
+                {
+                    r.Username = username;
+                    r.Password = password;
+                    r.UseUnicode = true;
+                }
+            );
+            return login.Execute();
+        }
+        catch (SocketException e)
+        {
+            if (e.SocketErrorCode == SocketError.TimedOut)
+            {
+                Logger.LogTrace(
+                    "Received a Timeout on Login. Restarting Socket and relogging");
+                ForceReconnection();
+                var login = _requestFactory.Create<RequestLogin>(
+                    r =>
+                    {
+                        r.Username = username;
+                        r.Password = password;
+                        r.UseUnicode = true;
+                    }
+                );
+                return login.Execute();
+            }
+
+            Logger.LogError(e, "Unable to login to AniDB: {Ex}", e);
+            return new UDPResponse<ResponseLogin>();
+        }
     }
 
     public bool TestLogin(string username, string password)
