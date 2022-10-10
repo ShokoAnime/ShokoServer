@@ -533,10 +533,12 @@ public class File
             "hddvd" => FileSource.DVD,
             "bluray" => FileSource.BluRay,
             "www" => FileSource.Web,
+            "web" => FileSource.Web,
             "vhs" => FileSource.VHS,
             "vcd" => FileSource.VCD,
             "svcd" => FileSource.VCD,
             "ld" => FileSource.LaserDisc,
+            "laserdisc" => FileSource.LaserDisc,
             "camcorder" => FileSource.Camera,
             _ => FileSource.Unknown
         };
