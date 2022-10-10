@@ -14,20 +14,17 @@ namespace Shoko.Models
         {
             SimplifiedSources = new Dictionary<string, string>
             {
-                {"unknown", "unknown"},
                 {"raw", "unknown"},
-                {"tv", "tv"},
                 {"dtv", "tv"},
                 {"hdtv", "tv"},
-                {"dvd", "dvd"},
                 {"hkdvd", "dvd"},
-                {"hddvd", "dvd"},
-                {"bd", "bd"},
+                {"vcd", "dvd"},
+                // moving this to bd, as they were competing standards, and it's closer to a Blu-Ray than a DVD
+                {"hddvd", "bd"},
                 {"blu-ray", "bd"},
                 {"bluray", "bd"},
-                {"ld", "ld"},
+                {"laserdisc", "ld"},
                 {"web", "www"},
-                {"www", "www"}
             };
         }
 
@@ -139,6 +136,8 @@ namespace Shoko.Models
                 return source;
             }).ToList();
         }
+
+        public bool AllowDeletingFilesWithMissingInfo { get; set; } = false;
 
         public class FileQualityTypeListPair<T>
         {
