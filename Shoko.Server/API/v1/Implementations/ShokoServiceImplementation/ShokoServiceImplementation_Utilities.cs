@@ -283,6 +283,9 @@ public partial class ShokoServiceImplementation
                     var results1 = RepoFactory.VideoLocal.GetByName(searchCriteria.Trim());
                     foreach (var vid in results1)
                         vids.Add(vid.ToClient(userID));
+                    results1 = RepoFactory.VideoLocal.GetByName(searchCriteria.Replace('+', ' ').Trim());
+                    foreach (var vid in results1)
+                        vids.Add(vid.ToClient(userID));
                     break;
 
                 case FileSearchCriteria.ED2KHash:
