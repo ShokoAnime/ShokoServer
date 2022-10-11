@@ -858,6 +858,7 @@ public partial class ShokoServiceImplementation
     [HttpGet("AniDB/MyList/Missing/{userID}")]
     public List<CL_MissingFile> GetMyListFilesForRemoval(int userID)
     {
+        // TODO maybe rework this
         var contracts = new List<CL_MissingFile>();
         var animeCache = new Dictionary<int, SVR_AniDB_Anime>();
         var animeSeriesCache = new Dictionary<int, SVR_AnimeSeries>();
@@ -974,6 +975,7 @@ public partial class ShokoServiceImplementation
     [HttpDelete("AniDB/MyList/Missing")]
     public void RemoveMissingMyListFiles(List<CL_MissingFile> myListFiles)
     {
+        // TODO maybe rework this
         foreach (var missingFile in myListFiles)
         {
             var vl = RepoFactory.VideoLocal.GetByMyListID(missingFile.FileID);
