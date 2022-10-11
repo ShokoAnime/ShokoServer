@@ -258,10 +258,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
 
     private ResponseGetFile.MyListInfo ParseMyList(IReadOnlyList<string> parts)
     {
-        if (!int.TryParse(parts[4], out var myListID))
-        {
-            return null;
-        }
+        if (!int.TryParse(parts[4], out var myListID) || myListID == 0) return null;
 
         if (!int.TryParse(parts[14], out var mylistState))
         {
