@@ -88,7 +88,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
 
                     // cheap but fast
                     var deprecated = parts[6].Equals("1");
-                    var state = Enum.Parse<GetFile_State>(parts[7]);
+                    if (!Enum.TryParse<GetFile_State>(parts[7], out var state)) state = GetFile_State.None;
                     var version = 1;
                     if (state.HasFlag(GetFile_State.IsV2))
                     {
