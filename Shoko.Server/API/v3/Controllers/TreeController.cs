@@ -495,12 +495,13 @@ public class TreeController : BaseController
     #region Episode
 
     /// <summary>
-    /// Get the <see cref="File.FileDetailed"/>s for the <see cref="Episode"/> with the given <paramref name="episodeID"/>.
+    /// Get the <see cref="File"/>s for the <see cref="Episode"/> with the given <paramref name="episodeID"/>.
     /// </summary>
     /// <param name="episodeID">Episode ID</param>
+    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/File")]
-    public ActionResult<List<File.FileDetailed>> GetFiles([FromRoute] int episodeID)
+    public ActionResult<List<File>> GetFilesForEpisode([FromRoute] int episodeID, [FromQuery] bool includeXRefs = false)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -520,7 +521,7 @@ public class TreeController : BaseController
         }
 
         return episode.GetVideoLocals()
-            .Select(file => new File.FileDetailed(file))
+            .Select(file => new File(HttpContext, file, includeXRefs))
             .ToList();
     }
 
