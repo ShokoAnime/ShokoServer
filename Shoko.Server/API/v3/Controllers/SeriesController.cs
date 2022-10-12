@@ -762,7 +762,7 @@ public class SeriesController : BaseController
             return Forbid(TvdbForbiddenForUser);
         }
 
-        return new Series.TvDB(HttpContext, tvdb, series, series.GetAnimeEpisodes());
+        return new Series.TvDB(HttpContext, tvdb, series);
     }
 
     /// <summary>
