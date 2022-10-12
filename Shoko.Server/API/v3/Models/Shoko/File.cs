@@ -22,6 +22,14 @@ public class File
     public int ID { get; set; }
 
     /// <summary>
+    /// The Cross Reference Models for every episode this file belongs to, created in a reverse tree and
+    /// transformed back into a tree. Series -> Episode such that only episodes that this file is linked to are
+    /// shown. In many cases, this will have arrays of 1 item
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public List<SeriesCrossReference> SeriesIDs { get; set; }
+
+    /// <summary>
     /// The Filesize in bytes
     /// </summary>
     public long Size { get; set; }
@@ -66,9 +74,7 @@ public class File
 
     public File() { }
 
-    public File(SVR_VideoLocal vl) : this(null, vl) { }
-
-    public File(HttpContext context, SVR_VideoLocal file)
+    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false)
     {
         var userID = context?.GetUser()?.JMMUserID ?? 0;
         var userRecord = file.GetUserRecord(userID);
@@ -84,6 +90,41 @@ public class File
         ResumePosition = userRecord?.ResumePositionTimeSpan;
         Watched = userRecord?.WatchedDate;
         Created = file.DateTimeCreated;
+        if (withXRefs)
+        {
+            var episodes = file.GetAnimeEpisodes();
+            if (episodes.Count == 0) return;
+            SeriesIDs = episodes
+                .GroupBy(episode => episode.AnimeSeriesID, episode => new CrossReferenceIDs
+                {
+                    ID = episode.AnimeEpisodeID,
+                    AniDB = episode.AniDB_EpisodeID,
+                    TvDB = episode.TvDBEpisodes.Select(b => b.Id).ToList(),
+                })
+                .Select(tuples =>
+                {
+                    var series = RepoFactory.AnimeSeries.GetByID(tuples.Key);
+                    if (series == null)
+                    {
+                        return new SeriesCrossReference
+                        {
+                            EpisodeIDs = tuples.ToList(),
+                        };
+                    }
+
+                    return new SeriesCrossReference
+                    {
+                        SeriesID = new CrossReferenceIDs
+                        {
+                            ID = series.AnimeSeriesID,
+                            AniDB = series.AniDB_ID,
+                            TvDB = series.GetTvDBSeries().Select(b => b.SeriesID).ToList(),
+                        },
+                        EpisodeIDs = tuples.ToList(),
+                    };
+                })
+                .ToList();
+        }
     }
 
     public static MediaContainer GetMedia(int id)
@@ -235,90 +276,35 @@ public class File
         }
     }
 
-    /// <summary>
-    /// A more detailed model to prevent too many requests for getting xrefs for many files
-    /// </summary>
-    public class FileDetailed : File
+    public class CrossReferenceIDs
     {
-        public class FileIDs
-        {
-            /// <summary>
-            /// Any AniDB ID linked to this object
-            /// </summary>
-            public int AniDB { get; set; }
-
-            /// <summary>
-            /// Any TvDB IDs linked to this object
-            /// </summary>
-            public List<int> TvDB { get; set; }
-
-            /// <summary>
-            /// The Shoko ID
-            /// </summary>
-            public int ID { get; set; }
-        }
-
-        public class SeriesXRefs
-        {
-            /// <summary>
-            /// The Series IDs
-            /// </summary>
-            public FileIDs SeriesID { get; set; }
-
-            /// <summary>
-            /// The Episode IDs
-            /// </summary>
-            public List<FileIDs> EpisodeIDs { get; set; }
-        }
+        /// <summary>
+        /// The Shoko ID
+        /// /// </summary>
+        public int ID { get; set; }
 
         /// <summary>
-        /// The Cross Reference Models for every episode this file belongs to, created in a reverse tree and
-        /// transformed back into a tree. Series -> Episode such that only episodes that this file is linked to are
-        /// shown. In many cases, this will have arrays of 1 item
+        /// Any AniDB ID linked to this object
         /// </summary>
-        public List<SeriesXRefs> SeriesIDs { get; set; }
+        public int AniDB { get; set; }
 
-        public FileDetailed() { }
+        /// <summary>
+        /// Any TvDB IDs linked to this object
+        /// </summary>
+        public List<int> TvDB { get; set; }
+    }
 
-        public FileDetailed(SVR_VideoLocal vl) : this(null, vl) { }
+    public class SeriesCrossReference
+    {
+        /// <summary>
+        /// The Series IDs
+        /// </summary>
+        public CrossReferenceIDs SeriesID { get; set; }
 
-        public FileDetailed(HttpContext ctx, SVR_VideoLocal vl) : base(ctx, vl)
-        {
-            var episodes = vl.GetAnimeEpisodes();
-            if (episodes.Count == 0)
-            {
-                return;
-            }
-
-            SeriesIDs = new List<SeriesXRefs>();
-            var epIDs = episodes
-                .Select(a => (a.AnimeSeriesID,
-                    FileID: new FileIDs
-                    {
-                        ID = a.AnimeEpisodeID,
-                        AniDB = a.AniDB_EpisodeID,
-                        TvDB = a.TvDBEpisodes.Select(b => b.Id).ToList()
-                    })).GroupBy(a => a.AnimeSeriesID, b => b.FileID).Select(a =>
-                {
-                    var series = RepoFactory.AnimeSeries.GetByID(a.Key);
-                    if (series == null)
-                    {
-                        return new SeriesXRefs { EpisodeIDs = a.ToList() };
-                    }
-
-                    return new SeriesXRefs
-                    {
-                        SeriesID = new FileIDs
-                        {
-                            ID = series.AnimeSeriesID,
-                            AniDB = series.AniDB_ID,
-                            TvDB = series.GetTvDBSeries().Select(b => b.SeriesID).ToList()
-                        },
-                        EpisodeIDs = a.ToList()
-                    };
-                });
-            SeriesIDs.AddRange(epIDs);
-        }
+        /// <summary>
+        /// The Episode IDs
+        /// </summary>
+        public List<CrossReferenceIDs> EpisodeIDs { get; set; }
     }
 
     /// <summary>

@@ -47,15 +47,16 @@ public class FileController : BaseController
     /// Get File Details
     /// </summary>
     /// <param name="fileID">Shoko VideoLocalID</param>
+    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
     /// <returns></returns>
     [HttpGet("{fileID}")]
-    public ActionResult<File> GetFile([FromRoute] int fileID)
+    public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery] bool includeXRefs = false)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        return new File(HttpContext, file);
+        return new File(HttpContext, file, includeXRefs);
     }
 
     /// <summary>
@@ -130,9 +131,10 @@ public class FileController : BaseController
     /// This isn't a list because AniDB only has one File mapping even if there are multiple episodes.
     /// </remarks>
     /// <param name="anidbFileID">AniDB File ID</param>
+    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbFileID}/File")]
-    public ActionResult<File> GetFileByAnidbFileID([FromRoute] int anidbFileID)
+    public ActionResult<File> GetFileByAnidbFileID([FromRoute] int anidbFileID, [FromQuery] bool includeXRefs = false)
     {
         var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
         if (anidb == null)
@@ -142,7 +144,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(AnidbNotFoundForFileID);
 
-        return new File(HttpContext, file);
+        return new File(HttpContext, file, includeXRefs);
     }
 
     /// <summary>
@@ -739,7 +741,7 @@ public class FileController : BaseController
     /// <param name="path">a path to search for. URL Encoded</param>
     /// <returns></returns>
     [HttpGet("PathEndsWith/{*path}")]
-    public ActionResult<List<File.FileDetailed>> SearchByFilename([FromRoute] string path)
+    public ActionResult<List<File>> SearchByFilename([FromRoute] string path)
     {
         var query = path;
         if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
@@ -752,7 +754,7 @@ public class FileController : BaseController
             {
                 var ser = a?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
                 return ser == null || User.AllowedSeries(ser);
-            }).Select(a => new File.FileDetailed(HttpContext, a)).ToList();
+            }).Select(a => new File(HttpContext, a, true)).ToList();
         return results;
     }
 
@@ -762,7 +764,7 @@ public class FileController : BaseController
     /// <param name="path">a path to search for. URL Encoded</param>
     /// <returns></returns>
     [HttpGet("PathRegex/{*path}")]
-    public ActionResult<List<File.FileDetailed>> RegexSearchByFilename([FromRoute] string path)
+    public ActionResult<List<File>> RegexSearchByFilename([FromRoute] string path)
     {
         var query = path;
         if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
@@ -786,7 +788,7 @@ public class FileController : BaseController
             {
                 var ser = a?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
                 return ser == null || User.AllowedSeries(ser);
-            }).Select(a => new File.FileDetailed(HttpContext, a)).ToList();
+            }).Select(a => new File(HttpContext, a, true)).ToList();
         return results;
     }
 
@@ -796,7 +798,7 @@ public class FileController : BaseController
     /// <returns></returns>
     [HttpGet("Recent/{limit:int?}")]
     [Obsolete]
-    public ActionResult<ListResult<File.FileDetailed>> GetRecentFilesObselete([FromRoute] [Range(0, 1000)] int limit = 100)
+    public ActionResult<ListResult<File>> GetRecentFilesObselete([FromRoute] [Range(0, 1000)] int limit = 100)
         => GetRecentFiles(limit);
 
     /// <summary>
@@ -804,12 +806,13 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
+    /// <param name="includeXRefs">Set to false to exclude series and episode cross-references.</param>
     /// <returns></returns>
     [HttpGet("Recent")]
-    public ActionResult<ListResult<File.FileDetailed>> GetRecentFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+    public ActionResult<ListResult<File>> GetRecentFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
     {
         return RepoFactory.VideoLocal.GetMostRecentlyAdded(-1, 0, User.JMMUserID)
-            .ToListResult(file => new File.FileDetailed(HttpContext, file), page, pageSize);
+            .ToListResult(file => new File(HttpContext, file, includeXRefs), page, pageSize);
     }
 
     /// <summary>
@@ -830,12 +833,13 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
+    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
     /// <returns></returns>
     [HttpGet("Duplicates")]
-    public ActionResult<ListResult<File>> GetExactDuplicateFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+    public ActionResult<ListResult<File>> GetExactDuplicateFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = false)
     {
         return RepoFactory.VideoLocal.GetExactDuplicateVideos()
-            .ToListResult(file => new File(HttpContext, file), page, pageSize);
+            .ToListResult(file => new File(HttpContext, file, includeXRefs), page, pageSize);
     }
 
     /// <summary>
@@ -843,16 +847,17 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
+    /// <param name="includeXRefs">Set to false to exclude series and episode cross-references.</param>
     /// <returns></returns>
     [HttpGet("Linked")]
-    public ActionResult<ListResult<File.FileDetailed>> GetManuellyLinkedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+    public ActionResult<ListResult<File>> GetManuellyLinkedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
     {
         return RepoFactory.VideoLocal.GetManuallyLinkedVideos()
-            .ToListResult(file => new File.FileDetailed(HttpContext, file), page, pageSize);
+            .ToListResult(file => new File(HttpContext, file, includeXRefs), page, pageSize);
     }
 
     /// <summary>
-    /// Get unrecognized files. <see cref="File.FileDetailed"/> is not relevant here, as there will be no links.
+    /// Get unrecognized files.
     /// Use pageSize and page (index 0) in the query to enable pagination.
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
