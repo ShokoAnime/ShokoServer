@@ -5,8 +5,88 @@ root = true
 
 # Don't use tabs for indentation.
 [*]
-indent_style = space
+indent_style = space 
 # (Please don't specify an indent_size here; that has too many unintended consequences.)
+
+
+# Microsoft .NET properties
+csharp_new_line_before_members_in_object_initializers = false
+csharp_new_line_before_open_brace = all
+csharp_preferred_modifier_order = private, protected, public, internal, sealed, new, override, virtual, abstract, static, extern, async, unsafe, volatile, readonly, required:suggestion
+csharp_preserve_single_line_blocks = true
+csharp_space_after_cast = false
+csharp_style_var_elsewhere = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_style_parentheses_in_arithmetic_binary_operators = never_if_unnecessary:suggestion
+dotnet_style_parentheses_in_other_binary_operators = always_for_clarity:suggestion
+dotnet_style_parentheses_in_relational_binary_operators = never_if_unnecessary:suggestion
+
+# ReSharper properties
+resharper_accessor_owner_body = expression_body
+resharper_align_first_arg_by_paren = false
+resharper_align_linq_query = false
+resharper_align_multiline_array_and_object_initializer = false
+resharper_align_multiline_statement_conditions = true
+resharper_align_multiline_switch_expression = false
+resharper_align_tuple_components = false
+resharper_arguments_skip_single = true
+resharper_blank_lines_around_auto_property = 0
+resharper_blank_lines_around_single_line_property = 1
+resharper_blank_lines_around_type = 1
+resharper_blank_lines_inside_region = 1
+resharper_braces_for_for = required_for_multiline
+resharper_braces_for_lock = required
+resharper_braces_for_while = required_for_multiline
+resharper_braces_redundant = false
+resharper_csharp_align_multiline_argument = false
+resharper_csharp_align_multiline_calls_chain = false
+resharper_csharp_align_multiline_expression = false
+resharper_csharp_align_multiline_parameter = false
+resharper_csharp_case_block_braces = next_line_shifted_2
+resharper_csharp_insert_final_newline = true
+resharper_csharp_max_line_length = 9273
+resharper_csharp_wrap_multiple_type_parameter_constraints_style = wrap_if_long
+resharper_indent_anonymous_method_block = false
+resharper_indent_nested_foreach_stmt = false
+resharper_indent_nested_usings_stmt = false
+resharper_indent_preprocessor_if = no_indent
+resharper_indent_preprocessor_region = do_not_change
+resharper_instance_members_qualify_declared_in = 
+resharper_int_align_assignments = false
+resharper_int_align_binary_expressions = false
+resharper_int_align_fields = false
+resharper_int_align_invocations = false
+resharper_int_align_methods = false
+resharper_int_align_nested_ternary = false
+resharper_int_align_parameters = false
+resharper_int_align_properties = false
+resharper_int_align_switch_expressions = false
+resharper_int_align_switch_sections = false
+resharper_int_align_variables = false
+resharper_keep_existing_embedded_arrangement = true
+resharper_local_function_body = block_body
+resharper_max_array_initializer_elements_on_line = 2
+resharper_max_attribute_length_for_same_line = 70
+resharper_method_or_operator_body = block_body
+resharper_outdent_binary_ops = false
+resharper_outdent_commas = false
+resharper_outdent_dots = false
+resharper_outdent_statement_labels = false
+resharper_parentheses_non_obvious_operations = none, conditional_and, bitwise_exclusive_or, shift, multiplicative, bitwise_and
+resharper_parentheses_redundancy_style = remove
+resharper_parentheses_same_type_operations = true
+resharper_place_expr_accessor_on_single_line = if_owner_is_single_line
+resharper_place_expr_method_on_single_line = true
+resharper_place_field_attribute_on_same_line = if_owner_is_single_line
+resharper_place_simple_embedded_statement_on_same_line = if_owner_is_single_line
+resharper_place_simple_initializer_on_single_line = false
+resharper_remove_blank_lines_near_braces_in_declarations = false
+resharper_space_before_new_parentheses = false
+resharper_space_between_attribute_sections = true
+resharper_space_within_single_line_array_initializer_braces = true
+resharper_wrap_before_arrow_with_expressions = false
+resharper_wrap_chained_binary_expressions = wrap_if_long
+resharper_wrap_object_and_collection_initializer_style = chop_always
 
 # Code files
 [*.{cs,csx,vb,vbx}]
@@ -45,10 +125,10 @@ dotnet_diagnostic.IDE0055.severity = warning
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
 # Avoid "this." and "Me." if not necessary
-dotnet_style_qualification_for_field = false:refactoring
-dotnet_style_qualification_for_property = false:refactoring
-dotnet_style_qualification_for_method = false:refactoring
-dotnet_style_qualification_for_event = false:refactoring
+dotnet_style_qualification_for_field = false:suggestion # refactoring is not supported by all IDEs
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
 
 # Use language keywords instead of framework type names for type references
 dotnet_style_predefined_type_for_locals_parameters_members = true:suggestion
@@ -228,7 +308,7 @@ csharp_space_after_dot = false
 csharp_space_after_keywords_in_control_flow_statements = true
 csharp_space_after_semicolon_in_for_statement = true
 csharp_space_around_binary_operators = before_and_after
-csharp_space_around_declaration_statements = do_not_ignore
+csharp_space_around_declaration_statements = false # do_not_ignore = false; see https://github.com/dotnet/roslyn/issues/28022
 csharp_space_before_colon_in_inheritance_clause = true
 csharp_space_before_comma = false
 csharp_space_before_dot = false
