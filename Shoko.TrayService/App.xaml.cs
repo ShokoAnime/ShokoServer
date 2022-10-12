@@ -23,8 +23,8 @@ namespace Shoko.TrayService;
 /// </summary>
 public partial class App
 {
-    private static          TaskbarIcon? _icon;
-    private static readonly Logger       Logger = LogManager.GetCurrentClassLogger();
+    private static TaskbarIcon? _icon;
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     private void OnStartup(object a, StartupEventArgs e)
     {
@@ -38,12 +38,12 @@ public partial class App
 
     private void AddEventHandlers()
     {
-        ShokoServer.Instance.ServerShutdown                       += OnInstanceOnServerShutdown;
-        Utils.YesNoRequired                                       += OnUtilsOnYesNoRequired;
-        ServerState.Instance.PropertyChanged                      += OnInstanceOnPropertyChanged;
+        ShokoServer.Instance.ServerShutdown += OnInstanceOnServerShutdown;
+        Utils.YesNoRequired += OnUtilsOnYesNoRequired;
+        ServerState.Instance.PropertyChanged += OnInstanceOnPropertyChanged;
         ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnCmdProcessorGeneralOnOnQueueStateChangedEvent;
     }
-    
+
     private void OnCmdProcessorGeneralOnOnQueueStateChangedEvent(QueueStateEventArgs ev) 
         => Console.WriteLine($"General Queue state change: {ev.QueueState.formatMessage()}");
     
@@ -76,11 +76,11 @@ public partial class App
     
     private ContextMenu CreateContextMenu()
     {
-        var menu  = new ContextMenu();
+        var menu = new ContextMenu();
         var webui = new MenuItem{Header = "Open WebUI"};
         webui.Click += OnWebuiOpenWebUIClick;
         menu.Items.Add(webui);
-        webui       =  new MenuItem{Header = "Exit"};
+        webui = new MenuItem{Header = "Exit"};
         webui.Click += OnWebuiExit;
         menu.Items.Add(webui);
         return menu;
