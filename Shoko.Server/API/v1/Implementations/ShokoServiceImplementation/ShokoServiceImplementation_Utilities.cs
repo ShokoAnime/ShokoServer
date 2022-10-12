@@ -281,11 +281,9 @@ public partial class ShokoServiceImplementation
             {
                 case FileSearchCriteria.Name:
                     var results1 = RepoFactory.VideoLocal.GetByName(searchCriteria.Trim());
-                    foreach (var vid in results1)
-                        vids.Add(vid.ToClient(userID));
+                    vids.AddRange(results1.Select(vid => vid.ToClient(userID)));
                     results1 = RepoFactory.VideoLocal.GetByName(searchCriteria.Replace('+', ' ').Trim());
-                    foreach (var vid in results1)
-                        vids.Add(vid.ToClient(userID));
+                    vids.AddRange(results1.Select(vid => vid.ToClient(userID)));
                     break;
 
                 case FileSearchCriteria.ED2KHash:
@@ -304,12 +302,11 @@ public partial class ShokoServiceImplementation
                         if (int.TryParse(searchCriteria, out var temp)) number = temp;
                     }
                     var results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(number, userID);
-                    foreach (var vid in results2)
-                        vids.Add(vid.ToClient(userID));
+                    vids.AddRange(results2.Select(vid => vid.ToClient(userID)));
                     break;
             }
 
-            return vids;
+            return vids.DistinctBy(a => a.VideoLocalID).ToList();
         }
         catch (Exception ex)
         {
