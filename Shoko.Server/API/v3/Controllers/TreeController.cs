@@ -24,6 +24,36 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class TreeController : BaseController
 {
+    #region Import Folder
+
+    /// <summary>
+    /// Get all <see cref="File"/>s in the <see cref="ImportFolder"/> with the given <paramref name="folderID"/>.
+    /// </summary>
+    /// <param name="folderID">Import folder ID</param>
+    /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
+    /// <param name="page">The page index.</param>
+    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <returns></returns>
+    [HttpGet("ImportFolder/{folderID}/File")]
+    public ActionResult<ListResult<File>> GetFilesInImportFolder([FromRoute] int folderID,
+        [FromQuery] [Range(0, 100)] int pageSize = 50,
+        [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] bool includeXRefs = false)
+    {
+        var importFolder = RepoFactory.ImportFolder.GetByID(folderID);
+        if (importFolder == null)
+        {
+            return NotFound("Import folder not found.");
+        }
+
+        return RepoFactory.VideoLocalPlace.GetByImportFolder(importFolder.ImportFolderID)
+            .GroupBy(place => place.VideoLocalID)
+            .Select(places => RepoFactory.VideoLocal.GetByID(places.Key))
+            .OrderBy(file => file.DateTimeCreated)
+            .ToListResult(file => new File(HttpContext, file, includeXRefs), page, pageSize);
+    }
+
+    #endregion
     #region Filter
 
     /// <summary>
