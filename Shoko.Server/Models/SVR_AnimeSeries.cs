@@ -159,8 +159,18 @@ public class SVR_AnimeSeries : AnimeSeries
     }
 
 
-    public List<SVR_AnimeEpisode> GetAnimeEpisodes()
+    public List<SVR_AnimeEpisode> GetAnimeEpisodes(bool orderList = false)
     {
+        if (orderList)
+        {
+            // TODO: Convert to a LINQ query once we've switched to EF Core.
+            return RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
+                .Select(episode => (episode, anidbEpisode: episode.AniDB_Episode))
+                .OrderBy(tuple => tuple.anidbEpisode.EpisodeType)
+                .ThenBy(tuple => tuple.anidbEpisode.EpisodeNumber)
+                .Select(tuple => tuple.episode)
+                .ToList();
+        }
         return RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID);
     }
 

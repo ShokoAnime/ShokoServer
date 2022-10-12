@@ -380,7 +380,7 @@ public class Series : BaseModel
 
     public static List<TvDB> GetTvDBInfo(HttpContext ctx, SVR_AnimeSeries ser)
     {
-        var ael = ser.GetAnimeEpisodes();
+        var ael = ser.GetAnimeEpisodes(true);
         return RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID)
             .Select(xref => RepoFactory.TvDB_Series.GetByTvDBID(xref.TvDBID))
             .Select(tvdbSer => new TvDB(ctx, tvdbSer, ser, ael))
@@ -862,7 +862,7 @@ public class Series : BaseModel
         {
             if (episodeList == null)
             {
-                episodeList = series.GetAnimeEpisodes();
+                episodeList = series.GetAnimeEpisodes(true);
             }
 
             ID = tbdbSeries.SeriesID;

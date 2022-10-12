@@ -449,7 +449,7 @@ public class TreeController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        return series.GetAnimeEpisodes()
+        return series.GetAnimeEpisodes(true)
             .Select(a => new Episode(HttpContext, a))
             .Where(a => a.Size > 0 || includeMissing)
             .ToList();
