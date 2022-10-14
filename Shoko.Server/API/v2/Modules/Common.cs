@@ -1154,7 +1154,18 @@ public class Common : BaseController
             foreach (var ep in list_ep)
             {
                 ep.ToggleWatchedStatus(status, true, DateTime.Now, false, uid, true);
-                ep.GetAnimeSeries()?.UpdateStats(true, false, true);
+            }
+
+            var series = list_ep.Select(a => a.GetAnimeSeries()).Where(a => a != null).DistinctBy(a => a.AnimeSeriesID).ToList();
+            var groups = series.Select(a => a.AnimeGroup?.TopLevelAnimeGroup).Where(a => a != null)
+                .DistinctBy(a => a.AnimeGroupID);
+            foreach (var s in series)
+            {
+                s.UpdateStats(true, false);
+            }
+            foreach (var group in groups)
+            {
+                group.UpdateStatsFromTopLevel(true, true);
             }
 
             return Ok();
@@ -1496,7 +1507,9 @@ public class Common : BaseController
             }
 
             ep.ToggleWatchedStatus(status, true, DateTime.Now, false, uid, true);
-            ep.GetAnimeSeries()?.UpdateStats(true, false, true);
+            var series = ep.GetAnimeSeries();
+            series?.UpdateStats(true, false);
+            series?.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
             return Ok();
         }
         catch (Exception ex)
@@ -2424,7 +2437,8 @@ public class Common : BaseController
                 }
             }
 
-            ser.UpdateStats(true, true, true);
+            ser.UpdateStats(true, true);
+            ser.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
 
             return Ok();
         }
@@ -2955,10 +2969,10 @@ public class Common : BaseController
                     ep?.ToggleWatchedStatus(watchedstatus, true, DateTime.Now, false, userid, true);
                 }
 
-                series.UpdateStats(true, false, false);
+                series.UpdateStats(true, false);
             }
 
-            group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
+            group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, false);
 
             return Ok();
         }

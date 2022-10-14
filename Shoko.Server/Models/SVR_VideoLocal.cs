@@ -400,9 +400,20 @@ public class SVR_VideoLocal : VideoLocal, IHash
 
         // update stats for groups and series
         if (toUpdateSeries.Count > 0 && updateStats)
+        {
             foreach (SVR_AnimeSeries s in toUpdateSeries.Values)
-                // update all the groups above this series in the heirarchy
-                s.UpdateStats(true, true, true);
+            {
+                // update all the groups above this series in the hierarchy
+                s.UpdateStats(true, true);
+            }
+
+            var groups = toUpdateSeries.Values.Select(a => a.AnimeGroup?.TopLevelAnimeGroup).Where(a => a != null)
+                .DistinctBy(a => a.AnimeGroupID);
+            foreach (var group in groups)
+            {
+                group.UpdateStatsFromTopLevel(true, true);
+            }
+        }
     }
 
     public override string ToString()

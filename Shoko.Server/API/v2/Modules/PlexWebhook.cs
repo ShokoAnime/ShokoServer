@@ -127,7 +127,8 @@ public class PlexWebhook : BaseController
 
         episode.ToggleWatchedStatus(true, true, FromUnixTime(metadata.LastViewedAt), false, user.JMMUserID,
             true);
-        anime.UpdateStats(true, false, true);
+        anime.UpdateStats(true, false);
+        anime?.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
     }
 
     #endregion

@@ -778,7 +778,9 @@ public class CommonImplementation
             }
 
             ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, usid, true);
-            ep.GetAnimeSeries().UpdateStats(true, false, true);
+            var series = ep.GetAnimeSeries();
+            series?.UpdateStats(true, false);
+            series?.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
             rsp.Code = "200";
             rsp.Message = null;
         }
@@ -834,7 +836,8 @@ public class CommonImplementation
                 ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, usid, true);
             }
 
-            series.UpdateStats(true, false, true);
+            series.UpdateStats(true, false);
+            series.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
             rsp.Code = "200";
             rsp.Message = null;
         }
@@ -891,10 +894,10 @@ public class CommonImplementation
                     ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, usid, true);
                 }
 
-                series.UpdateStats(true, false, false);
+                series.UpdateStats(true, false);
             }
 
-            group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
+            group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, false);
 
             rsp.Code = "200";
             rsp.Message = null;

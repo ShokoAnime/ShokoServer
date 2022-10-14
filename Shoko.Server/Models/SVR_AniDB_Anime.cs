@@ -1380,7 +1380,8 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
 
         var series = RepoFactory.AnimeSeries.GetByAnimeID(id);
         // Updating stats saves everything and updates groups
-        series?.UpdateStats(true, true, true);
+        series?.UpdateStats(true, true);
+        series?.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
     }
 
     public DateTime GetDateTimeUpdated()

@@ -1504,7 +1504,9 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID, true);
-            ep.GetAnimeSeries().UpdateStats(true, false, true);
+            var series = ep.GetAnimeSeries();
+            series?.UpdateStats(true, false);
+            series?.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
             //StatsCache.Instance.UpdateUsingSeries(ep.GetAnimeSeries().AnimeSeriesID);
 
             // refresh from db
@@ -1838,8 +1840,8 @@ public partial class ShokoServiceImplementation : IShokoServer
             // now update the stats
             if (ser != null)
             {
-                ser.UpdateStats(true, true, true);
-                //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
+                ser.UpdateStats(true, true);
+                ser.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
             }
 
             return string.Empty;
@@ -2351,12 +2353,13 @@ public partial class ShokoServiceImplementation : IShokoServer
             //ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true ,true, true);
 
             //Update and Save
-            ser.UpdateStats(true, true, true);
+            ser.UpdateStats(true, true);
+            ser.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
 
             if (oldGroupID.HasValue)
             {
                 var grp = RepoFactory.AnimeGroup.GetByID(oldGroupID.Value);
-                grp?.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
+                grp?.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
             }
 
             contractout.Result = ser.GetUserContract(userID);
@@ -2774,8 +2777,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
                 else
                 {
-                    grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
-                    //StatsCache.Instance.UpdateUsingGroup(grp.TopLevelAnimeGroup.AnimeGroupID);
+                    grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
                 }
             }
 

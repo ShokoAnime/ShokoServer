@@ -1255,8 +1255,9 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             }
 
             ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID, true);
-            ep.GetAnimeSeries().UpdateStats(true, false, true);
-            //StatsCache.Instance.UpdateUsingSeries(ep.GetAnimeSeries().AnimeSeriesID);
+            var series = ep.GetAnimeSeries();
+            series?.UpdateStats(true, false);
+            series?.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
 
             // refresh from db
             ep = RepoFactory.AnimeEpisode.GetByID(animeEpisodeID);

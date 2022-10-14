@@ -1336,7 +1336,8 @@ public class SVR_AnimeSeries : AnimeSeries
         // Update the stats for the series and group.
         AnimeGroupID = newGroup.AnimeGroupID;
         DateTimeUpdated = DateTime.Now;
-        UpdateStats(true, true, true);
+        UpdateStats(true, true);
+        newGroup.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
 
         var oldGroup = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
         if (oldGroup != null)
@@ -1351,7 +1352,7 @@ public class SVR_AnimeSeries : AnimeSeries
             var topGroup = oldGroup.TopLevelAnimeGroup;
             if (topGroup.AnimeGroupID != oldGroup.AnimeGroupID)
             {
-                topGroup.UpdateStatsFromTopLevel(true, true, true);
+                topGroup.UpdateStatsFromTopLevel(true, true);
             }
         }
     }
@@ -1363,13 +1364,13 @@ public class SVR_AnimeSeries : AnimeSeries
         cmdRefreshAnime.Save();
     }
 
-    public void UpdateStats(bool watchedStats, bool missingEpsStats, bool updateAllGroupsAbove)
+    public void UpdateStats(bool watchedStats, bool missingEpsStats)
     {
         var start = DateTime.Now;
         var initialStart = DateTime.Now;
         var name = GetAnime()?.MainTitle ?? AniDB_ID.ToString();
         logger.Info(
-            $"Starting Updating STATS for SERIES {name} - Watched Stats: {watchedStats}, Missing Episodes: {missingEpsStats}, Update Group Stats: {updateAllGroupsAbove}");
+            $"Starting Updating STATS for SERIES {name} - Watched Stats: {watchedStats}, Missing Episodes: {missingEpsStats}");
 
         var startEps = DateTime.Now;
         var eps = GetAnimeEpisodes().Where(a => a.AniDB_Episode != null).ToList();
@@ -1639,17 +1640,10 @@ public class SVR_AnimeSeries : AnimeSeries
         start = DateTime.Now;
 
         // Skip group filters if we are doing group stats, as the group stats will regenerate group filters
-        RepoFactory.AnimeSeries.Save(this, false, false, updateAllGroupsAbove);
+        RepoFactory.AnimeSeries.Save(this, false, false);
         ts = DateTime.Now - start;
         logger.Trace($"Saved stats for SERIES {name} in {ts.TotalMilliseconds}ms");
 
-        if (updateAllGroupsAbove)
-        {
-            start = DateTime.Now;
-            AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, watchedStats, missingEpsStats);
-            ts = DateTime.Now - start;
-            logger.Trace($"Updated group stats for SERIES {name} in {ts.TotalMilliseconds}ms");
-        }
 
         ts = DateTime.Now - initialStart;
         logger.Info($"Finished updating stats for SERIES {name} in {ts.TotalMilliseconds}ms");
@@ -1766,7 +1760,7 @@ public class SVR_AnimeSeries : AnimeSeries
             }
             else
             {
-                grp.UpdateStatsFromTopLevel(true, true, true);
+                grp.UpdateStatsFromTopLevel(true, true);
             }
         }
     }

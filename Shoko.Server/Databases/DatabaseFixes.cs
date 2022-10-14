@@ -776,7 +776,7 @@ public class DatabaseFixes
         var seriesList = episodesURsToSave
             .GroupBy(record => record.AnimeSeriesID)
             .Select(records => (RepoFactory.AnimeSeries.GetByID(records.Key),
-                records.Select(record => record.JMMUserID).Distinct()));
+                records.Select(record => record.JMMUserID).Distinct())).ToList();
         foreach (var (series, userIDs) in seriesList)
         {
             // No idea why we would have episode entries for a deleted series, but just in case.
@@ -796,7 +796,13 @@ public class DatabaseFixes
             }
 
             // Update the rest of the stats for the series.
-            series.UpdateStats(true, true, true);
+            series.UpdateStats(true, true);
+        }
+
+        var groups = seriesList.Select(a => a.Item1.AnimeGroup).Where(a => a != null).DistinctBy(a => a.AnimeGroupID);
+        foreach (var group in groups)
+        {
+            group.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
         }
     }
 }

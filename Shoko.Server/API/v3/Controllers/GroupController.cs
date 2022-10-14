@@ -213,7 +213,7 @@ public class GroupController : BaseController
             // Assign the series to the new group and update the series
             // entry.
             series.AnimeGroupID = group.AnimeGroupID;
-            series.UpdateStats(true, true, false);
+            series.UpdateStats(true, true);
         }
 
         // We don't need to update the group twice, and we don't need to
@@ -241,12 +241,12 @@ public class GroupController : BaseController
             }
             else
             {
-                oldGroup.TopLevelAnimeGroup.UpdateStatsFromTopLevel(false, true, true);
+                oldGroup.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
             }
         }
 
         // Update the group stats for the new group.
-        group.UpdateStatsFromTopLevel(false, true, true);
+        group.UpdateStatsFromTopLevel(true, true);
 
         // Return the info for the newly created or updated group.
         var dto = new Group(HttpContext, group);

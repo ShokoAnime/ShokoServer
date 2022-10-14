@@ -129,7 +129,8 @@ public class CommandRequest_GetFile : CommandRequestImplementation
             }
 
             var series = RepoFactory.AnimeSeries.GetByAnimeID(response.Response.AnimeID);
-            series?.UpdateStats(true, true, true);
+            series?.UpdateStats(true, true);
+            series?.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
             Result = RepoFactory.AniDB_File.GetByFileID(aniFile.FileID);
         }
     }

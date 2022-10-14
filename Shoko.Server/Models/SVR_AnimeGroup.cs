@@ -280,7 +280,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                         grp.GroupName = newTitle;
                         grp.SortName = newTitle;
                         RepoFactory.AnimeGroup.Save(grp, true, true);
-                        grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
+                        grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, false);
                     }
 
                     #endregion
@@ -540,17 +540,11 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         return $"Group: {GroupName} ({AnimeGroupID})";
     }
 
-    public void UpdateStatsFromTopLevel(bool watchedStats, bool missingEpsStats)
-    {
-        UpdateStatsFromTopLevel(false, watchedStats, missingEpsStats);
-    }
-
-
     /// <summary>
     /// Update stats for all child groups and series
     /// This should only be called from the very top level group.
     /// </summary>
-    public void UpdateStatsFromTopLevel(bool updateGroupStatsOnly, bool watchedStats, bool missingEpsStats)
+    public void UpdateStatsFromTopLevel(bool watchedStats, bool missingEpsStats)
     {
         if (AnimeGroupParentID.HasValue)
         {
@@ -559,16 +553,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
 
         var start = DateTime.Now;
         logger.Info(
-            $"Starting Updating STATS for GROUP {GroupName} from Top Level (recursively) - Watched Stats: {watchedStats}, Missing Episodes: {missingEpsStats}, Groups Only: {updateGroupStatsOnly}");
-
-        // update the stats for all the series first
-        if (!updateGroupStatsOnly)
-        {
-            foreach (var ser in GetAllSeries())
-            {
-                ser.UpdateStats(watchedStats, missingEpsStats, false);
-            }
-        }
+            $"Starting Updating STATS for GROUP {GroupName} from Top Level (recursively) - Watched Stats: {watchedStats}, Missing Episodes: {missingEpsStats}");
 
         // now recursively update stats for all the child groups
         // and update the stats for the groups
@@ -586,7 +571,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
     /// Update the stats for this group based on the child series
     /// Assumes that all the AnimeSeries have had their stats updated already
     /// </summary>
-    public void UpdateStats(bool watchedStats, bool missingEpsStats)
+    private void UpdateStats(bool watchedStats, bool missingEpsStats)
     {
         var start = DateTime.Now;
         logger.Info(
@@ -1463,7 +1448,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         // finally update stats
         if (updateParent)
         {
-            Parent?.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
+            Parent?.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
         }
     }
 
