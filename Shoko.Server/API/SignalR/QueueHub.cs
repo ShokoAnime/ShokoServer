@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
-using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.API.SignalR;

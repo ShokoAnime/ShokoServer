@@ -3,10 +3,6 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Runtime.Versioning;
 using System.Windows;
 using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
@@ -45,7 +41,7 @@ public partial class App
     }
 
     private void OnCmdProcessorGeneralOnOnQueueStateChangedEvent(QueueStateEventArgs ev) 
-        => Console.WriteLine($"General Queue state change: {ev.QueueState.formatMessage()}");
+        => Console.WriteLine("General Queue state change: {0}", ev.QueueState.formatMessage());
     
     private static void OnUtilsOnYesNoRequired(object? _, Utils.CancelReasonEventArgs e) 
         => e.Cancel = true;
@@ -56,7 +52,7 @@ public partial class App
     private static void OnInstanceOnPropertyChanged(object? _, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
-            Console.WriteLine("Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
+            Console.WriteLine("Startup failed! Error message: {0}", ServerState.Instance.StartupFailedMessage);
     }
 
     private void InitialiseTaskbarIcon()

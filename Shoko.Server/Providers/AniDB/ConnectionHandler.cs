@@ -1,6 +1,5 @@
 using System;
 using System.Timers;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Generic;

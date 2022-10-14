@@ -3,7 +3,6 @@ using System.Linq;
 using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;

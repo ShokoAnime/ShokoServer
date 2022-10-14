@@ -11,7 +11,6 @@ using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 using NLog;
-using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Server.Settings;
 

@@ -1,27 +1,11 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.ComponentModel;
-using System.Configuration;
-using System.Diagnostics;
-using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Threading;
-using System.Xml;
-using Microsoft.Win32;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using NLog;
-using Shoko.Commons.Properties;
 using Shoko.Models;
-using Shoko.Models.Client;
 using Shoko.Models.Enums;
-using Shoko.Server.ImageDownload;
 using Shoko.Server.Utilities;
-using Formatting = Newtonsoft.Json.Formatting;
 
 // ReSharper disable InconsistentNaming
 // ReSharper disable UnusedAutoPropertyAccessor.Global

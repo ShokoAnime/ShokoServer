@@ -25,8 +25,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #endregion
 
-using System;
-
 namespace LZ4pn;
 #if UNSAFE
     /// <summary>Unsafe LZ4 codec.</summary>

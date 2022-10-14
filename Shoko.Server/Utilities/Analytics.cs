@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Net.Http;
 using NLog;
 using Sentry;
-using Shoko.Server.Extensions;
-using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities;
 

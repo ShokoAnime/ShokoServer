@@ -2,8 +2,6 @@ using System;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.API.SignalR.Models;
-using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.Interfaces;
 
 namespace Shoko.Server.API.SignalR;
 

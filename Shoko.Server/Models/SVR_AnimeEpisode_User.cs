@@ -1,6 +1,4 @@
-﻿using Shoko.Models.Client;
-using Shoko.Models.Server;
-using Shoko.Server.LZ4;
+﻿using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models;

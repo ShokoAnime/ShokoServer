@@ -6,7 +6,6 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
-using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;

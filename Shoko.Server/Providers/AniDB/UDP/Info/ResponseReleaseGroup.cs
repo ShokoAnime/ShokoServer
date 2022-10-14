@@ -1,5 +1,3 @@
-using System;
-
 namespace Shoko.Server.Providers.AniDB.UDP.Info;
 
 public class ResponseReleaseGroup

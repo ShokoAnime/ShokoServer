@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Net;
-using System.Reflection;
 using Newtonsoft.Json;
 using SharpCompress.Common;
 using SharpCompress.Readers;

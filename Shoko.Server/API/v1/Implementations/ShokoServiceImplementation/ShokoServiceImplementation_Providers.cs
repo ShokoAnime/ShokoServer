@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
@@ -13,11 +12,7 @@ using Shoko.Server.Commands;
 using Shoko.Server.Commands.TvDB;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
-using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Providers.TraktTV.Contracts;
-using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 

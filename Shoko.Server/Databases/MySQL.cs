@@ -7,7 +7,6 @@ using FluentNHibernate.Cfg.Db;
 using MySql.Data.MySqlClient;
 using NHibernate;
 using Shoko.Commons.Properties;
-using NHibernate.Cfg;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;

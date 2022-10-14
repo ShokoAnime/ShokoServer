@@ -4,9 +4,7 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Generic;
-using Shoko.Server.Commands.Interfaces;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands;

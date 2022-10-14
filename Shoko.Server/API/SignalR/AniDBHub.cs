@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Server;

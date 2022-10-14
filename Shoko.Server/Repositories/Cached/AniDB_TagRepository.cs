@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
 
 namespace Shoko.Server.Repositories;

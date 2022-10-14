@@ -1,8 +1,5 @@
 using System;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
-using Shoko.Models.MediaInfo;
 
 namespace Shoko.Server.Utilities.MediaInfoLib;
 

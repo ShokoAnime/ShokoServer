@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using Microsoft.Win32;
 using Microsoft.Win32.TaskScheduler;

@@ -9,7 +9,6 @@ using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;

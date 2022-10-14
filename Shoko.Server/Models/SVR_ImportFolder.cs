@@ -1,7 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
@@ -9,8 +8,6 @@ using NLog;
 using Shoko.Commons.Notification;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.Extensions;
-using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models;
 

@@ -2,9 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
 

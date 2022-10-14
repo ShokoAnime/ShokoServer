@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
 using Shoko.Commons.Queue;
@@ -15,7 +14,6 @@ using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
-using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 

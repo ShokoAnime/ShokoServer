@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Net;
 using Microsoft.AspNetCore.Http;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.API.v2.Models.common;
-using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;

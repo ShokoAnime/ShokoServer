@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;

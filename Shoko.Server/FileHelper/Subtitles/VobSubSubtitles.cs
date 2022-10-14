@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using Shoko.Models.MediaInfo;
-using Shoko.Server.Models;
 using Shoko.Server.Utilities.MediaInfoLib;
 
 namespace Shoko.Server.FileHelper.Subtitles;

@@ -1,16 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
-using Shoko.Commons.Extensions;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Tasks;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global

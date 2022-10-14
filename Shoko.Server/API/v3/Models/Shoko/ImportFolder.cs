@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;

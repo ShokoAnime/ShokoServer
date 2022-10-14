@@ -9,7 +9,6 @@ using Shoko.Models.Metro;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 // ReSharper disable FunctionComplexityOverflow

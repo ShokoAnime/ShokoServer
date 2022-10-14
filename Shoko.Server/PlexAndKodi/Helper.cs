@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using NHibernate;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Client;
@@ -21,7 +20,6 @@ using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Directory = Shoko.Models.PlexAndKodi.Directory;
-using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.PlexAndKodi;
 

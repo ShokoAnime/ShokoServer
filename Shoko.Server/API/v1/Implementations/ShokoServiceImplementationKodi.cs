@@ -3,7 +3,6 @@ using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using NLog;
 using Shoko.Models.Interfaces;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.Commands;

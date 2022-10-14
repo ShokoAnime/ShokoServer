@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
-using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Commands;
@@ -20,7 +19,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-using Shoko.Server.Utilities.MediaInfoLib;
 using Directory = System.IO.Directory;
 using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 

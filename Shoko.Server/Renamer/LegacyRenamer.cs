@@ -13,7 +13,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-using static Shoko.Models.Constants;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Renamer;

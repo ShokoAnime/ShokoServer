@@ -8,10 +8,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3.Models.Common;

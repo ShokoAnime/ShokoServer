@@ -5,7 +5,6 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;

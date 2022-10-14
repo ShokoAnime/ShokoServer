@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using Shoko.Commons.Extensions;
 using Shoko.Server.PlexAndKodi.Plex;
 using UPnP;

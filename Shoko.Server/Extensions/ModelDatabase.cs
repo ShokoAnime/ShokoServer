@@ -2,7 +2,6 @@
 using System.IO;
 using System.Linq;
 using NHibernate;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;

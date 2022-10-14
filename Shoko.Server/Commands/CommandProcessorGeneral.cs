@@ -5,12 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Generic;
-using Shoko.Server.Commands.Interfaces;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.Commands;
 

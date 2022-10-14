@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Models.MediaInfo;
 using Shoko.Server.Repositories;
 using Media = Shoko.Models.PlexAndKodi.Media;
 

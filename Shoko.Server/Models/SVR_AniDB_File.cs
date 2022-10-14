@@ -3,13 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
 using NLog;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models;

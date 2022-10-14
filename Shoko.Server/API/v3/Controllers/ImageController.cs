@@ -1,6 +1,4 @@
-using System;
 using System.IO;
-using System.Resources;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
