@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml;
+using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -20,6 +21,8 @@ public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation
     public int TvDBSeriesID { get; set; }
     public bool ForceRefresh { get; set; }
     public string SeriesTitle { get; set; }
+
+    [XmlIgnore] public TvDB_Series Result { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -42,7 +45,7 @@ public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation
 
         try
         {
-            _helper.UpdateSeriesInfoAndImages(TvDBSeriesID, ForceRefresh, true);
+            Result = _helper.UpdateSeriesInfoAndImages(TvDBSeriesID, ForceRefresh, true);
         }
         catch (Exception ex)
         {

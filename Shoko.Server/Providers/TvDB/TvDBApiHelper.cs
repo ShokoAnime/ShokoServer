@@ -834,7 +834,7 @@ public class TvDBApiHelper
         return apiEpisodes;
     }
 
-    public void UpdateSeriesInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
+    public TvDB_Series UpdateSeriesInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
     {
         try
         {
@@ -842,7 +842,7 @@ public class TvDBApiHelper
             var tvSeries = GetSeriesInfoOnline(seriesID, forceRefresh);
             if (tvSeries == null)
             {
-                return;
+                return null;
             }
 
             if (downloadImages)
@@ -905,11 +905,14 @@ public class TvDBApiHelper
             // Updating stats as it will not happen with the episodes
             RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(seriesID).Select(a => a.AniDBID).Distinct()
                 .ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
+
+            return tvSeries;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in TVDBHelper.GetEpisodes: {Ex}", ex);
             Analytics.PostException(ex);
+            return null;
         }
     }
 

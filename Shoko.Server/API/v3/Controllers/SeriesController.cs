@@ -729,6 +729,34 @@ public class SeriesController : BaseController
 
         return Series.GetTvDBInfo(HttpContext, series);
     }
+    
+    /// <summary>
+    /// Queue a refresh of the all the <see cref="Series.TvDB"/> linked to the
+    /// <see cref="Series"/> using the <paramref name="seriesID"/>.
+    /// </summary>
+    /// <param name="seriesID">Shoko ID</param>
+    /// <param name="force">Forcefully retrive updated data from TvDB</param>
+    /// <returns></returns>
+    [HttpPost("{seriesID}/{tvdbID}/Refresh")]
+    public ActionResult RefreshSeriesTvdbBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+        {
+            return NotFound(TvdbNotFoundForSeriesID);
+        }
+
+        if (!User.AllowedSeries(series))
+        {
+            return Forbid(TvdbForbiddenForUser);
+        }
+
+        var tvSeriesList = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(series.AniDB_ID);
+        foreach (var crossRef in tvSeriesList)
+            Series.QueueTvDBRefresh(_commandFactory, crossRef.TvDBID, force);
+
+        return Ok();
+    }
 
     /// <summary>
     /// Get TvDB Info from the TvDB ID
@@ -762,6 +790,20 @@ public class SeriesController : BaseController
         }
 
         return new Series.TvDB(HttpContext, tvdb, series);
+    }
+    
+    /// <summary>
+    /// Directly queue a refresh of the the <see cref="Series.TvDB"/> data using
+    /// the <paramref name="tvdbID"/>.
+    /// </summary>
+    /// <param name="tvdbID">TvDB ID</param>
+    /// <param name="force">Forcefully retrive updated data from TvDB</param>
+    /// <param name="immediate">Try to immediately refresh the data.</param>
+    /// <returns></returns>
+    [HttpPost("TvDB/{tvdbID}/Refresh")]
+    public ActionResult<bool> RefreshSeriesTvdbByTvdbId([FromRoute] int tvdbID, [FromQuery] bool force = false, [FromQuery] bool immediate = false)
+    {
+        return Series.QueueTvDBRefresh(_commandFactory, tvdbID,force, immediate);
     }
 
     /// <summary>
