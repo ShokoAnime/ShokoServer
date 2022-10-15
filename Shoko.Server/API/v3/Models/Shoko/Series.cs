@@ -173,6 +173,32 @@ public class Series : BaseModel
         command.Save();
         return false;
     }
+    
+    public static bool QueueTvDBRefresh(ICommandRequestFactory commandFactory, int tvdbID, bool force, bool immediate = false)
+    {
+        var command = commandFactory.Create<CommandRequest_TvDBUpdateSeries>(c =>
+        {
+            c.TvDBSeriesID = tvdbID;
+            c.ForceRefresh = force;
+            c.BubbleExceptions = immediate;
+        });
+        if (immediate)
+        {
+            try
+            {
+                command.ProcessCommand();
+            }
+            catch
+            {
+                return false;
+            }
+
+            return command.Result != null;
+        }
+
+        command.Save();
+        return false;
+    }
 
     public static SeriesIDs GetIDs(SVR_AnimeSeries ser)
     {
