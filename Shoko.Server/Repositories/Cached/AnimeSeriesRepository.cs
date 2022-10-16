@@ -148,12 +148,12 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             lock (GlobalDBLock)
             {
                 sw.Stop();
-                logger.Trace($"Saving Series {animeID} | Got Database Lock in {sw.Elapsed:ss'.'fff}s");
+                logger.Trace($"Saving Series {animeID} | Got Database Lock in {sw.Elapsed.TotalSeconds:0.00###}s");
                 sw.Restart();
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
                 oldSeries = session.Get<SVR_AnimeSeries>(obj.AnimeSeriesID);
                 sw.Stop();
-                logger.Trace($"Saving Series {animeID} | Got Series from Database in {sw.Elapsed:ss'.'fff}s");
+                logger.Trace($"Saving Series {animeID} | Got Series from Database in {sw.Elapsed.TotalSeconds:0.00###}s");
                 sw.Restart();
             }
 
@@ -190,7 +190,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             obj.Contract = null;
             base.Save(obj);
             sw.Stop();
-            logger.Trace($"Saving Series {animeID} | Saved new series in {sw.Elapsed:ss'.'fff}s");
+            logger.Trace($"Saving Series {animeID} | Saved new series in {sw.Elapsed.TotalSeconds:0.00###}s");
             sw.Restart();
         }
 
@@ -202,12 +202,12 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         sw.Restart();
         var types = obj.UpdateContract(onlyupdatestats);
         sw.Stop();
-        logger.Trace($"Saving Series {animeID} | Updated Series Contract in {sw.Elapsed:ss'.'fff}s");
+        logger.Trace($"Saving Series {animeID} | Updated Series Contract in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
         logger.Trace($"Saving Series {animeID} | Saving Series to Database");
         base.Save(obj);
         sw.Stop();
-        logger.Trace($"Saving Series {animeID} | Saved Series to Database in {sw.Elapsed:ss'.'fff}s");
+        logger.Trace($"Saving Series {animeID} | Saved Series to Database in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
 
         if (updateGroups && !isMigrating) UpdateGroups(obj, animeID, sw, oldGroup);
@@ -220,7 +220,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
 
         sw.Stop();
         totalSw.Stop();
-        logger.Trace($"Saving Series {animeID} | Finished Saving in {totalSw.Elapsed:ss'.'fff}s");
+        logger.Trace($"Saving Series {animeID} | Finished Saving in {totalSw.Elapsed.TotalSeconds:0.00###}s");
     }
 
     private static void RegenerateSeasons(SVR_AnimeSeries obj, Stopwatch sw, string animeID)
@@ -236,7 +236,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         }
 
         sw.Stop();
-        logger.Trace($"Saving Series {animeID} | Regenerated AniDB_Anime Contract in {sw.Elapsed:ss'.'fff}s");
+        logger.Trace($"Saving Series {animeID} | Regenerated AniDB_Anime Contract in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
     }
 
@@ -248,7 +248,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         var eps = RepoFactory.AnimeEpisode.GetBySeriesID(obj.AnimeSeriesID);
         RepoFactory.AnimeEpisode.Save(eps);
         sw.Stop();
-        logger.Trace($"Saving Series {animeID} | Updated Episodes in {sw.Elapsed:ss'.'fff}s");
+        logger.Trace($"Saving Series {animeID} | Updated Episodes in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
     }
 
@@ -282,14 +282,14 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         seasons = obj.Contract?.AniDBAnime?.Stat_AllSeasons;
         //This call will create extra years or tags if the Group have a new year or tag
         logger.Trace(
-            $"Saving Series {animeID} | Updating Group Filters for Years ({string.Join(",", allyears.OrderBy(a => a))}) and Seasons ({string.Join(",", seasons)})");
+            $"Saving Series {animeID} | Updating Group Filters for Years ({string.Join(",", (IEnumerable<int>)allyears?.OrderBy(a => a) ?? Array.Empty<int>())}) and Seasons ({string.Join(",", (IEnumerable<string>)seasons ?? Array.Empty<string>())})");
         RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false,
             obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears, seasons);
 
         // Update other existing filters
         obj.UpdateGroupFilters(types);
         sw.Stop();
-        logger.Trace($"Saving Series {animeID} | Updated Group Filters in {sw.Elapsed:ss'.'fff}s");
+        logger.Trace($"Saving Series {animeID} | Updated Group Filters in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
     }
 
@@ -305,7 +305,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             logger.Trace($"Saving Series {animeID} | Group {obj.AnimeGroupID} was not found. Not Updating");
 
         sw.Stop();
-        logger.Trace($"Saving Series {animeID} | Updated Group {obj.AnimeGroupID} in {sw.Elapsed:ss'.'fff}s");
+        logger.Trace($"Saving Series {animeID} | Updated Group {obj.AnimeGroupID} in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
 
         // Last ditch to make sure we aren't just updating the same group twice (shouldn't be)
@@ -315,7 +315,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             RepoFactory.AnimeGroup.Save(oldGroup, true, true);
             sw.Stop();
             logger.Trace(
-                $"Saving Series {animeID} | Updated old group {oldGroup.AnimeGroupID} in {sw.Elapsed:ss'.'fff}s");
+                $"Saving Series {animeID} | Updated old group {oldGroup.AnimeGroupID} in {sw.Elapsed.TotalSeconds:0.00###}s");
             sw.Restart();
         }
     }
