@@ -162,10 +162,9 @@ public class AnimeCreator
             RepoFactory.AniDB_Episode.GetByAnimeID(anime.AnimeID).ToDictionary(a => a.EpisodeID, a => a);
         var currentAnimeEpisodes = currentAniDBEpisodes.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.Key))
             .Where(a => a != null).ToDictionary(a => a.AniDB_EpisodeID, a => a);
-        // TODO Only delete titles that have changed
-        var oldtitles = currentAniDBEpisodes.Select(a => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.Key))
-            .Where(a => a != null).SelectMany(a => a).ToList();
-        RepoFactory.AniDB_Episode_Title.Delete(oldtitles);
+        var oldtitles = currentAniDBEpisodes.SelectMany(a => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.Key).Where(b => b != null).Select(b => (EpisodeID:a.Key, Title:b)))
+            .ToLookup(a => a.EpisodeID, a => a.Title);
+        var titlesToRemove = new List<SVR_AniDB_Episode_Title>();
 
         var epsToSave = new List<AniDB_Episode>();
         var titlesToSave = new List<SVR_AniDB_Episode_Title>();
@@ -198,19 +197,16 @@ public class AnimeCreator
             epsToSave.Add(epNew);
 
             // Titles
-            foreach (var rawtitle in epraw.Titles)
-            {
-                if (string.IsNullOrEmpty(rawtitle?.Title))
-                {
-                    continue;
-                }
-
-                var title = new SVR_AniDB_Episode_Title()
+            var newTitles = epraw.Titles.Where(rawtitle => !string.IsNullOrEmpty(rawtitle?.Title))
+                .Select(rawtitle => new SVR_AniDB_Episode_Title
                 {
                     AniDB_EpisodeID = epraw.EpisodeID, Language = rawtitle.Language, Title = rawtitle.Title
-                };
-                titlesToSave.Add(title);
-            }
+                });
+
+            titlesToSave.AddRange(newTitles.Where(a =>
+                !oldtitles.Contains(epraw.EpisodeID) || !oldtitles[epraw.EpisodeID].Any(b => b.Equals(a))));
+            if (oldtitles.Contains(epraw.EpisodeID))
+                titlesToRemove.AddRange(oldtitles[epraw.EpisodeID].Where(a => !titlesToSave.Any(b => b.Equals(a))));
 
             // since the HTTP api doesn't return a count of the number of specials, we will calculate it here
             if (epNew.GetEpisodeTypeEnum() == Shoko.Models.Enums.EpisodeType.Episode)
@@ -243,6 +239,7 @@ public class AnimeCreator
         RepoFactory.AnimeEpisode.Delete(currentAnimeEpisodes.Values.ToList());
         RepoFactory.AniDB_Episode.Delete(currentAniDBEpisodes.Values.ToList());
         RepoFactory.AniDB_Episode.Save(epsToSave);
+        RepoFactory.AniDB_Episode_Title.Delete(titlesToRemove);
         RepoFactory.AniDB_Episode_Title.Save(titlesToSave);
 
         var episodeCount = episodeCountSpecial + episodeCountNormal;

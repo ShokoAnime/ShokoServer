@@ -21,4 +21,40 @@ public class SVR_AniDB_Episode_Title : AniDB_Episode_Title
         get => Language.GetString();
         set => Language = value.GetTitleLanguage();
     }
+
+    protected bool Equals(SVR_AniDB_Episode_Title other)
+    {
+        return AniDB_EpisodeID == other.AniDB_EpisodeID && Language == other.Language && Title == other.Title;
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (ReferenceEquals(null, obj))
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
+
+        if (obj.GetType() != this.GetType())
+        {
+            return false;
+        }
+
+        return Equals((SVR_AniDB_Episode_Title)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            var hashCode = AniDB_EpisodeID;
+            hashCode = (hashCode * 397) ^ (Language != null ? Language.GetHashCode() : 0);
+            hashCode = (hashCode * 397) ^ (Title != null ? Title.GetHashCode() : 0);
+            return hashCode;
+        }
+    }
 }
