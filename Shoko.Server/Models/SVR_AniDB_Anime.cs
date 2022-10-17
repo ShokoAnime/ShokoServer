@@ -1358,7 +1358,7 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
         lang = RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, AnimeID).Values.SelectMany(kvp => kvp.LanguageNames);
         cl.Stat_SubtitleLanguages = new HashSet<string>(lang, StringComparer.InvariantCultureIgnoreCase);
         sw.Stop();
-        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got Audio Languages in {sw.Elapsed.TotalSeconds:0.00###}s");
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got Subtitle Languages in {sw.Elapsed.TotalSeconds:0.00###}s");
 
         sw.Restart();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generating Video Quality Contracts");
