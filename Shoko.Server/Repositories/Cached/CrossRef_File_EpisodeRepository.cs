@@ -32,7 +32,6 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
     {
         EndSaveCallback = obj =>
         {
-            logger.Trace("Updating group stats by file from CrossRef_File_EpisodeRepository.Save: {0}", obj.Hash);
             SVR_AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
         };
         EndDeleteCallback = obj =>

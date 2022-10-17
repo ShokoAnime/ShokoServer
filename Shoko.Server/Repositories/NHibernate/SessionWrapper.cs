@@ -12,12 +12,7 @@ internal class SessionWrapper : ISessionWrapper
 
     public SessionWrapper(ISession session)
     {
-        if (session == null)
-        {
-            throw new ArgumentNullException("session");
-        }
-
-        _session = session;
+        _session = session ?? throw new ArgumentNullException(nameof(session));
     }
 
     public ICriteria CreateCriteria(Type type)
@@ -71,4 +66,9 @@ internal class SessionWrapper : ISessionWrapper
     }
 
     public IDbConnection Connection => _session.Connection;
+
+    public void Dispose()
+    {
+        _session?.Dispose();
+    }
 }

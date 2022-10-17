@@ -333,25 +333,19 @@ public class AdhocRepository : BaseRepository
         return allLanguages;
     }
 
-    private string GetAudioLanguageStatsByAnimeSQL(string animeIdPredicate)
-    {
-        var sql = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, audio.LanguageName "
-                  + "FROM AnimeSeries ser  "
-                  + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
-                  + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
-                  + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
-                  + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
-                  + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
-                  + "INNER JOIN CrossRef_Languages_AniDB_File audio on audio.FileID = anifile.FileID "
-                  + "WHERE anime.AnimeID " + animeIdPredicate;
-        return sql;
-    }
-
     private Dictionary<int, LanguageStat> GetAudioLanguageStatsByAnimeResults(ISessionWrapper session,
         string animeIdPredicate)
     {
         var dictStats = new Dictionary<int, LanguageStat>();
-        var query = GetAudioLanguageStatsByAnimeSQL(animeIdPredicate);
+        var query = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, audio.LanguageName "
+                    + "FROM AnimeSeries ser  "
+                    + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
+                    + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
+                    + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
+                    + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
+                    + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
+                    + "INNER JOIN CrossRef_Languages_AniDB_File audio on audio.FileID = anifile.FileID "
+                    + "WHERE anime.AnimeID " + animeIdPredicate;
 
         IList<object[]> rows;
         lock (GlobalDBLock)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Xml.Serialization;
@@ -970,12 +971,29 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
 
     private CL_AniDB_Anime GenerateContract(List<SVR_AniDB_Anime_Title> titles)
     {
+        var sw = Stopwatch.StartNew();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Updating Character Contracts");
         var characters = GetCharactersContract();
-
+        sw.Stop();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Updated Character Contracts in {sw.Elapsed.TotalSeconds:0.00###}s");
+        sw.Restart();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting MovieDB Fanarts");
         var movDbFanart = GetMovieDBFanarts();
+        sw.Stop();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got MovieDB Fanarts in {sw.Elapsed.TotalSeconds:0.00###}s");
+        sw.Restart();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting TvDB Fanarts");
         var tvDbFanart = GetTvDBImageFanarts();
+        sw.Stop();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got TvDB Fanarts in {sw.Elapsed.TotalSeconds:0.00###}s");
+        sw.Restart();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting TvDB Banners");
         var tvDbBanners = GetTvDBImageWideBanners();
+        sw.Stop();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got TvDB Banners in {sw.Elapsed.TotalSeconds:0.00###}s");
+        sw.Restart();
 
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generating Images Contract");
         var cl = GenerateContract(titles, null, characters, movDbFanart, tvDbFanart, tvDbBanners);
         var defFanart = GetDefaultFanart();
         var defPoster = GetDefaultPoster();
@@ -984,6 +1002,10 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
         cl.DefaultImageFanart = defFanart?.ToClient();
         cl.DefaultImagePoster = defPoster?.ToClient();
         cl.DefaultImageWideBanner = defBanner?.ToClient();
+
+        sw.Stop();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generated Images Contract in {sw.Elapsed.TotalSeconds:0.00###}s");
+        sw.Restart();
 
         return cl;
     }
@@ -1218,9 +1240,18 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
         }
     }
 
-    public void UpdateContractDetailed(ISessionWrapper session)
+    public void UpdateContractDetailed()
     {
+        var total = Stopwatch.StartNew();
+        var sw = Stopwatch.StartNew();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Start");
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting Titles");
         var animeTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
+        sw.Stop();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got Titles in {sw.Elapsed.TotalSeconds:0.00###}s");
+        sw.Restart();
+
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generating AniDB_AnimeDetailed");
         var cl = new CL_AniDB_AnimeDetailed
         {
             AniDBAnime = GenerateContract(animeTitles),
@@ -1228,6 +1259,9 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
             Tags = new List<CL_AnimeTag>(),
             CustomTags = new List<CustomTag>()
         };
+
+        sw.Stop();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generated AniDB_AnimeDetailed in {sw.Elapsed.TotalSeconds:0.00###}s");
 
         // get all the anime titles
         if (animeTitles != null)
@@ -1261,6 +1295,8 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
             }
         }
 
+        sw.Restart();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generating Tag Contracts");
         var dictAnimeTags = new Dictionary<int, AniDB_Anime_Tag>();
         foreach (var animeTag in GetAnimeTags())
         {
@@ -1297,75 +1333,50 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
         {
             cl.CustomTags.Add(custag);
         }
+        
+        sw.Stop();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generated Tag Contracts in {sw.Elapsed.TotalSeconds:0.00###}s");
+        sw.Restart();
 
         if (UserVote != null)
         {
             cl.UserVote = UserVote;
         }
 
-        var audioLanguages = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-        var subtitleLanguages = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-
-        //logger.Trace(" XXXX 06");
-
+        sw.Restart();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting Audio Languages");
+        using var session = DatabaseFactory.SessionFactory.OpenSession().Wrap();
         // audio languages
-        var dicAudio =
-            RepoFactory.Adhoc.GetAudioLanguageStatsByAnime(session, AnimeID);
-        foreach (var kvp in dicAudio)
-        {
-            foreach (var lanName in kvp.Value.LanguageNames)
-            {
-                if (!audioLanguages.Contains(lanName))
-                {
-                    audioLanguages.Add(lanName);
-                }
-            }
-        }
+        var lang = RepoFactory.Adhoc.GetAudioLanguageStatsByAnime(session, AnimeID).Values.SelectMany(kvp => kvp.LanguageNames);
+        cl.Stat_AudioLanguages = new HashSet<string>(lang, StringComparer.InvariantCultureIgnoreCase);
+        sw.Stop();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got Audio Languages in {sw.Elapsed.TotalSeconds:0.00###}s");
 
-        //logger.Trace(" XXXX 07");
-
+        sw.Restart();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting Subtitle Languages");
         // subtitle languages
-        var dicSubtitle =
-            RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, AnimeID);
-        foreach (var kvp in dicSubtitle)
-        {
-            foreach (var lanName in kvp.Value.LanguageNames)
-            {
-                if (!subtitleLanguages.Contains(lanName))
-                {
-                    subtitleLanguages.Add(lanName);
-                }
-            }
-        }
+        lang = RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, AnimeID).Values.SelectMany(kvp => kvp.LanguageNames);
+        cl.Stat_SubtitleLanguages = new HashSet<string>(lang, StringComparer.InvariantCultureIgnoreCase);
+        sw.Stop();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got Audio Languages in {sw.Elapsed.TotalSeconds:0.00###}s");
 
-        //logger.Trace(" XXXX 08");
-
-        cl.Stat_AudioLanguages = audioLanguages;
-
-        //logger.Trace(" XXXX 09");
-
-        cl.Stat_SubtitleLanguages = subtitleLanguages;
-
-        //logger.Trace(" XXXX 10");
+        sw.Restart();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generating Video Quality Contracts");
         cl.Stat_AllVideoQuality = RepoFactory.Adhoc.GetAllVideoQualityForAnime(session, AnimeID);
+        sw.Stop();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generated Video Quality Contracts in {sw.Elapsed.TotalSeconds:0.00###}s");
 
-        var stat = RepoFactory.Adhoc.GetEpisodeVideoQualityStatsForAnime(session, AnimeID);
-        cl.Stat_AllVideoQuality_Episodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-
-        if (stat != null && stat.VideoQualityEpisodeCount.Count > 0)
-        {
-            foreach (var kvp in stat.VideoQualityEpisodeCount)
-            {
-                if (kvp.Value >= EpisodeCountNormal)
-                {
-                    cl.Stat_AllVideoQuality_Episodes.Add(kvp.Key);
-                }
-            }
-        }
-
-        //logger.Trace(" XXXX 11");
+        sw.Restart();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generating Episode Quality Contracts");
+        var stat = RepoFactory.Adhoc.GetEpisodeVideoQualityStatsForAnime(session, AnimeID)?.VideoQualityEpisodeCount?.Where(kvp => kvp.Value >= EpisodeCountNormal).Select(a => a.Key) ?? new List<string>();
+        cl.Stat_AllVideoQuality_Episodes = new HashSet<string>(stat, StringComparer.InvariantCultureIgnoreCase);
+        sw.Stop();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generated Episode Quality Contracts in {sw.Elapsed.TotalSeconds:0.00###}s");
 
         Contract = cl;
+
+        total.Stop();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Finished in {total.Elapsed.TotalSeconds:0.00###}s");
     }
 
     #endregion

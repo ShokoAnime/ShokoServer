@@ -4,7 +4,7 @@ using NHibernate;
 
 namespace Shoko.Server.Repositories.NHibernate;
 
-public interface ISessionWrapper
+public interface ISessionWrapper : IDisposable
 {
     ICriteria CreateCriteria<T>() where T : class;
 

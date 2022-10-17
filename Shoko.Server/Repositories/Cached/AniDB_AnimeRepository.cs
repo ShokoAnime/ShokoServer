@@ -92,10 +92,7 @@ public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
             base.Save(obj);
         }
 
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-        {
-            obj.UpdateContractDetailed(session.Wrap());
-        }
+        obj.UpdateContractDetailed();
 
         // populate the database
         base.Save(obj);
