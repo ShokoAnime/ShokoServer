@@ -140,7 +140,8 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
                             }
                         );
                         Logger.LogInformation("Marking file as deleted in MyList: Hash: {Hash}", Hash);
-                        request.Execute();
+                        var response = request.Execute();
+                        if (response.Code == UDPReturnCode.NO_SUCH_FILE) Logger.LogWarning("Update MyList returned NO_SUCH_FILE for {Hash}", Hash);
                     }
 
                     break;
@@ -172,7 +173,8 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
                             }
                         );
                         Logger.LogInformation("Marking file as unknown in MyList: Hash: {Hash}", Hash);
-                        request.Execute();
+                        var response = request.Execute();
+                        if (response.Code == UDPReturnCode.NO_SUCH_FILE) Logger.LogWarning("Update MyList returned NO_SUCH_FILE for {Hash}", Hash);
                     }
 
                     break;
@@ -208,7 +210,8 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
                             }
                         );
                         Logger.LogInformation("Marking file as remote in MyList: Hash: {Hash}", Hash);
-                        request.Execute();
+                        var response = request.Execute();
+                        if (response.Code == UDPReturnCode.NO_SUCH_FILE) Logger.LogWarning("Update MyList returned NO_SUCH_FILE for {Hash}", Hash);
                     }
 
                     break;
@@ -240,7 +243,8 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
                             }
                         );
                         Logger.LogInformation("Marking file as Disk in MyList: Hash: {Hash}", Hash);
-                        request.Execute();
+                        var response = request.Execute();
+                        if (response.Code == UDPReturnCode.NO_SUCH_FILE) Logger.LogWarning("Update MyList returned NO_SUCH_FILE for {Hash}", Hash);
                     }
 
                     break;
@@ -276,7 +280,7 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
             docCreator.LoadXml(CommandDetails);
 
             if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "MyListID"),
-                    out var mylistID))
+                    out var mylistID) && mylistID != 0)
             {
                 var vid = RepoFactory.VideoLocal.GetByMyListID(mylistID);
                 if (vid != null)
