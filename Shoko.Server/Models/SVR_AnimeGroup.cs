@@ -942,16 +942,14 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         var allGroupIds = new Lazy<int[]>(
             () => animeGroups.Select(grp => grp.AnimeGroupID).ToArray(), false);
         var audioLangStatsByAnime = new Lazy<Dictionary<int, HashSet<string>>>(
-            () => RepoFactory.Adhoc.GetAudioLanguageStatsByAnime(session, allAnimeIds.Value), false);
+            () => RepoFactory.CrossRef_Languages_AniDB_File.GetLanguagesByAnime(allAnimeIds.Value), false);
         var subLangStatsByAnime = new Lazy<Dictionary<int, HashSet<string>>>(
-            () => RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, allAnimeIds.Value),
-            false);
+            () => RepoFactory.CrossRef_Subtitles_AniDB_File.GetLanguagesByAnime(allAnimeIds.Value), false);
         var tvDbXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_TvDB>>(
             () => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeIDs(allAnimeIds.Value), false);
         var traktXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_TraktV2>>(
             () => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDs(allAnimeIds.Value), false);
-        var allVidQualByGroup = new Lazy<ILookup<int, string>>(
-            () => RepoFactory.Adhoc.GetAllVideoQualityByGroup(session, allGroupIds.Value), false);
+        var allVidQualByGroup = new Lazy<ILookup<int, string>>(() => GetVideoQualities(allGroupIds.Value), false);
         var movieDbXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_Other>>(
             () => RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDsAndType(session, allAnimeIds.Value,
                 CrossRefType.MovieDB), false);
@@ -1299,6 +1297,17 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         var grpFilterCondTypesByGroup = BatchUpdateContracts(session, new[] { this }, updatestats);
 
         return grpFilterCondTypesByGroup[AnimeGroupID];
+    }
+
+    private static ILookup<int, string> GetVideoQualities(IEnumerable<int> groupIds = null)
+    {
+        groupIds ??= RepoFactory.AnimeGroup.GetAll().Select(a => a.AnimeGroupID).ToList();
+        return groupIds.SelectMany(id =>
+            RepoFactory.AnimeSeries.GetByGroupID(id)
+                .SelectMany(a =>
+                    RepoFactory.CrossRef_File_Episode.GetByAnimeID(a.AniDB_ID)
+                        .Select(b => RepoFactory.AniDB_File.GetByHash(b.Hash)?.File_Source).Where(b => b != null))
+                .Distinct().Select(a => (GroupID: id, Source: a))).ToLookup(a => a.GroupID, a => a.Source);
     }
 
     public void DeleteFromFilters()

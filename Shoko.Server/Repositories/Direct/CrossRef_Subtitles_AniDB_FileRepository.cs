@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using NHibernate.Criterion;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -19,5 +21,16 @@ public class CrossRef_Subtitles_AniDB_FileRepository : BaseDirectRepository<Cros
 
             return new List<CrossRef_Subtitles_AniDB_File>(files);
         }
+    }
+
+    public Dictionary<int, HashSet<string>> GetLanguagesByAnime(IEnumerable<int> animeIds)
+    {
+        return animeIds
+            .SelectMany(a =>
+                RepoFactory.CrossRef_File_Episode.GetByAnimeID(a)
+                    .SelectMany(b =>
+                        RepoFactory.AniDB_File.GetByHash(b.Hash)?.Subtitles?.Select(c => c.LanguageName) ??
+                        Array.Empty<string>()).Select(c => (AnimeID: a, Language: c)))
+            .GroupBy(a => a.AnimeID, a => a.Language).ToDictionary(a => a.Key, a => a.ToHashSet());
     }
 }

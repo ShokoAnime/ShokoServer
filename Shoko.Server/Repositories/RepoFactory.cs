@@ -54,7 +54,6 @@ public static class RepoFactory
     public static AniDB_Anime_StaffRepository AniDB_Anime_Staff { get; } = new();
     public static ScanRepository Scan { get; } = new();
     public static ScanFileRepository ScanFile { get; } = new();
-    public static AdhocRepository Adhoc { get; } = new();
 
     //Cached Ones
     // DECLARE THESE IN ORDER OF DEPENDENCY

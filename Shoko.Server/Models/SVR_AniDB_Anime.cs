@@ -1117,10 +1117,24 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
         var tagsByAnime = RepoFactory.AniDB_Tag.GetByAnimeIDs(animeIds);
         var custTagsByAnime = RepoFactory.CustomTag.GetByAnimeIDs(session, animeIds);
         var voteByAnime = RepoFactory.AniDB_Vote.GetByAnimeIDs(animeIds);
-        var audioLangByAnime = RepoFactory.Adhoc.GetAudioLanguageStatsByAnime(session, animeIds);
-        var subtitleLangByAnime = RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, animeIds);
-        var vidQualByAnime = RepoFactory.Adhoc.GetAllVideoQualityByAnime(session, animeIds);
-        var epVidQualByAnime = RepoFactory.Adhoc.GetEpisodeVideoQualityStatsByAnime(session, animeIds);
+        var audioLangByAnime = RepoFactory.CrossRef_Languages_AniDB_File.GetLanguagesByAnime(animeIds);
+        var subtitleLangByAnime = RepoFactory.CrossRef_Subtitles_AniDB_File.GetLanguagesByAnime(animeIds);
+        var vidQualByAnime = animeIds
+            .Select(animeID => (animeID,
+                new HashSet<string>(RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID)
+                    .Select(a => a?.GetAniDBFile()?.File_Source).Where(a => a != null))))
+            .ToDictionary(a => a.animeID, tuple => tuple.Item2);
+        var epVidQualByAnime = animeIds
+            .SelectMany(animeID => RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Select(a => a.GetAniDBFile())
+                .Where(a => a?.File_Source != null &&
+                            a.Episodes.Any(b => b.AnimeID == animeID && b.EpisodeType == (int)EpisodeType.Episode))
+                .Select(a => (animeID, a.File_Source))).GroupBy(a => a.animeID).ToDictionary(a => a.Key,
+                tuples => new
+                {
+                    AnimeID = tuples.Key,
+                    VideoQualityEpisodeCount =
+                        tuples.GroupBy(b => b.File_Source).ToDictionary(b => b.Key, b => b.Count())
+                });
         var defImagesByAnime = RepoFactory.AniDB_Anime.GetDefaultImagesByAnime(session, animeIds);
         var charsByAnime = RepoFactory.AniDB_Character.GetCharacterAndSeiyuuByAnime(session, animeIds);
         var movDbFanartByAnime = RepoFactory.MovieDB_Fanart.GetByAnimeIDs(session, animeIds);
@@ -1347,29 +1361,39 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting Audio Languages");
         using var session = DatabaseFactory.SessionFactory.OpenSession().Wrap();
         // audio languages
-        var lang = RepoFactory.Adhoc.GetAudioLanguageStatsByAnime(session, AnimeID).Values.SelectMany(kvp => kvp);
-        cl.Stat_AudioLanguages = new HashSet<string>(lang, StringComparer.InvariantCultureIgnoreCase);
+        cl.Stat_AudioLanguages = new HashSet<string>(
+            RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID).SelectMany(a =>
+                RepoFactory.AniDB_File.GetByHash(a.Hash)?.Languages?.Select(b => b.LanguageName)).Where(a => a != null),
+            StringComparer.InvariantCultureIgnoreCase);
         sw.Stop();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got Audio Languages in {sw.Elapsed.TotalSeconds:0.00###}s");
 
         sw.Restart();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting Subtitle Languages");
         // subtitle languages
-        lang = RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, AnimeID).Values.SelectMany(kvp => kvp);
-        cl.Stat_SubtitleLanguages = new HashSet<string>(lang, StringComparer.InvariantCultureIgnoreCase);
+        cl.Stat_SubtitleLanguages = new HashSet<string>(
+            RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID).SelectMany(a =>
+                RepoFactory.AniDB_File.GetByHash(a.Hash)?.Subtitles?.Select(b => b.LanguageName)),
+            StringComparer.InvariantCultureIgnoreCase);
         sw.Stop();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got Subtitle Languages in {sw.Elapsed.TotalSeconds:0.00###}s");
 
         sw.Restart();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generating Video Quality Contracts");
-        cl.Stat_AllVideoQuality = RepoFactory.Adhoc.GetAllVideoQualityForAnime(session, AnimeID);
+        cl.Stat_AllVideoQuality = new HashSet<string>(RepoFactory.VideoLocal.GetByAniDBAnimeID(AnimeID)
+            .Select(a => a.GetAniDBFile()?.File_Source).Where(a => a != null), StringComparer.InvariantCultureIgnoreCase);
         sw.Stop();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generated Video Quality Contracts in {sw.Elapsed.TotalSeconds:0.00###}s");
 
         sw.Restart();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generating Episode Quality Contracts");
-        var stat = RepoFactory.Adhoc.GetEpisodeVideoQualityStatsForAnime(session, AnimeID)?.VideoQualityEpisodeCount?.Where(kvp => kvp.Value >= EpisodeCountNormal).Select(a => a.Key) ?? new List<string>();
-        cl.Stat_AllVideoQuality_Episodes = new HashSet<string>(stat, StringComparer.InvariantCultureIgnoreCase);
+        cl.Stat_AllVideoQuality_Episodes = new HashSet<string>(
+            RepoFactory.VideoLocal.GetByAniDBAnimeID(AnimeID).Select(a => a.GetAniDBFile())
+                .Where(a => a != null &&
+                            a.Episodes.Any(b => b.AnimeID == AnimeID && b.EpisodeType == (int)EpisodeType.Episode))
+                .Select(a => a.File_Source).Where(a => a != null).GroupBy(b => b)
+                .ToDictionary(b => b.Key, b => b.Count()).Where(a => a.Value >= EpisodeCountNormal).Select(a => a.Key),
+            StringComparer.InvariantCultureIgnoreCase);
         sw.Stop();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generated Episode Quality Contracts in {sw.Elapsed.TotalSeconds:0.00###}s");
 
