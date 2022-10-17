@@ -835,7 +835,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.Adhoc.GetAllVideoQuality();
+            return RepoFactory.AniDB_File.GetAll().Select(a => a.File_Source).Distinct().OrderBy(a => a).ToList();
         }
         catch (Exception ex)
         {
@@ -849,7 +849,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.Adhoc.GetAllUniqueAudioLanguages();
+            return RepoFactory.CrossRef_Languages_AniDB_File.GetAll().Select(a => a.LanguageName).Distinct()
+                .OrderBy(a => a).ToList();
         }
         catch (Exception ex)
         {
@@ -863,7 +864,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.Adhoc.GetAllUniqueSubtitleLanguages();
+            return RepoFactory.CrossRef_Subtitles_AniDB_File.GetAll().Select(a => a.LanguageName).Distinct()
+                .OrderBy(a => a).ToList();
         }
         catch (Exception ex)
         {

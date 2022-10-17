@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using NHibernate;
 using Shoko.Commons.Collections;
-using Shoko.Server.Databases;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories;
@@ -12,31 +11,6 @@ namespace Shoko.Server.Repositories;
 public class AdhocRepository : BaseRepository
 {
     #region Video Quality
-
-    /// <summary>
-    /// Gets a list fo all the possible video quality settings for the user e.g. dvd, blu-ray
-    /// </summary>
-    /// <returns></returns>
-    public List<string> GetAllVideoQuality()
-    {
-        var allVidQuality = new List<string>();
-
-        lock (GlobalDBLock)
-        {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            IDbCommand command = session.Connection.CreateCommand();
-            command.CommandText = "SELECT Distinct(File_Source) FROM AniDB_File";
-
-            using var rdr = command.ExecuteReader();
-            while (rdr.Read())
-            {
-                var vidQual = rdr[0].ToString().Trim();
-                allVidQuality.Add(vidQual);
-            }
-        }
-
-        return allVidQuality;
-    }
 
     /// <summary>
     /// Gets All video quality by group.
@@ -53,7 +27,7 @@ public class AdhocRepository : BaseRepository
             throw new ArgumentNullException(nameof(session));
         }
 
-        if (animeGroupIds != null && animeGroupIds.Count == 0)
+        if (animeGroupIds is { Count: 0 })
         {
             return EmptyLookup<int, string>.Instance;
         }
@@ -90,7 +64,9 @@ FROM AnimeGroup ag
 
     public HashSet<string> GetAllVideoQualityForAnime(ISessionWrapper session, int animeID)
     {
-        var vidQuals = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+        return new HashSet<string>(RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID)
+            .Select(a => a.GetAniDBFile()?.File_Source).Where(a => a != null));
+        /*var vidQuals = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         var query =
             @$"SELECT distinct anifile.File_Source
 FROM AnimeSeries ser
@@ -113,7 +89,7 @@ GROUP BY anifile.File_Source";
             }
         }
 
-        return vidQuals;
+        return vidQuals;*/
     }
 
     public Dictionary<int, HashSet<string>> GetAllVideoQualityByAnime(ISessionWrapper session,
@@ -134,7 +110,13 @@ GROUP BY anifile.File_Source";
             return new Dictionary<int, HashSet<string>>();
         }
 
-        var allVidQualPerAnime = new Dictionary<int, HashSet<string>>();
+        return animeIDs
+            .Select(animeID => (animeID,
+                new HashSet<string>(RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID)
+                    .Select(a => a?.GetAniDBFile()?.File_Source).Where(a => a != null))))
+            .ToDictionary(a => a.animeID, tuple => tuple.Item2);
+
+        /*var allVidQualPerAnime = new Dictionary<int, HashSet<string>>();
         var query = @"SELECT aniep.AnimeID, anifile.File_Source
 FROM AnimeSeries ser
          INNER JOIN AniDB_Episode aniep on ser.AniDB_ID = aniep.AnimeID
@@ -164,7 +146,7 @@ GROUP BY aniep.AnimeID, anifile.File_Source";
             }
         }
 
-        return allVidQualPerAnime;
+        return allVidQualPerAnime;*/
     }
 
     public Dictionary<int, AnimeVideoQualityStat> GetEpisodeVideoQualityStatsByAnime(ISessionWrapper session,
@@ -176,7 +158,20 @@ GROUP BY aniep.AnimeID, anifile.File_Source";
             return dictStats;
         }
 
-        lock (GlobalDBLock)
+        return animeIds
+            .SelectMany(animeID => RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
+                    a.GetAniDBFile().Episodes
+                        .Any(b => b.AnimeID == animeID && b.EpisodeType == (int)EpisodeType.Episode))
+                .Select(a => (animeID, a.GetAniDBFile()?.File_Source)).Where(a => a.File_Source != null))
+            .GroupBy(a => a.animeID).ToDictionary(a => a.Key,
+                tuples => new AnimeVideoQualityStat
+                {
+                    AnimeID = tuples.Key,
+                    VideoQualityEpisodeCount =
+                        tuples.GroupBy(b => b.File_Source).ToDictionary(b => b.Key, b => b.Count())
+                });
+        
+        /*lock (GlobalDBLock)
         {
             using var command = session.Connection.CreateCommand();
             command.CommandText = string.Format(@"SELECT aniep.AnimeID, anifile.File_Source, Count(aniep.EpisodeNumber) AS COUNT
@@ -209,12 +204,21 @@ ORDER BY aniep.AnimeID, anifile.File_Source", string.Join(",", animeIds));
             }
         }
 
-        return dictStats;
+        return dictStats;*/
     }
 
     public AnimeVideoQualityStat GetEpisodeVideoQualityStatsForAnime(ISessionWrapper session, int aID)
     {
-        var stat = new AnimeVideoQualityStat { VideoQualityEpisodeCount = new Dictionary<string, int>() };
+        return new AnimeVideoQualityStat
+        {
+            AnimeID = aID,
+            VideoQualityEpisodeCount = RepoFactory.VideoLocal.GetByAniDBAnimeID(aID)
+                .Where(a => a.GetAniDBFile().Episodes
+                    .Any(b => b.AnimeID == aID && b.EpisodeType == (int)EpisodeType.Episode))
+                .Select(a => a.GetAniDBFile()?.File_Source).Where(a => a != null).GroupBy(b => b)
+                .ToDictionary(b => b.Key, b => b.Count())
+        };
+        /*var stat = new AnimeVideoQualityStat { VideoQualityEpisodeCount = new Dictionary<string, int>() };
         lock (GlobalDBLock)
         {
             var command = session.Connection.CreateCommand();
@@ -236,119 +240,47 @@ GROUP BY aniep.AnimeID, anifile.File_Source";
             }
         }
 
-        return stat;
+        return stat;*/
     }
 
     #endregion
 
     #region Audio and Subtitle Languages
 
-    /// <summary>
-    /// Gets a list of all the possible audio languages
-    /// </summary>
-    /// <returns></returns>
-    public List<string> GetAllUniqueAudioLanguages()
-    {
-        var allLanguages = new List<string>();
-
-        lock (GlobalDBLock)
-        {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            IDbCommand command = session.Connection.CreateCommand();
-            command.CommandText = @"SELECT Distinct(LanguageName)
-FROM CrossRef_Languages_AniDB_File
-ORDER BY LanguageName";
-
-            using var rdr = command.ExecuteReader();
-            while (rdr.Read())
-            {
-                var lan = rdr[0].ToString().Trim();
-                allLanguages.Add(lan);
-            }
-        }
-
-        return allLanguages;
-    }
-
-    /// <summary>
-    /// Gets a list of all the possible subtitle languages
-    /// </summary>
-    /// <returns></returns>
-    public List<string> GetAllUniqueSubtitleLanguages()
-    {
-        var allLanguages = new List<string>();
-
-        lock (GlobalDBLock)
-        {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            IDbCommand command = session.Connection.CreateCommand();
-            command.CommandText = "SELECT Distinct(LanguageName) ";
-            command.CommandText += "FROM CrossRef_Subtitles_AniDB_File";
-            command.CommandText += "ORDER BY LanguageName ";
-
-            using var rdr = command.ExecuteReader();
-            while (rdr.Read())
-            {
-                var lan = rdr[0].ToString().Trim();
-                allLanguages.Add(lan);
-            }
-        }
-
-        return allLanguages;
-    }
-
-    private Dictionary<int, LanguageStat> GetAudioLanguageStatsByAnimeResults(ISessionWrapper session,
+    private Dictionary<int, HashSet<string>> GetAudioLanguageStatsByAnimeResults(ISessionWrapper session,
         string animeIdPredicate)
     {
-        var dictStats = new Dictionary<int, LanguageStat>();
-        var query = @"SELECT DISTINCT ser.AniDB_ID, audio.LanguageName 
-FROM AnimeSeries ser 
-    INNER JOIN AniDB_Episode aniep on aniep.AnimeID = ser.AniDB_ID
-    INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
+        var query = @"SELECT DISTINCT aniep.AnimeID, audio.LanguageName 
+FROM CrossRef_File_Episode xref 
+    INNER JOIN AniDB_Episode aniep on aniep.EpisodeID = xref.EpisodeID
     INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash
     INNER JOIN CrossRef_Languages_AniDB_File audio on audio.FileID = anifile.FileID
-WHERE ser.AniDB_ID" + animeIdPredicate;
+WHERE aniep.AnimeID" + animeIdPredicate;
 
         IList<object[]> rows;
         lock (GlobalDBLock)
         {
             rows = session.CreateSQLQuery(query)
-                .AddScalar("AniDB_ID", NHibernateUtil.Int32)
+                .AddScalar("AnimeID", NHibernateUtil.Int32)
                 .AddScalar("LanguageName", NHibernateUtil.String)
                 .List<object[]>();
         }
 
-        foreach (var cols in rows)
-        {
-            var animeID = Convert.ToInt32(cols[0]);
-            var lanName = cols[1].ToString().Trim();
-
-            if (!dictStats.TryGetValue(animeID, out var stat))
-            {
-                stat = new LanguageStat
-                {
-                    AnimeID = animeID, LanguageNames = new List<string>()
-                };
-                dictStats.Add(animeID, stat);
-            }
-            
-            stat.LanguageNames.Add(lanName);
-        }
-
-        return dictStats;
+        return rows.Select(cols => new { AnimeID = Convert.ToInt32(cols[0]), LanguageName = cols[1].ToString().Trim() })
+            .GroupBy(a => a.AnimeID).ToDictionary(a => a.Key, a => a.Select(b => b.LanguageName).ToHashSet());
     }
 
-    public Dictionary<int, LanguageStat> GetAudioLanguageStatsByAnime(ISessionWrapper session, int aID)
+    public Dictionary<int, HashSet<string>> GetAudioLanguageStatsByAnime(ISessionWrapper session, int aID)
     {
         return GetAudioLanguageStatsByAnimeResults(session, " = " + aID);
     }
 
-    public Dictionary<int, LanguageStat> GetAudioLanguageStatsByAnime(ISessionWrapper session,
+    public Dictionary<int, HashSet<string>> GetAudioLanguageStatsByAnime(ISessionWrapper session,
         ICollection<int> aIDs)
     {
         if (aIDs.Count == 0)
         {
-            return new Dictionary<int, LanguageStat>();
+            return new Dictionary<int, HashSet<string>>();
         }
 
         var predicate = " IN (" + string.Join(",", aIDs) + ") ";
@@ -356,17 +288,17 @@ WHERE ser.AniDB_ID" + animeIdPredicate;
         return GetAudioLanguageStatsByAnimeResults(session, predicate);
     }
 
-    public Dictionary<int, LanguageStat> GetSubtitleLanguageStatsByAnime(ISessionWrapper session, int aID)
+    public Dictionary<int, HashSet<string>> GetSubtitleLanguageStatsByAnime(ISessionWrapper session, int aID)
     {
         return GetSubtitleLanguageStatsByAnimeResults(session, " = " + aID);
     }
 
-    public Dictionary<int, LanguageStat> GetSubtitleLanguageStatsByAnime(ISessionWrapper session,
+    public Dictionary<int, HashSet<string>> GetSubtitleLanguageStatsByAnime(ISessionWrapper session,
         ICollection<int> aIDs)
     {
         if (aIDs.Count == 0)
         {
-            return new Dictionary<int, LanguageStat>();
+            return new Dictionary<int, HashSet<string>>();
         }
 
         var predicate = " IN (" + string.Join(",", aIDs) + ") ";
@@ -374,10 +306,10 @@ WHERE ser.AniDB_ID" + animeIdPredicate;
         return GetSubtitleLanguageStatsByAnimeResults(session, predicate);
     }
 
-    private Dictionary<int, LanguageStat> GetSubtitleLanguageStatsByAnimeResults(ISessionWrapper session,
+    private Dictionary<int, HashSet<string>> GetSubtitleLanguageStatsByAnimeResults(ISessionWrapper session,
         string animeIdPredicate)
     {
-        var dictStats = new Dictionary<int, LanguageStat>();
+        var dictStats = new Dictionary<int, HashSet<string>>();
         var query =
             @$"SELECT DISTINCT ser.AniDB_ID, audio.LanguageName 
 FROM AnimeSeries ser 
@@ -403,14 +335,11 @@ WHERE ser.AniDB_ID {animeIdPredicate}";
 
             if (!dictStats.TryGetValue(animeID, out var stat))
             {
-                stat = new LanguageStat
-                {
-                    AnimeID = animeID, LanguageNames = new List<string>()
-                };
+                stat = new HashSet<string>();
                 dictStats.Add(animeID, stat);
             }
 
-            stat.LanguageNames.Add(lanName);
+            stat.Add(lanName);
         }
 
         return dictStats;
@@ -425,10 +354,4 @@ public class AnimeVideoQualityStat
 
     public Dictionary<string, int> VideoQualityEpisodeCount { get; set; }
     // video quality / number of episodes that match that quality
-}
-
-public class LanguageStat
-{
-    public int AnimeID { get; set; }
-    public List<string> LanguageNames { get; set; } // a list of all the languages that apply to this anime
 }

@@ -1207,7 +1207,7 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
 
             if (audioLangByAnime.TryGetValue(anime.AnimeID, out var langStat))
             {
-                contract.Stat_AudioLanguages.UnionWith(langStat.LanguageNames);
+                contract.Stat_AudioLanguages.UnionWith(langStat);
             }
 
             // Audio languages
@@ -1215,7 +1215,7 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
 
             if (subtitleLangByAnime.TryGetValue(anime.AnimeID, out langStat))
             {
-                contract.Stat_SubtitleLanguages.UnionWith(langStat.LanguageNames);
+                contract.Stat_SubtitleLanguages.UnionWith(langStat);
             }
 
             // Anime video quality
@@ -1347,7 +1347,7 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting Audio Languages");
         using var session = DatabaseFactory.SessionFactory.OpenSession().Wrap();
         // audio languages
-        var lang = RepoFactory.Adhoc.GetAudioLanguageStatsByAnime(session, AnimeID).Values.SelectMany(kvp => kvp.LanguageNames);
+        var lang = RepoFactory.Adhoc.GetAudioLanguageStatsByAnime(session, AnimeID).Values.SelectMany(kvp => kvp);
         cl.Stat_AudioLanguages = new HashSet<string>(lang, StringComparer.InvariantCultureIgnoreCase);
         sw.Stop();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got Audio Languages in {sw.Elapsed.TotalSeconds:0.00###}s");
@@ -1355,7 +1355,7 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
         sw.Restart();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting Subtitle Languages");
         // subtitle languages
-        lang = RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, AnimeID).Values.SelectMany(kvp => kvp.LanguageNames);
+        lang = RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, AnimeID).Values.SelectMany(kvp => kvp);
         cl.Stat_SubtitleLanguages = new HashSet<string>(lang, StringComparer.InvariantCultureIgnoreCase);
         sw.Stop();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got Subtitle Languages in {sw.Elapsed.TotalSeconds:0.00###}s");

@@ -941,9 +941,9 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
             false);
         var allGroupIds = new Lazy<int[]>(
             () => animeGroups.Select(grp => grp.AnimeGroupID).ToArray(), false);
-        var audioLangStatsByAnime = new Lazy<Dictionary<int, LanguageStat>>(
+        var audioLangStatsByAnime = new Lazy<Dictionary<int, HashSet<string>>>(
             () => RepoFactory.Adhoc.GetAudioLanguageStatsByAnime(session, allAnimeIds.Value), false);
-        var subLangStatsByAnime = new Lazy<Dictionary<int, LanguageStat>>(
+        var subLangStatsByAnime = new Lazy<Dictionary<int, HashSet<string>>>(
             () => RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, allAnimeIds.Value),
             false);
         var tvDbXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_TvDB>>(
@@ -1101,13 +1101,13 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                     // Audio languages
                     if (audioLangStatsByAnime.Value.TryGetValue(anime.AnimeID, out var langStats))
                     {
-                        audioLanguages.UnionWith(langStats.LanguageNames);
+                        audioLanguages.UnionWith(langStats);
                     }
 
                     // Subtitle languages
                     if (subLangStatsByAnime.Value.TryGetValue(anime.AnimeID, out langStats))
                     {
-                        subtitleLanguages.UnionWith(langStats.LanguageNames);
+                        subtitleLanguages.UnionWith(langStats);
                     }
 
                     // Calculate Air Date
