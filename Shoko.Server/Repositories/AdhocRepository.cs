@@ -58,21 +58,16 @@ public class AdhocRepository : BaseRepository
             return EmptyLookup<int, string>.Instance;
         }
 
-        var query = @"
-                SELECT DISTINCT ag.AnimeGroupID, anifile.File_Source
-                    FROM AnimeGroup ag
-                        INNER JOIN AnimeSeries ser
-                            ON ser.AnimeGroupID = ag.AnimeGroupID
-                        INNER JOIN AnimeEpisode ep
-                            ON ep.AnimeSeriesID = ser.AnimeSeriesID
-                        INNER JOIN AniDB_Episode aniep
-                            ON ep.AniDB_EpisodeID = aniep.EpisodeID
-                        INNER JOIN CrossRef_File_Episode xref
-                            ON aniep.EpisodeID = xref.EpisodeID
-                        INNER JOIN AniDB_File anifile
-                            ON anifile.Hash = xref.Hash
-                        INNER JOIN CrossRef_Subtitles_AniDB_File subt
-                            ON subt.FileID = anifile.FileID";
+        var query = @"SELECT DISTINCT ag.AnimeGroupID, anifile.File_Source
+FROM AnimeGroup ag
+         INNER JOIN AnimeSeries ser
+                    ON ser.AnimeGroupID = ag.AnimeGroupID
+         INNER JOIN AniDB_Episode aniep
+                    ON ser.AniDB_ID = aniep.AnimeID
+         INNER JOIN CrossRef_File_Episode xref
+                    ON aniep.EpisodeID = xref.EpisodeID
+         INNER JOIN AniDB_File anifile
+                    ON anifile.Hash = xref.Hash";
 
         if (animeGroupIds != null)
         {
@@ -98,15 +93,12 @@ public class AdhocRepository : BaseRepository
         var vidQuals = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         var query =
             @$"SELECT anifile.File_Source
-    FROM AnimeSeries ser
-    INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID
-    INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID
-    INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID
-    INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
-    INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash
-    INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID
-    WHERE anime.AnimeID = {animeID}
-    GROUP BY anifile.File_Source";
+FROM AnimeSeries ser
+         INNER JOIN AniDB_Episode aniep on ser.AniDB_ID = aniep.AnimeID
+         INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
+         INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash
+WHERE ser.AniDB_ID = {animeID}
+GROUP BY anifile.File_Source";
 
         lock (GlobalDBLock)
         {
@@ -146,21 +138,18 @@ public class AdhocRepository : BaseRepository
         }
 
         var allVidQualPerAnime = new Dictionary<int, HashSet<string>>();
-        var query = $@"SELECT anime.AnimeID, anifile.File_Source
-                    FROM AnimeSeries ser
-                    INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID
-                    INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID
-                    INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID
-                    INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
-                    INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash
-                    INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID
-                    WHERE anime.AnimeID IN ({string.Join(",", animeIDs)})
-                    GROUP BY anime.AnimeID, anifile.File_Source ";
+        var query = @"SELECT aniep.AnimeID, anifile.File_Source
+FROM AnimeSeries ser
+         INNER JOIN AniDB_Episode aniep on ser.AniDB_ID = aniep.AnimeID
+         INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
+         INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash
+WHERE aniep.AnimeID IN ({0})
+GROUP BY aniep.AnimeID, anifile.File_Source";
 
         lock (GlobalDBLock)
         {
             using var command = session.Connection.CreateCommand();
-            command.CommandText = query;
+            command.CommandText = string.Format(query, string.Join(",", animeIDs));
 
             using var reader = command.ExecuteReader();
             while (reader.Read())
@@ -193,39 +182,33 @@ public class AdhocRepository : BaseRepository
         lock (GlobalDBLock)
         {
             using var command = session.Connection.CreateCommand();
-            command.CommandText = @$"SELECT anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber
-    FROM AnimeSeries ser
-        INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID
-        INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID
-        INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID
-        INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
-        INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash
-        INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID
-    WHERE aniep.EpisodeType = 1 AND anime.AnimeID IN ({string.Join(",", animeIds)})
-    GROUP BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber
-    ORDER BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber";
+            command.CommandText = string.Format(@"SELECT aniep.AnimeID, anifile.File_Source, Count(aniep.EpisodeNumber) AS COUNT
+FROM AnimeSeries ser
+         INNER JOIN AniDB_Episode aniep on ser.AniDB_ID = aniep.AnimeID
+         INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
+         INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash
+WHERE aniep.EpisodeType = 1 AND aniep.AnimeID IN ({0})
+GROUP BY aniep.AnimeID, anifile.File_Source
+ORDER BY aniep.AnimeID, anifile.File_Source", string.Join(",", animeIds));
 
             using var rdr = command.ExecuteReader();
             while (rdr.Read())
             {
                 var animeID = Convert.ToInt32(rdr[0]);
-                var mainTitle = rdr[1].ToString().Trim();
-                var vidQual = rdr[2].ToString().Trim();
+                var vidQual = rdr[1].ToString().Trim();
+                var count = Convert.ToInt32(rdr[2]);
 
                 if (!dictStats.TryGetValue(animeID, out var stat))
                 {
                     stat = new AnimeVideoQualityStat
                     {
                         AnimeID = animeID,
-                        MainTitle = mainTitle,
                         VideoQualityEpisodeCount = new Dictionary<string, int>()
                     };
                     dictStats.Add(animeID, stat);
                 }
 
-
-                stat.VideoQualityEpisodeCount.TryGetValue(vidQual, out var epCount);
-                stat.VideoQualityEpisodeCount[vidQual] = epCount + 1;
+                stat.VideoQualityEpisodeCount[vidQual] = count;
             }
         }
 
@@ -238,34 +221,21 @@ public class AdhocRepository : BaseRepository
         lock (GlobalDBLock)
         {
             var command = session.Connection.CreateCommand();
-            command.CommandText = @$"SELECT anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber
-    FROM AnimeSeries ser
-        INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID
-        INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID
-        INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID
-        INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
-        INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash
-        INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID
-    WHERE aniep.EpisodeType = 1 AND anime.AnimeID =  {aID}
-    GROUP BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
+            command.CommandText = @$"SELECT aniep.AnimeID, anifile.File_Source, Count(aniep.EpisodeNumber) AS COUNT
+FROM AnimeSeries ser
+         INNER JOIN AniDB_Episode aniep on ser.AniDB_ID = aniep.AnimeID
+         INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
+         INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash
+WHERE aniep.EpisodeType = 1 AND aniep.AnimeID =  {aID}
+GROUP BY aniep.AnimeID, anifile.File_Source";
 
             using var rdr = command.ExecuteReader();
             while (rdr.Read())
             {
-                stat.AnimeID = int.Parse(rdr[0].ToString());
-                stat.MainTitle = rdr[1].ToString().Trim();
-
-                var vidQual = rdr[2].ToString().Trim();
-                var epNumber = int.Parse(rdr[3].ToString());
-
-                if (!stat.VideoQualityEpisodeCount.ContainsKey(vidQual))
-                {
-                    stat.VideoQualityEpisodeCount[vidQual] = 1;
-                }
-                else
-                {
-                    stat.VideoQualityEpisodeCount[vidQual]++;
-                }
+                stat.AnimeID = Convert.ToInt32(rdr[0]);
+                var vidQual = rdr[1].ToString().Trim();
+                var count = Convert.ToInt32(rdr[2]);
+                stat.VideoQualityEpisodeCount[vidQual] = count;
             }
         }
 
@@ -288,12 +258,9 @@ public class AdhocRepository : BaseRepository
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             IDbCommand command = session.Connection.CreateCommand();
-#pragma warning disable 2100
-            command.CommandText = "SELECT Distinct(lan.LanguageName) ";
-            command.CommandText += "FROM CrossRef_Languages_AniDB_File audio ";
-            command.CommandText += "INNER JOIN Language lan on audio.LanguageID = lan.LanguageID ";
-            command.CommandText += "ORDER BY lan.LanguageName ";
-#pragma warning restore 2100
+            command.CommandText = @"SELECT Distinct(LanguageName)
+FROM CrossRef_Languages_AniDB_File
+ORDER BY LanguageName";
 
             using var rdr = command.ExecuteReader();
             while (rdr.Read())
@@ -458,7 +425,6 @@ WHERE ser.AniDB_ID {animeIdPredicate}";
 public class AnimeVideoQualityStat
 {
     public int AnimeID { get; set; }
-    public string MainTitle { get; set; }
 
     public Dictionary<string, int> VideoQualityEpisodeCount { get; set; }
     // video quality / number of episodes that match that quality

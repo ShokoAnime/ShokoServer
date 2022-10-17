@@ -162,6 +162,7 @@ public class AnimeCreator
             RepoFactory.AniDB_Episode.GetByAnimeID(anime.AnimeID).ToDictionary(a => a.EpisodeID, a => a);
         var currentAnimeEpisodes = currentAniDBEpisodes.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.Key))
             .Where(a => a != null).ToDictionary(a => a.AniDB_EpisodeID, a => a);
+        // TODO Only delete titles that have changed
         var oldtitles = currentAniDBEpisodes.Select(a => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.Key))
             .Where(a => a != null).SelectMany(a => a).ToList();
         RepoFactory.AniDB_Episode_Title.Delete(oldtitles);
