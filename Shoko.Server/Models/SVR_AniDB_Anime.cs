@@ -1363,7 +1363,7 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
         // audio languages
         cl.Stat_AudioLanguages = new HashSet<string>(
             RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID).SelectMany(a =>
-                RepoFactory.AniDB_File.GetByHash(a.Hash)?.Languages?.Select(b => b.LanguageName)).Where(a => a != null),
+                RepoFactory.AniDB_File.GetByHash(a.Hash)?.Languages?.Select(b => b.LanguageName) ?? Array.Empty<string>()).Where(a => a != null),
             StringComparer.InvariantCultureIgnoreCase);
         sw.Stop();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got Audio Languages in {sw.Elapsed.TotalSeconds:0.00###}s");
@@ -1373,7 +1373,7 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
         // subtitle languages
         cl.Stat_SubtitleLanguages = new HashSet<string>(
             RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID).SelectMany(a =>
-                RepoFactory.AniDB_File.GetByHash(a.Hash)?.Subtitles?.Select(b => b.LanguageName)),
+                RepoFactory.AniDB_File.GetByHash(a.Hash)?.Subtitles?.Select(b => b.LanguageName) ?? Array.Empty<string>()).Where(a => a != null),
             StringComparer.InvariantCultureIgnoreCase);
         sw.Stop();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got Subtitle Languages in {sw.Elapsed.TotalSeconds:0.00###}s");
