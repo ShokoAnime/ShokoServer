@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using NHibernate.Criterion;
+using NHibernate.Linq;
 using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -9,23 +11,6 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatus, int>
 {
-    private static Logger logger = LogManager.GetCurrentClassLogger();
-
-    public AniDB_GroupStatusRepository()
-    {
-        EndDeleteCallback = obj =>
-        {
-            if (obj.AnimeID <= 0)
-            {
-                return;
-            }
-
-            logger.Trace("Updating group stats by anime from AniDB_GroupStatusRepository.Delete: {0}",
-                obj.AnimeID);
-            SVR_AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
-        };
-    }
-
     public List<AniDB_GroupStatus> GetByAnimeID(int id)
     {
         lock (GlobalDBLock)
@@ -42,6 +27,8 @@ public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatu
 
     public void DeleteForAnime(int animeid)
     {
-        Delete(GetByAnimeID(animeid));
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        session.Query<AniDB_GroupStatus>().Where(a => a.AnimeID == animeid).Delete();
+        SVR_AniDB_Anime.UpdateStatsByAnimeID(animeid);
     }
 }
