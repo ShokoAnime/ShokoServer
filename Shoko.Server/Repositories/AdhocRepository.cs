@@ -337,22 +337,19 @@ public class AdhocRepository : BaseRepository
         string animeIdPredicate)
     {
         var dictStats = new Dictionary<int, LanguageStat>();
-        var query = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, audio.LanguageName "
-                    + "FROM AnimeSeries ser  "
-                    + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
-                    + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
-                    + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
-                    + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
-                    + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
-                    + "INNER JOIN CrossRef_Languages_AniDB_File audio on audio.FileID = anifile.FileID "
-                    + "WHERE anime.AnimeID " + animeIdPredicate;
+        var query = @"SELECT DISTINCT ser.AniDB_ID, audio.LanguageName 
+FROM AnimeSeries ser 
+    INNER JOIN AniDB_Episode aniep on aniep.AnimeID = ser.AniDB_ID
+    INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
+    INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash
+    INNER JOIN CrossRef_Languages_AniDB_File audio on audio.FileID = anifile.FileID
+WHERE ser.AniDB_ID" + animeIdPredicate;
 
         IList<object[]> rows;
         lock (GlobalDBLock)
         {
             rows = session.CreateSQLQuery(query)
-                .AddScalar("AnimeID", NHibernateUtil.Int32)
-                .AddScalar("MainTitle", NHibernateUtil.String)
+                .AddScalar("AniDB_ID", NHibernateUtil.Int32)
                 .AddScalar("LanguageName", NHibernateUtil.String)
                 .List<object[]>();
         }
@@ -360,18 +357,17 @@ public class AdhocRepository : BaseRepository
         foreach (var cols in rows)
         {
             var animeID = Convert.ToInt32(cols[0]);
-            var mainTitle = cols[1].ToString().Trim();
-            var lanName = cols[2].ToString().Trim();
+            var lanName = cols[1].ToString().Trim();
 
             if (!dictStats.TryGetValue(animeID, out var stat))
             {
                 stat = new LanguageStat
                 {
-                    AnimeID = animeID, MainTitle = mainTitle, LanguageNames = new List<string>()
+                    AnimeID = animeID, LanguageNames = new List<string>()
                 };
                 dictStats.Add(animeID, stat);
             }
-
+            
             stat.LanguageNames.Add(lanName);
         }
 
@@ -419,22 +415,19 @@ public class AdhocRepository : BaseRepository
     {
         var dictStats = new Dictionary<int, LanguageStat>();
         var query =
-            @$"SELECT DISTINCT anime.AnimeID, anime.MainTitle, subt.LanguageName
-    FROM AnimeSeries ser
-        INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID
-        INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID
-        INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID
-        INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
-        INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash
-        INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID
-    WHERE anime.AnimeID {animeIdPredicate}";
+            @$"SELECT DISTINCT ser.AniDB_ID, audio.LanguageName 
+FROM AnimeSeries ser 
+    INNER JOIN AniDB_Episode aniep on aniep.AnimeID = ser.AniDB_ID
+    INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
+    INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash
+    INNER JOIN CrossRef_Subtitles_AniDB_File audio on audio.FileID = anifile.FileID
+WHERE ser.AniDB_ID {animeIdPredicate}";
 
         IList<object[]> rows;
         lock (GlobalDBLock)
         {
             rows = session.CreateSQLQuery(query)
-                .AddScalar("AnimeID", NHibernateUtil.Int32)
-                .AddScalar("MainTitle", NHibernateUtil.String)
+                .AddScalar("AniDB_ID", NHibernateUtil.Int32)
                 .AddScalar("LanguageName", NHibernateUtil.String)
                 .List<object[]>();
         }
@@ -442,14 +435,13 @@ public class AdhocRepository : BaseRepository
         foreach (var cols in rows)
         {
             var animeID = Convert.ToInt32(cols[0]);
-            var mainTitle = cols[1].ToString().Trim();
-            var lanName = cols[2].ToString().Trim();
+            var lanName = cols[1].ToString().Trim();
 
             if (!dictStats.TryGetValue(animeID, out var stat))
             {
                 stat = new LanguageStat
                 {
-                    AnimeID = animeID, MainTitle = mainTitle, LanguageNames = new List<string>()
+                    AnimeID = animeID, LanguageNames = new List<string>()
                 };
                 dictStats.Add(animeID, stat);
             }
@@ -475,6 +467,5 @@ public class AnimeVideoQualityStat
 public class LanguageStat
 {
     public int AnimeID { get; set; }
-    public string MainTitle { get; set; }
     public List<string> LanguageNames { get; set; } // a list of all the languages that apply to this anime
 }
