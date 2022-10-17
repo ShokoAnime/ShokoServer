@@ -49,6 +49,7 @@ public class RequestUpdateFile : UDPRequest<Void>
         {
             case UDPReturnCode.MYLIST_ENTRY_EDITED:
             case UDPReturnCode.NO_SUCH_MYLIST_ENTRY:
+            case UDPReturnCode.NO_SUCH_FILE:
                 return new UDPResponse<Void> { Code = code };
         }
 

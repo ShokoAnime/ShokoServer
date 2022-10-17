@@ -26,6 +26,7 @@ public class RequestRemoveFile : UDPRequest<Void>
         {
             case UDPReturnCode.MYLIST_ENTRY_DELETED:
             case UDPReturnCode.NO_SUCH_MYLIST_ENTRY:
+            case UDPReturnCode.NO_SUCH_FILE:
                 return new UDPResponse<Void> { Code = code };
         }
 

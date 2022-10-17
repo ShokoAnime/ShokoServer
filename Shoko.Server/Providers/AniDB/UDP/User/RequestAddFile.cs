@@ -121,6 +121,9 @@ public class RequestAddFile : UDPRequest<ResponseMyListFile>
                         }
                     };
                 }
+            case UDPReturnCode.NO_SUCH_FILE:
+            case UDPReturnCode.NO_SUCH_EPISODE:
+                return new UDPResponse<ResponseMyListFile> { Code = code };
         }
 
         throw new UnexpectedUDPResponseException(code, receivedData);
