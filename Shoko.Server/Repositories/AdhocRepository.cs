@@ -159,18 +159,17 @@ GROUP BY aniep.AnimeID, anifile.File_Source";
         }
 
         return animeIds
-            .SelectMany(animeID => RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
-                    a.GetAniDBFile().Episodes
-                        .Any(b => b.AnimeID == animeID && b.EpisodeType == (int)EpisodeType.Episode))
-                .Select(a => (animeID, a.GetAniDBFile()?.File_Source)).Where(a => a.File_Source != null))
-            .GroupBy(a => a.animeID).ToDictionary(a => a.Key,
+            .SelectMany(animeID => RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Select(a => a.GetAniDBFile())
+                .Where(a => a?.File_Source != null &&
+                            a.Episodes.Any(b => b.AnimeID == animeID && b.EpisodeType == (int)EpisodeType.Episode))
+                .Select(a => (animeID, a.File_Source))).GroupBy(a => a.animeID).ToDictionary(a => a.Key,
                 tuples => new AnimeVideoQualityStat
                 {
                     AnimeID = tuples.Key,
                     VideoQualityEpisodeCount =
                         tuples.GroupBy(b => b.File_Source).ToDictionary(b => b.Key, b => b.Count())
                 });
-        
+
         /*lock (GlobalDBLock)
         {
             using var command = session.Connection.CreateCommand();
@@ -212,10 +211,10 @@ ORDER BY aniep.AnimeID, anifile.File_Source", string.Join(",", animeIds));
         return new AnimeVideoQualityStat
         {
             AnimeID = aID,
-            VideoQualityEpisodeCount = RepoFactory.VideoLocal.GetByAniDBAnimeID(aID)
-                .Where(a => a.GetAniDBFile().Episodes
-                    .Any(b => b.AnimeID == aID && b.EpisodeType == (int)EpisodeType.Episode))
-                .Select(a => a.GetAniDBFile()?.File_Source).Where(a => a != null).GroupBy(b => b)
+            VideoQualityEpisodeCount = RepoFactory.VideoLocal.GetByAniDBAnimeID(aID).Select(a => a.GetAniDBFile())
+                .Where(a => a != null &&
+                            a.Episodes.Any(b => b.AnimeID == aID && b.EpisodeType == (int)EpisodeType.Episode))
+                .Select(a => a.File_Source).Where(a => a != null).GroupBy(b => b)
                 .ToDictionary(b => b.Key, b => b.Count())
         };
         /*var stat = new AnimeVideoQualityStat { VideoQualityEpisodeCount = new Dictionary<string, int>() };
