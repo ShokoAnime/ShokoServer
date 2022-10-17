@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
 {
     public string Name { get; } = "SQLServer";
-    public int RequiredVersion { get; } = 95;
+    public int RequiredVersion { get; } = 96;
 
     public void BackupDatabase(string fullfilename)
     {
@@ -644,7 +644,8 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
         new DatabaseCommand(94, 8, "DROP TABLE CrossRef_AniDB_Trakt"),
         new DatabaseCommand(94, 9, "DROP TABLE Trakt_Friend"),
         new DatabaseCommand(94, 10, "CREATE UNIQUE INDEX UIX_AniDB_File_FileID ON AniDB_File(FileID);"),
-        new DatabaseCommand(95, 1, "UPDATE AniDB_File SET File_Source = 'Web' WHERE File_Source = 'www'; UPDATE AniDB_File SET File_Source = 'BluRay' WHERE File_Source = 'Blu-ray'; UPDATE AniDB_File SET File_Source = 'LaserDisc' WHERE File_Source = 'LD'; UPDATE AniDB_File SET File_Source = 'Unknown' WHERE File_Source = 'unknown';")
+        new DatabaseCommand(95, 1, "UPDATE AniDB_File SET File_Source = 'Web' WHERE File_Source = 'www'; UPDATE AniDB_File SET File_Source = 'BluRay' WHERE File_Source = 'Blu-ray'; UPDATE AniDB_File SET File_Source = 'LaserDisc' WHERE File_Source = 'LD'; UPDATE AniDB_File SET File_Source = 'Unknown' WHERE File_Source = 'unknown';"),
+        new DatabaseCommand(96, 1, "ALTER TABLE AniDB_GroupStatus ALTER COLUMN GroupName nvarchar(max); ALTER TABLE AniDB_GroupStatus ALTER COLUMN EpisodeRange nvarchar(max);"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
