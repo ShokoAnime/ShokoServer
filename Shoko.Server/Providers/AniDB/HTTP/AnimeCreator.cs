@@ -201,12 +201,12 @@ public class AnimeCreator
                 .Select(rawtitle => new SVR_AniDB_Episode_Title
                 {
                     AniDB_EpisodeID = epraw.EpisodeID, Language = rawtitle.Language, Title = rawtitle.Title
-                });
+                }).ToList();
 
             titlesToSave.AddRange(newTitles.Where(a =>
                 !oldtitles.Contains(epraw.EpisodeID) || !oldtitles[epraw.EpisodeID].Any(b => b.Equals(a))));
             if (oldtitles.Contains(epraw.EpisodeID))
-                titlesToRemove.AddRange(oldtitles[epraw.EpisodeID].Where(a => !titlesToSave.Any(b => b.Equals(a))));
+                titlesToRemove.AddRange(oldtitles[epraw.EpisodeID].Where(a => !newTitles.Any(b => b.Equals(a))));
 
             // since the HTTP api doesn't return a count of the number of specials, we will calculate it here
             if (epNew.GetEpisodeTypeEnum() == Shoko.Models.Enums.EpisodeType.Episode)

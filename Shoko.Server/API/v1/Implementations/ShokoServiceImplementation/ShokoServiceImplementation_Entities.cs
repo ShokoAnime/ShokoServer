@@ -2450,19 +2450,8 @@ public partial class ShokoServiceImplementation : IShokoServer
                 c.AnimeID = animeID;
                 c.ForceRefresh = true;
                 c.DownloadRelations = false;
-                c.BubbleExceptions = true;
             });
-            command.ProcessCommand();
-
-            // update group status information
-            var cmdStatus = _commandFactory.Create<CommandRequest_GetReleaseGroupStatus>(
-                c =>
-                {
-                    c.AnimeID = animeID;
-                    c.ForceRefresh = true;
-                }
-            );
-            cmdStatus.Save();
+            command.Save();
         }
         catch (Exception ex)
         {
