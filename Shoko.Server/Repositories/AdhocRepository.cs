@@ -92,7 +92,7 @@ FROM AnimeGroup ag
     {
         var vidQuals = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         var query =
-            @$"SELECT anifile.File_Source
+            @$"SELECT distinct anifile.File_Source
 FROM AnimeSeries ser
          INNER JOIN AniDB_Episode aniep on ser.AniDB_ID = aniep.AnimeID
          INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
@@ -109,10 +109,7 @@ GROUP BY anifile.File_Source";
             while (rdr.Read())
             {
                 var vidQual = rdr[0].ToString().Trim();
-                if (!vidQuals.Contains(vidQual))
-                {
-                    vidQuals.Add(vidQual);
-                }
+                vidQuals.Add(vidQual);
             }
         }
 
