@@ -98,7 +98,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
 
     public string ToStringDetailed()
     {
-        StringBuilder sb = new StringBuilder("");
+        var sb = new StringBuilder("");
         sb.Append(Environment.NewLine);
         sb.Append("VideoLocalID: " + VideoLocalID);
 
@@ -144,7 +144,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
     {
         get
         {
-            SVR_AniDB_File anifile = GetAniDBFile();
+            var anifile = GetAniDBFile();
             if (anifile == null) return null;
 
             return RepoFactory.AniDB_ReleaseGroup.GetByGroupID(anifile.GroupID);
@@ -169,7 +169,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
 
     private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
     {
-        SVR_VideoLocal_User vidUserRecord = GetUserRecord(userID);
+        var vidUserRecord = GetUserRecord(userID);
         if (watched)
         {
             if (vidUserRecord == null)
@@ -196,7 +196,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
     public static bool ResolveFile(string fullname)
     {
         if (string.IsNullOrEmpty(fullname)) return false;
-        Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
+        var tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
         if (tup.Item1 == null)
             return false;
         try
@@ -212,7 +212,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
 
     public FileInfo GetBestFileLink()
     {
-        foreach (SVR_VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
+        foreach (var p in Places.OrderBy(a => a.ImportFolderType))
         {
             if (ResolveFile(p.FullServerPath))
                 return new FileInfo(p.FullServerPath);
@@ -223,16 +223,15 @@ public class SVR_VideoLocal : VideoLocal, IHash
     public SVR_VideoLocal_Place GetBestVideoLocalPlace(bool resolve = false)
     {
         if (!resolve)
-            return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType)
-                .FirstOrDefault();
+            return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).MinBy(a => a.ImportFolderType);
 
         return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType)
-            .FirstOrDefault(p => ResolveFile(p.FullServerPath) != null);
+            .FirstOrDefault(p => ResolveFile(p.FullServerPath));
     }
 
     public void SetResumePosition(long resumeposition, int userID)
     {
-        SVR_VideoLocal_User userRecord = GetOrCreateUserRecord(userID);
+        var userRecord = GetOrCreateUserRecord(userID);
         userRecord.ResumePosition = resumeposition;
         userRecord.LastUpdated = DateTime.Now;
         RepoFactory.VideoLocalUser.Save(userRecord);
@@ -247,18 +246,15 @@ public class SVR_VideoLocal : VideoLocal, IHash
         bool syncTrakt, bool updateWatchedDate)
     {
         var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
+        var user = RepoFactory.JMMUser.GetByID(userID);
         if (user == null) return;
 
-        List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
-
-        // update the video file to watched
-        int mywatched = watched ? 1 : 0;
+        var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
 
         if (user.IsAniDBUser == 0)
             SaveWatchedStatus(watched, userID, watchedDate, updateWatchedDate);
         else
-            foreach (SVR_JMMUser juser in aniDBUsers)
+            foreach (var juser in aniDBUsers)
                 if (juser.IsAniDBUser == 1)
                     SaveWatchedStatus(watched, juser.JMMUserID, watchedDate, updateWatchedDate);
 
@@ -288,28 +284,28 @@ public class SVR_VideoLocal : VideoLocal, IHash
         // status, 
 
 
-        SVR_AnimeSeries ser = null;
+        SVR_AnimeSeries ser;
         // get all files associated with this episode
-        List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
-        Dictionary<int, SVR_AnimeSeries> toUpdateSeries = new Dictionary<int, SVR_AnimeSeries>();
+        var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
+        var toUpdateSeries = new Dictionary<int, SVR_AnimeSeries>();
         if (watched)
         {
             // find the total watched percentage
             // eg one file can have a % = 100
             // or if 2 files make up one episodes they will each have a % = 50
 
-            foreach (CrossRef_File_Episode xref in xrefs)
+            foreach (var xref in xrefs)
             {
                 // get the episodes for this file, may be more than one (One Piece x Toriko)
-                SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
+                var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
                 // a show we don't have
                 if (ep == null) continue;
 
                 // get all the files for this episode
-                int epPercentWatched = 0;
-                foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
+                var epPercentWatched = 0;
+                foreach (var filexref in ep.FileCrossRefs)
                 {
-                    SVR_VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
+                    var vidUser = filexref.GetVideoLocalUserRecord(userID);
                     if (vidUser?.WatchedDate != null)
                         epPercentWatched += filexref.Percentage;
 
@@ -326,7 +322,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
                     if (user.IsAniDBUser == 0)
                         ep.SaveWatchedStatus(true, userID, watchedDate, updateWatchedDate);
                     else
-                        foreach (SVR_JMMUser juser in aniDBUsers)
+                        foreach (var juser in aniDBUsers)
                             if (juser.IsAniDBUser == 1)
                                 ep.SaveWatchedStatus(true, juser.JMMUserID, watchedDate, updateWatchedDate);
 
@@ -348,18 +344,18 @@ public class SVR_VideoLocal : VideoLocal, IHash
         else
         {
             // if setting a file to unwatched only set the episode unwatched, if ALL the files are unwatched
-            foreach (CrossRef_File_Episode xrefEp in xrefs)
+            foreach (var xrefEp in xrefs)
             {
                 // get the episodes for this file, may be more than one (One Piece x Toriko)
-                SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xrefEp.EpisodeID);
+                var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xrefEp.EpisodeID);
                 // a show we don't have
                 if (ep == null) continue;
 
                 // get all the files for this episode
-                int epPercentWatched = 0;
-                foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
+                var epPercentWatched = 0;
+                foreach (var filexref in ep.FileCrossRefs)
                 {
-                    SVR_VideoLocal_User vidUser = filexref.GetVideoLocalUserRecord(userID);
+                    var vidUser = filexref.GetVideoLocalUserRecord(userID);
                     if (vidUser?.WatchedDate != null)
                         epPercentWatched += filexref.Percentage;
 
@@ -371,7 +367,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
                     if (user.IsAniDBUser == 0)
                         ep.SaveWatchedStatus(false, userID, watchedDate, true);
                     else
-                        foreach (SVR_JMMUser juser in aniDBUsers)
+                        foreach (var juser in aniDBUsers)
                             if (juser.IsAniDBUser == 1)
                                 ep.SaveWatchedStatus(false, juser.JMMUserID, watchedDate, true);
 
@@ -401,7 +397,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
         // update stats for groups and series
         if (toUpdateSeries.Count > 0 && updateStats)
         {
-            foreach (SVR_AnimeSeries s in toUpdateSeries.Values)
+            foreach (var s in toUpdateSeries.Values)
             {
                 // update all the groups above this series in the hierarchy
                 s.UpdateStats(true, true);
@@ -424,7 +420,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
 
     public CL_VideoLocal ToClient(int userID)
     {
-        CL_VideoLocal cl = new CL_VideoLocal
+        var cl = new CL_VideoLocal
         {
             CRC32 = CRC32,
             DateTimeUpdated = DateTimeUpdated,
@@ -440,7 +436,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
             VideoLocalID = VideoLocalID,
             Places = Places.Select(a => a.ToClient()).ToList()
         };
-        SVR_VideoLocal_User userRecord = GetUserRecord(userID);
+        var userRecord = GetUserRecord(userID);
         if (userRecord?.WatchedDate == null)
         {
             cl.IsWatched = 0;
@@ -543,7 +539,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
 
     public CL_VideoLocal_ManualLink ToContractManualLink(int userID)
     {
-        CL_VideoLocal_ManualLink cl = new CL_VideoLocal_ManualLink
+        var cl = new CL_VideoLocal_ManualLink
         {
             CRC32 = CRC32,
             DateTimeUpdated = DateTimeUpdated,
@@ -558,7 +554,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
             VideoLocalID = VideoLocalID,
             Places = Places.Select(a => a.ToClient()).ToList()
         };
-        SVR_VideoLocal_User userRecord = GetUserRecord(userID);
+        var userRecord = GetUserRecord(userID);
         if (userRecord?.WatchedDate == null)
         {
             cl.IsWatched = 0;
@@ -575,7 +571,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
 
     public bool MergeInfoFrom(VideoLocal vl)
     {
-        bool changed = false;
+        var changed = false;
         if (string.IsNullOrEmpty(Hash) && !string.IsNullOrEmpty(vl.Hash))
         {
             Hash = vl.Hash;
