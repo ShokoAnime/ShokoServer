@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Force.DeepCloner;
 using NHibernate;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -66,9 +67,12 @@ public static class ModelDatabase
         var existingEp = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID) ??
                          new SVR_AnimeEpisode();
 
+        var old = existingEp.DeepClone();
         existingEp.Populate(episode);
         existingEp.AnimeSeriesID = animeSeriesID;
-        RepoFactory.AnimeEpisode.Save(existingEp);
+        
+        if (!old.Equals(existingEp))
+            RepoFactory.AnimeEpisode.Save(existingEp);
 
         // We might have removed our AnimeEpisode_User records when wiping out AnimeEpisodes, recreate them if there's watched files
         var vlUsers = existingEp.GetVideoLocals()
@@ -87,26 +91,22 @@ public static class ModelDatabase
                     .MaxBy(a => a.WatchedDate);
                 // create or update the record
                 var epUser = existingEp.GetUserRecord(uid);
-                if (epUser == null)
+                if (epUser != null) continue;
+
+                epUser = new SVR_AnimeEpisode_User(uid, existingEp.AnimeEpisodeID, animeSeriesID)
                 {
-                    epUser = new SVR_AnimeEpisode_User(uid, existingEp.AnimeEpisodeID, animeSeriesID)
-                    {
-                        WatchedDate = vlUser?.WatchedDate,
-                        PlayedCount = vlUser != null ? 1 : 0,
-                        WatchedCount = vlUser != null ? 1 : 0
-                    };
-                    RepoFactory.AnimeEpisode_User.Save(epUser);
-                }
+                    WatchedDate = vlUser?.WatchedDate,
+                    PlayedCount = vlUser != null ? 1 : 0,
+                    WatchedCount = vlUser != null ? 1 : 0
+                };
+                RepoFactory.AnimeEpisode_User.Save(epUser);
             }
         }
         else
         {
             // since these are created with VideoLocal_User,
             // these will probably never exist, but if they do, cover our bases
-            foreach (var episodeUser in RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
-            {
-                RepoFactory.AnimeEpisode_User.Save(episodeUser);
-            }
+            RepoFactory.AnimeEpisode_User.Delete(RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID));
         }
     }
 

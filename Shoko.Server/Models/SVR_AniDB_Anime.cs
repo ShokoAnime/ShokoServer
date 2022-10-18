@@ -907,10 +907,8 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
 
     public SVR_AnimeSeries CreateAnimeSeriesAndGroup(SVR_AnimeSeries existingSeries = null, int? existingGroupID = null)
     {
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-        {
-            return CreateAnimeSeriesAndGroup(session.Wrap(), existingSeries, existingGroupID);
-        }
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        return CreateAnimeSeriesAndGroup(session.Wrap(), existingSeries, existingGroupID);
     }
 
     public SVR_AnimeSeries CreateAnimeSeriesAndGroup(ISessionWrapper session, SVR_AnimeSeries existingSeries = null,

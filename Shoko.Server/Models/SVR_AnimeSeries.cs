@@ -549,7 +549,7 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public void CreateAnimeEpisodes(ISession session, SVR_AniDB_Anime anime = null)
     {
-        anime = anime ?? GetAnime();
+        anime ??= GetAnime();
         if (anime == null)
         {
             return;

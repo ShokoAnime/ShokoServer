@@ -213,4 +213,44 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
     Shoko.Plugin.Abstractions.DataModels.EpisodeType IEpisode.Type =>
         (Shoko.Plugin.Abstractions.DataModels.EpisodeType) (AniDB_Episode?.EpisodeType ?? 0);
     DateTime? IEpisode.AirDate => AniDB_Episode?.GetAirDateAsDate();
+    
+    protected bool Equals(SVR_AnimeEpisode other)
+    {
+        return AnimeEpisodeID == other.AnimeEpisodeID && AnimeSeriesID == other.AnimeSeriesID &&
+               AniDB_EpisodeID == other.AniDB_EpisodeID && DateTimeUpdated.Equals(other.DateTimeUpdated) &&
+               DateTimeCreated.Equals(other.DateTimeCreated);
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (ReferenceEquals(null, obj))
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
+
+        if (obj.GetType() != this.GetType())
+        {
+            return false;
+        }
+
+        return Equals((SVR_AnimeEpisode)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            var hashCode = AnimeEpisodeID;
+            hashCode = (hashCode * 397) ^ AnimeSeriesID;
+            hashCode = (hashCode * 397) ^ AniDB_EpisodeID;
+            hashCode = (hashCode * 397) ^ DateTimeUpdated.GetHashCode();
+            hashCode = (hashCode * 397) ^ DateTimeCreated.GetHashCode();
+            return hashCode;
+        }
+    }
 }
