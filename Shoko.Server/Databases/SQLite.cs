@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using Microsoft.Data.Sqlite;
 using System.IO;
 using System.Linq;
@@ -40,7 +41,7 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
 
     public override string GetConnectionString()
     {
-        return $@"data source={GetDatabaseFilePath()}";
+        return $@"data source={GetDatabaseFilePath()};";
     }
 
     public override string GetTestConnectionString()
@@ -51,7 +52,8 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
     public ISessionFactory CreateSessionFactory()
     {
         return Fluently.Configure()
-            .Database(MsSqliteConfiguration.Standard.UsingFile(GetDatabaseFilePath()).Dialect<SqliteDialectFix>())
+            .Database(MsSqliteConfiguration.Standard.ConnectionString(c => c.Is(GetConnectionString()))
+                .Dialect<SqliteDialectFix>().Driver<SqliteDriverFix>())
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
