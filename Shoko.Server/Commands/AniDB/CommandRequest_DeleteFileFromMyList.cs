@@ -289,26 +289,24 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
                     FileSize = vid.FileSize;
                 }
             }
-            else
-            {
-                // populate the fields
-                Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(Hash));
-                FileSize = long.Parse(
-                    TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(FileSize))
-                );
 
-                if (Enum.TryParse<EpisodeType>(
-                        TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeType)),
-                        out var episodeType))
-                    EpisodeType = episodeType;
-                if (int.TryParse(
-                        TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeNumber)),
-                        out var epNum))
-                    EpisodeNumber = epNum;
-                if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(AnimeID)),
-                        out var animeID))
-                    AnimeID = animeID;
-            }
+            // populate the fields
+            Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(Hash));
+            FileSize = long.Parse(
+                TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(FileSize))
+            );
+
+            if (Enum.TryParse<EpisodeType>(
+                    TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeType)),
+                    out var episodeType))
+                EpisodeType = episodeType;
+            if (int.TryParse(
+                    TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeNumber)),
+                    out var epNum))
+                EpisodeNumber = epNum;
+            if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(AnimeID)),
+                    out var animeID))
+                AnimeID = animeID;
         }
 
         if (Hash.Trim().Length > 0 || AnimeID > 0)
