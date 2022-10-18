@@ -39,70 +39,59 @@ public class CommandProcessorImages : CommandProcessor
     {
         while (true)
         {
-            if (WorkerCommands.CancellationPending)
-            {
-                return;
-            }
-
-            // if paused we will sleep for 5 seconds, and the try again
-            if (Paused)
-            {
-                try
-                {
-                    if (WorkerCommands.CancellationPending)
-                    {
-                        return;
-                    }
-                }
-                catch
-                {
-                    // ignore
-                }
-
-                Thread.Sleep(200);
-                continue;
-            }
-
-            var crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestImages();
-            if (crdb == null)
-            {
-                return;
-            }
-
-            if (WorkerCommands.CancellationPending)
-            {
-                return;
-            }
-
-            var icr = CommandHelper.GetCommand(ServiceProvider, crdb);
-            if (icr == null)
-            {
-                return;
-            }
-
-            if (WorkerCommands.CancellationPending)
-            {
-                return;
-            }
-
-            QueueState = icr.PrettyDescription;
-
             try
             {
-                CurrentCommand = crdb;
-                icr.ProcessCommand();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "ProcessCommand exception: {CommandID}\n{Ex}", crdb.CommandID, ex);
-            }
-            finally
-            {
-                CurrentCommand = null;
-            }
+                if (WorkerCommands.CancellationPending) return;
 
-            RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
-            UpdateQueueCount();
+                // if paused we will sleep for 5 seconds, and the try again
+                if (Paused)
+                {
+                    try
+                    {
+                        if (WorkerCommands.CancellationPending) return;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    Thread.Sleep(200);
+                    continue;
+                }
+
+                var crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestImages();
+                if (crdb == null) return;
+
+                if (WorkerCommands.CancellationPending) return;
+
+                var icr = CommandHelper.GetCommand(ServiceProvider, crdb);
+                if (icr == null) return;
+
+                if (WorkerCommands.CancellationPending) return;
+
+                QueueState = icr.PrettyDescription;
+
+                try
+                {
+                    CurrentCommand = crdb;
+                    icr.ProcessCommand();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "ProcessCommand exception: {CommandID}\n{Ex}", crdb.CommandID, ex);
+                }
+                finally
+                {
+                    CurrentCommand = null;
+                }
+
+                RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
+                UpdateQueueCount();
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, "Error Processing Commands: {EX}", exception);
+            }
         }
     }
 }

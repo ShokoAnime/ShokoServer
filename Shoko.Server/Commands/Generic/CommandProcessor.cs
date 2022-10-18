@@ -131,7 +131,14 @@ public abstract class CommandProcessor : IDisposable
             message = "Idle", queueState = QueueStateEnum.Idle, extraParams = new string[0]
         };
 
-        UpdateQueueCount();
+        try
+        {
+            UpdateQueueCount();
+        }
+        catch
+        {
+            // ignore
+        }
     }
 
     public virtual void Init(IServiceProvider provider)

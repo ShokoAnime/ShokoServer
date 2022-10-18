@@ -531,53 +531,52 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         needcrc32 = string.IsNullOrEmpty(vlocal.CRC32);
         needmd5 = string.IsNullOrEmpty(vlocal.MD5);
         needsha1 = string.IsNullOrEmpty(vlocal.SHA1);
-        if (needcrc32 || needmd5 || needsha1)
+        if (!needcrc32 && !needmd5 && !needsha1) return;
+
+        ShokoService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
+        var start = DateTime.Now;
+        var tp = new List<string>();
+        if (needsha1)
         {
-            ShokoService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
-            var start = DateTime.Now;
-            var tp = new List<string>();
-            if (needsha1)
-            {
-                tp.Add("SHA1");
-            }
+            tp.Add("SHA1");
+        }
 
-            if (needmd5)
-            {
-                tp.Add("MD5");
-            }
+        if (needmd5)
+        {
+            tp.Add("MD5");
+        }
 
-            if (needcrc32)
-            {
-                tp.Add("CRC32");
-            }
+        if (needcrc32)
+        {
+            tp.Add("CRC32");
+        }
 
-            Logger.LogTrace("Calculating missing {Filename} hashes for: {Types}", FileName, string.Join(",", tp));
-            // update the VideoLocal record with the Hash, since cloud support we calculate everything
-            var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{Path.DirectorySeparatorChar}"), true,
-                ShokoServer.OnHashProgress,
-                needcrc32, needmd5, needsha1);
-            var ts = DateTime.Now - start;
-            Logger.LogTrace("Hashed file in {TotalSeconds:#0.0} seconds --- {Filename} ({Size})", ts.TotalSeconds,
-                FileName, Utils.FormatByteSize(vlocal.FileSize));
-            if (string.IsNullOrEmpty(vlocal.Hash))
-            {
-                vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
-            }
+        Logger.LogTrace("Calculating missing {Filename} hashes for: {Types}", FileName, string.Join(",", tp));
+        // update the VideoLocal record with the Hash, since cloud support we calculate everything
+        var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{Path.DirectorySeparatorChar}"), true,
+            ShokoServer.OnHashProgress,
+            needcrc32, needmd5, needsha1);
+        var ts = DateTime.Now - start;
+        Logger.LogTrace("Hashed file in {TotalSeconds:#0.0} seconds --- {Filename} ({Size})", ts.TotalSeconds,
+            FileName, Utils.FormatByteSize(vlocal.FileSize));
+        if (string.IsNullOrEmpty(vlocal.Hash))
+        {
+            vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
+        }
 
-            if (needsha1)
-            {
-                vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();
-            }
+        if (needsha1)
+        {
+            vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();
+        }
 
-            if (needmd5)
-            {
-                vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
-            }
+        if (needmd5)
+        {
+            vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
+        }
 
-            if (needcrc32)
-            {
-                vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
-            }
+        if (needcrc32)
+        {
+            vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
         }
     }
 

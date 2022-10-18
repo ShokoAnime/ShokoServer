@@ -5,6 +5,7 @@ using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
+using NHibernate;
 using Shoko.Commons.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
@@ -13,6 +14,7 @@ using Shoko.Server.Commands.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Server;
+using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
 
 namespace Shoko.Server.Commands.Generic;
 
@@ -120,7 +122,22 @@ public abstract class CommandRequestImplementation : ICommandRequest
         cri.CommandID = commandID;
         Logger.LogTrace("Saving new CommandRequest: {CommandType} {CommandID}", (CommandRequestType)cri.CommandType,
             cri.CommandID);
-        RepoFactory.CommandRequest.Save(cri);
+        try
+        {
+            RepoFactory.CommandRequest.Save(cri);
+        }
+        catch (TransactionException e)
+        {
+            Logger.LogError(e, "Failed to Save CommandRequest, retying: {Ex}", e);
+            try
+            {
+                RepoFactory.CommandRequest.Save(cri);
+            }
+            catch (TransactionException ex)
+            {
+                Logger.LogError(e, "Still Failed to Save CommandRequest: {Ex}", ex);
+            }
+        }
 
         switch (CommandRequestRepository.GetQueueIndex(cri))
         {

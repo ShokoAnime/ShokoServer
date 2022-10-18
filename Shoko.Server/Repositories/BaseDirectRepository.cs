@@ -22,10 +22,8 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
     {
         lock (GlobalDBLock)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return session.Get<T>(id);
-            }
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            return session.Get<T>(id);
         }
     }
 
@@ -49,10 +47,8 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
     {
         lock (GlobalDBLock)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return session.CreateCriteria(typeof(T)).List<T>().ToList();
-            }
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            return session.CreateCriteria(typeof(T)).List<T>().ToList();
         }
     }
 
@@ -80,34 +76,23 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
 
     public virtual void Delete(T cr)
     {
-        if (cr == null)
-        {
-            return;
-        }
+        if (cr == null) return;
 
         lock (GlobalDBLock)
         {
             BeginDeleteCallback?.Invoke(cr);
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                using (var transaction = session.BeginTransaction())
-                {
-                    DeleteWithOpenTransactionCallback?.Invoke(session, cr);
-                    session.Delete(cr);
-                    transaction.Commit();
-                }
-            }
-
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var transaction = session.BeginTransaction();
+            DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+            session.Delete(cr);
+            transaction.Commit();
             EndDeleteCallback?.Invoke(cr);
         }
     }
 
     public void Delete(IReadOnlyCollection<T> objs)
     {
-        if (objs.Count == 0)
-        {
-            return;
-        }
+        if (objs.Count == 0) return;
 
         lock (GlobalDBLock)
         {
@@ -116,19 +101,15 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
                 BeginDeleteCallback?.Invoke(obj);
             }
 
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var transaction = session.BeginTransaction();
+            foreach (var cr in objs)
             {
-                using (var transaction = session.BeginTransaction())
-                {
-                    foreach (var cr in objs)
-                    {
-                        DeleteWithOpenTransactionCallback?.Invoke(session, cr);
-                        session.Delete(cr);
-                    }
-
-                    transaction.Commit();
-                }
+                DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+                session.Delete(cr);
             }
+
+            transaction.Commit();
 
             foreach (var obj in objs)
             {
@@ -146,10 +127,7 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
     public virtual void DeleteWithOpenTransaction(ISession session, T cr)
     {
-        if (cr == null)
-        {
-            return;
-        }
+        if (cr == null) return;
 
         lock (GlobalDBLock)
         {
@@ -160,20 +138,14 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
     public void DeleteWithOpenTransaction(ISession session, List<T> objs)
     {
-        if (objs.Count == 0)
-        {
-            return;
-        }
+        if (objs.Count == 0) return;
 
         lock (GlobalDBLock)
         {
             foreach (var cr in objs)
             {
-                lock (cr)
-                {
-                    DeleteWithOpenTransactionCallback?.Invoke(session, cr);
-                    session.Delete(cr);
-                }
+                DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+                session.Delete(cr);
             }
         }
     }
@@ -182,74 +154,40 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
     {
         lock (GlobalDBLock)
         {
-            lock (obj)
-            {
-                BeginSaveCallback?.Invoke(obj);
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                {
-                    using (var transaction = session.BeginTransaction())
-                    {
-                        session.SaveOrUpdate(obj);
-                        SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
-                        transaction.Commit();
-                    }
-                }
-
-                EndSaveCallback?.Invoke(obj);
-            }
+            BeginSaveCallback?.Invoke(obj);
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var transaction = session.BeginTransaction();
+            session.SaveOrUpdate(obj);
+            SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
+            transaction.Commit();
+            EndSaveCallback?.Invoke(obj);
         }
     }
 
     public void Save(IReadOnlyCollection<T> objs)
     {
-        if (objs.Count == 0)
-        {
-            return;
-        }
+        if (objs.Count == 0) return;
 
         lock (GlobalDBLock)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var transaction = session.BeginTransaction();
+            foreach (var obj in objs)
             {
-                using (var transaction = session.BeginTransaction())
-                {
-                    foreach (var obj in objs)
-                    {
-                        lock (obj)
-                        {
-                            BeginSaveCallback?.Invoke(obj);
-                            session.SaveOrUpdate(obj);
-                            SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
-                            EndSaveCallback?.Invoke(obj);
-                        }
-                    }
-
-                    transaction.Commit();
-                }
-            }
-        }
-    }
-
-
-    //This function do not run the BeginDeleteCallback and the EndDeleteCallback
-    public virtual void SaveWithOpenTransaction(ISession session, T obj)
-    {
-        lock (GlobalDBLock)
-        {
-            lock (obj)
-            {
+                BeginSaveCallback?.Invoke(obj);
                 session.SaveOrUpdate(obj);
+                SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
+                EndSaveCallback?.Invoke(obj);
             }
+
+            transaction.Commit();
         }
     }
 
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
     public void SaveWithOpenTransaction(ISession session, List<T> objs)
     {
-        if (objs.Count == 0)
-        {
-            return;
-        }
+        if (objs.Count == 0) return;
 
         lock (GlobalDBLock)
         {

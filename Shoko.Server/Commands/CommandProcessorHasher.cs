@@ -39,81 +39,74 @@ public class CommandProcessorHasher : CommandProcessor
     {
         while (true)
         {
-            if (WorkerCommands.CancellationPending)
-            {
-                return;
-            }
-
-            // if paused we will sleep for 5 seconds, and the try again
-            if (Paused)
-            {
-                try
-                {
-                    if (WorkerCommands.CancellationPending)
-                    {
-                        return;
-                    }
-                }
-                catch
-                {
-                    // ignore
-                }
-
-                Thread.Sleep(200);
-                continue;
-            }
-
-            if (WorkerCommands.CancellationPending)
-            {
-                return;
-            }
-
-            var crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestHasher();
-            if (crdb == null)
-            {
-                if (QueueCount > 0)
-                {
-                    Logger.LogError("No command returned from repo, but there are {QueueCount} commands left",
-                        QueueCount);
-                }
-
-                return;
-            }
-
-            var icr = CommandHelper.GetCommand(ServiceProvider, crdb);
-
-            if (icr == null)
-            {
-                Logger.LogTrace("No implementation found for command: {CommandType}-{CommandID}", crdb.CommandType,
-                    crdb.CommandID);
-                return;
-            }
-
-            QueueState = icr.PrettyDescription;
-
-            if (WorkerCommands.CancellationPending)
-            {
-                return;
-            }
-
             try
             {
-                CurrentCommand = crdb;
-                icr.ProcessCommand();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "ProcessCommand exception: {CommandID}\n{Ex}", crdb.CommandID, ex);
-                Logger.LogInformation(ex, "Removing ProcessCommand: {CommandID}", crdb.CommandID);
-                RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
-            }
-            finally
-            {
-                CurrentCommand = null;
-            }
+                if (WorkerCommands.CancellationPending) return;
 
-            RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
-            UpdateQueueCount();
+                // if paused we will sleep for 5 seconds, and the try again
+                if (Paused)
+                {
+                    try
+                    {
+                        if (WorkerCommands.CancellationPending) return;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    Thread.Sleep(200);
+                    continue;
+                }
+
+                if (WorkerCommands.CancellationPending) return;
+
+                var crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestHasher();
+                if (crdb == null)
+                {
+                    if (QueueCount > 0)
+                        Logger.LogError("No command returned from repo, but there are {QueueCount} commands left",
+                            QueueCount);
+
+                    return;
+                }
+
+                var icr = CommandHelper.GetCommand(ServiceProvider, crdb);
+
+                if (icr == null)
+                {
+                    Logger.LogTrace("No implementation found for command: {CommandType}-{CommandID}", crdb.CommandType,
+                        crdb.CommandID);
+                    return;
+                }
+
+                QueueState = icr.PrettyDescription;
+
+                if (WorkerCommands.CancellationPending) return;
+
+                try
+                {
+                    CurrentCommand = crdb;
+                    icr.ProcessCommand();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "ProcessCommand exception: {CommandID}\n{Ex}", crdb.CommandID, ex);
+                    Logger.LogInformation(ex, "Removing ProcessCommand: {CommandID}", crdb.CommandID);
+                    RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
+                }
+                finally
+                {
+                    CurrentCommand = null;
+                }
+
+                RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
+                UpdateQueueCount();
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, "Error Processing Commands: {EX}", exception);
+            }
         }
     }
 }
