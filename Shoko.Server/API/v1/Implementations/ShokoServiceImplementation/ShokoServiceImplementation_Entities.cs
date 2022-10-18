@@ -333,32 +333,6 @@ public partial class ShokoServiceImplementation : IShokoServer
                 RepoFactory.AnimeEpisode_User.GetMostRecentlyWatched(userID, maxRecords)
                     .Select(a => RepoFactory.AnimeEpisode.GetByID(a.AnimeEpisodeID).GetUserContract(userID))
                     .ToList();
-            /*
-                            using (var session = JMMService.SessionFactory.OpenSession())
-                            {
-                                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                                JMMUserRepository repUsers = new JMMUserRepository();
-
-                                JMMUser user = repUsers.GetByID(session, jmmuserID);
-                                if (user == null) return retEps;
-
-                                // get a list of series that is applicable
-                                List<AnimeEpisode_User> allEpUserRecs = repEpUser.GetMostRecentlyWatched(session, jmmuserID);
-                                foreach (AnimeEpisode_User userRecord in allEpUserRecs)
-                                {
-                                    AnimeEpisode ep = repEps.GetByID(session, userRecord.AnimeEpisodeID);
-                                    if (ep == null) continue;
-
-                                    Contract_AnimeEpisode epContract = ep.ToContract(session, jmmuserID);
-                                    if (epContract != null)
-                                    {
-                                        retEps.Add(epContract);
-
-                                        // Lets only return the specified amount
-                                        if (retEps.Count == maxRecords) return retEps;
-                                    }
-                                }
-                            }*/
         }
         catch (Exception ex)
         {

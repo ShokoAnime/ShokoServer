@@ -76,10 +76,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                 };
             }
 
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var sessionWrapper = session.Wrap();
-
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
+            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
             var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(AnimeID);
             var skip = true;
             var animeRecentlyUpdated = false;
@@ -127,6 +124,8 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
             }
 
             anime ??= new SVR_AniDB_Anime();
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var sessionWrapper = session.Wrap();
             _animeCreator.CreateAnime(session, response, anime, 0);
 
             var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);

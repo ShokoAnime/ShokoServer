@@ -43,103 +43,101 @@ public partial class ShokoServiceImplementation : IShokoServer
 
         try
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+            if (anime == null)
             {
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                if (anime == null)
+                return result;
+            }
+
+            var xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(animeID);
+
+            // TvDB
+            result.CrossRef_AniDB_TvDB = xrefs;
+
+            foreach (var ep in anime.GetTvDBEpisodes())
+            {
+                result.TvDBEpisodes.Add(ep);
+            }
+
+            foreach (var xref in xrefs.DistinctBy(a => a.TvDBID))
+            {
+                var ser = RepoFactory.TvDB_Series.GetByTvDBID(xref.TvDBID);
+                if (ser != null)
                 {
-                    return result;
+                    result.TvDBSeries.Add(ser);
                 }
 
-                var xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(animeID);
-
-                // TvDB
-                result.CrossRef_AniDB_TvDB = xrefs;
-
-                foreach (var ep in anime.GetTvDBEpisodes())
+                foreach (var fanart in RepoFactory.TvDB_ImageFanart.GetBySeriesID(xref.TvDBID))
                 {
-                    result.TvDBEpisodes.Add(ep);
+                    result.TvDBImageFanarts.Add(fanart);
                 }
 
-                foreach (var xref in xrefs.DistinctBy(a => a.TvDBID))
+                foreach (var poster in RepoFactory.TvDB_ImagePoster.GetBySeriesID(xref.TvDBID))
                 {
-                    var ser = RepoFactory.TvDB_Series.GetByTvDBID(xref.TvDBID);
-                    if (ser != null)
-                    {
-                        result.TvDBSeries.Add(ser);
-                    }
-
-                    foreach (var fanart in RepoFactory.TvDB_ImageFanart.GetBySeriesID(xref.TvDBID))
-                    {
-                        result.TvDBImageFanarts.Add(fanart);
-                    }
-
-                    foreach (var poster in RepoFactory.TvDB_ImagePoster.GetBySeriesID(xref.TvDBID))
-                    {
-                        result.TvDBImagePosters.Add(poster);
-                    }
-
-                    foreach (var banner in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(xref
-                                 .TvDBID))
-                    {
-                        result.TvDBImageWideBanners.Add(banner);
-                    }
+                    result.TvDBImagePosters.Add(poster);
                 }
 
-                // Trakt
-
-
-                foreach (var xref in anime.GetCrossRefTraktV2(session))
+                foreach (var banner in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(xref
+                             .TvDBID))
                 {
-                    result.CrossRef_AniDB_Trakt.Add(xref);
-
-                    var show = RepoFactory.Trakt_Show.GetByTraktSlug(session, xref.TraktID);
-                    if (show != null)
-                    {
-                        result.TraktShows.Add(show.ToClient());
-                    }
+                    result.TvDBImageWideBanners.Add(banner);
                 }
+            }
+
+            // Trakt
 
 
-                // MovieDB
-                var xrefMovie = anime.GetCrossRefMovieDB();
-                result.CrossRef_AniDB_MovieDB = xrefMovie;
+            foreach (var xref in anime.GetCrossRefTraktV2(session))
+            {
+                result.CrossRef_AniDB_Trakt.Add(xref);
 
-
-                result.MovieDBMovie = anime.GetMovieDBMovie();
-
-
-                foreach (var fanart in anime.GetMovieDBFanarts())
+                var show = RepoFactory.Trakt_Show.GetByTraktSlug(session, xref.TraktID);
+                if (show != null)
                 {
-                    if (fanart.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
-                            StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        result.MovieDBFanarts.Add(fanart);
-                    }
+                    result.TraktShows.Add(show.ToClient());
                 }
+            }
 
-                foreach (var poster in anime.GetMovieDBPosters())
-                {
-                    if (poster.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
-                            StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        result.MovieDBPosters.Add(poster);
-                    }
-                }
 
-                // MAL
-                var xrefMAL = anime.GetCrossRefMAL();
-                if (xrefMAL == null)
+            // MovieDB
+            var xrefMovie = anime.GetCrossRefMovieDB();
+            result.CrossRef_AniDB_MovieDB = xrefMovie;
+
+
+            result.MovieDBMovie = anime.GetMovieDBMovie();
+
+
+            foreach (var fanart in anime.GetMovieDBFanarts())
+            {
+                if (fanart.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
+                        StringComparison.InvariantCultureIgnoreCase))
                 {
-                    result.CrossRef_AniDB_MAL = null;
+                    result.MovieDBFanarts.Add(fanart);
                 }
-                else
+            }
+
+            foreach (var poster in anime.GetMovieDBPosters())
+            {
+                if (poster.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
+                        StringComparison.InvariantCultureIgnoreCase))
                 {
-                    result.CrossRef_AniDB_MAL = new List<CrossRef_AniDB_MAL>();
-                    foreach (var xrefTemp in xrefMAL)
-                    {
-                        result.CrossRef_AniDB_MAL.Add(xrefTemp);
-                    }
+                    result.MovieDBPosters.Add(poster);
+                }
+            }
+
+            // MAL
+            var xrefMAL = anime.GetCrossRefMAL();
+            if (xrefMAL == null)
+            {
+                result.CrossRef_AniDB_MAL = null;
+            }
+            else
+            {
+                result.CrossRef_AniDB_MAL = new List<CrossRef_AniDB_MAL>();
+                foreach (var xrefTemp in xrefMAL)
+                {
+                    result.CrossRef_AniDB_MAL.Add(xrefTemp);
                 }
             }
 
