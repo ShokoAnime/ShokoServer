@@ -24,7 +24,8 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
     {
         (int)CommandRequestType.TvDB_DownloadImages,
         (int)CommandRequestType.ImageDownload,
-        (int)CommandRequestType.ValidateAllImages
+        (int)CommandRequestType.ValidateAllImages,
+        (int)CommandRequestType.DownloadAniDBImages
     };
 
     private static readonly HashSet<int> AniDbUdpCommands = new()
