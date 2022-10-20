@@ -92,190 +92,166 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
             vidLocal.FileName);
         // check if we already have this AniDB_File info in the database
 
-        lock (vidLocal)
+        var animeIDs = new Dictionary<int, bool>();
+
+        var aniFile = GetLocalAniDBFile(vidLocal);
+        if (aniFile?.FileSize != vlocal.FileSize)
+            aniFile ??= TryGetAniDBFileFromAniDB(vidLocal, animeIDs);
+        if (aniFile == null) return null;
+
+        PopulateAnimeForFile(vidLocal, aniFile.EpisodeCrossRefs, animeIDs);
+
+        // We do this inside, as the info will not be available as needed otherwise
+        var videoLocals =
+            aniFile.EpisodeIDs?.SelectMany(a => RepoFactory.VideoLocal.GetByAniDBEpisodeID(a))
+                .Where(b => b != null)
+                .ToList();
+        if (videoLocals == null) return null;
+
+        // Get status from existing eps/files if needed
+        GetWatchedStateIfNeeded(vidLocal, videoLocals);
+
+        // update stats for groups and series. The series are not saved until here, so it's absolutely necessary!!
+        animeIDs.Keys.ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
+
+        if (ServerSettings.Instance.FileQualityFilterEnabled)
         {
-            SVR_AniDB_File aniFile = null;
-
-            if (!ForceAniDB)
+            videoLocals.Sort(FileQualityFilter.CompareTo);
+            var keep = videoLocals
+                .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
+                .ToList();
+            foreach (var vl2 in keep)
             {
-                aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
-
-                if (aniFile == null)
-                {
-                    Logger.LogTrace("AniDB_File record not found");
-                }
+                videoLocals.Remove(vl2);
             }
 
-            // If cross refs were wiped, but the AniDB_File was not, we unfortunately need to requery the info
-            var crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
-            if (crossRefs == null || crossRefs.Count == 0)
+            if (!FileQualityFilter.Settings.AllowDeletionOfImportedFiles &&
+                videoLocals.Contains(vidLocal))
             {
-                aniFile = null;
+                videoLocals.Remove(vidLocal);
             }
 
-            var animeIDs = new Dictionary<int, bool>();
+            videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
 
-            if (aniFile == null || aniFile.FileSize != vlocal.FileSize)
+            videoLocals.ForEach(a => a.Places.ForEach(b => b.RemoveRecordAndDeletePhysicalFile()));
+        }
+        
+        // we have an AniDB File, so check the release group info
+        if (aniFile.GroupID != 0)
+        {
+            var releaseGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(aniFile.GroupID);
+            if (releaseGroup == null)
             {
-                aniFile = TryGetAniDBFileFromAniDB(vidLocal, animeIDs);
+                // may as well download it immediately. We can change it later if it becomes an issue
+                // this will only happen if it's null, and most people grab mostly the same release groups
+                var groupCommand =
+                    _commandFactory.Create<CommandRequest_GetReleaseGroup>(c => c.GroupID = aniFile.GroupID);
+                groupCommand.ProcessCommand();
             }
+        }
 
-            // if we still haven't got the AniDB_File Info we try the web cache or local records
-            if (aniFile == null)
+        // Add this file to the users list
+        if (ServerSettings.Instance.AniDb.MyList_AddFiles && !SkipMyList && vidLocal.MyListID <= 0)
+        {
+            _commandFactory.Create<CommandRequest_AddFileToMyList>(c =>
             {
-                // check if we have any records from previous imports
-                crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
+                c.Hash = vidLocal.ED2KHash;
+                c.ReadStates = true;
+            }).Save();
+        }
 
-                // stop processing if xrefs don't exist
-                if (crossRefs == null || crossRefs.Count == 0)
-                {
-                    return null;
-                }
+        return aniFile;
+    }
 
-                // we assume that all episodes belong to the same anime
-                foreach (var xref in crossRefs)
-                {
-                    var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                    if (animeIDs.ContainsKey(xref.AnimeID))
-                    {
-                        animeIDs[xref.AnimeID] = ep == null;
-                    }
-                    else
-                    {
-                        animeIDs.Add(xref.AnimeID, ep == null);
-                    }
-                }
-            }
-            else
+    private static void GetWatchedStateIfNeeded(SVR_VideoLocal vidLocal, List<SVR_VideoLocal> videoLocals)
+    {
+        if (ServerSettings.Instance.Import.UseExistingFileWatchedStatus)
+        {
+            // Copy over watched states
+            foreach (var user in RepoFactory.JMMUser.GetAll())
             {
-                // check if we have the episode info
-                // if we don't, we will need to re-download the anime info (which also has episode info)
-                var xrefs = aniFile.EpisodeCrossRefs;
-                if (xrefs.Count == 0)
+                var watchedVideo = videoLocals.FirstOrDefault(a =>
+                    a?.GetUserRecord(user.JMMUserID)?.WatchedDate != null);
+                // No files that are watched
+                if (watchedVideo == null)
                 {
-                    xrefs.Select(a => a.AnimeID).Distinct().ForEach(animeID =>
-                    {
-                        if (animeIDs.ContainsKey(animeID))
-                        {
-                            animeIDs[animeID] = true;
-                        }
-                        else
-                        {
-                            animeIDs.Add(animeID, true);
-                        }
-                    });
-
-                    // if we have the AniDB file, but no cross refs it means something has been broken
-                    Logger.LogDebug("Could not find any cross ref records for: {Ed2KHash}", vidLocal.ED2KHash);
-                }
-                else
-                {
-                    foreach (var xref in xrefs)
-                    {
-                        var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-
-                        if (animeIDs.ContainsKey(xref.AnimeID))
-                        {
-                            animeIDs[xref.AnimeID] = animeIDs[xref.AnimeID] || ep == null;
-                        }
-                        else
-                        {
-                            animeIDs.Add(xref.AnimeID, ep == null);
-                        }
-                    }
+                    continue;
                 }
 
-                // we have an AniDB File, so check the release group info
-                if (aniFile.GroupID != 0)
-                {
-                    var releaseGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(aniFile.GroupID);
-                    if (releaseGroup == null)
-                    {
-                        // may as well download it immediately. We can change it later if it becomes an issue
-                        // this will only happen if it's null, and most people grab mostly the same release groups
-                        var groupCommand =
-                            _commandFactory.Create<CommandRequest_GetReleaseGroup>(c => c.GroupID = aniFile.GroupID);
-                        groupCommand.ProcessCommand();
-                    }
-                }
+                var watchedRecord = watchedVideo.GetUserRecord(user.JMMUserID);
+                var userRecord = vidLocal.GetOrCreateUserRecord(user.JMMUserID);
+
+                userRecord.WatchedDate = watchedRecord.WatchedDate;
+                userRecord.WatchedCount = watchedRecord.WatchedCount;
+                userRecord.ResumePosition = watchedRecord.ResumePosition;
+
+                userRecord.LastUpdated = DateTime.Now;
+                RepoFactory.VideoLocalUser.Save(userRecord);
             }
-
-            PopulateAnimeForFile(vidLocal, animeIDs);
-
-            // We do this inside, as the info will not be available as needed otherwise
-            var videoLocals =
-                aniFile?.EpisodeIDs?.SelectMany(a => RepoFactory.VideoLocal.GetByAniDBEpisodeID(a))
-                    .Where(b => b != null)
-                    .ToList();
-            if (videoLocals != null)
-            {
-                if (ServerSettings.Instance.Import.UseExistingFileWatchedStatus)
-                {
-                    // Copy over watched states
-                    foreach (var user in RepoFactory.JMMUser.GetAll())
-                    {
-                        var watchedVideo = videoLocals.FirstOrDefault(a =>
-                            a?.GetUserRecord(user.JMMUserID)?.WatchedDate != null);
-                        // No files that are watched
-                        if (watchedVideo == null)
-                        {
-                            continue;
-                        }
-
-                        var watchedRecord = watchedVideo.GetUserRecord(user.JMMUserID);
-                        var userRecord = vidLocal.GetOrCreateUserRecord(user.JMMUserID);
-
-                        userRecord.WatchedDate = watchedRecord.WatchedDate;
-                        userRecord.WatchedCount = watchedRecord.WatchedCount;
-                        userRecord.ResumePosition = watchedRecord.ResumePosition;
-
-                        userRecord.LastUpdated = DateTime.Now;
-                        RepoFactory.VideoLocalUser.Save(userRecord);
-                    }
-                }
-
-                // update stats for groups and series. The series are not saved until here, so it's absolutely necessary!!
-                animeIDs.Keys.ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
-
-                if (ServerSettings.Instance.FileQualityFilterEnabled)
-                {
-                    videoLocals.Sort(FileQualityFilter.CompareTo);
-                    var keep = videoLocals
-                        .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
-                        .ToList();
-                    foreach (var vl2 in keep)
-                    {
-                        videoLocals.Remove(vl2);
-                    }
-
-                    if (!FileQualityFilter.Settings.AllowDeletionOfImportedFiles &&
-                        videoLocals.Contains(vidLocal))
-                    {
-                        videoLocals.Remove(vidLocal);
-                    }
-
-                    videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
-
-                    videoLocals.ForEach(a => a.Places.ForEach(b => b.RemoveRecordAndDeletePhysicalFile()));
-                }
-            }
-
-            // Add this file to the users list
-            if (ServerSettings.Instance.AniDb.MyList_AddFiles && !SkipMyList && vidLocal.MyListID <= 0)
-            {
-                _commandFactory.Create<CommandRequest_AddFileToMyList>(c =>
-                {
-                    c.Hash = vidLocal.ED2KHash;
-                    c.ReadStates = true;
-                }).Save();
-            }
-
-            return aniFile;
         }
     }
 
-    private void PopulateAnimeForFile(SVR_VideoLocal vidLocal, Dictionary<int, bool> animeIDs)
+    private SVR_AniDB_File GetLocalAniDBFile(SVR_VideoLocal vidLocal)
     {
+        SVR_AniDB_File aniFile = null;
+        if (!ForceAniDB)
+        {
+            aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
+
+            if (aniFile == null)
+            {
+                Logger.LogTrace("AniDB_File record not found");
+            }
+        }
+
+        // If cross refs were wiped, but the AniDB_File was not, we unfortunately need to requery the info
+        var crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
+        if (crossRefs == null || crossRefs.Count == 0)
+        {
+            aniFile = null;
+        }
+
+        return aniFile;
+    }
+
+    private void PopulateAnimeForFile(SVR_VideoLocal vidLocal, List<CrossRef_File_Episode> xrefs, Dictionary<int, bool> animeIDs)
+    {
+        // check if we have the episode info
+        // if we don't, we will need to re-download the anime info (which also has episode info)
+        if (xrefs.Count == 0)
+        {
+            xrefs.Select(a => a.AnimeID).Distinct().ForEach(animeID =>
+            {
+                if (animeIDs.ContainsKey(animeID))
+                {
+                    animeIDs[animeID] = true;
+                }
+                else
+                {
+                    animeIDs.Add(animeID, true);
+                }
+            });
+
+            // if we have the AniDB file, but no cross refs it means something has been broken
+            Logger.LogDebug("Could not find any cross ref records for: {Ed2KHash}", vidLocal.ED2KHash);
+        }
+        else
+        {
+            foreach (var xref in xrefs)
+            {
+                var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+
+                if (animeIDs.ContainsKey(xref.AnimeID))
+                {
+                    animeIDs[xref.AnimeID] = animeIDs[xref.AnimeID] || ep == null;
+                }
+                else
+                {
+                    animeIDs.Add(xref.AnimeID, ep == null);
+                }
+            }
+        }
+
         foreach (var kV in animeIDs)
         {
             var animeID = kV.Key;
