@@ -201,6 +201,45 @@ public class CommandRequest_GetFile : CommandRequestImplementation
             )
             .ToList();
 
+        if (response.OtherEpisodes.Count > 0)
+        {
+            Logger.LogInformation("Found {Count} additional episodes for file", response.OtherEpisodes.Count);
+            var epOrder = fileEps.Max(a => a.EpisodeOrder);
+            foreach (var episode in response.OtherEpisodes)
+            {
+                var epAnimeID = RepoFactory.AniDB_Episode.GetByEpisodeID(episode.EpisodeID)?.AnimeID;
+                if (epAnimeID == null)
+                {
+                    Logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, downloading more info", episode.EpisodeID);
+                    var epRequest = _requestFactory.Create<RequestGetEpisode>(r => r.EpisodeID = episode.EpisodeID);
+                    try
+                    {
+                        var epResponse = epRequest.Execute();
+                        epAnimeID = epResponse.Response?.AnimeID;
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.LogError(e, "Could not get Episode Info for {EpisodeID}: {Ex}", episode.EpisodeID, e);
+                    }
+                }
+
+                if (epAnimeID == null) continue;
+
+                epOrder++;
+                fileEps.Add(new CrossRef_File_Episode
+                {
+                    Hash = vlocal.Hash,
+                    CrossRefSource = (int)CrossRefSource.AniDB,
+                    AnimeID = epAnimeID.Value,
+                    EpisodeID = episode.EpisodeID,
+                    Percentage = episode.Percentage,
+                    EpisodeOrder = epOrder,
+                    FileName = filename,
+                    FileSize = vlocal.FileSize
+                });
+            }
+        }
+
 
         // There is a chance that AniDB returned a dup, however unlikely
         using (var trans = session.BeginTransaction())

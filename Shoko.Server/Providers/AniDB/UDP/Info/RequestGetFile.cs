@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -50,6 +51,9 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
     {
         return b.ToString("X").PadLeft(2, '0');
     }
+
+    private static readonly Regex s_episodeFormat1 = new("^(\\d+,\\d+)+$", RegexOptions.Compiled);
+    private static readonly Regex s_episodeFormat2 = new("^(\\d+,\\d+'?)+$", RegexOptions.Compiled);
 
     protected override UDPResponse<ResponseGetFile> ParseResponse(UDPResponse<string> response)
     {
@@ -122,10 +126,12 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
 
                     // episode xrefs
                     var xrefs = new List<ResponseGetFile.EpisodeXRef>();
+                    // if it's a number, it's not more than one
                     if (int.TryParse(parts[2], out var eid))
                     {
                         xrefs.Add(new ResponseGetFile.EpisodeXRef { EpisodeID = eid, Percentage = 100 });
                     }
+                    // try to parse multiple
                     else
                     {
                         var eps = parts[2].Split('\'');
@@ -155,27 +161,61 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                     var otherXrefs = new List<ResponseGetFile.EpisodeXRef>();
                     if (!string.IsNullOrEmpty(parts[5]))
                     {
-                        var xrefStrings = parts[5].Split('\'');
-                        var tempXrefs = xrefStrings.Batch(2).Select(
-                            a =>
-                            {
-                                if (!int.TryParse(a[0], out var epid))
-                                {
-                                    return null;
-                                }
+                        // check the format.
+                        // 1: number'percent'number'percent
+                        // 2: number,percent'number,percent
 
-                                if (!byte.TryParse(a[1], out var per))
-                                {
-                                    return null;
-                                }
-
-                                return new ResponseGetFile.EpisodeXRef { EpisodeID = epid, Percentage = per };
-                            }
-                        ).Where(a => a != null).ToArray();
-                        if (tempXrefs.Length > 0)
+                        if (s_episodeFormat1.IsMatch(parts[5]))
                         {
-                            otherXrefs.AddRange(tempXrefs);
+                            var xrefStrings = parts[5].Split('\'');
+                            var tempXrefs = xrefStrings.Batch(2).Select(
+                                a =>
+                                {
+                                    if (!int.TryParse(a[0], out var epid))
+                                    {
+                                        return null;
+                                    }
+
+                                    if (!byte.TryParse(a[1], out var per))
+                                    {
+                                        return null;
+                                    }
+
+                                    return new ResponseGetFile.EpisodeXRef { EpisodeID = epid, Percentage = per };
+                                }
+                            ).Where(a => a != null).ToArray();
+                            if (tempXrefs.Length > 0)
+                            {
+                                otherXrefs.AddRange(tempXrefs);
+                            }
                         }
+                        else if (s_episodeFormat2.IsMatch(parts[5]))
+                        {
+                            var xrefStrings = parts[5].Split('\'');
+                            var tempXrefs = xrefStrings.Select(
+                                a =>
+                                {
+                                    var aParts = a.Split(',');
+                                    if (!int.TryParse(aParts[0], out var epid))
+                                    {
+                                        return null;
+                                    }
+
+                                    if (!byte.TryParse(aParts[1], out var per))
+                                    {
+                                        return null;
+                                    }
+
+                                    return new ResponseGetFile.EpisodeXRef { EpisodeID = epid, Percentage = per };
+                                }
+                            ).Where(a => a != null).ToArray();
+                            if (tempXrefs.Length > 0)
+                            {
+                                otherXrefs.AddRange(tempXrefs);
+                            }
+                        }
+                        else
+                            Logger.LogError("Found an Other Episodes format that was not handled: {Format}", parts[5]);
                     }
 
                     // audio languages
