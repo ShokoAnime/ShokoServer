@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Xml;
 using Iesi.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
@@ -18,6 +20,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+using Formatting = Newtonsoft.Json.Formatting;
 
 namespace Shoko.Server.Commands.AniDB;
 
@@ -62,6 +65,10 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
                 return;
             }
 
+            var serialized = JsonConvert.SerializeObject(response.Response, Formatting.Indented);
+            Directory.CreateDirectory(ServerSettings.Instance.MyListDirectory);
+            File.WriteAllText(Path.Join(ServerSettings.Instance.MyListDirectory, "mylist.json"), serialized);
+
             var totalItems = 0;
             var watchedItems = 0;
             var modifiedItems = 0;
@@ -71,11 +78,11 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
             var onlineEpisodes = response.Response
                 .Where(a => !a.FileID.HasValue && a.AnimeID.HasValue && a.EpisodeID.HasValue)
                 .ToLookup(a => (a.AnimeID, a.EpisodeID));
-            var dictAniFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
-            var dictAniEps = RepoFactory.CrossRef_File_Episode.GetAll().Where(a => !dictAniFiles.Contains(a.Hash))
+            var localFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
+            var localEpisodes = RepoFactory.CrossRef_File_Episode.GetAll().Where(a => !localFiles.Contains(a.Hash))
                 .ToLookup(a => a.Hash);
 
-            var missingFiles = AddMissingFiles(dictAniFiles, onlineFiles, dictAniEps, onlineEpisodes);
+            var missingFiles = AddMissingFiles(localFiles, onlineFiles, localEpisodes, onlineEpisodes);
 
             var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
             var modifiedSeries = new LinkedHashSet<SVR_AnimeSeries>();
@@ -112,12 +119,8 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
                     // If there's no video local, we don't have it
                     if (vl == null)
                     {
-                        if (myitem.MyListID.HasValue)
-                            myListIDsToRemove.Add(myitem.MyListID.Value);
-                        else if (myitem.FileID.HasValue)
-                        {
-                            filesToRemove.Add(myitem.FileID.Value);
-                        }
+                        if (myitem.MyListID.HasValue) myListIDsToRemove.Add(myitem.MyListID.Value);
+                        if (myitem.FileID.HasValue) filesToRemove.Add(myitem.FileID.Value);
 
                         continue;
                     }
@@ -126,7 +129,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError($"A MyList Item threw an error while syncing: {ex}");
+                    Logger.LogError("A MyList Item threw an error while syncing: {Ex}", ex);
                 }
             }
 
