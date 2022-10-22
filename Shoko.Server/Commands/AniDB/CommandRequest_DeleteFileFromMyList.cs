@@ -262,7 +262,7 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
     /// </summary>
     public override void GenerateCommandID()
     {
-        CommandID = $"CommandRequest_DeleteFileFromMyList_{Hash}";
+        CommandID = $"CommandRequest_DeleteFileFromMyList_{Hash}_{this.FileID}_{MyListID}_{AnimeID}_{EpisodeType}{EpisodeNumber}";
     }
 
     public override bool LoadFromDBCommand(CommandRequest cq)

@@ -74,9 +74,9 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
             var modifiedItems = 0;
 
             // Add missing files on AniDB
-            var onlineFiles = response.Response.Where(a => a.FileID.HasValue).ToLookup(a => a.FileID);
+            var onlineFiles = response.Response.Where(a => a.FileID is { } and not 0).ToLookup(a => a.FileID);
             var onlineEpisodes = response.Response
-                .Where(a => !a.FileID.HasValue && a.AnimeID.HasValue && a.EpisodeID.HasValue)
+                .Where(a => a.FileID is null or 0 && a.AnimeID is not 0 && a.EpisodeID is not 0)
                 .ToLookup(a => (a.AnimeID, a.EpisodeID));
             var localFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
             var localEpisodes = RepoFactory.CrossRef_File_Episode.GetAll().Where(a => !localFiles.Contains(a.Hash))
@@ -90,6 +90,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
             // Remove Missing Files and update watched states (single loop)
             var filesToRemove = new List<int>();
             var myListIDsToRemove = new List<int>();
+            // TODO Use the indexes written?
             foreach (var myitem in response.Response)
             {
                 try
@@ -119,8 +120,8 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
                     // If there's no video local, we don't have it
                     if (vl == null)
                     {
-                        if (myitem.MyListID.HasValue) myListIDsToRemove.Add(myitem.MyListID.Value);
-                        if (myitem.FileID.HasValue) filesToRemove.Add(myitem.FileID.Value);
+                        if (myitem.MyListID != null && myitem.MyListID != 0) myListIDsToRemove.Add(myitem.MyListID.Value);
+                        if (myitem.FileID != null && myitem.FileID != 0) filesToRemove.Add(myitem.FileID.Value);
 
                         continue;
                     }
