@@ -75,10 +75,10 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
 
             // Add missing files on AniDB
             // these patterns have been tested
-            var onlineFiles = response.Response.Where(a => a.FileID is not null or 0).ToLookup(a => a.FileID);
+            var onlineFiles = response.Response.Where(a => a.FileID is not null or 0).ToLookup(a => a.FileID.Value);
             var onlineEpisodes = response.Response
                 .Where(a => a.FileID is null or 0 && a.AnimeID is not null or 0 && a.EpisodeID is not null or 0)
-                .ToLookup(a => (a.AnimeID, a.EpisodeID));
+                .ToLookup(a => (a.AnimeID.Value, a.EpisodeID.Value));
             var localFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
             var localEpisodes = RepoFactory.CrossRef_File_Episode.GetAll().Where(a => !localFiles.Contains(a.Hash))
                 .ToLookup(a => a.Hash);
@@ -222,16 +222,17 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         // aggregate and assume if one AniDB User has watched it, it should be marked
         // if multiple have, then take the latest
         // compare the states and update if needed
-
         var localWatchedDate = aniDBUsers.Select(a => vl.GetUserRecord(a.JMMUserID)).Where(a => a?.WatchedDate != null)
             .MaxBy(a => a.WatchedDate)?.WatchedDate;
+        if (localWatchedDate is not null && localWatchedDate.Value.Millisecond > 0)
+            localWatchedDate = localWatchedDate.Value.AddMilliseconds(-localWatchedDate.Value.Millisecond);
+
         var localState = ServerSettings.Instance.AniDb.MyList_StorageState;
         var shouldUpdate = false;
-        var updateDate = myitem.ViewedAt;
+        var updateDate = myitem.ViewedAt?.ToUniversalTime();
 
         // we don't support multiple AniDB accounts, so we can just only iterate to set states
-        if (ServerSettings.Instance.AniDb.MyList_ReadWatched && localWatchedDate == null &&
-            myitem.ViewedAt != null)
+        if (ServerSettings.Instance.AniDb.MyList_ReadWatched && localWatchedDate == null && updateDate != null)
         {
             foreach (var juser in aniDBUsers)
             {
@@ -243,8 +244,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
             }
         }
         // if we did the previous, then we don't want to undo it
-        else if (ServerSettings.Instance.AniDb.MyList_ReadUnwatched && localWatchedDate != null &&
-                 myitem.ViewedAt == null)
+        else if (ServerSettings.Instance.AniDb.MyList_ReadUnwatched && localWatchedDate != null && updateDate == null)
         {
             foreach (var juser in aniDBUsers)
             {
@@ -254,15 +254,15 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
                     .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
             }
         }
-        else if (ServerSettings.Instance.AniDb.MyList_SetWatched && localWatchedDate != null && !localWatchedDate.Equals(myitem.ViewedAt))
-        {
-            shouldUpdate = true;
-            updateDate = localWatchedDate;
-        }
-        else if (ServerSettings.Instance.AniDb.MyList_SetUnwatched && localWatchedDate == null && myitem.ViewedAt != null)
+        else if (ServerSettings.Instance.AniDb.MyList_SetUnwatched && localWatchedDate == null && updateDate != null)
         {
             shouldUpdate = true;
             updateDate = null;
+        }
+        else if (ServerSettings.Instance.AniDb.MyList_SetWatched && localWatchedDate != null && !localWatchedDate.Equals(updateDate))
+        {
+            shouldUpdate = true;
+            updateDate = localWatchedDate;
         }
 
         // check if the state needs to be updated
@@ -313,8 +313,8 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
     }
 
     private int AddMissingFiles(ILookup<string, SVR_AniDB_File> localFiles,
-        ILookup<int?, ResponseMyList> onlineFiles, ILookup<string, CrossRef_File_Episode> localEpisodes,
-        ILookup<(int? AnimeID, int? EpisodeID), ResponseMyList> onlineEpisodes)
+        ILookup<int, ResponseMyList> onlineFiles, ILookup<string, CrossRef_File_Episode> localEpisodes,
+        ILookup<(int AnimeID, int EpisodeID), ResponseMyList> onlineEpisodes)
     {
         if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return 0;
         var missingFiles = 0;
