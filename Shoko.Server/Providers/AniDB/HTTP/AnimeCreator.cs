@@ -160,41 +160,36 @@ public class AnimeCreator
 
         var currentAniDBEpisodes =
             RepoFactory.AniDB_Episode.GetByAnimeID(anime.AnimeID).ToDictionary(a => a.EpisodeID, a => a);
-        var currentAnimeEpisodes = currentAniDBEpisodes.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.Key))
-            .Where(a => a != null).ToDictionary(a => a.AniDB_EpisodeID, a => a);
         var oldtitles = currentAniDBEpisodes.SelectMany(a => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.Key).Where(b => b != null).Select(b => (EpisodeID:a.Key, Title:b)))
             .ToLookup(a => a.EpisodeID, a => a.Title);
-        var titlesToRemove = new List<SVR_AniDB_Episode_Title>();
 
+        var epIDs = eps.Select(b => b.EpisodeID).ToHashSet();
+        var epsToRemove = currentAniDBEpisodes.Values.Where(a => !epIDs.Contains(a.EpisodeID)).ToList();
         var epsToSave = new List<AniDB_Episode>();
+        var titlesToRemove = new List<SVR_AniDB_Episode_Title>();
         var titlesToSave = new List<SVR_AniDB_Episode_Title>();
 
         foreach (var epraw in eps)
         {
-            AniDB_Episode epNew = null;
-            if (currentAniDBEpisodes.ContainsKey(epraw.EpisodeID))
+            var epNew = new AniDB_Episode
             {
-                epNew = currentAniDBEpisodes[epraw.EpisodeID];
-                currentAniDBEpisodes.Remove(epraw.EpisodeID);
-                if (currentAnimeEpisodes.ContainsKey(epraw.EpisodeID))
-                {
-                    currentAnimeEpisodes.Remove(epraw.EpisodeID);
-                }
+                AirDate = Commons.Utils.AniDB.GetAniDBDateAsSeconds(epraw.AirDate), AnimeID = epraw.AnimeID,
+                DateTimeUpdated = DateTime.Now,
+                EpisodeID = epraw.EpisodeID,
+                EpisodeNumber = epraw.EpisodeNumber,
+                EpisodeType = (int)epraw.EpisodeType,
+                LengthSeconds = epraw.LengthSeconds,
+                Rating = epraw.Rating.ToString(CultureInfo.InvariantCulture),
+                Votes = epraw.Votes.ToString(CultureInfo.InvariantCulture),
+                Description = epraw.Description ?? string.Empty
+            };
+
+            if (!currentAniDBEpisodes.ContainsKey(epNew.EpisodeID)) epsToSave.Add(epNew);
+            else if (!currentAniDBEpisodes[epNew.EpisodeID].Equals(epNew))
+            {
+                epNew.AniDB_EpisodeID = currentAniDBEpisodes[epNew.EpisodeID].AniDB_EpisodeID;
+                epsToSave.Add(epNew);
             }
-
-            epNew ??= new AniDB_Episode();
-            epNew.AirDate = Commons.Utils.AniDB.GetAniDBDateAsSeconds(epraw.AirDate);
-            epNew.AnimeID = epraw.AnimeID;
-            epNew.DateTimeUpdated = DateTime.Now;
-            epNew.EpisodeID = epraw.EpisodeID;
-            epNew.EpisodeNumber = epraw.EpisodeNumber;
-            epNew.EpisodeType = (int)epraw.EpisodeType;
-            epNew.LengthSeconds = epraw.LengthSeconds;
-            epNew.Rating = epraw.Rating.ToString(CultureInfo.InvariantCulture);
-            epNew.Votes = epraw.Votes.ToString(CultureInfo.InvariantCulture);
-            epNew.Description = epraw.Description ?? string.Empty;
-
-            epsToSave.Add(epNew);
 
             // Titles
             var newTitles = epraw.Titles.Where(rawtitle => !string.IsNullOrEmpty(rawtitle?.Title))
@@ -228,16 +223,9 @@ public class AnimeCreator
                 _logger.LogTrace("AniDB Ep: {EpisodeID} Type: {EpisodeType} Number: {EpisodeNumber}", ep.EpisodeID,
                     ep.EpisodeType, ep.EpisodeNumber);
             }
-
-            foreach (var ep in currentAnimeEpisodes.Values)
-            {
-                _logger.LogTrace("Shoko Ep: {AnimeEpisodeID} AniEp: {AniDBEpisodeID}", ep.AnimeEpisodeID,
-                    ep.AniDB_EpisodeID);
-            }
         }
 
-        RepoFactory.AnimeEpisode.Delete(currentAnimeEpisodes.Values.ToList());
-        RepoFactory.AniDB_Episode.Delete(currentAniDBEpisodes.Values.ToList());
+        RepoFactory.AniDB_Episode.Delete(epsToRemove);
         RepoFactory.AniDB_Episode.Save(epsToSave);
         RepoFactory.AniDB_Episode_Title.Delete(titlesToRemove);
         RepoFactory.AniDB_Episode_Title.Save(titlesToSave);
