@@ -52,7 +52,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
         return b.ToString("X").PadLeft(2, '0');
     }
 
-    private static readonly Regex s_episodeFormat1 = new("^(\\d+,\\d+)+$", RegexOptions.Compiled);
+    private static readonly Regex s_episodeFormat1 = new("^(\\d+'\\d+)+$", RegexOptions.Compiled);
     private static readonly Regex s_episodeFormat2 = new("^(\\d+,\\d+'?)+$", RegexOptions.Compiled);
 
     protected override UDPResponse<ResponseGetFile> ParseResponse(UDPResponse<string> response)

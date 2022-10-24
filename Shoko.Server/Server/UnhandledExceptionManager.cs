@@ -1,74 +1,24 @@
 ﻿using System;
-using System.Configuration;
 using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
 using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Security.Principal;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using NLog;
 using Sentry;
 using Shoko.Server.Utilities;
-using Encoder = System.Drawing.Imaging.Encoder;
 
 namespace Shoko.Server.Server;
 
 public sealed class UnhandledExceptionManager
 {
-    private static bool _blnLogToFileOK = false;
-    private static bool _blnLogToScreenshotOK = false;
-    private static bool _blnLogToEventLogOK;
-
-    private static ImageFormat _ScreenshotImageFormat =
-        ImageFormat.Png;
-
-    private static string _strScreenshotFullPath = string.Empty;
-
-    private static string _strLogFullPath = string.Empty;
     private static Assembly _objParentAssembly;
     private static string _strException;
 
-    private static string _strExceptionType;
-
-    private const string _strLogName = "UnhandledExceptionLog.txt";
-    private const string _strScreenshotName = "UnhandledException";
-
-    private const string _strClassName = "UnhandledExceptionManager";
-
-    #region "Properties"
-
-    [DllImport("gdi32", EntryPoint = "BitBlt", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
-
-    #endregion "Properties"
-
-    #region "win32api screenshot calls"
-
-    //--
-    //-- Windows API calls necessary to support screen capture
-    //--
-    private static extern int BitBlt(int hDestDC, int x, int y, int nWidth, int nHeight, int hSrcDC, int xSrc,
-        int ySrc,
-        int dwRop);
-
-    [DllImport("user32", EntryPoint = "GetDC", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
-    private static extern int GetDC(int hwnd);
-
-    [DllImport("user32", EntryPoint = "ReleaseDC", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true
-    )]
-    private static extern int ReleaseDC(int hwnd, int hdc);
-
-    #endregion "win32api screenshot calls"
-
     private static Assembly ParentAssembly()
     {
-        return _objParentAssembly ?? (_objParentAssembly =
-            Assembly.GetEntryAssembly() ??
-            Assembly.GetCallingAssembly());
+        return _objParentAssembly ??= Assembly.GetEntryAssembly() ?? Assembly.GetCallingAssembly();
     }
 
     //--
@@ -301,23 +251,15 @@ public sealed class UnhandledExceptionManager
         try
         {
             _strException = ExceptionToString(objException);
-            _strExceptionType = objException.GetType().FullName;
         }
         catch (Exception ex)
         {
             _strException = "Error '" + ex.Message + "' while generating exception string";
-            _strExceptionType = string.Empty;
         }
 
         //-- log this error to various locations
         try
         {
-            //-- screenshot takes around 1 second
-            //ExceptionToScreenshot();
-
-            //-- event logging takes < 100ms
-            ExceptionToEventLog();
-
             //-- textfile logging takes < 50ms
             ExceptionToFile();
         }
@@ -326,9 +268,6 @@ public sealed class UnhandledExceptionManager
             //-- generic catch because any exceptions inside the UEH
             //-- will cause the code to terminate immediately
         }
-
-        //-- display message to the user - this is disabled for now since we don't have a UI for exceptions.
-        ExceptionToUI();
 
         //if (Variables.AppSettings.KillAppOnException)
         //{
@@ -347,194 +286,11 @@ public sealed class UnhandledExceptionManager
     }
 
     //--
-    //-- This is in a private routine for .NET security reasons
-    //-- if this line of code is in a sub, the entire sub is tagged as full trust
-    //--
-    private static void KillApp()
-    {
-        Process.GetCurrentProcess().Kill();
-    }
-
-    //--
-    //-- turns exception into something an average user can hopefully
-    //-- understand; still very technical
-    //--
-    private static string FormatExceptionForUser(bool blnConsoleApp)
-    {
-        var objStringBuilder = new StringBuilder();
-        string strBullet = null;
-        if (blnConsoleApp)
-        {
-            strBullet = "-";
-        }
-        else
-        {
-            strBullet = "•";
-        }
-
-        var _with2 = objStringBuilder;
-        if (!blnConsoleApp)
-        {
-            _with2.Append("The development team was automatically notified of this problem. ");
-            _with2.Append("If you need immediate assistance, contact (contact).");
-        }
-
-        _with2.Append(Environment.NewLine);
-        _with2.Append(Environment.NewLine);
-        _with2.Append("The following information about the error was automatically captured: ");
-        _with2.Append(Environment.NewLine);
-        _with2.Append(Environment.NewLine);
-
-        //TakeExceptionScreenshot
-        _with2.Append(" ");
-        _with2.Append(strBullet);
-        _with2.Append(" ");
-        if (_blnLogToScreenshotOK)
-        {
-            _with2.Append("a screenshot was taken of the desktop at:");
-            _with2.Append(Environment.NewLine);
-            _with2.Append("   ");
-            _with2.Append(_strScreenshotFullPath);
-        }
-        else
-        {
-            _with2.Append("a screenshot could NOT be taken of the desktop.");
-        }
-
-        _with2.Append(Environment.NewLine);
-
-        //LogExceptionToEventLog
-        _with2.Append(" ");
-        _with2.Append(strBullet);
-        _with2.Append(" ");
-        if (_blnLogToEventLogOK)
-        {
-            _with2.Append("an event was written to the application log");
-        }
-        else
-        {
-            _with2.Append("an event could NOT be written to the application log");
-        }
-
-        _with2.Append(Environment.NewLine);
-
-        // LogExceptionToFile
-        _with2.Append(" ");
-        _with2.Append(strBullet);
-        _with2.Append(" ");
-        if (_blnLogToFileOK)
-        {
-            _with2.Append("details were written to a text log at:");
-        }
-        else
-        {
-            _with2.Append("details could NOT be written to the text log at:");
-        }
-
-        _with2.Append(Environment.NewLine);
-        _with2.Append("   ");
-        _with2.Append(_strLogFullPath);
-        _with2.Append(Environment.NewLine);
-
-        _with2.Append(Environment.NewLine);
-        _with2.Append(Environment.NewLine);
-        _with2.Append("Detailed error information follows:");
-        _with2.Append(Environment.NewLine);
-        _with2.Append(Environment.NewLine);
-        _with2.Append(_strException);
-        return objStringBuilder.ToString();
-    }
-
-    //--
-    //-- display a dialog to the user; otherwise we just terminate with no alert at all!
-    //--
-
-    private static void ExceptionToUI()
-    {
-        // TODO API error notification queue
-    }
-
-    //--
-    //-- for non-web hosted apps, returns:
-    //--   "[path]\bin\YourAssemblyName."
-    //-- for web hosted apps, returns URL with non-filesystem chars removed:
-    //--   "c:\http___domain\path\YourAssemblyName."
-    private static string GetApplicationPath()
-    {
-        if (ParentAssembly().CodeBase.StartsWith("http://"))
-        {
-            //return "c:\\" + Regex.Replace(ParentAssembly().CodeBase(), "[\\/\\\\\\:\\*\\?\\\"\\<\\>\\|]", "_") + ".";
-            return @"c:\" + Regex.Replace(ParentAssembly().CodeBase, "[\\/\\\\\\:\\*\\?\\\"\\<\\>\\|]", "_") + ".";
-        }
-
-        return AppDomain.CurrentDomain.BaseDirectory + AppDomain.CurrentDomain.FriendlyName + ".";
-    }
-
-    //--
-    //-- write an exception to the Windows NT event log
-    //--
-    private static void ExceptionToEventLog()
-    {
-        try
-        {
-            EventLog.WriteEntry(AppDomain.CurrentDomain.FriendlyName,
-                Environment.NewLine + _strException, EventLogEntryType.Error);
-            _blnLogToEventLogOK = true;
-        }
-        catch
-        {
-            _blnLogToEventLogOK = false;
-        }
-    }
-
-    //--
-    //-- write an exception to the console
-    //--
-    private static void ExceptionToConsole()
-    {
-        Console.WriteLine("This application encountered an unexpected problem.");
-        Console.WriteLine(FormatExceptionForUser(true));
-        Console.WriteLine("The application must now terminate. Press ENTER to continue...");
-        Console.ReadLine();
-    }
-
-    //--
     //-- write an exception to a text file
     //--
     private static void ExceptionToFile()
     {
         LogManager.GetCurrentClassLogger().Fatal(_strException);
-
-        /*_strLogFullPath = GetApplicationPath() + _strLogName;
-        try
-        {
-            System.IO.StreamWriter objStreamWriter = new System.IO.StreamWriter(_strLogFullPath, true);
-            objStreamWriter.Write(_strException);
-            objStreamWriter.WriteLine();
-            objStreamWriter.Close();
-            _blnLogToFileOK = true;
-        }
-        catch (Exception ex)
-        {
-            _blnLogToFileOK = false;
-        }*/
-    }
-
-    //--
-    //-- exception-safe WindowsIdentity.GetCurrent retrieval returns "domain\username"
-    //-- per MS, this sometimes randomly fails with "Access Denied" particularly on NT4
-    //--
-    private static string CurrentWindowsIdentity()
-    {
-        try
-        {
-            //return System.Security.Principal.WindowsIdentity.GetCurrent().Name();
-            return WindowsIdentity.GetCurrent().Name;
-        }
-        catch
-        {
-            return string.Empty;
-        }
     }
 
     //--
@@ -557,13 +313,7 @@ public sealed class UnhandledExceptionManager
     //--
     private static string UserIdentity()
     {
-        string strTemp = null;
-        strTemp = CurrentWindowsIdentity();
-        if (string.IsNullOrEmpty(strTemp))
-        {
-            strTemp = CurrentEnvironmentIdentity();
-        }
-
+        var strTemp = CurrentEnvironmentIdentity();
         return strTemp;
     }
 
@@ -773,42 +523,6 @@ public sealed class UnhandledExceptionManager
     }
 
     //--
-    //-- returns ImageCodecInfo for the specified MIME type
-    //--
-    private static ImageCodecInfo GetEncoderInfo(string strMimeType)
-    {
-        var j = 0;
-        var objImageCodecInfo = ImageCodecInfo.GetImageEncoders();
-
-        while (j < objImageCodecInfo.Length)
-        {
-            if (objImageCodecInfo[j].MimeType == strMimeType)
-            {
-                return objImageCodecInfo[j];
-            }
-
-            j += 1;
-        }
-
-        return null;
-    }
-
-    //--
-    //-- save bitmap object to JPEG of specified quality level
-    //--
-    private static void BitmapToJPEG(Bitmap objBitmap, string strFilename, long lngCompression = 75)
-    {
-        var objEncoderParameters =
-            new EncoderParameters(1);
-        var objImageCodecInfo = GetEncoderInfo("image/jpeg");
-
-        objEncoderParameters.Param[0] =
-            new EncoderParameter(Encoder.Quality,
-                lngCompression);
-        objBitmap.Save(strFilename, objImageCodecInfo, objEncoderParameters);
-    }
-
-    //--
     //-- get IP address of this machine
     //-- not an ideal method for a number of reasons (guess why!)
     //-- but the alternatives are very ugly
@@ -823,69 +537,6 @@ public sealed class UnhandledExceptionManager
         catch
         {
             return "127.0.0.1";
-        }
-    }
-
-    private const string _strKeyNotPresent =
-        "The key <{0}> is not present in the <appSettings> section of .config file";
-
-    private const string _strKeyError = "Error {0} retrieving key <{1}> from <appSettings> section of .config file";
-
-    //--
-    //-- Returns the specified String value from the application .config file,
-    //-- with many fail-safe checks (exceptions, key not present, etc)
-    //--
-    //-- this is important in an *unhandled exception handler*, because any unhandled exceptions will simply exit!
-    //--
-    private static string GetConfigString(string strKey, string strDefault = null)
-    {
-        try
-        {
-            var strTemp = Convert.ToString(ConfigurationManager.AppSettings.Get(_strClassName + "/" + strKey));
-            if (strTemp == null)
-            {
-                return strDefault ?? string.Format(_strKeyNotPresent, _strClassName + "/" + strKey);
-            }
-
-            return strTemp;
-        }
-        catch (Exception ex)
-        {
-            return strDefault ?? string.Format(_strKeyError, ex.Message, _strClassName + "/" + strKey);
-        }
-    }
-
-    //--
-    //-- Returns the specified boolean value from the application .config file,
-    //-- with many fail-safe checks (exceptions, key not present, etc)
-    //--
-    //-- this is important in an *unhandled exception handler*, because any unhandled exceptions will simply exit!
-    //--
-    //private static bool GetConfigBoolean(string strKey, bool blnDefault = null)
-    private static bool GetConfigBoolean(string strKey, [Optional] [DefaultParameterValue(false)] bool blnDefault)
-    {
-        string strTemp = null;
-        try
-        {
-            strTemp = ConfigurationManager.AppSettings.Get(_strClassName + "/" + strKey);
-        }
-        catch
-        {
-            return blnDefault;
-        }
-
-        if (strTemp == null)
-        {
-            return blnDefault;
-        }
-
-        switch (strTemp.ToLower())
-        {
-            case "1":
-            case "true":
-                return true;
-            default:
-                return false;
         }
     }
 }

@@ -252,10 +252,6 @@ public class ServerState : INotifyPropertyChangedExt
 
     public readonly string autostartKey = "JMMServer";
 
-    public RegistryKey AutostartRegistryKey =>
-        Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-
-
     public void LoadSettings()
     {
         AniDB_Username = ServerSettings.Instance.AniDb.Username;
@@ -269,19 +265,7 @@ public class ServerState : INotifyPropertyChangedExt
             return;
         }
 
-        if (autostartMethod == AutostartMethod.Registry)
-        {
-            try
-            {
-                IsAutostartEnabled = AutostartRegistryKey.GetValue(autostartKey) != null;
-                IsAutostartDisabled = !isAutostartEnabled;
-            }
-            catch (Exception ex)
-            {
-                logger.Debug(ex, "Unable to get autostart registry value");
-            }
-        }
-        else if (autostartMethod == AutostartMethod.TaskScheduler)
+        if (autostartMethod == AutostartMethod.TaskScheduler)
         {
             var task = TaskService.Instance.GetTask(autostartTaskName);
             if (task != null && task.State != TaskState.Disabled)
