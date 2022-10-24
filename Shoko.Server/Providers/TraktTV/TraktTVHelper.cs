@@ -243,6 +243,7 @@ public class TraktTVHelper
             var headers = new Dictionary<string, string>();
 
             var retData = string.Empty;
+            TraktTVRateLimiter.Instance.EnsureRate();
             var response = SendData(TraktURIs.Oauth, json, "POST", headers, ref retData);
             if (response is TraktStatusCodes.Success or TraktStatusCodes.Success_Post)
             {
@@ -316,6 +317,7 @@ public class TraktTVHelper
             var headers = new Dictionary<string, string>();
 
             var retData = string.Empty;
+            TraktTVRateLimiter.Instance.EnsureRate();
             var response = SendData(TraktURIs.OAuthDeviceCode, json, "POST", headers, ref retData);
             if (response != TraktStatusCodes.Success && response != TraktStatusCodes.Success_Post)
             {
@@ -364,6 +366,7 @@ public class TraktTVHelper
                 headers.Clear();
 
                 var retData = string.Empty;
+                TraktTVRateLimiter.Instance.EnsureRate();
                 var response = SendData(TraktURIs.OAuthDeviceToken, json, "POST", headers, ref retData);
                 if (response == TraktStatusCodes.Success)
                 {
@@ -774,6 +777,7 @@ public class TraktTVHelper
 
 
             var retData = string.Empty;
+            TraktTVRateLimiter.Instance.EnsureRate();
             var response = SendData(TraktURIs.PostComment, json, "POST", BuildRequestHeaders(), ref retData);
             if (response == TraktStatusCodes.Success || response == TraktStatusCodes.Success_Post ||
                 response == TraktStatusCodes.Success_Delete)
@@ -891,6 +895,7 @@ public class TraktTVHelper
             }
 
             var epDate = GetEpisodeDateForSync(ep, syncType);
+            TraktTVRateLimiter.Instance.EnsureRate();
 
             //SyncEpisodeToTrakt(syncType, traktEpisodeId.Value, secondaryAction);
             SyncEpisodeToTrakt(syncType, traktShowID, season, epNumber, epDate);
@@ -945,6 +950,7 @@ public class TraktTVHelper
             }
 
             var retData = string.Empty;
+            TraktTVRateLimiter.Instance.EnsureRate();
             SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
         }
         catch (Exception ex)
@@ -1015,6 +1021,7 @@ public class TraktTVHelper
 
                 //3. send Json
                 var retData = string.Empty;
+                TraktTVRateLimiter.Instance.EnsureRate();
                 SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
             }
             else
@@ -1768,6 +1775,7 @@ public class TraktTVHelper
                 json = JSONHelper.Serialize(syncCollectionAdd);
                 url = TraktURIs.SyncCollectionAdd;
                 retData = string.Empty;
+                TraktTVRateLimiter.Instance.EnsureRate();
                 SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
             }
 
@@ -1776,6 +1784,7 @@ public class TraktTVHelper
                 json = JSONHelper.Serialize(syncCollectionRemove);
                 url = TraktURIs.SyncCollectionRemove;
                 retData = string.Empty;
+                TraktTVRateLimiter.Instance.EnsureRate();
                 SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
             }
 
@@ -1784,6 +1793,7 @@ public class TraktTVHelper
                 json = JSONHelper.Serialize(syncHistoryAdd);
                 url = TraktURIs.SyncHistoryAdd;
                 retData = string.Empty;
+                TraktTVRateLimiter.Instance.EnsureRate();
                 SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
             }
 
@@ -1792,6 +1802,7 @@ public class TraktTVHelper
                 json = JSONHelper.Serialize(syncHistoryRemove);
                 url = TraktURIs.SyncHistoryRemove;
                 retData = string.Empty;
+                TraktTVRateLimiter.Instance.EnsureRate();
                 SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
             }
 

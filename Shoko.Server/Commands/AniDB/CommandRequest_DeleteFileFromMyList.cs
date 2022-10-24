@@ -50,8 +50,8 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
     protected override void Process()
     {
         // there will be a road bump the first time we start up, as some people may have requests with MyListID. I don't care. It'll get there.
-        Logger.LogInformation("Processing CommandRequest_DeleteFileFromMyList: Hash: {Hash} FileSize: {Size} MyListID: {MyListID} FileID: {FileID} AnimeID: {AnimeID} Episode: {EpisodeType} {EpisodeNumber}",
-            Hash, FileSize, MyListID, FileID, AnimeID, EpisodeType, EpisodeNumber);
+        Logger.LogInformation("Processing CommandRequest_DeleteFileFromMyList: Hash: {Hash}, FileSize: {Size}",
+            Hash, FileSize);
 
         try
         {
@@ -106,7 +106,7 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
                             }
                         );
                         Logger.LogInformation(
-                            "Deleting Episode from MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}", AnimeID,
+                            "Deleting Episode from MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID,
                             EpisodeType, EpisodeNumber);
                         request.Execute();
                     }
@@ -125,7 +125,7 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
                             }
                         );
                         Logger.LogInformation(
-                            "Marking Episode as deleted in MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}",
+                            "Marking Episode as deleted in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}",
                             AnimeID, EpisodeType, EpisodeNumber);
                         request.Execute();
                     }
@@ -158,7 +158,7 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
                             }
                         );
                         Logger.LogInformation(
-                            "Marking Episode as unknown in MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}",
+                            "Marking Episode as unknown in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}",
                             AnimeID, EpisodeType, EpisodeNumber);
                         request.Execute();
                     }
@@ -195,7 +195,7 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
                             }
                         );
                         Logger.LogInformation(
-                            "Marking Episode as remote in MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}",
+                            "Marking Episode as remote in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}",
                             AnimeID, EpisodeType, EpisodeNumber);
                         request.Execute();
                     }
@@ -228,8 +228,8 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
                             }
                         );
                         Logger.LogInformation(
-                            "Marking Episode as Disk in MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}",
-                            AnimeID, EpisodeType, EpisodeNumber);
+                            "Marking Episode as Disk in MyList: AnimeID: {AnimeID} {EpisodeType} {Number}", AnimeID,
+                            EpisodeType, EpisodeNumber);
                         request.Execute();
                     }
                     else
@@ -262,7 +262,7 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
     /// </summary>
     public override void GenerateCommandID()
     {
-        CommandID = $"CommandRequest_DeleteFileFromMyList_{Hash}_{this.FileID}_{MyListID}_{AnimeID}_{EpisodeType}{EpisodeNumber}";
+        CommandID = $"CommandRequest_DeleteFileFromMyList_{Hash}";
     }
 
     public override bool LoadFromDBCommand(CommandRequest cq)
