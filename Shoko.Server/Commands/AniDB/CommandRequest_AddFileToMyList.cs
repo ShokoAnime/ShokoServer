@@ -169,7 +169,7 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
             );
             if (juser != null)
             {
-                var watched = newWatchedDate != null && DateTime.UnixEpoch.Equals(newWatchedDate);
+                var watched = newWatchedDate != null && !DateTime.UnixEpoch.Equals(newWatchedDate);
                 var watchedLocally = originalWatchedDate != null;
 
                 if (ReadStates)
@@ -177,7 +177,7 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
                     // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
                     if (ServerSettings.Instance.AniDb.MyList_ReadWatched && watched && !watchedLocally)
                     {
-                        _videoLocal.ToggleWatchedStatus(true, false, newWatchedDate, false, juser.JMMUserID,
+                        _videoLocal.ToggleWatchedStatus(true, false, newWatchedDate?.ToLocalTime(), false, juser.JMMUserID,
                             false, false);
                     }
                     else if (ServerSettings.Instance.AniDb.MyList_ReadUnwatched && !watched && watchedLocally)

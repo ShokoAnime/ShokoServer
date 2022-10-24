@@ -43,7 +43,7 @@ public class RequestMyList : HttpRequest<List<ResponseMyList>>
                     var viewed = (DateTime?)null;
                     if (DateTime.TryParse(item.Attribute("viewdate")?.Value, out var tempv))
                     {
-                        viewed = tempv;
+                        viewed = tempv.ToLocalTime();
                     }
 
                     var stateI = (int?)item.Element("state");

@@ -223,13 +223,13 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         // if multiple have, then take the latest
         // compare the states and update if needed
         var localWatchedDate = aniDBUsers.Select(a => vl.GetUserRecord(a.JMMUserID)).Where(a => a?.WatchedDate != null)
-            .MaxBy(a => a.WatchedDate)?.WatchedDate;
+            .Max(a => a.WatchedDate);
         if (localWatchedDate is not null && localWatchedDate.Value.Millisecond > 0)
             localWatchedDate = localWatchedDate.Value.AddMilliseconds(-localWatchedDate.Value.Millisecond);
 
         var localState = ServerSettings.Instance.AniDb.MyList_StorageState;
         var shouldUpdate = false;
-        var updateDate = myitem.ViewedAt?.ToUniversalTime();
+        var updateDate = myitem.ViewedAt;
 
         // we don't support multiple AniDB accounts, so we can just only iterate to set states
         if (ServerSettings.Instance.AniDb.MyList_ReadWatched && localWatchedDate == null && updateDate != null)
@@ -262,7 +262,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         else if (ServerSettings.Instance.AniDb.MyList_SetWatched && localWatchedDate != null && !localWatchedDate.Equals(updateDate))
         {
             shouldUpdate = true;
-            updateDate = localWatchedDate;
+            updateDate = localWatchedDate.Value.ToUniversalTime();
         }
 
         // check if the state needs to be updated

@@ -770,24 +770,24 @@ public partial class ShokoServiceImplementation
     public List<CL_MissingEpisode> GetMissingEpisodes(int userID, bool onlyMyGroups, bool regularEpisodesOnly,
         int airingState)
     {
-        var contracts = new List<CL_MissingEpisode>();
+        var result = new List<CL_MissingEpisode>();
 
         var airState = (AiringState)airingState;
 
         try
         {
             var allSeries = RepoFactory.AnimeSeries.GetAll();
-            foreach (var ser in allSeries)
+            var temp = allSeries.AsParallel().SelectMany(ser =>
             {
                 var missingEps = ser.MissingEpisodeCount;
                 if (onlyMyGroups) missingEps = ser.MissingEpisodeCountGroups;
 
                 var finishedAiring = ser.GetAnime().GetFinishedAiring();
 
-                if (!finishedAiring && airState == AiringState.FinishedAiring) continue;
-                if (finishedAiring && airState == AiringState.StillAiring) continue;
+                if (!finishedAiring && airState == AiringState.FinishedAiring) return Array.Empty<CL_MissingEpisode>();
+                if (finishedAiring && airState == AiringState.StillAiring) return Array.Empty<CL_MissingEpisode>();
 
-                if (missingEps <= 0) continue;
+                if (missingEps <= 0) return Array.Empty<CL_MissingEpisode>();
 
                 var anime = ser.GetAnime();
                 var summ = GetGroupVideoQualitySummary(anime.AnimeID);
@@ -814,19 +814,14 @@ public partial class ShokoServiceImplementation
                 }
 
                 // find the missing episodes
-                foreach (var aep in ser.GetAnimeEpisodes())
-                {
-                    if (aep.AniDB_Episode == null) continue;
-                    if (regularEpisodesOnly && aep.EpisodeTypeEnum != EpisodeType.Episode) continue;
 
-                    var aniep = aep.AniDB_Episode;
-                    if (aniep.GetFutureDated()) continue;
-
-                    var vids = aep.GetVideoLocals();
-
-                    if (vids.Count != 0) continue;
-
-                    contracts.Add(new CL_MissingEpisode
+                return ser.GetAnimeEpisodes()
+                    .Where(aep =>
+                        aep.AniDB_Episode != null && aep.GetVideoLocals().Count == 0 &&
+                        (!regularEpisodesOnly || aep.EpisodeTypeEnum == EpisodeType.Episode))
+                    .Select(aep => aep.AniDB_Episode)
+                    .Where(aniep => !aniep.GetFutureDated())
+                    .Select(aniep => new CL_MissingEpisode
                     {
                         AnimeID = ser.AniDB_ID,
                         AnimeSeries = ser.GetUserContract(userID),
@@ -837,18 +832,17 @@ public partial class ShokoServiceImplementation
                         GroupFileSummary = groupSummaryBuilder.ToString(),
                         GroupFileSummarySimple = groupSummarySimpleBuilder.ToString()
                     });
-                }
-            }
-            contracts = contracts.OrderBy(a => a.AnimeTitle)
+            }).ToList().OrderBy(a => a.AnimeTitle)
                 .ThenBy(a => a.EpisodeType)
                 .ThenBy(a => a.EpisodeNumber)
                 .ToList();
+            result = temp;
         }
         catch (Exception ex)
         {
             logger.Error(ex, ex.ToString());
         }
-        return contracts;
+        return result;
     }
 
     [HttpGet("AniDB/MyList/Missing/{userID}")]
