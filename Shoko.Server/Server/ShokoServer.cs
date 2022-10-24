@@ -219,6 +219,14 @@ public class ShokoServer
             Environment.Exit(1);
         }
 
+        // First check if we have a settings.json in case migration had issues as otherwise might clear out existing old configurations
+        var path = Path.Combine(ServerSettings.ApplicationPath, "settings.json");
+        if (File.Exists(path))
+        {
+            var t = new Thread(UninstallJMMServer) { IsBackground = true };
+            t.Start();
+        }
+
         //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
         CommandHelper.LoadCommands(ServiceContainer);
 
@@ -410,6 +418,57 @@ public class ShokoServer
         }
 
         return true;
+    }
+
+    private void UninstallJMMServer()
+    {
+        if (Utils.IsRunningOnLinuxOrMac())
+        {
+            return; //This will be handled by the OS or user, as we cannot reliably learn what package management system they use.
+        }
+
+        try
+        {
+            // Check in registry if installed
+            var jmmServerUninstallPath =
+                (string)
+                Registry.GetValue(
+                    @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
+                    "UninstallString", null);
+
+            if (!string.IsNullOrEmpty(jmmServerUninstallPath))
+            {
+                // Ask if user wants to uninstall first
+                var res = Utils.ShowYesNo(Resources.DuplicateInstallDetectedQuestion,
+                    Resources.DuplicateInstallDetected);
+
+                if (res)
+                {
+                    try
+                    {
+                        var startInfo = new ProcessStartInfo
+                        {
+                            FileName = jmmServerUninstallPath, Arguments = " /SILENT"
+                        };
+                        Process.Start(startInfo);
+
+                        logger.Log(LogLevel.Info, "JMM Server successfully uninstalled");
+                    }
+                    catch
+                    {
+                        logger.Log(LogLevel.Error, "Error occured during uninstall of JMM Server");
+                    }
+                }
+                else
+                {
+                    logger.Log(LogLevel.Info, "User cancelled JMM Server uninstall");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Log(LogLevel.Error, "Error occured during UninstallJMMServer: " + ex);
+        }
     }
 
     public bool NetPermissionWrapper(Action action)
