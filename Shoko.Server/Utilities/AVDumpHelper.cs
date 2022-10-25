@@ -1,13 +1,16 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
+using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using SharpCompress.Common;
 using SharpCompress.Readers;
 using Shoko.Commons.Utils;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+using Shoko.Server.Utilities.AVDump;
 
 namespace Shoko.Server;
 
@@ -178,10 +181,10 @@ public static class AVDumpHelper
     {
         try
         {
-            if (!File.Exists(avdumpDestination) && !GetAndExtractAVDump())
+            /*if (!File.Exists(avdumpDestination) && !GetAndExtractAVDump())
             {
                 return "Could not find  or download AvDump2 CLI";
-            }
+            }*/
 
             if (string.IsNullOrEmpty(file))
             {
@@ -193,7 +196,7 @@ public static class AVDumpHelper
                 return "Could not find Video File: " + file;
             }
 
-            var filenameArgs = GetFilenameAndArgsForOS(file);
+            /*var filenameArgs = GetFilenameAndArgsForOS(file);
 
             logger.Info($"Dumping File with AVDump: {filenameArgs.Item1} {filenameArgs.Item2}");
 
@@ -214,7 +217,14 @@ public static class AVDumpHelper
             var strOutput = pProcess.StandardOutput.ReadToEnd();
 
             //Wait for process to finish
-            pProcess.WaitForExit();
+            pProcess.WaitForExit();*/
+            /*AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+            var path = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "AVDump3", "AVDump3Lib.dll");
+            AppDomain.CurrentDomain.Load(File.ReadAllBytes(path));
+            AppDomain.CurrentDomain.AssemblyResolve -= CurrentDomain_AssemblyResolve;*/
+
+            var handler = ActivatorUtilities.GetServiceOrCreateInstance<AVDump3Handler>(ShokoServer.ServiceContainer);
+            var strOutput = handler.Run(new[] { file });
 
             return strOutput;
         }
@@ -223,6 +233,19 @@ public static class AVDumpHelper
             logger.Error($"An error occurred while AVDumping the file \"file\":\n{ex}");
             return $"An error occurred while AVDumping the file:\n{ex}";
         }
+    }
+    
+    private static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+    {
+        var domain = (AppDomain)sender;
+        foreach (var asm in domain.GetAssemblies())
+        {
+            if (asm.FullName == args.Name)
+            {
+                return asm;
+            }
+        }
+        throw new ApplicationException($"Can't find assembly {args.Name}");
     }
 
     private static Tuple<string, string> GetFilenameAndArgsForOS(string file)

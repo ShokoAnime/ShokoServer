@@ -105,4 +105,15 @@
     <PackageReference Include="Trinet.Core.IO.Ntfs" Version="4.1.1" />
     <PackageReference Include="TvDbSharper" Version="3.2.0" />
   </ItemGroup>
+  <ItemGroup>
+    <ContentWithTargetPath Include="..\Dependencies\AVDump3\AVDump3NativeLib.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>AVDump3NativeLib.dll</TargetPath>
+    </ContentWithTargetPath>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="AVDump3Lib">
+      <HintPath>..\Dependencies\AVDump3\AVDump3Lib.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>
