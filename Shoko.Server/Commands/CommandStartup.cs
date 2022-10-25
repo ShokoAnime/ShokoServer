@@ -7,7 +7,7 @@ namespace Shoko.Server.Commands;
 
 public static class CommandStartup
 {
-    public static void Configure(IServiceCollection services)
+    public static void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton<ICommandRequestFactory, CommandRequestFactory>();
 

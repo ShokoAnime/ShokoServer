@@ -18,6 +18,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+using Shoko.Server.Utilities.AVDump;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -32,15 +33,17 @@ public class ActionController : BaseController
     private readonly TraktTVHelper _traktHelper;
     private readonly MovieDBHelper _movieDBHelper;
     private readonly IHttpConnectionHandler _httpHandler;
+    private readonly AVDump3Handler _avDumpHandler;
 
     public ActionController(ILogger<ActionController> logger, ICommandRequestFactory commandFactory,
-        TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, IHttpConnectionHandler httpHandler)
+        TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, IHttpConnectionHandler httpHandler, AVDump3Handler avDumpHandler)
     {
         _logger = logger;
         _commandFactory = commandFactory;
         _traktHelper = traktHelper;
         _movieDBHelper = movieDBHelper;
         _httpHandler = httpHandler;
+        _avDumpHandler = avDumpHandler;
     }
 
     #region Common Actions
@@ -199,15 +202,14 @@ public class ActionController : BaseController
                 .Where(_tuple => !_tuple.anidb.IsDeprecated)
                 .Where(_tuple => _tuple.vid.Media?.MenuStreams.Any() != _tuple.anidb.IsChaptered)
                 .Select(_tuple => _tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
-                .Where(path => !string.IsNullOrEmpty(path)).ToList();
-            var index = 0;
-            foreach (var path in list)
+                .Where(path => !string.IsNullOrEmpty(path)).ToArray();
+            try
             {
-                _logger.LogInformation($"AVDump Start {index + 1}/{list.Count}: {path}");
-                AVDumpHelper.DumpFile(path);
-                _logger.LogInformation($"AVDump Finished {index + 1}/{list.Count}: {path}");
-                index++;
-                _logger.LogInformation($"AVDump Progress: {list.Count - index} remaining");
+                _avDumpHandler.Run(list);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Unable to AVDump File: {Ex}", e);
             }
         });
 

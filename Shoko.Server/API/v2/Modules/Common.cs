@@ -25,6 +25,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
+using Shoko.Server.Utilities.AVDump;
 
 namespace Shoko.Server.API.v2.Modules;
 
@@ -37,10 +38,12 @@ public class Common : BaseController
 {
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ShokoServiceImplementation _service;
+    private readonly AVDump3Handler _avDumpHandler;
 
-    public Common(ICommandRequestFactory commandFactory)
+    public Common(ICommandRequestFactory commandFactory, AVDump3Handler avDumpHandler)
     {
         _commandFactory = commandFactory;
+        _avDumpHandler = avDumpHandler;
         _service = new ShokoServiceImplementation(null, null, null, commandFactory);
     }
     //class will be found automagically thanks to inherits also class need to be public (or it will 404)
@@ -846,29 +849,30 @@ public class Common : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("avdumpmismatchedfiles")]
-    public ActionResult AVDumpMismatchedFiles()
+    public async Task<ActionResult> AVDumpMismatchedFiles()
     {
         var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
             .ToDictionary(a => a, a => a.GetAniDBFile());
         var logger = LogManager.GetCurrentClassLogger();
-        Task.Factory.StartNew(() =>
+        await Task.Factory.StartNew(() =>
         {
             var list = allvids.Keys.Select(vid => new { vid, anidb = allvids[vid] })
                 .Where(tuple => tuple.anidb != null)
                 .Where(tuple => !tuple.anidb.IsDeprecated)
                 .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != tuple.anidb.IsChaptered)
                 .Select(tuple => tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
-                .Where(path => !string.IsNullOrEmpty(path)).ToList();
-            var index = 0;
-            foreach (var path in list)
+                .Where(path => !string.IsNullOrEmpty(path)).ToArray();
+
+            try
             {
-                logger.Info($"AVDump Start {index + 1}/{list.Count}: {path}");
-                AVDumpHelper.DumpFile(path);
-                logger.Info($"AVDump Finished {index + 1}/{list.Count}: {path}");
-                index++;
-                logger.Info($"AVDump Progress: {list.Count - index} remaining");
+                _avDumpHandler.Run(list);
             }
-        });
+            catch (Exception e)
+            {
+                var message = $"Unable to AVDump File: {e}";
+                logger.Error(message);
+            }
+        }).ConfigureAwait(false);
 
         return Ok();
     }

@@ -44,6 +44,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Settings.DI;
 using Shoko.Server.UI;
 using Shoko.Server.Utilities;
+using Shoko.Server.Utilities.AVDump;
 using Trinet.Core.IO.Ntfs;
 using Action = System.Action;
 using LogLevel = NLog.LogLevel;
@@ -101,6 +102,7 @@ public class ShokoServer
 
     internal static void ConfigureServices(IServiceCollection services)
     {
+        AVDumpHelper.ConfigureServices(services);
         ServerSettings.ConfigureServices(services);
         // THIS IS BAD AND NOT WORKING
         services.AddSingleton(ServerSettings.Instance);
@@ -112,7 +114,7 @@ public class ShokoServer
         services.AddSingleton<TvDBApiHelper>();
         services.AddSingleton<MovieDBHelper>();
         AniDBStartup.ConfigureServices(services);
-        CommandStartup.Configure(services);
+        CommandStartup.ConfigureServices(services);
         Loader.Instance.Load(services);
     }
 

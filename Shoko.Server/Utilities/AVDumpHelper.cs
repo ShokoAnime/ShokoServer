@@ -1,6 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Xml;
+using System.Xml.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using SharpCompress.Common;
@@ -16,255 +21,39 @@ namespace Shoko.Server;
 
 public static class AVDumpHelper
 {
-    public static readonly string Destination = Path.Combine(ServerSettings.ApplicationPath, "Utilities", "AVDump");
-    public static readonly string AVDumpZipDestination = Path.Combine(Destination, "avdump2.zip");
-
-    public const string AVDump2URL = @"http://static.anidb.net/client/avdump2/avdump2_7100.zip";
-
-    public static readonly string avdumpDestination = Path.Combine(Destination, "AVDump2CL.exe");
-
-    public static readonly string[] OldAVDump =
+    public static void ConfigureServices(IServiceCollection services)
     {
-        "AVDump2CL.exe", "AVDump2CL.exe.config", "AVDump2Lib.dll", "AVDump2Lib.dll.config", "CSEBMLLib.dll",
-        "Ionic.Zip.Reduced.dll", "libMediaInfo_x64.so", "libMediaInfo_x86.so", "MediaInfo_x64.dll",
-        "MediaInfo_x86.dll", "Error"
-    };
-
-    private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-
-    public static bool GetAndExtractAVDump()
-    {
-        if (File.Exists(AVDumpZipDestination))
-        {
-            return ExtractAVDump();
-        }
-
-        if (!DownloadFile(AVDump2URL, AVDumpZipDestination))
-        {
-            return false;
-        }
-
-        return ExtractAVDump();
+        AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+        services.AddSingleton<AVDump3Handler>();
     }
 
-    private static bool ExtractAVDump()
-    {
-        try
-        {
-            // First clear out the existing one. 
-            DeleteOldAVDump();
-
-            // Now make the new one
-            using (Stream stream = File.OpenRead(AVDumpZipDestination))
-            using (var reader = ReaderFactory.Open(stream))
-            {
-                while (reader.MoveToNextEntry())
-                {
-                    if (!reader.Entry.IsDirectory)
-                    {
-                        reader.WriteEntryToDirectory(Destination, new ExtractionOptions
-                        {
-                            // This may have serious problems in the future, but for now, AVDump is flat
-                            ExtractFullPath = false, Overwrite = true
-                        });
-                    }
-                }
-            }
-        }
-        catch
-        {
-            return false;
-        }
-
-        try
-        {
-            File.Delete(AVDumpZipDestination);
-        }
-        catch
-        {
-            // eh we tried
-        }
-
-        return true;
-    }
-
-    private static void DeleteOldAVDump()
-    {
-        var oldPath = Directory.GetParent(Destination).FullName;
-        foreach (var name in OldAVDump)
-        {
-            try
-            {
-                var path = Path.Combine(oldPath, name);
-                if (File.Exists(path))
-                {
-                    File.Delete(path);
-                    continue;
-                }
-
-                if (Directory.Exists(path))
-                {
-                    Directory.Delete(path, true);
-                }
-            }
-            catch
-            {
-                // Eh we tried
-            }
-        }
-    }
-
-    private static bool DownloadFile(string sourceURL, string fileName)
-    {
-        try
-        {
-            if (File.Exists(fileName))
-            {
-                return true;
-            }
-
-            using (var stream = Misc.DownloadWebBinary(sourceURL))
-            {
-                if (stream == null)
-                {
-                    return false;
-                }
-
-                var destinationFolder = Directory.GetParent(fileName).FullName;
-                if (!Directory.Exists(destinationFolder))
-                {
-                    Directory.CreateDirectory(destinationFolder);
-                }
-
-                using (var fileStream = File.Create(fileName))
-                {
-                    CopyStream(stream, fileStream);
-                }
-            }
-
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    public static void CopyStream(Stream input, Stream output)
-    {
-        var buffer = new byte[8 * 1024];
-        int len;
-        while ((len = input.Read(buffer, 0, buffer.Length)) > 0)
-        {
-            output.Write(buffer, 0, len);
-        }
-    }
-
-    public static string DumpFile(int vid)
-    {
-        var vl = RepoFactory.VideoLocal.GetByID(vid);
-        if (vl == null)
-        {
-            return "Unable to get videoloocal with id: " + vid;
-        }
-
-        var file = vl.GetBestVideoLocalPlace(true)?.FullServerPath;
-        if (string.IsNullOrEmpty(file))
-        {
-            return "Unable to get file: " + vid;
-        }
-
-        return DumpFile(file);
-    }
-
-    public static string DumpFile(string file)
-    {
-        try
-        {
-            /*if (!File.Exists(avdumpDestination) && !GetAndExtractAVDump())
-            {
-                return "Could not find  or download AvDump2 CLI";
-            }*/
-
-            if (string.IsNullOrEmpty(file))
-            {
-                return "File path cannot be null";
-            }
-
-            if (!File.Exists(file))
-            {
-                return "Could not find Video File: " + file;
-            }
-
-            /*var filenameArgs = GetFilenameAndArgsForOS(file);
-
-            logger.Info($"Dumping File with AVDump: {filenameArgs.Item1} {filenameArgs.Item2}");
-
-            var pProcess = new Process
-            {
-                StartInfo =
-                {
-                    FileName = filenameArgs.Item1,
-                    Arguments = filenameArgs.Item2,
-                    UseShellExecute = false,
-                    WindowStyle = ProcessWindowStyle.Hidden,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
-                }
-            };
-
-            pProcess.Start();
-            var strOutput = pProcess.StandardOutput.ReadToEnd();
-
-            //Wait for process to finish
-            pProcess.WaitForExit();*/
-            /*AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
-            var path = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "AVDump3", "AVDump3Lib.dll");
-            AppDomain.CurrentDomain.Load(File.ReadAllBytes(path));
-            AppDomain.CurrentDomain.AssemblyResolve -= CurrentDomain_AssemblyResolve;*/
-
-            var handler = ActivatorUtilities.GetServiceOrCreateInstance<AVDump3Handler>(ShokoServer.ServiceContainer);
-            var strOutput = handler.Run(new[] { file });
-
-            return strOutput;
-        }
-        catch (Exception ex)
-        {
-            logger.Error($"An error occurred while AVDumping the file \"file\":\n{ex}");
-            return $"An error occurred while AVDumping the file:\n{ex}";
-        }
-    }
-    
     private static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
     {
-        var domain = (AppDomain)sender;
-        foreach (var asm in domain.GetAssemblies())
+        var execAssembly = Assembly.GetExecutingAssembly();
+        var folderPath = Path.GetDirectoryName(execAssembly.Location);
+        if (string.IsNullOrEmpty(folderPath)) return null;
+        var assemblyPath = Path.Combine(folderPath, new AssemblyName(args.Name).Name + ".dll");
+        if (!File.Exists(assemblyPath))
         {
-            if (asm.FullName == args.Name)
-            {
-                return asm;
-            }
+            assemblyPath = Path.Combine(folderPath, "AVDump3", new AssemblyName(args.Name).Name + ".dll");
+            if (!File.Exists(assemblyPath)) return null;
         }
-        throw new ApplicationException($"Can't find assembly {args.Name}");
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        return assembly;
     }
 
-    private static Tuple<string, string> GetFilenameAndArgsForOS(string file)
+    private static List<string> GetEd2ks(string result)
     {
-        // Windows: avdumpDestination --Auth=....
-        // Mono: mono avdumpDestination --Auth=...
-        var executable = avdumpDestination;
-        var fileName = (char)34 + file + (char)34;
-
-        var args = $"--Auth={ServerSettings.Instance.AniDb.Username.Trim()}:" +
-                   $"{ServerSettings.Instance.AniDb.AVDumpKey?.Trim()}" +
-                   $" --LPort={ServerSettings.Instance.AniDb.AVDumpClientPort} --PrintEd2kLink -t {fileName}";
-
-        if (Utils.IsRunningOnLinuxOrMac())
+        try
         {
-            executable = "mono";
-            args = $"{avdumpDestination} {args}";
+            var xml = "<Files>\n" + string.Join("\n", result.Split("\n").Where(a => a.Trim().StartsWith("<"))) + "\n</Files>";
+            var doc = new XDocument(xml);
+            return doc.Elements().Select(a => a.Value).ToList();
         }
-
-        return Tuple.Create(executable, args);
+        catch (Exception e)
+        {
+            // ignore
+            return new List<string>();
+        }
     }
 }

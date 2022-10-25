@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Annotations;
@@ -14,7 +15,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Commands;
 using Shoko.Server.Repositories;
-using Shoko.Server.Settings;
+using Shoko.Server.Utilities.AVDump;
 using CommandRequestPriority = Shoko.Server.Server.CommandRequestPriority;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using Path = System.IO.Path;
@@ -30,13 +31,17 @@ public class FileController : BaseController
     private const string AnidbNotFoundForFileID = "No File.Anidb entry for the given fileID";
     private readonly TraktTVHelper _traktHelper;
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly AVDump3Handler _avDumpHandler;
 
     internal static string FileNotFoundWithFileID = "No File entry for the given fileID";
+    private readonly ILogger<FileController> _logger;
 
-    public FileController(TraktTVHelper traktHelper, ICommandRequestFactory commandFactory)
+    public FileController(TraktTVHelper traktHelper, ICommandRequestFactory commandFactory, AVDump3Handler avDumpHandler, ILogger<FileController> logger)
     {
         _traktHelper = traktHelper;
         _commandFactory = commandFactory;
+        _avDumpHandler = avDumpHandler;
+        _logger = logger;
     }
 
     internal const string FileForbiddenForUser = "Accessing File is not allowed for the current user";
@@ -361,19 +366,24 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        if (string.IsNullOrWhiteSpace(ServerSettings.Instance.AniDb.AVDumpKey))
-            return BadRequest("Missing AVDump API key");
-
         var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
             return BadRequest(FileNoPath);
 
-        var result = AVDumpHelper.DumpFile(filePath).Replace("\r", "");
+        var message = string.Empty;
+        try
+        {
+            message = _avDumpHandler.Run(filePath);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError("Unable to AVDump File: {Ex}", e);
+        }
 
         return new AVDumpResult()
         {
-            FullOutput = result,
-            Ed2k = result.Split('\n').FirstOrDefault(s => s.Trim().Contains("ed2k://")),
+            FullOutput = message,
+            Ed2k = message.Split('\n').FirstOrDefault(s => s.Trim().Contains("ed2k://")),
         };
     }
 

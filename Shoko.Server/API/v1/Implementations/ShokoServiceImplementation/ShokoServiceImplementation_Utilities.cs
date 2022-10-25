@@ -26,6 +26,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+using Shoko.Server.Utilities.AVDump;
 
 namespace Shoko.Server;
 
@@ -1528,6 +1529,23 @@ public partial class ShokoServiceImplementation
     [HttpGet("AniDB/AVDumpFile/{vidLocalID}")]
     public string AVDumpFile(int vidLocalID)
     {
-        return AVDumpHelper.DumpFile(vidLocalID);
+        var vl = RepoFactory.VideoLocal.GetByID(vidLocalID);
+        if (vl == null) return $"VideoLocal {vidLocalID} not found";
+
+        try
+        {
+            var place = vl.GetBestVideoLocalPlace();
+            if (place == null) return $"Could not find path for VideoLocal {vidLocalID}";
+            var handler = HttpContext.RequestServices.GetRequiredService<AVDump3Handler>();
+            var result = handler.Run(place.FullServerPath);
+            if (string.IsNullOrEmpty(result)) return $"Could not find file: {place.FullServerPath}";
+            return result;
+        }
+        catch (Exception e)
+        {
+            var message = $"Unable to AVDump File: {e}";
+            logger.Error(message);
+            return message;
+        }
     }
 }
