@@ -15,7 +15,7 @@ using AVDump3Lib.UI;
 
 namespace Shoko.Server.Utilities.AVDump;
 
-public class AVDump3Module : AVD3UIModule, IAVDump3ProgressProvider {
+public class AVDump3Module : AVD3UIModule {
     public override AVD3Console Console { get; } = new();
     protected override AVD3UISettings Settings => _settings;
     private AVD3GUISettings _settings = null!;
@@ -80,6 +80,12 @@ public class AVDump3Module : AVD3UIModule, IAVDump3ProgressProvider {
                     break;
                 case "PrintReports" when property.Group.Name == "Reporting":
                     module.SettingStore.SetPropertyValue(property, true);
+                    break;
+                case "ReportFileName" when property.Group.Name == "Reporting":
+                    module.SettingStore.SetPropertyValue(property, null);
+                    break;
+                case "ReportFileName" when property.Group.Name == "Reporting":
+                    module.SettingStore.SetPropertyValue(property, null);
                     break;
             }
         }

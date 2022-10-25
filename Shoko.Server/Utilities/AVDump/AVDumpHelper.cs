@@ -3,21 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text.RegularExpressions;
-using System.Xml;
 using System.Xml.Linq;
 using Microsoft.Extensions.DependencyInjection;
-using NLog;
-using SharpCompress.Common;
-using SharpCompress.Readers;
-using Shoko.Commons.Utils;
-using Shoko.Server.Repositories;
-using Shoko.Server.Server;
-using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
-using Shoko.Server.Utilities.AVDump;
 
-namespace Shoko.Server;
+namespace Shoko.Server.Utilities.AVDump;
 
 public static class AVDumpHelper
 {
@@ -42,13 +31,17 @@ public static class AVDumpHelper
         return assembly;
     }
 
-    private static List<string> GetEd2ks(string result)
+    public static List<string> GetEd2ks(string result)
     {
         try
         {
             var xml = "<Files>\n" + string.Join("\n", result.Split("\n").Where(a => a.Trim().StartsWith("<"))) + "\n</Files>";
-            var doc = new XDocument(xml);
-            return doc.Elements().Select(a => a.Value).ToList();
+            var doc = XDocument.Parse(xml);
+            var fileInfos = doc.Elements().FirstOrDefault()!.Elements();
+            var ed2ks = fileInfos.Select(a =>
+                    $"ed2k://|file|{Path.GetFileName(a.Element("Path")?.Value)}|{a.Element("Size")?.Value}|{a.Element("HashProvider")?.Element("ED2K")?.Value}|/")
+                .ToList();
+            return ed2ks;
         }
         catch (Exception e)
         {

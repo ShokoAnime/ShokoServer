@@ -1539,7 +1539,7 @@ public partial class ShokoServiceImplementation
             var handler = HttpContext.RequestServices.GetRequiredService<AVDump3Handler>();
             var result = handler.Run(place.FullServerPath);
             if (string.IsNullOrEmpty(result)) return $"Could not find file: {place.FullServerPath}";
-            return result;
+            return result + "\n" + string.Join("\n", AVDumpHelper.GetEd2ks(result));
         }
         catch (Exception e)
         {

@@ -383,7 +383,7 @@ public class FileController : BaseController
         return new AVDumpResult()
         {
             FullOutput = message,
-            Ed2k = message.Split('\n').FirstOrDefault(s => s.Trim().Contains("ed2k://")),
+            Ed2k = AVDumpHelper.GetEd2ks(message).FirstOrDefault(),
         };
     }
 
