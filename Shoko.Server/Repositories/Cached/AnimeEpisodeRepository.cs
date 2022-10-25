@@ -63,12 +63,13 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
             return null;
         }
 
-        return RepoFactory.VideoLocalPlace.GetAll()
+        var eps = RepoFactory.VideoLocalPlace.GetAll()
             .Where(v => name.Equals(v?.FilePath?.Split(Path.DirectorySeparatorChar).LastOrDefault(),
                 StringComparison.InvariantCultureIgnoreCase))
             .Select(a => RepoFactory.VideoLocal.GetByID(a.VideoLocalID)).Where(a => a != null)
-            .SelectMany(a => GetByHash(a.Hash))
-            .FirstOrDefault();
+            .SelectMany(a => GetByHash(a.Hash)).ToArray();
+        var ep = eps.FirstOrDefault(a => a.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode);
+        return ep ?? eps.FirstOrDefault();
     }
 
 
