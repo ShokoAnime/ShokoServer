@@ -11,6 +11,7 @@ public class AVDump3Handler
     private readonly ILogger<AVDump3Handler> _logger;
     private readonly AVD3ModuleManagement _moduleManagement;
     private readonly AVDump3Module _avdModule;
+    private bool IsRunning = false;
 
     public AVDump3Handler(ILogger<AVDump3Handler> logger)
     {
@@ -59,7 +60,7 @@ public class AVDump3Handler
     public string Run(params string[] pathsToProcess)
     {
         if (pathsToProcess.Any(a => string.IsNullOrEmpty(a) || !System.IO.File.Exists(a))) return string.Empty;
-        if (!_avdModule.Finished) return string.Empty;
+        if (IsRunning) return string.Empty;
         if (!AVDump3Module.Run(_moduleManagement)) return string.Empty;
 
         var previousPercent = 0;
@@ -82,6 +83,8 @@ public class AVDump3Handler
             }
         }, null, 500, 500);
 
+        IsRunning = true;
+
         try
         {
             _avdModule.Process(pathsToProcess.ToArray());
@@ -95,7 +98,20 @@ public class AVDump3Handler
                 string.Join(",", pathsToProcess), e);
         }
 
-        return _avdModule.Output;
+        IsRunning = false;
+
+        var output = _avdModule.Output;
+        foreach (var error in _avdModule.Errors)
+        {
+            if (error.Message == "GeneratingReports" && "Required value was null" == error.InnerException?.Message) continue;
+            _logger.LogError(error, "There was an error running AVDump3 for Files: {File}, {Ex}", string.Join(",", pathsToProcess), error);
+        }
+
+        return !string.IsNullOrEmpty(output)
+            ? output
+            : string.Join("\n",
+                _avdModule.Errors.Select(a =>
+                    a.Message + (a.InnerException?.Message != null ? " | " + a.InnerException.Message : "")));
     }
 
     private static int GetProgressPercent(FileProgress[] progress)

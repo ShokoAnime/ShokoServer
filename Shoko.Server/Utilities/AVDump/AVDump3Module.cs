@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using AVDump3Lib;
@@ -21,11 +22,26 @@ public class AVDump3Module : AVD3UIModule {
     private AVD3GUISettings _settings = null!;
     private ISettingStore SettingStore { get; set; }
     private StringBuilder _output = new();
-    public string Output => _output.ToString();
+    private List<Exception> _errors = new();
+
+    public string Output
+    {
+        get
+        {
+            lock (_output) return _output.ToString();
+        }
+    }
+    public List<Exception> Errors
+    {
+        get
+        {
+            lock (_errors) return _errors.ToList();
+        }
+    }
+
     private readonly BytesReadProgress _bytesReadProgress = new ();
 
     public override IBytesReadProgress CreateBytesReadProgress() => _bytesReadProgress;
-    public bool Finished { get; set; } = true;
 
 	public override void Initialize(IReadOnlyCollection<IAVD3Module> modules) {
         base.Initialize(modules);
@@ -34,7 +50,6 @@ public class AVDump3Module : AVD3UIModule {
 
     protected override void OnProcessingStarting(CancellationTokenSource cts)
     {
-        Finished = false;
         base.OnProcessingStarting(cts);
         try
         {
@@ -45,7 +60,8 @@ public class AVDump3Module : AVD3UIModule {
             // ignore
         }
 
-        _output = new StringBuilder();
+        lock (_output) _output = new StringBuilder();
+        lock (_errors) _errors = new List<Exception>();
         Console.ConsoleWrite += OnConsoleWrite;
     }
     
@@ -128,13 +144,7 @@ public class AVDump3Module : AVD3UIModule {
 
 	protected override void OnException(AVD3LibException ex)
     {
-        _output.AppendLine(ex.ToString());
-    }
-
-    protected override void OnProcessingFinished()
-    {
-        base.OnProcessingFinished();
-        Finished = true;
+        lock (_errors) _errors.Add(ex);
     }
 
     public FileProgress[] GetProgress() {
