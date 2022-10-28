@@ -30,63 +30,55 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
 
     public HttpResponse<string> GetHttpDirectly(string url)
     {
-        try
+        if (IsBanned)
         {
-            if (IsBanned)
+            throw new AniDBBannedException
             {
-                throw new AniDBBannedException
-                {
-                    BanType = UpdateType.HTTPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
-                };
-            }
-
-            RateLimiter.EnsureRate();
-
-            var webReq = (HttpWebRequest)WebRequest.Create(url);
-            webReq.Timeout = 20000; // 20 seconds
-            webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
-            webReq.UserAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1";
-
-            webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-            using var webResponse = (HttpWebResponse)webReq.GetResponse();
-            if (webResponse.StatusCode == HttpStatusCode.OK && webResponse.ContentLength == 0)
-            {
-                throw new EndOfStreamException("Response Body was expected, but none returned");
-            }
-
-            using var responseStream = webResponse.GetResponseStream();
-            if (responseStream == null)
-            {
-                throw new EndOfStreamException("Response Body was expected, but none returned");
-            }
-
-            var charset = webResponse.CharacterSet;
-            Encoding encoding = null;
-            if (!string.IsNullOrEmpty(charset))
-            {
-                encoding = Encoding.GetEncoding(charset);
-            }
-
-            encoding ??= Encoding.UTF8;
-            var reader = new StreamReader(responseStream, encoding);
-
-            var output = reader.ReadToEnd();
-
-            if (CheckForBan(output))
-            {
-                throw new AniDBBannedException
-                {
-                    BanType = UpdateType.HTTPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
-                };
-            }
-
-            return new HttpResponse<string> { Response = output, Code = webResponse.StatusCode };
+                BanType = UpdateType.HTTPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
+            };
         }
-        catch (Exception ex)
+
+        RateLimiter.EnsureRate();
+
+        var webReq = (HttpWebRequest)WebRequest.Create(url);
+        webReq.Timeout = 20000; // 20 seconds
+        webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
+        webReq.UserAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1";
+
+        webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+        using var webResponse = (HttpWebResponse)webReq.GetResponse();
+        if (webResponse.StatusCode == HttpStatusCode.OK && webResponse.ContentLength == 0)
         {
-            Logger.LogError(ex, "{Message}", ex.Message);
-            return null;
+            throw new EndOfStreamException("Response Body was expected, but none returned");
         }
+
+        using var responseStream = webResponse.GetResponseStream();
+        if (responseStream == null)
+        {
+            throw new EndOfStreamException("Response Body was expected, but none returned");
+        }
+
+        var charset = webResponse.CharacterSet;
+        Encoding encoding = null;
+        if (!string.IsNullOrEmpty(charset))
+        {
+            encoding = Encoding.GetEncoding(charset);
+        }
+
+        encoding ??= Encoding.UTF8;
+        var reader = new StreamReader(responseStream, encoding);
+
+        var output = reader.ReadToEnd();
+
+        if (CheckForBan(output))
+        {
+            throw new AniDBBannedException
+            {
+                BanType = UpdateType.HTTPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
+            };
+        }
+
+        return new HttpResponse<string> { Response = output, Code = webResponse.StatusCode };
     }
 
     private bool CheckForBan(string xmlResult)
