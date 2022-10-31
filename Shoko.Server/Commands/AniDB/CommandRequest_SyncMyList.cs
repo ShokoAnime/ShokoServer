@@ -76,22 +76,15 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
             // Add missing files on AniDB
             // these patterns have been tested
             var onlineFiles = response.Response.Where(a => a.FileID is not null or 0).ToLookup(a => a.FileID.Value);
-            var onlineEpisodes = response.Response
-                .Where(a => a.FileID is null or 0 && a.AnimeID is not null or 0 && a.EpisodeID is not null or 0)
-                .ToLookup(a => (a.AnimeID.Value, a.EpisodeID.Value));
             var localFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
-            var localEpisodes = RepoFactory.CrossRef_File_Episode.GetAll().Where(a => !localFiles.Contains(a.Hash))
-                .ToLookup(a => a.Hash);
 
-            var missingFiles = AddMissingFiles(localFiles, onlineFiles, localEpisodes, onlineEpisodes);
+            var missingFiles = AddMissingFiles(localFiles, onlineFiles);
 
             var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
             var modifiedSeries = new LinkedHashSet<SVR_AnimeSeries>();
 
             // Remove Missing Files and update watched states (single loop)
             var filesToRemove = new HashSet<int>();
-            var episodesToRemove = new HashSet<(int AnimeID, EpisodeType EpisodeType, int EpisodeNumber)>();
-            var myListIDsToRemove = new HashSet<int>();
 
             foreach (var myItem in onlineFiles.SelectMany(a => a))
             {
@@ -117,45 +110,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
                     // If it's local only, then we don't update. The rest update in one way or another
                     if (ServerSettings.Instance.AniDb.MyList_DeleteType == AniDBFileDeleteType.DeleteLocalOnly)
                         continue;
-                    if (myItem.MyListID is not null or 0) myListIDsToRemove.Add(myItem.MyListID.Value);
                     filesToRemove.Add(myItem.FileID.Value);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "A MyList Item threw an error while syncing: {Ex}", ex);
-                }
-            }
-
-            foreach (var myItem in onlineEpisodes.SelectMany(a => a))
-            {
-                try
-                {
-                    totalItems++;
-                    if (myItem.ViewedAt.HasValue) watchedItems++;
-
-                    // null is checked at collection level
-                    var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myItem!.EpisodeID!.Value);
-
-                    foreach (var vl in xrefs.Select(xref => xref.Hash == null ? null : RepoFactory.VideoLocal.GetByHash(xref.Hash)))
-                    {
-                        // If there's no video local, we don't have it
-                        if (vl != null)
-                        {
-                            // We have it, so process watched states and update storage states if needed
-                            modifiedItems = ProcessStates(aniDBUsers, vl, myItem, modifiedItems, modifiedSeries);
-                            continue;
-                        }
-
-                        // We don't have the file
-                        // If it's local only, then we don't update. The rest update in one way or another
-                        if (ServerSettings.Instance.AniDb.MyList_DeleteType == AniDBFileDeleteType.DeleteLocalOnly)
-                            continue;
-                        
-                        // get the episode info, unfortunately, we don't have documentation for delete by eid
-                        var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(myItem.EpisodeID.Value);
-                        if (ep == null) continue;
-                        episodesToRemove.Add((myItem.AnimeID.Value, (EpisodeType)ep.EpisodeType, ep.EpisodeNumber));
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -174,40 +129,15 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
                 }
             }
 
-            if (myListIDsToRemove.Count > 0)
-            {
-                foreach (var lid in myListIDsToRemove)
-                {
-                    var deleteCommand =
-                        _commandFactory.Create<CommandRequest_DeleteFileFromMyList>(a => a.MyListID = lid);
-                    deleteCommand.Save();
-                }
-            }
-
-            if (episodesToRemove.Count > 0)
-            {
-                foreach (var (animeID, episodeType, episodeNumber) in episodesToRemove)
-                {
-                    var deleteCommand =
-                        _commandFactory.Create<CommandRequest_DeleteFileFromMyList>(a =>
-                        {
-                            a.AnimeID = animeID;
-                            a.EpisodeType = episodeType;
-                            a.EpisodeNumber = episodeNumber;
-                        });
-                    deleteCommand.Save();
-                }
-            }
-
-            if (filesToRemove.Count + episodesToRemove.Count > 0)
+            if (filesToRemove.Count > 0)
                 Logger.LogInformation("MYLIST Missing Files: {Count} added to queue for deletion",
-                    filesToRemove.Count + episodesToRemove.Count);
+                    filesToRemove.Count);
 
             modifiedSeries.ForEach(a => a.QueueUpdateStats());
 
             Logger.LogInformation(
                 "Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {WatchedItems} Watched, {ModifiedItems} Modified",
-                totalItems, missingFiles, filesToRemove.Count + episodesToRemove.Count, watchedItems, modifiedItems);
+                totalItems, missingFiles, filesToRemove.Count, watchedItems, modifiedItems);
         }
         catch (Exception ex)
         {
@@ -313,12 +243,10 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
     }
 
     private int AddMissingFiles(ILookup<string, SVR_AniDB_File> localFiles,
-        ILookup<int, ResponseMyList> onlineFiles, ILookup<string, CrossRef_File_Episode> localEpisodes,
-        ILookup<(int AnimeID, int EpisodeID), ResponseMyList> onlineEpisodes)
+        ILookup<int, ResponseMyList> onlineFiles)
     {
         if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return 0;
         var missingFiles = 0;
-        var missingEps = 0;
         foreach (var vid in RepoFactory.VideoLocal.GetAll()
                      .Where(a => !string.IsNullOrEmpty(a.Hash)).ToList())
         {
@@ -331,22 +259,6 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
                 // means we have found a file in our local collection, which is not recorded online
                 missingFiles++;
             }
-            else if (TryGetEpisode(localEpisodes, vid.Hash, out var episodeXrefs))
-            {
-                var shouldContinue = true;
-                foreach (var (animeID, episodeID) in episodeXrefs)
-                {
-                    // Is it in MyList
-                    if (onlineEpisodes.Contains((animeID, episodeID)))
-                        continue;
-
-                    // means we have found a file in our local collection, which is not recorded online
-                    missingEps++;
-                    shouldContinue = false;
-                }
-
-                if (shouldContinue) continue;
-            }
             else continue;
 
             var cmdAddFile = _commandFactory.Create<CommandRequest_AddFileToMyList>(a => a.Hash = vid.Hash);
@@ -354,8 +266,8 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         }
 
         Logger.LogInformation(
-            "MYLIST Missing Files: {MissingFiles} Missing Episodes: {MissingEps} Added to queue for inclusion",
-            missingFiles, missingEps);
+            "MYLIST Missing Files: {MissingFiles} Added to queue for inclusion",
+            missingFiles);
         return missingFiles;
     }
 
@@ -368,18 +280,6 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         if (file.FileID == 0) return false;
         fileID = file.FileID;
         return true;
-    }
-
-    private static bool TryGetEpisode(ILookup<string, CrossRef_File_Episode> localEpisodes, string hash,
-        out IReadOnlyList<(int AnimeID, int EpisodeID)> Episodes)
-    {
-        var output = new List<(int AnimeID, int EpisodeID)>();
-        Episodes = output;
-        if (!localEpisodes.Contains(hash)) return false;
-        var xrefs = localEpisodes[hash];
-        output.AddRange(xrefs.Where(xref => xref != null).Select(xref => (xref.AnimeID, xref.EpisodeID)));
-
-        return output.Any();
     }
 
     public override void GenerateCommandID()
