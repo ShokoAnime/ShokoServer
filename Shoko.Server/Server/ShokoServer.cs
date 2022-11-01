@@ -11,11 +11,9 @@ using System.Reflection;
 using System.Threading;
 using System.Timers;
 using System.Text.RegularExpressions;
-using LeanWork.IO.FileSystem;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Win32;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
@@ -44,6 +42,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Settings.DI;
 using Shoko.Server.UI;
 using Shoko.Server.Utilities;
+using Shoko.Server.Utilities.FileSystemWatcher;
 using Trinet.Core.IO.Ntfs;
 using Action = System.Action;
 using LogLevel = NLog.LogLevel;
@@ -63,9 +62,6 @@ public class ShokoServer
 
     public static TimeSpan? UpTime => StartTime == null ? null : DateTime.Now - StartTime;
     private static IDisposable _sentry;
-
-    internal static BlockingList<FileSystemEventArgs> queueFileEvents = new();
-    private static BackgroundWorker workerFileEvents = new();
 
     public static string PathAddressREST = "api/Image";
     public static string PathAddressPlex = "api/Plex";
@@ -88,7 +84,7 @@ public class ShokoServer
     internal static Timer LogRotatorTimer;
 
     private DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12, 0, 0));
-    private static List<RecoveringFileSystemWatcher> watcherVids;
+    private List<RecoveringFileSystemWatcher> _fileWatchers;
 
     private BackgroundWorker downloadImagesWorker = new();
 
@@ -258,11 +254,6 @@ public class ShokoServer
         // Plugin.Loader.Instance.InitPlugins(ServiceContainer);
 
         ServerSettings.Instance.DebugSettingsToLog();
-
-        workerFileEvents.WorkerReportsProgress = false;
-        workerFileEvents.WorkerSupportsCancellation = false;
-        workerFileEvents.DoWork += WorkerFileEvents_DoWork;
-        workerFileEvents.RunWorkerCompleted += WorkerFileEvents_RunWorkerCompleted;
 
         //logrotator worker setup
         LogRotatorWorker.WorkerReportsProgress = false;
@@ -480,73 +471,19 @@ public class ShokoServer
 
     public static ShokoServer Instance { get; private set; } = new();
 
-    private static void WorkerFileEvents_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+    private static void FileAdded(object sender, string path)
     {
-        logger.Info("Stopped thread for processing file creation events");
-    }
-
-    private static void WorkerFileEvents_DoWork(object sender, DoWorkEventArgs e)
-    {
-        logger.Info("Started thread for processing file events");
-        FileSystemEventArgs evt;
-        try
-        {
-            evt = queueFileEvents.GetNextItem();
-        }
-        catch (Exception exception)
-        {
-            logger.Error(exception);
-            evt = null;
-        }
-
-        while (evt != null)
-        {
-            try
-            {
-                // this is a message to stop processing
-                ProcessFileEvent(evt);
-                queueFileEvents.Remove(evt);
-                try
-                {
-                    evt = queueFileEvents.GetNextItem();
-                }
-                catch (Exception exception)
-                {
-                    logger.Error(exception);
-                    evt = null;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "FSEvents_DoWork file: {0}\n{1}", evt.Name, ex);
-                queueFileEvents.Remove(evt);
-                Thread.Sleep(1000);
-
-                //This is needed to prevent infinite looping of an event/file that causes an exception, 
-                //otherwise evt will not be cleared and the same event/file that caused the error will be looped over again.
-                evt = queueFileEvents.GetNextItem();
-            }
-        }
-    }
-
-    private static void ProcessFileEvent(FileSystemEventArgs evt)
-    {
-        if (evt.ChangeType != WatcherChangeTypes.Created && evt.ChangeType != WatcherChangeTypes.Renamed)
-        {
-            return;
-        }
         // When the path that was created represents a directory we need to manually get the contained files to add.
-        // The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
+        // The reason for this is that when a directory is moved into a source directory (from the same drive) we will only receive
         // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
         // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
 
         // This is faster and doesn't throw on weird paths. I've had some UTF-16/UTF-32 paths cause serious issues
         var commandFactory = ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        if (Directory.Exists(evt.FullPath)) // filter out invalid events
+        if (Directory.Exists(path)) // filter out invalid events
         {
-            logger.Info("New folder detected: {0}: {1}", evt.FullPath, evt.ChangeType);
-
-            var files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
+            logger.Info("New folder Added: {0}", path);
+            var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
 
             foreach (var file in files)
             {
@@ -556,7 +493,7 @@ public class ShokoServer
                 }
                 else if (FileHashHelper.IsVideo(file))
                 {
-                    logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
+                    logger.Info("Found file {0} under folder {1}", file, path);
 
                     var tup = VideoLocal_PlaceRepository.GetFromFullPath(file);
                     ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(file));
@@ -565,25 +502,24 @@ public class ShokoServer
                 }
             }
         }
-        else if (File.Exists(evt.FullPath))
+        else if (File.Exists(path))
         {
-            logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
+            logger.Info("New file detected: {0}", path);
 
-            if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(evt.FullPath, s)))
+            if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(path, s)))
             {
-                logger.Info("Import exclusion, skipping file: {0}", evt.FullPath);
+                logger.Info("Import exclusion, skipping file: {0}", path);
             }
-            else if (FileHashHelper.IsVideo(evt.FullPath))
+            else if (FileHashHelper.IsVideo(path))
             {
-                logger.Info("Found file {0}", evt.FullPath);
+                logger.Info("Found file {0}", path);
 
-                var tup = VideoLocal_PlaceRepository.GetFromFullPath(evt.FullPath);
-                ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(evt.FullPath));
-                var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = evt.FullPath);
+                var tup = VideoLocal_PlaceRepository.GetFromFullPath(path);
+                ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
+                var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = path);
                 cmd.Save();
             }
         }
-        // else it was deleted before we got here
     }
 
     private void InitCulture()
@@ -634,14 +570,6 @@ public class ShokoServer
     private void ShowDatabaseSetup()
     {
         DatabaseSetup?.Invoke(Instance, null);
-    }
-
-    public static void StartFileWorker()
-    {
-        if (!workerFileEvents.IsBusy)
-        {
-            workerFileEvents.RunWorkerAsync();
-        }
     }
 
     public static void StartLogRotatorTimer()
@@ -790,8 +718,6 @@ public class ShokoServer
             autoUpdateTimerShort.Start();
 
             ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingFile;
-
-            StartFileWorker();
 
             StartWatchingFiles();
 
@@ -1023,10 +949,10 @@ public class ShokoServer
         Importer.CheckForAniDBFileUpdate(false);
     }
 
-    public static void StartWatchingFiles(bool log = true)
+    public void StartWatchingFiles(bool log = true)
     {
         StopWatchingFiles();
-        watcherVids = new List<RecoveringFileSystemWatcher>();
+        _fileWatchers = new List<RecoveringFileSystemWatcher>();
 
         foreach (var share in RepoFactory.ImportFolder.GetAll())
         {
@@ -1044,17 +970,18 @@ public class ShokoServer
                         logger.Info($"Parsed ImportFolderLocation: {share.ImportFolderLocation}");
                     }
 
-                    var fsw = new RecoveringFileSystemWatcher { Path = share.ImportFolderLocation };
-
-                    // Handle all type of events not just created ones
-                    fsw.Created += Fsw_CreateHandler;
-                    fsw.Renamed += Fsw_RenameHandler;
-
-                    // Commented out buffer size as it breaks on UNC paths or mapped drives
-                    //fsw.InternalBufferSize = 81920;
-                    fsw.IncludeSubdirectories = true;
-                    fsw.EnableRaisingEvents = true;
-                    watcherVids.Add(fsw);
+                    var fsw = new RecoveringFileSystemWatcher(share.ImportFolderLocation, ServerSettings.Instance.Import.VideoExtensions.Select(a => "*." + a.ToLowerInvariant()));
+                    fsw.Options = new FileSystemWatcherLockOptions
+                    {
+                        Enabled = ServerSettings.Instance.Import.FileLockChecking,
+                        Aggressive = ServerSettings.Instance.Import.AggressiveFileLockChecking,
+                        WaitTimeMilliseconds = ServerSettings.Instance.Import.FileLockWaitTimeMS,
+                        FileAccessMode = share.IsDropSource == 1 ? FileAccess.ReadWrite : FileAccess.Read,
+                        AggressiveWaitTimeSeconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTimeSeconds
+                    };
+                    fsw.FileAdded += FileAdded;
+                    fsw.Start();
+                    _fileWatchers.Add(fsw);
                 }
                 else if (!share.FolderIsWatched)
                 {
@@ -1072,76 +999,50 @@ public class ShokoServer
         }
     }
 
-    public static void PauseWatchingFiles()
+    public void PauseWatchingFiles()
     {
-        if (watcherVids == null || !watcherVids.Any())
+        if (_fileWatchers == null || !_fileWatchers.Any())
         {
             return;
         }
 
-        foreach (var fsw in watcherVids)
+        foreach (var fsw in _fileWatchers)
         {
-            fsw.DisableEvents = true;
+            fsw?.Stop();
         }
 
         logger.Info("Paused Filesystem Watching");
     }
 
-    public static void UnpauseWatchingFiles()
+    public void UnpauseWatchingFiles()
     {
-        if (watcherVids == null || !watcherVids.Any())
+        if (_fileWatchers == null || !_fileWatchers.Any())
         {
             return;
         }
 
-        foreach (var fsw in watcherVids)
+        foreach (var fsw in _fileWatchers)
         {
-            fsw.DisableEvents = false;
+            fsw.Start();
         }
 
         logger.Info("Unpaused Filesystem Watching");
     }
 
-    public static void StopWatchingFiles()
+    public void StopWatchingFiles()
     {
-        if (watcherVids == null || !watcherVids.Any())
+        if (_fileWatchers == null || !_fileWatchers.Any())
         {
             return;
         }
 
-        foreach (var fsw in watcherVids)
+        foreach (var fsw in _fileWatchers)
         {
-            fsw.EnableRaisingEvents = false;
+            fsw.Stop();
             fsw.Dispose();
         }
 
-        watcherVids.Clear();
-    }
-
-    private static void Fsw_CreateHandler(object sender, FileSystemEventArgs e)
-    {
-        try
-        {
-            queueFileEvents.Add(e);
-            StartFileWorker();
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-        }
-    }
-
-    private static void Fsw_RenameHandler(object sender, RenamedEventArgs e)
-    {
-        try
-        {
-            queueFileEvents.Add(e);
-            StartFileWorker();
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-        }
+        _fileWatchers.Clear();
     }
 
     public static void ScanDropFolders()

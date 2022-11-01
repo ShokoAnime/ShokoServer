@@ -88,8 +88,8 @@ public class ImportFolderRepository : BaseCachedRepository<SVR_ImportFolder, int
         Save(ns);
 
         Utils.MainThreadDispatch(() => { ServerInfo.Instance.RefreshImportFolders(); });
-        ShokoServer.StopWatchingFiles();
-        ShokoServer.StartWatchingFiles();
+        ShokoServer.Instance.StopWatchingFiles();
+        ShokoServer.Instance.StartWatchingFiles();
 
         return ns;
     }

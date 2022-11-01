@@ -102,37 +102,10 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         }
     }
 
-    //Used to check if file has been modified within the last X seconds.
-    private bool FileModified(string fileName, int seconds, ref long lastFileSize, bool writeAccess, ref Exception e)
-    {
-        try
-        {
-            var lastWrite = File.GetLastWriteTime(fileName);
-            var creation = File.GetCreationTime(fileName);
-            var now = DateTime.Now;
-            // check that the size is also equal, since some copy utilities apply the previous modified date
-            var size = CanAccessFile(fileName, writeAccess, ref e);
-            if ((lastWrite <= now && lastWrite.AddSeconds(seconds) >= now) ||
-                (creation <= now && creation.AddSeconds(seconds) > now) ||
-                lastFileSize != size)
-            {
-                lastFileSize = size;
-                return true;
-            }
-        }
-        catch (Exception ex)
-        {
-            e = ex;
-        }
-
-        return false;
-    }
-
     private void ProcessFile_LocalInfo()
     {
         // hash and read media info for file
         int nshareID;
-
 
         var tup = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
         if (tup == null)
@@ -157,8 +130,6 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             var numAttempts = 0;
             var writeAccess = folder.IsDropSource == 1;
 
-            var aggressive = ServerSettings.Instance.Import.AggressiveFileLockChecking;
-
             // At least 1s between to ensure that size has the chance to change
             var waitTime = ServerSettings.Instance.Import.FileLockWaitTimeMS;
             if (waitTime < 1000)
@@ -167,59 +138,14 @@ public class CommandRequest_HashFile : CommandRequestImplementation
                 ServerSettings.Instance.SaveSettings();
             }
 
-            if (!aggressive)
+            // We do checks in the file watcher, but we want to make sure we can still access the file
+            // Wait 1 minute before giving up on trying to access the file
+            while ((filesize = CanAccessFile(FileName, writeAccess, ref e)) == 0 && numAttempts < 60)
             {
-                // Wait 1 minute before giving up on trying to access the file
-                while ((filesize = CanAccessFile(FileName, writeAccess, ref e)) == 0 && numAttempts < 60)
-                {
-                    numAttempts++;
-                    Thread.Sleep(waitTime);
-                    Logger.LogTrace("Failed to access, (or filesize is 0) Attempt # {NumAttempts}, {FileName}",
-                        numAttempts, FileName);
-                }
-            }
-            else
-            {
-                // Wait 1 minute before giving up on trying to access the file
-                // first only do read to not get in something's way
-                while ((filesize = CanAccessFile(FileName, false, ref e)) == 0 && numAttempts < 60)
-                {
-                    numAttempts++;
-                    Thread.Sleep(1000);
-                    Logger.LogTrace("Failed to access, (or filesize is 0) Attempt # {NumAttempts}, {FileName}",
-                        numAttempts, FileName);
-                }
-
-                // if we failed to access the file, get ouuta here
-                if (numAttempts >= 60)
-                {
-                    Logger.LogError("Could not access file: {Filename}", FileName);
-                    return;
-                }
-
-                var seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTimeSeconds;
-                if (seconds < 0)
-                {
-                    seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTimeSeconds = 8;
-                    ServerSettings.Instance.SaveSettings();
-                }
-
-                numAttempts = 0;
-
-                //For systems with no locking
-                while (FileModified(FileName, seconds, ref filesize, writeAccess, ref e) && numAttempts < 60)
-                {
-                    numAttempts++;
-                    Thread.Sleep(waitTime);
-                    // Only show if it's more than 'seconds' past
-                    if (numAttempts != 0 && numAttempts * 2 % seconds == 0)
-                    {
-                        Logger.LogWarning(
-                            "The modified date is too soon. Waiting to ensure that no processes are writing to it. {NumAttempts}/60 {FileName}",
-                            numAttempts, FileName
-                        );
-                    }
-                }
+                numAttempts++;
+                Thread.Sleep(waitTime);
+                Logger.LogTrace("Failed to access, (or filesize is 0) Attempt # {NumAttempts}, {FileName}",
+                    numAttempts, FileName);
             }
 
             // if we failed to access the file, get ouuta here
