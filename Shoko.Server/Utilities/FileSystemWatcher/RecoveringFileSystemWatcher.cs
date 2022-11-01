@@ -133,7 +133,6 @@ public class RecoveringFileSystemWatcher : IDisposable
             }
 
             Start();
-            _recoveringTimer?.Change(_directoryRetryInterval, Timeout.InfiniteTimeSpan);
         }
         catch (Exception ex)
         {
@@ -170,6 +169,8 @@ public class RecoveringFileSystemWatcher : IDisposable
 
     public void Dispose()
     {
+        _recoveringTimer?.Dispose();
+        _recoveringTimer = null;
         if (_watcher != null)
         {
             _watcher.Created -= WatcherChangeDetected;
@@ -239,7 +240,6 @@ public class RecoveringFileSystemWatcher : IDisposable
                     numAttempts, path);
             }
 
-            // if we failed to access the file, get ouuta here
             if (numAttempts >= 60)
             {
                 _logger.LogError("Could not access file: {Filename}", path);
