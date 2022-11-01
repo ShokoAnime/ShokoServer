@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
+using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Commands;
@@ -102,7 +103,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         // actually rename the file
         var path = Path.GetDirectoryName(fullFileName);
         var newFullName = Path.Combine(path, renamed);
-        var textStreams = SubtitleHelper.GetSubtitleStreams(this);
+        var textStreams = SubtitleHelper.GetSubtitleStreams(FullServerPath);
 
         try
         {
@@ -436,7 +437,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             {
                 var info = VideoLocal;
 
-                var subs = SubtitleHelper.GetSubtitleStreams(this);
+                var subs = SubtitleHelper.GetSubtitleStreams(FullServerPath);
                 if (subs.Count > 0)
                 {
                     m.media.track.AddRange(subs);
@@ -755,93 +756,14 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
         // Save for later. Scan for subtitles while the vlplace is still set for the source location
         var originalFileName = FullServerPath;
-        var textStreams = SubtitleHelper.GetSubtitleStreams(this);
 
-        // Handle Duplicate Files
-        var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
-
-        foreach (var dup in dups)
-        {
-            // Move source
-            if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
-            {
-                dup.FilePathFile1 = newFilePath;
-                dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
-            }
-            else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
-            {
-                dup.FilePathFile2 = newFilePath;
-                dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
-            }
-
-            // validate the dup file
-            // There are cases where a dup file was not cleaned up before, so we'll do it here, too
-            if (!dup.GetFullServerPath1()
-                    .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-            {
-                RepoFactory.DuplicateFile.Save(dup);
-            }
-            else
-            {
-                RepoFactory.DuplicateFile.Delete(dup);
-            }
-        }
+        MoveDuplicateFiles(newFilePath, destFolder);
 
         ImportFolderID = destFolder.ImportFolderID;
         FilePath = newFilePath;
         RepoFactory.VideoLocalPlace.Save(this);
 
-        try
-        {
-            // move any subtitle files
-            foreach (var subtitleFile in textStreams)
-            {
-                if (string.IsNullOrEmpty(subtitleFile.Filename))
-                {
-                    continue;
-                }
-
-                var newParent = Path.GetDirectoryName(newFullServerPath);
-                var srcParent = Path.GetDirectoryName(originalFileName);
-                if (string.IsNullOrEmpty(newParent) || string.IsNullOrEmpty(srcParent))
-                {
-                    continue;
-                }
-
-                var subPath = Path.Combine(srcParent, subtitleFile.Filename);
-                if (!File.Exists(subPath))
-                {
-                    continue;
-                }
-
-                var subFile = new FileInfo(subPath);
-                var newSubPath = Path.Combine(newParent, subFile.Name);
-                if (File.Exists(newSubPath))
-                {
-                    try
-                    {
-                        File.Delete(newSubPath);
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Warn($"Unable to DELETE file: \"{subtitleFile}\" error {e}");
-                    }
-                }
-
-                try
-                {
-                    subFile.MoveTo(newSubPath);
-                }
-                catch (Exception e)
-                {
-                    logger.Error($"Unable to MOVE file: \"{subtitleFile}\" to \"{newSubPath}\" error {e}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-        }
+        MoveExternalSubtitles(newFullServerPath, originalFileName);
 
         // check for any empty folders in drop folder
         // only for the drop folder
@@ -941,7 +863,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             }
 
             var originalFileName = FullServerPath;
-            var textStreams = SubtitleHelper.GetSubtitleStreams(this);
 
             if (File.Exists(newFullServerPath))
             {
@@ -1029,36 +950,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                         return false;
                     }
 
-                    // Handle Duplicate Files
-                    var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)
-                        .ToList();
-
-                    foreach (var dup in dups)
-                    {
-                        // Move source
-                        if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
-                        {
-                            dup.FilePathFile1 = newFilePath;
-                            dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
-                        }
-                        else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
-                        {
-                            dup.FilePathFile2 = newFilePath;
-                            dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
-                        }
-
-                        // validate the dup file
-                        // There are cases where a dup file was not cleaned up before, so we'll do it here, too
-                        if (!dup.GetFullServerPath1()
-                                .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            RepoFactory.DuplicateFile.Save(dup);
-                        }
-                        else
-                        {
-                            RepoFactory.DuplicateFile.Delete(dup);
-                        }
-                    }
+                    MoveDuplicateFiles(newFilePath, destFolder);
 
                     ImportFolderID = destFolder.ImportFolderID;
                     FilePath = newFilePath;
@@ -1087,35 +979,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     return false;
                 }
 
-                // Handle Duplicate Files
-                var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
-
-                foreach (var dup in dups)
-                {
-                    // Move source
-                    if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
-                    {
-                        dup.FilePathFile1 = newFilePath;
-                        dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
-                    }
-                    else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
-                    {
-                        dup.FilePathFile2 = newFilePath;
-                        dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
-                    }
-
-                    // validate the dup file
-                    // There are cases where a dup file was not cleaned up before, so we'll do it here, too
-                    if (!dup.GetFullServerPath1()
-                            .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        RepoFactory.DuplicateFile.Save(dup);
-                    }
-                    else
-                    {
-                        RepoFactory.DuplicateFile.Delete(dup);
-                    }
-                }
+                MoveDuplicateFiles(newFilePath, destFolder);
 
                 ImportFolderID = destFolder.ImportFolderID;
                 FilePath = newFilePath;
@@ -1129,57 +993,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 }
             }
 
-            try
-            {
-                // move any subtitle files
-                foreach (var subtitleFile in textStreams)
-                {
-                    if (string.IsNullOrEmpty(subtitleFile.Filename))
-                    {
-                        continue;
-                    }
-
-                    var newParent = Path.GetDirectoryName(newFullServerPath);
-                    var srcParent = Path.GetDirectoryName(originalFileName);
-                    if (string.IsNullOrEmpty(newParent) || string.IsNullOrEmpty(srcParent))
-                    {
-                        continue;
-                    }
-
-                    var subPath = Path.Combine(srcParent, subtitleFile.Filename);
-                    if (!File.Exists(subPath))
-                    {
-                        continue;
-                    }
-
-                    var subFile = new FileInfo(subPath);
-                    var newSubPath = Path.Combine(newParent, subFile.Name);
-                    if (File.Exists(newSubPath))
-                    {
-                        try
-                        {
-                            File.Delete(newSubPath);
-                        }
-                        catch (Exception e)
-                        {
-                            logger.Warn($"Unable to DELETE file: \"{subtitleFile}\" error {e}");
-                        }
-                    }
-
-                    try
-                    {
-                        subFile.MoveTo(newSubPath);
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Error($"Unable to MOVE file: \"{subtitleFile}\" to \"{newSubPath}\" error {e}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
+            MoveExternalSubtitles(newFullServerPath, originalFileName);
         }
         catch (Exception ex)
         {
@@ -1188,6 +1002,86 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
         ShokoServer.Instance.UnpauseWatchingFiles();
         return true;
+    }
+
+    private static void MoveExternalSubtitles(string newFullServerPath, string originalFileName)
+    {
+        try
+        {
+            var textStreams = SubtitleHelper.GetSubtitleStreams(originalFileName);
+            // move any subtitle files
+            foreach (var subtitleFile in textStreams)
+            {
+                if (string.IsNullOrEmpty(subtitleFile.Filename)) continue;
+
+                var newParent = Path.GetDirectoryName(newFullServerPath);
+                var srcParent = Path.GetDirectoryName(originalFileName);
+                if (string.IsNullOrEmpty(newParent) || string.IsNullOrEmpty(srcParent)) continue;
+
+                var subPath = Path.Combine(srcParent, subtitleFile.Filename);
+                if (!File.Exists(subPath)) continue;
+
+                var subFile = new FileInfo(subPath);
+                var newSubPath = Path.Combine(newParent, subFile.Name);
+                if (File.Exists(newSubPath))
+                {
+                    try
+                    {
+                        File.Delete(newSubPath);
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Warn($"Unable to DELETE file: \"{subtitleFile}\" error {e}");
+                    }
+                }
+
+                try
+                {
+                    subFile.MoveTo(newSubPath);
+                }
+                catch (Exception e)
+                {
+                    logger.Error($"Unable to MOVE file: \"{subtitleFile}\" to \"{newSubPath}\" error {e}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, ex.ToString());
+        }
+    }
+
+    private void MoveDuplicateFiles(string newFilePath, SVR_ImportFolder destFolder)
+    {
+        var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)
+            .ToList();
+
+        foreach (var dup in dups)
+        {
+            // Move source
+            if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
+            {
+                dup.FilePathFile1 = newFilePath;
+                dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
+            }
+            else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
+            {
+                dup.FilePathFile2 = newFilePath;
+                dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
+            }
+
+            // validate the dup file
+            // There are cases where a dup file was not cleaned up before, so we'll do it here, too
+            if (!dup.GetFullServerPath1()
+                    .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
+            {
+                RepoFactory.DuplicateFile.Save(dup);
+            }
+            else
+            {
+                RepoFactory.DuplicateFile.Delete(dup);
+            }
+        }
     }
 
     private void RecursiveDeleteEmptyDirectories(string dir, bool importfolder)

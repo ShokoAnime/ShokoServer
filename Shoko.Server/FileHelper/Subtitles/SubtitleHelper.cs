@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Models.MediaInfo;
-using Shoko.Server.Models;
 
 // ReSharper disable StringLiteralTypo
 
@@ -16,42 +15,24 @@ public static class SubtitleHelper
 {
     private static List<ISubtitles> SubtitleImplementations;
 
-    public static List<TextStream> GetSubtitleStreams(SVR_VideoLocal_Place vplace)
+    public static List<TextStream> GetSubtitleStreams(string path)
     {
-        if (SubtitleImplementations == null)
-        {
-            SubtitleImplementations = InitImplementations();
-        }
+        SubtitleImplementations ??= InitImplementations();
 
-        var path = vplace.FullServerPath;
-        if (string.IsNullOrEmpty(path))
-        {
-            return new List<TextStream>();
-        }
+        if (string.IsNullOrEmpty(path)) return new List<TextStream>();
 
         var directoryName = Path.GetDirectoryName(path);
-        if (string.IsNullOrEmpty(directoryName))
-        {
-            return new List<TextStream>();
-        }
-
-        if (!Directory.Exists(directoryName))
-        {
-            return new List<TextStream>();
-        }
+        if (string.IsNullOrEmpty(directoryName)) return new List<TextStream>();
+        if (!Directory.Exists(directoryName)) return new List<TextStream>();
 
         var directory = new DirectoryInfo(directoryName);
-
         var basename = Path.GetFileNameWithoutExtension(path);
-
         var streams = new List<TextStream>();
+
         foreach (var file in directory.EnumerateFiles())
         {
             // Make sure it's actually the subtitle for this video file
-            if (!file.Name.StartsWith(basename))
-            {
-                continue;
-            }
+            if (!file.Name.StartsWith(basename)) continue;
 
             // Get streams for each implementation
             SubtitleImplementations.Where(implementation => implementation.IsSubtitleFile(file.Extension))
@@ -69,7 +50,7 @@ public static class SubtitleHelper
                 .Where(x => typeof(ISubtitles).IsAssignableFrom(x) && !x.IsInterface && !x.IsAbstract)
                 .Select(type => (ISubtitles)Activator.CreateInstance(type)).ToList();
         }
-        catch (Exception e)
+        catch
         {
             return new List<ISubtitles>();
         }
@@ -82,25 +63,19 @@ public static class SubtitleHelper
         {
             Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar
         });
-        var filename = path.Substring(lastSeparator + 1);
+        var filename = path[(lastSeparator + 1)..];
         var parts = filename.Split('.');
         // if there aren't 3 parts, then it's not in the format for this to work
-        if (parts.Length < 3)
-        {
-            return null;
-        }
+        if (parts.Length < 3) return null;
 
         // length - 1 is last, so - 2 is second to last
-        var lang = parts[parts.Length - 2];
+        var lang = parts[^2];
 
-        switch (lang.Length)
+        return lang.Length switch
         {
-            case 2:
-                return lang;
-            case 3:
-                return MediaInfoUtils.GetLanguageFromCode(lang) ?? lang;
-            default:
-                return MediaInfoUtils.GetLanguageFromName(lang) ?? lang;
-        }
+            2 => lang,
+            3 => MediaInfoUtils.GetLanguageFromCode(lang) ?? lang,
+            _ => MediaInfoUtils.GetLanguageFromName(lang) ?? lang
+        };
     }
 }
