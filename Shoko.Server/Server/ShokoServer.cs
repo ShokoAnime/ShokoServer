@@ -951,7 +951,6 @@ public class ShokoServer
 
     public void StartWatchingFiles()
     {
-        StopWatchingFiles();
         _fileWatchers = new List<RecoveringFileSystemWatcher>();
 
         foreach (var share in RepoFactory.ImportFolder.GetAll())
