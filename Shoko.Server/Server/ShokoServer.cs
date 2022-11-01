@@ -949,7 +949,7 @@ public class ShokoServer
         Importer.CheckForAniDBFileUpdate(false);
     }
 
-    public void StartWatchingFiles(bool log = true)
+    public void StartWatchingFiles()
     {
         StopWatchingFiles();
         _fileWatchers = new List<RecoveringFileSystemWatcher>();
@@ -958,17 +958,15 @@ public class ShokoServer
         {
             try
             {
-                if (share.FolderIsWatched && log)
+                if (share.FolderIsWatched)
                 {
                     logger.Info($"Watching ImportFolder: {share.ImportFolderName} || {share.ImportFolderLocation}");
                 }
 
                 if (Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
                 {
-                    if (log)
-                    {
-                        logger.Info($"Parsed ImportFolderLocation: {share.ImportFolderLocation}");
-                    }
+                    
+                    logger.Info($"Parsed ImportFolderLocation: {share.ImportFolderLocation}");
 
                     var fsw = new RecoveringFileSystemWatcher(share.ImportFolderLocation, ServerSettings.Instance.Import.VideoExtensions.Select(a => "*." + a.ToLowerInvariant()));
                     fsw.Options = new FileSystemWatcherLockOptions
@@ -985,11 +983,8 @@ public class ShokoServer
                 }
                 else if (!share.FolderIsWatched)
                 {
-                    if (log)
-                    {
-                        logger.Info("ImportFolder found but not watching: {0} || {1}", share.ImportFolderName,
-                            share.ImportFolderLocation);
-                    }
+                    logger.Info("ImportFolder found but not watching: {0} || {1}", share.ImportFolderName,
+                        share.ImportFolderLocation);
                 }
             }
             catch (Exception ex)
