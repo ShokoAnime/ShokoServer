@@ -136,7 +136,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in FileSystemWatcher. Retrying in {Time}: {Ex}s", _directoryFailedRetryInterval.TotalSeconds, ex);
+            _logger.LogError(ex, "Error in FileSystemWatcher. Retrying in {Time}s: {Ex}", _directoryFailedRetryInterval.TotalSeconds, ex);
             if (_watcher != null)
                 _watcher.EnableRaisingEvents = false;
             _recoveringTimer?.Change(_directoryFailedRetryInterval, Timeout.InfiniteTimeSpan);
