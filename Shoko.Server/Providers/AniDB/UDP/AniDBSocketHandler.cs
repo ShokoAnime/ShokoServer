@@ -39,24 +39,18 @@ public class AniDBSocketHandler : IAniDBSocketHandler
 
             try
             {
-                _aniDBSocket.SendTo(payload, _remoteIpEndPoint);
-                EndPoint temp = _remoteIpEndPoint;
-                var received = _aniDBSocket.ReceiveFrom(result, ref temp);
-
-                if (received > 2 && result[0] == 0 && result[1] == 0)
+                try
                 {
-                    //deflate
-                    var buff = new byte[65536];
-                    var input = new byte[received - 2];
-                    Array.Copy(result, 2, input, 0, received - 2);
-                    var inf = new Inflater(false);
-                    inf.SetInput(input);
-                    inf.Inflate(buff);
-                    result = buff;
-                    received = (int)inf.TotalOut;
+                    result = SendUnsafe(payload, result);
                 }
-
-                Array.Resize(ref result, received);
+                catch (SocketException e)
+                {
+                    if (e.SocketErrorCode == SocketError.TimedOut)
+                    {
+                        // we will retry once and only once.
+                        result = SendUnsafe(payload, result);
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -66,6 +60,29 @@ public class AniDBSocketHandler : IAniDBSocketHandler
             Locked = false;
             return result;
         }
+    }
+
+    private byte[] SendUnsafe(byte[] payload, byte[] result)
+    {
+        _aniDBSocket.SendTo(payload, _remoteIpEndPoint);
+        EndPoint temp = _remoteIpEndPoint;
+        var received = _aniDBSocket.ReceiveFrom(result, ref temp);
+
+        if (received > 2 && result[0] == 0 && result[1] == 0)
+        {
+            //deflate
+            var buff = new byte[65536];
+            var input = new byte[received - 2];
+            Array.Copy(result, 2, input, 0, received - 2);
+            var inf = new Inflater(false);
+            inf.SetInput(input);
+            inf.Inflate(buff);
+            result = buff;
+            received = (int)inf.TotalOut;
+        }
+
+        Array.Resize(ref result, received);
+        return result;
     }
 
     public bool TryConnection()
