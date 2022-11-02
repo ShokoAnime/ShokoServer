@@ -27,7 +27,7 @@ public class RecoveringFileSystemWatcher : IDisposable
     public event EventHandler<string> FileDeleted;
     public FileSystemWatcherLockOptions Options { get; set; } = new();
 
-    public RecoveringFileSystemWatcher(string path, IEnumerable<string> filters)
+    public RecoveringFileSystemWatcher(string path, IEnumerable<string> filters = null)
     {
         if (path == null) throw new ArgumentException(nameof(path) + " cannot be null");
         if (!Directory.Exists(path)) throw new ArgumentException(nameof(path) + $" must be a directory that exists: {path}");
