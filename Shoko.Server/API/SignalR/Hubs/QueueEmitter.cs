@@ -8,7 +8,7 @@ using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.Commands;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.API.SignalR;
+namespace Shoko.Server.API.SignalR.Hubs;
 
 public class QueueEmitter : IDisposable
 {

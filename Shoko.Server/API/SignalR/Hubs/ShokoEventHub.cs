@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 
-namespace Shoko.Server.API.SignalR;
+namespace Shoko.Server.API.SignalR.Hubs;
 
 public class ShokoEventHub : Hub
 {

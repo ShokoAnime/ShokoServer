@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.API.SignalR;
+namespace Shoko.Server.API.SignalR.Hubs;
 
 public class QueueHub : Hub
 {

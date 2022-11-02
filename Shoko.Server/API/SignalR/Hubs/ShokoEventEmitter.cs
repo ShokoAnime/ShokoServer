@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.API.SignalR.Models;
 
-namespace Shoko.Server.API.SignalR;
+namespace Shoko.Server.API.SignalR.Hubs;
 
 public class ShokoEventEmitter : IDisposable
 {

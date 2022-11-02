@@ -23,6 +23,7 @@ using Sentry;
 using Shoko.Server.API.ActionFilters;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.SignalR;
+using Shoko.Server.API.SignalR.Legacy;
 using Shoko.Server.Plugin;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;

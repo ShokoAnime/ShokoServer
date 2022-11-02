@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.API.SignalR;
+namespace Shoko.Server.API.SignalR.Legacy;
 
 public class AniDBHub : Hub
 {
