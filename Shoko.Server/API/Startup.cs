@@ -214,18 +214,25 @@ public class Startup
         });
     }
 
-    public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
         app.Use(async (context, next) =>
         {
             try
             {
-                await next.Invoke();
+                await next.Invoke(context);
             }
             catch (Exception e)
             {
-                SentrySdk.CaptureException(e);
-                Logger.Error(e);
+                try
+                {
+                    SentrySdk.CaptureException(e);
+                }
+                catch
+                {
+                    // ignore
+                }
+                Logger.Error(e, "Configure threw an error from {0}: {1}", next?.Target?.GetType().FullName ?? next?.Method.Module.FullyQualifiedName, e);
                 throw;
             }
         });

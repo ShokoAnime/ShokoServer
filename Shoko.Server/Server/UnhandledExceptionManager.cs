@@ -24,7 +24,7 @@ public sealed class UnhandledExceptionManager
     //--
     //-- This *MUST* be called early in your application to set up global error handling
     //--
-    public static void AddHandler(bool blnConsoleApp = false)
+    public static void AddHandler()
     {
         //-- attempt to load optional settings from .config file
         //LoadConfigSettings();
@@ -245,8 +245,16 @@ public sealed class UnhandledExceptionManager
 
     private static void GenericExceptionHandler(Exception objException)
     {
-        Analytics.PostException(objException, true);
-        SentrySdk.CaptureException(objException);
+        try
+        {
+            Analytics.PostException(objException, true);
+            SentrySdk.CaptureException(objException);
+        }
+        catch
+        {
+            // ignore
+        }
+
         //-- turn the exception into an informative string
         try
         {
