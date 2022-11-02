@@ -82,9 +82,22 @@ public class RecoveringFileSystemWatcher : IDisposable
         {
             WatcherChangeTypes.Created or
                 WatcherChangeTypes.Changed or
-                WatcherChangeTypes.Renamed => (e.FullPath, WatcherChangeTypes.Created),
-            _ => (e.FullPath, WatcherChangeTypes.Deleted)
+                WatcherChangeTypes.Renamed => (e.FullPath, Type: WatcherChangeTypes.Created),
+            _ => (e.FullPath, Type: WatcherChangeTypes.Deleted)
         };
+
+        // We get only a single event for directories
+        if (item.Type != WatcherChangeTypes.Deleted && Directory.Exists(item.FullPath))
+        {
+            // iterate and send a command for each containing file
+            foreach (var file in Directory.GetFiles(item.FullPath, "*.*", SearchOption.AllDirectories))
+            {
+                var fileItem = item with { FullPath = file };
+                if (!_buffer.Contains(fileItem)) _buffer.Add(fileItem);
+            }
+            return;
+        }
+
         if (!_buffer.Contains(item)) _buffer.Add(item);
     }
 
