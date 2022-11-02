@@ -13,14 +13,24 @@ namespace Shoko.CLI;
 public static class Program
 {
     public static void Main()
-        => new HostBuilder().UseContentRoot(Directory.GetCurrentDirectory())
-                            .ConfigureHostConfiguration(ConfigureHost)
-                            .ConfigureAppConfiguration(ConfigureApp)
-                            .UseDefaultServiceProvider(ConfigureDefaultServiceProvider)
-                            .UseNLog()
-                            .ConfigureServices(ConfigureServices)
-                            .Build()
-                            .Run();
+    {
+        try
+        {
+            UnhandledExceptionManager.AddHandler();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+        }
+        new HostBuilder().UseContentRoot(Directory.GetCurrentDirectory())
+            .ConfigureHostConfiguration(ConfigureHost)
+            .ConfigureAppConfiguration(ConfigureApp)
+            .UseDefaultServiceProvider(ConfigureDefaultServiceProvider)
+            .UseNLog()
+            .ConfigureServices(ConfigureServices)
+            .Build()
+            .Run();
+    }
 
     private static void ConfigureHost(IConfigurationBuilder configurationBuilder)
         => configurationBuilder.AddEnvironmentVariables(prefix: "DOTNET_")

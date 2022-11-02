@@ -26,6 +26,14 @@ public partial class App
     {
         Console.CancelKeyPress += OnConsoleOnCancelKeyPress;
         InitialiseTaskbarIcon();
+        try
+        {
+            UnhandledExceptionManager.AddHandler();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+        }
         new StartServer().StartupServer(AddEventHandlers, ServerStart);
     }
 

@@ -218,15 +218,6 @@ public class ShokoServer
         //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
         CommandHelper.LoadCommands(ServiceContainer);
 
-        try
-        {
-            UnhandledExceptionManager.AddHandler();
-        }
-        catch (Exception e)
-        {
-            logger.Log(LogLevel.Error, e);
-        }
-
         if (!Utils.IsLinux)
         {
             try
