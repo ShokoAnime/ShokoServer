@@ -746,13 +746,14 @@ public class FileController : BaseController
         if (query.Contains("%")) query = Uri.UnescapeDataString(query);
         query = query.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
         var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
-            .Where(a => a.FullServerPath.EndsWith(query, StringComparison.OrdinalIgnoreCase)).Select(a => a.VideoLocal)
-            .Distinct()
+            .Where(a => a.FullServerPath.EndsWith(query, StringComparison.OrdinalIgnoreCase))
+            .Select(a => a.VideoLocal)
             .Where(a =>
             {
-                var ser = a?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
+                if (a == null) return false;
+                var ser = a.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
                 return ser == null || User.AllowedSeries(ser);
-            }).Select(a => new File(HttpContext, a, true)).ToList();
+            }).Distinct().Select(a => new File(HttpContext, a, true)).ToList();
         return results;
     }
 
