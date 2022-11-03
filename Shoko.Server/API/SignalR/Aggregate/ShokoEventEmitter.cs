@@ -1,5 +1,4 @@
 using System;
-using Microsoft.AspNetCore.SignalR;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.API.SignalR.Models;
 
