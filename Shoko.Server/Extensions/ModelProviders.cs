@@ -1,22 +1,14 @@
 ﻿using System;
 using System.Globalization;
-using System.Linq;
-using System.Xml;
-using Microsoft.Extensions.DependencyInjection;
 using NLog;
-using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Metro;
-using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
-using Shoko.Server.LZ4;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
 using TvDbSharper.Dto;
 
 namespace Shoko.Server.Extensions;
@@ -24,177 +16,6 @@ namespace Shoko.Server.Extensions;
 public static class ModelProviders
 {
     private static Logger logger = LogManager.GetCurrentClassLogger();
-
-    public static Azure_CrossRef_AniDB_Other_Request ToRequest(this CrossRef_AniDB_Other c)
-    {
-        return new Azure_CrossRef_AniDB_Other_Request
-        {
-            CrossRef_AniDB_OtherID = c.CrossRef_AniDB_OtherID,
-            AnimeID = c.AnimeID,
-            CrossRefID = c.CrossRefID,
-            CrossRefSource = c.CrossRefSource,
-            CrossRefType = c.CrossRefType
-        };
-    }
-
-    public static Azure_FileHash_Request ToHashRequest(this AniDB_File anifile)
-    {
-        var r = new Azure_FileHash_Request
-        {
-            ED2K = anifile.Hash,
-            FileSize = anifile.FileSize,
-            Username = Constants.AnonWebCacheUsername,
-            AuthGUID = string.Empty
-        };
-
-        return r;
-    }
-
-    public static Azure_FileHash_Request ToHashRequest(this SVR_VideoLocal vl)
-    {
-        var r = new Azure_FileHash_Request
-        {
-            ED2K = vl.Hash,
-            CRC32 = vl.CRC32,
-            MD5 = vl.MD5,
-            SHA1 = vl.SHA1,
-            FileSize = vl.FileSize,
-            Username = Constants.AnonWebCacheUsername,
-            AuthGUID = string.Empty
-        };
-
-        return r;
-    }
-
-    public static Media ToMedia(this Azure_Media m)
-    {
-        var size = (m.MediaInfo[0] << 24) | (m.MediaInfo[1] << 16) | (m.MediaInfo[2] << 8) | m.MediaInfo[3];
-        var data = new byte[m.MediaInfo.Length - 4];
-        Array.Copy(m.MediaInfo, 4, data, 0, data.Length);
-        return CompressionHelper.DeserializeObject<Media>(data, size);
-    }
-
-    public static Azure_Media_Request ToMediaRequest(this SVR_VideoLocal v)
-    {
-        //Cleanup any File subtitles from media information.
-        var m = new Media(v.VideoLocalID, v.Media);
-        if (m.Parts != null && m.Parts.Count > 0)
-        {
-            foreach (var p in m.Parts)
-            {
-                if (p.Streams != null)
-                {
-                    var streams = p.Streams
-                        .Where(a => a.StreamType == 3 && !string.IsNullOrEmpty(a.File))
-                        .ToList();
-                    if (streams.Count > 0)
-                    {
-                        streams.ForEach(a => p.Streams.Remove(a));
-                    }
-                }
-            }
-        }
-
-        //Cleanup the VideoLocal id
-        var data = CompressionHelper.SerializeObject(m, out var outsize);
-        m.Id = 0;
-        var r = new Azure_Media_Request
-        {
-            ED2K = v.ED2KHash,
-            Version = SVR_VideoLocal.MEDIA_VERSION,
-            Username = Constants.AnonWebCacheUsername,
-            AuthGUID = string.Empty,
-            MediaInfo = new byte[data.Length + 4]
-        };
-        r.MediaInfo[0] = (byte)(outsize >> 24);
-        r.MediaInfo[1] = (byte)((outsize >> 16) & 0xFF);
-        r.MediaInfo[2] = (byte)((outsize >> 8) & 0xFF);
-        r.MediaInfo[3] = (byte)(outsize & 0xFF);
-        Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
-
-
-        return r;
-    }
-
-    public static Azure_Media_Request ToMediaRequest(this Media m, string ed2k)
-    {
-        var data = CompressionHelper.SerializeObject(m, out var outsize);
-        var r = new Azure_Media_Request
-        {
-            ED2K = ed2k,
-            MediaInfo = new byte[data.Length + 4],
-            Version = SVR_VideoLocal.MEDIA_VERSION,
-            Username = Constants.AnonWebCacheUsername,
-            AuthGUID = string.Empty
-        };
-        r.MediaInfo[0] = (byte)(outsize >> 24);
-        r.MediaInfo[1] = (byte)((outsize >> 16) & 0xFF);
-        r.MediaInfo[2] = (byte)((outsize >> 8) & 0xFF);
-        r.MediaInfo[3] = (byte)(outsize & 0xFF);
-        Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
-
-        return r;
-    }
-
-    public static Azure_CrossRef_AniDB_Trakt_Request ToRequest(this CrossRef_AniDB_TraktV2 xref, string animeName)
-    {
-        var r = new Azure_CrossRef_AniDB_Trakt_Request
-        {
-            AnimeID = xref.AnimeID,
-            AnimeName = animeName,
-            AniDBStartEpisodeType = xref.AniDBStartEpisodeType,
-            AniDBStartEpisodeNumber = xref.AniDBStartEpisodeNumber,
-            TraktID = xref.TraktID,
-            TraktSeasonNumber = xref.TraktSeasonNumber,
-            TraktStartEpisodeNumber = xref.TraktStartEpisodeNumber,
-            TraktTitle = xref.TraktTitle,
-            CrossRefSource = xref.CrossRefSource,
-            Username = Constants.AnonWebCacheUsername,
-            AuthGUID = string.Empty
-        };
-        return r;
-    }
-
-    public static Azure_CrossRef_AniDB_TvDB_Request ToRequest(this CrossRef_AniDB_TvDBV2 xref, string animeName)
-    {
-        var r = new Azure_CrossRef_AniDB_TvDB_Request
-        {
-            AnimeID = xref.AnimeID,
-            AnimeName = animeName,
-            AniDBStartEpisodeType = xref.AniDBStartEpisodeType,
-            AniDBStartEpisodeNumber = xref.AniDBStartEpisodeNumber,
-            TvDBID = xref.TvDBID,
-            TvDBSeasonNumber = xref.TvDBSeasonNumber,
-            TvDBStartEpisodeNumber = xref.TvDBStartEpisodeNumber,
-            TvDBTitle = xref.TvDBTitle,
-            CrossRefSource = xref.CrossRefSource,
-            Username = Constants.AnonWebCacheUsername,
-            AuthGUID = string.Empty
-        };
-        return r;
-    }
-
-    public static Azure_CrossRef_File_Episode_Request ToRequest(this CrossRef_File_Episode xref)
-    {
-        var r = new Azure_CrossRef_File_Episode_Request
-        {
-            Hash = xref.Hash,
-            AnimeID = xref.AnimeID,
-            EpisodeID = xref.EpisodeID,
-            Percentage = xref.Percentage,
-            EpisodeOrder = xref.EpisodeOrder,
-            Username = Constants.AnonWebCacheUsername
-        };
-        return r;
-    }
-
-    public static FileNameHash ToFileNameHash(this CrossRef_File_Episode cfe)
-    {
-        return new FileNameHash
-        {
-            FileName = cfe.FileName, FileSize = cfe.FileSize, Hash = cfe.Hash, DateTimeUpdated = DateTime.Now
-        };
-    }
 
     public static void Populate(this MovieDB_Fanart m, MovieDB_Image_Result result, int movieID)
     {
@@ -228,13 +49,6 @@ public static class ModelProviders
         m.Enabled = 1;
     }
 
-    public static void Populate(this Trakt_Friend friend, TraktV2User user)
-    {
-        friend.Username = user.username;
-        friend.FullName = user.name;
-        friend.LastAvatarUpdate = DateTime.Now;
-    }
-
     public static void Populate(this Trakt_Show show, TraktV2ShowExtended tvshow)
     {
         show.Overview = tvshow.overview;
@@ -243,16 +57,6 @@ public static class ModelProviders
         show.TvDB_ID = tvshow.ids.tvdb;
         show.URL = tvshow.ShowURL;
         show.Year = tvshow.year.ToString();
-    }
-
-    public static void Populate(this Trakt_Show show, TraktV2Show tvshow)
-    {
-        show.Overview = tvshow.Overview;
-        show.Title = tvshow.Title;
-        show.TraktID = tvshow.ids.slug;
-        show.TvDB_ID = tvshow.ids.tvdb;
-        show.URL = tvshow.ShowURL;
-        show.Year = tvshow.Year.ToString();
     }
 
     public static void Populate(this TvDB_Episode episode, EpisodeRecord apiEpisode)
@@ -286,73 +90,6 @@ public static class ModelProviders
         {
             episode.AirDate =
                 DateTime.ParseExact(apiEpisode.FirstAired, "yyyy-MM-dd", DateTimeFormatInfo.InvariantInfo);
-        }
-    }
-
-    private static string TryGetProperty(XmlNode node, string propertyName)
-    {
-        try
-        {
-            var prop = node[propertyName].InnerText.Trim();
-            return prop;
-        }
-        catch
-        {
-            //logger.Error( ex,"Error in TvDB_Episode.TryGetProperty: " + ex.ToString());
-        }
-
-        return string.Empty;
-    }
-
-    private static string TryGetEpisodeProperty(XmlDocument doc, string propertyName)
-    {
-        try
-        {
-            var prop = doc["Data"]["Episode"][propertyName].InnerText.Trim();
-            return prop;
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error in TvDB_Episode.TryGetProperty: " + ex);
-        }
-
-        return string.Empty;
-    }
-
-    private static string TryGetSeriesProperty(XmlDocument doc, string propertyName)
-    {
-        try
-        {
-            var prop = doc["Data"]["Series"][propertyName].InnerText.Trim();
-            return prop;
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error in TvDB_Series.TryGetProperty: " + ex);
-        }
-
-        return string.Empty;
-    }
-
-    [Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.Series.Image instead.")]
-    public static bool Populate(this TvDB_ImageFanart fanart, int seriesID, XmlNode node)
-    {
-        try
-        {
-            fanart.SeriesID = seriesID;
-            fanart.Id = int.Parse(node["id"].InnerText);
-            fanart.BannerPath = node["BannerPath"].InnerText;
-            fanart.BannerType = node["BannerType"].InnerText;
-            fanart.BannerType2 = node["BannerType2"].InnerText;
-            fanart.Colors = node["Colors"].InnerText;
-            fanart.Language = node["Language"].InnerText;
-            fanart.VignettePath = node["VignettePath"].InnerText;
-            return true;
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error in TvDB_ImageFanart.Init: " + ex);
-            return false;
         }
     }
 
@@ -421,45 +158,6 @@ public static class ModelProviders
         }
     }
 
-    public static void PopulateFromSearch(this TvDB_Series series, XmlDocument doc)
-    {
-        series.SeriesID = 0;
-        series.Overview = string.Empty;
-        series.SeriesName = string.Empty;
-        series.Status = string.Empty;
-        series.Banner = string.Empty;
-        series.Fanart = string.Empty;
-        series.Lastupdated = string.Empty;
-        series.Poster = string.Empty;
-        series.SeriesID = int.Parse(TryGetSeriesProperty(doc, "seriesid"));
-        series.SeriesName = TryGetSeriesProperty(doc, "SeriesName");
-        series.Overview = TryGetSeriesProperty(doc, "Overview");
-        series.Banner = TryGetSeriesProperty(doc, "banner");
-    }
-
-    [Obsolete(
-        "PopulateFromSeriesInfo XmlDocument is deprecated, please use PopulateFromSeriesInfo TvDbSharper.Series instead.")]
-    public static void PopulateFromSeriesInfo(this TvDB_Series series, XmlDocument doc)
-    {
-        series.SeriesID = 0;
-        series.Overview = string.Empty;
-        series.SeriesName = string.Empty;
-        series.Status = string.Empty;
-        series.Banner = string.Empty;
-        series.Fanart = string.Empty;
-        series.Lastupdated = string.Empty;
-        series.Poster = string.Empty;
-        series.SeriesID = int.Parse(TryGetSeriesProperty(doc, "id"));
-        series.SeriesName = TryGetSeriesProperty(doc, "SeriesName");
-        series.Overview = TryGetSeriesProperty(doc, "Overview");
-        series.Banner = TryGetSeriesProperty(doc, "banner");
-
-        series.Status = TryGetSeriesProperty(doc, "Status");
-        series.Fanart = TryGetSeriesProperty(doc, "fanart");
-        series.Lastupdated = TryGetSeriesProperty(doc, "lastupdated");
-        series.Poster = TryGetSeriesProperty(doc, "poster");
-    }
-
     public static void PopulateFromSeriesInfo(this TvDB_Series series, Series apiSeries)
     {
         series.SeriesID = 0;
@@ -480,45 +178,6 @@ public static class ModelProviders
         if (apiSeries.SiteRating != null)
         {
             series.Rating = (int)Math.Round(apiSeries.SiteRating.Value * 10);
-        }
-    }
-
-    [Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.SeriesSearchResult instead.")]
-    public static void Populate(this TVDB_Series_Search_Response response, XmlNode series)
-    {
-        response.Id = string.Empty;
-        response.SeriesID = 0;
-        response.Overview = string.Empty;
-        response.SeriesName = string.Empty;
-        response.Banner = string.Empty;
-        if (series["seriesid"] != null)
-        {
-            response.SeriesID = int.Parse(series["seriesid"].InnerText);
-        }
-
-        if (series["SeriesName"] != null)
-        {
-            response.SeriesName = series["SeriesName"].InnerText;
-        }
-
-        if (series["id"] != null)
-        {
-            response.Id = series["id"].InnerText;
-        }
-
-        if (series["Overview"] != null)
-        {
-            response.Overview = series["Overview"].InnerText;
-        }
-
-        if (series["banner"] != null)
-        {
-            response.Banner = series["banner"].InnerText;
-        }
-
-        if (series["language"] != null)
-        {
-            response.Language = series["language"].InnerText;
         }
     }
 
@@ -558,44 +217,6 @@ public static class ModelProviders
         return contract;
     }
 
-    public static Azure_AnimeCharacter ToContractAzure(this AniDB_Character character,
-        AniDB_Anime_Character charRel)
-    {
-        var handler = ShokoServer.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
-        var contract = new Azure_AnimeCharacter
-        {
-            CharID = character.CharID,
-            CharName = character.CharName,
-            CharKanjiName = character.CharKanjiName,
-            CharDescription = character.CharDescription,
-            CharType = charRel.CharType,
-            CharImageURL = string.Format(handler.ImageServerUrl, character.PicName)
-        };
-        var seiyuu = character.GetSeiyuu();
-        if (seiyuu == null)
-        {
-            return contract;
-        }
-
-        contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
-        contract.SeiyuuName = seiyuu.SeiyuuName;
-        contract.SeiyuuImageURL = string.Format(handler.ImageServerUrl, seiyuu.PicName);
-
-        return contract;
-    }
-
-    public static void PopulateManually(this CrossRef_File_Episode cross, SVR_VideoLocal vid, SVR_AnimeEpisode ep)
-    {
-        cross.Hash = vid.ED2KHash;
-        cross.FileName = vid.FileName;
-        cross.FileSize = vid.FileSize;
-        cross.CrossRefSource = (int)CrossRefSource.User;
-        cross.AnimeID = ep.GetAnimeSeries().AniDB_ID;
-        cross.EpisodeID = ep.AniDB_EpisodeID;
-        cross.Percentage = 100;
-        cross.EpisodeOrder = 1;
-    }
-
     public static void Populate(this SVR_AnimeGroup agroup, SVR_AnimeSeries series)
     {
         agroup.Populate(series, DateTime.Now);
@@ -630,14 +251,6 @@ public static class ModelProviders
         animeep.AniDB_EpisodeID = anidbEp.EpisodeID;
         animeep.DateTimeUpdated = DateTime.Now;
         animeep.DateTimeCreated = DateTime.Now;
-    }
-
-    public static CrossRef_AniDB_TvDBV2 ToV2Model(this CrossRef_AniDB_TvDB xref)
-    {
-        return new CrossRef_AniDB_TvDBV2
-        {
-            AnimeID = xref.AniDBID, CrossRefSource = (int)xref.CrossRefSource, TvDBID = xref.TvDBID
-        };
     }
 
     public static (int season, int episodeNumber) GetNextEpisode(this TvDB_Episode ep)
@@ -680,21 +293,5 @@ public static class ModelProviders
         // get the last episode of last season
         var epsInSeason = RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber - 1);
         return (ep.SeasonNumber - 1, epsInSeason);
-    }
-
-    public static int GetAbsoluteEpisodeNumber(this TvDB_Episode ep)
-    {
-        if (ep.SeasonNumber == 1 || ep.SeasonNumber == 0)
-        {
-            return ep.EpisodeNumber;
-        }
-
-        var number = ep.EpisodeNumber;
-        for (var season = 1; season < RepoFactory.TvDB_Episode.GetLastSeasonForSeries(ep.SeriesID); season++)
-        {
-            number += RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
-        }
-
-        return number;
     }
 }
