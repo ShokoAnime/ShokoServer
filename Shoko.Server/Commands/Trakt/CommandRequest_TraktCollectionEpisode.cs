@@ -82,16 +82,15 @@ public class CommandRequest_TraktCollectionEpisode : CommandRequestImplementatio
         DateTimeUpdated = cq.DateTimeUpdated;
 
         // read xml to get parameters
-        if (CommandDetails.Trim().Length > 0)
-        {
-            var docCreator = new XmlDocument();
-            docCreator.LoadXml(CommandDetails);
+        if (CommandDetails.Trim().Length <= 0) return false;
 
-            // populate the fields
-            AnimeEpisodeID =
-                int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktCollectionEpisode", "AnimeEpisodeID"));
-            Action = int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktCollectionEpisode", "Action"));
-        }
+        var docCreator = new XmlDocument();
+        docCreator.LoadXml(CommandDetails);
+
+        // populate the fields
+        AnimeEpisodeID =
+            int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktCollectionEpisode", "AnimeEpisodeID"));
+        Action = int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktCollectionEpisode", "Action"));
 
         return true;
     }

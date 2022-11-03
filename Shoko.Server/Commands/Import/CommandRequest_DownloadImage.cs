@@ -552,17 +552,16 @@ public class CommandRequest_DownloadImage : CommandRequestImplementation
         DateTimeUpdated = cq.DateTimeUpdated;
 
         // read xml to get parameters
-        if (CommandDetails.Trim().Length > 0)
-        {
-            var docCreator = new XmlDocument();
-            docCreator.LoadXml(CommandDetails);
+        if (CommandDetails.Trim().Length <= 0) return false;
 
-            // populate the fields
-            EntityID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadImage", "EntityID"));
-            EntityType = int.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadImage", "EntityType"));
-            ForceDownload =
-                bool.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadImage", "ForceDownload"));
-        }
+        var docCreator = new XmlDocument();
+        docCreator.LoadXml(CommandDetails);
+
+        // populate the fields
+        EntityID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadImage", "EntityID"));
+        EntityType = int.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadImage", "EntityType"));
+        ForceDownload =
+            bool.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadImage", "ForceDownload"));
 
         return true;
     }

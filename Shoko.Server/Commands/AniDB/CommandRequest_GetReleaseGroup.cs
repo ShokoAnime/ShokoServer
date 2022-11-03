@@ -86,16 +86,15 @@ public class CommandRequest_GetReleaseGroup : CommandRequestImplementation
         DateTimeUpdated = cq.DateTimeUpdated;
 
         // read xml to get parameters
-        if (CommandDetails.Trim().Length > 0)
-        {
-            var docCreator = new XmlDocument();
-            docCreator.LoadXml(CommandDetails);
+        if (CommandDetails.Trim().Length <= 0) return false;
 
-            // populate the fields
-            GroupID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroup", "GroupID"));
-            ForceRefresh =
-                bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroup", "ForceRefresh"));
-        }
+        var docCreator = new XmlDocument();
+        docCreator.LoadXml(CommandDetails);
+
+        // populate the fields
+        GroupID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroup", "GroupID"));
+        ForceRefresh =
+            bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroup", "ForceRefresh"));
 
         return true;
     }

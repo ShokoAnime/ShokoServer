@@ -130,16 +130,15 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
         DateTimeUpdated = cq.DateTimeUpdated;
 
         // read xml to get parameters
-        if (CommandDetails.Trim().Length > 0)
-        {
-            var docCreator = new XmlDocument();
-            docCreator.LoadXml(CommandDetails);
+        if (CommandDetails.Trim().Length <= 0) return false;
 
-            // populate the fields
-            AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_MovieDBSearchAnime", "AnimeID"));
-            ForceRefresh =
-                bool.Parse(TryGetProperty(docCreator, "CommandRequest_MovieDBSearchAnime", "ForceRefresh"));
-        }
+        var docCreator = new XmlDocument();
+        docCreator.LoadXml(CommandDetails);
+
+        // populate the fields
+        AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_MovieDBSearchAnime", "AnimeID"));
+        ForceRefresh =
+            bool.Parse(TryGetProperty(docCreator, "CommandRequest_MovieDBSearchAnime", "ForceRefresh"));
 
         return true;
     }

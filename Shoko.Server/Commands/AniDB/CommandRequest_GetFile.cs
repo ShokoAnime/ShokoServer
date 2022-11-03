@@ -268,10 +268,7 @@ public class CommandRequest_GetFile : CommandRequestImplementation
         DateTimeUpdated = cq.DateTimeUpdated;
 
         // read xml to get parameters
-        if (CommandDetails.Trim().Length <= 0)
-        {
-            return true;
-        }
+        if (CommandDetails.Trim().Length <= 0) return false;
 
         var docCreator = new XmlDocument();
         docCreator.LoadXml(CommandDetails);

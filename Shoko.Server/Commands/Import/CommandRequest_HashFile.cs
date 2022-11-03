@@ -606,23 +606,17 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         DateTimeUpdated = cq.DateTimeUpdated;
 
         // read xml to get parameters
-        if (CommandDetails.Trim().Length > 0)
-        {
-            var docCreator = new XmlDocument();
-            docCreator.LoadXml(CommandDetails);
+        if (CommandDetails.Trim().Length <= 0) return false;
 
-            // populate the fields
-            FileName = TryGetProperty(docCreator, "CommandRequest_HashFile", "FileName");
-            ForceHash = bool.Parse(TryGetProperty(docCreator, "CommandRequest_HashFile", "ForceHash"));
-            SkipMyList = bool.Parse(TryGetProperty(docCreator, "CommandRequest_HashFile", "SkipMyList"));
-        }
+        var docCreator = new XmlDocument();
+        docCreator.LoadXml(CommandDetails);
 
-        if (FileName.Trim().Length > 0)
-        {
-            return true;
-        }
+        // populate the fields
+        FileName = TryGetProperty(docCreator, "CommandRequest_HashFile", "FileName");
+        ForceHash = bool.Parse(TryGetProperty(docCreator, "CommandRequest_HashFile", "ForceHash"));
+        SkipMyList = bool.Parse(TryGetProperty(docCreator, "CommandRequest_HashFile", "SkipMyList"));
 
-        return false;
+        return FileName.Trim().Length > 0;
     }
 
     public override CommandRequest ToDatabaseObject()

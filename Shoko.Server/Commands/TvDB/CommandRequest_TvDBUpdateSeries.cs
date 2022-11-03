@@ -68,25 +68,24 @@ public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation
         DateTimeUpdated = cq.DateTimeUpdated;
 
         // read xml to get parameters
-        if (CommandDetails.Trim().Length > 0)
-        {
-            var docCreator = new XmlDocument();
-            docCreator.LoadXml(CommandDetails);
+        if (CommandDetails.Trim().Length <= 0) return false;
 
-            // populate the fields
-            TvDBSeriesID =
-                int.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries", "TvDBSeriesID"));
-            ForceRefresh =
-                bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries",
-                    "ForceRefresh"));
-            SeriesTitle =
-                TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries",
-                    "SeriesTitle");
-            if (string.IsNullOrEmpty(SeriesTitle))
-            {
-                SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(TvDBSeriesID)?.SeriesName ??
-                              string.Intern("Name not Available");
-            }
+        var docCreator = new XmlDocument();
+        docCreator.LoadXml(CommandDetails);
+
+        // populate the fields
+        TvDBSeriesID =
+            int.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries", "TvDBSeriesID"));
+        ForceRefresh =
+            bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries",
+                "ForceRefresh"));
+        SeriesTitle =
+            TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries",
+                "SeriesTitle");
+        if (string.IsNullOrEmpty(SeriesTitle))
+        {
+            SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(TvDBSeriesID)?.SeriesName ??
+                          string.Intern("Name not Available");
         }
 
         return true;

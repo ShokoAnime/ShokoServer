@@ -166,40 +166,34 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
         DateTimeUpdated = cq.DateTimeUpdated;
 
         // read xml to get parameters
-        if (CommandDetails.Trim().Length > 0)
+        if (CommandDetails.Trim().Length <= 0) return false;
+
+        var docCreator = new XmlDocument();
+        docCreator.LoadXml(CommandDetails);
+
+        // populate the fields
+        Hash = TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "Hash");
+        Watched = bool.Parse(
+            TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "Watched"));
+
+        var sUpStats = TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus",
+            "UpdateSeriesStats");
+        if (bool.TryParse(sUpStats, out var upStats))
         {
-            var docCreator = new XmlDocument();
-            docCreator.LoadXml(CommandDetails);
-
-            // populate the fields
-            Hash = TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "Hash");
-            Watched = bool.Parse(
-                TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "Watched"));
-
-            var sUpStats = TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus",
-                "UpdateSeriesStats");
-            if (bool.TryParse(sUpStats, out var upStats))
-            {
-                UpdateSeriesStats = upStats;
-            }
-
-            if (
-                int.TryParse(
-                    TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "WatchedDateAsSecs"),
-                    out var dateSecs))
-            {
-                WatchedDateAsSecs = dateSecs;
-            }
-
-            FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
+            UpdateSeriesStats = upStats;
         }
 
-        if (Hash.Trim().Length > 0)
+        if (
+            int.TryParse(
+                TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "WatchedDateAsSecs"),
+                out var dateSecs))
         {
-            return true;
+            WatchedDateAsSecs = dateSecs;
         }
 
-        return false;
+        FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
+
+        return Hash.Trim().Length > 0;
     }
 
     public override CommandRequest ToDatabaseObject()

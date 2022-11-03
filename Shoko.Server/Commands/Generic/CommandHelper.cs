@@ -153,8 +153,8 @@ public static class CommandHelper
         try
         {
             var command = ActivatorUtilities.CreateInstance(provider, type) as ICommandRequest;
-            command?.LoadFromDBCommand(crdb);
-            command?.PostInit();
+            if (command == null || !command.LoadFromDBCommand(crdb)) return null;
+            command.PostInit();
             return command;
         }
         catch (Exception e)

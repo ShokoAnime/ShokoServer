@@ -670,7 +670,7 @@ public partial class ShokoServiceImplementation
                     c.AnimeID = aid;
                     c.BubbleExceptions = true;
                     c.ForceRefresh = false;
-                    c.DownloadRelations = ServerSettings.Instance.AniDb.DownloadRelatedAnime;
+                    c.DownloadRelations = false;
                 });
                 command.ProcessCommand();
                 var anime = command.Result;

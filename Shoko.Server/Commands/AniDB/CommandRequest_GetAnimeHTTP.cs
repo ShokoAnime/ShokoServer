@@ -268,49 +268,45 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
         DateTimeUpdated = cq.DateTimeUpdated;
 
         // read xml to get parameters
-        if (CommandDetails.Trim().Length > 0)
+        if (CommandDetails.Trim().Length <= 0) return false;
+
+        var docCreator = new XmlDocument();
+        docCreator.LoadXml(CommandDetails);
+
+        // populate the fields
+        AnimeID = int.Parse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(AnimeID)));
+        if (RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID) == null) Priority = (int)CommandRequestPriority.Priority1;
+
+        if (bool.TryParse(
+                TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(DownloadRelations)),
+                out var dlRelations))
         {
-            var docCreator = new XmlDocument();
-            docCreator.LoadXml(CommandDetails);
+            DownloadRelations = dlRelations;
+        }
 
-            // populate the fields
-            AnimeID = int.Parse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(AnimeID)));
-            if (RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID) == null)
-            {
-                Priority = (int)CommandRequestPriority.Priority1;
-            }
+        if (bool.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(ForceRefresh)),
+                out var force))
+        {
+            ForceRefresh = force;
+        }
 
-            if (bool.TryParse(
-                    TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(DownloadRelations)),
-                    out var dlRelations))
-            {
-                DownloadRelations = dlRelations;
-            }
+        if (int.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(RelDepth)),
+                out var depth))
+        {
+            RelDepth = depth;
+        }
 
-            if (bool.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(ForceRefresh)),
-                    out var force))
-            {
-                ForceRefresh = force;
-            }
+        if (bool.TryParse(
+                TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(CreateSeriesEntry)),
+                out var create))
+        {
+            CreateSeriesEntry = create;
+        }
 
-            if (int.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(RelDepth)),
-                    out var depth))
-            {
-                RelDepth = depth;
-            }
-
-            if (bool.TryParse(
-                    TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(CreateSeriesEntry)),
-                    out var create))
-            {
-                CreateSeriesEntry = create;
-            }
-
-            if (bool.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(CacheOnly)),
-                    out var cache))
-            {
-                CacheOnly = cache;
-            }
+        if (bool.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(CacheOnly)),
+                out var cache))
+        {
+            CacheOnly = cache;
         }
 
         return true;

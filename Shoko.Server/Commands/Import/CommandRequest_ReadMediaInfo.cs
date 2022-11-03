@@ -70,15 +70,14 @@ public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
         DateTimeUpdated = cq.DateTimeUpdated;
 
         // read xml to get parameters
-        if (CommandDetails.Trim().Length > 0)
-        {
-            var docCreator = new XmlDocument();
-            docCreator.LoadXml(CommandDetails);
+        if (CommandDetails.Trim().Length <= 0) return false;
 
-            // populate the fields
-            VideoLocalID = int.Parse(
-                TryGetProperty(docCreator, "CommandRequest_ReadMediaInfo", "VideoLocalID"));
-        }
+        var docCreator = new XmlDocument();
+        docCreator.LoadXml(CommandDetails);
+
+        // populate the fields
+        VideoLocalID = int.Parse(
+            TryGetProperty(docCreator, "CommandRequest_ReadMediaInfo", "VideoLocalID"));
 
         return true;
     }
