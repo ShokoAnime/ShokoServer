@@ -3,12 +3,12 @@ using System.Linq;
 using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
+using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -55,49 +55,21 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
 
     protected override void Process()
     {
-        var xref = new CrossRef_File_Episode();
-        try
+        var xref = new CrossRef_File_Episode
         {
-            xref.PopulateManually(_vlocal, _episode);
-            if (Percentage is > 0 and <= 100)
-            {
-                xref.Percentage = Percentage;
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error populating XREF: {VideoLocal}", _vlocal.ToStringDetailed());
-            throw;
-        }
+            Hash = _vlocal.ED2KHash,
+            FileName = _vlocal.FileName,
+            FileSize = _vlocal.FileSize,
+            CrossRefSource = (int)CrossRefSource.User,
+            AnimeID = _episode.AniDB_Episode.AnimeID,
+            EpisodeID = _episode.AniDB_EpisodeID,
+            Percentage = Percentage is > 0 and <= 100 ? Percentage : 100,
+            EpisodeOrder = 1
+        };
 
         RepoFactory.CrossRef_File_Episode.Save(xref);
 
-        if (ServerSettings.Instance.FileQualityFilterEnabled)
-        {
-            var videoLocals = _episode.GetVideoLocals();
-            if (videoLocals != null)
-            {
-                videoLocals.Sort(FileQualityFilter.CompareTo);
-                var keep = videoLocals.Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
-                    .ToList();
-                foreach (var vl2 in keep)
-                {
-                    videoLocals.Remove(vl2);
-                }
-
-                if (videoLocals.Contains(_vlocal))
-                {
-                    videoLocals.Remove(_vlocal);
-                }
-
-                videoLocals = videoLocals.Where(FileQualityFilter.CheckFileKeep).ToList();
-
-                foreach (var toDelete in videoLocals)
-                {
-                    toDelete.Places.ForEach(a => a.RemoveRecordAndDeletePhysicalFile());
-                }
-            }
-        }
+        ProcessFileQualityFilter();
 
         _vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
@@ -124,6 +96,24 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
         }
     }
 
+    private void ProcessFileQualityFilter()
+    {
+        if (!ServerSettings.Instance.FileQualityFilterEnabled) return;
+
+        var videoLocals = _episode.GetVideoLocals();
+        if (videoLocals == null) return;
+
+        videoLocals.Sort(FileQualityFilter.CompareTo);
+        var keep = videoLocals.Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep).ToList();
+        foreach (var vl2 in keep) videoLocals.Remove(vl2);
+
+        if (videoLocals.Contains(_vlocal)) videoLocals.Remove(_vlocal);
+
+        videoLocals = videoLocals.Where(FileQualityFilter.CheckFileKeep).ToList();
+
+        foreach (var toDelete in videoLocals) toDelete.Places.ForEach(a => a.RemoveRecordAndDeletePhysicalFile());
+    }
+
     /// <summary>
     /// This should generate a unique key for a command
     /// It will be used to check whether the command has already been queued before adding it
@@ -142,23 +132,27 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
         DateTimeUpdated = cq.DateTimeUpdated;
 
         // read xml to get parameters
-        if (CommandDetails.Trim().Length > 0)
+        if (CommandDetails.Trim().Length <= 0) return false;
+
+        var docCreator = new XmlDocument();
+        docCreator.LoadXml(CommandDetails);
+
+        // populate the fields
+        VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "VideoLocalID"));
+        EpisodeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "EpisodeID"));
+        Percentage = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "Percentage"));
+        _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        if (_vlocal == null)
         {
-            var docCreator = new XmlDocument();
-            docCreator.LoadXml(CommandDetails);
+            Logger.LogWarning("VideoLocal object {VideoLocalID} not found", VideoLocalID);
+            return false;
+        }
 
-            // populate the fields
-            VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "VideoLocalID"));
-            EpisodeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "EpisodeID"));
-            Percentage = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "Percentage"));
-            _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
-            if (null == _vlocal)
-            {
-                Logger.LogInformation("VideoLocal object {VideoLocalID} not found", VideoLocalID);
-                return false;
-            }
-
-            _episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
+        _episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
+        if (_episode?.GetAnimeSeries() == null)
+        {
+            Logger.LogWarning("Local Episode or Series object {EpisodeID} not found", EpisodeID);
+            return false;
         }
 
         return true;
