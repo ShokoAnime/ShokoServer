@@ -25,6 +25,7 @@ public class ShokoEventEmitter : BaseEmitter, IDisposable
         EventHandler.FileDetected -= OnFileDetected;
         EventHandler.FileHashed -= OnFileHashed;
         EventHandler.FileMatched -= OnFileMatched;
+        EventHandler.FileDeleted -= OnFileDeleted;
         EventHandler.SeriesUpdated -= OnSeriesUpdated;
         EventHandler.EpisodeUpdated -= OnEpisodeUpdated;
     }
