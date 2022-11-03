@@ -3,20 +3,19 @@ using Microsoft.AspNetCore.SignalR;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.API.SignalR.Models;
 
-namespace Shoko.Server.API.SignalR.Hubs;
+namespace Shoko.Server.API.SignalR.Aggregate;
 
-public class ShokoEventEmitter : IDisposable
+public class ShokoEventEmitter : BaseEmitter, IDisposable
 {
-    private IHubContext<ShokoEventHub> Hub { get; set; }
     private IShokoEventHandler EventHandler { get; set; }
 
-    public ShokoEventEmitter(IHubContext<ShokoEventHub> hub, IShokoEventHandler events)
+    public ShokoEventEmitter(IHubContext<AggregateHub> hub, IShokoEventHandler events) : base(hub)
     {
-        Hub = hub;
         EventHandler = events;
         EventHandler.FileDetected += OnFileDetected;
         EventHandler.FileHashed += OnFileHashed;
         EventHandler.FileMatched += OnFileMatched;
+        EventHandler.FileDeleted += OnFileDeleted;
         EventHandler.SeriesUpdated += OnSeriesUpdated;
         EventHandler.EpisodeUpdated += OnEpisodeUpdated;
     }
@@ -33,6 +32,11 @@ public class ShokoEventEmitter : IDisposable
     private async void OnFileDetected(object sender, FileDetectedEventArgs e)
     {
         await Hub.Clients.All.SendAsync("FileDetected", new FileDetectedEventSignalRModel(e));
+    }
+
+    private async void OnFileDeleted(object sender, FileDeletedEventArgs e)
+    {
+        await Hub.Clients.All.SendAsync("FileDeleted", new FileDeletedEventSignalRModel(e));
     }
 
     private async void OnFileHashed(object sender, FileHashedEventArgs e)
@@ -53,5 +57,11 @@ public class ShokoEventEmitter : IDisposable
     private async void OnEpisodeUpdated(object sender, EpisodeInfoUpdatedEventArgs e)
     {
         await Hub.Clients.All.SendAsync("EpisodeUpdated", new EpisodeInfoUpdatedEventSignalRModel(e));
+    }
+
+    public override object GetInitialMessage()
+    {
+        // No back data for this
+        return null;
     }
 }

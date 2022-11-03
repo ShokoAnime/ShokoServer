@@ -11,6 +11,7 @@ namespace Shoko.Server;
 
 public class ShokoEventHandler : IShokoEventHandler
 {
+    public event EventHandler<FileDeletedEventArgs> FileDeleted;
     public event EventHandler<FileDetectedEventArgs> FileDetected;
     public event EventHandler<FileHashedEventArgs> FileHashed;
     public event EventHandler<FileMatchedEventArgs> FileMatched;
@@ -52,6 +53,13 @@ public class ShokoEventHandler : IShokoEventHandler
         var path = vlp.FilePath;
         FileHashed?.Invoke(null,
             new FileHashedEventArgs { FileInfo = vlp, ImportFolder = folder, RelativePath = path });
+    }
+
+    internal void OnFileDeleted(SVR_ImportFolder folder, SVR_VideoLocal_Place vlp)
+    {
+        var path = vlp.FilePath;
+        FileDeleted?.Invoke(null,
+            new FileDeletedEventArgs { FileInfo = vlp, ImportFolder = folder, RelativePath = path });
     }
 
     internal void OnFileMatched(SVR_VideoLocal_Place vlp)

@@ -5,6 +5,10 @@ namespace Shoko.Plugin.Abstractions
     public interface IShokoEventHandler
     {
         /// <summary>
+        /// Fired when a file is deleted and removed from Shoko.
+        /// </summary>
+        public event EventHandler<FileDeletedEventArgs> FileDeleted;
+        /// <summary>
         /// Fired when a file is detected, either during a forced import/scan or a watched folder.
         /// Nothing has been done with the file yet here.
         /// </summary>

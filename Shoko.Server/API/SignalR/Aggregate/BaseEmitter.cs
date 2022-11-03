@@ -6,25 +6,25 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 
-namespace Shoko.Server.API.SignalR.Hubs;
+namespace Shoko.Server.API.SignalR.Aggregate;
 
-public abstract class BaseEmitter<T> where T : Hub
+public abstract class BaseEmitter : IEmitter
 {
-    protected readonly IHubContext<T> Hub;
+    protected readonly IHubContext<Hub> Hub;
 
-    public BaseEmitter(IHubContext<T> hub)
+    protected BaseEmitter(IHubContext<Hub> hub)
     {
         Hub = hub;
     }
 
     public abstract object GetInitialMessage();
 
-    protected async Task SendAsync(string message, params object[] args)
+    public async Task SendAsync(string message, params object[] args)
     {
-        await Hub.Clients.All.SendCoreAsync(GetHubName(message), args);
+        await Hub.Clients.All.SendCoreAsync(GetName(message), args);
     }
 
-    private string GetHubName(string message)
+    public string GetName(string message)
     {
         var type = GetType().FullName?.Split('.').LastOrDefault()?.Replace("Emitter", "") ?? "Misc";
         return type + ":" + message;

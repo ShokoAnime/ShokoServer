@@ -8,17 +8,14 @@ using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.Commands;
 using Shoko.Server.Server;
 
-namespace Shoko.Server.API.SignalR.Hubs;
+namespace Shoko.Server.API.SignalR.Aggregate;
 
-public class QueueEmitter : IDisposable
+public class QueueEmitter : BaseEmitter, IDisposable
 {
-    private IHubContext<QueueHub> Hub { get; set; }
+    private readonly Dictionary<string, object> _lastState = new();
 
-    private readonly Dictionary<string, object> _lastState = new Dictionary<string, object>();
-
-    public QueueEmitter(IHubContext<QueueHub> hub)
+    public QueueEmitter(IHubContext<AggregateHub> hub) : base(hub)
     {
-        Hub = hub;
         ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += OnGeneralQueueCountChangedEvent;
         ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent += OnHasherQueueCountChangedEvent;
         ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += OnImageQueueCountChangedEvent;
@@ -39,22 +36,6 @@ public class QueueEmitter : IDisposable
         ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent -= OnHasherQueueStateChangedEvent;
         ShokoService.CmdProcessorImages.OnQueueStateChangedEvent -= OnImageQueueStateChangedEvent;
         ServerState.Instance.PropertyChanged -= ServerStatePropertyChanged;
-    }
-
-    public async Task OnConnectedAsync(IClientProxy caller)
-    {
-        if (ServerState.Instance.DatabaseAvailable)
-            await caller.SendAsync(
-                "CommandProcessingStatus", new Dictionary<string, object>
-                {
-                    {"GeneralQueueState", new QueueStateSignalRModel {State = ShokoService.CmdProcessorGeneral.QueueState.queueState, Description = ShokoService.CmdProcessorGeneral.QueueState.formatMessage()}},
-                    {"HasherQueueState", new QueueStateSignalRModel {State = ShokoService.CmdProcessorHasher.QueueState.queueState, Description = ShokoService.CmdProcessorHasher.QueueState.formatMessage()}},
-                    {"ImageQueueState", new QueueStateSignalRModel {State = ShokoService.CmdProcessorImages.QueueState.queueState, Description = ShokoService.CmdProcessorImages.QueueState.formatMessage()}},
-                    {"GeneralQueueCount", ShokoService.CmdProcessorGeneral.QueueCount},
-                    {"HasherQueueCount", ShokoService.CmdProcessorHasher.QueueCount},
-                    {"ImageQueueCount", ShokoService.CmdProcessorImages.QueueCount},
-                }
-            );
     }
 
     private async void ServerStatePropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -101,15 +82,46 @@ public class QueueEmitter : IDisposable
         await StateChangedAsync("QueueCountChanged", "ImageQueueCount", ev.QueueCount);
     }
 
-    public async Task StateChangedAsync(string method, string property, object currentState)
+    private async Task StateChangedAsync(string method, string property, object currentState)
     {
         if (_lastState.ContainsKey(property) && _lastState.TryGetValue(property, out var previousState) &&
-            previousState == currentState)
-        {
-            return;
-        }
+            previousState == currentState) return;
 
         _lastState[property] = currentState;
-        await Hub.Clients.All.SendAsync(method, property, currentState);
+        await SendAsync(method, property, currentState);
+    }
+
+    public override object GetInitialMessage()
+    {
+        return new Dictionary<string, object>
+        {
+            {
+                "GeneralQueueState",
+                new QueueStateSignalRModel
+                {
+                    State = ShokoService.CmdProcessorGeneral.QueueState.queueState,
+                    Description = ShokoService.CmdProcessorGeneral.QueueState.formatMessage()
+                }
+            },
+            {
+                "HasherQueueState",
+                new QueueStateSignalRModel
+                {
+                    State = ShokoService.CmdProcessorHasher.QueueState.queueState,
+                    Description = ShokoService.CmdProcessorHasher.QueueState.formatMessage()
+                }
+            },
+            {
+                "ImageQueueState",
+                new QueueStateSignalRModel
+                {
+                    State = ShokoService.CmdProcessorImages.QueueState.queueState,
+                    Description = ShokoService.CmdProcessorImages.QueueState.formatMessage()
+                }
+            },
+            { "GeneralQueueCount", ShokoService.CmdProcessorGeneral.QueueCount },
+            { "HasherQueueCount", ShokoService.CmdProcessorHasher.QueueCount },
+            { "ImageQueueCount", ShokoService.CmdProcessorImages.QueueCount },
+        };
     }
 }

@@ -23,10 +23,17 @@ using Sentry;
 using Shoko.Server.API.ActionFilters;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.SignalR;
+using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.SignalR.Legacy;
 using Shoko.Server.Plugin;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
+using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
+using QueueEmitter = Shoko.Server.API.SignalR.Aggregate.QueueEmitter;
+using LegacyAniDBEmitter = Shoko.Server.API.SignalR.Legacy.AniDBEmitter;
+using LegacyQueueEmitter = Shoko.Server.API.SignalR.Legacy.QueueEmitter;
+using LegacyShokoEventEmitter = Shoko.Server.API.SignalR.Legacy.ShokoEventEmitter;
 
 namespace Shoko.Server.API;
 
@@ -134,10 +141,13 @@ public class Startup
             o.EnableDetailedErrors = true;
         });
 
-        services.AddSingleton<QueueEmitter>();
-        services.AddSingleton<AniDBEmitter>();
         services.AddSingleton<LoggingEmitter>();
+        services.AddSingleton<LegacyQueueEmitter>();
+        services.AddSingleton<LegacyAniDBEmitter>();
+        services.AddSingleton<LegacyShokoEventEmitter>();
+        services.AddSingleton<AniDBEmitter>();
         services.AddSingleton<ShokoEventEmitter>();
+        services.AddSingleton<QueueEmitter>();
 
         // allow CORS calls from other both local and non-local hosts
         services.AddCors(options =>
@@ -282,6 +292,7 @@ public class Startup
             conf.MapHub<AniDBHub>("/signalr/anidb");
             conf.MapHub<LoggingHub>("/signalr/logging");
             conf.MapHub<ShokoEventHub>("/signalr/shoko");
+            conf.MapHub<AggregateHub>("/signalr/aggregate");
         });
 
         app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());

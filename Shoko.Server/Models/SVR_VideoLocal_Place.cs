@@ -289,26 +289,40 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     }
                 }
 
-                using (var transaction = session.BeginTransaction())
+                try
                 {
-                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-
-                    seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
-                        .Select(a => a.GetAnimeSeries()));
-                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
-
-                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
-                    transaction.Commit();
+                    ShokoEventHandler.Instance.OnFileDeleted(ImportFolder, this);
                 }
+                catch
+                {
+                    // ignore
+                }
+
+                using var transaction = session.BeginTransaction();
+                RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+
+                seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
+                    .Select(a => a.GetAnimeSeries()));
+                RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+
+                dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                transaction.Commit();
             }
             else
             {
-                using (var transaction = session.BeginTransaction())
+                try
                 {
-                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
-                    transaction.Commit();
+                    ShokoEventHandler.Instance.OnFileDeleted(ImportFolder, this);
                 }
+                catch
+                {
+                    // ignore
+                }
+
+                using var transaction = session.BeginTransaction();
+                RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+                dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                transaction.Commit();
             }
         }
 
@@ -371,23 +385,38 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
             var eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
             eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
-            using (var transaction = session.BeginTransaction())
-            {
-                RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-                RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
-                dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
 
-                transaction.Commit();
+            try
+            {
+                ShokoEventHandler.Instance.OnFileDeleted(ImportFolder, this);
             }
+            catch
+            {
+                // ignore
+            }
+
+            using var transaction = session.BeginTransaction();
+            RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+            RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+            dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+
+            transaction.Commit();
         }
         else
         {
-            using (var transaction = session.BeginTransaction())
+            try
             {
-                RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-                dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
-                transaction.Commit();
+                ShokoEventHandler.Instance.OnFileDeleted(ImportFolder, this);
             }
+            catch
+            {
+                // ignore
+            }
+
+            using var transaction = session.BeginTransaction();
+            RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+            dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+            transaction.Commit();
         }
     }
 
