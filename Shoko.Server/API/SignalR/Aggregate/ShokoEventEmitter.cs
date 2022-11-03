@@ -10,7 +10,7 @@ public class ShokoEventEmitter : BaseEmitter, IDisposable
     private IShokoEventHandler EventHandler { get; set; }
     public event EventHandler<(string Name, object args)> StateUpdate;
 
-    public ShokoEventEmitter(IHubContext<AggregateHub> hub, IShokoEventHandler events)
+    public ShokoEventEmitter(IShokoEventHandler events)
     {
         EventHandler = events;
         EventHandler.FileDetected += OnFileDetected;
