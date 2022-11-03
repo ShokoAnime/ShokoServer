@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.AspNetCore.SignalR;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 
@@ -10,8 +9,9 @@ public class AniDBEmitter : BaseEmitter, IDisposable
 {
     private IUDPConnectionHandler UDPHandler { get; set; }
     private IHttpConnectionHandler HttpHandler { get; set; }
+    public event EventHandler<(string Name, AniDBStateUpdate State)> StateUpdate;
 
-    public AniDBEmitter(IHubContext<AggregateHub> hub, IUDPConnectionHandler udp, IHttpConnectionHandler http) : base(hub)
+    public AniDBEmitter(IUDPConnectionHandler udp, IHttpConnectionHandler http)
     {
         HttpHandler = http;
         UDPHandler = udp;
@@ -25,14 +25,14 @@ public class AniDBEmitter : BaseEmitter, IDisposable
         HttpHandler.AniDBStateUpdate -= OnHttpStateUpdate;
     }
 
-    private async void OnUDPStateUpdate(object sender, AniDBStateUpdate e)
+    private void OnUDPStateUpdate(object sender, AniDBStateUpdate e)
     {
-        await SendAsync("AniDBUDPStateUpdate", e);
+        StateUpdate?.Invoke(this, (GetName("AniDBUDPStateUpdate"), e));
     }
 
-    private async void OnHttpStateUpdate(object sender, AniDBStateUpdate e)
+    private void OnHttpStateUpdate(object sender, AniDBStateUpdate e)
     {
-        await SendAsync("AniDBHttpStateUpdate", e);
+        StateUpdate?.Invoke(this, (GetName("AniDBHttpStateUpdate"), e));
     }
 
     public override object GetInitialMessage()

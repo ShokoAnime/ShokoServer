@@ -13,8 +13,9 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 public class QueueEmitter : BaseEmitter, IDisposable
 {
     private readonly Dictionary<string, object> _lastState = new();
+    public event EventHandler<(string Name, object[] args)> StateUpdate;
 
-    public QueueEmitter(IHubContext<AggregateHub> hub) : base(hub)
+    public QueueEmitter()
     {
         ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += OnGeneralQueueCountChangedEvent;
         ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent += OnHasherQueueCountChangedEvent;
@@ -38,57 +39,57 @@ public class QueueEmitter : BaseEmitter, IDisposable
         ServerState.Instance.PropertyChanged -= ServerStatePropertyChanged;
     }
 
-    private async void ServerStatePropertyChanged(object sender, PropertyChangedEventArgs e)
+    private void ServerStatePropertyChanged(object sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == null) return;
         // Currently, only the DatabaseBlocked property, but we could use this for more.
         if (e.PropertyName == "DatabaseBlocked" || e.PropertyName.StartsWith("Server"))
         {
-            await StateChangedAsync("ServerStateChanged", e.PropertyName, e.GetPropertyValue(sender));
+            StateChangedAsync("ServerStateChanged", e.PropertyName, e.GetPropertyValue(sender));
         }
     }
 
-    private async void OnGeneralQueueStateChangedEvent(QueueStateEventArgs e)
+    private void OnGeneralQueueStateChangedEvent(QueueStateEventArgs e)
     {
-        await StateChangedAsync("QueueStateChanged", "GeneralQueueState",
+        StateChangedAsync("QueueStateChanged", "GeneralQueueState",
             new QueueStateSignalRModel
                 {State = e.QueueState.queueState, Description = e.QueueState.formatMessage()});
     }
 
-    private async void OnHasherQueueStateChangedEvent(QueueStateEventArgs e)
+    private void OnHasherQueueStateChangedEvent(QueueStateEventArgs e)
     {
-        await StateChangedAsync("QueueStateChanged", "HasherQueueState", new QueueStateSignalRModel
+        StateChangedAsync("QueueStateChanged", "HasherQueueState", new QueueStateSignalRModel
             {State = e.QueueState.queueState, Description = e.QueueState.formatMessage()});
     }
 
-    private async void OnImageQueueStateChangedEvent(QueueStateEventArgs e)
+    private void OnImageQueueStateChangedEvent(QueueStateEventArgs e)
     {
-        await StateChangedAsync("QueueStateChanged", "ImageQueueState", new QueueStateSignalRModel
+        StateChangedAsync("QueueStateChanged", "ImageQueueState", new QueueStateSignalRModel
             {State = e.QueueState.queueState, Description = e.QueueState.formatMessage()});
     }
 
-    private async void OnGeneralQueueCountChangedEvent(QueueCountEventArgs ev)
+    private void OnGeneralQueueCountChangedEvent(QueueCountEventArgs ev)
     {
-        await StateChangedAsync("QueueCountChanged", "GeneralQueueCount", ev.QueueCount);
+        StateChangedAsync("QueueCountChanged", "GeneralQueueCount", ev.QueueCount);
     }
         
-    private async void OnHasherQueueCountChangedEvent(QueueCountEventArgs ev)
+    private void OnHasherQueueCountChangedEvent(QueueCountEventArgs ev)
     {
-        await StateChangedAsync("QueueCountChanged", "HasherQueueCount", ev.QueueCount);
+        StateChangedAsync("QueueCountChanged", "HasherQueueCount", ev.QueueCount);
     }
         
-    private async void OnImageQueueCountChangedEvent(QueueCountEventArgs ev)
+    private void OnImageQueueCountChangedEvent(QueueCountEventArgs ev)
     {
-        await StateChangedAsync("QueueCountChanged", "ImageQueueCount", ev.QueueCount);
+        StateChangedAsync("QueueCountChanged", "ImageQueueCount", ev.QueueCount);
     }
 
-    private async Task StateChangedAsync(string method, string property, object currentState)
+    private void StateChangedAsync(string method, string property, object currentState)
     {
         if (_lastState.ContainsKey(property) && _lastState.TryGetValue(property, out var previousState) &&
             previousState == currentState) return;
 
         _lastState[property] = currentState;
-        await SendAsync(method, property, currentState);
+        StateUpdate?.Invoke(this, (GetName(method), new[] { property, currentState }));
     }
 
     public override object GetInitialMessage()

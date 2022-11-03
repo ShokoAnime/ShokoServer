@@ -2,20 +2,28 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.DependencyInjection;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class AggregateHub : Hub
 {
-    private AniDBEmitter AniDBEmitter { get; set; }
-    private QueueEmitter QueueEmitter { get; set; }
-    private ShokoEventEmitter ShokoEmitter { get; set; }
-    
+    private readonly AniDBEmitter _aniDBEmitter;
+    private readonly QueueEmitter _queueEmitter;
+    private readonly ShokoEventEmitter _shokoEmitter;
+
+    public AggregateHub(AniDBEmitter aniDBEmitter, QueueEmitter queueEmitter, ShokoEventEmitter shokoEmitter)
+    {
+        _aniDBEmitter = aniDBEmitter;
+        _queueEmitter = queueEmitter;
+        _shokoEmitter = shokoEmitter;
+    }
+
     public override async Task OnConnectedAsync()
     {
         await base.OnConnectedAsync();
@@ -23,7 +31,6 @@ public class AggregateHub : Hub
         var query = context?.Request.Query["feeds"].SelectMany(a => a.Split(","))
             .Select(a => a.ToLower().Trim());
         if (query == null) return;
-        var services = context.RequestServices;
         const string OnConnected = "OnConnected";
 
         foreach (var feed in query)
@@ -31,19 +38,34 @@ public class AggregateHub : Hub
             switch (feed)
             {
                 case "anidb":
-                    AniDBEmitter = services.GetRequiredService<AniDBEmitter>();
-                    await Clients.All.SendAsync(AniDBEmitter.GetName(OnConnected), AniDBEmitter.GetInitialMessage());
+                    _aniDBEmitter.StateUpdate += AniDBOnStateUpdate;
+                    await Clients.All.SendAsync(_aniDBEmitter.GetName(OnConnected), _aniDBEmitter.GetInitialMessage());
                     break;
                 case "queue":
-                    QueueEmitter = services.GetRequiredService<QueueEmitter>();
-                    await Clients.All.SendAsync(QueueEmitter.GetName(OnConnected), QueueEmitter.GetInitialMessage());
+                    _queueEmitter.StateUpdate += QueueOnStateUpdate;
+                    await Clients.All.SendAsync(_queueEmitter.GetName(OnConnected), _queueEmitter.GetInitialMessage());
                     break;
                 case "shoko":
-                    ShokoEmitter = services.GetRequiredService<ShokoEventEmitter>();
-                    await Clients.All.SendAsync(ShokoEmitter.GetName(OnConnected), ShokoEmitter.GetInitialMessage());
+                    _shokoEmitter.StateUpdate += ShokoOnStateUpdate;
+                    await Clients.All.SendAsync(_shokoEmitter.GetName(OnConnected), _shokoEmitter.GetInitialMessage());
                     break;
             }
         }
+    }
+
+    private async void AniDBOnStateUpdate(object sender, (string Message, AniDBStateUpdate State) e)
+    {
+        await Clients.All.SendAsync(e.Message, e.State);
+    }
+
+    private async void QueueOnStateUpdate(object sender, (string Message, object[] args) e)
+    {
+        await Clients.All.SendCoreAsync(e.Message, e.args);
+    }
+
+    private async void ShokoOnStateUpdate(object sender, (string Message, object State) e)
+    {
+        await Clients.All.SendAsync(e.Message, e.State);
     }
 
     public void ChangeQueueProcessingState(string queue, bool paused)
@@ -60,5 +82,13 @@ public class AggregateHub : Hub
                 ShokoService.CmdProcessorImages.Paused = paused;
                 break;
         }
+    }
+
+    public override async Task OnDisconnectedAsync(Exception exception)
+    {
+        _aniDBEmitter.StateUpdate -= AniDBOnStateUpdate;
+        _queueEmitter.StateUpdate -= QueueOnStateUpdate;
+        _shokoEmitter.StateUpdate -= ShokoOnStateUpdate;
+        await base.OnDisconnectedAsync(exception);
     }
 }

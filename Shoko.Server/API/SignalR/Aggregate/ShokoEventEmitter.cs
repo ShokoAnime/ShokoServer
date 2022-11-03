@@ -8,8 +8,9 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 public class ShokoEventEmitter : BaseEmitter, IDisposable
 {
     private IShokoEventHandler EventHandler { get; set; }
+    public event EventHandler<(string Name, object args)> StateUpdate;
 
-    public ShokoEventEmitter(IHubContext<AggregateHub> hub, IShokoEventHandler events) : base(hub)
+    public ShokoEventEmitter(IHubContext<AggregateHub> hub, IShokoEventHandler events)
     {
         EventHandler = events;
         EventHandler.FileDetected += OnFileDetected;
@@ -30,34 +31,34 @@ public class ShokoEventEmitter : BaseEmitter, IDisposable
         EventHandler.EpisodeUpdated -= OnEpisodeUpdated;
     }
 
-    private async void OnFileDetected(object sender, FileDetectedEventArgs e)
+    private void OnFileDetected(object sender, FileDetectedEventArgs e)
     {
-        await SendAsync("FileDetected", new FileDetectedEventSignalRModel(e));
+        StateUpdate?.Invoke(this, (GetName("FileDetected"), new FileDetectedEventSignalRModel(e)));
     }
 
-    private async void OnFileDeleted(object sender, FileDeletedEventArgs e)
+    private void OnFileDeleted(object sender, FileDeletedEventArgs e)
     {
-        await SendAsync("FileDeleted", new FileDeletedEventSignalRModel(e));
+        StateUpdate?.Invoke(this, (GetName("FileDeleted"), new FileDeletedEventSignalRModel(e)));
     }
 
-    private async void OnFileHashed(object sender, FileHashedEventArgs e)
+    private void OnFileHashed(object sender, FileHashedEventArgs e)
     {
-        await SendAsync("FileHashed", new FileHashedEventSignalRModel(e));
+        StateUpdate?.Invoke(this, (GetName("FileHashed"), new FileHashedEventSignalRModel(e)));
     }
 
-    private async void OnFileMatched(object sender, FileMatchedEventArgs e)
+    private void OnFileMatched(object sender, FileMatchedEventArgs e)
     {
-        await SendAsync("FileMatched", new FileMatchedEventSignalRModel(e));
+        StateUpdate?.Invoke(this, (GetName("FileMatched"), new FileMatchedEventSignalRModel(e)));
     }
 
-    private async void OnSeriesUpdated(object sender, SeriesInfoUpdatedEventArgs e)
+    private void OnSeriesUpdated(object sender, SeriesInfoUpdatedEventArgs e)
     {
-        await SendAsync("SeriesUpdated", new SeriesInfoUpdatedEventSignalRModel(e));
+        StateUpdate?.Invoke(this, (GetName("SeriesUpdated"), new SeriesInfoUpdatedEventSignalRModel(e)));
     }
 
-    private async void OnEpisodeUpdated(object sender, EpisodeInfoUpdatedEventArgs e)
+    private void OnEpisodeUpdated(object sender, EpisodeInfoUpdatedEventArgs e)
     {
-        await SendAsync("EpisodeUpdated", new EpisodeInfoUpdatedEventSignalRModel(e));
+        StateUpdate?.Invoke(this, (GetName("EpisodeUpdated"), new EpisodeInfoUpdatedEventSignalRModel(e)));
     }
 
     public override object GetInitialMessage()
