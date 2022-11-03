@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
 {
     public string Name { get; } = "MySQL";
-    public int RequiredVersion { get; } = 104;
+    public int RequiredVersion { get; } = 105;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -700,7 +700,8 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
             "ALTER TABLE VideoLocal DROP INDEX IX_VideoLocal_Hash; ALTER TABLE VideoLocal ADD UNIQUE INDEX UIX_VideoLocal_Hash (Hash);"),
         new(102, 1, "UPDATE AniDB_File SET File_Source = 'Web' WHERE File_Source = 'www'; UPDATE AniDB_File SET File_Source = 'BluRay' WHERE File_Source = 'Blu-ray'; UPDATE AniDB_File SET File_Source = 'LaserDisc' WHERE File_Source = 'LD'; UPDATE AniDB_File SET File_Source = 'Unknown' WHERE File_Source = 'unknown';"),
         new (103, 1, "ALTER TABLE AniDB_GroupStatus MODIFY GroupName LONGTEXT NULL; ALTER TABLE AniDB_GroupStatus MODIFY EpisodeRange LONGTEXT NULL;"),
-        new(104, 1, "ALTER TABLE AniDB_Episode ADD INDEX IX_AniDB_Episode_EpisodeType (EpisodeType);")
+        new(104, 1, "ALTER TABLE AniDB_Episode ADD INDEX IX_AniDB_Episode_EpisodeType (EpisodeType);"),
+        new(105, 1, "ALTER TABLE AniDB_Episode_Title MODIFY Title TEXT NOT NULL")
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
