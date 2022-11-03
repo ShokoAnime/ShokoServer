@@ -202,6 +202,7 @@ public static class SeriesSearch
     public static List<SearchResult<SVR_AnimeSeries>> Search(int userID, string query, int limit, SearchFlags flags,
         TagFilter.Filter tagFilter = TagFilter.Filter.None)
     {
+        if (string.IsNullOrEmpty(query)) return new List<SearchResult<SVR_AnimeSeries>>();
         query = query.ToLowerInvariant();
 
         var user = RepoFactory.JMMUser.GetByID(userID);
@@ -216,11 +217,8 @@ public static class SeriesSearch
                                           !a.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories())));
 
         var allTags = RepoFactory.AniDB_Tag.GetAll().AsParallel()
-            .Where(a =>
-            {
-                return !user.GetHideCategories().Contains(a.TagName) &&
-                       !TagFilter.IsTagBlackListed(a.TagName, tagFilter);
-            });
+            .Where(a => !user.GetHideCategories().Contains(a.TagName) &&
+                        !TagFilter.IsTagBlackListed(a.TagName, tagFilter));
 
         //search by anime id
         if (int.TryParse(query, out var aid))

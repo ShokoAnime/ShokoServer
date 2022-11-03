@@ -34,8 +34,6 @@ public partial class ShokoServiceImplementation
     [HttpPost("Series/SearchFilename/{uid}")]
     public List<CL_AnimeSeries_User> SearchSeriesWithFilename(int uid, [FromForm] string query)
     {
-        var input = query ?? string.Empty;
-
         var series = SeriesSearch.Search(uid, query, int.MaxValue,
             SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Fuzzy);
 
