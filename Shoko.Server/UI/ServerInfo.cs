@@ -109,6 +109,7 @@ public class ServerInfo : INotifyPropertyChangedExt
                         BanOrigin = @"HTTP";
                         BanReason = HTTPBanTime.ToString(CultureInfo.CurrentCulture);
                     }
+                    ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
                 }
 
                 break;
@@ -133,6 +134,7 @@ public class ServerInfo : INotifyPropertyChangedExt
                         BanOrigin = @"UDP";
                         BanReason = UDPBanTime.ToString(CultureInfo.CurrentCulture);
                     }
+                    ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
                 }
 
                 break;
