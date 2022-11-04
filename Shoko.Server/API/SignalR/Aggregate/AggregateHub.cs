@@ -91,4 +91,13 @@ public class AggregateHub : Hub
         _shokoEmitter.StateUpdate -= ShokoOnStateUpdate;
         await base.OnDisconnectedAsync(exception);
     }
+
+    protected override void Dispose(bool disposing)
+    {
+        // disposed before disconnecting?
+        _aniDBEmitter.StateUpdate -= AniDBOnStateUpdate;
+        _queueEmitter.StateUpdate -= QueueOnStateUpdate;
+        _shokoEmitter.StateUpdate -= ShokoOnStateUpdate;
+        base.Dispose(disposing);
+    }
 }
