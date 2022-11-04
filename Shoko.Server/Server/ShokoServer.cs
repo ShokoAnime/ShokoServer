@@ -984,34 +984,20 @@ public class ShokoServer
         }
     }
 
-    public void PauseWatchingFiles()
+    public void AddFileWatcherExclusion(string path)
     {
-        if (_fileWatchers == null || !_fileWatchers.Any())
-        {
-            return;
-        }
-
-        foreach (var fsw in _fileWatchers)
-        {
-            fsw?.Stop();
-        }
-
-        logger.Info("Paused Filesystem Watching");
+        if (_fileWatchers == null || !_fileWatchers.Any()) return;
+        var watcher = _fileWatchers.FirstOrDefault(a => a.IsPathWatched(path));
+        watcher?.AddExclusion(path);
+        logger.Trace($"Added {path} to filesystem watcher exclusions");
     }
 
-    public void UnpauseWatchingFiles()
+    public void RemoveFileWatcherExclusion(string path)
     {
-        if (_fileWatchers == null || !_fileWatchers.Any())
-        {
-            return;
-        }
-
-        foreach (var fsw in _fileWatchers)
-        {
-            fsw.Start();
-        }
-
-        logger.Info("Unpaused Filesystem Watching");
+        if (_fileWatchers == null || !_fileWatchers.Any()) return;
+        var watcher = _fileWatchers.FirstOrDefault(a => a.IsPathWatched(path));
+        watcher?.RemoveExclusion(path);
+        logger.Trace($"Removed {path} from filesystem watcher exclusions");
     }
 
     public void StopWatchingFiles()

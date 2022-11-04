@@ -22,7 +22,9 @@ public class RecoveringFileSystemWatcher : IDisposable
     private readonly ILogger _logger;
     private readonly IReadOnlyCollection<string> _filters;
     private readonly ObservableCollection<(string Path, WatcherChangeTypes Type)> _buffer = new();
+    private readonly ObservableCollection<string> _exclusions = new();
     private readonly string _path;
+    private bool ExclusionsEnabled { get; set; }
     public event EventHandler<string> FileAdded;
     public event EventHandler<string> FileDeleted;
     public FileSystemWatcherLockOptions Options { get; set; } = new();
@@ -73,7 +75,9 @@ public class RecoveringFileSystemWatcher : IDisposable
                     var items = ((string Path, WatcherChangeTypes Type)[])par1;
                     items.ForEach(a => _buffer.Remove(a));
                 }
-            }, e.NewItems.Cast<(string Path, WatcherChangeTypes Type)>().ToArray());
+            },
+            e.NewItems.Cast<(string Path, WatcherChangeTypes Type)>()
+                .Where(a => !ExclusionsEnabled || !_exclusions.Contains(a.Path)).ToArray());
     }
 
     private void WatcherChangeDetected(object sender, FileSystemEventArgs e)
@@ -162,6 +166,20 @@ public class RecoveringFileSystemWatcher : IDisposable
         if (_watcher == null) return;
         _watcher.EnableRaisingEvents = false;
     }
+
+    public void AddExclusion(string path)
+    {
+        if (!_exclusions.Contains(path)) _exclusions.Add(path);
+        ExclusionsEnabled = true;
+    }
+
+    public void RemoveExclusion(string path)
+    {
+        if (_exclusions.Contains(path)) _exclusions.Remove(path);
+        ExclusionsEnabled = _exclusions.Any();
+    }
+
+    public bool IsPathWatched(string path) => path.Contains(_path);
 
     private System.IO.FileSystemWatcher InitWatcher()
     {
@@ -293,7 +311,6 @@ public class RecoveringFileSystemWatcher : IDisposable
 
         _logger.LogError("Could not access file: {Filename}", path);
         return false;
-
     }
     
     //Added size return, since symbolic links return 0, we use this function also to return the size of the file.

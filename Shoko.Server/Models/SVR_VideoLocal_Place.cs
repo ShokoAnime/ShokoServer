@@ -124,7 +124,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 return (false, renamed, string.Empty);
             }
 
-            ShokoServer.Instance.PauseWatchingFiles();
+            ShokoServer.Instance.AddFileWatcherExclusion(newFullName);
 
             logger.Info($"Renaming file From \"{fullFileName}\" to \"{newFullName}\"");
             try
@@ -135,7 +135,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             catch (Exception e)
             {
                 logger.Info($"Renaming file FAILED! From \"{fullFileName}\" to \"{newFullName}\" - {e}");
-                ShokoServer.Instance.UnpauseWatchingFiles();
+                ShokoServer.Instance.RemoveFileWatcherExclusion(newFullName);
                 return (false, renamed, "Error: Failed to rename file");
             }
 
@@ -174,7 +174,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             if (tup == null)
             {
                 logger.Error($"Unable to LOCATE file \"{newFullName}\" inside the import folders");
-                ShokoServer.Instance.UnpauseWatchingFiles();
+                ShokoServer.Instance.RemoveFileWatcherExclusion(newFullName);
                 return (false, renamed, "Error: Unable to resolve new path");
             }
 
@@ -232,7 +232,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             return (true, string.Empty, $"Error: {ex.Message}");
         }
 
-        ShokoServer.Instance.UnpauseWatchingFiles();
+        ShokoServer.Instance.RemoveFileWatcherExclusion(newFullName);
         return (true, renamed, string.Empty);
     }
 
@@ -781,7 +781,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             return (string.Empty, "ERROR: A file already exists at the destination");
         }
 
-        ShokoServer.Instance.PauseWatchingFiles();
+        ShokoServer.Instance.AddFileWatcherExclusion(newFullServerPath);
 
         logger.Info($"Moving file from \"{FullServerPath}\" to \"{newFullServerPath}\"");
         try
@@ -791,7 +791,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         catch (Exception e)
         {
             logger.Error($"Unable to MOVE file: \"{FullServerPath}\" to \"{newFullServerPath}\" error {e}");
-            ShokoServer.Instance.UnpauseWatchingFiles();
+            ShokoServer.Instance.RemoveFileWatcherExclusion(newFullServerPath);
             return (newFullServerPath, "ERROR: " + e);
         }
 
@@ -813,7 +813,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
         }
 
-        ShokoServer.Instance.UnpauseWatchingFiles();
+        ShokoServer.Instance.RemoveFileWatcherExclusion(newFullServerPath);
         return (newFolderPath, string.Empty);
     }
 
@@ -978,7 +978,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     }
 
                     // Move
-                    ShokoServer.Instance.PauseWatchingFiles();
+                    ShokoServer.Instance.AddFileWatcherExclusion(newFullServerPath);
                     logger.Info($"Moving file from \"{FullServerPath}\" to \"{newFullServerPath}\"");
                     try
                     {
@@ -987,7 +987,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     catch (Exception e)
                     {
                         logger.Error($"Unable to MOVE file: \"{FullServerPath}\" to \"{newFullServerPath}\" error {e}");
-                        ShokoServer.Instance.UnpauseWatchingFiles();
+                        ShokoServer.Instance.RemoveFileWatcherExclusion(newFullServerPath);
                         return false;
                     }
 
@@ -1007,7 +1007,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             }
             else
             {
-                ShokoServer.Instance.PauseWatchingFiles();
+                ShokoServer.Instance.AddFileWatcherExclusion(newFullServerPath);
                 logger.Info($"Moving file from \"{FullServerPath}\" to \"{newFullServerPath}\"");
                 try
                 {
@@ -1016,7 +1016,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 catch (Exception e)
                 {
                     logger.Error($"Unable to MOVE file: \"{FullServerPath}\" to \"{newFullServerPath}\" error {e}");
-                    ShokoServer.Instance.UnpauseWatchingFiles();
+                    ShokoServer.Instance.RemoveFileWatcherExclusion(newFullServerPath);
                     return false;
                 }
 
@@ -1041,7 +1041,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             logger.Error(ex, $"Could not MOVE file: \"{FullServerPath ?? VideoLocal_Place_ID.ToString()}\" -- {ex}");
         }
 
-        ShokoServer.Instance.UnpauseWatchingFiles();
         return true;
     }
 
