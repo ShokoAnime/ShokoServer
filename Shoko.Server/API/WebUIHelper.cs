@@ -28,9 +28,10 @@ public static class WebUIHelper
 
         dynamic result = JsonConvert.DeserializeObject(response);
         var url = string.Empty;
+        var zipName = (channel == "stable") ? "latest.zip" : $"Shoko-WebUI-{tagName}.zip";
         foreach (var obj in result.assets)
         {
-            if (obj.name == "latest.zip")
+            if (obj.name == zipName)
             {
                 url = obj.browser_download_url;
                 break;
@@ -65,13 +66,15 @@ public static class WebUIHelper
 
         var files = Directory.GetFiles(path);
         var directories = Directory.GetDirectories(path);
+        
+        var zipName = (channel == "stable") ? "latest.zip" : $"Shoko-WebUI-{version}.zip";
 
         try
         {
             //download latest version
             var client = new WebClient();
             client.Headers.Add("User-Agent", "shokoserver");
-            client.DownloadFile(url, Path.Combine(path, "latest.zip"));
+            client.DownloadFile(url, Path.Combine(path, zipName));
         }
         catch (Exception e)
         {
@@ -121,7 +124,7 @@ public static class WebUIHelper
         {
             //extract latest webui
             // TODO Extract with SharpCompress to path
-            using (var stream = new FileStream(Path.Combine(path, "latest.zip"), FileMode.Open))
+            using (var stream = new FileStream(Path.Combine(path, zipName), FileMode.Open))
             using (var reader = ReaderFactory.Open(stream))
             {
                 while (reader.MoveToNextEntry())
@@ -139,7 +142,7 @@ public static class WebUIHelper
 
             //clean because we already have working updated webui
             Directory.Delete(Path.Combine(path, "old"), true);
-            File.Delete(Path.Combine(path, "latest.zip"));
+            File.Delete(Path.Combine(path, zipName));
 
             //save version type>version that was installed successful
             if (File.Exists(Path.Combine(path, "index.ver")))
@@ -151,7 +154,7 @@ public static class WebUIHelper
         }
         catch (Exception e)
         {
-            //when extracting latest.zip fails
+            //when extracting webui zip fails
             throw new Exception($"Unable to extract WebUI: {e}");
         }
     }
@@ -228,7 +231,7 @@ public static class WebUIHelper
 
                 foreach (var file in obj.assets)
                 {
-                    if ((string)file.name == "latest.zip")
+                    if ((string)file.name == $"Shoko-WebUI-{obj.tag_name}.zip")
                     {
                         return obj.tag_name;
                     }
