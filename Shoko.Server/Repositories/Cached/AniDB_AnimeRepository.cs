@@ -53,21 +53,19 @@ public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
         {
             SVR_AniDB_Anime.UpdateContractDetailedBatch(sessionWrapper, animeBatch);
 
-            using (var trans = session.BeginTransaction())
+            using var trans = session.BeginTransaction();
+            foreach (var anime in animeBatch)
             {
-                foreach (var anime in animeBatch)
-                {
-                    anime.Description = anime.Description?.Replace("`", "\'") ?? string.Empty;
-                    anime.MainTitle = anime.MainTitle.Replace("`", "\'");
-                    anime.AllTags = anime.AllTags.Replace("`", "\'");
-                    anime.AllTitles = anime.AllTitles.Replace("`", "\'");
-                    session.Update(anime);
-                    Cache.Update(anime);
-                    count++;
-                }
-
-                trans.Commit();
+                anime.Description = anime.Description?.Replace("`", "\'") ?? string.Empty;
+                anime.MainTitle = anime.MainTitle.Replace("`", "\'");
+                anime.AllTags = anime.AllTags.Replace("`", "\'");
+                anime.AllTitles = anime.AllTitles.Replace("`", "\'");
+                session.Update(anime);
+                Cache.Update(anime);
+                count++;
             }
+
+            trans.Commit();
 
             ServerState.Instance.ServerStartingStatus = string.Format(
                 Resources.Database_Validating, typeof(AniDB_Anime).Name,

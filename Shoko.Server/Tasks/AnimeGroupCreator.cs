@@ -220,8 +220,9 @@ internal class AnimeGroupCreator
                 filter.UpdateEntityReferenceStrings();
             });
 
-        using (var trans = session.BeginTransaction())
+        lock (BaseRepository.GlobalDBLock)
         {
+            using var trans = session.BeginTransaction();
             _groupFilterRepo.BatchUpdate(session, grpFilters);
             trans.Commit();
         }
@@ -256,9 +257,11 @@ internal class AnimeGroupCreator
         }
 
         using var session = DatabaseFactory.SessionFactory.OpenSession();
-        using (var trans = session.BeginTransaction())
+        lock (BaseRepository.GlobalDBLock)
         {
-            _animeGroupRepo.InsertBatch(session.Wrap(), newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
+            using var trans = session.BeginTransaction();
+            _animeGroupRepo.InsertBatch(session.Wrap(),
+                newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
             trans.Commit();
         }
 
@@ -313,9 +316,11 @@ internal class AnimeGroupCreator
         }
 
         using var session = DatabaseFactory.SessionFactory.OpenSession();
-        using (var trans = session.BeginTransaction())
+        lock (BaseRepository.GlobalDBLock)
         {
-            _animeGroupRepo.InsertBatch(session.Wrap(), newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
+            using var trans = session.BeginTransaction();
+            _animeGroupRepo.InsertBatch(session.Wrap(),
+                newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
             trans.Commit();
         }
 
@@ -459,8 +464,9 @@ internal class AnimeGroupCreator
             IReadOnlyCollection<SVR_AnimeGroup> createdGroups = null;
             SVR_AnimeGroup tempGroup = null;
 
-            using (var trans = session.BeginTransaction())
+            lock (BaseRepository.GlobalDBLock)
             {
+                using var trans = session.BeginTransaction();
                 tempGroup = CreateTempAnimeGroup(session);
                 ClearGroupsAndDependencies(session, tempGroup.AnimeGroupID);
                 trans.Commit();
@@ -477,8 +483,9 @@ internal class AnimeGroupCreator
                     .AsReadOnlyCollection();
             }
 
-            using (var trans = session.BeginTransaction())
+            lock (BaseRepository.GlobalDBLock)
             {
+                using var trans = session.BeginTransaction();
                 UpdateAnimeSeriesContractsAndSave(session, animeSeries);
                 session.Delete(tempGroup); // We should no longer need the temporary group we created earlier
                 trans.Commit();
@@ -488,8 +495,9 @@ internal class AnimeGroupCreator
             _animeGroupRepo.Populate(session, false);
             _animeSeriesRepo.Populate(session, false);
 
-            using (var trans = session.BeginTransaction())
+            lock (BaseRepository.GlobalDBLock)
             {
+                using var trans = session.BeginTransaction();
                 UpdateAnimeGroupsAndTheirContracts(createdGroups);
                 trans.Commit();
             }
@@ -550,8 +558,9 @@ internal class AnimeGroupCreator
             var series = group.GetAllSeries(true);
             // recalculate series
             _log.Info($"Recalculating Series Stats and Contracts for Group: {group.GroupName} ({group.AnimeGroupID})");
-            using (var trans = session.BeginTransaction())
+            lock (BaseRepository.GlobalDBLock)
             {
+                using var trans = session.BeginTransaction();
                 UpdateAnimeSeriesContractsAndSave(session, series);
                 trans.Commit();
             }
@@ -561,8 +570,9 @@ internal class AnimeGroupCreator
 
             // Recalculate group
             _log.Info($"Recalculating Group Stats and Contracts for Group: {group.GroupName} ({group.AnimeGroupID})");
-            using (var trans = session.BeginTransaction())
+            lock (BaseRepository.GlobalDBLock)
             {
+                using var trans = session.BeginTransaction();
                 UpdateAnimeGroupsAndTheirContracts(groups);
                 trans.Commit();
             }

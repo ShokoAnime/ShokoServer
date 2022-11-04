@@ -2,16 +2,13 @@
 using System.Collections.Generic;
 using System.Xml;
 using Microsoft.Extensions.Logging;
-using NHibernate;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
-using Shoko.Server.Databases;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
@@ -41,16 +38,13 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
 
         try
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var sessionWrapper = session.Wrap();
-
             // Use TvDB setting
             if (!ServerSettings.Instance.TvDB.AutoLink)
             {
                 return;
             }
 
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
+            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
             if (anime == null)
             {
                 return;
@@ -61,7 +55,7 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
             // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
             var results = _helper.Search(searchCriteria);
             Logger.LogTrace("Found {Count} moviedb results for {Criteria} on MovieDB", results.Count, searchCriteria);
-            if (ProcessSearchResults(session, results, searchCriteria))
+            if (ProcessSearchResults(results, searchCriteria))
             {
                 return;
             }
@@ -86,7 +80,7 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
 
                 results = _helper.Search(title.Title);
                 Logger.LogTrace("Found {Count} moviedb results for search on {Title}", results.Count, title.Title);
-                if (ProcessSearchResults(session, results, title.Title))
+                if (ProcessSearchResults(results, title.Title))
                 {
                     return;
                 }
@@ -98,7 +92,7 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
         }
     }
 
-    private bool ProcessSearchResults(ISession session, List<MovieDB_Movie_Result> results, string searchCriteria)
+    private bool ProcessSearchResults(List<MovieDB_Movie_Result> results, string searchCriteria)
     {
         if (results.Count == 1)
         {
@@ -108,7 +102,7 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
                 results[0].MovieName, results[0].MovieID);
 
             var movieID = results[0].MovieID;
-            _helper.UpdateMovieInfo(session, movieID, true);
+            _helper.UpdateMovieInfo(movieID, true);
             _helper.LinkAniDBMovieDB(AnimeID, movieID, false);
             return true;
         }

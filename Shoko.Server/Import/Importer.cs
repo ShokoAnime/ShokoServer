@@ -929,8 +929,9 @@ public static class Importer
 
             var videoLocalsAll = RepoFactory.VideoLocal.GetAll().ToList();
             // remove empty videolocals
-            using (var transaction = session.BeginTransaction())
+            lock (BaseRepository.GlobalDBLock)
             {
+                using var transaction = session.BeginTransaction();
                 foreach (var remove in videoLocalsAll.Where(a => a.IsEmpty()).ToList())
                 {
                     RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
@@ -953,16 +954,11 @@ public static class Importer
                 values.Sort(comparer);
                 var to = values.First();
                 var froms = values.Except(to).ToList();
-                foreach (var from in froms)
+                foreach (var places in froms.Select(from => from.Places).Where(places => places != null && places.Count != 0))
                 {
-                    var places = from.Places;
-                    if (places == null || places.Count == 0)
+                    lock (BaseRepository.GlobalDBLock)
                     {
-                        continue;
-                    }
-
-                    using (var transaction = session.BeginTransaction())
-                    {
+                        using var transaction = session.BeginTransaction();
                         foreach (var place in places)
                         {
                             place.VideoLocalID = to.VideoLocalID;
@@ -976,8 +972,9 @@ public static class Importer
                 toRemove.AddRange(froms);
             }
 
-            using (var transaction = session.BeginTransaction())
+            lock (BaseRepository.GlobalDBLock)
             {
+                using var transaction = session.BeginTransaction();
                 foreach (var remove in toRemove)
                 {
                     RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
@@ -992,15 +989,11 @@ public static class Importer
                 var places = v.Places;
                 if (v.Places?.Count > 0)
                 {
-                    using (var transaction = session.BeginTransaction())
+                    lock (BaseRepository.GlobalDBLock)
                     {
-                        foreach (var place in places)
+                        using var transaction = session.BeginTransaction();
+                        foreach (var place in places.Where(place => string.IsNullOrWhiteSpace(place?.FullServerPath)))
                         {
-                            if (!string.IsNullOrWhiteSpace(place?.FullServerPath))
-                            {
-                                continue;
-                            }
-
                             Logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
                             seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                                 .DistinctBy(a => a.AnimeSeriesID));
@@ -1024,18 +1017,16 @@ public static class Importer
                     places = v.Places?.Except(places).ToList();
                     foreach (var place in places)
                     {
-                        using (var transaction = session.BeginTransaction())
+                        lock (BaseRepository.GlobalDBLock)
                         {
+                            using var transaction = session.BeginTransaction();
                             RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
                             transaction.Commit();
                         }
                     }
                 }
 
-                if (v.Places?.Count > 0)
-                {
-                    continue;
-                }
+                if (v.Places?.Count > 0) continue;
 
                 // delete video local record
                 Logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
@@ -1077,16 +1068,18 @@ public static class Importer
                     }
                 }
 
-                using (var transaction = session.BeginTransaction())
+                lock (BaseRepository.GlobalDBLock)
                 {
+                    using var transaction = session.BeginTransaction();
                     RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
                     transaction.Commit();
                 }
             }
 
             // Clean up failed imports
-            using (var transaction = session.BeginTransaction())
+            lock (BaseRepository.GlobalDBLock)
             {
+                using var transaction = session.BeginTransaction();
                 var list = RepoFactory.VideoLocal.GetAll()
                     .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
                     .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||

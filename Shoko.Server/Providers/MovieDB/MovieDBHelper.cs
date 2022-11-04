@@ -32,15 +32,6 @@ public class MovieDBHelper
 
     private void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages, bool isTrakt)
     {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
-        SaveMovieToDatabase(session, searchResult, saveImages, isTrakt);
-    }
-
-    private void SaveMovieToDatabase(ISession session, MovieDB_Movie_Result searchResult, bool saveImages,
-        bool isTrakt)
-    {
-        var sessionWrapper = session.Wrap();
-
         // save to the DB
         var movie = RepoFactory.MovieDb_Movie.GetByOnlineID(searchResult.MovieID) ?? new MovieDB_Movie();
         movie.Populate(searchResult);
@@ -66,7 +57,7 @@ public class MovieDBHelper
         {
             if (img.ImageType.Equals("poster", StringComparison.InvariantCultureIgnoreCase))
             {
-                var poster = RepoFactory.MovieDB_Poster.GetByOnlineID(session, img.URL) ?? new MovieDB_Poster();
+                var poster = RepoFactory.MovieDB_Poster.GetByOnlineID(img.URL) ?? new MovieDB_Poster();
                 poster.Populate(img, movie.MovieId);
                 RepoFactory.MovieDB_Poster.Save(poster);
 
@@ -78,7 +69,7 @@ public class MovieDBHelper
             else
             {
                 // fanart (backdrop)
-                var fanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(session, img.URL) ?? new MovieDB_Fanart();
+                var fanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(img.URL) ?? new MovieDB_Fanart();
                 fanart.Populate(img, movie.MovieId);
                 RepoFactory.MovieDB_Fanart.Save(fanart);
 
@@ -92,7 +83,7 @@ public class MovieDBHelper
         // download the posters
         if (ServerSettings.Instance.MovieDb.AutoPosters || isTrakt)
         {
-            foreach (var poster in RepoFactory.MovieDB_Poster.GetByMovieID(sessionWrapper, movie.MovieId))
+            foreach (var poster in RepoFactory.MovieDB_Poster.GetByMovieID( movie.MovieId))
             {
                 if (numPostersDownloaded < ServerSettings.Instance.MovieDb.AutoPostersAmount)
                 {
@@ -128,7 +119,7 @@ public class MovieDBHelper
         // download the fanart
         if (ServerSettings.Instance.MovieDb.AutoFanart || isTrakt)
         {
-            foreach (var fanart in RepoFactory.MovieDB_Fanart.GetByMovieID(sessionWrapper, movie.MovieId))
+            foreach (var fanart in RepoFactory.MovieDB_Fanart.GetByMovieID(movie.MovieId))
             {
                 if (numFanartDownloaded < ServerSettings.Instance.MovieDb.AutoFanartAmount)
                 {
@@ -197,34 +188,22 @@ public class MovieDBHelper
         var all = RepoFactory.MovieDb_Movie.GetAll();
         var max = all.Count;
         var i = 0;
-        foreach (var batch in all.Batch(50))
+        foreach (var movie in all)
         {
-            using var trans = session.BeginTransaction();
-            foreach (var movie in batch)
+            try
             {
-                try
-                {
-                    i++;
-                    _logger.LogInformation("Updating MovieDB Movie {I}/{Max}", i, max);
-                    UpdateMovieInfo(session, movie.MovieId, saveImages);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError("Failed to Update MovieDB Movie ID: {Id} Error: {E}", movie.MovieId, e);
-                }
+                i++;
+                _logger.LogInformation("Updating MovieDB Movie {I}/{Max}", i, max);
+                UpdateMovieInfo(movie.MovieId, saveImages);
             }
-
-            trans.Commit();
+            catch (Exception e)
+            {
+                _logger.LogError("Failed to Update MovieDB Movie ID: {Id} Error: {E}", movie.MovieId, e);
+            }
         }
     }
 
     public void UpdateMovieInfo(int movieID, bool saveImages)
-    {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
-        UpdateMovieInfo(session, movieID, saveImages);
-    }
-
-    public void UpdateMovieInfo(ISession session, int movieID, bool saveImages)
     {
         try
         {
@@ -236,7 +215,7 @@ public class MovieDBHelper
             searchResult.Populate(movie, imgs);
 
             // save to the DB
-            SaveMovieToDatabase(session, searchResult, saveImages, false);
+            SaveMovieToDatabase(searchResult, saveImages, false);
         }
         catch (Exception ex)
         {

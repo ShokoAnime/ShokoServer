@@ -113,11 +113,9 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         lock (GlobalDBLock)
         {
             //Types will contains the affected GroupFilterConditionTypes
-            using (var transaction = session.BeginTransaction())
-            {
-                SaveWithOpenTransaction(session, grp);
-                transaction.Commit();
-            }
+            using var transaction = session.BeginTransaction();
+            SaveWithOpenTransaction(session, grp);
+            transaction.Commit();
         }
 
         Changes.AddOrUpdate(grp.AnimeGroupID);
