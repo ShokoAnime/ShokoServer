@@ -44,40 +44,48 @@ public class RecoveringFileSystemWatcher : IDisposable
     private void BufferOnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
     {
         if (e.Action != NotifyCollectionChangedAction.Add || e.NewItems == null) return;
+        var filesToProcess = e.NewItems.Cast<(string Path, WatcherChangeTypes Type)>()
+            .Where(a => !ExclusionsEnabled || !_exclusions.Contains(a.Path)).ToArray();
+        var except = e.NewItems.Cast<(string Path, WatcherChangeTypes Type)>().Where(a => !filesToProcess.Contains(a))
+            .ToArray();
+        foreach (var item in except)
+        {
+            _logger.LogTrace("Excluding {Path}, as it is in the exclusions", item.Path);
+            _buffer.Remove(item);
+        }
+
         Task.Factory.StartNew(par1 =>
+        {
+            try
             {
-                try
+                var items = ((string Path, WatcherChangeTypes Type)[])par1;
+                foreach (var (path, type) in items)
                 {
-                    var items = ((string Path, WatcherChangeTypes Type)[])par1;
-                    foreach (var (path, type) in items)
+                    switch (type)
                     {
-                        switch (type)
-                        {
-                            case WatcherChangeTypes.Created:
-                            case WatcherChangeTypes.Changed:
-                            case WatcherChangeTypes.Renamed:
-                                if (ShouldAddFile(path)) FileAdded?.Invoke(this, path);
-                                break;
-                            case WatcherChangeTypes.Deleted:
-                                FileDeleted?.Invoke(this, path);
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(type));
-                        }
+                        case WatcherChangeTypes.Created:
+                        case WatcherChangeTypes.Changed:
+                        case WatcherChangeTypes.Renamed:
+                            if (ShouldAddFile(path)) FileAdded?.Invoke(this, path);
+                            break;
+                        case WatcherChangeTypes.Deleted:
+                            FileDeleted?.Invoke(this, path);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException(nameof(type));
                     }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error in FileSystemWatcher: {Ex}", ex);
-                }
-                finally
-                {
-                    var items = ((string Path, WatcherChangeTypes Type)[])par1;
-                    items.ForEach(a => _buffer.Remove(a));
-                }
-            },
-            e.NewItems.Cast<(string Path, WatcherChangeTypes Type)>()
-                .Where(a => !ExclusionsEnabled || !_exclusions.Contains(a.Path)).ToArray());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in FileSystemWatcher: {Ex}", ex);
+            }
+            finally
+            {
+                var items = ((string Path, WatcherChangeTypes Type)[])par1;
+                items.ForEach(a => _buffer.Remove(a));
+            }
+        }, filesToProcess);
     }
 
     private void WatcherChangeDetected(object sender, FileSystemEventArgs e)

@@ -89,6 +89,7 @@ public class ServerInfo : INotifyPropertyChangedExt
                 // We might use this somehow, but currently not fired 
                 break;
             case UpdateType.UDPBan:
+                if (e.Value == IsUDPBanned) return;
                 if (e.Value)
                 {
                     IsUDPBanned = true;
@@ -114,6 +115,7 @@ public class ServerInfo : INotifyPropertyChangedExt
 
                 break;
             case UpdateType.HTTPBan:
+                if (e.Value == IsHTTPBanned) return;
                 if (e.Value)
                 {
                     IsHTTPBanned = true;
@@ -139,24 +141,27 @@ public class ServerInfo : INotifyPropertyChangedExt
 
                 break;
             case UpdateType.InvalidSession:
-                IsInvalidSession = isInvalidSession;
+                if (e.Value == IsInvalidSession) return;
+                IsInvalidSession = e.Value;
                 break;
             case UpdateType.WaitingOnResponse:
-                WaitingOnResponseAniDBUDP = e.Value;
-
+                if (e.Value == WaitingOnResponseAniDBUDP) return;
                 if (e.Value)
                 {
                     // TODO Start the Update Timer to add seconds to the waiting on AniDB message
+                    WaitingOnResponseAniDBUDP = true;
                     WaitingOnResponseAniDBUDPString = Resources.AniDB_ResponseWait;
                 }
                 else
                 {
                     // TODO Stop the timer
+                    WaitingOnResponseAniDBUDP = false;
                     WaitingOnResponseAniDBUDPString = Resources.Command_Idle;
                 }
 
                 break;
             case UpdateType.OverloadBackoff:
+                if (e.Value == HasExtendedPause) return;
                 if (e.Value)
                 {
                     ExtendedPauseString = string.Format(Resources.AniDB_Paused, e.PauseTimeSecs, e.Message);

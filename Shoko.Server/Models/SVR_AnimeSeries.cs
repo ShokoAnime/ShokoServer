@@ -554,7 +554,7 @@ public class SVR_AnimeSeries : AnimeSeries
             .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(a.AniDB_EpisodeID)).ToList();
         var vlIDsToUpdate = filesToUpdate.Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash)?.VideoLocalID)
             .Where(a => a != null).Select(a => a.Value).ToList();
-        var requestFactory = ShokoServer.ServiceContainer.GetRequiredService<CommandRequestFactory>();
+        var requestFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // remove existing xrefs
         RepoFactory.CrossRef_File_Episode.Delete(filesToUpdate);
         // queue rescan for the files
