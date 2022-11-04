@@ -8,10 +8,11 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class AniDB_Anime_SimilarRepository : BaseDirectRepository<AniDB_Anime_Similar, int>
 {
-    public AniDB_Anime_Similar GetByAnimeIDAndSimilarID(ISession session, int animeid, int similaranimeid)
+    public AniDB_Anime_Similar GetByAnimeIDAndSimilarID(int animeid, int similaranimeid)
     {
         lock (GlobalDBLock)
         {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cr = session
                 .CreateCriteria(typeof(AniDB_Anime_Similar))
                 .Add(Restrictions.Eq("AnimeID", animeid))

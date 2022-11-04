@@ -10,10 +10,11 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Anime_Relation, int>
 {
-    public SVR_AniDB_Anime_Relation GetByAnimeIDAndRelationID(ISession session, int animeid, int relatedanimeid)
+    public SVR_AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
     {
         lock (GlobalDBLock)
         {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cr = session
                 .CreateCriteria(typeof(SVR_AniDB_Anime_Relation))
                 .Add(Restrictions.Eq("AnimeID", animeid))

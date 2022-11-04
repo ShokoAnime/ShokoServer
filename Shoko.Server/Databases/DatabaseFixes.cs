@@ -15,7 +15,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
@@ -696,7 +695,7 @@ public class DatabaseFixes
         {
             try
             {
-                var group = groupCreator.GetOrCreateSingleGroupForSeries(session.Wrap(), series);
+                var group = groupCreator.GetOrCreateSingleGroupForSeries(series);
                 series.AnimeGroupID = group.AnimeGroupID;
                 RepoFactory.AnimeSeries.Save(series, false, false);
             }

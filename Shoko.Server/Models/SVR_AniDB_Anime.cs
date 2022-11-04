@@ -72,9 +72,6 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    // these files come from AniDB but we don't directly save them
-    private string reviewIDListRAW;
-
     public static IList<string> GetAllReleaseGroups()
     {
         var query =
@@ -111,41 +108,6 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
         }
     }
 
-    public static void GetRelatedAnimeRecursive(ISessionWrapper session, int animeID,
-        ref List<SVR_AniDB_Anime> relList,
-        ref List<int> relListIDs, ref List<int> searchedIDs)
-    {
-        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-        searchedIDs.Add(animeID);
-
-        foreach (AniDB_Anime_Relation rel in anime.GetRelatedAnime(session))
-        {
-            var relationtype = rel.RelationType.ToLower();
-            if (SVR_AnimeGroup.IsRelationTypeInExclusions(relationtype))
-            {
-                //Filter these relations these will fix messes, like Gundam , Clamp, etc.
-                continue;
-            }
-
-            var relAnime = RepoFactory.AniDB_Anime.GetByAnimeID(session, rel.RelatedAnimeID);
-            if (relAnime != null && !relListIDs.Contains(relAnime.AnimeID))
-            {
-                if (SVR_AnimeGroup.IsRelationTypeInExclusions(relAnime.GetAnimeTypeDescription().ToLower()))
-                {
-                    continue;
-                }
-
-                relList.Add(relAnime);
-                relListIDs.Add(relAnime.AnimeID);
-                if (!searchedIDs.Contains(rel.RelatedAnimeID))
-                {
-                    GetRelatedAnimeRecursive(session, rel.RelatedAnimeID, ref relList, ref relListIDs,
-                        ref searchedIDs);
-                }
-            }
-        }
-    }
-
     public List<TvDB_Episode> GetTvDBEpisodes()
     {
         var results = new List<TvDB_Episode>();
@@ -157,124 +119,6 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
         }
 
         return results;
-    }
-
-    private Dictionary<int, TvDB_Episode> dictTvDBEpisodes;
-
-    public Dictionary<int, TvDB_Episode> GetDictTvDBEpisodes()
-    {
-        if (dictTvDBEpisodes == null)
-        {
-            try
-            {
-                var tvdbEpisodes = GetTvDBEpisodes();
-                if (tvdbEpisodes != null)
-                {
-                    dictTvDBEpisodes = new Dictionary<int, TvDB_Episode>();
-                    // create a dictionary of absolute episode numbers for tvdb episodes
-                    // sort by season and episode number
-                    // ignore season 0, which is used for specials
-
-                    var i = 1;
-                    foreach (var ep in tvdbEpisodes)
-                    {
-                        dictTvDBEpisodes[i] = ep;
-                        i++;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
-
-        return dictTvDBEpisodes;
-    }
-
-    private Dictionary<int, int> dictTvDBSeasons;
-
-    public Dictionary<int, int> GetDictTvDBSeasons()
-    {
-        if (dictTvDBSeasons == null)
-        {
-            try
-            {
-                dictTvDBSeasons = new Dictionary<int, int>();
-                // create a dictionary of season numbers and the first episode for that season
-                var i = 1;
-                var lastSeason = -999;
-                foreach (var ep in GetTvDBEpisodes())
-                {
-                    if (ep.SeasonNumber != lastSeason)
-                    {
-                        dictTvDBSeasons[ep.SeasonNumber] = i;
-                    }
-
-                    lastSeason = ep.SeasonNumber;
-                    i++;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
-
-        return dictTvDBSeasons;
-    }
-
-    private Dictionary<int, int> dictTvDBSeasonsSpecials;
-
-    public Dictionary<int, int> GetDictTvDBSeasonsSpecials()
-    {
-        if (dictTvDBSeasonsSpecials == null)
-        {
-            try
-            {
-                dictTvDBSeasonsSpecials = new Dictionary<int, int>();
-                // create a dictionary of season numbers and the first episode for that season
-                var i = 1;
-                var lastSeason = -999;
-                foreach (var ep in GetTvDBEpisodes())
-                {
-                    if (ep.SeasonNumber > 0)
-                    {
-                        continue;
-                    }
-
-                    var thisSeason = 0;
-                    if (ep.AirsBeforeSeason.HasValue)
-                    {
-                        thisSeason = ep.AirsBeforeSeason.Value;
-                    }
-
-                    if (ep.AirsAfterSeason.HasValue)
-                    {
-                        thisSeason = ep.AirsAfterSeason.Value;
-                    }
-
-                    if (thisSeason != lastSeason)
-                    {
-                        dictTvDBSeasonsSpecials[thisSeason] = i;
-                    }
-
-                    lastSeason = thisSeason;
-                    i++;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
-
-        return dictTvDBSeasonsSpecials;
-    }
-
-    public List<CrossRef_AniDB_TvDB_Episode_Override> GetCrossRefTvDBEpisodes()
-    {
-        return RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(AnimeID);
     }
 
     public List<CrossRef_AniDB_TvDB> GetCrossRefTvDB()
@@ -298,17 +142,6 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
     public List<CrossRef_AniDB_MAL> GetCrossRefMAL()
     {
         return RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(AnimeID);
-    }
-
-    public TvDB_Series GetTvDBSeries()
-    {
-        var id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
-        if (id == -1)
-        {
-            return null;
-        }
-
-        return RepoFactory.TvDB_Series.GetByTvDBID(id);
     }
 
     public List<TvDB_ImageFanart> GetTvDBImageFanarts()
@@ -757,59 +590,17 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
 
     public List<SVR_AniDB_Anime_Relation> GetRelatedAnime()
     {
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-        {
-            return GetRelatedAnime(session.Wrap());
-        }
-    }
-
-    public List<SVR_AniDB_Anime_Relation> GetRelatedAnime(ISessionWrapper session)
-    {
-        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(session, AnimeID);
+        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
     }
 
     public List<AniDB_Anime_Similar> GetSimilarAnime()
     {
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-        {
-            return GetSimilarAnime(session);
-        }
-    }
-
-    public List<AniDB_Anime_Similar> GetSimilarAnime(ISession session)
-    {
-        return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(session, AnimeID);
-    }
-
-    public List<SVR_AniDB_Anime> GetAllRelatedAnime()
-    {
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-        {
-            return GetAllRelatedAnime(session.Wrap());
-        }
-    }
-
-    public List<SVR_AniDB_Anime> GetAllRelatedAnime(ISessionWrapper session)
-    {
-        var relList = new List<SVR_AniDB_Anime>();
-        var relListIDs = new List<int>();
-        var searchedIDs = new List<int>();
-
-        GetRelatedAnimeRecursive(session, AnimeID, ref relList, ref relListIDs, ref searchedIDs);
-        return relList;
+        return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(AnimeID);
     }
 
     public List<AniDB_Anime_Character> GetAnimeCharacters()
     {
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-        {
-            return GetAnimeCharacters(session.Wrap());
-        }
-    }
-
-    public List<AniDB_Anime_Character> GetAnimeCharacters(ISessionWrapper session)
-    {
-        return RepoFactory.AniDB_Anime_Character.GetByAnimeID(session, AnimeID);
+        return RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID);
     }
 
     public List<SVR_AniDB_Anime_Title> GetTitles()
@@ -907,13 +698,6 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
 
     public SVR_AnimeSeries CreateAnimeSeriesAndGroup(SVR_AnimeSeries existingSeries = null, int? existingGroupID = null)
     {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
-        return CreateAnimeSeriesAndGroup(session.Wrap(), existingSeries, existingGroupID);
-    }
-
-    public SVR_AnimeSeries CreateAnimeSeriesAndGroup(ISessionWrapper session, SVR_AnimeSeries existingSeries = null,
-        int? existingGroupID = null)
-    {
         var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // Create a new AnimeSeries record
         var series = existingSeries ?? new SVR_AnimeSeries();
@@ -924,13 +708,13 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
 
         if (existingGroupID == null)
         {
-            var grp = new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(session, series);
+            var grp = new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(series);
             series.AnimeGroupID = grp.AnimeGroupID;
         }
         else
         {
             var grp = RepoFactory.AnimeGroup.GetByID(existingGroupID.Value) ??
-                      new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(session, series);
+                      new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(series);
             series.AnimeGroupID = grp.AnimeGroupID;
         }
 

@@ -8,10 +8,11 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class AniDB_Anime_StaffRepository : BaseDirectRepository<AniDB_Anime_Staff, int>
 {
-    public List<AniDB_Anime_Staff> GetByAnimeID(ISessionWrapper session, int id)
+    public List<AniDB_Anime_Staff> GetByAnimeID(int id)
     {
         lock (GlobalDBLock)
         {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cats = session
                 .CreateCriteria(typeof(AniDB_Anime_Staff))
                 .Add(Restrictions.Eq("AnimeID", id))

@@ -8,10 +8,11 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class AniDB_Character_SeiyuuRepository : BaseDirectRepository<AniDB_Character_Seiyuu, int>
 {
-    public AniDB_Character_Seiyuu GetByCharIDAndSeiyuuID(ISession session, int animeid, int catid)
+    public AniDB_Character_Seiyuu GetByCharIDAndSeiyuuID(int animeid, int catid)
     {
         lock (GlobalDBLock)
         {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cr = session
                 .CreateCriteria(typeof(AniDB_Character_Seiyuu))
                 .Add(Restrictions.Eq("CharID", animeid))

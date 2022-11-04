@@ -155,7 +155,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
     {
         using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
         {
-            var groupingCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings(session.Wrap());
+            var groupingCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
             return HasCustomName(groupingCalculator);
         }
     }
@@ -186,7 +186,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         logger.Info("Starting RenameAllGroups");
         using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
         {
-            var groupingCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings(session.Wrap());
+            var groupingCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
             foreach (var grp in RepoFactory.AnimeGroup.GetAll().ToList())
             {
                 var list = grp.GetSeries();

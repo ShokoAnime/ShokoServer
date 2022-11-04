@@ -130,8 +130,7 @@ internal class AnimeGroupCreator
         _log.Info("AnimeSeries contracts have been updated");
     }
 
-    private void UpdateAnimeGroupsAndTheirContracts(ISessionWrapper session,
-        IReadOnlyCollection<SVR_AnimeGroup> groups)
+    private void UpdateAnimeGroupsAndTheirContracts(IReadOnlyCollection<SVR_AnimeGroup> groups)
     {
         ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo
         {
@@ -160,6 +159,7 @@ internal class AnimeGroupCreator
             },
             localSession => { localSession.Dispose(); });
 
+        using var session = DatabaseFactory.SessionFactory.OpenSession().Wrap();
         _animeGroupRepo.UpdateBatch(session, groups);
         _log.Info("AnimeGroup statistics and contracts have been updated");
 
@@ -183,7 +183,7 @@ internal class AnimeGroupCreator
         // use Parallel.ForEach for the time being (If it was guaranteed to only read then we'd be ok)
         foreach (var groupUser in animeGroupUsers)
         {
-            groupUser.UpdatePlexKodiContracts(session);
+            groupUser.UpdatePlexKodiContracts();
         }
 
         _animeGroupUserRepo.UpdateBatch(session, animeGroupUsers);
@@ -232,14 +232,9 @@ internal class AnimeGroupCreator
     /// <summary>
     /// Creates a single <see cref="SVR_AnimeGroup"/> for each <see cref="SVR_AnimeSeries"/> in <paramref name="seriesList"/>.
     /// </summary>
-    /// <remarks>
-    /// This method assumes that there are no active transactions on the specified <paramref name="session"/>.
-    /// </remarks>
-    /// <param name="session">The NHibernate session.</param>
     /// <param name="seriesList">The list of <see cref="SVR_AnimeSeries"/> to create groups for.</param>
     /// <returns>A sequence of the created <see cref="SVR_AnimeGroup"/>s.</returns>
-    private IEnumerable<SVR_AnimeGroup> CreateGroupPerSeries(ISessionWrapper session,
-        IReadOnlyList<SVR_AnimeSeries> seriesList)
+    private IEnumerable<SVR_AnimeGroup> CreateGroupPerSeries(IReadOnlyList<SVR_AnimeSeries> seriesList)
     {
         ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo
         {
@@ -260,9 +255,10 @@ internal class AnimeGroupCreator
             newGroupsToSeries[grp] = new Tuple<SVR_AnimeGroup, SVR_AnimeSeries>(group, series);
         }
 
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
         using (var trans = session.BeginTransaction())
         {
-            _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
+            _animeGroupRepo.InsertBatch(session.Wrap(), newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
             trans.Commit();
         }
 
@@ -284,11 +280,9 @@ internal class AnimeGroupCreator
     /// <remarks>
     /// This method assumes that there are no active transactions on the specified <paramref name="session"/>.
     /// </remarks>
-    /// <param name="session">The NHibernate session.</param>
     /// <param name="seriesList">The list of <see cref="SVR_AnimeSeries"/> to create groups for.</param>
     /// <returns>A sequence of the created <see cref="SVR_AnimeGroup"/>s.</returns>
-    private IEnumerable<SVR_AnimeGroup> AutoCreateGroupsWithRelatedSeries(ISessionWrapper session,
-        IReadOnlyCollection<SVR_AnimeSeries> seriesList)
+    private IEnumerable<SVR_AnimeGroup> AutoCreateGroupsWithRelatedSeries(IReadOnlyCollection<SVR_AnimeSeries> seriesList)
     {
         ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo
         {
@@ -297,7 +291,7 @@ internal class AnimeGroupCreator
         _log.Info("Auto-generating AnimeGroups for {0} AnimeSeries based on aniDB relationships", seriesList.Count);
 
         var now = DateTime.Now;
-        var grpCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings(session);
+        var grpCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
 
         _log.Info(
             "The following exclusions will be applied when generating the groups: " + grpCalculator.Exclusions);
@@ -318,9 +312,10 @@ internal class AnimeGroupCreator
                     groupAndSeries.AsReadOnlyCollection()));
         }
 
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
         using (var trans = session.BeginTransaction())
         {
-            _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
+            _animeGroupRepo.InsertBatch(session.Wrap(), newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
             trans.Commit();
         }
 
@@ -380,17 +375,11 @@ internal class AnimeGroupCreator
     /// <summary>
     /// Gets or creates an <see cref="SVR_AnimeGroup"/> for the specified series.
     /// </summary>
-    /// <param name="session">The NHibernate session.</param>
     /// <param name="series">The series for which the group is to be created/retrieved (Must be initialised first).</param>
     /// <returns>The <see cref="SVR_AnimeGroup"/> to use for the specified series.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="series"/> is <c>null</c>.</exception>
-    public SVR_AnimeGroup GetOrCreateSingleGroupForSeries(ISessionWrapper session, SVR_AnimeSeries series)
+    public SVR_AnimeGroup GetOrCreateSingleGroupForSeries(SVR_AnimeSeries series)
     {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
-
         if (series == null)
         {
             throw new ArgumentNullException(nameof(series));
@@ -400,7 +389,7 @@ internal class AnimeGroupCreator
 
         if (_autoGroupSeries)
         {
-            var grpCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings(session);
+            var grpCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
             var grpAnimeIds = grpCalculator.GetIdsOfAnimeInSameGroup(series.AniDB_ID);
             // Try to find an existing AnimeGroup to add the series to
             // We basically pick the first group that any of the related series belongs to already
@@ -479,12 +468,12 @@ internal class AnimeGroupCreator
 
             if (_autoGroupSeries)
             {
-                createdGroups = AutoCreateGroupsWithRelatedSeries(session, animeSeries)
+                createdGroups = AutoCreateGroupsWithRelatedSeries(animeSeries)
                     .AsReadOnlyCollection();
             }
             else // Standard group re-create
             {
-                createdGroups = CreateGroupPerSeries(session, animeSeries)
+                createdGroups = CreateGroupPerSeries(animeSeries)
                     .AsReadOnlyCollection();
             }
 
@@ -501,7 +490,7 @@ internal class AnimeGroupCreator
 
             using (var trans = session.BeginTransaction())
             {
-                UpdateAnimeGroupsAndTheirContracts(session, createdGroups);
+                UpdateAnimeGroupsAndTheirContracts(createdGroups);
                 trans.Commit();
             }
 
@@ -574,7 +563,7 @@ internal class AnimeGroupCreator
             _log.Info($"Recalculating Group Stats and Contracts for Group: {group.GroupName} ({group.AnimeGroupID})");
             using (var trans = session.BeginTransaction())
             {
-                UpdateAnimeGroupsAndTheirContracts(session, groups);
+                UpdateAnimeGroupsAndTheirContracts(groups);
                 trans.Commit();
             }
 

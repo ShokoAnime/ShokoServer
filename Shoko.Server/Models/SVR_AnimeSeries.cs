@@ -541,14 +541,6 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public void CreateAnimeEpisodes(SVR_AniDB_Anime anime = null)
     {
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-        {
-            CreateAnimeEpisodes(session, anime);
-        }
-    }
-
-    public void CreateAnimeEpisodes(ISession session, SVR_AniDB_Anime anime = null)
-    {
         anime ??= GetAnime();
         if (anime == null)
         {
@@ -556,6 +548,20 @@ public class SVR_AnimeSeries : AnimeSeries
         }
 
         var eps = anime.GetAniDBEpisodes();
+        // Cleanup deleted episodes
+        var epsToRemove = RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID).Where(a => a.AniDB_Episode == null).ToList();
+        var filesToUpdate = epsToRemove
+            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(a.AniDB_EpisodeID)).ToList();
+        var vlIDsToUpdate = filesToUpdate.Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash)?.VideoLocalID)
+            .Where(a => a != null).Select(a => a.Value).ToList();
+        var requestFactory = ShokoServer.ServiceContainer.GetRequiredService<CommandRequestFactory>();
+        // remove existing xrefs
+        RepoFactory.CrossRef_File_Episode.Delete(filesToUpdate);
+        // queue rescan for the files
+        vlIDsToUpdate.Select(id => requestFactory.Create<CommandRequest_ProcessFile>(a => a.VideoLocalID = id))
+            .ForEach(a => a.Save());
+        RepoFactory.AnimeEpisode.Delete(epsToRemove);
+
         var one_forth = (int)Math.Round(eps.Count / 4D, 0, MidpointRounding.AwayFromZero);
         var one_half = (int)Math.Round(eps.Count / 2D, 0, MidpointRounding.AwayFromZero);
         var three_forths = (int)Math.Round(eps.Count * 3 / 4D, 0, MidpointRounding.AwayFromZero);
@@ -584,7 +590,7 @@ public class SVR_AnimeSeries : AnimeSeries
             }
 
             var ep = eps[i];
-            ep.CreateAnimeEpisode(session, AnimeSeriesID);
+            ep.CreateAnimeEpisode(AnimeSeriesID);
         }
     }
 

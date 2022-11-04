@@ -126,19 +126,19 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
             anime ??= new SVR_AniDB_Anime();
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var sessionWrapper = session.Wrap();
-            _animeCreator.CreateAnime(session, response, anime, 0);
+            _animeCreator.CreateAnime(response, anime, 0);
 
             var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
             // conditionally create AnimeSeries if it doesn't exist
             if (series == null && CreateSeriesEntry)
             {
-                series = anime.CreateAnimeSeriesAndGroup(sessionWrapper);
+                series = anime.CreateAnimeSeriesAndGroup();
             }
 
             // create AnimeEpisode records for all episodes in this anime only if we have a series
             if (series != null)
             {
-                series.CreateAnimeEpisodes(session, anime);
+                series.CreateAnimeEpisodes(anime);
                 RepoFactory.AnimeSeries.Save(series, true, false);
             }
 
@@ -146,7 +146,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
 
             Result = anime;
 
-            ProcessRelations(session, response, _requestFactory, _handler, _animeCreator);
+            ProcessRelations(response, _requestFactory, _handler, _animeCreator);
 
             // Request an image download
             _commandFactory.Create<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = anime.AnimeID).Save();
@@ -157,7 +157,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
         }
     }
 
-    private void ProcessRelations(ISession session, ResponseGetAnime response, IRequestFactory requestFactory,
+    private void ProcessRelations(ResponseGetAnime response, IRequestFactory requestFactory,
         IHttpConnectionHandler handler, AnimeCreator animeCreator)
     {
         if (!DownloadRelations)
@@ -176,10 +176,10 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
         }
 
         // this command is RelDepth, so any further relations are +1
-        ProcessRelationsRecursive(session, response, requestFactory, handler, animeCreator, RelDepth + 1);
+        ProcessRelationsRecursive(response, requestFactory, handler, animeCreator, RelDepth + 1);
     }
 
-    private void ProcessRelationsRecursive(ISession session, ResponseGetAnime response, IRequestFactory requestFactory,
+    private void ProcessRelationsRecursive(ResponseGetAnime response, IRequestFactory requestFactory,
         IHttpConnectionHandler handler, AnimeCreator animeCreator, int depth)
     {
         if (depth > ServerSettings.Instance.AniDb.MaxRelationDepth)
@@ -214,14 +214,14 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                             r.AnimeID = relation.RelatedAnimeID);
                     var relationResponse = relationRequest.Execute();
                     relatedAnime ??= new SVR_AniDB_Anime();
-                    animeCreator.CreateAnime(session, relationResponse.Response, relatedAnime, depth);
+                    animeCreator.CreateAnime(relationResponse.Response, relatedAnime, depth);
                     // we just downloaded depth, so the next recursion is depth + 1
                     if (depth + 1 > ServerSettings.Instance.AniDb.MaxRelationDepth)
                     {
                         return;
                     }
 
-                    ProcessRelationsRecursive(session, relationResponse.Response, requestFactory, handler, animeCreator,
+                    ProcessRelationsRecursive(relationResponse.Response, requestFactory, handler, animeCreator,
                         depth + 1);
                     continue;
                 }
@@ -232,10 +232,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
             }
 
             // here, we either didn't do the above, or it was stopped by a ban. Either way, we haven't downloaded depth, so queue that
-            if (RepoFactory.CommandRequest.GetByCommandID(session, GetCommandID(relation.RelatedAnimeID)) != null)
-            {
-                continue;
-            }
+            if (RepoFactory.CommandRequest.GetByCommandID(GetCommandID(relation.RelatedAnimeID)) != null) continue;
 
             var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
                 c =>

@@ -5,7 +5,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using NHibernate;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -15,7 +14,6 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
@@ -30,7 +28,7 @@ public class AnimeCreator
     }
 
 
-    public bool CreateAnime(ISession session, ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
+    public void CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
         _logger.LogTrace("------------------------------------------------");
         _logger.LogTrace(
@@ -50,7 +48,7 @@ public class AnimeCreator
                              "as they did not return either an ID or a title for the anime");
             totalTimer.Stop();
             taskTimer.Stop();
-            return false;
+            return;
         }
 
         // save now for FK purposes
@@ -75,12 +73,12 @@ public class AnimeCreator
         _logger.LogTrace("CreateTags in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
 
-        CreateCharacters(session, response.Characters, anime);
+        CreateCharacters(response.Characters, anime);
         taskTimer.Stop();
         _logger.LogTrace("CreateCharacters in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
 
-        CreateStaff(session, response.Staff, anime);
+        CreateStaff(response.Staff, anime);
         taskTimer.Stop();
         _logger.LogTrace("CreateStaff in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
@@ -90,12 +88,12 @@ public class AnimeCreator
         _logger.LogTrace("CreateResources in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
 
-        CreateRelations(session, response.Relations, anime);
+        CreateRelations(response.Relations);
         taskTimer.Stop();
         _logger.LogTrace("CreateRelations in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
 
-        CreateSimilarAnime(session, response.Similar, anime);
+        CreateSimilarAnime(response.Similar);
         taskTimer.Stop();
         _logger.LogTrace("CreateSimilarAnime in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
@@ -104,7 +102,6 @@ public class AnimeCreator
         totalTimer.Stop();
         _logger.LogTrace("TOTAL TIME in : {Time}", totalTimer.Elapsed);
         _logger.LogTrace("------------------------------------------------");
-        return true;
     }
 
     private static bool PopulateAnime(ResponseAnime animeInfo, SVR_AniDB_Anime anime)
@@ -370,19 +367,13 @@ public class AnimeCreator
         RepoFactory.AniDB_Anime_Tag.Delete(xrefsToDelete);
     }
 
-    private void CreateCharacters(ISession session, List<ResponseCharacter> chars, SVR_AniDB_Anime anime)
+    private void CreateCharacters(List<ResponseCharacter> chars, SVR_AniDB_Anime anime)
     {
-        if (chars == null)
-        {
-            return;
-        }
-
-
-        var sessionWrapper = session.Wrap();
+        if (chars == null) return;
 
         // delete all the existing cross references just in case one has been removed
         var animeChars =
-            RepoFactory.AniDB_Anime_Character.GetByAnimeID(sessionWrapper, anime.AnimeID);
+            RepoFactory.AniDB_Anime_Character.GetByAnimeID(anime.AnimeID);
 
         try
         {
@@ -390,7 +381,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError("Unable to Remove Characters for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Remove Characters for {MainTitle}: {Ex}", anime.MainTitle, ex);
         }
 
 
@@ -402,7 +393,7 @@ public class AnimeCreator
 
         // delete existing relationships to seiyuu's
         var charSeiyuusToDelete =
-            chars.SelectMany(rawchar => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(session, rawchar.CharacterID))
+            chars.SelectMany(rawchar => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(rawchar.CharacterID))
                 .ToList();
         try
         {
@@ -410,7 +401,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError("Unable to Remove Seiyuus for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Remove Seiyuus for {MainTitle}: {Ex}", anime.MainTitle, ex);
         }
 
         var charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
@@ -419,7 +410,7 @@ public class AnimeCreator
         {
             try
             {
-                var chr = RepoFactory.AniDB_Character.GetByCharID(sessionWrapper, rawchar.CharacterID) ??
+                var chr = RepoFactory.AniDB_Character.GetByCharID(rawchar.CharacterID) ??
                           new AniDB_Character();
 
                 if (chr.CharID != 0)
@@ -487,9 +478,7 @@ public class AnimeCreator
                     try
                     {
                         // save the link between character and seiyuu
-                        var acc = RepoFactory.AniDB_Character_Seiyuu.GetByCharIDAndSeiyuuID(session,
-                            rawchar.CharacterID,
-                            rawSeiyuu.SeiyuuID);
+                        var acc = RepoFactory.AniDB_Character_Seiyuu.GetByCharIDAndSeiyuuID(rawchar.CharacterID, rawSeiyuu.SeiyuuID);
                         if (acc == null)
                         {
                             acc = new AniDB_Character_Seiyuu { CharID = chr.CharID, SeiyuuID = rawSeiyuu.SeiyuuID };
@@ -497,7 +486,7 @@ public class AnimeCreator
                         }
 
                         // save the seiyuu
-                        var seiyuu = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(session, rawSeiyuu.SeiyuuID);
+                        var seiyuu = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(rawSeiyuu.SeiyuuID);
                         if (seiyuu == null)
                         {
                             seiyuu = new AniDB_Seiyuu();
@@ -549,13 +538,13 @@ public class AnimeCreator
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError("Unable to Populate and Save Seiyuus for {MainTitle}: {Ex}", anime.AnimeID, e);
+                        _logger.LogError(e, "Unable to Populate and Save Seiyuus for {MainTitle}: {Ex}", anime.AnimeID, e);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError("Unable to Populate and Save Characters for {MainTitle}: {Ex}", anime.AnimeID, ex);
+                _logger.LogError(ex, "Unable to Populate and Save Characters for {MainTitle}: {Ex}", anime.AnimeID, ex);
             }
         }
 
@@ -568,22 +557,17 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError("Unable to Save Characters and Seiyuus for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Save Characters and Seiyuus for {MainTitle}: {Ex}", anime.MainTitle, ex);
         }
     }
 
-    private void CreateStaff(ISession session, List<ResponseStaff> staffList, SVR_AniDB_Anime anime)
+    private void CreateStaff(List<ResponseStaff> staffList, SVR_AniDB_Anime anime)
     {
-        if (staffList == null)
-        {
-            return;
-        }
-
-        var sessionWrapper = session.Wrap();
+        if (staffList == null) return;
 
         // delete all the existing cross references just in case one has been removed
         var animeStaff =
-            RepoFactory.AniDB_Anime_Staff.GetByAnimeID(sessionWrapper, anime.AnimeID);
+            RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID);
 
         try
         {
@@ -591,7 +575,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError("Unable to Remove Staff for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Remove Staff for {MainTitle}: {Ex}", anime.MainTitle, ex);
         }
 
         var animeStaffToSave = new List<AniDB_Anime_Staff>();
@@ -663,7 +647,7 @@ public class AnimeCreator
             }
             catch (Exception ex)
             {
-                _logger.LogError("Unable to Populate and Save Staff for {MainTitle}: {Ex}", anime.MainTitle, ex);
+                _logger.LogError(ex, "Unable to Populate and Save Staff for {MainTitle}: {Ex}", anime.MainTitle, ex);
             }
         }
 
@@ -674,7 +658,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError("Unable to Save Staff for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Save Staff for {MainTitle}: {Ex}", anime.MainTitle, ex);
         }
     }
 
@@ -836,12 +820,9 @@ public class AnimeCreator
         RepoFactory.CrossRef_AniDB_MAL.Save(malLinks);
     }
 
-    private static void CreateRelations(ISession session, List<ResponseRelation> rels, SVR_AniDB_Anime anime)
+    private static void CreateRelations(List<ResponseRelation> rels)
     {
-        if (rels == null)
-        {
-            return;
-        }
+        if (rels == null) return;
 
         var relsToSave = new List<SVR_AniDB_Anime_Relation>();
         foreach (var rawrel in rels)
@@ -852,7 +833,7 @@ public class AnimeCreator
             }
 
             var animeRel =
-                RepoFactory.AniDB_Anime_Relation.GetByAnimeIDAndRelationID(session, rawrel.AnimeID,
+                RepoFactory.AniDB_Anime_Relation.GetByAnimeIDAndRelationID(rawrel.AnimeID,
                     rawrel.RelatedAnimeID) ?? new SVR_AniDB_Anime_Relation();
             animeRel.AnimeID = rawrel.AnimeID;
             animeRel.RelatedAnimeID = rawrel.RelatedAnimeID;
@@ -876,25 +857,17 @@ public class AnimeCreator
         RepoFactory.AniDB_Anime_Relation.Save(relsToSave);
     }
 
-    private static void CreateSimilarAnime(ISession session, List<ResponseSimilar> sims, SVR_AniDB_Anime anime)
+    private static void CreateSimilarAnime(List<ResponseSimilar> sims)
     {
-        if (sims == null)
-        {
-            return;
-        }
-
+        if (sims == null) return;
 
         var recsToSave = new List<AniDB_Anime_Similar>();
 
         foreach (var rawsim in sims)
         {
-            var animeSim = RepoFactory.AniDB_Anime_Similar.GetByAnimeIDAndSimilarID(session,
-                rawsim.AnimeID,
-                rawsim.SimilarAnimeID);
-            if (animeSim == null)
-            {
-                animeSim = new AniDB_Anime_Similar();
-            }
+            var animeSim =
+                RepoFactory.AniDB_Anime_Similar.GetByAnimeIDAndSimilarID(rawsim.AnimeID, rawsim.SimilarAnimeID) ??
+                new AniDB_Anime_Similar();
 
             if (rawsim.AnimeID <= 0 || rawsim.Approval < 0 || rawsim.SimilarAnimeID <= 0 || rawsim.Total < 0)
             {

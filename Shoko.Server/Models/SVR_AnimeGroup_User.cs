@@ -7,7 +7,6 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Models;
 
@@ -79,7 +78,7 @@ public class SVR_AnimeGroup_User : AnimeGroup_User
         RepoFactory.GroupFilter.Save(toSave);
     }
 
-    public void UpdatePlexKodiContracts(ISessionWrapper session = null)
+    public void UpdatePlexKodiContracts()
     {
         var grp = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
         if (grp == null)
@@ -88,6 +87,6 @@ public class SVR_AnimeGroup_User : AnimeGroup_User
         }
 
         var series = grp.GetAllSeries();
-        PlexContract = Helper.GenerateFromAnimeGroup(grp, JMMUserID, series, session);
+        PlexContract = Helper.GenerateFromAnimeGroup(grp, JMMUserID, series);
     }
 }

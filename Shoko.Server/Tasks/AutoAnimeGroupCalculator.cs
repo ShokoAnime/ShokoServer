@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using NHibernate;
 using Shoko.Models.Enums;
-using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Databases;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Tasks;
@@ -62,10 +62,9 @@ public class AutoAnimeGroupCalculator
     /// <summary>
     /// Creates a new <see cref="AutoAnimeGroupCalculator"/> using relationships stored in the database.
     /// </summary>
-    /// <param name="session">The NHibernate session.</param>
     /// <returns>The created <see cref="AutoAnimeGroupCalculator"/>.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-    public static AutoAnimeGroupCalculator CreateFromServerSettings(ISessionWrapper session)
+    public static AutoAnimeGroupCalculator CreateFromServerSettings()
     {
         var exclusionsSetting = ServerSettings.Instance.AutoGroupSeriesRelationExclusions;
         var exclusions = AutoGroupExclude.None;
@@ -98,7 +97,7 @@ public class AutoAnimeGroupCalculator
             }
         }
 
-        return Create(session, exclusions, relationsToFuzzyTitleTest, mainAnimeSelectionStrategy);
+        return Create(exclusions, relationsToFuzzyTitleTest, mainAnimeSelectionStrategy);
     }
 
     /// <summary>
@@ -112,16 +111,12 @@ public class AutoAnimeGroupCalculator
     /// for representing the group.</param>
     /// <returns>The created <see cref="AutoAnimeGroupCalculator"/>.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-    public static AutoAnimeGroupCalculator Create(ISessionWrapper session,
+    public static AutoAnimeGroupCalculator Create(
         AutoGroupExclude exclusions = AutoGroupExclude.SameSetting | AutoGroupExclude.Character,
         AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.SecondaryRelations,
         MainAnimeSelectionStrategy mainAnimeSelectionStrategy = MainAnimeSelectionStrategy.MinAirDate)
     {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
-
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
         var relationshipMap = session.CreateSQLQuery(@"
                 SELECT    fromAnime.AnimeID AS fromAnimeId
                         , toAnime.AnimeID AS toAnimeId
