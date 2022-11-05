@@ -65,24 +65,25 @@ public class CommandProcessorImages : CommandProcessor
                 if (WorkerCommands.CancellationPending) return;
 
                 var icr = CommandHelper.GetCommand(ServiceProvider, crdb);
-                if (icr == null) return;
-
-                if (WorkerCommands.CancellationPending) return;
-
-                QueueState = icr.PrettyDescription;
-
-                try
+                if (icr != null)
                 {
-                    CurrentCommand = crdb;
-                    icr.ProcessCommand();
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "ProcessCommand exception: {CommandID}\n{Ex}", crdb.CommandID, ex);
-                }
-                finally
-                {
-                    CurrentCommand = null;
+                    if (WorkerCommands.CancellationPending) return;
+
+                    QueueState = icr.PrettyDescription;
+
+                    try
+                    {
+                        CurrentCommand = crdb;
+                        icr.ProcessCommand();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "ProcessCommand exception: {CommandID}\n{Ex}", crdb.CommandID, ex);
+                    }
+                    finally
+                    {
+                        CurrentCommand = null;
+                    }
                 }
 
                 RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);

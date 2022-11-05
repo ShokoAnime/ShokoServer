@@ -35,11 +35,19 @@ public class Worker : BackgroundService
         ShokoServer.Instance.ServerShutdown                       += OnInstanceOnServerShutdown;
         Utils.YesNoRequired                                       += OnUtilsOnYesNoRequired;
         ServerState.Instance.PropertyChanged                      += OnInstanceOnPropertyChanged;
-        ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnCmdProcessorGeneralOnOnQueueStateChangedEvent;
+        ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnCmdProcessorGeneralOnQueueStateChangedEvent;
+        ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += OnCmdProcessorImagesOnQueueStateChangedEvent;
+        ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += OnCmdProcessorHasherOnQueueStateChangedEvent;
     }
 
-    private void OnCmdProcessorGeneralOnOnQueueStateChangedEvent(QueueStateEventArgs ev) 
-        => Console.WriteLine($"General Queue state change: {ev.QueueState.formatMessage()}");
+    private void OnCmdProcessorGeneralOnQueueStateChangedEvent(QueueStateEventArgs ev) 
+        => Console.WriteLine($@"General Queue state change: {ev.QueueState.formatMessage()}");
+
+    private void OnCmdProcessorImagesOnQueueStateChangedEvent(QueueStateEventArgs ev) 
+        => Console.WriteLine($@"Images Queue state change: {ev.QueueState.formatMessage()}");
+
+    private void OnCmdProcessorHasherOnQueueStateChangedEvent(QueueStateEventArgs ev) 
+        => Console.WriteLine($@"Hasher Queue state change: {ev.QueueState.formatMessage()}");
 
     private void OnInstanceOnPropertyChanged(object? _, PropertyChangedEventArgs e)
     {

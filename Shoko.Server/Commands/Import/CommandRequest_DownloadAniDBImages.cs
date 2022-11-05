@@ -112,7 +112,7 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
                             fileNames.Add(chr.GetPosterPath());
                         }
 
-                        ShokoService.CmdProcessorGeneral.QueueState = PrettyDescriptionCharacters;
+                        ShokoService.CmdProcessorImages.QueueState = PrettyDescriptionCharacters;
                         break;
 
                     case ImageEntityType.AniDB_Creator:
@@ -142,7 +142,7 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
                             fileNames.Add(creator.GetPosterPath());
                         }
 
-                        ShokoService.CmdProcessorGeneral.QueueState = PrettyDescriptionCreators;
+                        ShokoService.CmdProcessorImages.QueueState = PrettyDescriptionCreators;
                         break;
                 }
 

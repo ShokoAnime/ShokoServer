@@ -54,20 +54,14 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
     };
 
     private static readonly HashSet<int> CommandTypesGeneral = Enum.GetValues(typeof(CommandRequestType))
-        .OfType<CommandRequestType>().Select(a => (int)a).Except(CommandTypesHasher).Except(CommandTypesImages)
+        .OfType<CommandRequestType>().Cast<int>().Except(CommandTypesHasher).Except(CommandTypesImages)
         .ToHashSet();
 
-    private static readonly HashSet<int> CommandTypesGeneralUDPBan = Enum.GetValues(typeof(CommandRequestType))
-        .OfType<CommandRequestType>().Select(a => (int)a).Except(CommandTypesHasher).Except(CommandTypesImages)
-        .Except(AniDbUdpCommands).ToHashSet();
+    private static readonly HashSet<int> CommandTypesGeneralUDPBan = CommandTypesGeneral.Except(AniDbUdpCommands).ToHashSet();
 
-    private static readonly HashSet<int> CommandTypesGeneralHTTPBan = Enum.GetValues(typeof(CommandRequestType))
-        .OfType<CommandRequestType>().Select(a => (int)a).Except(CommandTypesHasher).Except(CommandTypesImages)
-        .Except(AniDbHttpCommands).ToHashSet();
+    private static readonly HashSet<int> CommandTypesGeneralHTTPBan = CommandTypesGeneral.Except(AniDbHttpCommands).ToHashSet();
 
-    private static readonly HashSet<int> CommandTypesGeneralFullBan = Enum.GetValues(typeof(CommandRequestType))
-        .OfType<CommandRequestType>().Select(a => (int)a).Except(CommandTypesHasher).Except(CommandTypesImages)
-        .Except(AniDbUdpCommands).Except(AniDbHttpCommands).ToHashSet();
+    private static readonly HashSet<int> CommandTypesGeneralFullBan = CommandTypesGeneral.Except(AniDbUdpCommands).Except(AniDbHttpCommands).ToHashSet();
 
     /// <summary>
     /// Returns a numeric index for which queue to use

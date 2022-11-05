@@ -887,7 +887,6 @@ public class ShokoServer
     private void AutoUpdateTimerShort_Elapsed(object sender, ElapsedEventArgs e)
     {
         autoUpdateTimerShort.Enabled = false;
-        ShokoService.CmdProcessorImages.NotifyOfNewCommand();
 
         CheckForAdminMesages();
 
