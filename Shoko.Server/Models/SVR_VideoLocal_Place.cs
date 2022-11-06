@@ -74,13 +74,13 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         var renamed = RenameFileHelper.GetFilename(this, scriptName);
         if (string.IsNullOrEmpty(renamed))
         {
-            logger.Error($"Error: The renamer returned a null or empty name for: \"{FilePath}\"");
+            logger.Error($"Error: The renamer returned a null or empty name for: \"{FullServerPath}\"");
             return (true, string.Empty, "Error: The file renamer returned a null or empty value");
         }
 
         if (renamed.StartsWith("*Error: "))
         {
-            logger.Error($"Error: The renamer returned an error on file: \"{FilePath}\"\n            {renamed}");
+            logger.Error($"Error: The renamer returned an error on file: \"{FullServerPath}\"\n            {renamed}");
             return (true, string.Empty, renamed.Substring(1));
         }
 
@@ -887,12 +887,17 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             {
                 try
                 {
+                    ShokoServer.Instance.AddFileWatcherExclusion(destFullTree);
                     Directory.CreateDirectory(destFullTree);
                 }
                 catch (Exception e)
                 {
                     logger.Error(e);
                     return true;
+                }
+                finally
+                {
+                    ShokoServer.Instance.RemoveFileWatcherExclusion(destFullTree);
                 }
             }
 

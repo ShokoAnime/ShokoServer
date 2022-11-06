@@ -495,8 +495,6 @@ public class ShokoServer
         }
         else if (File.Exists(path))
         {
-            logger.Info("New file detected: {0}", path);
-
             if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(path, s)))
             {
                 logger.Info("Import exclusion, skipping file: {0}", path);

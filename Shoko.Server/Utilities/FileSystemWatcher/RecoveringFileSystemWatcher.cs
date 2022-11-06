@@ -1,7 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -21,7 +21,7 @@ public class RecoveringFileSystemWatcher : IDisposable
     private readonly TimeSpan _directoryRetryInterval = TimeSpan.FromMinutes(5);
     private readonly ILogger _logger;
     private readonly IReadOnlyCollection<string> _filters;
-    private readonly ObservableCollection<(string Path, WatcherChangeTypes Type)> _buffer = new();
+    private readonly ConcurrentDictionary<string, WatcherChangeTypes> _buffer = new();
     private readonly ObservableCollection<string> _exclusions = new();
     private readonly string _path;
     private bool ExclusionsEnabled { get; set; }
@@ -35,45 +35,37 @@ public class RecoveringFileSystemWatcher : IDisposable
         if (!Directory.Exists(path)) throw new ArgumentException(nameof(path) + $" must be a directory that exists: {path}");
         _path = path;
         _filters = filters?.AsReadOnlyCollection();
-        _buffer.CollectionChanged += BufferOnCollectionChanged;
 
         // bad, but meh for now
         _logger = ShokoServer.ServiceContainer.GetRequiredService<ILoggerFactory>().CreateLogger("ImportFolderWatcher: " + _path);
     }
 
-    private void BufferOnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+    private void OnFileAdded(string path, WatcherChangeTypes type)
     {
-        if (e.Action != NotifyCollectionChangedAction.Add || e.NewItems == null) return;
-        var filesToProcess = e.NewItems.Cast<(string Path, WatcherChangeTypes Type)>()
-            .Where(a => !ExclusionsEnabled || !_exclusions.Contains(a.Path)).ToArray();
-        var except = e.NewItems.Cast<(string Path, WatcherChangeTypes Type)>().Where(a => !filesToProcess.Contains(a))
-            .ToArray();
-        foreach (var item in except)
+        if (ExclusionsEnabled && _exclusions.Contains(path))
         {
-            _logger.LogTrace("Excluding {Path}, as it is in the exclusions", item.Path);
-            _buffer.Remove(item);
+            _logger.LogTrace("Excluding {Path}, as it is in the exclusions", path);
+            _buffer.TryRemove(path, out _);
+            return;
         }
 
         Task.Factory.StartNew(par1 =>
         {
+            var (path1, type1) = ((string path, WatcherChangeTypes type))par1;
             try
             {
-                var items = ((string Path, WatcherChangeTypes Type)[])par1;
-                foreach (var (path, type) in items)
+                switch (type1)
                 {
-                    switch (type)
-                    {
-                        case WatcherChangeTypes.Created:
-                        case WatcherChangeTypes.Changed:
-                        case WatcherChangeTypes.Renamed:
-                            if (ShouldAddFile(path)) FileAdded?.Invoke(this, path);
-                            break;
-                        case WatcherChangeTypes.Deleted:
-                            FileDeleted?.Invoke(this, path);
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException(nameof(type));
-                    }
+                    case WatcherChangeTypes.Created:
+                    case WatcherChangeTypes.Changed:
+                    case WatcherChangeTypes.Renamed:
+                        if (ShouldAddFile(path1)) FileAdded?.Invoke(this, path1);
+                        break;
+                    case WatcherChangeTypes.Deleted:
+                        FileDeleted?.Invoke(this, path1);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(type1));
                 }
             }
             catch (Exception ex)
@@ -82,35 +74,46 @@ public class RecoveringFileSystemWatcher : IDisposable
             }
             finally
             {
-                var items = ((string Path, WatcherChangeTypes Type)[])par1;
-                items.ForEach(a => _buffer.Remove(a));
+                _buffer.TryRemove(path1, out _);
             }
-        }, filesToProcess);
+        }, (path, type));
     }
 
     private void WatcherChangeDetected(object sender, FileSystemEventArgs e)
     {
-        var item = e.ChangeType switch
+        try
         {
-            WatcherChangeTypes.Created or
-                WatcherChangeTypes.Changed or
-                WatcherChangeTypes.Renamed => (e.FullPath, Type: WatcherChangeTypes.Created),
-            _ => (e.FullPath, Type: WatcherChangeTypes.Deleted)
-        };
+            var item = (e.FullPath, Type: e.ChangeType);
 
-        // We get only a single event for directories
-        if (item.Type != WatcherChangeTypes.Deleted && Directory.Exists(item.FullPath))
-        {
-            // iterate and send a command for each containing file
-            foreach (var file in Directory.GetFiles(item.FullPath, "*.*", SearchOption.AllDirectories))
+            // We get only a single event for directories
+            if (Directory.Exists(item.FullPath))
             {
-                var fileItem = item with { FullPath = file };
-                if (!_buffer.Contains(fileItem)) _buffer.Add(fileItem);
-            }
-            return;
-        }
+                if (item.Type == WatcherChangeTypes.Deleted) return;
+                _logger.LogTrace("New Directory Found. Iterating: {Path}", item.FullPath);
+                // iterate and send a command for each containing file
+                foreach (var file in Directory.GetFiles(item.FullPath, "*.*", SearchOption.AllDirectories))
+                {
+                    var fileItem = item with { FullPath = file };
+                    if (_buffer.TryAdd(fileItem.FullPath, fileItem.Type)) OnFileAdded(fileItem.FullPath, fileItem.Type);
+                }
 
-        if (!_buffer.Contains(item)) _buffer.Add(item);
+                return;
+            }
+
+            _logger.LogTrace("File Event Occurred (not added yet): {Event}, {Path}", e.ChangeType, e.FullPath);
+            if (!_buffer.ContainsKey(item.FullPath))
+            {
+                if (_buffer.TryAdd(item.FullPath, item.Type)) OnFileAdded(item.FullPath, item.Type);
+            }
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // ignore
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "{Ex}", exception);
+        }
     }
 
     private void WatcherOnError(object sender, ErrorEventArgs e)
@@ -194,7 +197,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         var watcher = new System.IO.FileSystemWatcher
         {
             Path = _path,
-            NotifyFilter = NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.LastWrite,
+            NotifyFilter = NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.DirectoryName,
             IncludeSubdirectories = true,
             InternalBufferSize = 65536, //64KiB
         };
@@ -223,7 +226,6 @@ public class RecoveringFileSystemWatcher : IDisposable
         FileAdded = null;
         FileDeleted = null;
 
-        if (_buffer != null) _buffer.CollectionChanged -= BufferOnCollectionChanged;
         GC.SuppressFinalize(this);
     }
 
