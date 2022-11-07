@@ -358,7 +358,7 @@ public class ActionController : BaseController
     [HttpGet("RecreateAllGroups")]
     public ActionResult RecreateAllGroups()
     {
-        Task.Run(() => new AnimeGroupCreator().RecreateAllGroups());
+        Task.Factory.StartNew(() => new AnimeGroupCreator().RecreateAllGroups()).ConfigureAwait(false);
         return Ok("Check the server status via init/status or SignalR's Events hub");
     }
 

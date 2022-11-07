@@ -13,6 +13,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize(Roles = "admin,init")]
+[DatabaseBlockedExempt]
 [InitFriendly]
 public class SettingsController : BaseController
 {
