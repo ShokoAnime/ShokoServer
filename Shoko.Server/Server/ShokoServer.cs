@@ -554,6 +554,11 @@ public class ShokoServer
         }
 
         DBSetupCompleted?.Invoke(Instance, null);
+        
+        // Start queues
+        ShokoService.CmdProcessorGeneral.Paused = false;
+        ShokoService.CmdProcessorHasher.Paused = false;
+        ShokoService.CmdProcessorImages.Paused = false;
     }
 
     private void ShowDatabaseSetup()
@@ -675,10 +680,6 @@ public class ShokoServer
             //init session factory
             ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingSession;
             var _ = DatabaseFactory.SessionFactory;
-
-            // We need too much of the database initialized to do this anywhere else.
-            // TODO make this a command request. Some people apparently have thousands (a different problem, but locks startup for hours)
-            // DatabaseFixes.FixAniDB_EpisodesWithMissingTitles();
 
             Scanner.Instance.Init();
 

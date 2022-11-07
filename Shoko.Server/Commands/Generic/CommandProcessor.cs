@@ -148,8 +148,9 @@ public abstract class CommandProcessor : IDisposable
         var logFactory = provider.GetRequiredService<ILoggerFactory>();
         Logger = logFactory.CreateLogger(GetType());
 
+        // Start Paused. We'll unpause after setup is complete
+        Paused = true;
         _processingCommands = true;
-
         if (!WorkerCommands.IsBusy)
         {
             WorkerCommands.RunWorkerAsync();
