@@ -233,9 +233,10 @@ internal class AnimeGroupCreator
     /// <summary>
     /// Creates a single <see cref="SVR_AnimeGroup"/> for each <see cref="SVR_AnimeSeries"/> in <paramref name="seriesList"/>.
     /// </summary>
+    /// <param name="session"></param>
     /// <param name="seriesList">The list of <see cref="SVR_AnimeSeries"/> to create groups for.</param>
     /// <returns>A sequence of the created <see cref="SVR_AnimeGroup"/>s.</returns>
-    private IEnumerable<SVR_AnimeGroup> CreateGroupPerSeries(IReadOnlyList<SVR_AnimeSeries> seriesList)
+    private IEnumerable<SVR_AnimeGroup> CreateGroupPerSeries(ISessionWrapper session, IReadOnlyList<SVR_AnimeSeries> seriesList)
     {
         ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo
         {
@@ -256,13 +257,9 @@ internal class AnimeGroupCreator
             newGroupsToSeries[grp] = new Tuple<SVR_AnimeGroup, SVR_AnimeSeries>(group, series);
         }
 
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
         lock (BaseRepository.GlobalDBLock)
         {
-            using var trans = session.BeginTransaction();
-            _animeGroupRepo.InsertBatch(session.Wrap(),
-                newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
-            trans.Commit();
+            _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
         }
 
         // Anime groups should have IDs now they've been inserted. Now assign the group ID's to their respective series
@@ -283,9 +280,10 @@ internal class AnimeGroupCreator
     /// <remarks>
     /// This method assumes that there are no active transactions on the specified <paramref name="session"/>.
     /// </remarks>
+    /// <param name="session"></param>
     /// <param name="seriesList">The list of <see cref="SVR_AnimeSeries"/> to create groups for.</param>
     /// <returns>A sequence of the created <see cref="SVR_AnimeGroup"/>s.</returns>
-    private IEnumerable<SVR_AnimeGroup> AutoCreateGroupsWithRelatedSeries(IReadOnlyCollection<SVR_AnimeSeries> seriesList)
+    private IEnumerable<SVR_AnimeGroup> AutoCreateGroupsWithRelatedSeries(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeSeries> seriesList)
     {
         ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo
         {
@@ -315,13 +313,10 @@ internal class AnimeGroupCreator
                     groupAndSeries.AsReadOnlyCollection()));
         }
 
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
         lock (BaseRepository.GlobalDBLock)
         {
-            using var trans = session.BeginTransaction();
-            _animeGroupRepo.InsertBatch(session.Wrap(),
+            _animeGroupRepo.InsertBatch(session,
                 newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
-            trans.Commit();
         }
 
         // Anime groups should have IDs now they've been inserted. Now assign the group ID's to their respective series
@@ -474,33 +469,27 @@ internal class AnimeGroupCreator
 
             if (_autoGroupSeries)
             {
-                createdGroups = AutoCreateGroupsWithRelatedSeries(animeSeries)
+                createdGroups = AutoCreateGroupsWithRelatedSeries(session, animeSeries)
                     .AsReadOnlyCollection();
             }
             else // Standard group re-create
             {
-                createdGroups = CreateGroupPerSeries(animeSeries)
+                createdGroups = CreateGroupPerSeries(session, animeSeries)
                     .AsReadOnlyCollection();
             }
 
-            lock (BaseRepository.GlobalDBLock)
+            UpdateAnimeSeriesContractsAndSave(session, animeSeries);
+            using (var trans = session.BeginTransaction())
             {
-                using var trans = session.BeginTransaction();
-                UpdateAnimeSeriesContractsAndSave(session, animeSeries);
-                session.Delete(tempGroup); // We should no longer need the temporary group we created earlier
+                lock (BaseRepository.GlobalDBLock) session.Delete(tempGroup); // We should no longer need the temporary group we created earlier
                 trans.Commit();
             }
 
             // We need groups and series cached for updating of AnimeGroup contracts to work
             _animeGroupRepo.Populate(session, false);
             _animeSeriesRepo.Populate(session, false);
-
-            lock (BaseRepository.GlobalDBLock)
-            {
-                using var trans = session.BeginTransaction();
-                UpdateAnimeGroupsAndTheirContracts(createdGroups);
-                trans.Commit();
-            }
+            
+            UpdateAnimeGroupsAndTheirContracts(createdGroups);
 
             // We need to update the AnimeGroups cache again now that the contracts have been saved
             // (Otherwise updating Group Filters won't get the correct results)
@@ -543,10 +532,8 @@ internal class AnimeGroupCreator
 
     public void RecreateAllGroups()
     {
-        using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
-        {
-            RecreateAllGroups(session.Wrap());
-        }
+        using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+        RecreateAllGroups(session.Wrap());
     }
 
     public void RecalculateStatsContractsForGroup(SVR_AnimeGroup group)

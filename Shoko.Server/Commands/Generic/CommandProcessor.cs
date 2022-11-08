@@ -53,7 +53,7 @@ public abstract class CommandProcessor : IDisposable
                 {
                     QueueState = new QueueStateStruct
                     {
-                        message = "Idle", queueState = QueueStateEnum.Idle, extraParams = new string[0]
+                        message = "Unpaused", queueState = QueueStateEnum.Idle, extraParams = new string[0]
                     };
                 }
             }

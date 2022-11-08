@@ -152,11 +152,13 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
             throw new ArgumentNullException(nameof(groups));
         }
 
+        using var trans = session.BeginTransaction();
         foreach (var group in groups)
         {
             session.Insert(group);
             UpdateCache(group);
         }
+        trans.Commit();
 
         Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
     }
@@ -173,11 +175,13 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
             throw new ArgumentNullException(nameof(groups));
         }
 
+        using var trans = session.BeginTransaction();
         foreach (var group in groups)
         {
-            session.Update(group);
+            lock (GlobalDBLock) session.Update(group);
             UpdateCache(group);
         }
+        trans.Commit();
 
         Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
     }

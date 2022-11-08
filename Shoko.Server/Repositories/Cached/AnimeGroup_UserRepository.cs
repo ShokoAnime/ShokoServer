@@ -128,9 +128,10 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
             throw new ArgumentNullException(nameof(groupUsers));
         }
 
+        using var trans = session.BeginTransaction();
         foreach (var groupUser in groupUsers)
         {
-            session.Insert(groupUser);
+            lock (GlobalDBLock) session.Insert(groupUser);
 
             UpdateCache(groupUser);
             if (!Changes.TryGetValue(groupUser.JMMUserID, out var changeTracker))
@@ -141,6 +142,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
 
             changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
         }
+        trans.Commit();
     }
 
     /// <summary>
@@ -165,9 +167,10 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
             throw new ArgumentNullException(nameof(groupUsers));
         }
 
+        using var trans = session.BeginTransaction();
         foreach (var groupUser in groupUsers)
         {
-            session.Update(groupUser);
+            lock (GlobalDBLock) session.Update(groupUser);
             UpdateCache(groupUser);
 
             if (!Changes.TryGetValue(groupUser.JMMUserID, out var changeTracker))
@@ -178,6 +181,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
 
             changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
         }
+        trans.Commit();
     }
 
     /// <summary>

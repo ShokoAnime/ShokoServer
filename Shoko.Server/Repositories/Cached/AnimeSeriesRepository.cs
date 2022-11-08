@@ -339,7 +339,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
 
         foreach (var series in seriesBatch)
         {
-            session.Update(series);
+            lock (GlobalDBLock) session.Update(series);
             UpdateCache(series);
             Changes.AddOrUpdate(series.AnimeSeriesID);
         }
