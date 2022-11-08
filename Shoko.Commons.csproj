@@ -5,11 +5,12 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <DefaultItemExcludes>$(DefaultItemExcludes);Shoko.Models\**\*</DefaultItemExcludes>
     <Deterministic>false</Deterministic>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>latest</LangVersion>
     <Configurations>Debug;Release</Configurations>
-    <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net48;net6.0;netstandard2.0</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
+    <RuntimeIdentifiers Condition="'$(TargetFramework)' == 'net48'">win10-x64;win-x64</RuntimeIdentifiers>
     <RuntimeIdentifiers Condition="'$(TargetFramework)' == 'net6.0'">win10-x64;win-x64;win-x86;linux-x64;linux-x86</RuntimeIdentifiers>
     <RuntimeIdentifiers Condition="'$(TargetFramework)' == 'netstandard2.0'">win10-x64;win;linux-x64;linux-x86</RuntimeIdentifiers>
   </PropertyGroup>
