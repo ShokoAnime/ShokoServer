@@ -8,6 +8,7 @@ using Shoko.Commons.Properties;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Repositories;
 
@@ -40,7 +41,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         }
 
         // This is only called from main thread, so we don't need to lock
-        Cache = new PocoCache<S, T>(session.CreateCriteria(typeof(T)).List<T>(), SelectKey);
+        Cache = new PocoCache<S, T>(session.CreateCriteria(typeof(T)).SetTimeout(ServerSettings.Instance.CachingDatabaseTimeout).List<T>(), SelectKey);
         PopulateIndexes();
     }
 

@@ -122,19 +122,13 @@ public static class RepoFactory
         CleanUpMemory();
     }
 
-    public static void Init()
+    public static async Task Init()
     {
         try
         {
             foreach (var repo in CachedRepositories)
             {
-                var task = Task.Run(() => repo.Populate());
-
-                // don't wait longer than 3 minutes
-                if (!task.Wait(ServerSettings.Instance.CachingDatabaseTimeout * 1000))
-                {
-                    throw new TimeoutException($"{repo.GetType()} took too long to cache.");
-                }
+                repo.Populate();
             }
         }
         catch (Exception exception)
