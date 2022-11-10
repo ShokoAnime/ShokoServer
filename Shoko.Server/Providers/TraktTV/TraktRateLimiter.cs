@@ -10,7 +10,7 @@ public sealed class TraktTVRateLimiter
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
     private static readonly TraktTVRateLimiter instance = new();
 
-    private static int ShortDelay = 1000;
+    private static int ShortDelay = 1500;
     private static int LongDelay = 1500;
 
     // Switch to longer delay after 1 hour
