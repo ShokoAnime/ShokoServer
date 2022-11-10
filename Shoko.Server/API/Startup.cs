@@ -266,7 +266,12 @@ public class Startup
 
         app.UseStaticFiles(new StaticFileOptions
         {
-            FileProvider = new WebUiFileProvider(dir.FullName), RequestPath = "/webui", ServeUnknownFileTypes = true
+            FileProvider = new WebUiFileProvider(dir.FullName), RequestPath = "/webui", ServeUnknownFileTypes = true,
+            OnPrepareResponse = ctx =>
+            {
+                ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+                ctx.Context.Response.Headers.Append("Expires", "0");
+            }
         });
 
 
