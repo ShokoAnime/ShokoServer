@@ -39,6 +39,7 @@ public abstract class CommandProcessor : IDisposable
         get => _paused;
         set
         {
+            var unpausing = !value && _paused;
             _paused = value;
             lock (_lockQueueState)
             {
@@ -59,6 +60,7 @@ public abstract class CommandProcessor : IDisposable
             }
 
             UpdatePause(_paused);
+            if (unpausing) StartWorker();
         }
     }
 
@@ -151,10 +153,7 @@ public abstract class CommandProcessor : IDisposable
         // Start Paused. We'll unpause after setup is complete
         Paused = true;
         _processingCommands = true;
-        if (!WorkerCommands.IsBusy)
-        {
-            WorkerCommands.RunWorkerAsync();
-        }
+        StartWorker();
     }
 
     public void Stop()
@@ -169,6 +168,11 @@ public abstract class CommandProcessor : IDisposable
     public void NotifyOfNewCommand()
     {
         UpdateQueueCount();
+        StartWorker();
+    }
+
+    protected void StartWorker()
+    {
         // if the worker is busy, it will pick up the next command from the DB
         // do not pick new command if cancellation is requested
         if (_processingCommands || WorkerCommands.CancellationPending)
