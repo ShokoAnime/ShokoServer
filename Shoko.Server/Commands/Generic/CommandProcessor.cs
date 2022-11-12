@@ -152,7 +152,6 @@ public abstract class CommandProcessor : IDisposable
 
         // Start Paused. We'll unpause after setup is complete
         Paused = true;
-        _processingCommands = true;
         StartWorker();
     }
 
