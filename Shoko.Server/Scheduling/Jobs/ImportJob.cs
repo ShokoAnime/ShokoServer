@@ -5,6 +5,7 @@
 using System;
 using System.Threading.Tasks;
 using Quartz;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
@@ -16,6 +17,7 @@ public class ImportJob : IJob
     public async Task Execute(IJobExecutionContext context)
     {
         // TODO: Make everything asynchronous
+        Analytics.PostEvent("Importer", "Run");
         try
         {
             Importer.RunImport_NewFiles();

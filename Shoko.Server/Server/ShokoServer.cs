@@ -19,6 +19,7 @@ using NLog.Config;
 using NLog.Targets;
 using NLog.Targets.Wrappers;
 using NLog.Web;
+using Quartz;
 using Sentry;
 using Shoko.Commons.Properties;
 using Shoko.Server.API;
@@ -38,6 +39,7 @@ using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Settings;
 using Shoko.Server.Settings.DI;
 using Shoko.Server.UI;
@@ -69,7 +71,6 @@ public class ShokoServer
 
     private static IWebHost webHost;
 
-    private static BackgroundWorker workerImport = new();
     private static BackgroundWorker workerScanFolder = new();
     private static BackgroundWorker workerScanDropFolders = new();
     private static BackgroundWorker workerRemoveMissing = new();
@@ -264,10 +265,6 @@ public class ShokoServer
         downloadImagesWorker.WorkerSupportsCancellation = true;
 
         workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
-
-        workerImport.WorkerReportsProgress = true;
-        workerImport.WorkerSupportsCancellation = true;
-        workerImport.DoWork += WorkerImport_DoWork;
 
         workerScanFolder.WorkerReportsProgress = true;
         workerScanFolder.WorkerSupportsCancellation = true;
@@ -722,9 +719,9 @@ public class ShokoServer
 
             if (ServerSettings.Instance.Import.RunOnStart && folders.Count > 0)
             {
-                RunImport();
-                // TODO: Switch to Quartz scheduler trigger
-                // _scheduler.TriggerJob(ImportJob.Key);
+                var schedulerFactory = ServiceContainer.GetService<ISchedulerFactory>();
+                var scheduler = schedulerFactory!.GetScheduler().Result;
+                scheduler.TriggerJob(ImportJob.Key);
             }
 
             ServerState.Instance.ServerOnline = true;
@@ -1031,17 +1028,7 @@ public class ShokoServer
             workerScanFolder.RunWorkerAsync(importFolderID);
         }
     }
-
-    public static void RunImport()
-    {
-        Analytics.PostEvent("Importer", "Run");
-
-        if (!workerImport.IsBusy)
-        {
-            workerImport.RunWorkerAsync();
-        }
-    }
-
+    
     public static void RemoveMissingFiles(bool removeMyList = true)
     {
         Analytics.PostEvent("Importer", "RemoveMissing");
@@ -1107,37 +1094,6 @@ public class ShokoServer
         try
         {
             Importer.RunImport_DropFolders();
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-        }
-    }
-
-    private static void WorkerImport_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            Importer.RunImport_NewFiles();
-            Importer.RunImport_IntegrityCheck();
-
-            // drop folder
-            Importer.RunImport_DropFolders();
-
-            // TvDB association checks
-            Importer.RunImport_ScanTvDB();
-
-            // Trakt association checks
-            Importer.RunImport_ScanTrakt();
-
-            // MovieDB association checks
-            Importer.RunImport_ScanMovieDB();
-
-            // Check for missing images
-            Importer.RunImport_GetImages();
-
-            // Check for previously ignored files
-            Importer.CheckForPreviouslyIgnored();
         }
         catch (Exception ex)
         {
