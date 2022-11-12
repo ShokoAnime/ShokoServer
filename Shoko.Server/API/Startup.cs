@@ -19,6 +19,7 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using NLog;
+using Quartz;
 using Sentry;
 using Shoko.Server.API.ActionFilters;
 using Shoko.Server.API.Authentication;
@@ -26,7 +27,9 @@ using Shoko.Server.API.SignalR;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.SignalR.Legacy;
 using Shoko.Server.Plugin;
+using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Server;
+using Shoko.Server.Services.ConnectivityMon;
 using Shoko.Server.Settings;
 using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
 using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
@@ -54,6 +57,25 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        services.AddSingleton<IConnectivityMonitor>(_ => new GeneralConnectivityMonitor());
+        
+        services.AddQuartz(q =>
+        {
+            // as of 3.3.2 this also injects scoped services (like EF DbContext) without problems
+            q.UseMicrosoftDependencyInjectionJobFactory();
+
+            // Register the connectivity monitor job with a trigger that executes every 5 minutes
+            q.ScheduleJob<ConnectivityMonitorJob>(
+                trigger => trigger.WithCronSchedule("0 */5 * * * ?").StartNow(), 
+                j => j.WithIdentity(ConnectivityMonitorJob.Key).DisallowConcurrentExecution());
+        });
+
+        services.AddQuartzServer(options =>
+        {
+            // when shutting down we want jobs to complete gracefully
+            options.WaitForJobsToComplete = true;
+        });
+        
         ShokoServer.ConfigureServices(services);
         services.AddAuthentication(options =>
         {
