@@ -3,6 +3,7 @@ using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Quartz;
 using Shoko.Models.Interfaces;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.Commands;
@@ -25,9 +26,9 @@ public class ShokoServiceImplementationKodi : IShokoServerKodi, IHttpContextAcce
     private readonly ILogger<ShokoServiceImplementationKodi> _logger;
 
     public ShokoServiceImplementationKodi(ICommandRequestFactory commandFactory,
-        ILogger<ShokoServiceImplementationKodi> logger)
+        ILogger<ShokoServiceImplementationKodi> logger, ISchedulerFactory schedulerFactory)
     {
-        _service = new ShokoServiceImplementation(null, null, null, commandFactory);
+        _service = new ShokoServiceImplementation(null, null, null, commandFactory, schedulerFactory);
         _logger = logger;
         _impl = new CommonImplementation();
     }

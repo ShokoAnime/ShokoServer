@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using NLog;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
@@ -23,6 +24,7 @@ using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
@@ -37,11 +39,13 @@ public class Common : BaseController
 {
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ShokoServiceImplementation _service;
+    private readonly ISchedulerFactory _schedulerFactory;
 
-    public Common(ICommandRequestFactory commandFactory)
+    public Common(ICommandRequestFactory commandFactory, ISchedulerFactory schedulerFactory)
     {
         _commandFactory = commandFactory;
-        _service = new ShokoServiceImplementation(null, null, null, commandFactory);
+        _service = new ShokoServiceImplementation(null, null, null, commandFactory, schedulerFactory);
+        _schedulerFactory = schedulerFactory;
     }
     //class will be found automagically thanks to inherits also class need to be public (or it will 404)
 
@@ -152,9 +156,10 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("folder/import")]
-    public ActionResult RunImport()
+    public async Task<ActionResult> RunImport()
     {
-        ShokoServer.RunImport();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.TriggerJob(ImportJob.Key);
         return Ok();
     }
 
@@ -2684,9 +2689,10 @@ public class Common : BaseController
     }
 
     [HttpGet("cloud/import")]
-    public ActionResult RunCloudImport()
+    public async Task<ActionResult> RunCloudImport()
     {
-        ShokoServer.RunImport();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.TriggerJob(ImportJob.Key);
         return Ok();
     }
 

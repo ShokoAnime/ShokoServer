@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Client;
@@ -22,6 +24,7 @@ using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
@@ -40,14 +43,16 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly TraktTVHelper _traktHelper;
     private readonly MovieDBHelper _movieDBHelper;
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISchedulerFactory _schedulerFactory;
 
     public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper,
-        ICommandRequestFactory commandFactory)
+        ICommandRequestFactory commandFactory, ISchedulerFactory schedulerFactory)
     {
         _tvdbHelper = tvdbHelper;
         _traktHelper = traktHelper;
         _movieDBHelper = movieDBHelper;
         _commandFactory = commandFactory;
+        _schedulerFactory = schedulerFactory;
     }
 
     #region Bookmarks
@@ -672,9 +677,10 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     #region Actions
 
     [HttpPost("Folder/Import")]
-    public void RunImport()
+    public async Task RunImport()
     {
-        ShokoServer.RunImport();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        scheduler.TriggerJob(ImportJob.Key);
     }
 
     [HttpPost("File/Hashes/Sync")]

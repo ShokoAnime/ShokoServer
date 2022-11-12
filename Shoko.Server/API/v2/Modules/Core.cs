@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using Quartz;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
@@ -39,11 +40,11 @@ public class Core : BaseController
     private readonly TraktTVHelper _traktHelper;
     private readonly ShokoServiceImplementation _service;
 
-    public Core(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper)
+    public Core(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper, ISchedulerFactory schedulerFactory)
     {
         _commandFactory = commandFactory;
         _traktHelper = traktHelper;
-        _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory);
+        _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory, schedulerFactory);
     }
 
     #region 01.Settings

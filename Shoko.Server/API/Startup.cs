@@ -67,7 +67,9 @@ public class Startup
             // Register the connectivity monitor job with a trigger that executes every 5 minutes
             q.ScheduleJob<ConnectivityMonitorJob>(
                 trigger => trigger.WithCronSchedule("0 */5 * * * ?").StartNow(), 
-                j => j.WithIdentity(ConnectivityMonitorJob.Key).DisallowConcurrentExecution());
+                j => j.WithIdentity(ConnectivityMonitorJob.Key).DisallowConcurrentExecution().Build());
+
+            q.AddJob<ImportJob>(j => j.WithIdentity(ImportJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
         });
 
         services.AddQuartzServer(options =>

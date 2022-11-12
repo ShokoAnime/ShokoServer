@@ -723,6 +723,8 @@ public class ShokoServer
             if (ServerSettings.Instance.Import.RunOnStart && folders.Count > 0)
             {
                 RunImport();
+                // TODO: Switch to Quartz scheduler trigger
+                // _scheduler.TriggerJob(ImportJob.Key);
             }
 
             ServerState.Instance.ServerOnline = true;
