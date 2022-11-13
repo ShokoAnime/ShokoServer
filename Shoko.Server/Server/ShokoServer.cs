@@ -70,8 +70,7 @@ public class ShokoServer
     public static string PathAddressKodi = "Kodi";
 
     private static IWebHost webHost;
-
-    private static BackgroundWorker workerScanFolder = new();
+    
     private static BackgroundWorker workerScanDropFolders = new();
     private static BackgroundWorker workerRemoveMissing = new();
     private static BackgroundWorker workerDeleteImportFolder = new();
@@ -265,11 +264,6 @@ public class ShokoServer
         downloadImagesWorker.WorkerSupportsCancellation = true;
 
         workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
-
-        workerScanFolder.WorkerReportsProgress = true;
-        workerScanFolder.WorkerSupportsCancellation = true;
-        workerScanFolder.DoWork += WorkerScanFolder_DoWork;
-
 
         workerScanDropFolders.WorkerReportsProgress = true;
         workerScanDropFolders.WorkerSupportsCancellation = true;
@@ -1022,11 +1016,13 @@ public class ShokoServer
     }
 
     public static void ScanFolder(int importFolderID)
-    {
-        if (!workerScanFolder.IsBusy)
+    { 
+        var schedulerFactory = ServiceContainer.GetService<ISchedulerFactory>();
+        var scheduler = schedulerFactory!.GetScheduler().Result;
+        scheduler.TriggerJob(ScanFolderJob.Key, new JobDataMap
         {
-            workerScanFolder.RunWorkerAsync(importFolderID);
-        }
+            {"importFolderID", importFolderID}
+        });
     }
     
     public static void RemoveMissingFiles(bool removeMyList = true)
@@ -1070,18 +1066,6 @@ public class ShokoServer
         {
             var importFolderID = int.Parse(e.Argument.ToString());
             Importer.DeleteImportFolder(importFolderID);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-        }
-    }
-
-    private static void WorkerScanFolder_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            Importer.RunImport_ScanFolder(int.Parse(e.Argument.ToString()));
         }
         catch (Exception ex)
         {

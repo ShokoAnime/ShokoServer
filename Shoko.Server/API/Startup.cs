@@ -70,6 +70,7 @@ public class Startup
                 j => j.WithIdentity(ConnectivityMonitorJob.Key).DisallowConcurrentExecution().Build());
 
             q.AddJob<ImportJob>(j => j.WithIdentity(ImportJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
+            q.AddJob<ScanFolderJob>(j => j.WithIdentity(ScanFolderJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
         });
 
         services.AddQuartzServer(options =>
