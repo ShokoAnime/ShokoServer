@@ -34,7 +34,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         if (path == null) throw new ArgumentException(nameof(path) + " cannot be null");
         if (!Directory.Exists(path)) throw new ArgumentException(nameof(path) + $" must be a directory that exists: {path}");
         _path = path;
-        _filters = filters?.AsReadOnlyCollection();
+        _filters = filters?.AsReadOnlyCollection() ?? Enumerable.Empty<string>().AsReadOnlyCollection();
 
         // bad, but meh for now
         _logger = ShokoServer.ServiceContainer.GetRequiredService<ILoggerFactory>().CreateLogger("ImportFolderWatcher: " + _path);
@@ -100,9 +100,9 @@ public class RecoveringFileSystemWatcher : IDisposable
                 return;
             }
 
-            _logger.LogTrace("File Event Occurred (not added yet): {Event}, {Path}", e.ChangeType, e.FullPath);
             if (!_buffer.ContainsKey(item.FullPath))
             {
+                _logger.LogTrace("File Event Occurred (not added yet): {Event}, {Path}", e.ChangeType, e.FullPath);
                 if (_buffer.TryAdd(item.FullPath, item.Type)) OnFileAdded(item.FullPath, item.Type);
             }
         }
@@ -201,7 +201,7 @@ public class RecoveringFileSystemWatcher : IDisposable
             IncludeSubdirectories = true,
             InternalBufferSize = 65536, //64KiB
         };
-        _filters?.ForEach(watcher.Filters.Add);
+
         watcher.Created += WatcherChangeDetected;
         watcher.Changed += WatcherChangeDetected;
         watcher.Deleted += WatcherChangeDetected;
@@ -232,6 +232,8 @@ public class RecoveringFileSystemWatcher : IDisposable
     private bool ShouldAddFile(string path)
     {
         if (!Options.Enabled) return true;
+        // Is it a video file
+        if (_filters.Any() && !_filters.Any(a => path.ToLowerInvariant().EndsWith(a))) return false;
         Exception e = null;
         long filesize;
         var numAttempts = 0;

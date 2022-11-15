@@ -956,7 +956,7 @@ public class ShokoServer
                     
                     logger.Info($"Parsed ImportFolderLocation: {share.ImportFolderLocation}");
 
-                    var fsw = new RecoveringFileSystemWatcher(share.ImportFolderLocation);
+                    var fsw = new RecoveringFileSystemWatcher(share.ImportFolderLocation, ServerSettings.Instance.Import.VideoExtensions.Select(a => "." + a.ToLowerInvariant().TrimStart('.')));
                     fsw.Options = new FileSystemWatcherLockOptions
                     {
                         Enabled = ServerSettings.Instance.Import.FileLockChecking,
