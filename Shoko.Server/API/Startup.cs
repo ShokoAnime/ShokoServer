@@ -73,6 +73,7 @@ public class Startup
             q.AddJob<ScanFolderJob>(j => j.WithIdentity(ScanFolderJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
             q.AddJob<ScanDropFoldersJob>(j => j.WithIdentity(ScanDropFoldersJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
             q.AddJob<RemoveMissingFilesJob>(j => j.WithIdentity(RemoveMissingFilesJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
+            q.AddJob<DeleteImportFolderJob>(j => j.WithIdentity(DeleteImportFolderJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
         });
 
         services.AddQuartzServer(options =>

@@ -71,7 +71,6 @@ public class ShokoServer
 
     private static IWebHost webHost;
     
-    private static BackgroundWorker workerDeleteImportFolder = new();
     private static BackgroundWorker workerMediaInfo = new();
 
     internal static BackgroundWorker workerSetupDB = new();
@@ -262,10 +261,6 @@ public class ShokoServer
         downloadImagesWorker.WorkerSupportsCancellation = true;
 
         workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
-        
-        workerDeleteImportFolder.WorkerReportsProgress = false;
-        workerDeleteImportFolder.WorkerSupportsCancellation = true;
-        workerDeleteImportFolder.DoWork += WorkerDeleteImportFolder_DoWork;
 
         workerSetupDB.WorkerReportsProgress = true;
         workerSetupDB.ProgressChanged += (sender, args) => WorkerSetupDB_ReportProgress();
@@ -1031,37 +1026,14 @@ public class ShokoServer
 
     public static void DeleteImportFolder(int importFolderID)
     {
-        if (!workerDeleteImportFolder.IsBusy)
+        var schedulerFactory = ServiceContainer.GetRequiredService<ISchedulerFactory>();
+        var scheduler = schedulerFactory.GetScheduler().Result;
+        scheduler.TriggerJob(DeleteImportFolderJob.Key, new JobDataMap
         {
-            workerDeleteImportFolder.RunWorkerAsync(importFolderID);
-        }
+            {"importFolderID", importFolderID}
+        });
     }
-
-    private static void WorkerRemoveMissing_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            Importer.RemoveRecordsWithoutPhysicalFiles(e.Argument as bool? ?? true);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-        }
-    }
-
-    private void WorkerDeleteImportFolder_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            var importFolderID = int.Parse(e.Argument.ToString());
-            Importer.DeleteImportFolder(importFolderID);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-        }
-    }
-
+    
     private static void InitWebHost()
     {
         if (webHost != null)
