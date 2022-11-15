@@ -680,7 +680,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     public async Task RunImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        scheduler.TriggerJob(ImportJob.Key);
+        await scheduler.TriggerJob(ImportJob.Key);
     }
 
     [HttpPost("File/Hashes/Sync")]
