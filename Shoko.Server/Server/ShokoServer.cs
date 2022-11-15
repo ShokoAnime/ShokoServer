@@ -71,7 +71,6 @@ public class ShokoServer
 
     private static IWebHost webHost;
     
-    private static BackgroundWorker workerScanDropFolders = new();
     private static BackgroundWorker workerRemoveMissing = new();
     private static BackgroundWorker workerDeleteImportFolder = new();
     private static BackgroundWorker workerMediaInfo = new();
@@ -264,10 +263,6 @@ public class ShokoServer
         downloadImagesWorker.WorkerSupportsCancellation = true;
 
         workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
-
-        workerScanDropFolders.WorkerReportsProgress = true;
-        workerScanDropFolders.WorkerSupportsCancellation = true;
-        workerScanDropFolders.DoWork += WorkerScanDropFolders_DoWork;
 
         workerRemoveMissing.WorkerReportsProgress = true;
         workerRemoveMissing.WorkerSupportsCancellation = true;
@@ -1009,16 +1004,15 @@ public class ShokoServer
 
     public static void ScanDropFolders()
     {
-        if (!workerScanDropFolders.IsBusy)
-        {
-            workerScanDropFolders.RunWorkerAsync();
-        }
+        var schedulerFactory = ServiceContainer.GetRequiredService<ISchedulerFactory>();
+        var scheduler = schedulerFactory.GetScheduler().Result;
+        scheduler.TriggerJob(ScanDropFoldersJob.Key);
     }
 
     public static void ScanFolder(int importFolderID)
     { 
-        var schedulerFactory = ServiceContainer.GetService<ISchedulerFactory>();
-        var scheduler = schedulerFactory!.GetScheduler().Result;
+        var schedulerFactory = ServiceContainer.GetRequiredService<ISchedulerFactory>();
+        var scheduler = schedulerFactory.GetScheduler().Result;
         scheduler.TriggerJob(ScanFolderJob.Key, new JobDataMap
         {
             {"importFolderID", importFolderID}
@@ -1066,18 +1060,6 @@ public class ShokoServer
         {
             var importFolderID = int.Parse(e.Argument.ToString());
             Importer.DeleteImportFolder(importFolderID);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-        }
-    }
-
-    private void WorkerScanDropFolders_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            Importer.RunImport_DropFolders();
         }
         catch (Exception ex)
         {
