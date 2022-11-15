@@ -593,7 +593,7 @@ namespace Shoko.Models.MediaInfo
             }
 
             codecID = format;
-            return codecID.ToUpper() == "APPLE TEXT" ? "ttxt" : null;
+            return codecID?.ToUpper() == "APPLE TEXT" ? "ttxt" : null;
         }
 
         private static readonly Dictionary<string, string> SubFormats = new Dictionary<string, string>
