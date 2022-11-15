@@ -71,8 +71,6 @@ public class ShokoServer
 
     private static IWebHost webHost;
     
-    private static BackgroundWorker workerMediaInfo = new();
-
     internal static BackgroundWorker workerSetupDB = new();
     internal static BackgroundWorker LogRotatorWorker = new();
 
@@ -259,9 +257,7 @@ public class ShokoServer
 
         downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
         downloadImagesWorker.WorkerSupportsCancellation = true;
-
-        workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
-
+        
         workerSetupDB.WorkerReportsProgress = true;
         workerSetupDB.ProgressChanged += (sender, args) => WorkerSetupDB_ReportProgress();
         workerSetupDB.DoWork += WorkerSetupDB_DoWork;
@@ -723,27 +719,12 @@ public class ShokoServer
     #endregion
 
     #region Update all media info
-
-    private void WorkerMediaInfo_DoWork(object sender, DoWorkEventArgs e)
-    {
-        // first build a list of files that we already know about, as we don't want to process them again
-        var filesAll = RepoFactory.VideoLocal.GetAll();
-        var commandFactory = ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        foreach (var vl in filesAll)
-        {
-            var cr = commandFactory.Create<CommandRequest_ReadMediaInfo>(c => c.VideoLocalID = vl.VideoLocalID);
-            cr.Save();
-        }
-    }
-
+    
     public static void RefreshAllMediaInfo()
     {
-        if (workerMediaInfo.IsBusy)
-        {
-            return;
-        }
-
-        workerMediaInfo.RunWorkerAsync();
+        var schedulerFactory = ServiceContainer.GetRequiredService<ISchedulerFactory>();
+        var scheduler = schedulerFactory.GetScheduler().Result;
+        scheduler.TriggerJob(MediaInfoJob.Key);
     }
 
     #endregion
