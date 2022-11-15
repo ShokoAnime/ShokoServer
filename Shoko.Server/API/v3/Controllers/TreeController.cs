@@ -284,16 +284,17 @@ public class TreeController : BaseController
     /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/>. Even the <see cref="Series"/> within the sub-<see cref="Group"/>s.</param>
     /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the list.</param>
     /// <param name="randomImages">Randomise images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetSeriesInFilteredGroup([FromRoute] int filterID, [FromRoute] int groupID,
         [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false,
-        [FromQuery] bool randomImages = false)
+        [FromQuery] bool randomImages = false, [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         // Return the groups with no group filter applied.
         if (filterID == 0)
         {
-            return GetSeriesInGroup(groupID, recursive, includeMissing, randomImages);
+            return GetSeriesInGroup(groupID, recursive, includeMissing, randomImages, includeDataFrom);
         }
 
         // Check if the group filter exists.
@@ -330,7 +331,7 @@ public class TreeController : BaseController
         return (recursive ? group.GetAllSeries() : group.GetSeries())
             .Where(series => seriesIDs.Contains(series.AnimeSeriesID))
             .OrderBy(series => series.GetAnime()?.AirDate ?? DateTime.MaxValue)
-            .Select(series => new Series(HttpContext, series))
+            .Select(series => new Series(HttpContext, series, randomImages, includeDataFrom))
             .Where(series => series.Size > 0 || includeMissing)
             .ToList();
     }
@@ -395,10 +396,12 @@ public class TreeController : BaseController
     /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/></param>
     /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the list.</param>
     /// <param name="randomImages">Randomise images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetSeriesInGroup([FromRoute] int groupID, [FromQuery] bool recursive = false,
-        [FromQuery] bool includeMissing = false, [FromQuery] bool randomImages = false)
+        [FromQuery] bool includeMissing = false, [FromQuery] bool randomImages = false,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -411,7 +414,7 @@ public class TreeController : BaseController
         return (recursive ? group.GetAllSeries() : group.GetSeries())
             .Where(a => user.AllowedSeries(a))
             .OrderBy(series => series.GetAnime()?.AirDate ?? DateTime.MaxValue)
-            .Select(series => new Series(HttpContext, series, randomImages))
+            .Select(series => new Series(HttpContext, series, randomImages, includeDataFrom))
             .Where(series => series.Size > 0 || includeMissing)
             .ToList();
     }
@@ -426,9 +429,10 @@ public class TreeController : BaseController
     /// </remarks>
     /// <param name="groupID"><see cref="Group"/> ID</param>
     /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/MainSeries")]
-    public ActionResult<Series> GetMainSeriesInGroup([FromRoute] int groupID, [FromQuery] bool randomImages = false)
+    public ActionResult<Series> GetMainSeriesInGroup([FromRoute] int groupID, [FromQuery] bool randomImages = false, [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -449,7 +453,7 @@ public class TreeController : BaseController
             return InternalError("Unable to find main series for group.");
         }
 
-        return new Series(HttpContext, mainSeries, randomImages);
+        return new Series(HttpContext, mainSeries, randomImages, includeDataFrom);
     }
 
     #endregion
@@ -464,9 +468,11 @@ public class TreeController : BaseController
     /// </remarks>
     /// <param name="seriesID">Series ID</param>
     /// <param name="includeMissing">Include missing episodes in the list.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/Episode")]
-    public ActionResult<List<Episode>> GetEpisodes([FromRoute] int seriesID, [FromQuery] bool includeMissing = false)
+    public ActionResult<List<Episode>> GetEpisodes([FromRoute] int seriesID, [FromQuery] bool includeMissing = false,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -480,7 +486,7 @@ public class TreeController : BaseController
         }
 
         return series.GetAnimeEpisodes(true)
-            .Select(a => new Episode(HttpContext, a))
+            .Select(a => new Episode(HttpContext, a, includeDataFrom))
             .Where(a => a.Size > 0 || includeMissing)
             .ToList();
     }
@@ -494,10 +500,12 @@ public class TreeController : BaseController
     /// <param name="seriesID">Series ID</param>
     /// <param name="onlyUnwatched">Only show the next unwatched episode.</param>
     /// <param name="includeSpecials">Include specials in the search.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/NextUpEpisode")]
     public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID,
-        [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true)
+        [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var user = User;
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -517,7 +525,7 @@ public class TreeController : BaseController
             return null;
         }
 
-        return new Episode(HttpContext, episode);
+        return new Episode(HttpContext, episode, includeDataFrom);
     }
 
     #endregion
@@ -529,9 +537,11 @@ public class TreeController : BaseController
     /// </summary>
     /// <param name="episodeID">Episode ID</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/File")]
-    public ActionResult<List<File>> GetFilesForEpisode([FromRoute] int episodeID, [FromQuery] bool includeXRefs = false)
+    public ActionResult<List<File>> GetFilesForEpisode([FromRoute] int episodeID, [FromQuery] bool includeXRefs = false,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -551,7 +561,7 @@ public class TreeController : BaseController
         }
 
         return episode.GetVideoLocals()
-            .Select(file => new File(HttpContext, file, includeXRefs))
+            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom))
             .ToList();
     }
 

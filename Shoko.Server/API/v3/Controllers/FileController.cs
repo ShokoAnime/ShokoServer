@@ -46,15 +46,17 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="fileID">Shoko VideoLocalID</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("{fileID}")]
-    public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery] bool includeXRefs = false)
+    public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery] bool includeXRefs = false,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        return new File(HttpContext, file, includeXRefs);
+        return new File(HttpContext, file, includeXRefs, includeDataFrom);
     }
 
     /// <summary>
@@ -130,9 +132,11 @@ public class FileController : BaseController
     /// </remarks>
     /// <param name="anidbFileID">AniDB File ID</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbFileID}/File")]
-    public ActionResult<File> GetFileByAnidbFileID([FromRoute] int anidbFileID, [FromQuery] bool includeXRefs = false)
+    public ActionResult<File> GetFileByAnidbFileID([FromRoute] int anidbFileID, [FromQuery] bool includeXRefs = false,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
         if (anidb == null)
@@ -142,7 +146,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(AnidbNotFoundForFileID);
 
-        return new File(HttpContext, file, includeXRefs);
+        return new File(HttpContext, file, includeXRefs, includeDataFrom);
     }
 
     /// <summary>
