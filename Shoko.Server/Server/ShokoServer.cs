@@ -462,19 +462,6 @@ public class ShokoServer
 
     public static ShokoServer Instance { get; private set; } = new();
 
-    private static void FileAdded(object sender, string path)
-    {
-        var commandFactory = ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        if (!File.Exists(path)) return;
-        if (!FileHashHelper.IsVideo(path)) return;
-
-        logger.Info("Found file {0}", path);
-        var tup = VideoLocal_PlaceRepository.GetFromFullPath(path);
-        ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
-        var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = path);
-        cmd.Save();
-    }
-
     private void InitCulture()
     {
     }
@@ -920,7 +907,9 @@ public class ShokoServer
                     
                     logger.Info($"Parsed ImportFolderLocation: {share.ImportFolderLocation}");
 
-                    var fsw = new RecoveringFileSystemWatcher(share.ImportFolderLocation, ServerSettings.Instance.Import.VideoExtensions.Select(a => "." + a.ToLowerInvariant().TrimStart('.')));
+                    var fsw = new RecoveringFileSystemWatcher(share.ImportFolderLocation,
+                        filters: ServerSettings.Instance.Import.VideoExtensions.Select(a => "." + a.ToLowerInvariant().TrimStart('.')),
+                        pathExclusions: ServerSettings.Instance.Import.Exclude);
                     fsw.Options = new FileSystemWatcherLockOptions
                     {
                         Enabled = ServerSettings.Instance.Import.FileLockChecking,
@@ -944,6 +933,19 @@ public class ShokoServer
                 logger.Error(ex, ex.ToString());
             }
         }
+    }
+
+    private static void FileAdded(object sender, string path)
+    {
+        var commandFactory = ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        if (!File.Exists(path)) return;
+        if (!FileHashHelper.IsVideo(path)) return;
+
+        logger.Info("Found file {0}", path);
+        var tup = VideoLocal_PlaceRepository.GetFromFullPath(path);
+        ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
+        var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = path);
+        cmd.Save();
     }
 
     public void AddFileWatcherExclusion(string path)
