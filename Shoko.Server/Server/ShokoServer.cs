@@ -71,7 +71,6 @@ public class ShokoServer
 
     private static IWebHost webHost;
     
-    private static BackgroundWorker workerRemoveMissing = new();
     private static BackgroundWorker workerDeleteImportFolder = new();
     private static BackgroundWorker workerMediaInfo = new();
 
@@ -263,11 +262,7 @@ public class ShokoServer
         downloadImagesWorker.WorkerSupportsCancellation = true;
 
         workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
-
-        workerRemoveMissing.WorkerReportsProgress = true;
-        workerRemoveMissing.WorkerSupportsCancellation = true;
-        workerRemoveMissing.DoWork += WorkerRemoveMissing_DoWork;
-
+        
         workerDeleteImportFolder.WorkerReportsProgress = false;
         workerDeleteImportFolder.WorkerSupportsCancellation = true;
         workerDeleteImportFolder.DoWork += WorkerDeleteImportFolder_DoWork;
@@ -1021,12 +1016,12 @@ public class ShokoServer
     
     public static void RemoveMissingFiles(bool removeMyList = true)
     {
-        Analytics.PostEvent("Importer", "RemoveMissing");
-
-        if (!workerRemoveMissing.IsBusy)
+        var schedulerFactory = ServiceContainer.GetRequiredService<ISchedulerFactory>();
+        var scheduler = schedulerFactory.GetScheduler().Result;
+        scheduler.TriggerJob(RemoveMissingFilesJob.Key, new JobDataMap
         {
-            workerRemoveMissing.RunWorkerAsync(removeMyList);
-        }
+            {"removeMyList", removeMyList}
+        });
     }
 
     public static void SyncMyList()
