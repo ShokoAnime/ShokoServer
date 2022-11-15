@@ -84,27 +84,11 @@ public class RecoveringFileSystemWatcher : IDisposable
         try
         {
             var item = (e.FullPath, Type: e.ChangeType);
+            if (DirectoryExists(item)) return;
+            if (_buffer.ContainsKey(item.FullPath)) return;
 
-            // We get only a single event for directories
-            if (Directory.Exists(item.FullPath))
-            {
-                if (item.Type == WatcherChangeTypes.Deleted) return;
-                _logger.LogTrace("New Directory Found. Iterating: {Path}", item.FullPath);
-                // iterate and send a command for each containing file
-                foreach (var file in Directory.GetFiles(item.FullPath, "*.*", SearchOption.AllDirectories))
-                {
-                    var fileItem = item with { FullPath = file };
-                    if (_buffer.TryAdd(fileItem.FullPath, fileItem.Type)) OnFileAdded(fileItem.FullPath, fileItem.Type);
-                }
-
-                return;
-            }
-
-            if (!_buffer.ContainsKey(item.FullPath))
-            {
-                _logger.LogTrace("File Event Occurred (not added yet): {Event}, {Path}", e.ChangeType, e.FullPath);
-                if (_buffer.TryAdd(item.FullPath, item.Type)) OnFileAdded(item.FullPath, item.Type);
-            }
+            _logger.LogTrace("File Event Occurred (not added yet): {Event}, {Path}", e.ChangeType, e.FullPath);
+            if (_buffer.TryAdd(item.FullPath, item.Type)) OnFileAdded(item.FullPath, item.Type);
         }
         catch (DirectoryNotFoundException)
         {
@@ -114,6 +98,22 @@ public class RecoveringFileSystemWatcher : IDisposable
         {
             _logger.LogError(exception, "{Ex}", exception);
         }
+    }
+
+    private bool DirectoryExists((string FullPath, WatcherChangeTypes Type) item)
+    {
+        // We get only a single event for directories
+        if (!Directory.Exists(item.FullPath)) return false;
+        if (item.Type == WatcherChangeTypes.Deleted) return true;
+        _logger.LogTrace("New Directory Found. Iterating: {Path}", item.FullPath);
+        // iterate and send a command for each containing file
+        foreach (var file in Directory.GetFiles(item.FullPath, "*.*", SearchOption.AllDirectories))
+        {
+            var fileItem = item with { FullPath = file };
+            if (_buffer.TryAdd(fileItem.FullPath, fileItem.Type)) OnFileAdded(fileItem.FullPath, fileItem.Type);
+        }
+
+        return true;
     }
 
     private void WatcherOnError(object sender, ErrorEventArgs e)
