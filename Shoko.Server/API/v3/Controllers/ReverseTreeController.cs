@@ -183,7 +183,7 @@ public class ReverseTreeController : BaseController
         }
 
         return episodes
-            .Select(a => new Episode(HttpContext, a))
+            .Select(a => new Episode(HttpContext, a, includeDataFrom))
             .ToList();
     }
 }
