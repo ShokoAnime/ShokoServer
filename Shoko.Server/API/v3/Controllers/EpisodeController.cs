@@ -34,9 +34,11 @@ public class EpisodeController : BaseController
     /// Get the <see cref="Episode"/> entry for the given <paramref name="episodeID"/>.
     /// </summary>
     /// <param name="episodeID">Shoko ID</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("{episodeID}")]
-    public ActionResult<Episode> GetEpisodeByEpisodeID([FromRoute] int episodeID)
+    public ActionResult<Episode> GetEpisodeByEpisodeID([FromRoute] int episodeID,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -44,7 +46,7 @@ public class EpisodeController : BaseController
             return NotFound(EpisodeNotFoundWithEpisodeID);
         }
 
-        return new Episode(HttpContext, episode);
+        return new Episode(HttpContext, episode, includeDataFrom);
     }
 
     /// <summary>
@@ -91,9 +93,11 @@ public class EpisodeController : BaseController
     /// Get the <see cref="Episode"/> entry for the given <paramref name="anidbEpisodeID"/>, if any.
     /// </summary>
     /// <param name="anidbEpisodeID">AniDB Episode ID</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbEpisodeID}/Episode")]
-    public ActionResult<Episode> GetEpisode([FromRoute] int anidbEpisodeID)
+    public ActionResult<Episode> GetEpisode([FromRoute] int anidbEpisodeID,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var anidb = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID);
         if (anidb == null)

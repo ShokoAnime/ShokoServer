@@ -9,6 +9,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.API.Converters;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -73,8 +74,15 @@ public class File
     public DateTime Created { get; set; }
 
     public File() { }
+    
+    /// <summary>
+    /// The <see cref="File.AniDB"/>, if <see cref="DataSource.AniDB"/> is
+    /// included in the data to add.
+    /// </summary>
+    [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
+    public AniDB _AniDB { get; set; }
 
-    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false)
+    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null)
     {
         var userID = context?.GetUser()?.JMMUserID ?? 0;
         var userRecord = file.GetUserRecord(userID);
@@ -124,6 +132,13 @@ public class File
                     };
                 })
                 .ToList();
+        }
+
+        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
+        {
+            var anidbFile = file.GetAniDBFile();
+            if (anidbFile != null)
+                this._AniDB = new File.AniDB(anidbFile);
         }
     }
 

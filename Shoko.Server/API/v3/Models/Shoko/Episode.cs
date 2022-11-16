@@ -40,10 +40,24 @@ public class Episode : BaseModel
     /// </summary>
     [Required]
     public DateTime? Watched { get; set; }
+    
+    /// <summary>
+    /// The <see cref="Episode.AniDB"/>, if <see cref="DataSource.AniDB"/> is
+    /// included in the data to add.
+    /// </summary>
+    [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
+    public AniDB _AniDB { get; set; }
+
+    /// <summary>
+    /// The <see cref="Episode.TvDB"/> entries, if <see cref="DataSource.TvDB"/>
+    /// is included in the data to add.
+    /// </summary>
+    [JsonProperty("TvDB", NullValueHandling = NullValueHandling.Ignore)]
+    public IEnumerable<TvDB> _TvDB { get; set; }
 
     public Episode() { }
 
-    public Episode(HttpContext context, SVR_AnimeEpisode episode)
+    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource> includeDataFrom = null)
     {
         var userID = context.GetUser()?.JMMUserID ?? 0;
         var anidbEpisode = episode.AniDB_Episode;
@@ -74,6 +88,11 @@ public class Episode : BaseModel
         Watched = userRecord?.WatchedDate;
         Name = GetEpisodeTitle(episode.AniDB_EpisodeID);
         Size = files.Count;
+
+        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
+            this._AniDB = new Episode.AniDB(anidbEpisode);
+        if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
+            this._TvDB = tvdbEpisodes.Select(tvdbEpisode => new TvDB(tvdbEpisode));
     }
 
 

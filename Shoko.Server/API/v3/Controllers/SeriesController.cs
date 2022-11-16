@@ -98,9 +98,12 @@ public class SeriesController : BaseController
     /// Get the series with ID
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
+    /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}")]
-    public ActionResult<Series> GetSeries([FromRoute] int seriesID)
+    public ActionResult<Series> GetSeries([FromRoute] int seriesID, [FromQuery] bool randomImages = false,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -113,7 +116,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return new Series(HttpContext, series);
+        return new Series(HttpContext, series, randomImages, includeDataFrom);
     }
 
     /// <summary>
@@ -595,9 +598,12 @@ public class SeriesController : BaseController
     /// Get a Series from the AniDB ID
     /// </summary>
     /// <param name="anidbID">AniDB ID</param>
+    /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}/Series")]
-    public ActionResult<Series> GetSeriesByAnidbID([FromRoute] int anidbID)
+    public ActionResult<Series> GetSeriesByAnidbID([FromRoute] int anidbID, [FromQuery] bool randomImages = false,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByAnimeID(anidbID);
         if (series == null)
@@ -610,7 +616,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return new Series(HttpContext, series);
+        return new Series(HttpContext, series, randomImages, includeDataFrom);
     }
 
     /// <summary>

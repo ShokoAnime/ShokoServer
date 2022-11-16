@@ -70,11 +70,25 @@ public class Series : BaseModel
     [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime Updated { get; set; }
 
+    /// <summary>
+    /// The <see cref="Series.AniDB"/>, if <see cref="DataSource.AniDB"/> is
+    /// included in the data to add.
+    /// </summary>
+    [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
+    public AniDB _AniDB { get; set; }
+
+    /// <summary>
+    /// The <see cref="Series.TvDB"/> entries, if <see cref="DataSource.TvDB"/>
+    /// is included in the data to add.
+    /// </summary>
+    [JsonProperty("TvDB", NullValueHandling = NullValueHandling.Ignore)]
+    public IEnumerable<TvDB> _TvDB { get; set; }
+
     #region Constructors and Helper Methods
 
     public Series() { }
 
-    public Series(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false)
+    public Series(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false, HashSet<DataSource> includeDataFrom = null)
     {
         var uid = ctx.GetUser()?.JMMUserID ?? 0;
 
@@ -97,6 +111,11 @@ public class Series : BaseModel
 
         Created = ser.DateTimeCreated;
         Updated = ser.DateTimeUpdated;
+
+        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
+            this._AniDB = new Series.AniDB(ser.GetAnime(), true);
+        if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
+            this._TvDB = GetTvDBInfo(ctx, ser);
     }
 
     private void AddBasicAniDBInfo(HttpContext ctx, SVR_AnimeSeries ser)
