@@ -15,17 +15,13 @@ public static class LinuxFS
     public static void SetLinuxPermissions(string path, long uid, long gid, int mode)
     {
         if (!CanRun())
-        {
             return;
-        }
 
-        if (uid < 0 || gid < 0)
-        {
-            if (uid < 0)
-                uid = RealUser.UserId;
-            if (gid < 0)
-                gid = RealUser.GroupId;
-        }
+        if (uid < 0)
+            uid = RealUser.UserId;
+
+        if (gid < 0)
+            gid = RealUser.GroupId;
 
         var file = new UnixFileInfo(path);
         var changed = false;
