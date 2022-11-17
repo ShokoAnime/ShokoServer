@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Runtime.InteropServices;
+using Mono.Unix;
 
 namespace Shoko.Server.Utilities;
 
@@ -17,19 +17,10 @@ public static class LinuxFS
             return;
         }
 
-        Native.chown(path, uid, gid);
-        if (mode > 0)
-        {
-            Native.chmod(path, mode);
-        }
-    }
-
-    public static class Native
-    {
-        [DllImport("libc", SetLastError = true)]
-        public static extern int chown(string path, int owner, int group);
-
-        [DllImport("libc", SetLastError = true)]
-        internal static extern int chmod(string path, int mode);
+        var file = new UnixFileInfo(path);
+        file.SetOwner(uid, gid);
+        file.FileAccessPermissions = (FileAccessPermissions)mode;
+        // guarantee immediate flush
+        file.Refresh();
     }
 }
