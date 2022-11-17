@@ -30,7 +30,7 @@ public static class LinuxFS
             file.SetOwner(uid, gid);
             changed = true;
         }
-        if (mode > 0)
+        if (mode > 0 && (int)file.FileAccessPermissions != mode)
         {
             file.FileAccessPermissions = (FileAccessPermissions)mode;
             changed = true;
