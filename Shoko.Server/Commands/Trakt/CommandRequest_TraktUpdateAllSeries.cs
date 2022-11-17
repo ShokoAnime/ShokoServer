@@ -121,8 +121,9 @@ public class CommandRequest_TraktUpdateAllSeries : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_TraktUpdateAllSeries(ILoggerFactory loggerFactory) : base(loggerFactory)
+    public CommandRequest_TraktUpdateAllSeries(ILoggerFactory loggerFactory, TraktTVHelper helper) : base(loggerFactory)
     {
+        _helper = helper;
     }
 
     protected CommandRequest_TraktUpdateAllSeries()

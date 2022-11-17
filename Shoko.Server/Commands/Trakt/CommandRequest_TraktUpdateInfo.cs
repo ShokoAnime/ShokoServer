@@ -83,8 +83,9 @@ public class CommandRequest_TraktUpdateInfo : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_TraktUpdateInfo(ILoggerFactory loggerFactory) : base(loggerFactory)
+    public CommandRequest_TraktUpdateInfo(ILoggerFactory loggerFactory, TraktTVHelper helper) : base(loggerFactory)
     {
+        _helper = helper;
     }
 
     protected CommandRequest_TraktUpdateInfo()
