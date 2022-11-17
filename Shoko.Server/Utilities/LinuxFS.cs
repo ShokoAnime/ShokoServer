@@ -5,6 +5,8 @@ namespace Shoko.Server.Utilities;
 
 public static class LinuxFS
 {
+    private static UnixUserInfo RealUser = UnixUserInfo.GetRealUser();
+    
     private static bool CanRun()
     {
         return Environment.OSVersion.Platform == PlatformID.MacOSX || Environment.OSVersion.Platform == PlatformID.Unix;
@@ -19,18 +21,28 @@ public static class LinuxFS
 
         if (uid < 0 || gid < 0)
         {
-            var user = UnixUserInfo.GetRealUser();
             if (uid < 0)
-                uid = user.UserId;
+                uid = RealUser.UserId;
             if (gid < 0)
-                gid = user.GroupId;
+                gid = RealUser.GroupId;
         }
 
         var file = new UnixFileInfo(path);
-        file.SetOwner(uid, gid);
+        var changed = false;
+        if (file.OwnerUserId != uid || file.OwnerGroupId != gid)
+        {
+            file.SetOwner(uid, gid);
+            changed = true;
+        }
         if (mode > 0)
+        {
             file.FileAccessPermissions = (FileAccessPermissions)mode;
-        // guarantee immediate flush
-        file.Refresh();
+            changed = true;
+        }
+        if (changed)
+        {
+            // guarantee immediate flush
+            file.Refresh();
+        }
     }
 }
