@@ -19,7 +19,8 @@ public static class LinuxFS
 
         var file = new UnixFileInfo(path);
         file.SetOwner(uid, gid);
-        file.FileAccessPermissions = (FileAccessPermissions)mode;
+        if (mode > 0)
+            file.FileAccessPermissions = (FileAccessPermissions)mode;
         // guarantee immediate flush
         file.Refresh();
     }
