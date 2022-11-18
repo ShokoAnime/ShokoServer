@@ -682,8 +682,15 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         }
 
         ShokoServer.Instance.AddFileWatcherExclusion(FullServerPath);
-        LinuxFS.SetLinuxPermissions(FullServerPath, ServerSettings.Instance.Linux.UID,
-            ServerSettings.Instance.Linux.GID, ServerSettings.Instance.Linux.Permission);
+        try
+        {
+            LinuxFS.SetLinuxPermissions(FullServerPath, ServerSettings.Instance.Linux.UID,
+                ServerSettings.Instance.Linux.GID, ServerSettings.Instance.Linux.Permission);
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "Error setting Linux Permissions: {0}", e);
+        }
         ShokoServer.Instance.RemoveFileWatcherExclusion(FullServerPath);
     }
 

@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Threading;
 using Mono.Unix;
 
 namespace Shoko.Server.Utilities;
 
 public static class LinuxFS
 {
-    private static UnixUserInfo RealUser = UnixUserInfo.GetRealUser();
+    private static UnixUserInfo RealUser;
     
     private static bool CanRun()
     {
@@ -17,10 +18,12 @@ public static class LinuxFS
         if (!CanRun())
             return;
 
-        if (uid < 0)
+        RealUser ??= UnixUserInfo.GetRealUser();
+
+        if (uid <= 0 && RealUser.UserId != 0)
             uid = RealUser.UserId;
 
-        if (gid < 0)
+        if (gid <= 0 && RealUser.GroupId != 0)
             gid = RealUser.GroupId;
 
         var file = new UnixFileInfo(path);
@@ -30,7 +33,7 @@ public static class LinuxFS
             file.SetOwner(uid, gid);
             changed = true;
         }
-        if (mode > 0 && (int)file.FileAccessPermissions != mode)
+        if (mode > 0 && file.FileAccessPermissions != (FileAccessPermissions)mode)
         {
             file.FileAccessPermissions = (FileAccessPermissions)mode;
             changed = true;
@@ -39,6 +42,18 @@ public static class LinuxFS
         {
             // guarantee immediate flush
             file.Refresh();
+            
+            // spinwait to ensure the status is updated
+            var time = 2000;
+            var interval = 50;
+            var limit = time / interval;
+            var count = 0;
+            while (file.OwnerUserId != uid || file.OwnerGroupId != gid || file.FileAccessPermissions != (FileAccessPermissions)mode && count < limit)
+            {
+                Thread.Sleep(interval);
+                count++;
+                file.Refresh();
+            }
         }
     }
 }
