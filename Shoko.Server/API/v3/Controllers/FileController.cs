@@ -767,7 +767,7 @@ public class FileController : BaseController
     /// <param name="path">a path to search for. URL Encoded</param>
     /// <returns></returns>
     [HttpGet("PathRegex/{*path}")]
-    public ActionResult<List<File>> RegexSearchByFilename([FromRoute] string path)
+    public ActionResult<List<File>> RegexSearchByPath([FromRoute] string path)
     {
         var query = path;
         if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
@@ -786,6 +786,40 @@ public class FileController : BaseController
 
         var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
             .Where(a => regex.IsMatch(a.FullServerPath)).Select(a => a.VideoLocal)
+            .Distinct()
+            .Where(a =>
+            {
+                var ser = a?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
+                return ser == null || User.AllowedSeries(ser);
+            }).Select(a => new File(HttpContext, a, true)).ToList();
+        return results;
+    }
+
+    /// <summary>
+    /// Search for a file by path or name via regex. Internally, it will convert \/ to the system directory separator and match against the string
+    /// </summary>
+    /// <param name="path">a path to search for. URL Encoded</param>
+    /// <returns></returns>
+    [HttpGet("FilenameRegex/{*path}")]
+    public ActionResult<List<File>> RegexSearchByFileName([FromRoute] string path)
+    {
+        var query = path;
+        if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
+        if (query.Contains("%")) query = Uri.UnescapeDataString(query);
+        if (Path.DirectorySeparatorChar == '\\') query = query.Replace("\\/", "\\\\");
+        Regex regex;
+
+        try
+        {
+            regex = new Regex(query, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+        }
+        catch (RegexParseException e)
+        {
+            return BadRequest(e.Message);
+        }
+
+        var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
+            .Where(a => regex.IsMatch(a.FileName)).Select(a => a.VideoLocal)
             .Distinct()
             .Where(a =>
             {
