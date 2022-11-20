@@ -27,7 +27,7 @@ public class RequestCalendar : UDPRequest<ResponseCalendar>
         };
 
         foreach (var parts in receivedData.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                     .Select(line => line.Split('\n')))
+                     .Select(line => line.Split('|')))
         {
             if (parts.Length != 3)
             {
