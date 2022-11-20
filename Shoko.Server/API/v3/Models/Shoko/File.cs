@@ -98,7 +98,7 @@ public class File
         RoundedStandardResolution = FileQualityFilter.GetResolution(file);
         Locations = file.Places.Select(a => new Location
         {
-            ImportFolderID = a.ImportFolderID, RelativePath = a.FilePath, Accessible = a.GetFile() != null
+            ImportFolderID = a.ImportFolderID, RelativePath = a.FilePath, IsAccessible = a.GetFile() != null
         }).ToList();
         Duration = file.DurationTimeSpan;
         ResumePosition = userRecord?.ResumePositionTimeSpan;
@@ -171,7 +171,7 @@ public class File
         /// Can the server access the file right now
         /// </summary>
         [JsonRequired]
-        public bool Accessible { get; set; }
+        public bool IsAccessible { get; set; }
     }
 
     /// <summary>
