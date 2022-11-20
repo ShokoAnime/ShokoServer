@@ -73,8 +73,14 @@ public class File
     [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime Created { get; set; }
 
+    /// <summary>
+    /// When the file was last updated (e.g. the hashes were added/updated).
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime Updated { get; set; }
+
     public File() { }
-    
+
     /// <summary>
     /// The <see cref="File.AniDB"/>, if <see cref="DataSource.AniDB"/> is
     /// included in the data to add.
@@ -98,6 +104,7 @@ public class File
         ResumePosition = userRecord?.ResumePositionTimeSpan;
         Watched = userRecord?.WatchedDate;
         Created = file.DateTimeCreated;
+        Updated = file.DateTimeUpdated;
         if (withXRefs)
         {
             var episodes = file.GetAnimeEpisodes();
