@@ -49,7 +49,7 @@ public class File
     /// <summary>
     /// Try to fit this file's resolution to something like 1080p, 480p, etc
     /// </summary>
-    public string RoundedStandardResolution { get; set; }
+    public string Resolution { get; set; }
 
     /// <summary>
     /// The duration of the file.
@@ -95,7 +95,7 @@ public class File
         ID = file.VideoLocalID;
         Size = file.FileSize;
         Hashes = new Hashes { ED2K = file.Hash, MD5 = file.MD5, CRC32 = file.CRC32, SHA1 = file.SHA1 };
-        RoundedStandardResolution = FileQualityFilter.GetResolution(file);
+        Resolution = FileQualityFilter.GetResolution(file);
         Locations = file.Places.Select(a => new Location
         {
             ImportFolderID = a.ImportFolderID, RelativePath = a.FilePath, IsAccessible = a.GetFile() != null
