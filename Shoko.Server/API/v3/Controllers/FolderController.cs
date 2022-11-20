@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -40,7 +40,7 @@ public class FolderController : BaseController
                 Path = d.RootDirectory.FullName,
                 IsAccessible = childItems != null,
                 Sizes = childItems,
-                DriveType = d.DriveType
+                Type = d.DriveType
             };
         }).ToList();
     }
