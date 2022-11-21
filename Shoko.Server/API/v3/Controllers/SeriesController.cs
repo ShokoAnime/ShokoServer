@@ -690,27 +690,9 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko ID</param>
     /// <returns>True if the refresh is done, otherwise false if it failed.</returns>
     [HttpPost("{seriesID}/AniDB/Refresh/ForceFromXML")]
+    [Obsolete]
     public ActionResult<bool> RefreshAniDBFromXML([FromRoute] int seriesID)
-    {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
-        {
-            return NotFound(SeriesNotFoundWithSeriesID);
-        }
-
-        if (!User.AllowedSeries(series))
-        {
-            return Forbid(SeriesForbiddenForUser);
-        }
-
-        var anime = series.GetAnime();
-        if (anime == null)
-        {
-            return InternalError(AnidbNotFoundForSeriesID);
-        }
-
-        return Series.RefreshAniDBFromCachedXML(_commandFactory, anime);
-    }
+        => RefreshAniDBBySeriesID(seriesID, false, false, true, true, true);
 
     #endregion
 

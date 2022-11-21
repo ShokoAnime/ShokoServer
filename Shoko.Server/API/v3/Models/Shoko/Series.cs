@@ -141,29 +141,6 @@ public class Series : BaseModel
         }
     }
 
-    public static bool RefreshAniDBFromCachedXML(ICommandRequestFactory commandFactory, SVR_AniDB_Anime anime)
-    {
-        try
-        {
-            var command = commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
-            {
-                c.AnimeID = anime.AnimeID;
-                c.DownloadRelations = false;
-                c.ForceRefresh = false;
-                c.CacheOnly = true;
-                c.CreateSeriesEntry = true;
-                c.BubbleExceptions = true;
-            });
-            command.ProcessCommand();
-        }
-        catch
-        {
-            return false;
-        }
-
-        return true;
-    }
-
     public static bool QueueAniDBRefresh(ICommandRequestFactory commandFactory, IHttpConnectionHandler handler,
         int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
         bool cacheOnly = false)
