@@ -1,9 +1,13 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -15,8 +19,6 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
-[DatabaseBlockedExempt]
-[InitFriendly]
 public class WebUIController : BaseController
 {
     [HttpPost("GroupView")]
@@ -42,5 +44,63 @@ public class WebUIController : BaseController
                 return new WebUI.WebUIGroupExtra(HttpContext, group, series, anime);
             })
             .ToList();
+    }
+
+    /// <summary>
+    /// Install a fresh copy of the web ui for the selected
+    /// <paramref name="channel"/>. Will only install if it detects that no
+    /// previous version is installed.
+    /// 
+    /// You don't need to be authenticated to use this endpoint.
+    /// </summary>
+    /// <param name="channel">The release channel to use.</param>
+    /// <returns></returns>
+    [AllowAnonymous]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("Install")]
+    public ActionResult InstallWebUI([FromQuery] WebUIReleaseChannel channel = WebUIReleaseChannel.Stable)
+    {
+        var indexLocation = Path.Combine(ServerSettings.ApplicationPath, "webui", "index.html");
+        if (System.IO.File.Exists(indexLocation))
+        {
+            var index = System.IO.File.ReadAllText(indexLocation);
+            var token = "Web UI was not properly installed";
+            if (!index.Contains(token))
+                return BadRequest("If trying to update");
+        }
+
+        WebUIHelper.GetUrlAndUpdate(LatestWebUIVersion(channel).Version);
+        return Redirect("/webui/index.html");
+    }
+
+    /// <summary>
+    /// Update an existing version of the web ui to the latest for the selected
+    /// <paramref name="channel"/>.
+    /// </summary>
+    /// <param name="channel">The release channel to use.</param>
+    /// <returns></returns>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("Update")]
+    public ActionResult UpdateWebUI([FromQuery] WebUIReleaseChannel channel = WebUIReleaseChannel.Stable)
+    {
+        WebUIHelper.GetUrlAndUpdate(LatestWebUIVersion(channel).Version);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Check for latest version for the selected <paramref name="channel"/> and
+    /// return a <see cref="ComponentVersion"/> containing the version
+    /// information.
+    /// </summary>
+    /// <param name="channel">The release channel to use.</param>
+    /// <returns></returns>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("LatestVersion")]
+    public ComponentVersion LatestWebUIVersion([FromQuery] WebUIReleaseChannel channel = WebUIReleaseChannel.Stable)
+    {
+        return new ComponentVersion { Version = WebUIHelper.WebUIGetLatestVersion(channel == WebUIReleaseChannel.Stable) };
     }
 }

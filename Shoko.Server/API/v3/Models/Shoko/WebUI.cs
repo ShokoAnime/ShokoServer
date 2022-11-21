@@ -98,3 +98,10 @@ public class WebUI
         }
     }
 }
+
+[JsonConverter(typeof(StringEnumConverter))]
+public enum WebUIReleaseChannel
+{
+    Stable = 1,
+    Dev = 2,
+}
