@@ -5,240 +5,169 @@ using Newtonsoft.Json;
 using SharpCompress.Common;
 using SharpCompress.Readers;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API;
 
 public static class WebUIHelper
 {
     /// <summary>
-    /// Get url for update and start update
+    /// Find the download url for the <paramref name="tagName"/>, then download
+    /// and install the update.
     /// </summary>
-    /// <param name="tagName"></param>
-    /// <param name="channel"></param>
+    /// <param name="tagName">Tag name to download.</param>
+    /// <param name="_channel">Deprecated.</param>
     /// <returns></returns>
-    public static void GetUrlAndUpdate(string tagName, string channel)
+    public static void GetUrlAndUpdate(string tagName, string _channel = null)
     {
         ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
-        var client = new WebClient();
-        client.Headers.Add("Accept: application/vnd.github.v3+json");
-        client.Headers.Add("User-Agent", "shokoserver");
-        var response = client.DownloadString(
-            new Uri("https://api.github.com/repos/shokoanime/shokoserver-webui/releases/tags/" +
-                    tagName));
-
-        dynamic result = JsonConvert.DeserializeObject(response);
-        var url = string.Empty;
-        var zipName = (channel == "stable") ? "latest.zip" : $"Shoko-WebUI-{tagName}.zip";
-        foreach (var obj in result.assets)
+        var release = DownloadApiResponse($"/releases/tags/{tagName}");
+        string url = null;
+        foreach (var assets in release.assets)
         {
-            if (obj.name == zipName)
+            // We don't care what the zip is named, only that it is attached.
+            // This is because we changed the signature from "latest.zip" to
+            // "Shoko-WebUI-{obj.tag_name}.zip" in the upgrade to web ui v2
+            string fileName = assets.name;
+            if (fileName == "latest.zip" || fileName == $"Shoko-WebUI-{release.tag_name}.zip")
             {
-                url = obj.browser_download_url;
+                url = assets.browser_download_url;
                 break;
             }
         }
 
-        //check if tag was parsed correctly as it makes the url
+        // Check if we were able to get a release.
         if (string.IsNullOrWhiteSpace(url))
-        {
-            throw new Exception("204 not found");
-        }
+            throw new Exception("404 Not found");
 
-        WebUIUpdate(url, channel, tagName);
+        DownloadAndInstallUpdate(url);
     }
 
     /// <summary>
-    /// Update WebUI with version from given url
+    /// Download and install update.
     /// </summary>
     /// <param name="url">direct link to version you want to install</param>
-    /// <param name="channel"></param>
-    /// <param name="version"></param>
     /// <returns></returns>
-    public static void WebUIUpdate(string url, string channel, string version)
+    public static void DownloadAndInstallUpdate(string url)
     {
-        // TODO New path
-        //list all files from root /webui/ and all directories
-        var path = Path.Combine(ServerSettings.ApplicationPath, "webui");
-        if (!Directory.Exists(path))
+        var webuiDir = Path.Combine(ServerSettings.ApplicationPath, "webui");
+        var backupDir = Path.Combine(webuiDir, "old");
+        var zipFile = Path.Combine(webuiDir, "update.zip");
+        var files = Directory.GetFiles(webuiDir);
+        var directories = Directory.GetDirectories(webuiDir);
+
+        // Make sure the base directory exists.
+        if (!Directory.Exists(webuiDir))
+            Directory.CreateDirectory(webuiDir);
+
+        // Download the zip file.
+        using (var client = new WebClient())
         {
-            Directory.CreateDirectory(path);
+            client.Headers.Add("User-Agent", $"ShokoServer/{Utils.GetApplicationVersion()}");
+            client.DownloadFile(url, zipFile);
         }
 
-        var files = Directory.GetFiles(path);
-        var directories = Directory.GetDirectories(path);
-        
-        var zipName = (channel == "stable") ? "latest.zip" : $"Shoko-WebUI-{version}.zip";
+        // Create the backup dictionary for later use.
+        if (!Directory.Exists(backupDir))
+            Directory.CreateDirectory(backupDir);
 
-        try
+        // Move all directories and their files into the backup directory until the update is complete.
+        foreach (var dir in directories)
         {
-            //download latest version
-            var client = new WebClient();
-            client.Headers.Add("User-Agent", "shokoserver");
-            client.DownloadFile(url, Path.Combine(path, zipName));
-        }
-        catch (Exception e)
-        {
-            //when download failed
-            throw new Exception($"Unable to download WebUI: {e}");
+            if (!Directory.Exists(dir) || dir == backupDir || dir == Path.Combine(webuiDir, "tweak"))
+                continue;
+            var newDir = dir.Replace(webuiDir, backupDir);
+            Directory.Move(dir, newDir);
         }
 
-        try
+        // Also move all the files directly in the base directory into the backup directory until the update is complete.
+        foreach (var file in files)
         {
-            //create 'old' dictionary
-            if (!Directory.Exists(Path.Combine(path, "old")))
+            if (file == zipFile || !File.Exists(file))
+                continue;
+            var newFile = file.Replace(webuiDir, backupDir);
+            File.Move(file, newFile);
+        }
+
+        // Extract the zip contents into the folder.
+        using (var stream = new FileStream(zipFile, FileMode.Open))
+        using (var reader = ReaderFactory.Open(stream))
+        {
+            while (reader.MoveToNextEntry())
             {
-                Directory.CreateDirectory(Path.Combine(path, "old"));
-            }
-
-            //move all directories and files to 'old' folder as fallback recovery
-            foreach (var dir in directories)
-            {
-                if (!Directory.Exists(dir) || dir == Path.Combine(path, "old") ||
-                    dir == Path.Combine(path, "tweak"))
+                if (!reader.Entry.IsDirectory)
                 {
-                    continue;
-                }
-
-                var n_dir = dir.Replace(path, Path.Combine(path, "old"));
-                Directory.Move(dir, n_dir);
-            }
-
-            foreach (var file in files)
-            {
-                if (!File.Exists(file))
-                {
-                    continue;
-                }
-
-                var n_file = file.Replace(path, Path.Combine(path, "old"));
-                File.Move(file, n_file);
-            }
-        }
-        catch (Exception e)
-        {
-            //when moving files to 'old' folder failed
-            throw new Exception($"Unable to move old WebUI: {e}");
-        }
-
-        try
-        {
-            //extract latest webui
-            // TODO Extract with SharpCompress to path
-            using (var stream = new FileStream(Path.Combine(path, zipName), FileMode.Open))
-            using (var reader = ReaderFactory.Open(stream))
-            {
-                while (reader.MoveToNextEntry())
-                {
-                    if (!reader.Entry.IsDirectory)
+                    reader.WriteEntryToDirectory(webuiDir, new ExtractionOptions
                     {
-                        reader.WriteEntryToDirectory(path, new ExtractionOptions
-                        {
-                            // This may have serious problems in the future, but for now, AVDump is flat
-                            ExtractFullPath = true, Overwrite = true
-                        });
-                    }
+                        ExtractFullPath = true,
+                        Overwrite = true
+                    });
                 }
             }
-
-            //clean because we already have working updated webui
-            Directory.Delete(Path.Combine(path, "old"), true);
-            File.Delete(Path.Combine(path, zipName));
-
-            //save version type>version that was installed successful
-            if (File.Exists(Path.Combine(path, "index.ver")))
-            {
-                File.Delete(Path.Combine(path, "index.ver"));
-            }
-
-            File.AppendAllText(Path.Combine(path, "index.ver"), channel + ">" + version);
         }
-        catch (Exception e)
-        {
-            //when extracting webui zip fails
-            throw new Exception($"Unable to extract WebUI: {e}");
-        }
+
+        // Clean up the now unneeded backup and zip file because we have an updated install.
+        Directory.Delete(backupDir, true);
+        File.Delete(zipFile);
     }
 
     /// <summary>
-    /// Find version that match requirements
+    /// Find the latest version for the release channel.
     /// </summary>
     /// <param name="stable">do version have to be stable</param>
     /// <returns></returns>
     public static string WebUIGetLatestVersion(bool stable)
     {
-        var client = new WebClient();
-        client.Headers.Add("Accept: application/vnd.github.v3+json");
-        client.Headers.Add("User-Agent", "shokoserver");
-        var response = client.DownloadString(new Uri(
-            "https://api.github.com/repos/shokoanime/shokoserver-webui/releases/latest"));
-
-        dynamic result = JsonConvert.DeserializeObject(response);
-
-        string version;
-
-        if (result?.prerelease == "False")
-        {
-            //not pre-build
-            version = stable ? result.tag_name : WebUIGetVersionsTag(false);
-        }
-        else
-        {
-            //pre-build
-            version = stable ? WebUIGetVersionsTag(true) : result?.tag_name;
-        }
-
-        return version;
+        // The 'latest' release will always be a stable release, so we can skip
+        // checking it if we're looking for a pre-release.
+        if (!stable)
+            return GetVersionTag(false);
+        var release = DownloadApiResponse("/releases/latest");
+        return release.tag_name;
     }
 
     /// <summary>
-    /// Return tag_name of version that match requirements and is not present in /latest/
+    /// Look through the release history to find the first matching version
+    /// for the release channel.
     /// </summary>
     /// <param name="stable">do version have to be stable</param>
     /// <returns></returns>
-    public static string WebUIGetVersionsTag(bool stable)
+    public static string GetVersionTag(bool stable)
     {
-        var client = new WebClient();
-        client.Headers.Add("Accept: application/vnd.github.v3+json");
-        client.Headers.Add("User-Agent", "shokoserver");
-        var response = client.DownloadString(new Uri(
-            "https://api.github.com/repos/shokoanime/shokoserver-webui/releases"));
-
-        dynamic result = JsonConvert.DeserializeObject(response);
-
-        foreach (var obj in result)
+        var releases = DownloadApiResponse("/releases");
+        foreach (var release in releases)
         {
-            if (stable)
-            {
-                if (obj.prerelease != "False")
-                {
-                    continue;
-                }
+            // Filter out pre-releases from the stable release channel, but don't
+            // filter out stable releases from the dev channel.
+            if (stable && release.prerelease != "False")
+                continue;
 
-                foreach (var file in obj.assets)
-                {
-                    if ((string)file.name == "latest.zip")
-                    {
-                        return obj.tag_name;
-                    }
-                }
-            }
-            else
+            foreach (var asset in release.assets)
             {
-                if (obj.prerelease != "True")
-                {
-                    continue;
-                }
-
-                foreach (var file in obj.assets)
-                {
-                    if ((string)file.name == $"Shoko-WebUI-{obj.tag_name}.zip")
-                    {
-                        return obj.tag_name;
-                    }
-                }
+                // We don't care what the zip is named, only that it is attached.
+                // This is because we changed the signature from "latest.zip" to
+                // "Shoko-WebUI-{obj.tag_name}.zip" in the upgrade to web ui v2
+                string fileName = asset.name;
+                if (fileName == "latest.zip" || fileName == $"Shoko-WebUI-{release.tag_name}.zip")
+                    return release.tag_name;
             }
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Download an api response from github.
+    /// </summary>
+    /// <param name="endpoint">Endpoint to probe for data.</param>
+    /// <returns></returns>
+    private static dynamic DownloadApiResponse(string endpoint)
+    {
+        var client = new WebClient();
+        client.Headers.Add("Accept: application/vnd.github.v3+json");
+        client.Headers.Add("User-Agent", $"ShokoServer/{Utils.GetApplicationVersion()}");
+        var response = client.DownloadString(new Uri($"https://api.github.com/repos/shokoanime/shokoserver-webui{endpoint}"));
+        dynamic result = JsonConvert.DeserializeObject(response);
+        return result;
     }
 }
