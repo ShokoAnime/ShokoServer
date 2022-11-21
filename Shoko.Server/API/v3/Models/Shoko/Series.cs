@@ -165,13 +165,15 @@ public class Series : BaseModel
     }
 
     public static bool QueueAniDBRefresh(ICommandRequestFactory commandFactory, IHttpConnectionHandler handler,
-        int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false)
+        int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
+        bool cacheOnly = false)
     {
         var command = commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
         {
             c.AnimeID = animeID;
             c.DownloadRelations = downloadRelations;
             c.ForceRefresh = force;
+            c.CacheOnly = !force && cacheOnly;
             c.CreateSeriesEntry = createSeriesEntry;
             c.BubbleExceptions = immediate;
         });

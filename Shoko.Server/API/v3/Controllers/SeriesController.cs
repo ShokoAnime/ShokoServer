@@ -627,11 +627,12 @@ public class SeriesController : BaseController
     /// <param name="downloadRelations">Download relations for the series</param>
     /// <param name="createSeriesEntry">Also create the Series entries if they doesn't exist</param>
     /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
+    /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
     /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
     [HttpPost("AniDB/{anidbID}/Refresh")]
     public ActionResult<bool> RefreshAniDBByAniDBID([FromRoute] int anidbID, [FromQuery] bool force = false,
         [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
-        [FromQuery] bool immediate = false)
+        [FromQuery] bool immediate = false, [FromQuery] bool cacheOnly = false)
     {
         if (!createSeriesEntry.HasValue)
         {
@@ -639,7 +640,7 @@ public class SeriesController : BaseController
         }
 
         return Series.QueueAniDBRefresh(_commandFactory, _httpHandler, anidbID, force, downloadRelations,
-            createSeriesEntry.Value, immediate);
+            createSeriesEntry.Value, immediate, cacheOnly);
     }
 
     /// <summary>
@@ -650,11 +651,12 @@ public class SeriesController : BaseController
     /// <param name="downloadRelations">Download relations for the series</param>
     /// <param name="createSeriesEntry">Create the Series entries for related series if they doesn't exist</param>
     /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
+    /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
     /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
     [HttpPost("{seriesID}/AniDB/Refresh")]
     public ActionResult<bool> RefreshAniDBBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false,
         [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
-        [FromQuery] bool immediate = false)
+        [FromQuery] bool immediate = false, [FromQuery] bool cacheOnly = false)
     {
         if (!createSeriesEntry.HasValue)
         {
@@ -679,7 +681,7 @@ public class SeriesController : BaseController
         }
 
         return Series.QueueAniDBRefresh(_commandFactory, _httpHandler, anidb.AnimeID, force, downloadRelations,
-            createSeriesEntry.Value, immediate);
+            createSeriesEntry.Value, immediate, cacheOnly);
     }
 
     /// <summary>
