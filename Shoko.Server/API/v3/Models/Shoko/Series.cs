@@ -351,27 +351,15 @@ public class Series : BaseModel
         var tags = new List<Tag>();
 
         var allTags = anime.GetAniDBTags().DistinctBy(a => a.TagName).ToList();
-        var filteredTags =
-            new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName)
-                .ProcessTags(filter, allTags);
-        foreach (var tag in filteredTags)
-        {
-            var toAPI = new Tag { Name = tag.TagName };
-            var animeXRef = RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).FirstOrDefault();
-            if (animeXRef != null)
+        var tagFilter = new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName);
+        return tagFilter
+            .ProcessTags(filter, allTags)
+            .Select(tag => 
             {
-                toAPI.Weight = animeXRef.Weight;
-            }
-
-            if (!excludeDescriptions)
-            {
-                toAPI.Description = tag.TagDescription;
-            }
-
-            tags.Add(toAPI);
-        }
-
-        return tags;
+                var xref = RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).FirstOrDefault(xref => xref.AnimeID == anime.AnimeID);
+                return new Tag(tag, excludeDescriptions) { Weight = xref?.Weight ?? 0 };
+            })
+            .ToList();
     }
 
     public static SeriesType GetAniDBSeriesType(int? animeType)
