@@ -67,9 +67,12 @@ public static class WebUIHelper
             client.DownloadFile(url, zipFile);
         }
 
+        // Remove any old lingering backups.
+        if (Directory.Exists(backupDir))
+            Directory.Delete(backupDir, true);
+
         // Create the backup dictionary for later use.
-        if (!Directory.Exists(backupDir))
-            Directory.CreateDirectory(backupDir);
+        Directory.CreateDirectory(backupDir);
 
         // Move all directories and their files into the backup directory until the update is complete.
         foreach (var dir in directories)
