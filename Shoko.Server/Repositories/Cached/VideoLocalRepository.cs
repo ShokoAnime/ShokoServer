@@ -507,21 +507,18 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 .Where(
                     a =>
                     {
-                        if (a.IsIgnored != 0)
-                        {
-                            return false;
-                        }
+                        if (a.IsIgnored != 0) return false;
 
                         var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
-                        if (!xrefs.Any())
-                        {
-                            return true;
-                        }
-
-                        return RepoFactory.AniDB_Anime.GetByAnimeID(xrefs.First().AnimeID) == null;
+                        return !xrefs.Any() || xrefs.All(xref => RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID) == null || RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID) == null);
                     }
                 )
-                .OrderByNatural(local => local?.GetBestVideoLocalPlace()?.FilePath)
+                .OrderByNatural(local =>
+                {
+                    var place = local?.GetBestVideoLocalPlace();
+                    if (place == null) return null;
+                    return place.FullServerPath ?? place.FilePath;
+                })
                 .ThenBy(local => local?.VideoLocalID ?? 0)
                 .ToList()
         );
