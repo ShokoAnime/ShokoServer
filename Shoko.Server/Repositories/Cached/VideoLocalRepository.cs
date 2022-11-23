@@ -510,7 +510,8 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                         if (a.IsIgnored != 0) return false;
 
                         var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
-                        return !xrefs.Any() || xrefs.All(xref => RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID) == null || RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID) == null);
+                        if (!xrefs.Any()) return true;
+                        return !xrefs.Any(IsImported);
                     }
                 )
                 .OrderByNatural(local =>
@@ -522,6 +523,14 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 .ThenBy(local => local?.VideoLocalID ?? 0)
                 .ToList()
         );
+    }
+
+    private static bool IsImported(CrossRef_File_Episode xref)
+    {
+        var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
+        if (ep?.AniDB_Episode == null) return false;
+        var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+        return anime?.GetAnime() != null;
     }
 
     public List<SVR_VideoLocal> GetVideosWithoutEpisodeUnsorted()
