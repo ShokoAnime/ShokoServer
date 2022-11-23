@@ -39,11 +39,6 @@ jobs:
 
       - run: dotnet publish -c Release --no-self-contained Shoko.CLI "/p:Version=${{ steps.release_info.outputs.version }},InformationalVersion=\"channel=dev; commit=${{ github.sha }}; tag=${{ steps.release_info.outputs.tag }}\""
 
-      - uses: actions/upload-artifact@v2
-        with:
-          name: CLI-Framework-Dependent
-          path: Shoko.Server/bin/Release/net6.0/publish/
-
       - name: Archive Release
         shell: pwsh
         run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0\\publish .\\Shoko.CLI_Framework_any-x64.zip
@@ -90,11 +85,6 @@ jobs:
 
       - run: dotnet publish -c Release -r ${{ matrix.rid }} Shoko.CLI "/p:Version=${{ steps.release_info.outputs.version }},InformationalVersion=\"channel=dev; commit=${{ github.sha }}; tag=${{ steps.release_info.outputs.tag }}\""
 
-      - uses: actions/upload-artifact@v2
-        with:
-          name: ${{ matrix.rid }}
-          path: Shoko.Server/bin/Release/net6.0/${{ matrix.rid }}/publish/
-
       - name: Archive Release (${{ matrix.rid }})
         shell: pwsh
         run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0\\${{ matrix.rid }}\\publish .\\Shoko.CLI_Standalone_${{ matrix.rid }}.zip
@@ -140,11 +130,6 @@ jobs:
 
       - run: dotnet publish -c Release --no-self-contained Shoko.TrayService "/p:Version=${{ steps.release_info.outputs.version }},InformationalVersion=\"channel=dev; commit=${{ github.sha }}; tag=${{ steps.release_info.outputs.tag }}\""
 
-      - uses: actions/upload-artifact@v2
-        with:
-          name: Shoko.TrayService-Framework-Dependent
-          path: Shoko.Server/bin/Release/net6.0-windows/publish/
-
       - name: Archive Release
         shell: pwsh
         run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\Shoko.TrayService_Framework_win10-x64.zip
@@ -189,11 +174,6 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net6.0-windows Shoko.TrayService "/p:Version=${{ steps.release_info.outputs.version }},InformationalVersion=\"channel=dev; commit=${{ github.sha }}; tag=${{ steps.release_info.outputs.tag }}\""
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: Shoko.TrayService
-          path: Shoko.Server/bin/Release/net6.0-windows/win10-x64/publish/
 
       - name: Archive Release (for github)
         shell: pwsh
