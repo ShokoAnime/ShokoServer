@@ -1,0 +1,45 @@
+name: Create Pre-Release (Daily)
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  create_prerelease:
+    runs-on: ubuntu-latest
+
+    name: Create Pre-Release
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.ref }}"
+          fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Get next version
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          branch: true
+          prefix: v
+          prefixRegex: "[vV]?"
+          suffix: dev
+          increment: suffix
+
+      - name: Create Changelog
+        run: |
+          git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"- %B" > changelog.txt
+          echo 'CHANGELOG<<CHANGELOG_END' >> $GITHUB_ENV
+          cat changelog.txt >> $GITHUB_ENV
+          echo -e '\nCHANGELOG_END' >> $GITHUB_ENV
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.release_info.outputs.tag }}
+          prerelease: true
+          body_path: ./changelog.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

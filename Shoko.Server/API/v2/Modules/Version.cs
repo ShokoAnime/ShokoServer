@@ -91,9 +91,10 @@ public class Version : BaseController
             }
         }
 
-        if (System.IO.File.Exists("webui//index.ver"))
+        var webUIFileInfo = new FileInfo(Path.Combine(Settings.ServerSettings.ApplicationPath, "webui/index.ver"));
+        if (webUIFileInfo.Exists)
         {
-            var webui_version = System.IO.File.ReadAllText("webui//index.ver");
+            var webui_version = System.IO.File.ReadAllText(webUIFileInfo.FullName);
             var versions = webui_version.Split('>');
             if (versions.Length == 2)
             {

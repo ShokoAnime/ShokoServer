@@ -6,7 +6,10 @@
         <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
         <Platforms>x64;AnyCPU</Platforms>
         <Deterministic>false</Deterministic>
-        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+        <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+        <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+        <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
         <AssemblyName>ShokoServer</AssemblyName>
         <LangVersion>latest</LangVersion>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>

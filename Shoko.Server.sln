@@ -28,12 +28,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{00DE
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{700D0E2E-FF22-4810-8BC5-537207182EDF}"
 	ProjectSection(SolutionItems) = preProject
-		.github\workflows\cli-framework-dependent.yml = .github\workflows\cli-framework-dependent.yml
-		.github\workflows\cli.yml = .github\workflows\cli.yml
+		.github\workflows\build-release-stable.yml = .github\workflows\build-release-stable.yml
 		.github\workflows\docker-daily.yml = .github\workflows\docker-daily.yml
+		.github\workflows\docker-manual.yml = .github\workflows\docker-manual.yml
+		.github\workflows\docker-release.yml = .github\workflows\docker-release.yml
 		.github\workflows\plugin-nuget.yml = .github\workflows\plugin-nuget.yml
-		.github\workflows\tray-framework-dependent.yml = .github\workflows\tray-framework-dependent.yml
-		.github\workflows\tray.yml = .github\workflows\tray.yml
+		.github\workflows\publish-pre-release-daily.yml = .github\workflows\publish-pre-release-daily.yml
+		.github\workflows\tray-standalone-manual.yml = .github\workflows\tray-standalone-manual.yml
 		.github\workflows\UploadArchive.ps1 = .github\workflows\UploadArchive.ps1
 	EndProjectSection
 EndProject

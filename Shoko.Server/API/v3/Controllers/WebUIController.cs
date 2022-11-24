@@ -59,7 +59,7 @@ public class WebUIController : BaseController
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("Install")]
-    public ActionResult InstallWebUI([FromQuery] WebUIReleaseChannel channel = WebUIReleaseChannel.Stable)
+    public ActionResult InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable)
     {
         var indexLocation = Path.Combine(ServerSettings.ApplicationPath, "webui", "index.html");
         if (System.IO.File.Exists(indexLocation))
@@ -83,7 +83,7 @@ public class WebUIController : BaseController
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("Update")]
-    public ActionResult UpdateWebUI([FromQuery] WebUIReleaseChannel channel = WebUIReleaseChannel.Stable)
+    public ActionResult UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable)
     {
         WebUIHelper.GetUrlAndUpdate(LatestWebUIVersion(channel).Version);
         return NoContent();
@@ -99,8 +99,8 @@ public class WebUIController : BaseController
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("LatestVersion")]
-    public ComponentVersion LatestWebUIVersion([FromQuery] WebUIReleaseChannel channel = WebUIReleaseChannel.Stable)
+    public ComponentVersion LatestWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable)
     {
-        return new ComponentVersion { Version = WebUIHelper.WebUIGetLatestVersion(channel == WebUIReleaseChannel.Stable) };
+        return new ComponentVersion { Version = WebUIHelper.WebUIGetLatestVersion(channel == ReleaseChannel.Stable) };
     }
 }
