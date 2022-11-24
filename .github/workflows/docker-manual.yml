@@ -53,7 +53,7 @@ jobs:
           platforms: arm64
         if: ${{ matrix.arch == 'arm64' }}
 
-      - uses: docker/setup-buildx-action@v1
+      - uses: docker/setup-buildx-action@v2
         name: Set up Docker Buildx
 
       - name: Log into docker hub
