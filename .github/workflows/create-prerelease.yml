@@ -175,7 +175,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release --no-self-contained Shoko.TrayService "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=dev; commit=${{ github.sha }}; tag=${{ steps.release_info.outputs.tag }}\""
+      - run: dotnet publish -c Release --no-self-contained Shoko.TrayService -property:"Version=\"${{ steps.release_info.outputs.version }}\"" -property:"InformationalVersion=\"channel=dev; commit=${{ github.sha }}; tag=${{ steps.release_info.outputs.tag }}\""
 
       - name: Archive Release
         shell: pwsh
@@ -223,7 +223,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net6.0-windows Shoko.TrayService "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=dev; commit=${{ github.sha }}; tag=${{ steps.release_info.outputs.tag }}\""
+      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net6.0-windows Shoko.TrayService -property:"Version=\"${{ steps.release_info.outputs.version }}\"" -property:"InformationalVersion=\"channel=dev; commit=${{ github.sha }}; tag=${{ steps.release_info.outputs.tag }}\""
 
       - name: Archive Release (for github)
         shell: pwsh
