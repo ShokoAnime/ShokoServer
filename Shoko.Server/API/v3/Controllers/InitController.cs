@@ -63,7 +63,7 @@ public class InitController : BaseController
             MediaInfo = new()
         };
 
-        foreach (var raw in Utils.GetApplicationExtraVersion().Split("; "))
+        foreach (var raw in Utils.GetApplicationExtraVersion().Split(","))
         {
             var pair = raw.Split("=");
             if (pair.Length != 2) continue;
