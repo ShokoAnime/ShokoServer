@@ -11,7 +11,7 @@ RUN mkdir -p /usr/src/app/source /usr/src/app/build
 COPY . /usr/src/app/source
 WORKDIR /usr/src/app/source
 
-RUN dotnet build -c=Release -o=/usr/src/app/build/ Shoko.CLI/Shoko.CLI.csproj "/p:Version=${version},InformationalVersion=\"channel=${channel}; commit=${commit}; tag=${tag}\""
+RUN dotnet build -c=Release -o=/usr/src/app/build/ Shoko.CLI/Shoko.CLI.csproj "/p:Version=\"${version}\",InformationalVersion=\"channel=${channel}; commit=${commit}; tag=${tag}\""
 
 FROM mcr.microsoft.com/dotnet/aspnet:6.0
 ENV PUID=1000 \
