@@ -15,7 +15,7 @@ jobs:
       - name: Checkout master
         uses: actions/checkout@master
         with:
-          ref: "${{ github.ref }}"
+          ref: "${{ github.sha }}"
           fetch-depth: 0 # This is set to download the full git history for the repo
 
       - name: Get next version
@@ -59,7 +59,7 @@ jobs:
       - name: Checkout master
         uses: actions/checkout@master
         with:
-          ref: "${{ github.ref }}"
+          ref: "${{ github.sha }}"
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
@@ -67,7 +67,7 @@ jobs:
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
-          tag: "${{ github.ref }}"
+          branch: true
           prefix: v
           prefixRegex: "[vV]?"
           suffix: dev
@@ -108,7 +108,7 @@ jobs:
       - name: Checkout master
         uses: actions/checkout@master
         with:
-          ref: "${{ github.ref }}"
+          ref: "${{ github.sha }}"
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
@@ -121,7 +121,7 @@ jobs:
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
-          tag: "${{ github.ref }}"
+          branch: true
           prefix: v
           prefixRegex: "[vV]?"
           suffix: dev
@@ -156,7 +156,7 @@ jobs:
       - name: Checkout master
         uses: actions/checkout@master
         with:
-          ref: "${{ github.ref }}"
+          ref: "${{ github.sha }}"
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
@@ -164,7 +164,7 @@ jobs:
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
-          tag: "${{ github.ref }}"
+          branch: true
           prefix: v
           prefixRegex: "[vV]?"
           suffix: dev
@@ -204,7 +204,7 @@ jobs:
       - name: Checkout master
         uses: actions/checkout@master
         with:
-          ref: "${{ github.ref }}"
+          ref: "${{ github.sha }}"
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
@@ -212,7 +212,7 @@ jobs:
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
-          tag: "${{ github.ref }}"
+          branch: true
           prefix: v
           prefixRegex: "[vV]?"
           suffix: dev

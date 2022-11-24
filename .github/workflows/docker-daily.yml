@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
         with:
-          ref: "${{ github.ref }}"
+          ref: "${{ github.sha }}"
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
