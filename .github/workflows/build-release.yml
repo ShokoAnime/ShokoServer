@@ -3,7 +3,8 @@ name: Build Release (Stable)
 on:
   release:
     types:
-      - published
+      - released
+
 
 jobs:
   cli-framework-stable:
