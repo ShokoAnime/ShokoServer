@@ -31,8 +31,6 @@ jobs:
           branch: true
           prefix: v
           prefixRegex: "[vV]?"
-          suffix: dev
-          increment: suffix
 
       - uses: docker/setup-qemu-action@v1
         name: Set up QEMU
@@ -47,7 +45,7 @@ jobs:
         run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and Push the Docker image
-        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:daily-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ steps.release_info.outputs.version }} --build-arg channel=dev --build-arg commit=${{ github.sha }} --build-arg tag=${{ steps.release_info.outputs.tag }} --push
+        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:daily-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ steps.release_info.outputs.version }} --build-arg channel=dev --build-arg commit=${{ github.sha }} --push
 
   docker-daily-push_manifest:
     needs: docker-daily-build
