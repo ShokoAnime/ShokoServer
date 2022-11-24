@@ -6,7 +6,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -34,12 +36,49 @@ public class User
     public List<CommunitySites> CommunitySites { get; set; }
 
     /// <summary>
-    /// This is also called 'Hide Categories'. The current political atmosphere made me salty enough to call it what it is: a blacklist.
-    /// Tags that are here are not visible to the user. Any series with any of these tags will not be shown in any context
+    /// Restricted tags. Any group/series containing any of these tags will be
+    /// rendered inaccessible to the user.
     /// </summary>
-    public List<string> TagBlacklist { get; set; }
+    public List<Tag> RestrictedTags { get; set; }
 
-    public class FullUser : User
+    public class ModifyUser : User
+    {
+        public ModifyUser() : base() { }
+
+        public ModifyUser(SVR_JMMUser user) : base(user)
+        {
+            RestrictedTags = base.RestrictedTags.Select(tag => tag.ID).ToList();
+        }
+
+        /// <summary>
+        /// The ids of the new/modified restricted tags.
+        /// </summary>
+        public new List<int> RestrictedTags { get; set; }
+
+        public SVR_JMMUser MergeServerModel(SVR_JMMUser existing)
+        {
+            var tags = RestrictedTags
+                .Select(tagID => RepoFactory.AniDB_Tag.GetByTagID(tagID))
+                .Where(tag => tag != null)
+                .Select(tag => tag.TagName);
+            var user = new SVR_JMMUser
+            {
+                Username = Username,
+                JMMUserID = ID,
+                HideCategories = string.Join(',', tags),
+                IsAdmin = IsAdmin ? 1 : 0,
+                IsTraktUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.Trakt) ? 1 : 0,
+                CanEditServerSettings = IsAdmin ? 1 : 0,
+                IsAniDBUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.AniDB) ? 1 : 0,
+                Password = existing?.Password ?? string.Empty,
+                PlexToken = existing?.PlexToken,
+                PlexUsers = existing?.PlexUsers ?? string.Empty
+            };
+            return user;
+        }
+    }
+
+    public class FullUser : ModifyUser
     {
         /// <summary>
         /// The password...Shoko is NOT secure, so don't assume this password is safe or even necessary to access the account
@@ -48,12 +87,16 @@ public class User
 
         public SVR_JMMUser GetServerModel()
         {
+            var tags = RestrictedTags
+                .Select(tagID => RepoFactory.AniDB_Tag.GetByTagID(tagID))
+                .Where(tag => tag != null)
+                .Select(tag => tag.TagName);
             var user = new SVR_JMMUser
             {
                 Username = Username,
                 JMMUserID = ID,
                 Password = Digest.Hash(Password),
-                HideCategories = string.Join(',', TagBlacklist),
+                HideCategories = string.Join(',', tags),
                 IsAdmin = IsAdmin ? 1 : 0,
                 IsTraktUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.Trakt) ? 1 : 0,
                 CanEditServerSettings = IsAdmin ? 1 : 0,
@@ -86,25 +129,11 @@ public class User
             CommunitySites.Add(global::Shoko.Models.Enums.CommunitySites.Plex);
         }
 
-        TagBlacklist = user.GetHideCategories().ToList();
-    }
-
-    public SVR_JMMUser MergeServerModel(SVR_JMMUser existing)
-    {
-        var user = new SVR_JMMUser
-        {
-            Username = Username,
-            JMMUserID = ID,
-            HideCategories = string.Join(',', TagBlacklist),
-            IsAdmin = IsAdmin ? 1 : 0,
-            IsTraktUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.Trakt) ? 1 : 0,
-            CanEditServerSettings = IsAdmin ? 1 : 0,
-            IsAniDBUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.AniDB) ? 1 : 0,
-            Password = existing?.Password ?? string.Empty,
-            PlexToken = existing?.PlexToken,
-            PlexUsers = existing?.PlexUsers ?? string.Empty
-        };
-        return user;
+        RestrictedTags = user.GetHideCategories()
+            .Select(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault())
+            .Where(tag => tag != null)
+            .Select(tag => new Tag(tag, true))
+            .ToList();
     }
 
     /// <summary>

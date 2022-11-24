@@ -61,7 +61,7 @@ public class UserController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPatch("{userID}")]
-    public ActionResult PatchUser([FromRoute] int userID, [FromBody] JsonPatchDocument<User> patch)
+    public ActionResult PatchUser([FromRoute] int userID, [FromBody] JsonPatchDocument<User.ModifyUser> patch)
     {
         if (patch == null)
         {
@@ -74,7 +74,7 @@ public class UserController : BaseController
             return NotFound("User not found.");
         }
 
-        var patchModel = new User(user);
+        var patchModel = new User.ModifyUser(user);
         patch.ApplyTo(patchModel, ModelState);
         TryValidateModel(patchModel);
         if (!ModelState.IsValid)
@@ -105,7 +105,7 @@ public class UserController : BaseController
     /// <returns>APIStatus</returns>
     [Authorize("admin")]
     [HttpPut]
-    public ActionResult EditUser([FromBody] User user)
+    public ActionResult EditUser([FromBody] User.ModifyUser user)
     {
         if (user.ID == 0)
         {
