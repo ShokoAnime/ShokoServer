@@ -130,7 +130,7 @@ jobs:
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\Shoko.TrayService_Framework_win10-x64.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\publish .\\Shoko.TrayService_Framework_win10-x64.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2

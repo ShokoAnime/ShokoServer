@@ -120,7 +120,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: Shoko.TrayService_Framework_win10-x64.zip
-          path: Shoko.Server/bin/Release/net6.0-windows/win10-x64/publish/
+          path: Shoko.Server/bin/Release/net6.0-windows/publish/
 
   tray-service-standalone-daily:
     runs-on: windows-latest
