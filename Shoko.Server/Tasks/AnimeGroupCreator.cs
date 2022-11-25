@@ -436,7 +436,7 @@ internal class AnimeGroupCreator
     /// </summary>
     /// <param name="session">The NHibernate session.</param>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-    public void RecreateAllGroups(ISessionWrapper session)
+    public async Task RecreateAllGroups(ISessionWrapper session)
     {
         if (session == null)
         {
@@ -489,16 +489,16 @@ internal class AnimeGroupCreator
             }
 
             // We need groups and series cached for updating of AnimeGroup contracts to work
-            _animeGroupRepo.Populate(session, false);
-            _animeSeriesRepo.Populate(session, false);
+            await _animeGroupRepo.Populate(session, false);
+            await _animeSeriesRepo.Populate(session, false);
             
             UpdateAnimeGroupsAndTheirContracts(createdGroups);
 
             // We need to update the AnimeGroups cache again now that the contracts have been saved
             // (Otherwise updating Group Filters won't get the correct results)
-            _animeGroupRepo.Populate(session, false);
-            _animeGroupUserRepo.Populate(session, false);
-            _groupFilterRepo.Populate(session, false);
+            await _animeGroupRepo.Populate(session, false);
+            await _animeGroupUserRepo.Populate(session, false);
+            await _groupFilterRepo.Populate(session, false);
 
             UpdateGroupFilters(session);
 
@@ -511,10 +511,10 @@ internal class AnimeGroupCreator
             try
             {
                 // If an error occurs then chances are the caches are in an inconsistent state. So re-populate them
-                _animeSeriesRepo.Populate();
-                _animeGroupRepo.Populate();
-                _groupFilterRepo.Populate();
-                _animeGroupUserRepo.Populate();
+                await _animeSeriesRepo.Populate();
+                await _animeGroupRepo.Populate();
+                await _groupFilterRepo.Populate();
+                await _animeGroupUserRepo.Populate();
             }
             catch (Exception ie)
             {
@@ -533,10 +533,10 @@ internal class AnimeGroupCreator
         }
     }
 
-    public void RecreateAllGroups()
+    public async Task RecreateAllGroups()
     {
         using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
-        RecreateAllGroups(session.Wrap());
+        await RecreateAllGroups(session.Wrap());
     }
 
     public void RecalculateStatsContractsForGroup(SVR_AnimeGroup group)

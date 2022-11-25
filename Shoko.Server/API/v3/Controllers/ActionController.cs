@@ -358,7 +358,7 @@ public class ActionController : BaseController
     [HttpGet("RecreateAllGroups")]
     public ActionResult RecreateAllGroups()
     {
-        Task.Factory.StartNew(() => new AnimeGroupCreator().RecreateAllGroups()).ConfigureAwait(false);
+        Task.Factory.StartNew(async () => await new AnimeGroupCreator().RecreateAllGroups()).ConfigureAwait(false);
         return Ok();
     }
 

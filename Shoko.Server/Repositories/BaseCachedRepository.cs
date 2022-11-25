@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Properties;
@@ -31,8 +32,10 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         RepoFactory.CachedRepositories.Add(this);
     }
 
-    public virtual void Populate(ISessionWrapper session, bool displayname = true)
+    public virtual async Task Populate(ISessionWrapper session, bool displayname = true)
     {
+        if (session == null) throw new ArgumentNullException(nameof(session));
+
         if (displayname)
         {
             ServerState.Instance.ServerStartingStatus = string.Format(
@@ -41,14 +44,14 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         }
 
         // This is only called from main thread, so we don't need to lock
-        Cache = new PocoCache<S, T>(session.CreateCriteria(typeof(T)).SetTimeout(ServerSettings.Instance.CachingDatabaseTimeout).List<T>(), SelectKey);
+        Cache = new PocoCache<S, T>(await session.CreateCriteria<T>().SetTimeout(ServerSettings.Instance.CachingDatabaseTimeout).ListAsync<T>(), SelectKey);
         PopulateIndexes();
     }
 
-    public virtual void Populate(bool displayname = true)
+    public virtual async Task Populate(bool displayname = true)
     {
         using var session = DatabaseFactory.SessionFactory.OpenSession();
-        Populate(session.Wrap(), displayname);
+        await Populate(session.Wrap(), displayname);
     }
 
     public void ClearCache()

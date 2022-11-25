@@ -2008,11 +2008,11 @@ public partial class ShokoServiceImplementation : IShokoServer
     }
 
     [HttpPost("Group/Recreate/{resume}")]
-    public void RecreateAllGroups(bool resume = false)
+    public async void RecreateAllGroups(bool resume = false)
     {
         try
         {
-            new AnimeGroupCreator().RecreateAllGroups();
+            await new AnimeGroupCreator().RecreateAllGroups();
         }
         catch (Exception ex)
         {
