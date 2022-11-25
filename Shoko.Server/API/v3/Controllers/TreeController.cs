@@ -528,6 +528,36 @@ public class TreeController : BaseController
         return new Episode(HttpContext, episode, includeDataFrom);
     }
 
+    /// <summary>
+    /// Get the <see cref="File"/>s for the <see cref="Series"/> with the given <paramref name="seriesID"/>.
+    /// </summary>
+    /// <param name="seriesID">Series ID</param>
+    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="isManuallyLinked">Omit to select all files. Set to true to only select manually
+    /// linked files, or set to false to only select automatically linked files.</param>
+    /// <returns></returns>
+    [HttpGet("Series/{seriesID}/File")]
+    public ActionResult<List<File>> GetFilesForSeries([FromRoute] int seriesID, [FromQuery] bool includeXRefs = false,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null, [FromQuery] bool? isManuallyLinked = null)
+    {
+        var user = User;
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+        {
+            return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
+        }
+
+        if (!user.AllowedSeries(series))
+        {
+            return Forbid(SeriesController.SeriesForbiddenForUser);
+        }
+
+        return series.GetVideoLocals(isManuallyLinked.HasValue ? isManuallyLinked.Value ? CrossRefSource.User : CrossRefSource.AniDB : null)        
+            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom))
+            .ToList();
+    }
+
     #endregion
 
     #region Episode
@@ -538,10 +568,12 @@ public class TreeController : BaseController
     /// <param name="episodeID">Episode ID</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="isManuallyLinked">Omit to select all files. Set to true to only select manually
+    /// linked files, or set to false to only select automatically linked files.</param>
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/File")]
     public ActionResult<List<File>> GetFilesForEpisode([FromRoute] int episodeID, [FromQuery] bool includeXRefs = false,
-        [FromQuery] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery] HashSet<DataSource> includeDataFrom = null, [FromQuery] bool? isManuallyLinked = null)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -560,7 +592,7 @@ public class TreeController : BaseController
             return Forbid(EpisodeController.EpisodeForbiddenForUser);
         }
 
-        return episode.GetVideoLocals()
+        return episode.GetVideoLocals(isManuallyLinked.HasValue ? isManuallyLinked.Value ? CrossRefSource.User : CrossRefSource.AniDB : null)
             .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom))
             .ToList();
     }

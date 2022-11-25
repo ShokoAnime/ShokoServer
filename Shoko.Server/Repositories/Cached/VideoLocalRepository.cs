@@ -9,6 +9,7 @@ using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Utils;
+using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
@@ -450,11 +451,21 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     /// <summary>
     /// returns all the VideoLocal records associate with an AnimeEpisode Record
     /// </summary>
-    /// <param name="episodeID"></param>
+    /// <param name="episodeID">AniDB Episode ID</param>
+    /// <param name="xrefSource">Include to select only files from the selected
+    /// cross-reference source.</param>
     /// <returns></returns>
     /// 
-    public List<SVR_VideoLocal> GetByAniDBEpisodeID(int episodeID)
+    public List<SVR_VideoLocal> GetByAniDBEpisodeID(int episodeID, CrossRefSource? xrefSource = null)
     {
+        if (xrefSource.HasValue)
+            return
+                RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episodeID)
+                    .Where(xref => xref.CrossRefSource == (int)xrefSource.Value)
+                    .Select(xref => GetByHash(xref.Hash))
+                    .Where(file => file != null)
+                    .ToList();
+
         return RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episodeID)
             .Select(a => GetByHash(a.Hash))
             .Where(a => a != null)
@@ -484,10 +495,20 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     /// <summary>
     /// returns all the VideoLocal records associate with an AniDB_Anime Record
     /// </summary>
-    /// <param name="animeID"></param>
+    /// <param name="animeID">AniDB Anime ID</param>
+    /// <param name="xrefSource">Include to select only files from the selected
+    /// cross-reference source.</param>
     /// <returns></returns>
-    public List<SVR_VideoLocal> GetByAniDBAnimeID(int animeID)
+    public List<SVR_VideoLocal> GetByAniDBAnimeID(int animeID, CrossRefSource? xrefSource = null)
     {
+        if (xrefSource.HasValue)
+            return
+                RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
+                    .Where(xref => xref.CrossRefSource == (int)xrefSource.Value)
+                    .Select(xref => GetByHash(xref.Hash))
+                    .Where(file => file != null)
+                    .ToList();
+
         return
             RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
                 .Select(a => GetByHash(a.Hash))
