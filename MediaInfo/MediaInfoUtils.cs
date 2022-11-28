@@ -342,6 +342,8 @@ namespace Shoko.Models.MediaInfo
             if (codec != null && CodecIDs.ContainsKey(codec)) return CodecIDs[codec].ToUpper();
             codec = stream.CodecID?.ToLower();
             if (codec != null && CodecIDs.ContainsKey(codec)) return CodecIDs[codec].ToUpper();
+            if (stream is TextStream textStream)
+                return GetSubFormat(textStream.CodecID, textStream.Format)?.ToUpper();
             return stream.CodecID?.ToUpper();
         }
 
