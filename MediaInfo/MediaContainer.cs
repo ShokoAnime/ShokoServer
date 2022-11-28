@@ -27,6 +27,8 @@ namespace Shoko.Models.MediaInfo
         [IgnoreMember]
         private VideoStream _video { get; set; }
         [IgnoreMember]
+        private List<VideoStream> _videos { get; set; }
+        [IgnoreMember]
         private List<AudioStream> _audios { get; set; }
         [IgnoreMember]
         private List<TextStream> _texts { get; set; }
@@ -42,6 +44,11 @@ namespace Shoko.Models.MediaInfo
         [IgnoreMember]
         public VideoStream VideoStream =>
             _video ?? (_video = media?.track?.FirstOrDefault(a => a?.type == StreamType.Video) as VideoStream);
+
+        [JsonIgnore]
+        [IgnoreMember]
+        public List<VideoStream> VideoStreams =>
+            _videos ?? (_videos = media?.track?.Where(a => a?.type == StreamType.Video).Cast<VideoStream>().ToList());
 
         [JsonIgnore]
         [IgnoreMember]
