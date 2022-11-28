@@ -9,7 +9,7 @@ on:
         required: true
       tag:
         description: Docker tag to push
-        default: latest
+        default: daily
         required: true
       release:
         description: Release Channel
