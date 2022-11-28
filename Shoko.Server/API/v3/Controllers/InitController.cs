@@ -66,7 +66,7 @@ public class InitController : BaseController
         foreach (var raw in Utils.GetApplicationExtraVersion().Split(","))
         {
             var pair = raw.Split("=");
-            if (pair.Length != 2) continue;
+            if (pair.Length != 2 || string.IsNullOrEmpty(pair[1])) continue;
             switch (pair[0])
             {
                 case "tag":
