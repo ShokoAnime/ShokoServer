@@ -6,7 +6,6 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
@@ -147,12 +146,6 @@ public class File
             if (anidbFile != null)
                 this._AniDB = new File.AniDB(anidbFile);
         }
-    }
-
-    public static MediaContainer GetMedia(int id)
-    {
-        var vl = RepoFactory.VideoLocal.GetByID(id);
-        return vl?.Media;
     }
 
     public class Location

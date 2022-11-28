@@ -6,7 +6,6 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
-using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
@@ -18,6 +17,7 @@ using Shoko.Server.Settings;
 using CommandRequestPriority = Shoko.Server.Server.CommandRequestPriority;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using Path = System.IO.Path;
+using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -155,17 +155,17 @@ public class FileController : BaseController
     /// <param name="fileID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{fileID}/MediaInfo")]
-    public ActionResult<MediaContainer> GetFileMediaInfo([FromRoute] int fileID)
+    public ActionResult<MediaInfo> GetFileMediaInfo([FromRoute] int fileID)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var mediaContainer = Models.Shoko.File.GetMedia(fileID);
+        var mediaContainer = file?.Media;
         if (mediaContainer == null)
             return InternalError("Unable to find media container for File");
 
-        return mediaContainer;
+        return new MediaInfo(file, mediaContainer);
     }
 
     /// <summary>
