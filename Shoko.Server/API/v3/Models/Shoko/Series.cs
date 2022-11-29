@@ -75,7 +75,7 @@ public class Series : BaseModel
     /// included in the data to add.
     /// </summary>
     [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
-    public AniDB _AniDB { get; set; }
+    public AniDBWithDate _AniDB { get; set; }
 
     /// <summary>
     /// The <see cref="Series.TvDB"/> entries, if <see cref="DataSource.TvDB"/>
@@ -113,7 +113,7 @@ public class Series : BaseModel
         Updated = ser.DateTimeUpdated;
 
         if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
-            this._AniDB = new Series.AniDB(ser.GetAnime(), true);
+            this._AniDB = new Series.AniDBWithDate(ctx, ser.GetAnime(), ser);
         if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
             this._TvDB = GetTvDBInfo(ctx, ser);
     }
