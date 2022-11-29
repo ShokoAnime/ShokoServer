@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
 {
     public string Name { get; } = "SQLServer";
-    public int RequiredVersion { get; } = 98;
+    public int RequiredVersion { get; } = 99;
 
     public void BackupDatabase(string fullfilename)
     {
@@ -647,7 +647,9 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
         new DatabaseCommand(95, 1, "UPDATE AniDB_File SET File_Source = 'Web' WHERE File_Source = 'www'; UPDATE AniDB_File SET File_Source = 'BluRay' WHERE File_Source = 'Blu-ray'; UPDATE AniDB_File SET File_Source = 'LaserDisc' WHERE File_Source = 'LD'; UPDATE AniDB_File SET File_Source = 'Unknown' WHERE File_Source = 'unknown';"),
         new DatabaseCommand(96, 1, "ALTER TABLE AniDB_GroupStatus ALTER COLUMN GroupName nvarchar(max); ALTER TABLE AniDB_GroupStatus ALTER COLUMN EpisodeRange nvarchar(max);"),
         new DatabaseCommand(97, 1, "CREATE INDEX IX_AniDB_Episode_EpisodeType ON AniDB_Episode(EpisodeType);"),
-        new DatabaseCommand(98, 1, "ALTER TABLE AniDB_Episode_Title ALTER COLUMN Title nvarchar(max) NOT NULL;")
+        new DatabaseCommand(98, 1, "ALTER TABLE AniDB_Episode_Title ALTER COLUMN Title nvarchar(max) NOT NULL;"),
+        new DatabaseCommand(99, 1, "ALTER TABLE VideoLocal ADD DateTimeImported datetime DEFAULT NULL;"),
+        new DatabaseCommand(99, 2, "UPDATE v SET DateImported = DateTimeCreated FROM VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash;")
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

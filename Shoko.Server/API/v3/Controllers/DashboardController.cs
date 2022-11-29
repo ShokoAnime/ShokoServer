@@ -244,7 +244,8 @@ public class DashboardController : BaseController
     {
         var user = HttpContext.GetUser();
         var episodeList = RepoFactory.VideoLocal.GetAll()
-            .OrderByDescending(f => f.DateTimeCreated)
+            .Where(f => f.DateTimeImported.HasValue)
+            .OrderByDescending(f => f.DateTimeImported)
             .SelectMany(file => file.GetAnimeEpisodes().Select(episode => (file, episode)));
         var seriesDict = episodeList
             .DistinctBy(tuple => tuple.episode.AnimeSeriesID)
@@ -287,7 +288,8 @@ public class DashboardController : BaseController
     {
         var user = HttpContext.GetUser();
         var seriesList = RepoFactory.VideoLocal.GetAll()
-            .OrderByDescending(f => f.DateTimeCreated)
+            .Where(f => f.DateTimeImported.HasValue)
+            .OrderByDescending(f => f.DateTimeImported)
             .SelectMany(file => file.GetAnimeEpisodes().Select(episode => episode.AnimeSeriesID))
             .Distinct()
             .Select(seriesID => RepoFactory.AnimeSeries.GetByID(seriesID))

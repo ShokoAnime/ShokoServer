@@ -628,6 +628,13 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
             }
 
+            if (vid.DateTimeImported.HasValue)
+            {
+                // Reset the import date.
+                vid.DateTimeImported = null;
+                RepoFactory.VideoLocal.Save(vid);
+            }
+
             if (animeSeriesID.HasValue)
             {
                 var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID.Value);
@@ -699,6 +706,13 @@ public partial class ShokoServiceImplementation : IShokoServer
         foreach (var fileEp in fileEps)
         {
             RepoFactory.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
+        }
+
+        if (vlocal.DateTimeImported.HasValue)
+        {
+            // Reset the import date.
+            vlocal.DateTimeImported = null;
+            RepoFactory.VideoLocal.Save(vlocal);
         }
     }
 

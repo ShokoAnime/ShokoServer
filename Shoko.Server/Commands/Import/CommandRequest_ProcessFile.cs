@@ -77,6 +77,10 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
 
             if (aniFile != null)
             {
+                // Set the import date.
+                vlocal.DateTimeImported = DateTime.Now;
+                RepoFactory.VideoLocal.Save(vlocal);
+
                 ShokoEventHandler.Instance.OnFileMatched(vlocal.GetBestVideoLocalPlace());
             }
         }

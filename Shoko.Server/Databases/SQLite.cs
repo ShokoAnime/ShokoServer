@@ -21,7 +21,7 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
 {
     public string Name { get; } = "SQLite";
 
-    public int RequiredVersion { get; } = 91;
+    public int RequiredVersion { get; } = 92;
 
 
     public void BackupDatabase(string fullfilename)
@@ -616,7 +616,9 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
             "DROP INDEX UIX2_VideoLocal_User_User_VideoLocalID; CREATE UNIQUE INDEX UIX_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);"),
         new(89, 19, "DROP INDEX \"UIX_VideoLocal_ VideoLocal_Place_ID\";"),
         new(90, 1, "UPDATE AniDB_File SET File_Source = 'Web' WHERE File_Source = 'www'; UPDATE AniDB_File SET File_Source = 'BluRay' WHERE File_Source = 'Blu-ray'; UPDATE AniDB_File SET File_Source = 'LaserDisc' WHERE File_Source = 'LD'; UPDATE AniDB_File SET File_Source = 'Unknown' WHERE File_Source = 'unknown';"),
-        new(91, 1, "CREATE INDEX IX_AniDB_Episode_EpisodeType ON AniDB_Episode(EpisodeType);")
+        new(91, 1, "CREATE INDEX IX_AniDB_Episode_EpisodeType ON AniDB_Episode(EpisodeType);"),
+        new(92, 1, "ALTER TABLE VideoLocal ADD DateTimeImported timestamp DEFAULT NULL;"),
+        new(92, 2, "UPDATE v SET DateImported = DateTimeCreated FROM VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash;")
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

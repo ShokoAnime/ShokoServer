@@ -67,6 +67,12 @@ public class File
     public DateTime? Watched { get; set; }
 
     /// <summary>
+    /// When the file was last imported. Usually is a file only imported once,
+    /// but there may be exceptions.
+    /// </summary>
+    public DateTime? Imported { get; set; }
+
+    /// <summary>
     /// The file creation date of this file
     /// </summary>
     [JsonConverter(typeof(IsoDateTimeConverter))]
@@ -102,6 +108,7 @@ public class File
         Duration = file.DurationTimeSpan;
         ResumePosition = userRecord?.ResumePositionTimeSpan;
         Watched = userRecord?.WatchedDate;
+        Imported = file.DateTimeImported;
         Created = file.DateTimeCreated;
         Updated = file.DateTimeUpdated;
         if (withXRefs)

@@ -573,6 +573,13 @@ public class FileController : BaseController
             }
         }
 
+        if (file.DateTimeImported.HasValue)
+        {
+            // Reset the import date.
+            file.DateTimeImported = null;
+            RepoFactory.VideoLocal.Save(file);
+        }
+
         foreach (var seriesID in seriesIDs)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -651,6 +658,9 @@ public class FileController : BaseController
             if (episode == null)
                 return InternalError("Could not find episode entry");
 
+            if (RemoveXRefsForFile(file))
+                return BadRequest($"Cannot remove associations created from AniDB data for file '{file.VideoLocalID}'");
+
             var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
                 c =>
                 {
@@ -662,9 +672,6 @@ public class FileController : BaseController
                 command.Percentage = (int)Math.Round((double)(fileCount / files.Count * 100));
             else
                 episodeNumber++;
-
-            if (RemoveXRefsForFile(file))
-                return BadRequest($"Cannot remove associations created from AniDB data for file '{file.VideoLocalID}'");
 
             fileCount++;
             command.Save();
@@ -704,6 +711,9 @@ public class FileController : BaseController
         var fileCount = 1;
         foreach (var file in files)
         {
+            if (RemoveXRefsForFile(file))
+                return BadRequest($"Cannot remove associations created from AniDB data for file '{file.VideoLocalID}'");
+
             var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
                 c =>
                 {
@@ -712,9 +722,6 @@ public class FileController : BaseController
                 }
             );
             command.Percentage = (int)Math.Round((double)(fileCount / files.Count * 100));
-
-            if (RemoveXRefsForFile(file))
-                return BadRequest($"Cannot remove associations created from AniDB data for file '{file.VideoLocalID}'");
 
             fileCount++;
             command.Save();
@@ -732,6 +739,13 @@ public class FileController : BaseController
                 return true;
 
             RepoFactory.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
+        }
+
+        if (file.DateTimeImported.HasValue)
+        {
+            // Reset the import date.
+            file.DateTimeImported = null;
+            RepoFactory.VideoLocal.Save(file);
         }
 
         return false;
