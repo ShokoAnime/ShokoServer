@@ -15,6 +15,7 @@ namespace Shoko.Models.Server
         public int IsIgnored { get; set; }
         public DateTime DateTimeUpdated { get; set; }
         public DateTime DateTimeCreated { get; set; }
+        public DateTime? DateTimeImported { get; set; }
         public int IsVariation { get; set; }
 
         [Obsolete("Use VideoLocal_Place.FilePath instead")]
