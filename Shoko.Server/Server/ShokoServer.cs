@@ -645,8 +645,8 @@ public class ShokoServer
 
             if (ServerSettings.Instance.Import.RunOnStart && folders.Count > 0)
             {
-                var schedulerFactory = ServiceContainer.GetService<ISchedulerFactory>();
-                var scheduler = schedulerFactory!.GetScheduler().Result;
+                var schedulerFactory = ServiceContainer.GetRequiredService<ISchedulerFactory>();
+                var scheduler = schedulerFactory.GetScheduler().Result;
                 scheduler.TriggerJob(ImportJob.Key);
             }
 
