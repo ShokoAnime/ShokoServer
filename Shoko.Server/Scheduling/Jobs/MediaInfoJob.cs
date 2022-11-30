@@ -10,10 +10,10 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
-public class MediaInfoJob : IJob
+internal class MediaInfoJob : IJob
 {
 
-    public static readonly JobKey Key = new("MediaImport", "System");
+    public static readonly JobKey Key = new("MediaImport", "Legacy");
 
     private readonly ICommandRequestFactory _commandRequestFactory;
 

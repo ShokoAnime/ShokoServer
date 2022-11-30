@@ -8,9 +8,9 @@ using Quartz;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
-public class ScanDropFoldersJob : IJob
+internal class ScanDropFoldersJob : IJob
 {
-    public static readonly JobKey Key = new("ScanDropFolders", "System");
+    public static readonly JobKey Key = new("ScanDropFolders", "Legacy");
     
     public async Task Execute(IJobExecutionContext context)
     {

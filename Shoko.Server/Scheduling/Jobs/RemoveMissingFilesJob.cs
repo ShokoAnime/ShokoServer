@@ -9,9 +9,9 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
-public class RemoveMissingFilesJob : IJob
+internal class RemoveMissingFilesJob : IJob
 {
-    public static readonly JobKey Key = new("RemoveMissingFiles", "System");
+    public static readonly JobKey Key = new("RemoveMissingFiles", "Legacy");
     
     public async Task Execute(IJobExecutionContext context)
     {

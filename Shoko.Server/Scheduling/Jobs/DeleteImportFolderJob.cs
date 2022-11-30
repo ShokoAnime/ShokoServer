@@ -8,10 +8,10 @@ using Quartz;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
-public class DeleteImportFolderJob : IJob
+internal class DeleteImportFolderJob : IJob
 {
 
-    public static readonly JobKey Key = new("DeleteImportFolder", "System");
+    public static readonly JobKey Key = new("DeleteImportFolder", "Legacy");
     
     
     public async Task Execute(IJobExecutionContext context)

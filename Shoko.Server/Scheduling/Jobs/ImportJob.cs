@@ -9,10 +9,10 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
-public class ImportJob : IJob
+internal class ImportJob : IJob
 {
 
-    public static readonly JobKey Key = new("Importer", "System");
+    public static readonly JobKey Key = new("Importer", "Legacy");
     
     public async Task Execute(IJobExecutionContext context)
     {

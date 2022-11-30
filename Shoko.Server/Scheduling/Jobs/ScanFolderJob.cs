@@ -8,10 +8,10 @@ using Quartz;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
-public class ScanFolderJob : IJob
+internal class ScanFolderJob : IJob
 {
 
-    public static readonly JobKey Key = new("ScanFolder", "System");
+    public static readonly JobKey Key = new("ScanFolder", "Legacy");
     
     public async Task Execute(IJobExecutionContext context)
     {
