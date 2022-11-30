@@ -96,11 +96,14 @@ internal class AnimeGroupCreator
 
         _animeGroupUserRepo.DeleteAll(session);
         _animeGroupRepo.DeleteAll(session, tempGroupId);
-        session.CreateSQLQuery(@"
+        lock (BaseRepository.GlobalDBLock)
+        {
+            session.CreateSQLQuery(@"
                 UPDATE AnimeSeries SET AnimeGroupID = :tempGroupId;
                 UPDATE GroupFilter SET GroupsIdsString = '{}';")
-            .SetInt32("tempGroupId", tempGroupId)
-            .ExecuteUpdate();
+                .SetInt32("tempGroupId", tempGroupId)
+                .ExecuteUpdate();
+        }
 
         // We've deleted/modified all AnimeSeries/GroupFilter records, so update caches to reflect that
         _animeSeriesRepo.ClearCache();

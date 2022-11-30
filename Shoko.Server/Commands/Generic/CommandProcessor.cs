@@ -19,6 +19,7 @@ public abstract class CommandProcessor : IDisposable
     protected readonly BackgroundWorker WorkerCommands = new();
     protected IServiceProvider ServiceProvider;
     private bool _processingCommands;
+    private bool _cancelled = false;
 
     protected abstract string QueueType { get; }
 
@@ -60,7 +61,11 @@ public abstract class CommandProcessor : IDisposable
             }
 
             UpdatePause(_paused);
-            if (unpausing) StartWorker();
+            if (unpausing)
+            {
+                _cancelled = false;
+                StartWorker();
+            }
         }
     }
 
@@ -85,17 +90,11 @@ public abstract class CommandProcessor : IDisposable
         // use copies and never return the object in use
         get
         {
-            lock (_lockQueueState)
-            {
-                return _queueState.DeepClone();
-            }
+            lock (_lockQueueState) return _queueState.DeepClone();
         }
         set
         {
-            lock (_lockQueueState)
-            {
-                _queueState = value.DeepClone();
-            }
+            lock (_lockQueueState) _queueState = value.DeepClone();
 
             Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value)));
         }
@@ -152,12 +151,14 @@ public abstract class CommandProcessor : IDisposable
 
         // Start Paused. We'll unpause after setup is complete
         Paused = true;
+        _cancelled = false;
         StartWorker();
     }
 
     public void Stop()
     {
         Logger?.LogInformation("{QueueType} Queue has been stopped, {QueueCount} commands left", QueueType, QueueCount);
+        _cancelled = true;
         WorkerCommands.CancelAsync();
     }
 
@@ -174,16 +175,10 @@ public abstract class CommandProcessor : IDisposable
     {
         // if the worker is busy, it will pick up the next command from the DB
         // do not pick new command if cancellation is requested
-        if (_processingCommands || WorkerCommands.CancellationPending)
-        {
-            return;
-        }
+        if (_processingCommands || _cancelled) return;
 
         _processingCommands = true;
-        if (!WorkerCommands.IsBusy)
-        {
-            WorkerCommands.RunWorkerAsync();
-        }
+        if (!WorkerCommands.IsBusy) WorkerCommands.RunWorkerAsync();
     }
 
     protected abstract void WorkerCommands_DoWork(object sender, DoWorkEventArgs e);
@@ -192,10 +187,7 @@ public abstract class CommandProcessor : IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (disposing)
-        {
-            WorkerCommands?.Dispose();
-        }
+        if (disposing) WorkerCommands?.Dispose();
     }
 
     public void Dispose()

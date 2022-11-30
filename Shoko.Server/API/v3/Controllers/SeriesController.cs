@@ -98,9 +98,12 @@ public class SeriesController : BaseController
     /// Get the series with ID
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
+    /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}")]
-    public ActionResult<Series> GetSeries([FromRoute] int seriesID)
+    public ActionResult<Series> GetSeries([FromRoute] int seriesID, [FromQuery] bool randomImages = false,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -113,7 +116,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return new Series(HttpContext, series);
+        return new Series(HttpContext, series, randomImages, includeDataFrom);
     }
 
     /// <summary>
@@ -595,9 +598,12 @@ public class SeriesController : BaseController
     /// Get a Series from the AniDB ID
     /// </summary>
     /// <param name="anidbID">AniDB ID</param>
+    /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}/Series")]
-    public ActionResult<Series> GetSeriesByAnidbID([FromRoute] int anidbID)
+    public ActionResult<Series> GetSeriesByAnidbID([FromRoute] int anidbID, [FromQuery] bool randomImages = false,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByAnimeID(anidbID);
         if (series == null)
@@ -610,7 +616,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return new Series(HttpContext, series);
+        return new Series(HttpContext, series, randomImages, includeDataFrom);
     }
 
     /// <summary>
@@ -621,11 +627,12 @@ public class SeriesController : BaseController
     /// <param name="downloadRelations">Download relations for the series</param>
     /// <param name="createSeriesEntry">Also create the Series entries if they doesn't exist</param>
     /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
+    /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
     /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
     [HttpPost("AniDB/{anidbID}/Refresh")]
     public ActionResult<bool> RefreshAniDBByAniDBID([FromRoute] int anidbID, [FromQuery] bool force = false,
         [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
-        [FromQuery] bool immediate = false)
+        [FromQuery] bool immediate = false, [FromQuery] bool cacheOnly = false)
     {
         if (!createSeriesEntry.HasValue)
         {
@@ -633,7 +640,7 @@ public class SeriesController : BaseController
         }
 
         return Series.QueueAniDBRefresh(_commandFactory, _httpHandler, anidbID, force, downloadRelations,
-            createSeriesEntry.Value, immediate);
+            createSeriesEntry.Value, immediate, cacheOnly);
     }
 
     /// <summary>
@@ -644,11 +651,12 @@ public class SeriesController : BaseController
     /// <param name="downloadRelations">Download relations for the series</param>
     /// <param name="createSeriesEntry">Create the Series entries for related series if they doesn't exist</param>
     /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
+    /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
     /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
     [HttpPost("{seriesID}/AniDB/Refresh")]
     public ActionResult<bool> RefreshAniDBBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false,
         [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
-        [FromQuery] bool immediate = false)
+        [FromQuery] bool immediate = false, [FromQuery] bool cacheOnly = false)
     {
         if (!createSeriesEntry.HasValue)
         {
@@ -673,7 +681,7 @@ public class SeriesController : BaseController
         }
 
         return Series.QueueAniDBRefresh(_commandFactory, _httpHandler, anidb.AnimeID, force, downloadRelations,
-            createSeriesEntry.Value, immediate);
+            createSeriesEntry.Value, immediate, cacheOnly);
     }
 
     /// <summary>
@@ -682,27 +690,9 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko ID</param>
     /// <returns>True if the refresh is done, otherwise false if it failed.</returns>
     [HttpPost("{seriesID}/AniDB/Refresh/ForceFromXML")]
+    [Obsolete]
     public ActionResult<bool> RefreshAniDBFromXML([FromRoute] int seriesID)
-    {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
-        {
-            return NotFound(SeriesNotFoundWithSeriesID);
-        }
-
-        if (!User.AllowedSeries(series))
-        {
-            return Forbid(SeriesForbiddenForUser);
-        }
-
-        var anime = series.GetAnime();
-        if (anime == null)
-        {
-            return InternalError(AnidbNotFoundForSeriesID);
-        }
-
-        return Series.RefreshAniDBFromCachedXML(_commandFactory, anime);
-    }
+        => RefreshAniDBBySeriesID(seriesID, false, false, true, true, true);
 
     #endregion
 

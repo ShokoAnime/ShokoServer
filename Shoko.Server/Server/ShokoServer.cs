@@ -434,55 +434,6 @@ public class ShokoServer
 
     public static ShokoServer Instance { get; private set; } = new();
 
-    private static void FileAdded(object sender, string path)
-    {
-        // When the path that was created represents a directory we need to manually get the contained files to add.
-        // The reason for this is that when a directory is moved into a source directory (from the same drive) we will only receive
-        // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
-        // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
-
-        // This is faster and doesn't throw on weird paths. I've had some UTF-16/UTF-32 paths cause serious issues
-        var commandFactory = ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        if (Directory.Exists(path)) // filter out invalid events
-        {
-            logger.Info("New folder Added: {0}", path);
-            var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
-
-            foreach (var file in files)
-            {
-                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(file, s)))
-                {
-                    logger.Info("Import exclusion, skipping file {0}", file);
-                }
-                else if (FileHashHelper.IsVideo(file))
-                {
-                    logger.Info("Found file {0} under folder {1}", file, path);
-
-                    var tup = VideoLocal_PlaceRepository.GetFromFullPath(file);
-                    ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(file));
-                    var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = file);
-                    cmd.Save();
-                }
-            }
-        }
-        else if (File.Exists(path))
-        {
-            if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(path, s)))
-            {
-                logger.Info("Import exclusion, skipping file: {0}", path);
-            }
-            else if (FileHashHelper.IsVideo(path))
-            {
-                logger.Info("Found file {0}", path);
-
-                var tup = VideoLocal_PlaceRepository.GetFromFullPath(path);
-                ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
-                var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = path);
-                cmd.Save();
-            }
-        }
-    }
-
     private void InitCulture()
     {
     }
@@ -915,7 +866,9 @@ public class ShokoServer
                     
                     logger.Info($"Parsed ImportFolderLocation: {share.ImportFolderLocation}");
 
-                    var fsw = new RecoveringFileSystemWatcher(share.ImportFolderLocation);
+                    var fsw = new RecoveringFileSystemWatcher(share.ImportFolderLocation,
+                        filters: ServerSettings.Instance.Import.VideoExtensions.Select(a => "." + a.ToLowerInvariant().TrimStart('.')),
+                        pathExclusions: ServerSettings.Instance.Import.Exclude);
                     fsw.Options = new FileSystemWatcherLockOptions
                     {
                         Enabled = ServerSettings.Instance.Import.FileLockChecking,
@@ -939,6 +892,19 @@ public class ShokoServer
                 logger.Error(ex, ex.ToString());
             }
         }
+    }
+
+    private static void FileAdded(object sender, string path)
+    {
+        var commandFactory = ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        if (!File.Exists(path)) return;
+        if (!FileHashHelper.IsVideo(path)) return;
+
+        logger.Info("Found file {0}", path);
+        var tup = VideoLocal_PlaceRepository.GetFromFullPath(path);
+        ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
+        var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = path);
+        cmd.Save();
     }
 
     public void AddFileWatcherExclusion(string path)

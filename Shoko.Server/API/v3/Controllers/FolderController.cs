@@ -38,9 +38,9 @@ public class FolderController : BaseController
             return new Drive()
             {
                 Path = d.RootDirectory.FullName,
-                CanAccess = childItems != null,
+                IsAccessible = childItems != null,
                 Sizes = childItems,
-                DriveType = d.DriveType
+                Type = d.DriveType
             };
         }).ToList();
     }
@@ -68,7 +68,7 @@ public class FolderController : BaseController
             {
             }
 
-            return new Folder() { Path = dir.FullName, CanAccess = childItems != null, Sizes = childItems };
+            return new Folder() { Path = dir.FullName, IsAccessible = childItems != null, Sizes = childItems };
         }).ToList();
     }
 }

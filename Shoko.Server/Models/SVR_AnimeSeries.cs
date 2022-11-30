@@ -154,6 +154,17 @@ public class SVR_AnimeSeries : AnimeSeries
         }
     }
 
+    /// <summary>
+    /// Get video locals for anime series.
+    /// </summary>
+    /// <param name="xrefSource">Set to a value to only select video locals from
+    /// a select source.</param>
+    /// <returns>All or some video locals for the anime series.</returns>
+    public List<SVR_VideoLocal> GetVideoLocals(CrossRefSource? xrefSource = null)
+    {
+        return RepoFactory.VideoLocal.GetByAniDBAnimeID(AniDB_ID, xrefSource);
+    }
+
 
     public List<SVR_AnimeEpisode> GetAnimeEpisodes(bool orderList = false)
     {

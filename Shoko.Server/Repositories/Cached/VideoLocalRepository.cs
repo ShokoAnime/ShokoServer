@@ -9,6 +9,7 @@ using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Utils;
+using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
@@ -450,11 +451,21 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     /// <summary>
     /// returns all the VideoLocal records associate with an AnimeEpisode Record
     /// </summary>
-    /// <param name="episodeID"></param>
+    /// <param name="episodeID">AniDB Episode ID</param>
+    /// <param name="xrefSource">Include to select only files from the selected
+    /// cross-reference source.</param>
     /// <returns></returns>
     /// 
-    public List<SVR_VideoLocal> GetByAniDBEpisodeID(int episodeID)
+    public List<SVR_VideoLocal> GetByAniDBEpisodeID(int episodeID, CrossRefSource? xrefSource = null)
     {
+        if (xrefSource.HasValue)
+            return
+                RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episodeID)
+                    .Where(xref => xref.CrossRefSource == (int)xrefSource.Value)
+                    .Select(xref => GetByHash(xref.Hash))
+                    .Where(file => file != null)
+                    .ToList();
+
         return RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episodeID)
             .Select(a => GetByHash(a.Hash))
             .Where(a => a != null)
@@ -484,10 +495,20 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     /// <summary>
     /// returns all the VideoLocal records associate with an AniDB_Anime Record
     /// </summary>
-    /// <param name="animeID"></param>
+    /// <param name="animeID">AniDB Anime ID</param>
+    /// <param name="xrefSource">Include to select only files from the selected
+    /// cross-reference source.</param>
     /// <returns></returns>
-    public List<SVR_VideoLocal> GetByAniDBAnimeID(int animeID)
+    public List<SVR_VideoLocal> GetByAniDBAnimeID(int animeID, CrossRefSource? xrefSource = null)
     {
+        if (xrefSource.HasValue)
+            return
+                RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
+                    .Where(xref => xref.CrossRefSource == (int)xrefSource.Value)
+                    .Select(xref => GetByHash(xref.Hash))
+                    .Where(file => file != null)
+                    .ToList();
+
         return
             RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
                 .Select(a => GetByHash(a.Hash))
@@ -507,24 +528,30 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 .Where(
                     a =>
                     {
-                        if (a.IsIgnored != 0)
-                        {
-                            return false;
-                        }
+                        if (a.IsIgnored != 0) return false;
 
                         var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
-                        if (!xrefs.Any())
-                        {
-                            return true;
-                        }
-
-                        return RepoFactory.AniDB_Anime.GetByAnimeID(xrefs.First().AnimeID) == null;
+                        if (!xrefs.Any()) return true;
+                        return !xrefs.Any(IsImported);
                     }
                 )
-                .OrderByNatural(local => local?.GetBestVideoLocalPlace()?.FilePath)
+                .OrderByNatural(local =>
+                {
+                    var place = local?.GetBestVideoLocalPlace();
+                    if (place == null) return null;
+                    return place.FullServerPath ?? place.FilePath;
+                })
                 .ThenBy(local => local?.VideoLocalID ?? 0)
                 .ToList()
         );
+    }
+
+    private static bool IsImported(CrossRef_File_Episode xref)
+    {
+        var ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
+        if (ep?.AniDB_Episode == null) return false;
+        var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+        return anime?.GetAnime() != null;
     }
 
     public List<SVR_VideoLocal> GetVideosWithoutEpisodeUnsorted()

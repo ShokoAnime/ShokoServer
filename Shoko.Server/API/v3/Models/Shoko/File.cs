@@ -6,9 +6,9 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.API.Converters;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -48,7 +48,7 @@ public class File
     /// <summary>
     /// Try to fit this file's resolution to something like 1080p, 480p, etc
     /// </summary>
-    public string RoundedStandardResolution { get; set; }
+    public string Resolution { get; set; }
 
     /// <summary>
     /// The duration of the file.
@@ -72,24 +72,38 @@ public class File
     [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime Created { get; set; }
 
+    /// <summary>
+    /// When the file was last updated (e.g. the hashes were added/updated).
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime Updated { get; set; }
+
     public File() { }
 
-    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false)
+    /// <summary>
+    /// The <see cref="File.AniDB"/>, if <see cref="DataSource.AniDB"/> is
+    /// included in the data to add.
+    /// </summary>
+    [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
+    public AniDB _AniDB { get; set; }
+
+    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null)
     {
         var userID = context?.GetUser()?.JMMUserID ?? 0;
         var userRecord = file.GetUserRecord(userID);
         ID = file.VideoLocalID;
         Size = file.FileSize;
         Hashes = new Hashes { ED2K = file.Hash, MD5 = file.MD5, CRC32 = file.CRC32, SHA1 = file.SHA1 };
-        RoundedStandardResolution = FileQualityFilter.GetResolution(file);
+        Resolution = FileQualityFilter.GetResolution(file);
         Locations = file.Places.Select(a => new Location
         {
-            ImportFolderID = a.ImportFolderID, RelativePath = a.FilePath, Accessible = a.GetFile() != null
+            ImportFolderID = a.ImportFolderID, RelativePath = a.FilePath, IsAccessible = a.GetFile() != null
         }).ToList();
         Duration = file.DurationTimeSpan;
         ResumePosition = userRecord?.ResumePositionTimeSpan;
         Watched = userRecord?.WatchedDate;
         Created = file.DateTimeCreated;
+        Updated = file.DateTimeUpdated;
         if (withXRefs)
         {
             var episodes = file.GetAnimeEpisodes();
@@ -125,12 +139,13 @@ public class File
                 })
                 .ToList();
         }
-    }
 
-    public static MediaContainer GetMedia(int id)
-    {
-        var vl = RepoFactory.VideoLocal.GetByID(id);
-        return vl?.Media;
+        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
+        {
+            var anidbFile = file.GetAniDBFile();
+            if (anidbFile != null)
+                this._AniDB = new File.AniDB(anidbFile);
+        }
     }
 
     public class Location
@@ -149,7 +164,7 @@ public class File
         /// Can the server access the file right now
         /// </summary>
         [JsonRequired]
-        public bool Accessible { get; set; }
+        public bool IsAccessible { get; set; }
     }
 
     /// <summary>

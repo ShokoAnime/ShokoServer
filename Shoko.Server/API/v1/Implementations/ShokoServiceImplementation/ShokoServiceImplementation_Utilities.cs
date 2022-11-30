@@ -73,7 +73,7 @@ public partial class ShokoServiceImplementation
     private static string RemoveSubgroups(string value)
     {
         var originalLength = value.Length;
-        var releaseGroups = SVR_AniDB_Anime.GetAllReleaseGroups();
+        var releaseGroups = RepoFactory.AniDB_ReleaseGroup.GetAllReleaseGroups();
         foreach (var releaseGroup in releaseGroups)
         {
             value = ReplaceCaseInsensitive(value, releaseGroup, string.Empty);
@@ -149,7 +149,7 @@ public partial class ShokoServiceImplementation
     [HttpGet("ReleaseGroups")]
     public List<string> GetAllReleaseGroups()
     {
-        return SVR_AniDB_Anime.GetAllReleaseGroups().ToList();
+        return RepoFactory.AniDB_ReleaseGroup.GetAllReleaseGroups().ToList();
     }
 
     [HttpGet("File/DeleteMultipleFilesWithPreferences/{userID}")]

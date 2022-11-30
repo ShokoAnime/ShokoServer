@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
 using NHibernate.Criterion;
+using NHibernate.SqlCommand;
 using Shoko.Commons.Collections;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
@@ -87,6 +89,38 @@ public class AniDB_CharacterRepository : BaseDirectRepository<AniDB_Character, i
                     )
                 )
                 .ToLookup(ac => ac.AnimeID);
+
+            return animeChars;
+        }
+    }
+
+    public IList<(AniDB_Character character, string type)> GetCharactersByAnime(int animeId)
+    {
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        return GetCharactersByAnime(session.Wrap(), animeId);
+    }
+    
+    public IList<(AniDB_Character character, string type)> GetCharactersByAnime(ISessionWrapper session,
+        int animeId)
+    {
+        if (session == null)
+        {
+            throw new ArgumentNullException(nameof(session));
+        }
+
+        lock (GlobalDBLock)
+        {
+            // The below query makes sure that only one seiyuu is returned for each anime/character combiniation
+            var animeChars = session.CreateSQLQuery(
+                    @"SELECT distinct {chr.*}, animeChr.CharType
+                      FROM AniDB_Anime_Character AS animeChr
+                      INNER JOIN AniDB_Character AS chr ON chr.CharID = animeChr.CharID
+                      WHERE animeChr.AnimeID = :animeId"
+                )
+                .AddEntity("chr", typeof(AniDB_Character))
+                .AddScalar("CharType", NHibernateUtil.String)
+                .SetParameter("animeId", animeId)
+                .List<object[]>().Select(a => ((AniDB_Character)a[0], (string)a[1])).ToList();
 
             return animeChars;
         }

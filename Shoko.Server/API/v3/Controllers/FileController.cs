@@ -6,7 +6,6 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
-using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
@@ -18,6 +17,7 @@ using Shoko.Server.Settings;
 using CommandRequestPriority = Shoko.Server.Server.CommandRequestPriority;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using Path = System.IO.Path;
+using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -46,15 +46,17 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="fileID">Shoko VideoLocalID</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("{fileID}")]
-    public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery] bool includeXRefs = false)
+    public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery] bool includeXRefs = false,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        return new File(HttpContext, file, includeXRefs);
+        return new File(HttpContext, file, includeXRefs, includeDataFrom);
     }
 
     /// <summary>
@@ -130,9 +132,11 @@ public class FileController : BaseController
     /// </remarks>
     /// <param name="anidbFileID">AniDB File ID</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbFileID}/File")]
-    public ActionResult<File> GetFileByAnidbFileID([FromRoute] int anidbFileID, [FromQuery] bool includeXRefs = false)
+    public ActionResult<File> GetFileByAnidbFileID([FromRoute] int anidbFileID, [FromQuery] bool includeXRefs = false,
+        [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
         if (anidb == null)
@@ -142,7 +146,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(AnidbNotFoundForFileID);
 
-        return new File(HttpContext, file, includeXRefs);
+        return new File(HttpContext, file, includeXRefs, includeDataFrom);
     }
 
     /// <summary>
@@ -151,17 +155,17 @@ public class FileController : BaseController
     /// <param name="fileID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{fileID}/MediaInfo")]
-    public ActionResult<MediaContainer> GetFileMediaInfo([FromRoute] int fileID)
+    public ActionResult<MediaInfo> GetFileMediaInfo([FromRoute] int fileID)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var mediaContainer = Models.Shoko.File.GetMedia(fileID);
+        var mediaContainer = file?.Media;
         if (mediaContainer == null)
             return InternalError("Unable to find media container for File");
 
-        return mediaContainer;
+        return new MediaInfo(file, mediaContainer);
     }
 
     /// <summary>
@@ -763,7 +767,7 @@ public class FileController : BaseController
     /// <param name="path">a path to search for. URL Encoded</param>
     /// <returns></returns>
     [HttpGet("PathRegex/{*path}")]
-    public ActionResult<List<File>> RegexSearchByFilename([FromRoute] string path)
+    public ActionResult<List<File>> RegexSearchByPath([FromRoute] string path)
     {
         var query = path;
         if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
@@ -782,6 +786,40 @@ public class FileController : BaseController
 
         var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
             .Where(a => regex.IsMatch(a.FullServerPath)).Select(a => a.VideoLocal)
+            .Distinct()
+            .Where(a =>
+            {
+                var ser = a?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
+                return ser == null || User.AllowedSeries(ser);
+            }).Select(a => new File(HttpContext, a, true)).ToList();
+        return results;
+    }
+
+    /// <summary>
+    /// Search for a file by path or name via regex. Internally, it will convert \/ to the system directory separator and match against the string
+    /// </summary>
+    /// <param name="path">a path to search for. URL Encoded</param>
+    /// <returns></returns>
+    [HttpGet("FilenameRegex/{*path}")]
+    public ActionResult<List<File>> RegexSearchByFileName([FromRoute] string path)
+    {
+        var query = path;
+        if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
+        if (query.Contains("%")) query = Uri.UnescapeDataString(query);
+        if (Path.DirectorySeparatorChar == '\\') query = query.Replace("\\/", "\\\\");
+        Regex regex;
+
+        try
+        {
+            regex = new Regex(query, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+        }
+        catch (RegexParseException e)
+        {
+            return BadRequest(e.Message);
+        }
+
+        var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
+            .Where(a => regex.IsMatch(a.FileName)).Select(a => a.VideoLocal)
             .Distinct()
             .Where(a =>
             {

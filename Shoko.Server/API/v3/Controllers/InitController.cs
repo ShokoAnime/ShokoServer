@@ -1,13 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NLog;
-using Shoko.Commons;
-using Shoko.Models.Server;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Databases;
@@ -28,7 +25,27 @@ namespace Shoko.Server.API.v3.Controllers;
 [InitFriendly]
 public class InitController : BaseController
 {
-    private readonly Logger logger = LogManager.GetCurrentClassLogger();
+    private readonly ILogger<InitController> _logger;
+
+    public InitController(ILogger<InitController> logger)
+    {
+        _logger = logger;
+    }
+
+    private record WebUIVersion {
+        /// <summary>
+        /// Package version.
+        /// </summary>
+        public string package = "1.0.0";
+        /// <summary>
+        /// Short-form git commit sha digest.
+        /// </summary>
+        public string git = "0000000";
+        /// <summary>
+        /// True if this is a debug package.
+        /// </summary>
+        public bool debug = false;
+    }
 
     /// <summary>
     /// Return current version of ShokoServer and several modules
@@ -36,83 +53,56 @@ public class InitController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("Version")]
-    public List<ComponentVersion> GetVersion()
+    public ComponentVersionSet GetVersion()
     {
-        List<ComponentVersion> list = new List<ComponentVersion>();
-
-        ComponentVersion version = new ComponentVersion
+        var versionSet = new ComponentVersionSet()
         {
-            Version = Utils.GetApplicationVersion(),
-            Name = "Server"
+            Server = new() { Version = Utils.GetApplicationVersion() },
+            Commons = new() { Version = Utils.GetApplicationVersion(Assembly.GetAssembly(typeof(Shoko.Commons.Culture))) },
+            Models = new() { Version = Utils.GetApplicationVersion(Assembly.GetAssembly(typeof(Shoko.Models.Constants))) },
+            MediaInfo = new()
         };
-        list.Add(version);
 
-        string versionExtra = Utils.GetApplicationExtraVersion();
-
-        if (!string.IsNullOrEmpty(versionExtra))
+        foreach (var raw in Utils.GetApplicationExtraVersion().Split(","))
         {
-            version = new ComponentVersion
+            var pair = raw.Split("=");
+            if (pair.Length != 2 || string.IsNullOrEmpty(pair[1])) continue;
+            switch (pair[0])
             {
-                Version = versionExtra,
-                Name = "ServerCommit"
-            };
-            list.Add(version);
-        }
-
-        version = new ComponentVersion
-        {
-            Version = Assembly.GetAssembly(typeof(FolderMappings)).GetName().Version.ToString(),
-            Name = "Commons"
-        };
-        list.Add(version);
-
-        version = new ComponentVersion
-        {
-            Version = Assembly.GetAssembly(typeof(AniDB_Anime)).GetName().Version.ToString(),
-            Name = "Models"
-        };
-        list.Add(version);
-
-        string dllpath = Assembly.GetEntryAssembly().Location;
-        dllpath = Path.GetDirectoryName(dllpath);
-        dllpath = Path.Combine(dllpath, "MediaInfo", "MediaInfo.exe");
-
-        if (System.IO.File.Exists(dllpath))
-        {
-            version = new ComponentVersion
-            {
-                Version = FileVersionInfo.GetVersionInfo(dllpath).FileVersion,
-                Name = "MediaInfo"
-            };
-            list.Add(version);
-        }
-        else
-        {
-            version = new ComponentVersion
-            {
-                Version = @"MediaInfo not found",
-                Name = "MediaInfo"
-            };
-            list.Add(version);
-        }
-
-        // TODO new webui location
-        if (System.IO.File.Exists("webui//index.ver"))
-        {
-            string webui_version = System.IO.File.ReadAllText("webui//index.ver");
-            string[] versions = webui_version.Split('>');
-            if (versions.Length == 2)
-            {
-                version = new ComponentVersion
-                {
-                    Name = "WebUI/" + versions[0],
-                    Version = versions[1]
-                };
-                list.Add(version);
+                case "tag":
+                    versionSet.Server.Tag = pair[1];
+                    break;
+                case "commit":
+                    versionSet.Server.Commit = pair[1];
+                    break;
+                case "channel":
+                    if (Enum.TryParse<ReleaseChannel>(pair[1], true, out var channel))
+                        versionSet.Server.ReleaseChannel = channel;
+                    else
+                        versionSet.Server.ReleaseChannel = ReleaseChannel.Debug;
+                    break;
             }
         }
 
-        return list;
+        var mediaInfoFileInfo = new FileInfo(Path.Combine(Assembly.GetEntryAssembly().Location, "../MediaInfo", "MediaInfo.exe"));
+        versionSet.MediaInfo = new()
+        {
+            Version = mediaInfoFileInfo.Exists ? FileVersionInfo.GetVersionInfo(mediaInfoFileInfo.FullName).FileVersion : null,
+        };
+
+        var webUIFileInfo = new FileInfo(Path.Combine(ServerSettings.ApplicationPath, "webui/version.json"));
+        if (webUIFileInfo.Exists)
+        {
+            var webuiVersion = Newtonsoft.Json.JsonConvert.DeserializeObject<WebUIVersion>(System.IO.File.ReadAllText(webUIFileInfo.FullName));
+            versionSet.WebUI = new()
+            {
+                Version = webuiVersion.package,
+                ReleaseChannel = webuiVersion.debug ? ReleaseChannel.Debug : webuiVersion.package.Contains("-dev") ? ReleaseChannel.Dev : ReleaseChannel.Stable,
+                Commit = webuiVersion.git,
+            };
+        }
+
+        return versionSet;
     }
 
     /// <summary>
@@ -212,7 +202,7 @@ public class InitController : BaseController
         }
         catch (Exception e)
         {
-            logger.Error($"There was an error starting the server: {e}");
+            _logger.LogError(e, $"There was an error starting the server: {e}");
             return InternalError($"There was an error starting the server: {e}");
         }
         return Ok();

@@ -20,17 +20,11 @@ public class TextSubtitles : ISubtitles
         {
             a.External = true;
             a.Filename = file.Name;
-            if (language == null)
-            {
-                return;
-            }
+            if (language == null) return;
 
             a.Language = language;
             var mapping = MediaInfoUtils.GetLanguageMapping(language);
-            if (mapping == null)
-            {
-                return;
-            }
+            if (mapping == null) return;
 
             a.LanguageCode = mapping.Item1;
             a.LanguageName = mapping.Item2;

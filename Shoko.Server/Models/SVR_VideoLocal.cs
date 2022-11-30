@@ -35,28 +35,37 @@ public class SVR_VideoLocal : VideoLocal, IHash
 
     #endregion
 
-
     public int MyListID { get; set; }
 
     public bool IsManualLink => GetAniDBFile() == null;
 
     /// <summary>
-    /// Duration in ms. (MediaInfo model has it in seconds
+    /// Playback duration in milliseconds.
     /// </summary>
+    /// <remarks>
+    /// MediaInfo model has it in seconds, with milliseconds after the decimal point.
+    /// </remarks>
     public long Duration => (long) (Media?.GeneralStream?.Duration * 1000 ?? 0);
 
     /// <summary>
-    /// Duration as a TimeSpan
+    /// Playback duration as a <see cref="TimeSpan"/>.
     /// </summary>
-    public TimeSpan DurationTimeSpan => new TimeSpan(0, 0, (int)(Media?.GeneralStream?.Duration ?? 0));
+    public TimeSpan DurationTimeSpan
+    {
+        get
+        {
+            var duration = Media?.GeneralStream?.Duration ?? 0;
+            var seconds = Math.Truncate(duration);
+            var milliseconds = (duration - seconds) * 1000;
+            return new TimeSpan(0, 0, 0, (int)seconds, (int)milliseconds);
+        }
+    }
 
     public string VideoResolution => Media?.VideoStream == null ? "0x0" : $"{Media.VideoStream.Width}x{Media.VideoStream.Height}";
 
     public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
 
-
     public const int MEDIA_VERSION = 5;
-
 
     private MediaContainer _media { get; set; }
 

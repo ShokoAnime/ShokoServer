@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +22,7 @@ public class RecoveringFileSystemWatcher : IDisposable
     private readonly TimeSpan _directoryRetryInterval = TimeSpan.FromMinutes(5);
     private readonly ILogger _logger;
     private readonly IReadOnlyCollection<string> _filters;
+    private readonly IReadOnlyCollection<Regex> _pathExclusions;
     private readonly ConcurrentDictionary<string, WatcherChangeTypes> _buffer = new();
     private readonly ObservableCollection<string> _exclusions = new();
     private readonly string _path;
@@ -29,26 +31,35 @@ public class RecoveringFileSystemWatcher : IDisposable
     public event EventHandler<string> FileDeleted;
     public FileSystemWatcherLockOptions Options { get; set; } = new();
 
-    public RecoveringFileSystemWatcher(string path, IEnumerable<string> filters = null)
+    public RecoveringFileSystemWatcher(string path, IEnumerable<string> filters = null, IEnumerable<string> pathExclusions = null)
     {
         if (path == null) throw new ArgumentException(nameof(path) + " cannot be null");
         if (!Directory.Exists(path)) throw new ArgumentException(nameof(path) + $" must be a directory that exists: {path}");
-        _path = path;
-        _filters = filters?.AsReadOnlyCollection();
-
         // bad, but meh for now
-        _logger = ShokoServer.ServiceContainer.GetRequiredService<ILoggerFactory>().CreateLogger("ImportFolderWatcher: " + _path);
-    }
+        _logger = ShokoServer.ServiceContainer.GetRequiredService<ILoggerFactory>().CreateLogger("ImportFolderWatcher: " + path);
+        _path = path;
+        _filters = filters?.AsReadOnlyCollection() ?? Enumerable.Empty<string>().AsReadOnlyCollection();
 
-    private void OnFileAdded(string path, WatcherChangeTypes type)
-    {
-        if (ExclusionsEnabled && _exclusions.Contains(path))
+        pathExclusions ??= Enumerable.Empty<string>();
+        var exclusions = new List<Regex>();
+        foreach (var exclusion in pathExclusions)
         {
-            _logger.LogTrace("Excluding {Path}, as it is in the exclusions", path);
-            _buffer.TryRemove(path, out _);
-            return;
+            try
+            {
+                var regex = new Regex(exclusion, RegexOptions.Compiled);
+                exclusions.Add(regex);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Unable to add Exclusion Regex: {Regex}, {Ex}", exclusion, e);
+            }
         }
 
+        _pathExclusions = exclusions.AsReadOnlyCollection();
+    }
+
+    private void OnFileEvent(string path, WatcherChangeTypes type)
+    {
         Task.Factory.StartNew(par1 =>
         {
             var (path1, type1) = ((string path, WatcherChangeTypes type))par1;
@@ -59,7 +70,7 @@ public class RecoveringFileSystemWatcher : IDisposable
                     case WatcherChangeTypes.Created:
                     case WatcherChangeTypes.Changed:
                     case WatcherChangeTypes.Renamed:
-                        if (ShouldAddFile(path1)) FileAdded?.Invoke(this, path1);
+                        if (!IsLocked(path1)) FileAdded?.Invoke(this, path1);
                         break;
                     case WatcherChangeTypes.Deleted:
                         FileDeleted?.Invoke(this, path1);
@@ -84,27 +95,18 @@ public class RecoveringFileSystemWatcher : IDisposable
         try
         {
             var item = (e.FullPath, Type: e.ChangeType);
-
-            // We get only a single event for directories
-            if (Directory.Exists(item.FullPath))
-            {
-                if (item.Type == WatcherChangeTypes.Deleted) return;
-                _logger.LogTrace("New Directory Found. Iterating: {Path}", item.FullPath);
-                // iterate and send a command for each containing file
-                foreach (var file in Directory.GetFiles(item.FullPath, "*.*", SearchOption.AllDirectories))
-                {
-                    var fileItem = item with { FullPath = file };
-                    if (_buffer.TryAdd(fileItem.FullPath, fileItem.Type)) OnFileAdded(fileItem.FullPath, fileItem.Type);
-                }
-
-                return;
-            }
-
+            // Exclusion Settings
+            if (_pathExclusions.Any(a => a.IsMatch(e.FullPath))) return;
+            // Temporary Exclusions, like drop folders
+            if (ExclusionsEnabled && _exclusions.Contains(e.FullPath)) return;
+            // handle directories
+            if (DirectoryExists(item)) return;
+            // Is it a video file
+            if (_filters.Any() && !_filters.Any(a => item.FullPath.ToLowerInvariant().EndsWith(a))) return;
+            if (_buffer.ContainsKey(item.FullPath)) return;
             _logger.LogTrace("File Event Occurred (not added yet): {Event}, {Path}", e.ChangeType, e.FullPath);
-            if (!_buffer.ContainsKey(item.FullPath))
-            {
-                if (_buffer.TryAdd(item.FullPath, item.Type)) OnFileAdded(item.FullPath, item.Type);
-            }
+            if (!_buffer.TryAdd(item.FullPath, item.Type)) return;
+            OnFileEvent(item.FullPath, item.Type);
         }
         catch (DirectoryNotFoundException)
         {
@@ -114,6 +116,25 @@ public class RecoveringFileSystemWatcher : IDisposable
         {
             _logger.LogError(exception, "{Ex}", exception);
         }
+    }
+
+    private bool DirectoryExists((string FullPath, WatcherChangeTypes Type) item)
+    {
+        // We get only a single event for directories
+        if (!Directory.Exists(item.FullPath)) return false;
+        if (item.Type == WatcherChangeTypes.Deleted) return true;
+        _logger.LogTrace("New Directory Found. Iterating: {Path}", item.FullPath);
+        // iterate and send a command for each containing file
+        foreach (var file in Directory.GetFiles(item.FullPath, "*.*", SearchOption.AllDirectories))
+        {
+            var fileItem = item with { FullPath = file };
+            if (_filters.Any() && !_filters.Any(a => fileItem.FullPath.ToLowerInvariant().EndsWith(a))) continue;
+            if (_buffer.ContainsKey(fileItem.FullPath)) continue;
+            if (!_buffer.TryAdd(fileItem.FullPath, fileItem.Type)) continue;
+            OnFileEvent(fileItem.FullPath, fileItem.Type);
+        }
+
+        return true;
     }
 
     private void WatcherOnError(object sender, ErrorEventArgs e)
@@ -201,9 +222,10 @@ public class RecoveringFileSystemWatcher : IDisposable
             IncludeSubdirectories = true,
             InternalBufferSize = 65536, //64KiB
         };
-        _filters?.ForEach(watcher.Filters.Add);
+
         watcher.Created += WatcherChangeDetected;
         watcher.Changed += WatcherChangeDetected;
+        watcher.Renamed += WatcherChangeDetected;
         watcher.Deleted += WatcherChangeDetected;
         watcher.Error += WatcherOnError;
         return watcher;
@@ -229,9 +251,9 @@ public class RecoveringFileSystemWatcher : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private bool ShouldAddFile(string path)
+    private bool IsLocked(string path)
     {
-        if (!Options.Enabled) return true;
+        if (!Options.Enabled) return false;
         Exception e = null;
         long filesize;
         var numAttempts = 0;
@@ -253,7 +275,7 @@ public class RecoveringFileSystemWatcher : IDisposable
                 {
                     _logger.LogTrace("Failed to access. File no longer exists. Attempt # {NumAttempts}, {FileName}",
                         numAttempts, path);
-                    return false;
+                    return true;
                 }
 
                 numAttempts++;
@@ -272,7 +294,7 @@ public class RecoveringFileSystemWatcher : IDisposable
                 {
                     _logger.LogTrace("Failed to access. File no longer exists. Attempt # {NumAttempts}, {FileName}",
                         numAttempts, path);
-                    return false;
+                    return true;
                 }
 
                 numAttempts++;
@@ -284,7 +306,7 @@ public class RecoveringFileSystemWatcher : IDisposable
             if (numAttempts >= 60)
             {
                 _logger.LogError("Could not access file: {Filename}", path);
-                return false;
+                return true;
             }
 
             var seconds = Options.AggressiveWaitTimeSeconds;
@@ -302,7 +324,7 @@ public class RecoveringFileSystemWatcher : IDisposable
                 {
                     _logger.LogTrace("Failed to access. File no longer exists. Attempt # {NumAttempts}, {FileName}",
                         numAttempts, path);
-                    return false;
+                    return true;
                 }
 
                 numAttempts++;
@@ -317,12 +339,12 @@ public class RecoveringFileSystemWatcher : IDisposable
             }
         }
 
-        if (numAttempts < 60 && filesize != 0) return true;
+        if (numAttempts < 60 && filesize != 0) return false;
 
         _logger.LogError("Could not access file: {Filename}", path);
-        return false;
+        return true;
     }
-    
+
     //Added size return, since symbolic links return 0, we use this function also to return the size of the file.
     private long CanAccessFile(string fileName, ref Exception e)
     {

@@ -70,11 +70,25 @@ public class Series : BaseModel
     [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime Updated { get; set; }
 
+    /// <summary>
+    /// The <see cref="Series.AniDB"/>, if <see cref="DataSource.AniDB"/> is
+    /// included in the data to add.
+    /// </summary>
+    [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
+    public AniDBWithDate _AniDB { get; set; }
+
+    /// <summary>
+    /// The <see cref="Series.TvDB"/> entries, if <see cref="DataSource.TvDB"/>
+    /// is included in the data to add.
+    /// </summary>
+    [JsonProperty("TvDB", NullValueHandling = NullValueHandling.Ignore)]
+    public IEnumerable<TvDB> _TvDB { get; set; }
+
     #region Constructors and Helper Methods
 
     public Series() { }
 
-    public Series(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false)
+    public Series(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false, HashSet<DataSource> includeDataFrom = null)
     {
         var uid = ctx.GetUser()?.JMMUserID ?? 0;
 
@@ -97,6 +111,11 @@ public class Series : BaseModel
 
         Created = ser.DateTimeCreated;
         Updated = ser.DateTimeUpdated;
+
+        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
+            this._AniDB = new Series.AniDBWithDate(ctx, ser.GetAnime(), ser);
+        if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
+            this._TvDB = GetTvDBInfo(ctx, ser);
     }
 
     private void AddBasicAniDBInfo(HttpContext ctx, SVR_AnimeSeries ser)
@@ -122,37 +141,16 @@ public class Series : BaseModel
         }
     }
 
-    public static bool RefreshAniDBFromCachedXML(ICommandRequestFactory commandFactory, SVR_AniDB_Anime anime)
-    {
-        try
-        {
-            var command = commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
-            {
-                c.AnimeID = anime.AnimeID;
-                c.DownloadRelations = false;
-                c.ForceRefresh = false;
-                c.CacheOnly = true;
-                c.CreateSeriesEntry = true;
-                c.BubbleExceptions = true;
-            });
-            command.ProcessCommand();
-        }
-        catch
-        {
-            return false;
-        }
-
-        return true;
-    }
-
     public static bool QueueAniDBRefresh(ICommandRequestFactory commandFactory, IHttpConnectionHandler handler,
-        int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false)
+        int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
+        bool cacheOnly = false)
     {
         var command = commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
         {
             c.AnimeID = animeID;
             c.DownloadRelations = downloadRelations;
             c.ForceRefresh = force;
+            c.CacheOnly = !force && cacheOnly;
             c.CreateSeriesEntry = createSeriesEntry;
             c.BubbleExceptions = immediate;
         });
@@ -353,27 +351,15 @@ public class Series : BaseModel
         var tags = new List<Tag>();
 
         var allTags = anime.GetAniDBTags().DistinctBy(a => a.TagName).ToList();
-        var filteredTags =
-            new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName)
-                .ProcessTags(filter, allTags);
-        foreach (var tag in filteredTags)
-        {
-            var toAPI = new Tag { Name = tag.TagName };
-            var animeXRef = RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).FirstOrDefault();
-            if (animeXRef != null)
+        var tagFilter = new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName);
+        return tagFilter
+            .ProcessTags(filter, allTags)
+            .Select(tag => 
             {
-                toAPI.Weight = animeXRef.Weight;
-            }
-
-            if (!excludeDescriptions)
-            {
-                toAPI.Description = tag.TagDescription;
-            }
-
-            tags.Add(toAPI);
-        }
-
-        return tags;
+                var xref = RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).FirstOrDefault(xref => xref.AnimeID == anime.AnimeID);
+                return new Tag(tag, excludeDescriptions) { Weight = xref?.Weight ?? 0 };
+            })
+            .ToList();
     }
 
     public static SeriesType GetAniDBSeriesType(int? animeType)

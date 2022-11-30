@@ -8,8 +8,7 @@ public class Folder
     public string Path { get; set; }
 
     [DefaultValue(false)]
-    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
-    public bool CanAccess { get; set; }
+    public bool IsAccessible { get; set; }
 
     public ChildItems Sizes { get; set; }
 }

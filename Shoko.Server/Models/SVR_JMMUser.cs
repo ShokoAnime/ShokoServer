@@ -47,6 +47,11 @@ public class SVR_JMMUser : JMMUser, IIdentity
         return !this.GetHideCategories().FindInEnumerable(grp.Contract.Stat_AllTags);
     }
 
+    public bool AllowedTag(AniDB_Tag tag)
+    {
+        return !this.GetHideCategories().Contains(tag.TagName);
+    }
+
     public static bool CompareUser(JMMUser olduser, JMMUser newuser)
     {
         if (olduser == null || olduser.HideCategories == newuser.HideCategories)

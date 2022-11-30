@@ -40,10 +40,24 @@ public class Episode : BaseModel
     /// </summary>
     [Required]
     public DateTime? Watched { get; set; }
+    
+    /// <summary>
+    /// The <see cref="Episode.AniDB"/>, if <see cref="DataSource.AniDB"/> is
+    /// included in the data to add.
+    /// </summary>
+    [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
+    public AniDB _AniDB { get; set; }
+
+    /// <summary>
+    /// The <see cref="Episode.TvDB"/> entries, if <see cref="DataSource.TvDB"/>
+    /// is included in the data to add.
+    /// </summary>
+    [JsonProperty("TvDB", NullValueHandling = NullValueHandling.Ignore)]
+    public IEnumerable<TvDB> _TvDB { get; set; }
 
     public Episode() { }
 
-    public Episode(HttpContext context, SVR_AnimeEpisode episode)
+    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource> includeDataFrom = null)
     {
         var userID = context.GetUser()?.JMMUserID ?? 0;
         var anidbEpisode = episode.AniDB_Episode;
@@ -74,6 +88,11 @@ public class Episode : BaseModel
         Watched = userRecord?.WatchedDate;
         Name = GetEpisodeTitle(episode.AniDB_EpisodeID);
         Size = files.Count;
+
+        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
+            this._AniDB = new Episode.AniDB(anidbEpisode);
+        if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
+            this._TvDB = tvdbEpisodes.Select(tvdbEpisode => new TvDB(tvdbEpisode));
     }
 
 
@@ -213,14 +232,14 @@ public class Episode : BaseModel
             ID = tvDBEpisode.Id;
             Season = tvDBEpisode.SeasonNumber;
             Number = tvDBEpisode.EpisodeNumber;
-            AbsoluteNumber = tvDBEpisode.AbsoluteNumber ?? 0;
+            AbsoluteNumber = tvDBEpisode.AbsoluteNumber;
             Title = tvDBEpisode.EpisodeName;
             Description = tvDBEpisode.Overview;
             AirDate = tvDBEpisode.AirDate;
             Rating = rating;
-            AirsAfterSeason = tvDBEpisode.AirsAfterSeason ?? 0;
-            AirsBeforeSeason = tvDBEpisode.AirsBeforeSeason ?? 0;
-            AirsBeforeEpisode = tvDBEpisode.AirsBeforeEpisode ?? 0;
+            AirsAfterSeason = tvDBEpisode.AirsAfterSeason;
+            AirsBeforeSeason = tvDBEpisode.AirsBeforeSeason;
+            AirsBeforeEpisode = tvDBEpisode.AirsBeforeEpisode;
             Thumbnail = new Image(tvDBEpisode.Id, ImageEntityType.TvDB_Episode, true);
         }
 
@@ -242,7 +261,7 @@ public class Episode : BaseModel
         /// <summary>
         /// Absolute Episode Number. Keep in mind that due to reordering, this may not be accurate.
         /// </summary>
-        public int AbsoluteNumber { get; set; }
+        public int? AbsoluteNumber { get; set; }
 
         /// <summary>
         /// Episode Title, in the language selected for TvDB. TvDB doesn't allow pulling more than one language at a time, so this isn't a list.
@@ -263,17 +282,17 @@ public class Episode : BaseModel
         /// <summary>
         /// Mostly for specials. It shows when in the timeline the episode aired. I wouldn't count on it, as it's often blank.
         /// </summary>
-        public int AirsAfterSeason { get; set; }
+        public int? AirsAfterSeason { get; set; }
 
         /// <summary>
         /// Mostly for specials. It shows when in the timeline the episode aired. I wouldn't count on it, as it's often blank.
         /// </summary>
-        public int AirsBeforeSeason { get; set; }
+        public int? AirsBeforeSeason { get; set; }
 
         /// <summary>
         /// Like AirsAfterSeason, it is for determining where in the timeline an episode airs. Also often blank.
         /// </summary>
-        public int AirsBeforeEpisode { get; set; }
+        public int? AirsBeforeEpisode { get; set; }
 
         /// <summary>
         /// Rating of the episode

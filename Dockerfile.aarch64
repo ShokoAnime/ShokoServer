@@ -1,12 +1,17 @@
 FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:6.0
 
+ARG version
+ARG channel
+ARG commit
+ARG tag
+
 #MAINTAINER Cayde Dixon <me@cazzar.net>
 
 RUN mkdir -p /usr/src/app/source /usr/src/app/build
 COPY . /usr/src/app/source
 WORKDIR /usr/src/app/source
 
-RUN dotnet build -c=Release -o=/usr/src/app/build/ -r=linux-arm64 Shoko.CLI/Shoko.CLI.csproj
+RUN dotnet build -c=Release -o=/usr/src/app/build/ -r=linux-arm64 Shoko.CLI/Shoko.CLI.csproj "/p:Version=\"${version}\",InformationalVersion=\"channel=${channel},commit=${commit},tag=${tag}\""
 
 FROM mcr.microsoft.com/dotnet/aspnet:6.0
 ENV PUID=1000 \
@@ -21,7 +26,7 @@ RUN apt-get update && apt-get install -y gnupg curl
 RUN curl https://mediaarea.net/repo/deb/debian/pubkey.gpg | apt-key add -
 RUN echo "deb https://mediaarea.net/repo/deb/debian/ buster main" | tee -a /etc/apt/sources.list
 
-RUN apt-get update && apt-get install -y apt-utils gosu jq unzip mediainfo librhash-dev 
+RUN apt-get update && apt-get install -y apt-utils gosu jq unzip mediainfo librhash-dev
 
 WORKDIR /usr/src/app/build
 COPY --from=0 /usr/src/app/build .
@@ -40,4 +45,4 @@ HEALTHCHECK --start-period=5m CMD curl -H "Content-Type: application/json" -H 'A
 
 EXPOSE 8111
 
-ENTRYPOINT /bin/bash /dockerentry.sh 
+ENTRYPOINT /bin/bash /dockerentry.sh

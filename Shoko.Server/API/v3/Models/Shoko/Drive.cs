@@ -7,5 +7,5 @@ namespace Shoko.Server.API.v3.Models.Shoko;
 public class Drive : Folder
 {
     [JsonConverter(typeof(StringEnumConverter))]
-    public DriveType DriveType { get; set; }
+    public DriveType Type { get; set; }
 }

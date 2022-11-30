@@ -72,27 +72,6 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    public static IList<string> GetAllReleaseGroups()
-    {
-        var query =
-            @"SELECT g.GroupName
-FROM AniDB_File a
-INNER JOIN AniDB_ReleaseGroup g ON a.GroupID = g.GroupID
-INNER JOIN CrossRef_File_Episode xref1 ON xref1.Hash = a.Hash
-GROUP BY g.GroupName
-ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-        {
-            var result = session.CreateSQLQuery(query).List<string>();
-            if (result.Contains("raw/unknown"))
-            {
-                result.Remove("raw/unknown");
-            }
-
-            return result;
-        }
-    }
-
 
     [XmlIgnore]
     public string PosterPath
@@ -793,9 +772,9 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
     }
 
     private CL_AniDB_Anime GenerateContract(List<SVR_AniDB_Anime_Title> titles, DefaultAnimeImages defaultImages,
-        List<CL_AniDB_Character> characters, IEnumerable<MovieDB_Fanart> movDbFanart,
-        IEnumerable<TvDB_ImageFanart> tvDbFanart,
-        IEnumerable<TvDB_ImageWideBanner> tvDbBanners)
+        List<CL_AniDB_Character> characters, IList<MovieDB_Fanart> movDbFanart,
+        IList<TvDB_ImageFanart> tvDbFanart,
+        IList<TvDB_ImageWideBanner> tvDbBanners)
     {
         var cl = this.ToClient();
         cl.FormattedTitle = GetFormattedTitle(titles);
@@ -852,31 +831,16 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
 
     public List<CL_AniDB_Character> GetCharactersContract()
     {
-        var chars = new List<CL_AniDB_Character>();
-
         try
         {
-            var animeChars = RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID);
-            if (animeChars == null || animeChars.Count == 0)
-            {
-                return chars;
-            }
-
-            foreach (var animeChar in animeChars)
-            {
-                var chr = RepoFactory.AniDB_Character.GetByCharID(animeChar.CharID);
-                if (chr != null)
-                {
-                    chars.Add(chr.ToClient(animeChar.CharType));
-                }
-            }
+            return RepoFactory.AniDB_Character.GetCharactersByAnime(AnimeID).Select(a => a.character.ToClient(a.type)).ToList();
         }
         catch (Exception ex)
         {
             logger.Error(ex, ex.ToString());
         }
 
-        return chars;
+        return new List<CL_AniDB_Character>();
     }
 
     public static void UpdateContractDetailedBatch(ISessionWrapper session,
@@ -931,9 +895,9 @@ ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
             defImagesByAnime.TryGetValue(anime.AnimeID, out var defImages);
 
             var characterContracts = charsByAnime[anime.AnimeID].Select(ac => ac.ToClient()).ToList();
-            var movieDbFanart = movDbFanartByAnime[anime.AnimeID];
-            var tvDbBanners = tvDbBannersByAnime[anime.AnimeID];
-            var tvDbFanart = tvDbFanartByAnime[anime.AnimeID];
+            var movieDbFanart = movDbFanartByAnime[anime.AnimeID].ToList();
+            var tvDbBanners = tvDbBannersByAnime[anime.AnimeID].ToList();
+            var tvDbFanart = tvDbFanartByAnime[anime.AnimeID].ToList();
 
             contract.AniDBAnime = anime.GenerateContract(animeTitles.ToList(), defImages, characterContracts,
                 movieDbFanart, tvDbFanart, tvDbBanners);

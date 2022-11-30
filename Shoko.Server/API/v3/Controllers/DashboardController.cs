@@ -126,9 +126,7 @@ public class DashboardController : BaseController
     public List<Tag> GetTopTagsObsolete(int number = 10,
         [FromQuery] TagFilter.Filter filter =
             TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source)
-    {
-        return GetTopTags(number, 0, filter);
-    }
+        => GetTopTags(number, 1, filter);
 
     /// <summary>
     /// Gets the top number of the most common tags visible to the current user.
@@ -138,29 +136,30 @@ public class DashboardController : BaseController
     /// <param name="filter">The <see cref="TagFilter.Filter" /> to use. (Defaults to <see cref="TagFilter.Filter.AnidbInternal" /> | <see cref="TagFilter.Filter.Misc" /> | <see cref="TagFilter.Filter.Source" />)</param>
     /// <returns></returns>
     [HttpGet("TopTags")]
-    public List<Tag> GetTopTags([FromQuery] int pageSize = 10, [FromQuery] int page = 0,
+    public List<Tag> GetTopTags([FromQuery] [Range(0, 100)]  int pageSize = 10, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
         [FromQuery] TagFilter.Filter filter =
             TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source)
     {
-        var tags = RepoFactory.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
-            .ToDictionary(a => a.Key, a => a.Count()).OrderByDescending(a => a.Value)
-            .Select(a => RepoFactory.AniDB_Tag.GetByTagID(a.Key))
-            .Where(a => a != null && !User.GetHideCategories().Contains(a.TagName)).Select(a => new Tag
-            {
-                Name = a.TagName, Description = a.TagDescription, Weight = 0
-            }).ToList();
+        var tags = RepoFactory.AniDB_Anime_Tag.GetAllForLocalSeries()
+            .GroupBy(xref => xref.TagID)
+            .Select(xrefList => (tag: RepoFactory.AniDB_Tag.GetByTagID(xrefList.Key), weight: xrefList.Count()))
+            .Where(tuple => tuple.tag != null && User.AllowedTag(tuple.tag))
+            .OrderByDescending(tuple => tuple.weight)
+            .Select(tuple => new Tag(tuple.tag, true) { Weight = tuple.weight })
+            .ToList();
+        var tagDict = tags
+            .ToDictionary(tag => tag.Name.ToLowerInvariant());
+        var tagFilter = new TagFilter<Tag>(name => tagDict.TryGetValue(name.ToLowerInvariant(), out var tag) ? tag :
+            new Tag() { Name = name, Weight = 0 }, tag => tag.Name);
         if (pageSize <= 0)
-        {
-            return new TagFilter<Tag>(tag => new Tag(tag), tag => tag.Name).ProcessTags(filter, tags).ToList();
-        }
-
-        if (page <= 0)
-        {
-            page = 0;
-        }
-
-        return new TagFilter<Tag>(tag => new Tag(tag), tag => tag.Name).ProcessTags(filter, tags)
-            .Skip(pageSize * page).Take(pageSize).ToList();
+            return tagFilter
+                .ProcessTags(filter, tags)
+                .ToList();
+        return tagFilter
+            .ProcessTags(filter, tags)
+            .Skip(pageSize * (page - 1))
+            .Take(pageSize)
+            .ToList();
     }
 
     /// <summary>

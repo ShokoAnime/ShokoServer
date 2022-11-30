@@ -346,20 +346,11 @@ public class TvDBApiHelper
     public void DownloadAutomaticImages(int seriesID, bool forceDownload)
     {
         var summary = GetSeriesImagesCounts(seriesID);
-        if (summary == null)
-        {
-            return;
-        }
+        if (summary == null) return;
 
-        if (summary.Fanart > 0 && ServerSettings.Instance.TvDB.AutoFanart)
-        {
-            DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
-        }
-
-        if (summary.Poster > 0 || (summary.Season > 0 && ServerSettings.Instance.TvDB.AutoPosters))
-        {
-            DownloadAutomaticImages(GetPosterOnline(seriesID), seriesID, forceDownload);
-        }
+        if (summary.Fanart > 0 && ServerSettings.Instance.TvDB.AutoFanart) DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
+        if (summary.Poster > 0 && ServerSettings.Instance.TvDB.AutoPosters) DownloadAutomaticImages(GetPosterOnline(seriesID), seriesID, forceDownload);
+        if (summary.Season > 0 && ServerSettings.Instance.TvDB.AutoWideBanners) DownloadAutomaticImages(GetBannerOnline(seriesID), seriesID, forceDownload);
     }
 
     private ImagesSummary GetSeriesImagesCounts(int seriesID)
@@ -685,20 +676,17 @@ public class TvDBApiHelper
 
     public void DownloadAutomaticImages(List<TvDB_ImageFanart> images, int seriesID, bool forceDownload)
     {
+        if (!ServerSettings.Instance.TvDB.AutoFanart) return;
         // find out how many images we already have locally
         var imageCount = RepoFactory.TvDB_ImageFanart.GetBySeriesID(seriesID).Count(fanart =>
             !string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()));
 
         foreach (var img in images)
         {
-            if (ServerSettings.Instance.TvDB.AutoFanart && imageCount < ServerSettings.Instance.TvDB.AutoFanartAmount &&
-                !string.IsNullOrEmpty(img.GetFullImagePath()))
+            if (imageCount < ServerSettings.Instance.TvDB.AutoFanartAmount && !string.IsNullOrEmpty(img.GetFullImagePath()))
             {
                 var fileExists = File.Exists(img.GetFullImagePath());
-                if (fileExists && !forceDownload)
-                {
-                    continue;
-                }
+                if (fileExists && !forceDownload) continue;
 
                 var cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
                     c =>
@@ -726,21 +714,17 @@ public class TvDBApiHelper
 
     public void DownloadAutomaticImages(List<TvDB_ImagePoster> images, int seriesID, bool forceDownload)
     {
+        if (!ServerSettings.Instance.TvDB.AutoPosters) return;
         // find out how many images we already have locally
         var imageCount = RepoFactory.TvDB_ImagePoster.GetBySeriesID(seriesID).Count(fanart =>
             !string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()));
 
         foreach (var img in images)
         {
-            if (ServerSettings.Instance.TvDB.AutoPosters &&
-                imageCount < ServerSettings.Instance.TvDB.AutoPostersAmount &&
-                !string.IsNullOrEmpty(img.GetFullImagePath()))
+            if (imageCount < ServerSettings.Instance.TvDB.AutoPostersAmount && !string.IsNullOrEmpty(img.GetFullImagePath()))
             {
                 var fileExists = File.Exists(img.GetFullImagePath());
-                if (fileExists && !forceDownload)
-                {
-                    continue;
-                }
+                if (fileExists && !forceDownload) continue;
 
                 var cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
                     c =>
@@ -762,6 +746,41 @@ public class TvDBApiHelper
                 {
                     RepoFactory.TvDB_ImagePoster.Delete(img);
                 }
+            }
+        }
+    }
+    
+    public void DownloadAutomaticImages(List<TvDB_ImageWideBanner> images, int seriesID, bool forceDownload)
+    {
+        // find out how many images we already have locally
+        if (!ServerSettings.Instance.TvDB.AutoWideBanners) return;
+        var imageCount = RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(seriesID).Count(banner =>
+            !string.IsNullOrEmpty(banner.GetFullImagePath()) && File.Exists(banner.GetFullImagePath()));
+
+        foreach (var img in images)
+        {
+            if (imageCount < ServerSettings.Instance.TvDB.AutoWideBannersAmount && !string.IsNullOrEmpty(img.GetFullImagePath()))
+            {
+                var fileExists = File.Exists(img.GetFullImagePath());
+                if (fileExists && !forceDownload) continue;
+                var cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                    c =>
+                    {
+                        c.EntityID = img.TvDB_ImageWideBannerID;
+                        c.EntityType = (int)ImageEntityType.TvDB_Banner;
+                        c.ForceDownload = forceDownload;
+                    }
+                );
+                cmd.Save();
+                imageCount++;
+            }
+            else
+            {
+                // The TvDB_AutoFanartAmount point to download less images than its available
+                // we should clean those image that we didn't download because those dont exists in local repo
+                // first we check if file was downloaded
+                if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
+                    RepoFactory.TvDB_ImageWideBanner.Delete(img);
             }
         }
     }
