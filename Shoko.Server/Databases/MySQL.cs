@@ -703,7 +703,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
         new(104, 1, "ALTER TABLE AniDB_Episode ADD INDEX IX_AniDB_Episode_EpisodeType (EpisodeType);"),
         new(105, 1, "ALTER TABLE AniDB_Episode_Title MODIFY Title TEXT NOT NULL"),
         new(106, 1, "ALTER TABLE VideoLocal ADD DateTimeImported datetime DEFAULT NULL;"),
-        new(106, 2, "UPDATE VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash SET DateImported = DateTimeCreated;")
+        new(106, 2, "UPDATE VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash SET DateTimeImported = DateTimeCreated;")
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

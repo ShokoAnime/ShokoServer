@@ -649,7 +649,7 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
         new DatabaseCommand(97, 1, "CREATE INDEX IX_AniDB_Episode_EpisodeType ON AniDB_Episode(EpisodeType);"),
         new DatabaseCommand(98, 1, "ALTER TABLE AniDB_Episode_Title ALTER COLUMN Title nvarchar(max) NOT NULL;"),
         new DatabaseCommand(99, 1, "ALTER TABLE VideoLocal ADD DateTimeImported datetime DEFAULT NULL;"),
-        new DatabaseCommand(99, 2, "UPDATE v SET DateImported = DateTimeCreated FROM VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash;")
+        new DatabaseCommand(99, 2, "UPDATE v SET DateTimeImported = DateTimeCreated FROM VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash;")
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
