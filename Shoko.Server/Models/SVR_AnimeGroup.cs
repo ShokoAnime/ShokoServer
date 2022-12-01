@@ -69,14 +69,15 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         _contract = null;
     }
 
-    public CL_AnimeGroup_User GetUserContract(int userid, HashSet<GroupFilterConditionType> types = null)
+    public CL_AnimeGroup_User GetUserContract(int userid, HashSet<GroupFilterConditionType> types = null, bool cloned = true)
     {
         if (Contract == null)
         {
             return new CL_AnimeGroup_User();
         }
 
-        var contract = Contract.DeepCopy();
+        var contract = Contract;
+        if (cloned && contract != null) contract = contract.DeepCopy();
         var rr = GetUserRecord(userid);
         if (rr != null)
         {

@@ -1,6 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using NHibernate;
 using NHibernate.Criterion;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -25,12 +25,20 @@ public class CrossRef_Languages_AniDB_FileRepository : BaseDirectRepository<Cros
     
     public Dictionary<int, HashSet<string>> GetLanguagesByAnime(IEnumerable<int> animeIds)
     {
-        return animeIds
-            .SelectMany(a =>
-                RepoFactory.CrossRef_File_Episode.GetByAnimeID(a)
-                    .SelectMany(b =>
-                        RepoFactory.AniDB_File.GetByHash(b.Hash)?.Languages?.Select(c => c.LanguageName) ??
-                        Array.Empty<string>()).Select(c => (AnimeID: a, Language: c)))
-            .GroupBy(a => a.AnimeID, a => a.Language).ToDictionary(a => a.Key, a => a.ToHashSet());
+        lock (GlobalDBLock)
+        {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            return session.CreateSQLQuery(string.Format(
+@"SELECT DISTINCT xref.AnimeID, l.LanguageName
+FROM CrossRef_File_Episode xref
+    INNER JOIN AniDB_File f ON f.Hash = xref.Hash
+    INNER JOIN CrossRef_Languages_AniDB_File l ON l.FileID = f.FileID
+WHERE xref.AnimeID IN ({0})", string.Join(",", animeIds)))
+                .AddScalar("AnimeID", NHibernateUtil.Int32)
+                .AddScalar("LanguageName", NHibernateUtil.String)
+                .List<object[]>()
+                .GroupBy(a => (int)a[0], a => (string)a[1])
+                .ToDictionary(a => a.Key, grouping => grouping.ToHashSet());
+        }
     }
 }

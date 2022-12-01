@@ -320,7 +320,7 @@ public class SVR_GroupFilter : GroupFilter
         bool result;
         if (ApplyToSeries == 1)
         {
-            result = CalculateGroupFilterSeries(ser, user);
+            result = CalculateGroupFilterSeries(RepoFactory.AnimeSeries.GetAll().Select(a => a.AnimeSeriesID).ToHashSet(), ser, user);
             if (!result)
             {
                 return false;
@@ -376,7 +376,7 @@ public class SVR_GroupFilter : GroupFilter
                 return false;
             }
 
-            result |= CalculateGroupFilterGroups(contract, user);
+            result |= CalculateGroupFilterGroups(RepoFactory.AnimeGroup.GetAll().Select(a => a.AnimeGroupID).ToHashSet(), contract, user);
             if (!result)
             {
                 return false;
@@ -420,7 +420,7 @@ public class SVR_GroupFilter : GroupFilter
                     contract = ser.GetUserContract(user.JMMUserID);
                 }
 
-                result |= CalculateGroupFilterSeries(contract, user);
+                result |= CalculateGroupFilterSeries(RepoFactory.AnimeSeries.GetAll().Select(a => a.AnimeSeriesID).ToHashSet(), contract, user);
             }
 
             if (!result)
@@ -439,7 +439,7 @@ public class SVR_GroupFilter : GroupFilter
         }
         else
         {
-            result = CalculateGroupFilterGroups(grp, user);
+            result = CalculateGroupFilterGroups(RepoFactory.AnimeGroup.GetAll().Select(a => a.AnimeGroupID).ToHashSet(), grp, user);
             if (!result)
             {
                 return false;
@@ -463,18 +463,20 @@ public class SVR_GroupFilter : GroupFilter
     }
 
 
-    private bool CalculateGroupFilterSeries(CL_AnimeSeries_User ser, JMMUser user)
+    private bool CalculateGroupFilterSeries(HashSet<int> allSeriesIds, CL_AnimeSeries_User ser, JMMUser user)
     {
         if (ser == null)
         {
             return false;
         }
 
-        var seriesIds = ReadLock(() =>
-            SeriesIds.TryGetValue(user?.JMMUserID ?? 0, out var seriesIds) ? new HashSet<int>(seriesIds) : null);
+        var seriesIds = ReadLock(() => SeriesIds.TryGetValue(user?.JMMUserID ?? 0, out var seriesIds) ? seriesIds : null);
 
-        seriesIds ??= new HashSet<int>();
-        var change = seriesIds.RemoveWhere(a => RepoFactory.AnimeSeries.GetByID(a) == null) > 0;
+        var change = false;
+        if (seriesIds == null)
+            seriesIds = new HashSet<int>();
+        else
+            change = seriesIds.RemoveWhere(a => !allSeriesIds.Contains(a)) > 0;
 
         if (EvaluateGroupFilter(ser, user))
         {
@@ -490,18 +492,18 @@ public class SVR_GroupFilter : GroupFilter
         return change;
     }
 
-    private bool CalculateGroupFilterGroups(CL_AnimeGroup_User grp, JMMUser user)
+    private bool CalculateGroupFilterGroups(HashSet<int> allGroupIds, CL_AnimeGroup_User grp, JMMUser user)
     {
-        if (grp == null)
-        {
-            return false;
-        }
+        if (grp == null) return false;
 
         var groupIds = ReadLock(() =>
             GroupsIds.TryGetValue(user?.JMMUserID ?? 0, out var groupIds) ? new HashSet<int>(groupIds) : null);
 
-        groupIds ??= new HashSet<int>();
-        var change = groupIds.RemoveWhere(a => RepoFactory.AnimeGroup.GetByID(a) == null) > 0;
+        var change = false;
+        if (groupIds == null)
+            groupIds = new HashSet<int>();
+        else
+            change = groupIds.RemoveWhere(a => !allGroupIds.Contains(a)) > 0;
 
         if (EvaluateGroupFilter(grp, user))
         {
@@ -584,11 +586,13 @@ public class SVR_GroupFilter : GroupFilter
     {
         var users = RepoFactory.JMMUser.GetAll();
         // make sure the user has not filtered this out
+        var allGroupsIds = RepoFactory.AnimeGroup.GetAll().Select(a => a.AnimeGroupID).ToHashSet();
         foreach (var grp in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
         {
+            CalculateGroupFilterGroups(allGroupsIds, grp.Contract, null);
             foreach (var user in users)
             {
-                CalculateGroupFilterGroups(grp.GetUserContract(user.JMMUserID), user);
+                CalculateGroupFilterGroups(allGroupsIds, grp.GetUserContract(user.JMMUserID, cloned: false), user);
             }
         }
     }
@@ -596,20 +600,18 @@ public class SVR_GroupFilter : GroupFilter
     private void EvaluateAnimeSeries()
     {
         var users = RepoFactory.JMMUser.GetAll();
-        foreach (var ser in RepoFactory.AnimeSeries.GetAll())
+        var allSeries = RepoFactory.AnimeSeries.GetAll();
+        var allSeriesIds = allSeries.Select(a => a.AnimeSeriesID).ToHashSet();
+        foreach (var ser in allSeries)
         {
-            if (ser.Contract == null)
-            {
-                ser.UpdateContract();
-            }
+            if (ser.Contract == null) ser.UpdateContract();
 
-            if (ser.Contract != null)
+            if (ser.Contract == null) continue;
+
+            CalculateGroupFilterSeries(allSeriesIds, ser.Contract, null); //Default no filter for JMM Client
+            foreach (var user in users)
             {
-                CalculateGroupFilterSeries(ser.Contract, null); //Default no filter for JMM Client
-                foreach (var user in users)
-                {
-                    CalculateGroupFilterSeries(ser.GetUserContract(user.JMMUserID), user);
-                }
+                CalculateGroupFilterSeries(allSeriesIds, ser.GetUserContract(user.JMMUserID, cloned: false), user);
             }
         }
     }

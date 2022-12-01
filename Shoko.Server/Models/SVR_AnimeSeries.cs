@@ -305,11 +305,12 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public List<CrossRef_AniDB_MAL> CrossRefMAL => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(AniDB_ID);
 
-    public CL_AnimeSeries_User GetUserContract(int userid, HashSet<GroupFilterConditionType> types = null)
+    public CL_AnimeSeries_User GetUserContract(int userid, HashSet<GroupFilterConditionType> types = null, bool cloned = true)
     {
         try
         {
-            var contract = (CL_AnimeSeries_User)Contract?.Clone();
+            var contract = Contract;
+            if (cloned && contract != null) contract = (CL_AnimeSeries_User)contract.Clone();
             if (contract == null)
             {
                 logger.Trace($"Series with ID [{AniDB_ID}] has a null contract on get. Updating");

@@ -589,43 +589,27 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
     public string GetFormattedTitle(List<SVR_AniDB_Anime_Title> titles)
     {
-        foreach (var nlan in Languages.PreferredNamingLanguages)
+        foreach (var thisLanguage in Languages.PreferredNamingLanguages.Select(a => a.Language))
         {
-            var thisLanguage = nlan.Language;
+            SVR_AniDB_Anime_Title title = null;
 
             // Romaji and English titles will be contained in MAIN and/or OFFICIAL
             // we won't use synonyms for these two languages
             if (thisLanguage == TitleLanguage.Romaji || thisLanguage == TitleLanguage.English)
             {
-                foreach (var title in titles)
-                {
-                    // first try the  Main title
-                    if (title.TitleType == TitleType.Main && title.Language == thisLanguage)
-                    {
-                        return title.Title;
-                    }
-                }
+                title = titles.FirstOrDefault(title => title.TitleType == TitleType.Main && title.Language == thisLanguage);
+                if (title != null) return title.Title;
             }
 
             // now try the official title
-            foreach (var title in titles)
-            {
-                if (title.TitleType == TitleType.Official && title.Language == thisLanguage)
-                {
-                    return title.Title;
-                }
-            }
+            title = titles.FirstOrDefault(title => title.TitleType == TitleType.Official && title.Language == thisLanguage);
+            if (title != null) return title.Title;
 
             // try synonyms
             if (ServerSettings.Instance.LanguageUseSynonyms)
             {
-                foreach (var title in titles)
-                {
-                    if (title.TitleType == TitleType.Synonym && title.Language == thisLanguage)
-                    {
-                        return title.Title;
-                    }
-                }
+                title = titles.FirstOrDefault(title => title.TitleType == TitleType.Synonym && title.Language == thisLanguage);
+                if (title != null) return title.Title;
             }
         }
 

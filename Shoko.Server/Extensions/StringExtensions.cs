@@ -81,14 +81,31 @@ public static class StringExtensions
             return false;
         }
 
-        // Trim, to lower in both lists, remove null and empty strings
-        var listhash = list.Select(a => a.ToLowerInvariant().Trim())
-            .Where(a => !string.IsNullOrWhiteSpace(a))
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-        var itemhash = items.Select(a => a.ToLowerInvariant().Trim())
-            .Where(a => !string.IsNullOrWhiteSpace(a))
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-        return listhash.Overlaps(itemhash);
+        HashSet<string> listHash;
+        HashSet<string> itemHash;
+        if (list is HashSet<string> listSet && Equals(listSet.Comparer, StringComparer.InvariantCultureIgnoreCase))
+        {
+            listHash = listSet;
+        }
+        else
+        {
+            listHash = list.Select(a => a.Trim())
+                        .Where(a => !string.IsNullOrWhiteSpace(a))
+                        .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+        }
+
+        if (items is HashSet<string> itemSet && Equals(itemSet.Comparer, StringComparer.InvariantCultureIgnoreCase))
+        {
+            itemHash = itemSet;
+        }
+        else
+        {
+            itemHash = items.Select(a => a.Trim())
+                                   .Where(a => !string.IsNullOrWhiteSpace(a))
+                                   .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+        }
+
+        return listHash.Overlaps(itemHash);
     }
 
     public static bool FindInEnumerable(this IEnumerable<int> items, IEnumerable<int> list)

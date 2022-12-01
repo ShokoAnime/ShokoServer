@@ -103,7 +103,19 @@ public class ServerSettings
 
     public FileQualityPreferences FileQualityPreferences { get; set; } = new();
 
-    public List<string> LanguagePreference { get; set; } = new() { "x-jat", "en" };
+    private List<string> _languagePreference = new()
+    {
+        "x-jat", "en"
+    };
+    public List<string> LanguagePreference
+    {
+        get => _languagePreference;
+        set
+        {
+            _languagePreference = value;
+            Languages.PreferredNamingLanguages = null;
+        }
+    }
 
     public string EpisodeLanguagePreference { get; set; } = string.Empty;
 
