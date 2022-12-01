@@ -73,13 +73,16 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
 
         _vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
+        // Set the import date.
+        _vlocal.DateTimeImported = DateTime.Now;
+        RepoFactory.VideoLocal.Save(_vlocal);
+
         var ser = _episode.GetAnimeSeries();
         ser.EpisodeAddedDate = DateTime.Now;
         RepoFactory.AnimeSeries.Save(ser, false, true);
 
         //Update will re-save
         ser.QueueUpdateStats();
-
 
         foreach (var grp in ser.AllGroupsAbove)
         {

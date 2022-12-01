@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
 {
     public string Name { get; } = "MySQL";
-    public int RequiredVersion { get; } = 105;
+    public int RequiredVersion { get; } = 106;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -701,7 +701,9 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
         new(102, 1, "UPDATE AniDB_File SET File_Source = 'Web' WHERE File_Source = 'www'; UPDATE AniDB_File SET File_Source = 'BluRay' WHERE File_Source = 'Blu-ray'; UPDATE AniDB_File SET File_Source = 'LaserDisc' WHERE File_Source = 'LD'; UPDATE AniDB_File SET File_Source = 'Unknown' WHERE File_Source = 'unknown';"),
         new (103, 1, "ALTER TABLE AniDB_GroupStatus MODIFY GroupName LONGTEXT NULL; ALTER TABLE AniDB_GroupStatus MODIFY EpisodeRange LONGTEXT NULL;"),
         new(104, 1, "ALTER TABLE AniDB_Episode ADD INDEX IX_AniDB_Episode_EpisodeType (EpisodeType);"),
-        new(105, 1, "ALTER TABLE AniDB_Episode_Title MODIFY Title TEXT NOT NULL")
+        new(105, 1, "ALTER TABLE AniDB_Episode_Title MODIFY Title TEXT NOT NULL"),
+        new(106, 1, "ALTER TABLE VideoLocal ADD DateTimeImported datetime DEFAULT NULL;"),
+        new(106, 2, "UPDATE VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash SET DateImported = DateTimeCreated;")
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

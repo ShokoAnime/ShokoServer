@@ -12,6 +12,7 @@ public class VideoLocalMap : ClassMap<SVR_VideoLocal>
         Id(x => x.VideoLocalID);
         Map(x => x.DateTimeUpdated).Not.Nullable();
         Map(x => x.DateTimeCreated).Not.Nullable();
+        Map(x => x.DateTimeImported);
         Map(x => x.FileName).Not.Nullable();
         Map(x => x.FileSize).Not.Nullable();
         Map(x => x.Hash).Not.Nullable();
