@@ -236,10 +236,11 @@ public class DashboardController : BaseController
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
+    /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
     /// <returns></returns>
     [HttpGet("RecentlyAddedEpisodes")]
     public List<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes([FromQuery] [Range(0, 100)] int pageSize = 30,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeRestricted = false)
     {
         var user = HttpContext.GetUser();
         var episodeList = RepoFactory.VideoLocal.GetAll()
@@ -256,14 +257,16 @@ public class DashboardController : BaseController
         if (pageSize <= 0)
         {
             return episodeList
-                .Where(tuple => seriesDict.ContainsKey(tuple.episode.AnimeSeriesID))
+                .Where(tuple => animeDict.TryGetValue(tuple.episode.AnimeSeriesID, out var anime) &&
+                        (includeRestricted || anime.Restricted == 0))
                 .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode,
                     seriesDict[tuple.episode.AnimeSeriesID], animeDict[tuple.episode.AnimeSeriesID], tuple.file))
                 .ToList();
         }
 
         return episodeList
-            .Where(tuple => seriesDict.ContainsKey(tuple.episode.AnimeSeriesID))
+            .Where(tuple => animeDict.TryGetValue(tuple.episode.AnimeSeriesID, out var anime) &&
+                    (includeRestricted || anime.Restricted == 0))
             .Skip(pageSize * (page - 1))
             .Take(pageSize)
             .Select(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode,
@@ -276,10 +279,11 @@ public class DashboardController : BaseController
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
+    /// <param name="includeRestricted">Include restricted (H) series.</param>
     /// <returns></returns>
     [HttpGet("RecentlyAddedSeries")]
     public List<Series> GetRecentlyAddedSeries([FromQuery] [Range(0, 100)] int pageSize = 20,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeRestricted = false)
     {
         var user = HttpContext.GetUser();
         var seriesList = RepoFactory.VideoLocal.GetAll()
@@ -287,7 +291,8 @@ public class DashboardController : BaseController
             .SelectMany(file => file.GetAnimeEpisodes().Select(episode => episode.AnimeSeriesID))
             .Distinct()
             .Select(seriesID => RepoFactory.AnimeSeries.GetByID(seriesID))
-            .Where(series => series != null && user.AllowedSeries(series));
+            .Where(series => series != null && user.AllowedSeries(series) &&
+                (includeRestricted || series.GetAnime().Restricted != 1));
 
         if (pageSize <= 0)
         {
@@ -309,17 +314,20 @@ public class DashboardController : BaseController
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <param name="includeSpecials">Include specials in the search.</param>
+    /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
     /// <returns></returns>
     [HttpGet("ContinueWatchingEpisodes")]
     public List<Dashboard.EpisodeDetails> GetContinueWatchingEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20,
-        [FromQuery] [Range(0, int.MaxValue)] int page = 0, [FromQuery] bool includeSpecials = true)
+        [FromQuery] [Range(0, int.MaxValue)] int page = 0, [FromQuery] bool includeSpecials = true,
+        [FromQuery] bool includeRestricted = false)
     {
         var user = HttpContext.GetUser();
         var episodeList = RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID)
             .Where(record => record.LastEpisodeUpdate.HasValue)
             .OrderByDescending(record => record.LastEpisodeUpdate)
             .Select(record => record.AnimeSeries)
-            .Where(series => user.AllowedSeries(series))
+            .Where(series => user.AllowedSeries(series) &&
+                (includeRestricted || series.GetAnime().Restricted != 1))
             .Select(series => (series, episode: series.GetActiveEpisode(user.JMMUserID, includeSpecials)))
             .Where(tuple => tuple.episode != null);
         if (pageSize <= 0)
@@ -343,11 +351,12 @@ public class DashboardController : BaseController
     /// <param name="page">Page number.</param>
     /// <param name="onlyUnwatched">Only show unwatched episodes.</param>
     /// <param name="includeSpecials">Include specials in the search.</param>
+    /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
     /// <returns></returns>
     [HttpGet("NextUpEpisodes")]
     public List<Dashboard.EpisodeDetails> GetNextUpEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20,
         [FromQuery] [Range(0, int.MaxValue)] int page = 0, [FromQuery] bool onlyUnwatched = true,
-        [FromQuery] bool includeSpecials = true)
+        [FromQuery] bool includeSpecials = true, [FromQuery] bool includeRestricted = false)
     {
         var user = HttpContext.GetUser();
         var episodeList = RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID)
@@ -355,7 +364,8 @@ public class DashboardController : BaseController
                 record.LastEpisodeUpdate.HasValue && (onlyUnwatched ? record.UnwatchedEpisodeCount > 0 : true))
             .OrderByDescending(record => record.LastEpisodeUpdate)
             .Select(record => record.AnimeSeries)
-            .Where(series => user.AllowedSeries(series))
+            .Where(series => user.AllowedSeries(series) &&
+                (includeRestricted || series.GetAnime().Restricted != 1))
             .Select(series => (series, episode: series.GetNextEpisode(user.JMMUserID, onlyUnwatched, includeSpecials)))
             .Where(tuple => tuple.episode != null);
         if (pageSize <= 0)
@@ -404,10 +414,11 @@ public class DashboardController : BaseController
     /// </summary>
     /// <param name="numberOfDays">Number of days to show.</param>
     /// <param name="showAll">Show all series.</param>
+    /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
     /// <returns></returns>
     [HttpGet("AniDBCalendar")]
     public List<Dashboard.EpisodeDetails> GetAniDBCalendarInDays([FromQuery] int numberOfDays = 7,
-        [FromQuery] bool showAll = false)
+        [FromQuery] bool showAll = false, [FromQuery] bool includeRestricted = false)
     {
         var user = HttpContext.GetUser();
         var episodeList = RepoFactory.AniDB_Episode.GetForDate(DateTime.Today, DateTime.Today.AddDays(numberOfDays))
@@ -422,8 +433,10 @@ public class DashboardController : BaseController
             .Distinct()
             .ToDictionary(anime => anime.AniDB_ID);
         return episodeList
-            .Where(episode => user.AllowedAnime(animeDict[episode.AnimeID]) &&
-                              (showAll || seriesDict.ContainsKey(episode.AnimeID)))
+            .Where(episode => animeDict.TryGetValue(episode.AnimeID, out var anime) &&
+                    user.AllowedAnime(anime) &&
+                    (includeRestricted || anime.Restricted == 0) &&
+                    (showAll || seriesDict.ContainsKey(episode.AnimeID)))
             .OrderBy(episode => episode.GetAirDateAsDate())
             .Select(episode =>
             {
