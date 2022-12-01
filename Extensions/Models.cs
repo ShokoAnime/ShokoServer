@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using Shoko.Commons.Languages;
 using Shoko.Commons.Properties;
@@ -19,10 +18,10 @@ namespace Shoko.Commons.Extensions
     public static class Models
     {
         //TODO Move this to a cache Dictionary when time, memory consumption should be low but, who knows.
-        private static Dictionary<string, HashSet<string>> _alltagscache = new Dictionary<string, HashSet<string>>();
-        private static Dictionary<string, HashSet<string>> _alltitlescache = new Dictionary<string, HashSet<string>>();
-        private static Dictionary<string, HashSet<string>> _hidecategoriescache = new Dictionary<string, HashSet<string>>();
-        private static Dictionary<string, HashSet<string>> _plexuserscache = new Dictionary<string, HashSet<string>>();
+        private static Dictionary<int, HashSet<string>> _alltagscache = new();
+        private static Dictionary<int, HashSet<string>> _alltitlescache = new();
+        private static Dictionary<int, HashSet<string>> _hidecategoriescache = new();
+        private static Dictionary<string, HashSet<string>> _plexuserscache = new();
 
 
         public static List<T> CastList<T>(this IEnumerable<dynamic> list) => list?.Cast<T>().ToList();
@@ -232,38 +231,29 @@ namespace Shoko.Commons.Extensions
 
         public static HashSet<string> GetAllTags(this AniDB_Anime anime)
         {
-            if (!String.IsNullOrEmpty(anime.AllTags))
+            if (string.IsNullOrEmpty(anime.AllTags)) return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+            lock (_alltagscache)
             {
-                lock (_alltagscache)
-                {
-                    if (!_alltagscache.ContainsKey(anime.AllTags))
-                        _alltagscache[anime.AllTags] = new HashSet<string>(
-                            anime.AllTags.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.Trim())
-                                .Where(a => !String.IsNullOrEmpty(a)), StringComparer.InvariantCultureIgnoreCase);
-                    return _alltagscache[anime.AllTags];
-                }
-
+                if (!_alltagscache.ContainsKey(anime.AnimeID))
+                    _alltagscache[anime.AnimeID] = new HashSet<string>(
+                        anime.AllTags.Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                                .Where(a => !string.IsNullOrEmpty(a)), StringComparer.InvariantCultureIgnoreCase);
+                return _alltagscache[anime.AnimeID];
             }
-            return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         }
 
         public static HashSet<string> GetAllTitles(this AniDB_Anime anime)
         {
-            if (!String.IsNullOrEmpty(anime.AllTitles))
+            if (string.IsNullOrEmpty(anime.AllTitles)) return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+            lock (_alltitlescache)
             {
-                lock (_alltitlescache)
-                {
-                    if (!_alltitlescache.ContainsKey(anime.AllTitles))
-                        _alltitlescache[anime.AllTitles] = new HashSet<string>(
-                            anime.AllTitles.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.Trim())
-                                .Where(a => !String.IsNullOrEmpty(a)), StringComparer.InvariantCultureIgnoreCase);
-                    return _alltitlescache[anime.AllTitles];
-                }
-
+                if (!_alltitlescache.ContainsKey(anime.AnimeID))
+                    _alltitlescache[anime.AnimeID] = new HashSet<string>(
+                        anime.AllTitles.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(a => a.Trim())
+                            .Where(a => !string.IsNullOrEmpty(a)), StringComparer.InvariantCultureIgnoreCase);
+                return _alltitlescache[anime.AnimeID];
             }
-            return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         }
 
         public static bool GetSearchOnTvDB(this AniDB_Anime anime)
@@ -342,39 +332,32 @@ namespace Shoko.Commons.Extensions
 
         public static HashSet<string> GetHideCategories(this JMMUser user)
         {
-            if (!String.IsNullOrEmpty(user.HideCategories))
+            if (string.IsNullOrEmpty(user.HideCategories)) return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+            lock (_hidecategoriescache)
             {
-                lock (_hidecategoriescache)
-                {
-                    if (!_hidecategoriescache.ContainsKey(user.HideCategories))
-                        _hidecategoriescache[user.HideCategories] = new HashSet<string>(
-                            user.HideCategories.Trim().Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.Trim())
-                                .Where(a => !String.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
-                            StringComparer.InvariantCultureIgnoreCase);
-                    return _hidecategoriescache[user.HideCategories];
-                }
-
+                if (!_hidecategoriescache.ContainsKey(user.JMMUserID))
+                    _hidecategoriescache[user.JMMUserID] = new HashSet<string>(
+                        user.HideCategories.Trim().Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(a => a.Trim())
+                            .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
+                        StringComparer.InvariantCultureIgnoreCase);
+                return _hidecategoriescache[user.JMMUserID];
             }
-            return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         }
 
         public static HashSet<string> GetPlexUsers(this JMMUser user)
         {
-            if (!String.IsNullOrEmpty(user.PlexUsers))
+            if (string.IsNullOrEmpty(user.PlexUsers)) return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+            lock (_plexuserscache)
             {
-                lock (_plexuserscache)
-                {
-                    if (!_plexuserscache.ContainsKey(user.PlexUsers))
-                        _plexuserscache[user.PlexUsers] = new HashSet<string>(
-                            user.PlexUsers.Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(a => a.Trim())
-                                .Where(a => !String.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
-                            StringComparer.InvariantCultureIgnoreCase);
-                    return _plexuserscache[user.PlexUsers];
-                }
+                if (!_plexuserscache.ContainsKey(user.PlexUsers))
+                    _plexuserscache[user.PlexUsers] = new HashSet<string>(
+                        user.PlexUsers.Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(a => a.Trim())
+                            .Where(a => !string.IsNullOrEmpty(a)).Distinct(StringComparer.InvariantCultureIgnoreCase),
+                        StringComparer.InvariantCultureIgnoreCase);
+                return _plexuserscache[user.PlexUsers];
             }
-            return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
         }
 
         /// <summary>
@@ -399,11 +382,11 @@ namespace Shoko.Commons.Extensions
                 string[] subRanges = range.Split('-');
                 if (subRanges.Length == 1) // 1 episode
                 {
-                    if (Int32.Parse(subRanges[0]) == episodeNumber) return true;
+                    if (int.Parse(subRanges[0]) == episodeNumber) return true;
                 }
                 if (subRanges.Length == 2) // range
                 {
-                    if (episodeNumber >= Int32.Parse(subRanges[0]) && episodeNumber <= Int32.Parse(subRanges[1]))
+                    if (episodeNumber >= int.Parse(subRanges[0]) && episodeNumber <= int.Parse(subRanges[1]))
                         return true;
                 }
             }
@@ -426,7 +409,7 @@ namespace Shoko.Commons.Extensions
             }
         }
 
-        public static List<int> GetImportFolderList(this Scan scan) => scan.ImportFolders.Split(',').Select(a => Int32.Parse(a)).ToList();
+        public static List<int> GetImportFolderList(this Scan scan) => scan.ImportFolders.Split(',').Select(a => int.Parse(a)).ToList();
 
         public static string GetTitleText(this Scan scan) => scan.CreationTIme.ToString(CultureInfo.CurrentUICulture) + " (" + scan.ImportFolders + ")";
         public static ScanFileStatus GetScanFileStatus(this ScanFile scanfile) => (ScanFileStatus) scanfile.Status;
@@ -480,14 +463,14 @@ namespace Shoko.Commons.Extensions
         public static string GetLocalFileName1(this CL_DuplicateFile dupfile)
         {
             var path = dupfile.GetLocalFilePath1();
-            if (String.IsNullOrEmpty(path)) return dupfile.FilePathFile1;
+            if (string.IsNullOrEmpty(path)) return dupfile.FilePathFile1;
             return Path.GetFileName(path);
         }
 
         public static string GetLocalFileDirectory1(this CL_DuplicateFile dupfile)
         {
             var path = dupfile.GetLocalFilePath1();
-            if (String.IsNullOrEmpty(path)) return dupfile.FilePathFile1;
+            if (string.IsNullOrEmpty(path)) return dupfile.FilePathFile1;
             return Path.GetDirectoryName(path);
         }
 
@@ -496,14 +479,14 @@ namespace Shoko.Commons.Extensions
         public static string GetLocalFileName2(this CL_DuplicateFile dupfile)
         {
             var path = dupfile.GetLocalFilePath2();
-            if (String.IsNullOrEmpty(path)) return dupfile.FilePathFile2;
+            if (string.IsNullOrEmpty(path)) return dupfile.FilePathFile2;
             return Path.GetFileName(path);
         }
 
         public static string GetLocalFileDirectory2(this CL_DuplicateFile dupfile)
         {
             var path = dupfile.GetLocalFilePath2();
-            if (String.IsNullOrEmpty(path)) return dupfile.FilePathFile2;
+            if (string.IsNullOrEmpty(path)) return dupfile.FilePathFile2;
             return Path.GetDirectoryName(path);
         }
 
@@ -552,15 +535,15 @@ namespace Shoko.Commons.Extensions
         public static string GetFileName(this CL_VideoLocal_Place vidlocalPlace) => Path.GetFileName(vidlocalPlace.FilePath);
         public static string GetFileDirectory(this CL_VideoLocal_Place vidlocalPlace) => Path.GetDirectoryName(vidlocalPlace.GetFullPath());
         public static string GetFormattedFileSize(this CL_VideoLocal videolocal) => Formatting.FormatFileSize(videolocal.FileSize);
-        public static string GetFileDirectories(this CL_VideoLocal videolocal) => String.Join(",", videolocal.Places?.Select(a => a.GetFileDirectory()));
-        public static string GetLocalFileSystemFullPath(this CL_VideoLocal videolocal) => videolocal.Places?.FirstOrDefault(a => a.GetLocalFileSystemFullPath() != String.Empty)?.GetLocalFileSystemFullPath() ?? "";
-        public static bool IsLocalFile(this CL_VideoLocal videolocal) => !String.IsNullOrEmpty(videolocal.GetLocalFileSystemFullPath());
-        public static bool IsHashed(this CL_VideoLocal videolocal) => !String.IsNullOrEmpty(videolocal.Hash);
+        public static string GetFileDirectories(this CL_VideoLocal videolocal) => string.Join(",", videolocal.Places?.Select(a => a.GetFileDirectory()));
+        public static string GetLocalFileSystemFullPath(this CL_VideoLocal videolocal) => videolocal.Places?.FirstOrDefault(a => a.GetLocalFileSystemFullPath() != string.Empty)?.GetLocalFileSystemFullPath() ?? "";
+        public static bool IsLocalFile(this CL_VideoLocal videolocal) => !string.IsNullOrEmpty(videolocal.GetLocalFileSystemFullPath());
+        public static bool IsHashed(this CL_VideoLocal videolocal) => !string.IsNullOrEmpty(videolocal.Hash);
 
 
-        public static string GetLocalFileSystemFullPath(this CL_VideoDetailed videolocal) => videolocal.Places?.FirstOrDefault(a => a.GetLocalFileSystemFullPath() != String.Empty)?.GetLocalFileSystemFullPath() ?? "";
+        public static string GetLocalFileSystemFullPath(this CL_VideoDetailed videolocal) => videolocal.Places?.FirstOrDefault(a => a.GetLocalFileSystemFullPath() != string.Empty)?.GetLocalFileSystemFullPath() ?? "";
 
-        public static bool IsLocalFile(this CL_VideoDetailed videodetailed) => !String.IsNullOrEmpty(videodetailed.GetLocalFileSystemFullPath());
+        public static bool IsLocalFile(this CL_VideoDetailed videodetailed) => !string.IsNullOrEmpty(videodetailed.GetLocalFileSystemFullPath());
 
         public static string GetVideoResolution(this CL_VideoDetailed videodetailed) => videodetailed.VideoInfo_VideoResolution.Length > 0 ? videodetailed.VideoInfo_VideoResolution : "0x0";
 
@@ -570,9 +553,9 @@ namespace Shoko.Commons.Extensions
 
         public static string GetFileName(this CL_VideoDetailed videodetailed) => videodetailed.VideoLocal_FileName;
 
-        public static string GetFullPath(this CL_VideoDetailed videodetailed) => videodetailed.Places?.FirstOrDefault(a => !String.IsNullOrEmpty(a.GetLocalFileSystemFullPath()))?.GetLocalFileSystemFullPath() ?? "";
+        public static string GetFullPath(this CL_VideoDetailed videodetailed) => videodetailed.Places?.FirstOrDefault(a => !string.IsNullOrEmpty(a.GetLocalFileSystemFullPath()))?.GetLocalFileSystemFullPath() ?? "";
 
-        public static bool GetFileIsAvailable(this CL_VideoDetailed videodetailed) => String.IsNullOrEmpty(videodetailed.GetFullPath()) || File.Exists(videodetailed.GetFullPath());
+        public static bool GetFileIsAvailable(this CL_VideoDetailed videodetailed) => string.IsNullOrEmpty(videodetailed.GetFullPath()) || File.Exists(videodetailed.GetFullPath());
      
         public static string GetVideoInfoSummary(this CL_VideoDetailed videodetailed) => $"{videodetailed.GetVideoResolution()} ({videodetailed.GetVideoCodec()}) - {videodetailed.GetAudioCodec()}";
 
@@ -588,22 +571,22 @@ namespace Shoko.Commons.Extensions
 
         public static bool IsHi08P(this CL_VideoDetailed videodetailed)
         {
-            if (String.IsNullOrEmpty(videodetailed.VideoInfo_VideoBitDepth)) return false;
-            Int32.TryParse(videodetailed.VideoInfo_VideoBitDepth, out int bitDepth);
+            if (string.IsNullOrEmpty(videodetailed.VideoInfo_VideoBitDepth)) return false;
+            int.TryParse(videodetailed.VideoInfo_VideoBitDepth, out int bitDepth);
             return bitDepth == 8;
         }
 
         public static bool IsHi10P(this CL_VideoDetailed videodetailed)
         {
-            if (String.IsNullOrEmpty(videodetailed.VideoInfo_VideoBitDepth)) return false;
-            Int32.TryParse(videodetailed.VideoInfo_VideoBitDepth, out int bitDepth);
+            if (string.IsNullOrEmpty(videodetailed.VideoInfo_VideoBitDepth)) return false;
+            int.TryParse(videodetailed.VideoInfo_VideoBitDepth, out int bitDepth);
             return bitDepth == 10;
         }
 
         public static bool IsHi12P(this CL_VideoDetailed videodetailed)
         {
-            if (String.IsNullOrEmpty(videodetailed.VideoInfo_VideoBitDepth)) return false;
-            Int32.TryParse(videodetailed.VideoInfo_VideoBitDepth, out int bitDepth);
+            if (string.IsNullOrEmpty(videodetailed.VideoInfo_VideoBitDepth)) return false;
+            int.TryParse(videodetailed.VideoInfo_VideoBitDepth, out int bitDepth);
             return bitDepth == 12;
         }
 
@@ -633,7 +616,7 @@ namespace Shoko.Commons.Extensions
             if (videodetailed.VideoInfo_VideoResolution.Trim().Length > 0)
             {
                 string[] dimensions = videodetailed.VideoInfo_VideoResolution.Split('x');
-                if (dimensions.Length > 0) Int32.TryParse(dimensions[0], out videoWidth);
+                if (dimensions.Length > 0) int.TryParse(dimensions[0], out videoWidth);
             }
             return videoWidth;
         }
@@ -644,14 +627,14 @@ namespace Shoko.Commons.Extensions
             if (videodetailed.AniDB_File_VideoResolution.Trim().Length > 0)
             {
                 string[] dimensions = videodetailed.AniDB_File_VideoResolution.Split('x');
-                if (dimensions.Length > 1) Int32.TryParse(dimensions[1], out videoHeight);
+                if (dimensions.Length > 1) int.TryParse(dimensions[1], out videoHeight);
             }
             return videoHeight;
         }
 
         public static int GetBitDepth(this CL_VideoDetailed videodetailed)
         {
-            if (!Int32.TryParse(videodetailed.VideoInfo_VideoBitDepth, out int bitDepth))
+            if (!int.TryParse(videodetailed.VideoInfo_VideoBitDepth, out int bitDepth))
                 bitDepth = 8;
 
             return bitDepth;
@@ -694,15 +677,15 @@ namespace Shoko.Commons.Extensions
 
         public static string GetReleaseGroupName(this CL_VideoDetailed videodetailed) => videodetailed.ReleaseGroup != null ? videodetailed.ReleaseGroup.GroupName : "";
 
-        public static string GetReleaseGroupAniDBURL(this CL_VideoDetailed videodetailed) => videodetailed.ReleaseGroup != null ? String.Format(Shoko.Models.Constants.URLS.AniDB_ReleaseGroup, videodetailed.ReleaseGroup.GroupID) : "";
+        public static string GetReleaseGroupAniDBURL(this CL_VideoDetailed videodetailed) => videodetailed.ReleaseGroup != null ? string.Format(Shoko.Models.Constants.URLS.AniDB_ReleaseGroup, videodetailed.ReleaseGroup.GroupID) : "";
 
         public static bool HasAniDBFile(this CL_VideoDetailed videodetailed) => videodetailed.AniDB_FileID.HasValue;
 
-        public static string GetAniDB_SiteURL(this CL_VideoDetailed videodetailed) => videodetailed.AniDB_FileID.HasValue ? String.Format(Shoko.Models.Constants.URLS.AniDB_File, videodetailed.AniDB_FileID.Value) : "";
+        public static string GetAniDB_SiteURL(this CL_VideoDetailed videodetailed) => videodetailed.AniDB_FileID.HasValue ? string.Format(Shoko.Models.Constants.URLS.AniDB_File, videodetailed.AniDB_FileID.Value) : "";
 
-        public static string GetBannerURL(this TVDB_Series_Search_Response sresponse) => String.IsNullOrEmpty(sresponse.Banner) ? "" : String.Format(Shoko.Models.Constants.URLS.TvDB_Images, sresponse.Banner);
+        public static string GetBannerURL(this TVDB_Series_Search_Response sresponse) => string.IsNullOrEmpty(sresponse.Banner) ? "" : string.Format(Shoko.Models.Constants.URLS.TvDB_Images, sresponse.Banner);
         
-        public static string GetSeriesURL(this TVDB_Series_Search_Response sresponse) => String.Format(Shoko.Models.Constants.URLS.TvDB_Series, sresponse.SeriesID);
+        public static string GetSeriesURL(this TVDB_Series_Search_Response sresponse) => string.Format(Shoko.Models.Constants.URLS.TvDB_Series, sresponse.SeriesID);
 
         public static string GetLanguageFlagImage(this TVDB_Series_Search_Response sresponse) => Languages.Languages.GetFlagImage(sresponse.Language.Trim().ToUpper());
 
@@ -710,7 +693,7 @@ namespace Shoko.Commons.Extensions
 
         public static string GetTraktID(this CL_TraktTVShowResponse showresponse)
         {
-            if (String.IsNullOrEmpty(showresponse.url)) return "";
+            if (string.IsNullOrEmpty(showresponse.url)) return "";
 
             int pos = showresponse.url.LastIndexOf("/");
             if (pos < 0) return "";
@@ -1032,9 +1015,9 @@ namespace Shoko.Commons.Extensions
         {
             try
             {
-                int year = Int32.Parse(sDate.Substring(0, 4));
-                int month = Int32.Parse(sDate.Substring(4, 2));
-                int day = Int32.Parse(sDate.Substring(6, 2));
+                int year = int.Parse(sDate.Substring(0, 4));
+                int month = int.Parse(sDate.Substring(4, 2));
+                int day = int.Parse(sDate.Substring(6, 2));
 
                 return new DateTime(year, month, day);
             }
@@ -1053,10 +1036,10 @@ namespace Shoko.Commons.Extensions
 
 
 
-        public static string GetSiteURL(this CrossRef_AniDB_MAL crossanidb) => String.Format(Shoko.Models.Constants.URLS.MAL_Series, crossanidb.MALID);
+        public static string GetSiteURL(this CrossRef_AniDB_MAL crossanidb) => string.Format(Shoko.Models.Constants.URLS.MAL_Series, crossanidb.MALID);
         public static string GetStartEpisodeTypeString(this CrossRef_AniDB_MAL crossanidb) => EnumTranslator.EpisodeTypeTranslated((EpisodeType) crossanidb.StartEpisodeType);
 
-        public static string GetSiteURL(this CL_MovieDBMovieSearch_Response sresult) => String.Format(Shoko.Models.Constants.URLS.MovieDB_Series, sresult.MovieID);
+        public static string GetSiteURL(this CL_MovieDBMovieSearch_Response sresult) => string.Format(Shoko.Models.Constants.URLS.MovieDB_Series, sresult.MovieID);
 
         public static bool HasAnySpecials(this CL_GroupVideoQuality vidquality) => vidquality.FileCountSpecials > 0;
         public static string GetTotalFileSizeFormatted(this CL_GroupVideoQuality vidquality) => Formatting.FormatFileSize(vidquality.TotalFileSize);
@@ -1086,7 +1069,7 @@ namespace Shoko.Commons.Extensions
             if (vidquality.Resolution.Trim().Length > 0)
             {
                 string[] dimensions = vidquality.Resolution.Split('x');
-                if (dimensions.Length > 0) Int32.TryParse(dimensions[0], out videoWidth);
+                if (dimensions.Length > 0) int.TryParse(dimensions[0], out videoWidth);
             }
             return videoWidth;
         }
@@ -1097,7 +1080,7 @@ namespace Shoko.Commons.Extensions
             if (vidquality.Resolution.Trim().Length > 0)
             {
                 string[] dimensions = vidquality.Resolution.Split('x');
-                if (dimensions.Length > 1) Int32.TryParse(dimensions[1], out videoHeight);
+                if (dimensions.Length > 1) int.TryParse(dimensions[1], out videoHeight);
             }
             return videoHeight;
         }
@@ -1142,15 +1125,15 @@ namespace Shoko.Commons.Extensions
             }
         }
 
-        public static string GetSiteURL(this MovieDB_Movie movie) => String.Format(Shoko.Models.Constants.URLS.MovieDB_Series, movie.MovieId);
-        public static string GetSeriesURL(this CrossRef_AniDB_TvDBV2 crosstvdb) => String.Format(Shoko.Models.Constants.URLS.TvDB_Series, crosstvdb.TvDBID);
-        public static string GetAniDBURL(this CrossRef_AniDB_TvDBV2 crosstvdb) => String.Format(Shoko.Models.Constants.URLS.AniDB_Series, crosstvdb.AnimeID);
+        public static string GetSiteURL(this MovieDB_Movie movie) => string.Format(Shoko.Models.Constants.URLS.MovieDB_Series, movie.MovieId);
+        public static string GetSeriesURL(this CrossRef_AniDB_TvDBV2 crosstvdb) => string.Format(Shoko.Models.Constants.URLS.TvDB_Series, crosstvdb.TvDBID);
+        public static string GetAniDBURL(this CrossRef_AniDB_TvDBV2 crosstvdb) => string.Format(Shoko.Models.Constants.URLS.AniDB_Series, crosstvdb.AnimeID);
         public static string GetAniDBStartEpisodeTypeString(this CrossRef_AniDB_TvDBV2 crosstvdb) => EnumTranslator.EpisodeTypeTranslated((EpisodeType) crosstvdb.AniDBStartEpisodeType);
         public static string GetAniDBStartEpisodeNumberString(this CrossRef_AniDB_TvDBV2 crosstvdb) => $"# {crosstvdb.AniDBStartEpisodeNumber}";
         public static string GetTvDBSeasonNumberString(this CrossRef_AniDB_TvDBV2 crosstvdb) => $"S{crosstvdb.TvDBSeasonNumber}";
         public static string GetTvDBStartEpisodeNumberString(this CrossRef_AniDB_TvDBV2 crosstvdb) => $"EP# {crosstvdb.TvDBStartEpisodeNumber}";
-        public static string GetShowURL(this CrossRef_AniDB_TraktV2 crosstrakt) => String.Format(Shoko.Models.Constants.URLS.Trakt_Series, crosstrakt.TraktID);
-        public static string GetAniDBURL(this CrossRef_AniDB_TraktV2 crosstrakt) => String.Format(Shoko.Models.Constants.URLS.AniDB_Series, crosstrakt.AnimeID);
+        public static string GetShowURL(this CrossRef_AniDB_TraktV2 crosstrakt) => string.Format(Shoko.Models.Constants.URLS.Trakt_Series, crosstrakt.TraktID);
+        public static string GetAniDBURL(this CrossRef_AniDB_TraktV2 crosstrakt) => string.Format(Shoko.Models.Constants.URLS.AniDB_Series, crosstrakt.AnimeID);
         public static string GetAniDBStartEpisodeTypeString(this CrossRef_AniDB_TraktV2 crosstrakt) => EnumTranslator.EpisodeTypeTranslated((EpisodeType) crosstrakt.AniDBStartEpisodeType);
         public static string GetAniDBStartEpisodeNumberString(this CrossRef_AniDB_TraktV2 crosstrakt) => $"# {crosstrakt.AniDBStartEpisodeNumber}";
         public static string GetTraktSeasonNumberString(this CrossRef_AniDB_TraktV2 crosstrakt) => $"S{crosstrakt.TraktSeasonNumber}";
@@ -1199,7 +1182,7 @@ namespace Shoko.Commons.Extensions
                 return 1;
             if (aniDbAnimeRelation.RelationType.Equals("Sequel", StringComparison.InvariantCultureIgnoreCase))
                 return 2;
-            return Int32.MaxValue;
+            return int.MaxValue;
         }
 
 
@@ -1216,7 +1199,7 @@ namespace Shoko.Commons.Extensions
 
         public static bool IsFolderWatched(this ImportFolder ImportFolder) => ImportFolder.IsWatched == 1;
 
-        public static bool HasMessageURL(this Azure_AdminMessage msg) => !String.IsNullOrEmpty(msg.MessageURL);
+        public static bool HasMessageURL(this Azure_AdminMessage msg) => !string.IsNullOrEmpty(msg.MessageURL);
 
         public static bool HasMissingEpisodesAny(this AnimeGroup grp) => grp.MissingEpisodeCount > 0 || grp.MissingEpisodeCountGroups > 0;
 
