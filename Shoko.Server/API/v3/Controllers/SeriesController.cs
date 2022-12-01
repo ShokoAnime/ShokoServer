@@ -180,7 +180,24 @@ public class SeriesController : BaseController
     {
         var user = User;
         return RepoFactory.AnimeSeries.GetAll()
-            .Where(series => user.AllowedSeries(series) && series.GetAnimeEpisodesCountWithVideoLocal() == 0)
+            .Where(series => user.AllowedSeries(series) && series.GetVideoLocals().Count == 0)
+            .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
+            .ToListResult(series => new Series(HttpContext, series), page, pageSize);
+    }
+
+    /// <summary>
+    /// Get a paginated list of <see cref="Series"/> with manually linked local files, available to the current <see cref="User"/>.
+    /// </summary>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns></returns>
+    [HttpGet("WithManuallyLinkedFiles")]
+    public ActionResult<ListResult<Series>> GetSeriesWithManuallyLinkedFiles([FromQuery] [Range(0, 100)] int pageSize = 50,
+        [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+    {
+        var user = User;
+        return RepoFactory.AnimeSeries.GetAll()
+            .Where(series => user.AllowedSeries(series) && series.GetVideoLocals(CrossRefSource.User).Count() != 0)
             .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
             .ToListResult(series => new Series(HttpContext, series), page, pageSize);
     }
