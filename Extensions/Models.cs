@@ -236,7 +236,7 @@ namespace Shoko.Commons.Extensions
             {
                 if (!_alltagscache.ContainsKey(anime.AnimeID))
                     _alltagscache[anime.AnimeID] = new HashSet<string>(
-                        anime.AllTags.Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                        anime.AllTags.Split(new[] {'|'}, StringSplitOptions.RemoveEmptyEntries)
                                 .Where(a => !string.IsNullOrEmpty(a)), StringComparer.InvariantCultureIgnoreCase);
                 return _alltagscache[anime.AnimeID];
             }
