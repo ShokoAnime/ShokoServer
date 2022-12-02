@@ -41,7 +41,8 @@ public class WebUIController : BaseController
                     return null;
                 }
 
-                return new WebUI.WebUIGroupExtra(HttpContext, group, series, anime);
+                return new WebUI.WebUIGroupExtra(HttpContext, group, series, anime, body.TagFilter, body.OrderByName,
+                    body.TagLimit);
             })
             .ToList();
     }

@@ -1176,10 +1176,11 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko ID</param>
     /// <param name="filter"></param>
     /// <param name="excludeDescriptions"></param>
+    /// <param name="orderByName">Order tags by name (and source) only. Don't use the tag weights for ordering.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Tags")]
     public ActionResult<List<Tag>> GetSeriesTags([FromRoute] int seriesID, [FromQuery] TagFilter.Filter filter = 0,
-        [FromQuery] bool excludeDescriptions = false)
+        [FromQuery] bool excludeDescriptions = false, [FromQuery] bool orderByName = false)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -1198,7 +1199,7 @@ public class SeriesController : BaseController
             return new List<Tag>();
         }
 
-        return Series.GetTags(HttpContext, anidb, filter, excludeDescriptions);
+        return Series.GetTags(HttpContext, anidb, filter, excludeDescriptions, orderByName);
     }
 
     /// <summary>
