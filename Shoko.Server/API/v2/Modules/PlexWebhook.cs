@@ -238,6 +238,7 @@ public class PlexWebhook : BaseController
     {
         return CallPlexHelper(h =>
         {
+            if (!h.IsAuthenticated) return false;
             h.InvalidateToken();
             return true;
         });
@@ -247,9 +248,8 @@ public class PlexWebhook : BaseController
     [HttpGet("sync")]
     public ActionResult Sync()
     {
-        Analytics.PostEvent("Plex", "SyncOne");
-
         _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser()).Save();
+
         return APIStatus.OK();
     }
 
@@ -257,16 +257,25 @@ public class PlexWebhook : BaseController
     [HttpGet("sync/all")]
     public ActionResult SyncAll()
     {
-        ShokoServer.Instance.SyncPlex();
+        var users = RepoFactory.JMMUser.GetAll()
+            .Where(user => !string.IsNullOrEmpty(user.PlexToken));
+
+        foreach (var user in users)
+            _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = user).Save();
+
         return APIStatus.OK();
     }
 
     [Authorize("admin")]
-    [HttpGet("sync/{id}")]
-    public ActionResult SyncForUser(int uid)
+    [HttpGet("sync/{userID}")]
+    public ActionResult SyncForUser([FromQuery] int userID)
     {
-        JMMUser user = HttpContext.GetUser();
-        ShokoServer.Instance.SyncPlex();
+        var user = RepoFactory.JMMUser.GetByID(userID);
+        if (user == null)
+            return NotFound("Unable to find a user with the given userID.");
+
+        _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = user).Save();
+
         return APIStatus.OK();
     }
 
