@@ -589,7 +589,6 @@ public class SVR_GroupFilter : GroupFilter
         var allGroupsIds = RepoFactory.AnimeGroup.GetAll().Select(a => a.AnimeGroupID).ToHashSet();
         foreach (var grp in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
         {
-            CalculateGroupFilterGroups(allGroupsIds, grp.Contract, null);
             foreach (var user in users)
             {
                 CalculateGroupFilterGroups(allGroupsIds, grp.GetUserContract(user.JMMUserID, cloned: false), user);
