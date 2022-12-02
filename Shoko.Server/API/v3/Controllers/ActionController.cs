@@ -363,14 +363,19 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Sync watch states with plex.
+    /// Sync watch states with plex for all users.
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("PlexSyncAll")]
     public ActionResult PlexSyncAll()
     {
-        _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser()).Save();
+        var users = RepoFactory.JMMUser.GetAll()
+            .Where(user => !string.IsNullOrEmpty(user.PlexToken));
+
+        foreach (var user in users)
+            _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = user).Save();
+
         return Ok();
     }
 

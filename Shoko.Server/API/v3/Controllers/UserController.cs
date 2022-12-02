@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Commands;
+using Shoko.Server.Commands.Plex;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -17,6 +19,13 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class UserController : BaseController
 {
+    private readonly ICommandRequestFactory CommandFactory;
+
+    public UserController(ICommandRequestFactory commandFactory)
+    {
+        CommandFactory = commandFactory;
+    }
+
     /// <summary>
     /// List all Users. Admin only
     /// </summary>
@@ -157,6 +166,18 @@ public class UserController : BaseController
     }
 
     /// <summary>
+    /// Sync the watch states against the selected plex server for the current user.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("Current/Plex/Sync")]
+    public ActionResult SyncPlexForCurrentUser()
+    {
+        CommandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser()).Save();
+
+        return Ok();
+    }
+
+    /// <summary>
     /// Get a user by id.
     /// </summary>
     /// <param name="userID"></param>
@@ -207,6 +228,23 @@ public class UserController : BaseController
         {
             RepoFactory.AuthTokens.DeleteAllWithUserID(user.JMMUserID);
         }
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Sync the watch states against plex for the the user.
+    /// </summary>
+    /// <param name="userID">User ID</param>
+    [Authorize("admin")]
+    [HttpGet("{userID}/Plex/Sync")]
+    public ActionResult SyncUserByID([FromQuery] int userID)
+    {
+        var user = RepoFactory.JMMUser.GetByID(userID);
+        if (user == null)
+            return NotFound("Unable to find a user with the given userID");
+
+        CommandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = user).Save();
 
         return Ok();
     }
