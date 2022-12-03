@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 using Mono.Unix;
 
 namespace Shoko.Server.Utilities;
@@ -42,17 +41,5 @@ public static class LinuxFS
 
         // guarantee immediate flush
         file.Refresh();
-            
-        // spinwait to ensure the status is updated
-        const int Time = 2000;
-        const int Interval = 50;
-        const int Limit = Time / Interval;
-        var count = 0;
-        while (file.OwnerUserId != uid || file.OwnerGroupId != gid || file.FileAccessPermissions != (FileAccessPermissions)mode && count < Limit)
-        {
-            Thread.Sleep(Interval);
-            count++;
-            file.Refresh();
-        }
     }
 }

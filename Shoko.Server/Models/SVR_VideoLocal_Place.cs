@@ -687,6 +687,10 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             LinuxFS.SetLinuxPermissions(FullServerPath, ServerSettings.Instance.Linux.UID,
                 ServerSettings.Instance.Linux.GID, ServerSettings.Instance.Linux.Permission);
         }
+        catch (InvalidOperationException e)
+        {
+            logger.Error(e, $"Unable to set permissions ({ServerSettings.Instance.Linux.UID}:{ServerSettings.Instance.Linux.GID} {ServerSettings.Instance.Linux.Permission}) on file {FileName}: Access Denied");
+        }
         catch (Exception e)
         {
             logger.Error(e, "Error setting Linux Permissions: {0}", e);
