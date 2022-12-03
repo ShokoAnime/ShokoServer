@@ -31,7 +31,6 @@ public class Tag
         Source = "AniDB";
     }
 
-
     /// <summary>
     /// Tag id. Relative to it's source for now.
     /// </summary>
