@@ -25,6 +25,10 @@ public static class TagFilter
         Programming = 1 << 6,
         Genre = 1 << 7,
 
+        // User tags. won't actually be used in the filter, but having it in this
+        // enum makes it easier to send from the clients.
+        User = 1L << 30,
+
         // This should always be last, if we get that many categories, then we should redesign this
         Invert = 1L << 31 // without L Invert is still intiger and it returns after bitshift -2147483648
     }

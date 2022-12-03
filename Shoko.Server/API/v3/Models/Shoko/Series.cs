@@ -346,19 +346,34 @@ public class Series : BaseModel
     }
 
     public static List<Tag> GetTags(HttpContext ctx, SVR_AniDB_Anime anime, TagFilter.Filter filter,
-        bool excludeDescriptions = false)
+        bool excludeDescriptions = false, bool orderByName = false)
     {
-        var tags = new List<Tag>();
+        // Only get the user tags if we don't exclude it (false == false), or if we invert the logic and want to include it (true == true).
+        IEnumerable<Tag> userTags = new List<Tag>();
+        if (filter.HasFlag(TagFilter.Filter.User) == filter.HasFlag(TagFilter.Filter.Invert))
+            userTags = RepoFactory.CustomTag.GetByAnimeID(anime.AnimeID)
+                .Select(tag => new Tag(tag, excludeDescriptions));
 
         var allTags = anime.GetAniDBTags().DistinctBy(a => a.TagName).ToList();
         var tagFilter = new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName);
-        return tagFilter
+        var anidbTags = tagFilter
             .ProcessTags(filter, allTags)
             .Select(tag => 
             {
                 var xref = RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).FirstOrDefault(xref => xref.AnimeID == anime.AnimeID);
                 return new Tag(tag, excludeDescriptions) { Weight = xref?.Weight ?? 0 };
-            })
+            });
+
+        if (orderByName)
+            return userTags.Concat(anidbTags)
+                .OrderByDescending(tag => tag.Source)
+                .ThenBy(tag => tag.Name)
+                .ToList();
+
+        return userTags.Concat(anidbTags)
+            .OrderByDescending(tag => tag.Source)
+            .ThenByDescending(tag => tag.Weight)
+            .ThenBy(tag => tag.Name)
             .ToList();
     }
 

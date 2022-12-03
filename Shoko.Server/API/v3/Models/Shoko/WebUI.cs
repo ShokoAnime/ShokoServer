@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -15,7 +16,7 @@ public class WebUI
     public class WebUIGroupExtra
     {
         public WebUIGroupExtra(HttpContext context, SVR_AnimeGroup group, SVR_AnimeSeries series, SVR_AniDB_Anime anime,
-            TagFilter.Filter filter = TagFilter.Filter.None)
+            TagFilter.Filter filter = TagFilter.Filter.None, bool orderByName = false, int tagLimit = 30)
         {
             ID = group.AnimeGroupID;
             Type = Series.GetAniDBSeriesType(anime.AnimeType);
@@ -38,7 +39,9 @@ public class WebUI
                 }
             }
 
-            Tags = Series.GetTags(context, anime, filter, true);
+            Tags = Series.GetTags(context, anime, filter, excludeDescriptions: true, orderByName)
+                .Take(tagLimit)
+                .ToList();
         }
 
         /// <summary>
@@ -95,6 +98,18 @@ public class WebUI
             /// </summary>
             /// <value></value>
             public TagFilter.Filter TagFilter { get; set; } = 0;
+
+            /// <summary>
+            /// Limits the number of returned tags.
+            /// </summary>
+            /// <value></value>
+            public int TagLimit { get; set; } = 30;
+
+            /// <summary>
+            /// Order tags by name (and source) only. Don't use the tag weights.
+            /// </summary>
+            /// <value></value>
+            public bool OrderByName { get; set; } = false;
         }
     }
 }
