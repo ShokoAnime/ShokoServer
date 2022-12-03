@@ -98,11 +98,12 @@ public class TreeController : BaseController
     /// <param name="page">The page index.</param>
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
     /// <param name="randomImages">Randomise images shown for the <see cref="Group"/>.</param>
+    /// <param name="orderByName">Ignore the group filter sort critaria and always order the returned list by name.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group")]
     public ActionResult<ListResult<Group>> GetFilteredGroups([FromRoute] int filterID,
         [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool includeEmpty = false, [FromQuery] bool randomImages = false)
+        [FromQuery] bool includeEmpty = false, [FromQuery] bool randomImages = false, [FromQuery] bool orderByName = false)
     {
         // Return the top level groups with no filter.
         IEnumerable<SVR_AnimeGroup> groups;
@@ -111,7 +112,7 @@ public class TreeController : BaseController
             var user = User;
             groups = RepoFactory.AnimeGroup.GetAll()
                 .Where(group => !group.AnimeGroupParentID.HasValue && user.AllowedGroup(group))
-                .OrderBy(group => group.GroupName);
+                .OrderBy(group => group.GetSortName());
         }
         else
         {
@@ -138,12 +139,65 @@ public class TreeController : BaseController
 
                     return includeEmpty || group.GetAllSeries()
                         .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
-                })
-                .OrderByGroupFilter(groupFilter);
+                });
+            groups = orderByName ? groups.OrderBy(group => group.GetSortName()) :
+                groups.OrderByGroupFilter(groupFilter);
         }
 
         return groups
             .ToListResult(group => new Group(HttpContext, group, randomImages), page, pageSize);
+    }
+
+    /// <summary>
+    /// Get a dictionary with the count for each starting character in each of the group names.
+    /// </summary>
+    /// <param name="filterID"><see cref="Filter"/> ID</param>
+    /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
+    /// <returns></returns>
+    [HttpGet("Filter/{filterID}/Group/Letters")]
+    public ActionResult<Dictionary<char, int>> GetGroupNameLettersInFilter([FromRoute] int? filterID = null, [FromQuery] bool includeEmpty = false)
+    {
+        var user = User;
+        if (filterID.HasValue && filterID > 0)
+        {
+            var groupFilter = RepoFactory.GroupFilter.GetByID(filterID.Value);
+            if (groupFilter == null)
+                return NotFound(FilterController.FilterNotFound);
+
+            // Fast path when user is not in the filter
+            if (!groupFilter.GroupsIds.TryGetValue(user.JMMUserID, out var groupIds))
+                return new Dictionary<char, int>();
+
+            var groups = groupIds
+                .Select(group => RepoFactory.AnimeGroup.GetByID(group))
+                .Where(group =>
+                {
+                    if (group == null || group.AnimeGroupParentID.HasValue)
+                        return false;
+
+                    return includeEmpty || group.GetAllSeries()
+                        .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+                })
+                .GroupBy(group => group.GetSortName()[0])
+                .OrderBy(groupList => groupList.Key)
+                .ToDictionary(groupList => groupList.Key, groupList => groupList.Count());
+        }
+
+        return RepoFactory.AnimeGroup.GetAll()
+            .Where(group =>
+            {
+                if (group.AnimeGroupParentID.HasValue)
+                    return false;
+
+                if (!user.AllowedGroup(group))
+                    return false;
+
+                return includeEmpty || group.GetAllSeries()
+                    .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+            })
+            .GroupBy(group => group.GetSortName()[0])
+            .OrderBy(groupList => groupList.Key)
+            .ToDictionary(groupList => groupList.Key, groupList => groupList.Count());
     }
 
     /// <summary>

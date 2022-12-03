@@ -37,6 +37,18 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
 
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
+    /// <summary>
+    /// Get a predictable sort name that stuffs everything that's not between
+    /// A-Z under #.
+    /// </summary>
+    public string GetSortName()
+    {
+        var sortName = !string.IsNullOrWhiteSpace(SortName) ? SortName.ToUpperInvariant() :
+                !string.IsNullOrWhiteSpace(GroupName) ? GroupName.ToUpperInvariant() : "";
+        var initialChar = (short)(sortName.Length > 0 ? sortName[0] : ' ');
+        return initialChar is >= 65 and <= 90 ? sortName : "#" + sortName;
+    }
+
 
     internal CL_AnimeGroup_User _contract;
 
