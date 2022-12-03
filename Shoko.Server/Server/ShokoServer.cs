@@ -1194,30 +1194,6 @@ public class ShokoServer
         return 1; //continue hashing (return 0 to abort)
     }
 
-    /// <summary>
-    /// Sync plex watch status.
-    /// </summary>
-    /// <returns>true if there was any commands added to the queue, flase otherwise</returns>
-    public bool SyncPlex()
-    {
-        var commandFactory = ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        Analytics.PostEvent("Plex", "SyncAll");
-
-        var flag = false;
-        foreach (var user in RepoFactory.JMMUser.GetAll())
-        {
-            if (string.IsNullOrEmpty(user.PlexToken))
-            {
-                continue;
-            }
-
-            flag = true;
-            commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = user).Save();
-        }
-
-        return flag;
-    }
-
     public static void RunWorkSetupDB()
     {
         workerSetupDB.RunWorkerAsync();
