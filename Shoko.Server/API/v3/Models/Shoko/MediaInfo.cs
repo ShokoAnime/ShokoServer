@@ -25,22 +25,22 @@ public class MediaInfo
     /// <summary>
     /// Overall duration of the media.
     /// </summary>
-    TimeSpan Duration { get; }
+    public TimeSpan Duration { get; }
 
     /// <summary>
     /// Overall bit-rate across all streams in the media container.
     /// </summary>
-    int BitRate { get; }
+    public int BitRate { get; }
 
     /// <summary>
     /// Average frame-rate across all the streams in the media container.
     /// </summary>
-    decimal FrameRate { get; }
+    public decimal FrameRate { get; }
 
     /// <summary>
     /// Date when encoding took place, if known.
     /// </summary>
-    DateTime? Encoded { get; }
+    public DateTime? Encoded { get; }
 
     /// <summary>
     /// True if the media is streaming-friendly.
