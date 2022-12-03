@@ -19,7 +19,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class FilterController : BaseController
 {
-    internal static string FilterNotFound = "No Filter entry for the given filterID";
+    internal const string FilterNotFound = "No Filter entry for the given filterID";
 
     /// <summary>
     /// Get All <see cref="Filter"/>s

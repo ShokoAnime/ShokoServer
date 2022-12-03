@@ -26,12 +26,16 @@ namespace Shoko.Server.API.v3.Controllers;
 public class FileController : BaseController
 {
     private const string FileUserStatsNotFoundWithFileID = "No FileUserStats entry for the given fileID for the current user";
-    private const string FileNoPath = "Unable to get file path";
-    private const string AnidbNotFoundForFileID = "No File.Anidb entry for the given fileID";
-    private readonly TraktTVHelper _traktHelper;
-    private readonly ICommandRequestFactory _commandFactory;
 
-    internal static string FileNotFoundWithFileID = "No File entry for the given fileID";
+    private const string FileNoPath = "Unable to get file path";
+
+    private const string AnidbNotFoundForFileID = "No File.Anidb entry for the given fileID";
+
+    internal const string FileNotFoundWithFileID = "No File entry for the given fileID";
+
+    private readonly TraktTVHelper _traktHelper;
+
+    private readonly ICommandRequestFactory _commandFactory;
 
     public FileController(TraktTVHelper traktHelper, ICommandRequestFactory commandFactory)
     {

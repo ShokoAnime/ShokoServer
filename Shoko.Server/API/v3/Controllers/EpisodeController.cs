@@ -20,15 +20,15 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class EpisodeController : BaseController
 {
-    internal static string EpisodeNotFoundWithEpisodeID = "No Episode entry for the given episodeID";
+    internal const string EpisodeNotFoundWithEpisodeID = "No Episode entry for the given episodeID";
 
-    internal static string EpisodeNotFoundForAnidbEpisodeID = "No Episode entry for the given anidbEpisodeID";
+    internal const string EpisodeNotFoundForAnidbEpisodeID = "No Episode entry for the given anidbEpisodeID";
 
-    internal static string AnidbNotFoundForEpisodeID = "No Episode.Anidb entry for the given episodeID";
+    internal const string AnidbNotFoundForEpisodeID = "No Episode.Anidb entry for the given episodeID";
 
-    internal static string AnidbNotFoundForAnidbEpisodeID = "No Episode.Anidb entry for the given anidbEpisodeID";
+    internal const string AnidbNotFoundForAnidbEpisodeID = "No Episode.Anidb entry for the given anidbEpisodeID";
 
-    internal static string EpisodeForbiddenForUser = "Accessing Episode is not allowed for the current user";
+    internal const string EpisodeForbiddenForUser = "Accessing Episode is not allowed for the current user";
 
     /// <summary>
     /// Get the <see cref="Episode"/> entry for the given <paramref name="episodeID"/>.

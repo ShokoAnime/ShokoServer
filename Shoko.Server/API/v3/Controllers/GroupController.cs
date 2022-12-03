@@ -23,9 +23,9 @@ public class GroupController : BaseController
 {
     #region Return messages
 
-    internal static string GroupNotFound = "No Group entry for the given groupID";
+    internal const string GroupNotFound = "No Group entry for the given groupID";
 
-    internal static string GroupForbiddenForUser = "Accessing Group is not allowed for the current user";
+    internal const string GroupForbiddenForUser = "Accessing Group is not allowed for the current user";
 
     #endregion
 

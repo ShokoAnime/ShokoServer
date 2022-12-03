@@ -41,23 +41,23 @@ public class SeriesController : BaseController
 
     #region Return messages
 
-    internal static string SeriesNotFoundWithSeriesID = "No Series entry for the given seriesID";
+    internal const string SeriesNotFoundWithSeriesID = "No Series entry for the given seriesID";
 
-    internal static string SeriesNotFoundWithAnidbID = "No Series entry for the given anidbID";
+    internal const string SeriesNotFoundWithAnidbID = "No Series entry for the given anidbID";
 
-    internal static string SeriesForbiddenForUser = "Accessing Series is not allowed for the current user";
+    internal const string SeriesForbiddenForUser = "Accessing Series is not allowed for the current user";
 
-    internal static string AnidbNotFoundForSeriesID = "No Series.AniDB entry for the given seriesID";
+    internal const string AnidbNotFoundForSeriesID = "No Series.AniDB entry for the given seriesID";
 
-    internal static string AnidbNotFoundForAnidbID = "No Series.AniDB entry for the given anidbID";
+    internal const string AnidbNotFoundForAnidbID = "No Series.AniDB entry for the given anidbID";
 
-    internal static string AnidbForbiddenForUser = "Accessing Series.AniDB is not allowed for the current user";
+    internal const string AnidbForbiddenForUser = "Accessing Series.AniDB is not allowed for the current user";
 
-    internal static string TvdbNotFoundForSeriesID = "No Series.TvDB entry for the given seriesID";
+    internal const string TvdbNotFoundForSeriesID = "No Series.TvDB entry for the given seriesID";
 
-    internal static string TvdbNotFoundForTvdbID = "No Series.TvDB entry for the given tvdbID";
+    internal const string TvdbNotFoundForTvdbID = "No Series.TvDB entry for the given tvdbID";
 
-    internal static string TvdbForbiddenForUser = "Accessing Series.TvDB is not allowed for the current user";
+    internal const string TvdbForbiddenForUser = "Accessing Series.TvDB is not allowed for the current user";
 
     #endregion
 
