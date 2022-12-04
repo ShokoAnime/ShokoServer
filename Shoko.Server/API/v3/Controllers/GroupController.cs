@@ -71,8 +71,38 @@ public class GroupController : BaseController
                 return includeEmpty || group.GetAllSeries()
                     .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
             })
-            .OrderBy(group => group.GroupName)
+            .OrderBy(group => group.GetSortName())
             .ToListResult(group => new Group(HttpContext, group, randomImages), page, pageSize);
+    }
+
+    /// <summary>
+    /// Get a dictionary with the count for each starting character in each of
+    /// the group's name.
+    /// </summary>
+    /// <param name="includeEmpty">Include <see cref="Series"/> with missing
+    /// <see cref="Episode"/>s in the count.</param>
+    /// <param name="topLevelOnly">Only count top-level groups (groups with no
+    /// parent group).</param>
+    /// <returns></returns>
+    [HttpGet("Letters")]
+    public ActionResult<Dictionary<char, int>> GetGroupNameLetters([FromQuery] bool includeEmpty = false, [FromQuery] bool topLevelOnly = true)
+    {
+        var user = User;
+        return RepoFactory.AnimeGroup.GetAll()
+            .Where(group =>
+            {
+                if (topLevelOnly && group.AnimeGroupParentID.HasValue)
+                    return false;
+
+                if (!user.AllowedGroup(group))
+                    return false;
+
+                return includeEmpty || group.GetAllSeries()
+                    .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+            })
+            .GroupBy(group => group.GetSortName()[0])
+            .OrderBy(groupList => groupList.Key)
+            .ToDictionary(groupList => groupList.Key, groupList => groupList.Count());
     }
 
     #endregion
