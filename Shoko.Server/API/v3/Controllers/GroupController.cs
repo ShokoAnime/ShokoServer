@@ -76,10 +76,13 @@ public class GroupController : BaseController
     }
 
     /// <summary>
-    /// Get a dictionary with the count for each starting character in each of the group names.
+    /// Get a dictionary with the count for each starting character in each of
+    /// the group's name.
     /// </summary>
-    /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
-    /// <param name="topLevelOnly">Only list the top level groups if set.</param>
+    /// <param name="includeEmpty">Include <see cref="Series"/> with missing
+    /// <see cref="Episode"/>s in the count.</param>
+    /// <param name="topLevelOnly">Only count top-level groups (groups with no
+    /// parent group).</param>
     /// <returns></returns>
     [HttpGet("Letters")]
     public ActionResult<Dictionary<char, int>> GetGroupNameLetters([FromQuery] bool includeEmpty = false, [FromQuery] bool topLevelOnly = true)

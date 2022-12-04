@@ -149,10 +149,13 @@ public class TreeController : BaseController
     }
 
     /// <summary>
-    /// Get a dictionary with the count for each starting character in each of the group names.
+    /// Get a dictionary with the count for each starting character in each of
+    /// the top-level group's name with the filter for the given
+    /// <paramref name="filterID"/> applied.
     /// </summary>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
-    /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
+    /// <param name="includeEmpty">Include <see cref="Series"/> with missing
+    /// <see cref="Episode"/>s in the count.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group/Letters")]
     public ActionResult<Dictionary<char, int>> GetGroupNameLettersInFilter([FromRoute] int? filterID = null, [FromQuery] bool includeEmpty = false)
