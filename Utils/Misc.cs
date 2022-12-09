@@ -758,6 +758,7 @@ namespace Shoko.Commons.Utils
             return sb.ToString().Normalize(NormalizationForm.FormC);
         }
 
+        #nullable enable
         public static bool IsImageValid(string path)
         {
             if (string.IsNullOrEmpty(path)) return false;
@@ -768,9 +769,8 @@ namespace Shoko.Commons.Utils
                 {
                     byte[] bytes = new byte[4];
                     if (fs.Length < 4) return false;
-                    fs.Read(bytes, 0, 4);
-                    if (GetImageFormat(bytes) == ImageFormatEnum.unknown) return false;
-                    return true;
+                    fs.Read(bytes, 0, 12);
+                    return GetImageFormat(bytes) != null;
                 }
             }
             catch
@@ -779,45 +779,46 @@ namespace Shoko.Commons.Utils
             }
         }
 
-        public static ImageFormatEnum GetImageFormat(byte[] bytes)
+        public static string? GetImageFormat(byte[] bytes)
         {
-            // see https://www.mikekunz.com/image_file_header.html
-            var bmp    = Encoding.ASCII.GetBytes("BM");     // BMP
-            var gif    = Encoding.ASCII.GetBytes("GIF");    // GIF
-            var png    = new byte[] { 137, 80, 78, 71 };    // PNG
-            var tiff   = new byte[] { 73, 73, 42 };         // TIFF
-            var tiff2  = new byte[] { 77, 77, 42 };         // TIFF
-            var jpeg   = new byte[] { 255, 216, 255, 224 }; // jpeg
-            var jpeg2  = new byte[] { 255, 216, 255, 225 }; // jpeg canon
-            // there are many valid jpegs that store data in the 4th byte, this may make mistakes
-            var jpeg3  = new byte[] { 255, 216, 255 };
-
-            if (bmp.SequenceEqual(bytes.Take(bmp.Length)))
-                return ImageFormatEnum.bmp;
-
-            if (gif.SequenceEqual(bytes.Take(gif.Length)))
-                return ImageFormatEnum.gif;
+            // https://en.wikipedia.org/wiki/BMP_file_format#File_structure
+            var bmp = new byte[] { 66, 77 };
+            // https://en.wikipedia.org/wiki/GIF#File_format
+            var gif = new byte[] { 71, 73, 70 };
+            // https://en.wikipedia.org/wiki/JPEG#Syntax_and_structure
+            var jpeg = new byte[] { 255, 216 };
+            // https://en.wikipedia.org/wiki/Portable_Network_Graphics#File_header
+            var png = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+            // https://en.wikipedia.org/wiki/TIFF#Byte_order
+            var tiff1 = new byte[] { 73, 73, 42, 0 };
+            var tiff2 = new byte[] { 77, 77, 42, 0 };
+            // https://developers.google.com/speed/webp/docs/riff_container#webp_file_header
+            var webp1 = new byte[] { 82, 73, 70, 70 };
+            var webp2 = new byte[] { 87, 69, 66, 80 };
 
             if (png.SequenceEqual(bytes.Take(png.Length)))
-                return ImageFormatEnum.png;
-
-            if (tiff.SequenceEqual(bytes.Take(tiff.Length)))
-                return ImageFormatEnum.tiff;
-
-            if (tiff2.SequenceEqual(bytes.Take(tiff2.Length)))
-                return ImageFormatEnum.tiff;
+                return "png";
 
             if (jpeg.SequenceEqual(bytes.Take(jpeg.Length)))
-                return ImageFormatEnum.jpeg;
+                return "jpeg";
 
-            if (jpeg2.SequenceEqual(bytes.Take(jpeg2.Length)))
-                return ImageFormatEnum.jpeg;
+            if (webp1.SequenceEqual(bytes.Take(webp1.Length)) &&
+                webp2.SequenceEqual(bytes.Skip(8).Take(webp2.Length)))
+                return "webp";
 
-            if (jpeg3.SequenceEqual(bytes.Take(jpeg3.Length)))
-                return ImageFormatEnum.jpeg;
+            if (gif.SequenceEqual(bytes.Take(gif.Length)))
+                return "gif";
 
-            return ImageFormatEnum.unknown;
+            if (bmp.SequenceEqual(bytes.Take(bmp.Length)))
+                return "bmp";
+
+            if (tiff1.SequenceEqual(bytes.Take(tiff1.Length)) ||
+                tiff2.SequenceEqual(bytes.Take(tiff2.Length)))
+                return "tiff";
+
+            return null;
         }
+        #nullable disable
 
         public static void Deconstruct<T, T1>(this KeyValuePair<T, T1> kvp, out T key, out T1 value)
         {
