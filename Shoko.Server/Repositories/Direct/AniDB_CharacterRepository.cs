@@ -36,6 +36,46 @@ public class AniDB_CharacterRepository : BaseDirectRepository<AniDB_Character, i
         }
     }
 
+    public List<AnimeCharacterAndSeiyuu> GetCharactersAndSeiyuuForAnime(int animeID)
+    {
+        lock (GlobalDBLock)
+        {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var animeChars = session.CreateSQLQuery(
+                    @"
+                SELECT {chr.*}, {seiyuu.*}, animeChr.CharType
+                    FROM AniDB_Anime_Character AS animeChr
+                        INNER JOIN AniDB_Character AS chr
+                            ON chr.CharID = animeChr.CharID
+                        LEFT OUTER JOIN (
+                            SELECT ac.AnimeID, ac.CharID, MIN(cs.SeiyuuID) AS SeiyuuID
+                                FROM AniDB_Anime_Character ac
+                                    INNER JOIN AniDB_Character_Seiyuu cs
+                                        ON cs.CharID = ac.CharID
+                                GROUP BY ac.AnimeID, ac.CharID
+                            ) AS chrSeiyuu
+                            ON chrSeiyuu.CharID = chr.CharID
+                                AND chrSeiyuu.AnimeID = animeChr.AnimeID
+                        LEFT OUTER JOIN AniDB_Seiyuu AS seiyuu
+                            ON seiyuu.SeiyuuID = chrSeiyuu.SeiyuuID
+                    WHERE animeChr.AnimeID = :animeId"
+                )
+                .AddEntity("chr", typeof(AniDB_Character))
+                .AddEntity("seiyuu", typeof(AniDB_Seiyuu))
+                .AddScalar("CharType", NHibernateUtil.String)
+                .SetParameter("animeId", animeID)
+                .List<object[]>()
+                .Select(
+                    r => new AnimeCharacterAndSeiyuu(
+                        animeID, (AniDB_Character)r[0], (AniDB_Seiyuu)r[1],
+                        (string)r[2]
+                    )
+                ).ToList();
+
+            return animeChars;
+        }
+    }
+
     public ILookup<int, AnimeCharacterAndSeiyuu> GetCharacterAndSeiyuuByAnime(ISessionWrapper session,
         int[] animeIds)
     {
@@ -89,38 +129,6 @@ public class AniDB_CharacterRepository : BaseDirectRepository<AniDB_Character, i
                     )
                 )
                 .ToLookup(ac => ac.AnimeID);
-
-            return animeChars;
-        }
-    }
-
-    public IList<(AniDB_Character character, string type)> GetCharactersByAnime(int animeId)
-    {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
-        return GetCharactersByAnime(session.Wrap(), animeId);
-    }
-    
-    public IList<(AniDB_Character character, string type)> GetCharactersByAnime(ISessionWrapper session,
-        int animeId)
-    {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
-
-        lock (GlobalDBLock)
-        {
-            // The below query makes sure that only one seiyuu is returned for each anime/character combiniation
-            var animeChars = session.CreateSQLQuery(
-                    @"SELECT distinct {chr.*}, animeChr.CharType
-                      FROM AniDB_Anime_Character AS animeChr
-                      INNER JOIN AniDB_Character AS chr ON chr.CharID = animeChr.CharID
-                      WHERE animeChr.AnimeID = :animeId"
-                )
-                .AddEntity("chr", typeof(AniDB_Character))
-                .AddScalar("CharType", NHibernateUtil.String)
-                .SetParameter("animeId", animeId)
-                .List<object[]>().Select(a => ((AniDB_Character)a[0], (string)a[1])).ToList();
 
             return animeChars;
         }

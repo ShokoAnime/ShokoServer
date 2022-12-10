@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
 using NHibernate.Criterion;
@@ -28,17 +29,29 @@ public class CrossRef_Subtitles_AniDB_FileRepository : BaseDirectRepository<Cros
         lock (GlobalDBLock)
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return session.CreateSQLQuery(string.Format(
-                    @"SELECT DISTINCT xref.AnimeID, l.LanguageName
-FROM CrossRef_File_Episode xref
-    INNER JOIN AniDB_File f ON f.Hash = xref.Hash
-    INNER JOIN CrossRef_Subtitles_AniDB_File l ON l.FileID = f.FileID
-WHERE xref.AnimeID IN ({0})", string.Join(",", animeIds)))
+            return session.CreateSQLQuery(@"SELECT DISTINCT eps.AnimeID, sub.LanguageName FROM CrossRef_File_Episode eps
+INNER JOIN AniDB_File f ON f.Hash = eps.Hash
+INNER JOIN CrossRef_Subtitles_AniDB_File sub on sub.FileID = f.FileID
+WHERE eps.AnimeID IN (:animeIds)")
                 .AddScalar("AnimeID", NHibernateUtil.Int32)
                 .AddScalar("LanguageName", NHibernateUtil.String)
-                .List<object[]>()
-                .GroupBy(a => (int)a[0], a => (string)a[1])
-                .ToDictionary(a => a.Key, grouping => grouping.ToHashSet());
+                .SetParameterList("animeIds", animeIds)
+                .List<object[]>().GroupBy(a => (int)a[0], a => (string)a[1])
+                .ToDictionary(a => a.Key, a => a.ToHashSet(StringComparer.InvariantCultureIgnoreCase));
+        }
+    }
+    
+    public HashSet<string> GetLanguagesForAnime(int animeID)
+    {
+        lock (GlobalDBLock)
+        {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            return session.CreateSQLQuery(@"SELECT DISTINCT sub.LanguageName FROM CrossRef_File_Episode eps
+INNER JOIN AniDB_File f ON f.Hash = eps.Hash
+INNER JOIN CrossRef_Subtitles_AniDB_File sub on sub.FileID = f.FileID
+WHERE eps.AnimeID = :animeId")
+                .SetParameter("animeId", animeID)
+                .List<string>().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         }
     }
 }

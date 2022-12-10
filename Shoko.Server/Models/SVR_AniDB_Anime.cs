@@ -817,7 +817,8 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
     {
         try
         {
-            return RepoFactory.AniDB_Character.GetCharactersByAnime(AnimeID).Select(a => a.character.ToClient(a.type)).ToList();
+            return RepoFactory.AniDB_Character.GetCharactersAndSeiyuuForAnime(AnimeID)
+                .Select(a => a.Character.ToClient(a.CharacterType, a.Seiyuu)).ToList();
         }
         catch (Exception ex)
         {
@@ -1091,20 +1092,14 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting Audio Languages");
         using var session = DatabaseFactory.SessionFactory.OpenSession().Wrap();
         // audio languages
-        cl.Stat_AudioLanguages = new HashSet<string>(
-            RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID).SelectMany(a =>
-                RepoFactory.AniDB_File.GetByHash(a.Hash)?.Languages?.Select(b => b.LanguageName) ?? Array.Empty<string>()).Where(a => a != null),
-            StringComparer.InvariantCultureIgnoreCase);
+        cl.Stat_AudioLanguages = RepoFactory.CrossRef_Languages_AniDB_File.GetLanguagesForAnime(AnimeID);
         sw.Stop();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got Audio Languages in {sw.Elapsed.TotalSeconds:0.00###}s");
 
         sw.Restart();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting Subtitle Languages");
         // subtitle languages
-        cl.Stat_SubtitleLanguages = new HashSet<string>(
-            RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID).SelectMany(a =>
-                RepoFactory.AniDB_File.GetByHash(a.Hash)?.Subtitles?.Select(b => b.LanguageName) ?? Array.Empty<string>()).Where(a => a != null),
-            StringComparer.InvariantCultureIgnoreCase);
+        cl.Stat_SubtitleLanguages = RepoFactory.CrossRef_Subtitles_AniDB_File.GetLanguagesForAnime(AnimeID);
         sw.Stop();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got Subtitle Languages in {sw.Elapsed.TotalSeconds:0.00###}s");
 
