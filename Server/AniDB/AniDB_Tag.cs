@@ -1,37 +1,65 @@
-﻿namespace Shoko.Models.Server
+﻿using System;
+
+namespace Shoko.Models.Server
 {
     public class AniDB_Tag
     {
+        /// <summary>
+        /// Local anidb tag id.
+        /// </summary>
         public int AniDB_TagID { get; set; }
+
+        /// <summary>
+        /// Universal anidb tag id.
+        /// </summary>
         public int TagID { get; set; }
-        public int Spoiler { get; set; }
-        public int LocalSpoiler { get; set; }
-        public int GlobalSpoiler { get; set; }
 
-        public int TagCount { get; set; }
+        /// <summary>
+        /// Universal anidb tag id of the parent tag, if any.
+        /// </summary>
+        /// <value>An int if the tag has a parent, otherwise null.</value>
+        public int? ParentTagID { get; set; }
 
-        // Not really pretty, but much prettier than replacing the entire CL_ tree with VMs
-        private string tagName;
-        public string TagName
-        {
-            get => tagName == null ? null : string.Intern(tagName);
-            set => tagName = value == null ? null : string.Intern(value);
-        }
+        /// <summary>
+        /// The tag name to use.
+        /// </summary>
+        public string TagName { get => TagNameOverride ?? TagNameSource; }
 
-        private string tagDescription;
-        public string TagDescription
-        {
-            get => tagDescription == null ? null : string.Intern(tagDescription);
-            set => tagDescription = value == null ? null : string.Intern(value);
-        }
+        /// <summary>
+        /// The original tag name as shown on anidb.
+        /// </summary>
+        public string TagNameSource { get; set; }
+
+        /// <summary>
+        /// Name override for those tags where the original name doesn't make
+        /// sense or is otherwise confusing.
+        /// </summary>
+        public string TagNameOverride { get; set; }
+
+        /// <summary>
+        /// True if this tag itself is considered as a spoiler, regardless of
+        /// which anime it's attached to.
+        /// </summary>
+        public bool GlobalSpoiler { get; set; }
+
+        /// <summary>
+        /// True if the tag has been verified for use by a mod. Unverified tags
+        /// are not shown in AniDB's UI except when editing tags.
+        /// </summary>
+        public bool Verified { get; set; }
+
+        /// <summary>
+        /// The description for the tag, if any.
+        /// </summary>
+        public string TagDescription { get; set; }
+
+        /// <summary>
+        /// The date (with no time) the tag was last updated at.
+        /// </summary>
+        public DateTime LastUpdated { get; set; }
 
         public AniDB_Tag()
         {
-        }
-
-        public AniDB_Tag(string tagName)
-        {
-            TagName = tagName;
         }
     }
 }
