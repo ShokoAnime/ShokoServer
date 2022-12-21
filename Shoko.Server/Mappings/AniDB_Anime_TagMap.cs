@@ -12,7 +12,7 @@ public class AniDB_Anime_TagMap : ClassMap<AniDB_Anime_Tag>
         Id(x => x.AniDB_Anime_TagID);
 
         Map(x => x.AnimeID).Not.Nullable();
-        Map(x => x.Approval).Not.Nullable();
+        Map(x => x.LocalSpoiler).Not.Nullable();
         Map(x => x.Weight).Not.Nullable();
         Map(x => x.TagID).Not.Nullable();
     }

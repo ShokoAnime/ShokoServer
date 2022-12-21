@@ -25,17 +25,21 @@ public class TagController : BaseController
     /// <param name="page">The page index.</param>
     /// <param name="filter">Tag filter.</param>
     /// <param name="excludeDescriptions">Exclude tag descriptions from response.</param>
+    /// <param name="onlyVerified">Only show verified tags.</param>
     /// <returns></returns>
     [HttpGet("AniDB")]
     public ActionResult<ListResult<Tag>> GetAllAnidbTags([FromQuery] [Range(0, 100)] int pageSize = 50,
         [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] TagFilter.Filter filter = 0,
-        [FromQuery] bool excludeDescriptions = false)
+        [FromQuery] bool excludeDescriptions = false, [FromQuery] bool onlyVerified = true)
     {
         var user = User;
-        var allTags = RepoFactory.AniDB_Tag.GetAll().DistinctBy(a => a.TagName).ToList();
-        var tagFilter =new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName);
+        var selectedTags = RepoFactory.AniDB_Tag.GetAll()
+            .Where(tag => !onlyVerified || tag.Verified)
+            .DistinctBy(a => a.TagName)
+            .ToList();
+        var tagFilter = new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName);
         return tagFilter
-            .ProcessTags(filter, allTags)
+            .ProcessTags(filter, selectedTags)
             .Where(tag => user.IsAdmin == 1 || user.AllowedTag(tag))
             .OrderBy(tag => tag.TagName)
             .ToListResult(tag => new Tag(tag, excludeDescriptions), page, pageSize);

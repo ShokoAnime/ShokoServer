@@ -14,6 +14,8 @@ using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -803,5 +805,47 @@ public class DatabaseFixes
         {
             group.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
         }
+    }
+
+    public static void FixTagParentIDsAndNameOverrides()
+    {
+        var xmlUtils = ShokoServer.ServiceContainer.GetService<HttpXmlUtils>();
+        var animeParser = ShokoServer.ServiceContainer.GetService<HttpAnimeParser>();
+        var animeCreator = ShokoServer.ServiceContainer.GetService<AnimeCreator>();
+        var animeList = RepoFactory.AniDB_Anime.GetAll();
+        logger.Info($"Updating anidb tags for {animeList.Count} local anidb anime entries...");
+
+        var count = 0;
+        foreach (var anime in animeList)
+        {
+            if (++count % 10 == 0)
+                logger.Info($"Updating tags for local anidb anime entries... ({count}/{animeList.Count})");
+
+            var xml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID);
+            if (string.IsNullOrEmpty(xml))
+            {
+                logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime with id {anime.AnimeID}");
+                continue;
+            }
+
+            var response = animeParser.Parse(anime.AnimeID, xml);
+            if (response == null)
+            {
+                logger.Warn($"Unable to parse cached Anime_HTTP xml dum for anime with id {anime.AnimeID}");
+                continue;
+            }
+
+            animeCreator.CreateTags(response.Tags, anime);
+            RepoFactory.AniDB_Anime.Save(anime, false);
+        }
+
+        // One last time, clean up any unreferenced tags after we've processed
+        // all the tags and their cross-references.
+        var tagsToDelete = RepoFactory.AniDB_Tag.GetAll()
+            .Where(a => !RepoFactory.AniDB_Anime_Tag.GetByTagID(a.TagID).Any())
+            .ToList();
+        RepoFactory.AniDB_Tag.Delete(tagsToDelete);
+
+        logger.Info($"Done updating anidb tags for {animeList.Count} anidb anime entries.");
     }
 }

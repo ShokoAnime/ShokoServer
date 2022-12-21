@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
 {
     public string Name { get; } = "MySQL";
-    public int RequiredVersion { get; } = 106;
+    public int RequiredVersion { get; } = 107;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -703,7 +703,17 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
         new(104, 1, "ALTER TABLE AniDB_Episode ADD INDEX IX_AniDB_Episode_EpisodeType (EpisodeType);"),
         new(105, 1, "ALTER TABLE AniDB_Episode_Title MODIFY Title TEXT NOT NULL"),
         new(106, 1, "ALTER TABLE VideoLocal ADD DateTimeImported datetime DEFAULT NULL;"),
-        new(106, 2, "UPDATE VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash SET DateTimeImported = DateTimeCreated;")
+        new(106, 2, "UPDATE VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash SET DateTimeImported = DateTimeCreated;"),
+        new(107, 1, "ALTER TABLE AniDB_Tag ADD Verified integer NOT NULL DEFAULT 0;"),
+        new(107, 2, "ALTER TABLE AniDB_Tag ADD ParentTagID integer DEFAULT NULL;"),
+        new(107, 3, "ALTER TABLE AniDB_Tag ADD TagNameOverride text DEFAULT NULL;"),
+        new(107, 4, "ALTER TABLE AniDB_Tag ADD LastUpdated datetime NOT NULL DEFAULT '1970-01-01 00:00:00';"),
+        new(107, 5, "ALTER TABLE AniDB_Tag DROP COLUMN Spoiler;"),
+        new(107, 6, "ALTER TABLE AniDB_Tag DROP COLUMN LocalSpoiler;"),
+        new(107, 7, "ALTER TABLE AniDB_Tag DROP COLUMN TagCount;"),
+        new(107, 8, "ALTER TABLE AniDB_Anime_Tag ADD LocalSpoiler integer NOT NULL DEFAULT 0;"),
+        new(107, 9, "ALTER TABLE AniDB_Anime_Tag DROP COLUMN Approval;"),
+        new(107, 10, DatabaseFixes.FixTagParentIDsAndNameOverrides),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

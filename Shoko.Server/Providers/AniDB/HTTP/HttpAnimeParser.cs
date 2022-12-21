@@ -473,20 +473,26 @@ public class HttpAnimeParser
         }
 
         var tagDescription = TryGetProperty(node, "description")?.Replace('`', '\'');
+        int.TryParse(TryGetAttribute(node, "parentid"), out var parentTagID);
         int.TryParse(TryGetAttribute(node, "weight"), out var weight);
+        bool.TryParse(TryGetAttribute(node, "verified"), out var verified);
         bool.TryParse(TryGetAttribute(node, "localspoiler"), out var lsp);
         bool.TryParse(TryGetAttribute(node, "globalspoiler"), out var gsp);
+        if (!DateTime.TryParse(TryGetAttribute(node, "update"), out var lastUpdated))
+            lastUpdated = DateTime.UnixEpoch;
 
         return new ResponseTag
         {
             AnimeID = animeID,
             TagID = tagID,
+            ParentTagID = parentTagID > 0 ? parentTagID : null,
             TagName = tagName,
             TagDescription = tagDescription,
             Weight = weight,
+            Verified = verified,
             LocalSpoiler = lsp,
             GlobalSpoiler = gsp,
-            Spoiler = lsp || gsp
+            LastUpdated = lastUpdated,
         };
     }
 

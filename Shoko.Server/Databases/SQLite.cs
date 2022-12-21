@@ -21,7 +21,7 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
 {
     public string Name { get; } = "SQLite";
 
-    public int RequiredVersion { get; } = 92;
+    public int RequiredVersion { get; } = 93;
 
 
     public void BackupDatabase(string fullfilename)
@@ -618,7 +618,17 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
         new(90, 1, "UPDATE AniDB_File SET File_Source = 'Web' WHERE File_Source = 'www'; UPDATE AniDB_File SET File_Source = 'BluRay' WHERE File_Source = 'Blu-ray'; UPDATE AniDB_File SET File_Source = 'LaserDisc' WHERE File_Source = 'LD'; UPDATE AniDB_File SET File_Source = 'Unknown' WHERE File_Source = 'unknown';"),
         new(91, 1, "CREATE INDEX IX_AniDB_Episode_EpisodeType ON AniDB_Episode(EpisodeType);"),
         new(92, 1, "ALTER TABLE VideoLocal ADD DateTimeImported timestamp DEFAULT NULL;"),
-        new(92, 2, "UPDATE VideoLocal SET DateTimeImported = DateTimeCreated WHERE EXISTS(SELECT Hash FROM CrossRef_File_Episode xref WHERE xref.Hash = VideoLocal.Hash)")
+        new(92, 2, "UPDATE VideoLocal SET DateTimeImported = DateTimeCreated WHERE EXISTS(SELECT Hash FROM CrossRef_File_Episode xref WHERE xref.Hash = VideoLocal.Hash)"),
+        new(93, 1, "ALTER TABLE AniDB_Tag ADD Verified integer NOT NULL DEFAULT 0;"),
+        new(93, 2, "ALTER TABLE AniDB_Tag ADD ParentTagID integer DEFAULT NULL;"),
+        new(93, 3, "ALTER TABLE AniDB_Tag ADD TagNameOverride text DEFAULT NULL;"),
+        new(93, 4, "ALTER TABLE AniDB_Tag ADD LastUpdated timestamp NOT NULL DEFAULT '1970-01-01 00:00:00';"),
+        new(93, 5, "ALTER TABLE AniDB_Tag DROP COLUMN Spoiler;"),
+        new(93, 6, "ALTER TABLE AniDB_Tag DROP COLUMN LocalSpoiler;"),
+        new(93, 7, "ALTER TABLE AniDB_Tag DROP COLUMN TagCount;"),
+        new(93, 8, "ALTER TABLE AniDB_Anime_Tag ADD LocalSpoiler integer NOT NULL DEFAULT 0;"),
+        new(93, 9, "ALTER TABLE AniDB_Anime_Tag DROP COLUMN Approval;"),
+        new(93, 10, DatabaseFixes.FixTagParentIDsAndNameOverrides),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

@@ -63,11 +63,11 @@ public static class TagFilter
         "motifs",
         "nevada",
         "origin",
-        "original work",
         "place",
         "season",
         "setting",
         "some weird shit goin' on", // these are some grave accents in use...
+        "source material",
         "storytelling",
         "tales",
         "target audience",
@@ -309,7 +309,6 @@ public static class TagFilter
         "manhua",
         "manhwa",
         "movie",
-        "new",
         "novel",
         "original work",
         "radio programme",
@@ -438,11 +437,6 @@ public static class TagFilter
 
         if (flags.HasFlag(Filter.Source)) // if source excluded
         {
-            if (tag.Equals("original work"))
-            {
-                return true;
-            }
-
             if (TagBlackListSource.Contains(tag))
             {
                 return inverted ^ true;
@@ -584,8 +578,7 @@ public static class TagFilter
 
 public class TagFilter<T> where T : class
 {
-    private readonly Dictionary<string, T> _tagRenameDictionary = new(1);
-    private readonly Dictionary<string, T> _tagReplacementDictionary = new(1);
+    private T originalWorkTag { get; set; }
     private readonly Func<T, string> _nameSelector;
 
     public TagFilter(Func<string, T> lookup, Func<T, string> nameSelector)
@@ -598,14 +591,7 @@ public class TagFilter<T> where T : class
                    (typeof(T) == typeof(string) ? name as T : (T)Activator.CreateInstance(typeof(T), name));
         }
 
-        var existing = GetTag("original work");
-        _tagRenameDictionary.Add("new", existing);
-
-        existing = GetTag("present");
-        _tagReplacementDictionary.Add("alternative present", existing);
-
-        existing = GetTag("past");
-        _tagReplacementDictionary.Add("alternative past", existing);
+        originalWorkTag = GetTag("new");
     }
 
     /// <summary>
@@ -624,45 +610,32 @@ public class TagFilter<T> where T : class
 
     private void ProcessModifications(TagFilter.Filter flags, List<T> tags)
     {
-        var toAdd = new HashSet<T>(1);
         var toRemove = new HashSet<T>((int)Math.Ceiling(tags.Count / 2D));
         if (tags.Count > 1)
         {
-            tags.AsParallel().ForAll(tag => MarkTagsForRemoval(tag, flags, toRemove, toAdd));
+            tags.AsParallel().ForAll(tag => MarkTagsForRemoval(tag, flags, toRemove));
         }
         else if (tags.Count == 1)
         {
-            MarkTagsForRemoval(tags[0], flags, toRemove, toAdd);
+            MarkTagsForRemoval(tags[0], flags, toRemove);
         }
 
         foreach (var tag in toRemove)
         {
-            // Skip if we want to both remove and add the tag
-            if (toAdd.Contains(tag))
-            {
-                continue;
-            }
-
             tags.Remove(tag);
         }
 
-        tags.AddRange(toAdd.Where(tag => !tags.Contains(tag) && !toRemove.Contains(tag)));
-
         var nameToTagDictionary = tags.ToDictionary(_nameSelector, t => t);
 
-        // Add the "original work" tag if no source tags are present and we either want to only include the source tags or want to not exclude the source tags.
+        // Add the _original work_ tag if no source tags are present and we either want to only include the source tags or want to not exclude the source tags.
         if (flags.HasFlag(TagFilter.Filter.Source) == flags.HasFlag(TagFilter.Filter.Invert) &&
             !nameToTagDictionary.Any(tag => TagFilter.TagBlackListSource.Contains(tag.Key)))
         {
-            // cheap way to lookup original work tag
-            if (_tagRenameDictionary.TryGetValue("new", out var existing))
-            {
-                tags.Add(existing);
-            }
+            tags.Add(originalWorkTag);
         }
     }
 
-    private void MarkTagsForRemoval(T sourceTag, TagFilter.Filter flags, HashSet<T> toRemove, HashSet<T> toAdd)
+    private void MarkTagsForRemoval(T sourceTag, TagFilter.Filter flags, HashSet<T> toRemove)
     {
         var sourceName = _nameSelector(sourceTag);
         var tag = sourceName.Trim().ToLowerInvariant();
@@ -671,29 +644,6 @@ public class TagFilter<T> where T : class
             lock (toRemove)
             {
                 toRemove.Add(sourceTag);
-            }
-        }
-        else
-        {
-            if (_tagRenameDictionary.TryGetValue(tag, out var newTag))
-            {
-                lock (toRemove)
-                {
-                    toRemove.Add(sourceTag);
-                }
-
-                lock (toAdd)
-                {
-                    toAdd.Add(newTag);
-                }
-            }
-
-            if (_tagReplacementDictionary.TryGetValue(tag, out newTag))
-            {
-                lock (toRemove)
-                {
-                    toRemove.Add(newTag);
-                }
             }
         }
     }

@@ -346,7 +346,7 @@ public class Series : BaseModel
     }
 
     public static List<Tag> GetTags(HttpContext ctx, SVR_AniDB_Anime anime, TagFilter.Filter filter,
-        bool excludeDescriptions = false, bool orderByName = false)
+        bool excludeDescriptions = false, bool orderByName = false, bool onlyVerified = true)
     {
         // Only get the user tags if we don't exclude it (false == false), or if we invert the logic and want to include it (true == true).
         IEnumerable<Tag> userTags = new List<Tag>();
@@ -354,14 +354,16 @@ public class Series : BaseModel
             userTags = RepoFactory.CustomTag.GetByAnimeID(anime.AnimeID)
                 .Select(tag => new Tag(tag, excludeDescriptions));
 
-        var allTags = anime.GetAniDBTags().DistinctBy(a => a.TagName).ToList();
+        var selectedTags = anime.GetAniDBTags(onlyVerified)
+            .DistinctBy(a => a.TagName)
+            .ToList();
         var tagFilter = new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName);
         var anidbTags = tagFilter
-            .ProcessTags(filter, allTags)
+            .ProcessTags(filter, selectedTags)
             .Select(tag => 
             {
                 var xref = RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).FirstOrDefault(xref => xref.AnimeID == anime.AnimeID);
-                return new Tag(tag, excludeDescriptions) { Weight = xref?.Weight ?? 0 };
+                return new Tag(tag, excludeDescriptions) { Weight = xref?.Weight ?? 0, IsLocalSpoiler = xref?.LocalSpoiler };
             });
 
         if (orderByName)
