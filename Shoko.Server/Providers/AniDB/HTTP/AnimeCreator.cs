@@ -286,7 +286,7 @@ public class AnimeCreator
         {"original work", "source material"},
     };
 
-    private AniDB_Tag FindOrCreate(ResponseTag rawTag)
+    private AniDB_Tag FindOrCreateTag(ResponseTag rawTag)
     {
         var tag = RepoFactory.AniDB_Tag.GetByTagID(rawTag.TagID);
 
@@ -371,7 +371,7 @@ public class AnimeCreator
             if (rawtag.TagID <= 0 || string.IsNullOrEmpty(rawtag.TagName))
                 continue;
 
-            var tag = FindOrCreate(rawtag);
+            var tag = FindOrCreateTag(rawtag);
             tagsToSave.Add(tag);
 
             newTagIDs.Add(tag.TagID);
