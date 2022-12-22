@@ -591,7 +591,7 @@ public class TagFilter<T> where T : class
                    (typeof(T) == typeof(string) ? name as T : (T)Activator.CreateInstance(typeof(T), name));
         }
 
-        originalWorkTag = GetTag("new");
+        originalWorkTag = GetTag("original work");
     }
 
     /// <summary>
