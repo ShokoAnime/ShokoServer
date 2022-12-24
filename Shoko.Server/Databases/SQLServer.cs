@@ -652,7 +652,7 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
         new DatabaseCommand(99, 2, "UPDATE v SET DateTimeImported = DateTimeCreated FROM VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash;"),
         new DatabaseCommand(100, 1, "ALTER TABLE AniDB_Tag ADD Verified integer NOT NULL DEFAULT 0;"),
         new DatabaseCommand(100, 2, "ALTER TABLE AniDB_Tag ADD ParentTagID integer DEFAULT NULL;"),
-        new DatabaseCommand(100, 3, "ALTER TABLE AniDB_Tag ADD TagNameOverride text DEFAULT NULL;"),
+        new DatabaseCommand(100, 3, "ALTER TABLE AniDB_Tag ADD TagNameOverride varchar(150) DEFAULT NULL;"),
         new DatabaseCommand(100, 4, "ALTER TABLE AniDB_Tag ADD LastUpdated datetime NOT NULL DEFAULT '1970-01-01 00:00:00';"),
         new DatabaseCommand(100, 5, "ALTER TABLE AniDB_Tag DROP COLUMN Spoiler;"),
         new DatabaseCommand(100, 6, "ALTER TABLE AniDB_Tag DROP COLUMN LocalSpoiler;"),
