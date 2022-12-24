@@ -422,6 +422,15 @@ public static class TagFilter
     {
         tag = tag.Trim().ToLowerInvariant();
         var inverted = flags.HasFlag(Filter.Invert);
+
+        // Always remove the "original work" tag. It will be added back if it's
+        // not supposed to be filtered out and there are no other source
+        // material tags.
+        if (tag.Equals("original work"))
+        {
+            return true;
+        }
+
         if (flags.HasFlag(Filter.ArtStyle))
         {
             if (TagBlackListArtStyle.Contains(tag))
