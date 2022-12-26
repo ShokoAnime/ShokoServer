@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -22,12 +21,47 @@ namespace Shoko.Tests
         private static IEnumerable<string> Input =>
             new[]
             {
-                "comedy", "Comedy", "horror", "18 restricted", "large breasts", "japan", "violence", "source material", "manga", "fantasy", "shounen", "Earth", "Asia", "noitamina", "cgi", "long episodes",
-                "first girl wins", "alternative past", "past",
+                "comedy",
+                "Comedy",
+                "horror",
+                "18 restricted",
+                "large breasts",
+                "japan",
+                "violence",
+                "source material",
+                "manga",
+                "fantasy",
+                "shounen",
+                "Earth",
+                "Asia",
+                "noitamina",
+                "cgi",
+                "3DCG",
+                "long episodes",
+                "first girl wins",
+                "alternative past",
+                "past",
             };
 
         private static IEnumerable<string> InputNoSource =>
-            new[] { "horror", "Horror", "18 restricted", "large breasts", "japan", "violence", "fantasy", "shounen", "Earth", "Asia", "noitamina", "cgi", "long episodes", "first girl wins", };
+            new[]
+            {
+                "horror",
+                "Horror",
+                "18 restricted",
+                "large breasts",
+                "japan",
+                "violence",
+                "fantasy",
+                "shounen",
+                "Earth",
+                "Asia",
+                "noitamina",
+                "cgi",
+                "3DCG",
+                "long episodes",
+                "first girl wins",
+            };
 
         [Fact(DisplayName = "Full Test")]
         public void TestFullList()
@@ -43,6 +77,7 @@ namespace Shoko.Tests
                 "Asia",
                 "noitamina",
                 "cgi",
+                "3DCG",
                 "long episodes",
                 "first girl wins",
                 "alternative past",
@@ -68,6 +103,7 @@ namespace Shoko.Tests
                 "Asia",
                 "noitamina",
                 "cgi",
+                "3DCG",
                 "long episodes",
                 "first girl wins",
                 "alternative past",
@@ -91,6 +127,7 @@ namespace Shoko.Tests
                 "Asia",
                 "noitamina",
                 "cgi",
+                "3DCG",
                 "long episodes",
                 "first girl wins",
                 "original work",
@@ -104,7 +141,7 @@ namespace Shoko.Tests
         [Fact(DisplayName = "Full Test Inverted")]
         public void TestFullListInverted()
         {
-            TagFilter.Filter filter = TagFilter.Filter.Invert | TagFilter.Filter.Source | TagFilter.Filter.Genre | TagFilter.Filter.Setting;
+            var filter = TagFilter.Filter.Invert | TagFilter.Filter.Source | TagFilter.Filter.Genre | TagFilter.Filter.Setting;
             var actual = TagFilter.String.ProcessTags(filter, Input);
             var expected = new List<string>
             {
@@ -149,6 +186,7 @@ namespace Shoko.Tests
                 "Asia",
                 "noitamina",
                 "cgi",
+                "3DCG",
                 "long episodes",
                 "first girl wins",
                 "alternative past",
@@ -177,6 +215,7 @@ namespace Shoko.Tests
                 "Asia",
                 "noitamina",
                 "cgi",
+                "3DCG",
                 "long episodes",
                 "first girl wins",
             };
@@ -245,7 +284,7 @@ namespace Shoko.Tests
         {
             Assert.Equal(new List<string>(), TagFilter.String.ProcessTags(TagFilter.Filter.Plot | TagFilter.Filter.Source, new[] { "everybody dies", "first girl wins" }));
         }
-        
+
         [Fact(DisplayName = "Settings Exclusion")]
         public void TestSettings()
         {
@@ -257,7 +296,7 @@ namespace Shoko.Tests
         {
             Assert.Equal(new List<string>(), TagFilter.String.ProcessTags(TagFilter.Filter.Misc | TagFilter.Filter.Source, new[] { "previews suck" }));
         }
-        
+
         [Fact(DisplayName = "AniDB Internal Exclusion")]
         public void TestAniDBInternal()
         {
@@ -273,15 +312,15 @@ namespace Shoko.Tests
                 )
             );
         }
-        
+
         [Fact(DisplayName = "Speed Test (Ideally <600ms on a good CPU)")]
         public void TestSpeed()
         {
-            int count = 4;
-            long[] times = new long[count];
-            for (int i = 0; i < count; i++)
+            const int Count = 4;
+            var times = new long[Count];
+            for (var i = 0; i < Count; i++)
             {
-                Stopwatch stopwatch = Stopwatch.StartNew();
+                var stopwatch = Stopwatch.StartNew();
                 Parallel.ForEach(
                     Enumerable.Range(0, 100000), new ParallelOptions() { MaxDegreeOfParallelism = 2 },
                     _ => TagFilter.String.ProcessTags(TagFilter.Filter.Genre | TagFilter.Filter.AnidbInternal | TagFilter.Filter.Programming | TagFilter.Filter.Misc, Input)
