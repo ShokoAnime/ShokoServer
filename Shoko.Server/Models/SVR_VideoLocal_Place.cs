@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
@@ -1184,6 +1185,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             // If it has folder, recurse
             foreach (var d in Directory.EnumerateDirectories(dir))
             {
+                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(Path.GetDirectoryName(d) ?? string.Empty, s))) continue;
                 RecursiveDeleteEmptyDirectories(d, false);
             }
         }
