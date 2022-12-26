@@ -587,19 +587,23 @@ public static class TagFilter
 
 public class TagFilter<T> where T : class
 {
-    private T originalWorkTag { get; set; }
     private readonly Func<T, string> _nameSelector;
+    private readonly Func<string, T> _lookup;
 
     public TagFilter(Func<string, T> lookup, Func<T, string> nameSelector)
     {
         _nameSelector = nameSelector;
-
-        originalWorkTag = GetTag(lookup, "original work");
+        _lookup = lookup;
     }
 
-    private static T GetTag(Func<string, T> lookup, string name)
+    private string GetTagName(T tag)
     {
-        return lookup(name) ?? (typeof(T) == typeof(string) ? name as T : (T)Activator.CreateInstance(typeof(T), name));
+        return _nameSelector(tag)?.ToLowerInvariant();
+    }
+
+    private T GetTag(string name)
+    {
+        return _lookup(name) ?? (typeof(T) == typeof(string) ? name as T : (T)Activator.CreateInstance(typeof(T), name));
     }
 
     /// <summary>
@@ -610,7 +614,7 @@ public class TagFilter<T> where T : class
     /// <returns></returns>
     public List<T> ProcessTags(TagFilter.Filter flags, IEnumerable<T> input)
     {
-        var tags = input.DistinctBy(_nameSelector).ToList();
+        var tags = input.DistinctBy(GetTagName).ToList();
         ProcessModifications(flags, tags);
 
         return tags;
@@ -638,13 +642,13 @@ public class TagFilter<T> where T : class
         // Add the _original work_ tag if no source tags are present and we either want to only include the source tags or want to not exclude the source tags.
         // evaluates like an xor because of how invert works
         var includeSource = flags.HasFlag(TagFilter.Filter.Source) == flags.HasFlag(TagFilter.Filter.Invert);
-        var addOriginal = includeSource && !tags.Select(_nameSelector).Any(tag => TagFilter.TagBlackListSource.Contains(tag));
-        if (addOriginal) tags.Add(originalWorkTag);
+        var addOriginal = includeSource && !tags.Select(GetTagName).Any(tag => TagFilter.TagBlackListSource.Contains(tag));
+        if (addOriginal) tags.Add(GetTag("original work"));
     }
 
     private void MarkTagsForRemoval(T sourceTag, TagFilter.Filter flags, IList<T> toRemove)
     {
-        var sourceName = _nameSelector(sourceTag);
+        var sourceName = GetTagName(sourceTag);
         if (!TagFilter.IsTagBlackListed(sourceName, flags)) return;
 
         toRemove.Add(sourceTag);

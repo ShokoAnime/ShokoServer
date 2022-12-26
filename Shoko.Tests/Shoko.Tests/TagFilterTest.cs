@@ -22,12 +22,12 @@ namespace Shoko.Tests
         private static IEnumerable<string> Input =>
             new[]
             {
-                "comedy", "Comedy", "horror", "18 restricted", "large breasts", "japan", "violence", "source material", "manga", "fantasy", "shounen", "earth", "asia", "noitamina", "cgi", "long episodes",
+                "comedy", "Comedy", "horror", "18 restricted", "large breasts", "japan", "violence", "source material", "manga", "fantasy", "shounen", "Earth", "Asia", "noitamina", "cgi", "long episodes",
                 "first girl wins", "alternative past", "past",
             };
 
         private static IEnumerable<string> InputNoSource =>
-            new[] { "horror", "Horror", "18 restricted", "large breasts", "japan", "violence", "fantasy", "shounen", "earth", "asia", "noitamina", "cgi", "long episodes", "first girl wins", };
+            new[] { "horror", "Horror", "18 restricted", "large breasts", "japan", "violence", "fantasy", "shounen", "Earth", "Asia", "noitamina", "cgi", "long episodes", "first girl wins", };
 
         [Fact(DisplayName = "Full Test")]
         public void TestFullList()
@@ -39,8 +39,8 @@ namespace Shoko.Tests
                 "japan",
                 "source material",
                 "manga",
-                "earth",
-                "asia",
+                "Earth",
+                "Asia",
                 "noitamina",
                 "cgi",
                 "long episodes",
@@ -64,8 +64,8 @@ namespace Shoko.Tests
                 "japan",
                 "source material",
                 "manga",
-                "earth",
-                "asia",
+                "Earth",
+                "Asia",
                 "noitamina",
                 "cgi",
                 "long episodes",
@@ -87,8 +87,8 @@ namespace Shoko.Tests
             {
                 "large breasts",
                 "japan",
-                "earth",
-                "asia",
+                "Earth",
+                "Asia",
                 "noitamina",
                 "cgi",
                 "long episodes",
@@ -145,8 +145,8 @@ namespace Shoko.Tests
                 "source material",
                 "fantasy",
                 "shounen",
-                "earth",
-                "asia",
+                "Earth",
+                "Asia",
                 "noitamina",
                 "cgi",
                 "long episodes",
@@ -173,8 +173,8 @@ namespace Shoko.Tests
                 "violence",
                 "fantasy",
                 "shounen",
-                "earth",
-                "asia",
+                "Earth",
+                "Asia",
                 "noitamina",
                 "cgi",
                 "long episodes",
