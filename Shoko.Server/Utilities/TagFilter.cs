@@ -632,14 +632,13 @@ public class TagFilter<T> where T : class
                 break;
         }
 
+        foreach (var tag in toRemove)
+            while (tags.Remove(tag)) { }
+
         // Add the _original work_ tag if no source tags are present and we either want to only include the source tags or want to not exclude the source tags.
         // evaluates like an xor because of how invert works
         var includeSource = flags.HasFlag(TagFilter.Filter.Source) == flags.HasFlag(TagFilter.Filter.Invert);
         var addOriginal = includeSource && !tags.Select(_nameSelector).Any(tag => TagFilter.TagBlackListSource.Contains(tag));
-
-        foreach (var tag in toRemove)
-            while (tags.Remove(tag)) { }
-
         if (addOriginal) tags.Add(originalWorkTag);
     }
 
