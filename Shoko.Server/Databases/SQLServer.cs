@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
 {
     public string Name { get; } = "SQLServer";
-    public int RequiredVersion { get; } = 99;
+    public int RequiredVersion { get; } = 100;
 
     public void BackupDatabase(string fullfilename)
     {
@@ -649,7 +649,17 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
         new DatabaseCommand(97, 1, "CREATE INDEX IX_AniDB_Episode_EpisodeType ON AniDB_Episode(EpisodeType);"),
         new DatabaseCommand(98, 1, "ALTER TABLE AniDB_Episode_Title ALTER COLUMN Title nvarchar(max) NOT NULL;"),
         new DatabaseCommand(99, 1, "ALTER TABLE VideoLocal ADD DateTimeImported datetime DEFAULT NULL;"),
-        new DatabaseCommand(99, 2, "UPDATE v SET DateTimeImported = DateTimeCreated FROM VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash;")
+        new DatabaseCommand(99, 2, "UPDATE v SET DateTimeImported = DateTimeCreated FROM VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash;"),
+        new DatabaseCommand(100, 1, "ALTER TABLE AniDB_Tag ADD Verified integer NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(100, 2, "ALTER TABLE AniDB_Tag ADD ParentTagID integer DEFAULT NULL;"),
+        new DatabaseCommand(100, 3, "ALTER TABLE AniDB_Tag ADD TagNameOverride varchar(150) DEFAULT NULL;"),
+        new DatabaseCommand(100, 4, "ALTER TABLE AniDB_Tag ADD LastUpdated datetime NOT NULL DEFAULT '1970-01-01 00:00:00';"),
+        new DatabaseCommand(100, 5, "ALTER TABLE AniDB_Tag DROP COLUMN Spoiler;"),
+        new DatabaseCommand(100, 6, "ALTER TABLE AniDB_Tag DROP COLUMN LocalSpoiler;"),
+        new DatabaseCommand(100, 7, "ALTER TABLE AniDB_Tag DROP COLUMN TagCount;"),
+        new DatabaseCommand(100, 8, "ALTER TABLE AniDB_Anime_Tag ADD LocalSpoiler integer NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(100, 9, "ALTER TABLE AniDB_Anime_Tag DROP COLUMN Approval;"),
+        new DatabaseCommand(100, 10, DatabaseFixes.FixTagParentIDsAndNameOverrides),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

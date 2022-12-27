@@ -273,7 +273,84 @@ public class AnimeCreator
         RepoFactory.AniDB_Anime_Title.Save(titlesToSave);
     }
 
-    private void CreateTags(List<ResponseTag> tags, SVR_AniDB_Anime anime)
+    /// <summary>
+    /// A dictionary containing the name overrides for tags whose name either
+    /// doesn't makes much sense or is otherwise confusing.
+    /// </summary>
+    /// <remarks>
+    /// We use the tag name since the id _can_ change sometimes.
+    /// </remarks>
+    internal static Dictionary<string, string> TagNameOverrideDict = new()
+    {
+        {"new", "original work"},
+        {"original work", "source material"},
+    };
+
+    private AniDB_Tag FindOrCreateTag(ResponseTag rawTag)
+    {
+        var tag = RepoFactory.AniDB_Tag.GetByTagID(rawTag.TagID);
+
+        // We're trying to add older details to an existing tag,
+        // so skip updating the tag but still create the cross-reference.
+        if (tag != null && tag.LastUpdated != DateTime.UnixEpoch && tag.LastUpdated >= rawTag.LastUpdated)
+            return tag;
+
+        if (tag == null)
+        {
+            // There are situations in which an ID may have changed, this is
+            // usually due to it being moved, but may be for other reasons.
+            var existingTags = RepoFactory.AniDB_Tag.GetBySourceName(rawTag.TagName);
+            var lastUpdatedTag = existingTags
+                .OrderByDescending(existingTag => existingTag.LastUpdated)
+                .FirstOrDefault();
+
+            // One (or more, but idc) of the existing tags are more recently
+            // updated than the tag we're trying to create, so skip creating
+            // the tag and instead use more recent tag.
+            if (lastUpdatedTag != null && lastUpdatedTag.LastUpdated >= rawTag.LastUpdated)
+                return lastUpdatedTag;
+
+            var xrefsToRemap = existingTags
+                .SelectMany(t => RepoFactory.AniDB_Anime_Tag.GetByTagID(t.TagID))
+                .ToList();
+            foreach (var xref in xrefsToRemap)
+            {
+                xref.TagID = rawTag.TagID;
+                RepoFactory.AniDB_Anime_Tag.Save(xref);
+            }
+
+            // Delete the obsolete tag(s).
+            RepoFactory.AniDB_Tag.Delete(existingTags);
+
+            // While we're at it, clean up other unreferenced tags.
+            RepoFactory.AniDB_Tag.Delete(RepoFactory.AniDB_Tag.GetAll()
+                .Where(a => !RepoFactory.AniDB_Anime_Tag.GetByTagID(a.TagID).Any()).ToList());
+
+            // Also clean up dead cross-references. They shouldn't exist,
+            // but they sometime does for whatever reason. ¯\_(ツ)_/¯
+            var orphanedXRefs = RepoFactory.AniDB_Anime_Tag.GetAll().Where(a =>
+                RepoFactory.AniDB_Tag.GetByTagID(a.TagID) == null ||
+                RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null).ToList();
+
+            RepoFactory.AniDB_Anime_Tag.Delete(orphanedXRefs);
+
+            tag = new AniDB_Tag();
+        }
+
+        TagNameOverrideDict.TryGetValue(rawTag.TagName, out var nameOverride);
+        tag.TagID = rawTag.TagID;
+        tag.ParentTagID = rawTag.ParentTagID;
+        tag.TagNameSource = rawTag.TagName;
+        tag.TagNameOverride = nameOverride;
+        tag.TagDescription = rawTag.TagDescription ?? string.Empty;
+        tag.GlobalSpoiler = rawTag.GlobalSpoiler;
+        tag.Verified = rawTag.Verified;
+        tag.LastUpdated = rawTag.LastUpdated;
+
+        return tag;
+    }
+
+    public void CreateTags(List<ResponseTag> tags, SVR_AniDB_Anime anime)
     {
         if (tags == null)
         {
@@ -287,76 +364,36 @@ public class AnimeCreator
 
         // find all the current links, and then later remove the ones that are no longer relevant
         var currentTags = RepoFactory.AniDB_Anime_Tag.GetByAnimeID(anime.AnimeID);
-        var newTagIDs = new List<int>();
+        var newTagIDs = new HashSet<int>();
 
         foreach (var rawtag in tags)
         {
-            var tag = RepoFactory.AniDB_Tag.GetByTagID(rawtag.TagID);
-
-            if (tag == null)
-            {
-                // There are situations in which an ID may have changed, this is usually due to it being moved
-                var existingTags = RepoFactory.AniDB_Tag.GetByName(rawtag.TagName).ToList();
-                var xrefsToRemap = existingTags.SelectMany(a => RepoFactory.AniDB_Anime_Tag.GetByTagID(a.TagID))
-                    .ToList();
-                foreach (var xref in xrefsToRemap)
-                {
-                    xref.TagID = rawtag.TagID;
-                    RepoFactory.AniDB_Anime_Tag.Save(xref);
-                }
-
-                // Delete the obsolete tag(s)
-                RepoFactory.AniDB_Tag.Delete(existingTags);
-
-                // While we're at it, clean up other unreferenced tags
-                RepoFactory.AniDB_Tag.Delete(RepoFactory.AniDB_Tag.GetAll()
-                    .Where(a => !RepoFactory.AniDB_Anime_Tag.GetByTagID(a.TagID).Any()).ToList());
-
-                // Also clean up dead xrefs (shouldn't happen, but sometimes does)
-                var orphanedXRefs = RepoFactory.AniDB_Anime_Tag.GetAll().Where(a =>
-                    RepoFactory.AniDB_Tag.GetByTagID(a.TagID) == null ||
-                    RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null).ToList();
-
-                RepoFactory.AniDB_Anime_Tag.Delete(orphanedXRefs);
-
-                tag = new AniDB_Tag();
-            }
-
-            if (string.IsNullOrEmpty(rawtag.TagName))
-            {
+            if (rawtag.TagID <= 0 || string.IsNullOrEmpty(rawtag.TagName))
                 continue;
-            }
 
-            if (rawtag.TagID <= 0)
-            {
-                continue;
-            }
-
-            tag.TagID = rawtag.TagID;
-            tag.GlobalSpoiler = rawtag.GlobalSpoiler ? 1 : 0;
-            tag.LocalSpoiler = rawtag.LocalSpoiler ? 1 : 0;
-            tag.Spoiler = 0;
-            tag.TagCount = 0;
-            tag.TagDescription = rawtag.TagDescription ?? string.Empty;
-            tag.TagName = rawtag.TagName;
+            var tag = FindOrCreateTag(rawtag);
             tagsToSave.Add(tag);
 
             newTagIDs.Add(tag.TagID);
 
-            var animeTag = RepoFactory.AniDB_Anime_Tag.GetByAnimeIDAndTagID(rawtag.AnimeID, rawtag.TagID) ??
-                           new AniDB_Anime_Tag();
-            animeTag.AnimeID = rawtag.AnimeID;
-            animeTag.TagID = rawtag.TagID;
-            animeTag.Approval = 100;
-            animeTag.Weight = rawtag.Weight;
-            xrefsToSave.Add(animeTag);
+            var xref = RepoFactory.AniDB_Anime_Tag.GetByAnimeIDAndTagID(rawtag.AnimeID, tag.TagID) ?? new();
+            xref.AnimeID = rawtag.AnimeID;
+            xref.TagID = tag.TagID;
+            xref.LocalSpoiler = rawtag.LocalSpoiler;
+            xref.Weight = rawtag.Weight;
+            xrefsToSave.Add(xref);
 
-            if (allTags.Length > 0)
+            // Only add it to the cached array if the tag is verified. This
+            // ensures the v1 and v2 api is only displaying verified tags.
+            if (tag.Verified)
             {
-                allTags += "|";
-            }
+                if (allTags.Length > 0)
+                {
+                    allTags += "|";
+                }
 
-            allTags += tag.TagName;
+                allTags += tag.TagName;
+            }
         }
 
         anime.AllTags = allTags;

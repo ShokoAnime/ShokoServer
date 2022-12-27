@@ -557,8 +557,13 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         return RepoFactory.CustomTag.GetByAnimeID(AnimeID);
     }
 
-    public List<AniDB_Tag> GetAniDBTags()
+    public List<AniDB_Tag> GetAniDBTags(bool onlyVerified = true)
     {
+        if (onlyVerified)
+            return RepoFactory.AniDB_Tag.GetByAnimeID(AnimeID)
+                .Where(tag => tag.Verified)
+                .ToList();
+
         return RepoFactory.AniDB_Tag.GetByAnimeID(AnimeID);
     }
 
@@ -924,13 +929,19 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
                 {
                     var ctag = new CL_AnimeTag
                     {
-                        GlobalSpoiler = t.GlobalSpoiler,
-                        LocalSpoiler = t.LocalSpoiler,
-                        TagDescription = t.TagDescription,
                         TagID = t.TagID,
+                        GlobalSpoiler = t.GlobalSpoiler ? 1 : 0,
+                        LocalSpoiler = 0,
+                        Weight = 0,
                         TagName = t.TagName,
-                        Weight = dictAnimeTags.TryGetValue(t.TagID, out var animeTag) ? animeTag.Weight : 0
+                        TagDescription = t.TagDescription,
                     };
+
+                    if (dictAnimeTags.TryGetValue(t.TagID, out var xref))
+                    {
+                        ctag.LocalSpoiler = xref.LocalSpoiler ? 1 : 0;
+                        ctag.Weight = xref.Weight;
+                    }
 
                     return ctag;
                 })
@@ -1042,31 +1053,24 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
         sw.Restart();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generating Tag Contracts");
-        var dictAnimeTags = new Dictionary<int, AniDB_Anime_Tag>();
-        foreach (var animeTag in GetAnimeTags())
-        {
-            dictAnimeTags[animeTag.TagID] = animeTag;
-        }
-
+        var dictAnimeTags = GetAnimeTags()
+            .ToDictionary(xref => xref.TagID);
         foreach (var tag in GetAniDBTags())
         {
             var ctag = new CL_AnimeTag
             {
-                GlobalSpoiler = tag.GlobalSpoiler,
-                LocalSpoiler = tag.LocalSpoiler,
-                //ctag.Spoiler = tag.Spoiler;
-                //ctag.TagCount = tag.TagCount;
-                TagDescription = tag.TagDescription,
                 TagID = tag.TagID,
-                TagName = tag.TagName
+                GlobalSpoiler = tag.GlobalSpoiler ? 1 : 0,
+                LocalSpoiler = 0,
+                Weight = 0,
+                TagName = tag.TagName,
+                TagDescription = tag.TagDescription,
             };
-            if (dictAnimeTags.ContainsKey(tag.TagID))
+
+            if (dictAnimeTags.TryGetValue(tag.TagID, out var xref))
             {
-                ctag.Weight = dictAnimeTags[tag.TagID].Weight;
-            }
-            else
-            {
-                ctag.Weight = 0;
+                ctag.LocalSpoiler = xref.LocalSpoiler ? 1 : 0;
+                ctag.Weight = xref.Weight;
             }
 
             cl.Tags.Add(ctag);

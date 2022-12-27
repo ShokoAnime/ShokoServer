@@ -1177,10 +1177,12 @@ public class SeriesController : BaseController
     /// <param name="filter"></param>
     /// <param name="excludeDescriptions"></param>
     /// <param name="orderByName">Order tags by name (and source) only. Don't use the tag weights for ordering.</param>
+    /// <param name="onlyVerified">Only show verified tags.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Tags")]
     public ActionResult<List<Tag>> GetSeriesTags([FromRoute] int seriesID, [FromQuery] TagFilter.Filter filter = 0,
-        [FromQuery] bool excludeDescriptions = false, [FromQuery] bool orderByName = false)
+        [FromQuery] bool excludeDescriptions = false, [FromQuery] bool orderByName = false,
+        [FromQuery] bool onlyVerified = true)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -1199,7 +1201,7 @@ public class SeriesController : BaseController
             return new List<Tag>();
         }
 
-        return Series.GetTags(HttpContext, anidb, filter, excludeDescriptions, orderByName);
+        return Series.GetTags(HttpContext, anidb, filter, excludeDescriptions, orderByName, onlyVerified);
     }
 
     /// <summary>

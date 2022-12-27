@@ -11,11 +11,13 @@ public class AniDB_TagRepository : BaseCachedRepository<AniDB_Tag, int>
 {
     private PocoIndex<int, AniDB_Tag, int> Tags;
     private PocoIndex<int, AniDB_Tag, string> Names;
+    private PocoIndex<int, AniDB_Tag, string> SourceNames;
 
     public override void PopulateIndexes()
     {
         Tags = new PocoIndex<int, AniDB_Tag, int>(Cache, a => a.TagID);
         Names = new PocoIndex<int, AniDB_Tag, string>(Cache, a => a.TagName);
+        SourceNames = new PocoIndex<int, AniDB_Tag, string>(Cache, a => a.TagNameSource);
     }
 
     protected override int SelectKey(AniDB_Tag entity)
@@ -30,7 +32,8 @@ public class AniDB_TagRepository : BaseCachedRepository<AniDB_Tag, int>
         foreach (var tag in tags)
         {
             tag.TagDescription = tag.TagDescription?.Replace('`', '\'');
-            tag.TagName = tag.TagName.Replace('`', '\'');
+            tag.TagNameOverride = tag.TagNameOverride?.Replace('`', '\'');
+            tag.TagNameSource = tag.TagNameSource.Replace('`', '\'');
             Save(tag);
         }
     }
@@ -69,6 +72,11 @@ public class AniDB_TagRepository : BaseCachedRepository<AniDB_Tag, int>
     public List<AniDB_Tag> GetByName(string name)
     {
         return ReadLock(() => Names.GetMultiple(name));
+    }
+
+    public List<AniDB_Tag> GetBySourceName(string sourceName)
+    {
+        return ReadLock(() => SourceNames.GetMultiple(sourceName));
     }
 
 
