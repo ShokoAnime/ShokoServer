@@ -8,6 +8,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v2.Modules;
 
@@ -144,5 +145,9 @@ public class DashboardModules : BaseController
         }
 
         return string.Format("{0:n" + decimalPlaces + "} {1}", adjustedSize, SizeSuffixes[mag]);
+    }
+
+    public DashboardModules(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

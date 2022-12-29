@@ -8,6 +8,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -62,7 +63,7 @@ public class WebUIController : BaseController
     [HttpGet("Install")]
     public ActionResult InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable)
     {
-        var indexLocation = Path.Combine(ServerSettings.ApplicationPath, "webui", "index.html");
+        var indexLocation = Path.Combine(Utils.ApplicationPath, "webui", "index.html");
         if (System.IO.File.Exists(indexLocation))
         {
             var index = System.IO.File.ReadAllText(indexLocation);
@@ -103,5 +104,9 @@ public class WebUIController : BaseController
     public ComponentVersion LatestWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable)
     {
         return new ComponentVersion { Version = WebUIHelper.WebUIGetLatestVersion(channel == ReleaseChannel.Stable) };
+    }
+
+    public WebUIController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

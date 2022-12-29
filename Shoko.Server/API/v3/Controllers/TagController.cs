@@ -8,6 +8,7 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -95,5 +96,9 @@ public class TagController : BaseController
             return NotFound("No User Tag entry for the given tagID");
 
         return new Tag(tag, excludeDescription);
+    }
+
+    public TagController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

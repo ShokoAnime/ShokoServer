@@ -19,7 +19,7 @@ public class GroupAwareRenamer : IRenamer
     public string GetFilename(RenameEventArgs args)
     {
         // Terrible hack to make it forcefully return Legacy Renamer
-        var legacy = (IRenamer)ActivatorUtilities.CreateInstance(ShokoServer.ServiceContainer, typeof(LegacyRenamer));
+        var legacy = (IRenamer)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, typeof(LegacyRenamer));
         return legacy.GetFilename(args);
     }
 

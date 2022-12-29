@@ -252,13 +252,13 @@ public class ServerState : INotifyPropertyChangedExt
 
     public readonly string autostartKey = "JMMServer";
 
-    public void LoadSettings()
+    public void LoadSettings(IServerSettings settings)
     {
-        AniDB_Username = ServerSettings.Instance.AniDb.Username;
-        AniDB_Password = ServerSettings.Instance.AniDb.Password;
-        AniDB_ServerAddress = ServerSettings.Instance.AniDb.ServerAddress;
-        AniDB_ServerPort = ServerSettings.Instance.AniDb.ServerPort.ToString();
-        AniDB_ClientPort = ServerSettings.Instance.AniDb.ClientPort.ToString();
+        AniDB_Username = settings.AniDb.Username;
+        AniDB_Password = settings.AniDb.Password;
+        AniDB_ServerAddress = settings.AniDb.ServerAddress;
+        AniDB_ServerPort = settings.AniDb.ServerPort.ToString();
+        AniDB_ClientPort = settings.AniDb.ClientPort.ToString();
 
         if (Utils.IsRunningOnLinuxOrMac())
         {

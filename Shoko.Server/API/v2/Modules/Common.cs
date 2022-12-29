@@ -24,6 +24,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules;
@@ -37,11 +38,13 @@ public class Common : BaseController
 {
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ShokoServiceImplementation _service;
+    private readonly ISettingsProvider _settingsProvider;
 
-    public Common(ICommandRequestFactory commandFactory)
+    public Common(ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _commandFactory = commandFactory;
-        _service = new ShokoServiceImplementation(null, null, null, commandFactory);
+        _settingsProvider = settingsProvider;
+        _service = new ShokoServiceImplementation(null, null, null, commandFactory, settingsProvider);
     }
     //class will be found automagically thanks to inherits also class need to be public (or it will 404)
 
@@ -3313,5 +3316,9 @@ public class Common_v2_1 : BaseController
         }
 
         return NotFound();
+    }
+
+    public Common_v2_1(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

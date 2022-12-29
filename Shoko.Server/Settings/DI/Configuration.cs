@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Settings.DI;
 
@@ -14,7 +15,7 @@ public class Configuration<T> : IConfiguration<T>
 
     public void Dispose()
     {
-        ShokoServer.ServiceContainer.GetRequiredService<ServerSettings>()
+        Utils.ServiceContainer.GetRequiredService<ISettingsProvider>()
             .SaveSettings();
     }
 }

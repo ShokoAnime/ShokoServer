@@ -226,7 +226,7 @@ public class RenameFileHelper
                     ? ServerSettings.Instance.Plugins.RenamerPriorities[a.Key]
                     : int.MaxValue)
             .ThenBy(a => a.Key, StringComparer.InvariantCulture)
-            .Select(a => (IRenamer)ActivatorUtilities.CreateInstance(ShokoServer.ServiceContainer, a.Value.type))
+            .Select(a => (IRenamer)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, a.Value.type))
             .ToList();
     }
 

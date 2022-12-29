@@ -27,7 +27,7 @@ public class InitController : BaseController
 {
     private readonly ILogger<InitController> _logger;
 
-    public InitController(ILogger<InitController> logger)
+    public InitController(ILogger<InitController> logger, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _logger = logger;
     }
@@ -90,7 +90,7 @@ public class InitController : BaseController
             Version = mediaInfoFileInfo.Exists ? FileVersionInfo.GetVersionInfo(mediaInfoFileInfo.FullName).FileVersion : null,
         };
 
-        var webUIFileInfo = new FileInfo(Path.Combine(ServerSettings.ApplicationPath, "webui/version.json"));
+        var webUIFileInfo = new FileInfo(Path.Combine(Utils.ApplicationPath, "webui/version.json"));
         if (webUIFileInfo.Exists)
         {
             var webuiVersion = Newtonsoft.Json.JsonConvert.DeserializeObject<WebUIVersion>(System.IO.File.ReadAllText(webUIFileInfo.FullName));
@@ -160,10 +160,11 @@ public class InitController : BaseController
     [HttpGet("DefaultUser")]
     public ActionResult<Credentials> GetDefaultUserCredentials()
     {
+        var settings = SettingsProvider.GetSettings();
         return new Credentials
         {
-            Username = ServerSettings.Instance.Database.DefaultUserUsername,
-            Password = ServerSettings.Instance.Database.DefaultUserPassword
+            Username = settings.Database.DefaultUserUsername,
+            Password = settings.Database.DefaultUserPassword
         };
     }
 
@@ -177,8 +178,9 @@ public class InitController : BaseController
     {
         try
         {
-            ServerSettings.Instance.Database.DefaultUserUsername = credentials.Username;
-            ServerSettings.Instance.Database.DefaultUserPassword = credentials.Password;
+            var settings = SettingsProvider.GetSettings();
+            settings.Database.DefaultUserUsername = credentials.Username;
+            settings.Database.DefaultUserPassword = credentials.Password;
             return Ok();
         }
         catch
@@ -216,15 +218,13 @@ public class InitController : BaseController
     [HttpGet("Database/Test")]
     public ActionResult TestDatabaseConnection()
     {
-        if (ServerSettings.Instance.Database.Type == Constants.DatabaseType.MySQL && new MySQL().TestConnection())
-            return Ok();
-
-        if (ServerSettings.Instance.Database.Type == Constants.DatabaseType.SqlServer  && new SQLServer().TestConnection())
-            return Ok();
-
-        if (ServerSettings.Instance.Database.Type == Constants.DatabaseType.Sqlite)
-            return Ok();
-
-        return BadRequest("Failed to Connect");
+        var settings = SettingsProvider.GetSettings();
+        return settings.Database.Type switch
+        {
+            Constants.DatabaseType.MySQL when new MySQL().TestConnection() => Ok(),
+            Constants.DatabaseType.SqlServer when new SQLServer().TestConnection() => Ok(),
+            Constants.DatabaseType.Sqlite => Ok(),
+            _ => BadRequest("Failed to Connect")
+        };
     }
 }

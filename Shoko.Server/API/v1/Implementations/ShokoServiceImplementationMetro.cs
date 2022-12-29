@@ -34,15 +34,17 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
     private readonly ICommandRequestFactory _commandFactory;
     private readonly TraktTVHelper _traktHelper;
     private readonly ShokoServiceImplementation _service;
+    private readonly ISettingsProvider _settingsProvider;
     public HttpContext HttpContext { get; set; }
 
     private static Logger logger = LogManager.GetCurrentClassLogger();
 
-    public ShokoServiceImplementationMetro(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper)
+    public ShokoServiceImplementationMetro(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper, ISettingsProvider settingsProvider)
     {
         _commandFactory = commandFactory;
         _traktHelper = traktHelper;
-        _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory);
+        _settingsProvider = settingsProvider;
+        _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory, settingsProvider);
     }
 
     [HttpGet("Server/Status")]
@@ -90,7 +92,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
         try
         {
-            return ServerSettings.Instance.ToContract();
+            return _settingsProvider.GetSettings().ToContract();
         }
         catch (Exception ex)
         {

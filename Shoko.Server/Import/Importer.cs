@@ -39,7 +39,7 @@ public static class Importer
 
     public static void RunImport_IntegrityCheck()
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // files which have not been hashed yet
         // or files which do not have a VideoInfo record
         var filesToHash = RepoFactory.VideoLocal.GetVideosWithoutHash();
@@ -137,7 +137,7 @@ public static class Importer
 
     public static void RunImport_ScanFolder(int importFolderID, bool skipMyList = false)
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // get a complete list of files
         var fileList = new List<string>();
         int filesFound = 0, videosFound = 0;
@@ -230,7 +230,7 @@ public static class Importer
 
     public static void RunImport_DropFolders()
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // get a complete list of files
         var fileList = new List<string>();
         foreach (var share in RepoFactory.ImportFolder.GetAll())
@@ -284,7 +284,7 @@ public static class Importer
 
     public static void RunImport_NewFiles()
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // first build a list of files that we already know about, as we don't want to process them again
         var filesAll = RepoFactory.VideoLocalPlace.GetAll();
         var dictFilesExisting = new Dictionary<string, SVR_VideoLocal_Place>();
@@ -379,7 +379,7 @@ public static class Importer
 
     public static void RunImport_GetImages()
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // AniDB posters
         foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
         {
@@ -842,7 +842,7 @@ public static class Importer
 
     public static void ValidateAllImages()
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         Analytics.PostEvent("Management", nameof(ValidateAllImages));
 
         var cmd = commandFactory.Create<CommandRequest_ValidateAllImages>();
@@ -852,7 +852,7 @@ public static class Importer
     public static void RunImport_ScanTvDB()
     {
         Analytics.PostEvent("Management", nameof(RunImport_ScanTvDB));
-        var tvDBHelper = ShokoServer.ServiceContainer.GetRequiredService<TvDBApiHelper>();
+        var tvDBHelper = Utils.ServiceContainer.GetRequiredService<TvDBApiHelper>();
 
         tvDBHelper.ScanForMatches();
     }
@@ -864,27 +864,27 @@ public static class Importer
             return;
         }
 
-        var traktHelper = ShokoServer.ServiceContainer.GetRequiredService<TraktTVHelper>();
+        var traktHelper = Utils.ServiceContainer.GetRequiredService<TraktTVHelper>();
         traktHelper.ScanForMatches();
     }
 
     public static void RunImport_ScanMovieDB()
     {
         Analytics.PostEvent("Management", nameof(RunImport_ScanMovieDB));
-        var movieDBHelper = ShokoServer.ServiceContainer.GetRequiredService<MovieDBHelper>();
+        var movieDBHelper = Utils.ServiceContainer.GetRequiredService<MovieDBHelper>();
         movieDBHelper.ScanForMatches();
     }
 
     public static void RunImport_UpdateTvDB(bool forced)
     {
         Analytics.PostEvent("Management", nameof(RunImport_UpdateTvDB));
-        var tvDBHelper = ShokoServer.ServiceContainer.GetRequiredService<TvDBApiHelper>();
+        var tvDBHelper = Utils.ServiceContainer.GetRequiredService<TvDBApiHelper>();
         tvDBHelper.UpdateAllInfo(forced);
     }
 
     public static void RunImport_UpdateAllAniDB()
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         Analytics.PostEvent("Management", nameof(RunImport_UpdateAllAniDB));
 
         foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
@@ -902,7 +902,7 @@ public static class Importer
 
     public static void RemoveRecordsWithoutPhysicalFiles(bool removeMyList = true)
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         Logger.Info("Remove Missing Files: Start");
         var seriesToUpdate = new HashSet<SVR_AnimeSeries>();
         using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -1143,7 +1143,7 @@ public static class Importer
 
     public static void UpdateAllStats()
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         Analytics.PostEvent("Management", "Update All Stats");
         foreach (var ser in RepoFactory.AnimeSeries.GetAll())
         {
@@ -1162,7 +1162,7 @@ public static class Importer
 
     public static int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly)
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         var vidsToUpdate = new List<int>();
         try
         {
@@ -1255,8 +1255,8 @@ public static class Importer
             return;
         }
 
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        var tvDBHelper = ShokoServer.ServiceContainer.GetRequiredService<TvDBApiHelper>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var tvDBHelper = Utils.ServiceContainer.GetRequiredService<TvDBApiHelper>();
         var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TvDB.UpdateFrequency);
 
         // update tvdb info every 12 hours
@@ -1310,7 +1310,7 @@ public static class Importer
 
     public static void CheckForCalendarUpdate(bool forceRefresh)
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         if (ServerSettings.Instance.AniDb.Calendar_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
         {
             return;
@@ -1343,7 +1343,7 @@ public static class Importer
 
     public static void CheckForAnimeUpdate(bool forceRefresh)
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         if (ServerSettings.Instance.AniDb.Anime_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
         {
             return;
@@ -1383,7 +1383,7 @@ public static class Importer
             return;
         }
 
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.MyList_UpdateFrequency);
 
         // update the calendar every 24 hours
@@ -1420,7 +1420,7 @@ public static class Importer
             return;
         }
 
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TraktTv.SyncFrequency);
 
         // update the calendar every xxx hours
@@ -1459,7 +1459,7 @@ public static class Importer
             return;
         }
 
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TraktTv.UpdateFrequency);
 
         // update the calendar every xxx hours
@@ -1491,7 +1491,7 @@ public static class Importer
                 return;
             }
 
-            var traktHelper = ShokoServer.ServiceContainer.GetRequiredService<TraktTVHelper>();
+            var traktHelper = Utils.ServiceContainer.GetRequiredService<TraktTVHelper>();
             // by updating the Trakt token regularly, the user won't need to authorize again
             var freqHours = 24; // we need to update this daily
 
@@ -1537,7 +1537,7 @@ public static class Importer
         }
 
         var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.File_UpdateFrequency);
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
 
         // check for any updated anime info every 12 hours
 

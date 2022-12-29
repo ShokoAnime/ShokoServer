@@ -2387,12 +2387,13 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             // make sure the anime exists first
+            var settings = _settingsProvider.GetSettings();
             var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
             {
                 c.AnimeID = animeID;
                 c.ForceRefresh = false;
-                c.DownloadRelations = ServerSettings.Instance.AutoGroupSeries ||
-                                      ServerSettings.Instance.AniDb.DownloadRelatedAnime;
+                c.DownloadRelations = settings.AutoGroupSeries ||
+                                      settings.AniDb.DownloadRelatedAnime;
                 c.CreateSeriesEntry = true;
                 c.BubbleExceptions = true;
             });

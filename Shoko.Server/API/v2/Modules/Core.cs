@@ -5,11 +5,11 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
@@ -38,12 +38,14 @@ public class Core : BaseController
     private readonly ICommandRequestFactory _commandFactory;
     private readonly TraktTVHelper _traktHelper;
     private readonly ShokoServiceImplementation _service;
+    private readonly IServerSettings _settings;
 
-    public Core(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper)
+    public Core(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _commandFactory = commandFactory;
         _traktHelper = traktHelper;
-        _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory);
+        _settings = settingsProvider.GetSettings();
+        _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory, settingsProvider);
     }
 
     #region 01.Settings
@@ -55,7 +57,7 @@ public class Core : BaseController
     [HttpPost("config/port/set")]
     public object SetPort(ushort port)
     {
-        ServerSettings.Instance.ServerPort = port;
+        _settings.ServerPort = port;
         return APIStatus.OK();
     }
 
@@ -67,7 +69,7 @@ public class Core : BaseController
     public object GetPort()
     {
         dynamic x = new ExpandoObject();
-        x.port = ServerSettings.Instance.ServerPort;
+        x.port = _settings.ServerPort;
         return x;
     }
 
@@ -80,7 +82,7 @@ public class Core : BaseController
     {
         if (imagepath.isdefault)
         {
-            ServerSettings.Instance.ImagesPath = ServerSettings.DefaultImagePath;
+            _settings.ImagesPath = Utils.DefaultImagePath;
             return APIStatus.OK();
         }
 
@@ -88,7 +90,7 @@ public class Core : BaseController
         {
             if (Directory.Exists(imagepath.path))
             {
-                ServerSettings.Instance.ImagesPath = imagepath.path;
+                _settings.ImagesPath = imagepath.path;
                 return APIStatus.OK();
             }
 
@@ -107,8 +109,8 @@ public class Core : BaseController
     {
         var imagepath = new ImagePath
         {
-            path = ServerSettings.Instance.ImagesPath,
-            isdefault = ServerSettings.Instance.ImagesPath == ServerSettings.DefaultImagePath
+            path = _settings.ImagesPath,
+            isdefault = _settings.ImagesPath == Utils.DefaultImagePath
         };
         return imagepath;
     }
@@ -118,11 +120,11 @@ public class Core : BaseController
     /// </summary>
     /// <returns>Server settings</returns>
     [HttpGet("config/export")]
-    public ActionResult<ServerSettings> ExportConfig()
+    public ActionResult<IServerSettings> ExportConfig()
     {
         try
         {
-            return ServerSettings.Instance;
+            return new ActionResult<IServerSettings>(_settings);
         }
         catch
         {
@@ -138,25 +140,6 @@ public class Core : BaseController
     public ActionResult ImportConfig(CL_ServerSettings settings)
     {
         return BadRequest("This settings model is deprecated. It will break the settings file. Use APIv3");
-        var raw_settings = settings.ToJSON();
-
-        if (raw_settings.Length != new CL_ServerSettings().ToJSON().Length)
-        {
-            var path = Path.Combine(ServerSettings.ApplicationPath, "temp.json");
-            System.IO.File.WriteAllText(path, raw_settings, Encoding.UTF8);
-            try
-            {
-                ServerSettings.LoadSettingsFromFile(path, true);
-                ServerSettings.Instance.SaveSettings();
-                return APIStatus.OK();
-            }
-            catch
-            {
-                return APIStatus.InternalError("Error while importing settings");
-            }
-        }
-
-        return APIStatus.BadRequest("Empty settings are not allowed");
     }
 
     /// <summary>
@@ -203,11 +186,11 @@ public class Core : BaseController
     {
         if (!string.IsNullOrEmpty(cred.login) && !string.IsNullOrEmpty(cred.password))
         {
-            ServerSettings.Instance.AniDb.Username = cred.login;
-            ServerSettings.Instance.AniDb.Password = cred.password;
+            _settings.AniDb.Username = cred.login;
+            _settings.AniDb.Password = cred.password;
             if (cred.port != 0)
             {
-                ServerSettings.Instance.AniDb.ClientPort = cred.port;
+                _settings.AniDb.ClientPort = cred.port;
             }
 
             return APIStatus.OK();
@@ -227,11 +210,11 @@ public class Core : BaseController
         handler.ForceLogout();
         handler.CloseConnections();
 
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
+        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(_settings.Culture);
 
-        handler.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
-            ServerSettings.Instance.AniDb.ServerAddress,
-            ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
+        handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
+            _settings.AniDb.ServerAddress,
+            _settings.AniDb.ServerPort, _settings.AniDb.ClientPort);
 
         if (handler.Login())
         {
@@ -251,9 +234,9 @@ public class Core : BaseController
     {
         return new Credentials
         {
-            login = ServerSettings.Instance.AniDb.Username,
-            password = ServerSettings.Instance.AniDb.Password,
-            port = ServerSettings.Instance.AniDb.ClientPort
+            login = _settings.AniDb.Username,
+            password = _settings.AniDb.Password,
+            port = _settings.AniDb.ClientPort
         };
     }
 
@@ -371,8 +354,8 @@ public class Core : BaseController
     {
         return new Credentials
         {
-            token = ServerSettings.Instance.TraktTv.AuthToken,
-            refresh_token = ServerSettings.Instance.TraktTv.RefreshToken
+            token = _settings.TraktTv.AuthToken,
+            refresh_token = _settings.TraktTv.RefreshToken
         };
     }
 
@@ -383,7 +366,7 @@ public class Core : BaseController
     [HttpGet("trakt/sync")]
     public ActionResult SyncTrakt()
     {
-        if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+        if (_settings.TraktTv.Enabled && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken))
         {
             var cmd = _commandFactory.Create<CommandRequest_TraktSyncCollection>(c => c.ForceRefresh = true);
             cmd.Save();
@@ -637,7 +620,8 @@ public class Core : BaseController
     [HttpGet("user/list")]
     public ActionResult<Dictionary<int, string>> GetUsers()
     {
-        return new CommonImplementation().GetUsers();
+        var iLogger = HttpContext.RequestServices.GetRequiredService<ILogger<CommonImplementation>>();
+        return new CommonImplementation(iLogger, SettingsProvider).GetUsers();
     }
 
     /// <summary>
@@ -786,10 +770,10 @@ public class Core : BaseController
     [Authorize("admin")]
     public ActionResult SetRotateLogs(Logs rotator)
     {
-        ServerSettings.Instance.LogRotator.Enabled = rotator.rotate;
-        ServerSettings.Instance.LogRotator.Zip = rotator.zip;
-        ServerSettings.Instance.LogRotator.Delete = rotator.delete;
-        ServerSettings.Instance.LogRotator.Delete_Days = rotator.days.ToString();
+        _settings.LogRotator.Enabled = rotator.rotate;
+        _settings.LogRotator.Zip = rotator.zip;
+        _settings.LogRotator.Delete = rotator.delete;
+        _settings.LogRotator.Delete_Days = rotator.days.ToString();
 
         return APIStatus.OK();
     }
@@ -803,14 +787,14 @@ public class Core : BaseController
     {
         var rotator = new Logs
         {
-            rotate = ServerSettings.Instance.LogRotator.Enabled,
-            zip = ServerSettings.Instance.LogRotator.Zip,
-            delete = ServerSettings.Instance.LogRotator.Delete
+            rotate = _settings.LogRotator.Enabled,
+            zip = _settings.LogRotator.Zip,
+            delete = _settings.LogRotator.Delete
         };
         var day = 0;
-        if (!string.IsNullOrEmpty(ServerSettings.Instance.LogRotator.Delete_Days))
+        if (!string.IsNullOrEmpty(_settings.LogRotator.Delete_Days))
         {
-            int.TryParse(ServerSettings.Instance.LogRotator.Delete_Days, out day);
+            int.TryParse(_settings.LogRotator.Delete_Days, out day);
         }
 
         rotator.days = day;
@@ -876,7 +860,7 @@ public class Core : BaseController
     public ActionResult UpdateImages()
     {
         Importer.RunImport_UpdateTvDB(true);
-        ShokoServer.Instance.DownloadAllImages();
+        Utils.ShokoServer.DownloadAllImages();
 
         return APIStatus.OK();
     }

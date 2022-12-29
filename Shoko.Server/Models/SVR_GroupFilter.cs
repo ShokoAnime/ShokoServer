@@ -2074,7 +2074,7 @@ public class SVR_GroupFilter : GroupFilter
 
     public void QueueUpdate()
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         var cmdRefreshGroupFilter =
             commandFactory.Create<CommandRequest_RefreshGroupFilter>(c => c.GroupFilterID = GroupFilterID);
         cmdRefreshGroupFilter.Save();

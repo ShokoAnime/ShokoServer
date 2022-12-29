@@ -25,9 +25,15 @@ using Shoko.Server.API.Authentication;
 using Shoko.Server.API.SignalR;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.SignalR.Legacy;
+using Shoko.Server.Commands;
 using Shoko.Server.Plugin;
+using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.MovieDB;
+using Shoko.Server.Providers.TraktTV;
+using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
 using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
 using QueueEmitter = Shoko.Server.API.SignalR.Aggregate.QueueEmitter;
@@ -54,7 +60,15 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-        ShokoServer.ConfigureServices(services);
+        services.AddSingleton<ISettingsProvider, SettingsProvider>();
+        services.AddSingleton(Loader.Instance);
+        services.AddSingleton(ShokoService.CmdProcessorGeneral);
+        services.AddSingleton<TraktTVHelper>();
+        services.AddSingleton<TvDBApiHelper>();
+        services.AddSingleton<MovieDBHelper>();
+        AniDBStartup.ConfigureServices(services);
+        CommandStartup.Configure(services);
+        Loader.Instance.Load(services);
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = CustomAuthOptions.DefaultScheme;
@@ -251,7 +265,7 @@ public class Startup
 #if DEBUG
         app.UseDeveloperExceptionPage();
 #endif
-        var dir = new DirectoryInfo(Path.Combine(ServerSettings.ApplicationPath, "webui"));
+        var dir = new DirectoryInfo(Path.Combine(Utils.ApplicationPath, "webui"));
         if (!dir.Exists)
         {
             dir.Create();

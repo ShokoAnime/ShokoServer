@@ -18,8 +18,12 @@ namespace Shoko.Server.API.v1.Implementations;
 public class ShokoServiceImplementationPlex : IShokoServerPlex, IHttpContextAccessor
 {
     public HttpContext HttpContext { get; set; }
+    private readonly CommonImplementation _impl;
 
-    private CommonImplementation _impl = new();
+    public ShokoServiceImplementationPlex(CommonImplementation impl)
+    {
+        _impl = impl;
+    }
 
     [HttpGet("Image/Support/{name}")]
     public Stream GetSupportImage(string name)

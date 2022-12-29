@@ -8,6 +8,7 @@ using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -51,5 +52,9 @@ public class IntegrityCheckController : BaseController
     public ActionResult StartScan(int id)
     {
         return Ok();
+    }
+
+    public IntegrityCheckController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

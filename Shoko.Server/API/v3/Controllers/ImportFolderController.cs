@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -181,5 +182,9 @@ public class ImportFolderController : BaseController
 
         Importer.RunImport_ScanFolder(folderID);
         return Ok();
+    }
+
+    public ImportFolderController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

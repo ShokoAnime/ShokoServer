@@ -566,7 +566,7 @@ public class SVR_AnimeSeries : AnimeSeries
             .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(a.AniDB_EpisodeID)).ToList();
         var vlIDsToUpdate = filesToUpdate.Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash)?.VideoLocalID)
             .Where(a => a != null).Select(a => a.Value).ToList();
-        var requestFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var requestFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // remove existing xrefs
         RepoFactory.CrossRef_File_Episode.Delete(filesToUpdate);
         // queue rescan for the files
@@ -1377,7 +1377,7 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public void QueueUpdateStats()
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         var cmdRefreshAnime = commandFactory.Create<CommandRequest_RefreshAnime>(c => c.AnimeID = AniDB_ID);
         cmdRefreshAnime.Save();
     }

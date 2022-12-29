@@ -57,8 +57,8 @@ public class ServerInfo : INotifyPropertyChangedExt
         ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += CmdProcessorImages_OnQueueCountChangedEvent;
         ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += CmdProcessorImages_OnQueueStateChangedEvent;
 
-        var http = ShokoServer.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
-        var udp = ShokoServer.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+        var http = Utils.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
+        var udp = Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
         http.AniDBStateUpdate += OnAniDBStateUpdate;
         udp.AniDBStateUpdate += OnAniDBStateUpdate;
     }
@@ -74,8 +74,8 @@ public class ServerInfo : INotifyPropertyChangedExt
         ShokoService.CmdProcessorImages.OnQueueCountChangedEvent -= CmdProcessorImages_OnQueueCountChangedEvent;
         ShokoService.CmdProcessorImages.OnQueueStateChangedEvent -= CmdProcessorImages_OnQueueStateChangedEvent;
 
-        var http = ShokoServer.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
-        var udp = ShokoServer.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+        var http = Utils.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
+        var udp = Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
         http.AniDBStateUpdate -= OnAniDBStateUpdate;
         udp.AniDBStateUpdate -= OnAniDBStateUpdate;
     }

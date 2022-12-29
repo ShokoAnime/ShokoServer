@@ -50,7 +50,7 @@ public static class WebUIHelper
     /// <returns></returns>
     public static void DownloadAndInstallUpdate(string url)
     {
-        var webuiDir = Path.Combine(ServerSettings.ApplicationPath, "webui");
+        var webuiDir = Path.Combine(Utils.ApplicationPath, "webui");
         var backupDir = Path.Combine(webuiDir, "old");
         var zipFile = Path.Combine(webuiDir, "update.zip");
         var files = Directory.GetFiles(webuiDir);

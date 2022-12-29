@@ -37,7 +37,7 @@ public class FileController : BaseController
 
     private readonly ICommandRequestFactory _commandFactory;
 
-    public FileController(TraktTVHelper traktHelper, ICommandRequestFactory commandFactory)
+    public FileController(TraktTVHelper traktHelper, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _traktHelper = traktHelper;
         _commandFactory = commandFactory;
@@ -369,7 +369,8 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        if (string.IsNullOrWhiteSpace(ServerSettings.Instance.AniDb.AVDumpKey))
+        var settings = SettingsProvider.GetSettings();
+        if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
             return BadRequest("Missing AVDump API key");
 
         var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;

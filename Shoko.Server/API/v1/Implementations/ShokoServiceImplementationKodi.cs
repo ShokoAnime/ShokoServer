@@ -8,6 +8,7 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Server.Commands;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.PlexAndKodi.Kodi;
+using Shoko.Server.Settings;
 using Stream = System.IO.Stream;
 
 namespace Shoko.Server.API.v1.Implementations;
@@ -23,13 +24,15 @@ public class ShokoServiceImplementationKodi : IShokoServerKodi, IHttpContextAcce
     private readonly CommonImplementation _impl;
 
     private readonly ILogger<ShokoServiceImplementationKodi> _logger;
+    private readonly ISettingsProvider _settingsProvider;
 
     public ShokoServiceImplementationKodi(ICommandRequestFactory commandFactory,
-        ILogger<ShokoServiceImplementationKodi> logger)
+        ILogger<ShokoServiceImplementationKodi> logger, ILogger<CommonImplementation> commonLogger, ISettingsProvider settingsProvider)
     {
-        _service = new ShokoServiceImplementation(null, null, null, commandFactory);
+        _settingsProvider = settingsProvider;
+        _service = new ShokoServiceImplementation(null, null, null, commandFactory, _settingsProvider);
         _logger = logger;
-        _impl = new CommonImplementation();
+        _impl = new CommonImplementation(commonLogger, settingsProvider);
     }
 
 

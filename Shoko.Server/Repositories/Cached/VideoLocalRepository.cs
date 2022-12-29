@@ -122,7 +122,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 .ToList();
             max = list.Count;
 
-            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+            var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             list.ForEach(
                 a =>
                 {

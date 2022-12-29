@@ -8,6 +8,7 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -236,5 +237,9 @@ public class UserController : BaseController
 
         RepoFactory.JMMUser.RemoveUser(userID, true);
         return Ok();
+    }
+
+    public UserController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

@@ -13,7 +13,7 @@ namespace Shoko.Server;
 
 public static class AVDumpHelper
 {
-    public static readonly string Destination = Path.Combine(ServerSettings.ApplicationPath, "Utilities", "AVDump");
+    public static readonly string Destination = Path.Combine(Utils.ApplicationPath, "Utilities", "AVDump");
     public static readonly string AVDumpZipDestination = Path.Combine(Destination, "avdump2.zip");
 
     public const string AVDump2URL = @"http://static.anidb.net/client/avdump2/avdump2_7100.zip";

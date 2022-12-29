@@ -666,7 +666,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
     public SVR_AnimeSeries CreateAnimeSeriesAndGroup(SVR_AnimeSeries existingSeries = null, int? existingGroupID = null)
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // Create a new AnimeSeries record
         var series = existingSeries ?? new SVR_AnimeSeries();
 

@@ -5,12 +5,11 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using NLog;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
@@ -37,7 +36,14 @@ namespace Shoko.Server.API.v2.Modules;
 [InitFriendly]
 public class Init : BaseController
 {
-    private readonly Logger logger = LogManager.GetCurrentClassLogger();
+    private readonly ILogger<Init> _logger;
+    private readonly IServerSettings _settings;
+
+    public Init(ILogger<Init> logger, ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
+        _logger = logger;
+        _settings = settingsProvider.GetSettings();
+    }
 
     /// <summary>
     /// Return current version of ShokoServer and several modules
@@ -122,7 +128,7 @@ public class Init : BaseController
             }
         }
 
-        var webUIFileInfo = new FileInfo(Path.Combine(Settings.ServerSettings.ApplicationPath, "webui/index.ver"));
+        var webUIFileInfo = new FileInfo(Path.Combine(Utils.ApplicationPath, "webui/index.ver"));
         if (webUIFileInfo.Exists)
         {
             var webui_version = System.IO.File.ReadAllText(webUIFileInfo.FullName);
@@ -158,7 +164,7 @@ public class Init : BaseController
             server_started = ServerState.Instance.ServerOnline,
             startup_state = ServerState.Instance.ServerStartingStatus,
             server_uptime = uptimemsg,
-            first_run = ServerSettings.Instance.FirstRun,
+            first_run = _settings.FirstRun,
             startup_failed = ServerState.Instance.StartupFailed,
             startup_failed_error_message = ServerState.Instance.StartupFailedMessage
         };
@@ -185,8 +191,8 @@ public class Init : BaseController
     {
         return new Credentials
         {
-            login = ServerSettings.Instance.Database.DefaultUserUsername,
-            password = ServerSettings.Instance.Database.DefaultUserPassword
+            login = _settings.Database.DefaultUserUsername,
+            password = _settings.Database.DefaultUserPassword
         };
     }
 
@@ -200,8 +206,8 @@ public class Init : BaseController
     {
         try
         {
-            ServerSettings.Instance.Database.DefaultUserUsername = credentials.login;
-            ServerSettings.Instance.Database.DefaultUserPassword = credentials.password;
+            _settings.Database.DefaultUserUsername = credentials.login;
+            _settings.Database.DefaultUserPassword = credentials.password;
             return APIStatus.OK();
         }
         catch
@@ -225,7 +231,7 @@ public class Init : BaseController
         }
         catch (Exception e)
         {
-            logger.Error($"There was an error starting the server: {e}");
+            _logger.LogError("There was an error starting the server: {E}", e);
             return APIStatus.InternalError($"There was an error starting the server: {e}");
         }
         return APIStatus.OK();
@@ -248,14 +254,14 @@ public class Init : BaseController
             details.Add(("password", "Password missing"));
         if (details.Count > 0) return new APIMessage(400, "Login or Password missing", details);
 
-        ServerSettings.Instance.AniDb.Username = cred.login;
-        ServerSettings.Instance.AniDb.Password = cred.password;
+        _settings.AniDb.Username = cred.login;
+        _settings.AniDb.Password = cred.password;
         if (cred.port != 0)
-            ServerSettings.Instance.AniDb.ClientPort = cred.port;
+            _settings.AniDb.ClientPort = cred.port;
         if (!string.IsNullOrEmpty(cred.apikey))
-            ServerSettings.Instance.AniDb.AVDumpKey = cred.apikey;
+            _settings.AniDb.AVDumpKey = cred.apikey;
         if (cred.apiport != 0)
-            ServerSettings.Instance.AniDb.AVDumpClientPort = cred.apiport;
+            _settings.AniDb.AVDumpClientPort = cred.apiport;
 
         return APIStatus.OK();
     }
@@ -272,11 +278,11 @@ public class Init : BaseController
         handler.ForceLogout();
         handler.CloseConnections();
 
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
+        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(_settings.Culture);
 
-        handler.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
-            ServerSettings.Instance.AniDb.ServerAddress,
-            ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
+        handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
+            _settings.AniDb.ServerAddress,
+            _settings.AniDb.ServerPort, _settings.AniDb.ClientPort);
 
         if (!handler.Login()) return APIStatus.BadRequest("Failed to log in");
         handler.ForceLogout();
@@ -296,9 +302,9 @@ public class Init : BaseController
         {
             return new Credentials
             {
-                login = ServerSettings.Instance.AniDb.Username,
-                port = ServerSettings.Instance.AniDb.ClientPort,
-                apiport = ServerSettings.Instance.AniDb.AVDumpClientPort
+                login = _settings.AniDb.Username,
+                port = _settings.AniDb.ClientPort,
+                apiport = _settings.AniDb.AVDumpClientPort
             };
         }
         catch
@@ -322,16 +328,16 @@ public class Init : BaseController
     {
         var settings = new DatabaseSettings
         {
-            db_type = ServerSettings.Instance.Database.Type,
-            mysql_hostname = ServerSettings.Instance.Database.Hostname,
-            mysql_password = ServerSettings.Instance.Database.Password,
-            mysql_schemaname = ServerSettings.Instance.Database.Schema,
-            mysql_username = ServerSettings.Instance.Database.Username,
-            sqlite_databasefile = ServerSettings.Instance.Database.SQLite_DatabaseFile,
-            sqlserver_databasename = ServerSettings.Instance.Database.Schema,
-            sqlserver_databaseserver = ServerSettings.Instance.Database.Hostname,
-            sqlserver_password = ServerSettings.Instance.Database.Password,
-            sqlserver_username = ServerSettings.Instance.Database.Username
+            db_type = _settings.Database.Type,
+            mysql_hostname = _settings.Database.Hostname,
+            mysql_password = _settings.Database.Password,
+            mysql_schemaname = _settings.Database.Schema,
+            mysql_username = _settings.Database.Username,
+            sqlite_databasefile = _settings.Database.SQLite_DatabaseFile,
+            sqlserver_databasename = _settings.Database.Schema,
+            sqlserver_databaseserver = _settings.Database.Hostname,
+            sqlserver_password = _settings.Database.Password,
+            sqlserver_username = _settings.Database.Username
         };
 
         return settings;
@@ -361,11 +367,11 @@ public class Init : BaseController
                 details.Add(("mysql_password", "Must not be empty"));
             if (details.Count > 0)
                 return new APIMessage(HttpStatusCode.BadRequest, "An invalid setting was passed", details);
-            ServerSettings.Instance.Database.Type = dbtype;
-            ServerSettings.Instance.Database.Hostname = settings.mysql_hostname;
-            ServerSettings.Instance.Database.Password = settings.mysql_password;
-            ServerSettings.Instance.Database.Schema = settings.mysql_schemaname;
-            ServerSettings.Instance.Database.Username = settings.mysql_username;
+            _settings.Database.Type = dbtype;
+            _settings.Database.Hostname = settings.mysql_hostname;
+            _settings.Database.Password = settings.mysql_password;
+            _settings.Database.Schema = settings.mysql_schemaname;
+            _settings.Database.Username = settings.mysql_username;
             return APIStatus.OK();
         }
         if (dbtype == Constants.DatabaseType.SqlServer)
@@ -381,18 +387,18 @@ public class Init : BaseController
                 details.Add(("sqlserver_password", "Must not be empty"));
             if (details.Count > 0)
                 return new APIMessage(HttpStatusCode.BadRequest, "An invalid setting was passed", details);
-            ServerSettings.Instance.Database.Type = dbtype;
-            ServerSettings.Instance.Database.Hostname = settings.sqlserver_databaseserver;
-            ServerSettings.Instance.Database.Schema = settings.sqlserver_databasename;
-            ServerSettings.Instance.Database.Username = settings.sqlserver_username;
-            ServerSettings.Instance.Database.Password = settings.sqlserver_password;
+            _settings.Database.Type = dbtype;
+            _settings.Database.Hostname = settings.sqlserver_databaseserver;
+            _settings.Database.Schema = settings.sqlserver_databasename;
+            _settings.Database.Username = settings.sqlserver_username;
+            _settings.Database.Password = settings.sqlserver_password;
             return APIStatus.OK();
         }
         if (dbtype == Constants.DatabaseType.Sqlite)
         {
-            ServerSettings.Instance.Database.Type = dbtype;
+            _settings.Database.Type = dbtype;
             if (!string.IsNullOrEmpty(settings.sqlite_databasefile))
-                ServerSettings.Instance.Database.SQLite_DatabaseFile = settings.sqlite_databasefile;
+                _settings.Database.SQLite_DatabaseFile = settings.sqlite_databasefile;
             return APIStatus.OK();
         }
         return APIStatus.BadRequest("An invalid setting was passed");
@@ -406,13 +412,13 @@ public class Init : BaseController
     [HttpGet("database/test")]
     public APIMessage TestDatabaseConnection()
     {
-        if (ServerSettings.Instance.Database.Type == Constants.DatabaseType.MySQL && new MySQL().TestConnection())
+        if (_settings.Database.Type == Constants.DatabaseType.MySQL && new MySQL().TestConnection())
             return APIStatus.OK();
 
-        if (ServerSettings.Instance.Database.Type == Constants.DatabaseType.SqlServer  && new SQLServer().TestConnection())
+        if (_settings.Database.Type == Constants.DatabaseType.SqlServer  && new SQLServer().TestConnection())
             return APIStatus.OK();
 
-        if (ServerSettings.Instance.Database.Type == Constants.DatabaseType.Sqlite)
+        if (_settings.Database.Type == Constants.DatabaseType.Sqlite)
             return APIStatus.OK();
 
         return APIStatus.BadRequest("Failed to Connect");
@@ -438,11 +444,11 @@ public class Init : BaseController
     /// <returns></returns>
     [Authorize("init")]
     [HttpGet("config")]
-    public ActionResult<ServerSettings> ExportConfig()
+    public ActionResult<IServerSettings> ExportConfig()
     {
         try
         {
-            return ServerSettings.Instance;
+            return new ActionResult<IServerSettings>(_settings);
         }
         catch
         {
@@ -460,23 +466,6 @@ public class Init : BaseController
     public ActionResult ImportConfig(CL_ServerSettings settings)
     {
         return BadRequest("The model that this method takes is deprecated and will break the settings file. Use APIv3");
-        string raw_settings = settings.ToJSON();
-
-        if (raw_settings.Length == new CL_ServerSettings().ToJSON().Length)
-            return APIStatus.BadRequest("Empty settings are not allowed");
-
-        string path = Path.Combine(ServerSettings.ApplicationPath, "temp.json");
-        System.IO.File.WriteAllText(path, raw_settings, Encoding.UTF8);
-        try
-        {
-            ServerSettings.LoadSettingsFromFile(path, true);
-            ServerSettings.Instance.SaveSettings();
-            return APIStatus.OK();
-        }
-        catch
-        {
-            return APIStatus.InternalError("Error while importing settings");
-        }
     }
 
     /// <summary>

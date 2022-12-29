@@ -6,7 +6,9 @@ using System.Drawing;
 using System.Windows;
 using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
-using NLog;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
 using Shoko.Server.Commands;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -20,7 +22,7 @@ namespace Shoko.TrayService;
 public partial class App
 {
     private static TaskbarIcon? _icon;
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private ILogger _logger = null!;
 
     private void OnStartup(object a, StartupEventArgs e)
     {
@@ -34,15 +36,22 @@ public partial class App
         {
             Console.WriteLine(ex.ToString());
         }
-        new StartServer().StartupServer(AddEventHandlers, ServerStart);
+
+        Utils.SetInstance();
+        Utils.InitLogger();
+
+        var loggerFactory = new LoggerFactory().AddNLog();
+        _logger = loggerFactory.CreateLogger("App.xaml");
+        var settingsProvider = new SettingsProvider(loggerFactory.CreateLogger<SettingsProvider>());
+        new StartServer(loggerFactory.CreateLogger<StartServer>(), settingsProvider).StartupServer(AddEventHandlers, ServerStart);
     }
 
     private static bool ServerStart() 
-        => ShokoServer.Instance.StartUpServer();
+        => Utils.ShokoServer.StartUpServer();
 
     private void AddEventHandlers()
     {
-        ShokoServer.Instance.ServerShutdown += OnInstanceOnServerShutdown;
+        Utils.ShokoServer.ServerShutdown += OnInstanceOnServerShutdown;
         Utils.YesNoRequired += OnUtilsOnYesNoRequired;
         ServerState.Instance.PropertyChanged += OnInstanceOnPropertyChanged;
         ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnCmdProcessorGeneralOnOnQueueStateChangedEvent;
@@ -93,15 +102,16 @@ public partial class App
     private void OnWebuiExit(object? sender, RoutedEventArgs args) 
         => Dispatcher.Invoke(Shutdown);
 
-    private static void OnWebuiOpenWebUIClick(object? sender, RoutedEventArgs args)
+    private void OnWebuiOpenWebUIClick(object? sender, RoutedEventArgs args)
     {
         try
         {
-            OpenUrl($"http://localhost:{ServerSettings.Instance.ServerPort}");
+            var settings = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>().GetSettings();
+            OpenUrl($"http://localhost:{settings.ServerPort}");
         }
         catch (Exception e)
         {
-            Logger.Error(e);
+            _logger.LogError(e, "Failed to Open WebUI: {Ex}", e);
         }
     }
 
@@ -116,7 +126,7 @@ public partial class App
     protected override void OnExit(ExitEventArgs e)
     {
         base.OnExit(e);
-        Logger.Info("Exit was Requested. Shutting Down.");
+        _logger.LogInformation("Exit was Requested. Shutting Down");
         ShokoService.CancelAndWaitForQueues();
         if (_icon is not null)
             _icon.Visibility = Visibility.Hidden;

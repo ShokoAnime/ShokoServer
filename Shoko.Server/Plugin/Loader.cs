@@ -8,6 +8,8 @@ using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
+using ISettingsProvider = Shoko.Plugin.Abstractions.ISettingsProvider;
 
 namespace Shoko.Server.Plugin;
 
@@ -31,7 +33,7 @@ public class Loader : ISettingsProvider
         assemblies.Add(Assembly.GetCallingAssembly()); //add this to dynamically load as well.
 
         //Load plugins from the user config dir too.
-        var userPluginDir = Path.Combine(ServerSettings.ApplicationPath, "plugins");
+        var userPluginDir = Path.Combine(Utils.ApplicationPath, "plugins");
         var userPlugins = Directory.Exists(userPluginDir)
             ? Directory.GetFiles(userPluginDir, "*.dll", SearchOption.AllDirectories)
             : new string[0];
@@ -136,10 +138,10 @@ public class Loader : ISettingsProvider
                 return;
             }
 
-            var settingsPath = Path.Combine(ServerSettings.ApplicationPath, "Plugins", name);
+            var settingsPath = Path.Combine(Utils.ApplicationPath, "Plugins", name);
             var obj = !File.Exists(settingsPath)
                 ? Activator.CreateInstance(t)
-                : ServerSettings.Deserialize(t, File.ReadAllText(settingsPath));
+                : SettingsProvider.Deserialize(t, File.ReadAllText(settingsPath));
             // Plugins.Settings will be empty, since it's ignored by the serializer
             var settings = (IPluginSettings)obj;
             ServerSettings.Instance.Plugins.Settings.Add(settings);
@@ -162,9 +164,9 @@ public class Loader : ISettingsProvider
 
         try
         {
-            var settingsPath = Path.Combine(ServerSettings.ApplicationPath, "Plugins", name);
-            Directory.CreateDirectory(Path.Combine(ServerSettings.ApplicationPath, "Plugins"));
-            var json = ServerSettings.Serialize(settings);
+            var settingsPath = Path.Combine(Utils.ApplicationPath, "Plugins", name);
+            Directory.CreateDirectory(Path.Combine(Utils.ApplicationPath, "Plugins"));
+            var json = SettingsProvider.Serialize(settings);
             File.WriteAllText(settingsPath, json);
         }
         catch (Exception e)

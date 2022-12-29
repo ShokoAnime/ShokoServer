@@ -254,7 +254,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
     public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, int userID,
         bool syncTrakt, bool updateWatchedDate)
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         var user = RepoFactory.JMMUser.GetByID(userID);
         if (user == null) return;
 

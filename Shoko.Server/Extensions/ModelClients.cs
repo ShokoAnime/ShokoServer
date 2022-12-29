@@ -8,12 +8,117 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Extensions;
 
 public static class ModelClients
 {
     private static Logger logger = LogManager.GetCurrentClassLogger();
+
+    public static CL_ServerSettings ToContract(this IServerSettings settings)
+    {
+        return new CL_ServerSettings
+        {
+            AniDB_Username = settings.AniDb.Username,
+            AniDB_Password = settings.AniDb.Password,
+            AniDB_ServerAddress = settings.AniDb.ServerAddress,
+            AniDB_ServerPort = settings.AniDb.ServerPort.ToString(),
+            AniDB_ClientPort = settings.AniDb.ClientPort.ToString(),
+            AniDB_AVDumpClientPort = settings.AniDb.AVDumpClientPort.ToString(),
+            AniDB_AVDumpKey = settings.AniDb.AVDumpKey,
+            AniDB_DownloadRelatedAnime = settings.AniDb.DownloadRelatedAnime,
+            AniDB_DownloadSimilarAnime = settings.AniDb.DownloadSimilarAnime,
+            AniDB_DownloadReviews = settings.AniDb.DownloadReviews,
+            AniDB_DownloadReleaseGroups = settings.AniDb.DownloadReleaseGroups,
+            AniDB_MyList_AddFiles = settings.AniDb.MyList_AddFiles,
+            AniDB_MyList_StorageState = (int)settings.AniDb.MyList_StorageState,
+            AniDB_MyList_DeleteType = (int)settings.AniDb.MyList_DeleteType,
+            AniDB_MyList_ReadWatched = settings.AniDb.MyList_ReadWatched,
+            AniDB_MyList_ReadUnwatched = settings.AniDb.MyList_ReadUnwatched,
+            AniDB_MyList_SetWatched = settings.AniDb.MyList_SetWatched,
+            AniDB_MyList_SetUnwatched = settings.AniDb.MyList_SetUnwatched,
+            AniDB_MyList_UpdateFrequency = (int)settings.AniDb.MyList_UpdateFrequency,
+            AniDB_Calendar_UpdateFrequency = (int)settings.AniDb.Calendar_UpdateFrequency,
+            AniDB_Anime_UpdateFrequency = (int)settings.AniDb.Anime_UpdateFrequency,
+            AniDB_MyListStats_UpdateFrequency = (int)settings.AniDb.MyListStats_UpdateFrequency,
+            AniDB_File_UpdateFrequency = (int)settings.AniDb.File_UpdateFrequency,
+            AniDB_DownloadCharacters = settings.AniDb.DownloadCharacters,
+            AniDB_DownloadCreators = settings.AniDb.DownloadCreators,
+            AniDB_MaxRelationDepth = settings.AniDb.MaxRelationDepth,
+
+            // Web Cache
+            WebCache_Address = settings.WebCache.Address,
+            WebCache_XRefFileEpisode_Get = settings.WebCache.XRefFileEpisode_Get,
+            WebCache_XRefFileEpisode_Send = settings.WebCache.XRefFileEpisode_Send,
+            WebCache_TvDB_Get = settings.WebCache.TvDB_Get,
+            WebCache_TvDB_Send = settings.WebCache.TvDB_Send,
+            WebCache_Trakt_Get = settings.WebCache.Trakt_Get,
+            WebCache_Trakt_Send = settings.WebCache.Trakt_Send,
+
+            // TvDB
+            TvDB_AutoLink = settings.TvDB.AutoLink,
+            TvDB_AutoFanart = settings.TvDB.AutoFanart,
+            TvDB_AutoFanartAmount = settings.TvDB.AutoFanartAmount,
+            TvDB_AutoPosters = settings.TvDB.AutoPosters,
+            TvDB_AutoPostersAmount = settings.TvDB.AutoPostersAmount,
+            TvDB_AutoWideBanners = settings.TvDB.AutoWideBanners,
+            TvDB_AutoWideBannersAmount = settings.TvDB.AutoWideBannersAmount,
+            TvDB_UpdateFrequency = (int)settings.TvDB.UpdateFrequency,
+            TvDB_Language = settings.TvDB.Language,
+
+            // MovieDB
+            MovieDB_AutoFanart = settings.MovieDb.AutoFanart,
+            MovieDB_AutoFanartAmount = settings.MovieDb.AutoFanartAmount,
+            MovieDB_AutoPosters = settings.MovieDb.AutoPosters,
+            MovieDB_AutoPostersAmount = settings.MovieDb.AutoPostersAmount,
+
+            // Import settings
+            VideoExtensions = string.Join(",", settings.Import.VideoExtensions),
+            AutoGroupSeries = settings.AutoGroupSeries,
+            AutoGroupSeriesUseScoreAlgorithm = settings.AutoGroupSeriesUseScoreAlgorithm,
+            AutoGroupSeriesRelationExclusions = settings.AutoGroupSeriesRelationExclusions,
+            FileQualityFilterEnabled = settings.FileQualityFilterEnabled,
+            FileQualityFilterPreferences = SettingsProvider.Serialize(settings.FileQualityPreferences),
+            Import_MoveOnImport = settings.Import.MoveOnImport,
+            Import_RenameOnImport = settings.Import.RenameOnImport,
+            Import_UseExistingFileWatchedStatus = settings.Import.UseExistingFileWatchedStatus,
+            RunImportOnStart = settings.Import.RunOnStart,
+            ScanDropFoldersOnStart = settings.Import.ScanDropFoldersOnStart,
+            Hash_CRC32 = settings.Import.Hash_CRC32,
+            Hash_MD5 = settings.Import.Hash_MD5,
+            Hash_SHA1 = settings.Import.Hash_SHA1,
+            SkipDiskSpaceChecks = settings.Import.SkipDiskSpaceChecks,
+
+            // Language
+            LanguagePreference = string.Join(",", settings.LanguagePreference),
+            LanguageUseSynonyms = settings.LanguageUseSynonyms,
+            EpisodeTitleSource = (int)settings.EpisodeTitleSource,
+            SeriesDescriptionSource = (int)settings.SeriesDescriptionSource,
+            SeriesNameSource = (int)settings.SeriesNameSource,
+
+            // trakt
+            Trakt_IsEnabled = settings.TraktTv.Enabled,
+            Trakt_AuthToken = settings.TraktTv.AuthToken,
+            Trakt_RefreshToken = settings.TraktTv.RefreshToken,
+            Trakt_TokenExpirationDate = settings.TraktTv.TokenExpirationDate,
+            Trakt_UpdateFrequency = (int)settings.TraktTv.UpdateFrequency,
+            Trakt_SyncFrequency = (int)settings.TraktTv.SyncFrequency,
+
+            // LogRotator
+            RotateLogs = settings.LogRotator.Enabled,
+            RotateLogs_Delete = settings.LogRotator.Delete,
+            RotateLogs_Delete_Days = settings.LogRotator.Delete_Days,
+            RotateLogs_Zip = settings.LogRotator.Zip,
+
+            //WebUI
+            WebUI_Settings = settings.WebUI_Settings,
+
+            //Plex
+            Plex_Sections = string.Join(",", settings.Plex.Libraries),
+            Plex_ServerHost = settings.Plex.Server
+        };
+    }
 
     public static CL_AniDB_Anime ToClient(this SVR_AniDB_Anime anime)
     {

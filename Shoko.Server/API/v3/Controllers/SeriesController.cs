@@ -33,7 +33,7 @@ public class SeriesController : BaseController
     private readonly ICommandRequestFactory _commandFactory;
     private readonly IHttpConnectionHandler _httpHandler;
 
-    public SeriesController(ICommandRequestFactory commandFactory, IHttpConnectionHandler httpHandler)
+    public SeriesController(ICommandRequestFactory commandFactory, IHttpConnectionHandler httpHandler, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _commandFactory = commandFactory;
         _httpHandler = httpHandler;
@@ -653,7 +653,8 @@ public class SeriesController : BaseController
     {
         if (!createSeriesEntry.HasValue)
         {
-            createSeriesEntry = ServerSettings.Instance.AniDb.AutomaticallyImportSeries;
+            var settings = SettingsProvider.GetSettings();
+            createSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
         }
 
         return Series.QueueAniDBRefresh(_commandFactory, _httpHandler, anidbID, force, downloadRelations,
@@ -677,7 +678,8 @@ public class SeriesController : BaseController
     {
         if (!createSeriesEntry.HasValue)
         {
-            createSeriesEntry = ServerSettings.Instance.AniDb.AutomaticallyImportSeries;
+            var settings = SettingsProvider.GetSettings();
+            createSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
         }
 
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1310,7 +1312,8 @@ public class SeriesController : BaseController
             .AsParallel();
 
         var languages = new HashSet<string> { "en", "x-jat" };
-        languages.UnionWith(ServerSettings.Instance.LanguagePreference);
+        var settings = SettingsProvider.GetSettings();
+        languages.UnionWith(settings.LanguagePreference);
         var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<double, string>>();
 
         if (fuzzy)
@@ -1391,6 +1394,7 @@ public class SeriesController : BaseController
         [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50,
         [FromQuery] [Range(1, int.MaxValue)] int page = 1)
     {
+        var titleHelper = new AniDBTitleHelper(SettingsProvider);
         // We're searching using the anime ID, so first check the local db then the title cache for a match.
         if (int.TryParse(query, out var animeID))
         {
@@ -1402,7 +1406,7 @@ public class SeriesController : BaseController
             }
 
             // Check the title cache for a match.
-            var result = AniDBTitleHelper.Instance.SearchAnimeID(animeID);
+            var result = titleHelper.SearchAnimeID(animeID);
             if (result != null)
             {
                 return new ListResult<Series.AniDB>(1,
@@ -1413,7 +1417,7 @@ public class SeriesController : BaseController
         }
 
         // Search the title cache for anime matching the query.
-        return AniDBTitleHelper.Instance.SearchTitle(HttpUtility.UrlDecode(query))
+        return titleHelper.SearchTitle(HttpUtility.UrlDecode(query))
             .Select(result =>
             {
                 var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);

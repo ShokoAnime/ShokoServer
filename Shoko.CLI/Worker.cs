@@ -13,13 +13,15 @@ namespace Shoko.CLI;
 public class Worker : BackgroundService
 {
     private readonly IHostApplicationLifetime? _appLifetime;
-    private readonly StartServer               _startServer;
+    private readonly StartServer _startServer;
+    private readonly ShokoServer _shokoServer;
     
     public Worker() { }
-    public Worker(IHostApplicationLifetime lifetime, StartServer startServer)
+    public Worker(IHostApplicationLifetime lifetime, StartServer startServer, ShokoServer shokoServer)
     {
         _appLifetime      = lifetime;
         _startServer = startServer;
+        _shokoServer = shokoServer;
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -28,11 +30,11 @@ public class Worker : BackgroundService
         return Task.CompletedTask;
     }
     
-    private bool ServerCouldStart() => ShokoServer.Instance.StartUpServer();
+    private bool ServerCouldStart() => _shokoServer.StartUpServer();
 
     private void AddEventHandlers()
     {
-        ShokoServer.Instance.ServerShutdown                       += OnInstanceOnServerShutdown;
+        Utils.ShokoServer.ServerShutdown                       += OnInstanceOnServerShutdown;
         Utils.YesNoRequired                                       += OnUtilsOnYesNoRequired;
         ServerState.Instance.PropertyChanged                      += OnInstanceOnPropertyChanged;
         ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnCmdProcessorGeneralOnQueueStateChangedEvent;

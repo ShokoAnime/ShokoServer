@@ -2,10 +2,12 @@
 using System.IO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules;
 
@@ -25,7 +27,7 @@ public class Webui : BaseController
     [HttpGet("install")]
     public ActionResult InstallWebUI()
     {
-        var indexLocation = Path.Combine(ServerSettings.ApplicationPath, "webui", "index.html");
+        var indexLocation = Path.Combine(Utils.ApplicationPath, "webui", "index.html");
         if (System.IO.File.Exists(indexLocation))
         {
             var index = System.IO.File.ReadAllText(indexLocation);
@@ -95,11 +97,12 @@ public class Webui : BaseController
     [HttpGet("config")]
     public ActionResult<WebUI_Settings> GetWebUIConfig()
     {
-        if (!string.IsNullOrEmpty(ServerSettings.Instance.WebUI_Settings))
+        var setings = HttpContext.RequestServices.GetRequiredService<ISettingsProvider>().GetSettings();
+        if (!string.IsNullOrEmpty(setings.WebUI_Settings))
         {
             try
             {
-                return JsonConvert.DeserializeObject<WebUI_Settings>(ServerSettings.Instance.WebUI_Settings);
+                return JsonConvert.DeserializeObject<WebUI_Settings>(setings.WebUI_Settings);
             }
             catch
             {
@@ -115,13 +118,16 @@ public class Webui : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("config")]
-    public object SetWebUIConfig(WebUI_Settings settings)
+    public object SetWebUIConfig(WebUI_Settings webuiSettings)
     {
-        if (settings.Valid())
+        if (webuiSettings.Valid())
         {
             try
             {
-                ServerSettings.Instance.WebUI_Settings = JsonConvert.SerializeObject(settings);
+                var settingsProvider = HttpContext.RequestServices.GetRequiredService<ISettingsProvider>();
+                var settings = settingsProvider.GetSettings();
+                settings.WebUI_Settings = JsonConvert.SerializeObject(webuiSettings);
+                settingsProvider.SaveSettings();
                 return APIStatus.OK();
             }
             catch
@@ -151,5 +157,9 @@ public class Webui : BaseController
         }
 
         return files;
+    }
+
+    public Webui(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

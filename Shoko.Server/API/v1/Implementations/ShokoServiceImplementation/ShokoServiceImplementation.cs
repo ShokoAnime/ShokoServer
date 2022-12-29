@@ -40,14 +40,16 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly TraktTVHelper _traktHelper;
     private readonly MovieDBHelper _movieDBHelper;
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISettingsProvider _settingsProvider;
 
     public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper,
-        ICommandRequestFactory commandFactory)
+        ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider)
     {
         _tvdbHelper = tvdbHelper;
         _traktHelper = traktHelper;
         _movieDBHelper = movieDBHelper;
         _commandFactory = commandFactory;
+        _settingsProvider = settingsProvider;
     }
 
     #region Bookmarks
@@ -462,10 +464,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         var contract = new CL_Response { ErrorMessage = string.Empty };
         try
         {
+            var settings = _settingsProvider.GetSettings();
             // validate the settings
             var anidbSettingsChanged = false;
             if (ushort.TryParse(contractIn.AniDB_ClientPort, out var newAniDB_ClientPort) &&
-                newAniDB_ClientPort != ServerSettings.Instance.AniDb.ClientPort)
+                newAniDB_ClientPort != settings.AniDb.ClientPort)
             {
                 anidbSettingsChanged = true;
                 contract.ErrorMessage += "AniDB Client Port must be numeric and greater than 0" +
@@ -473,14 +476,14 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             }
 
             if (ushort.TryParse(contractIn.AniDB_ServerPort, out var newAniDB_ServerPort) &&
-                newAniDB_ServerPort != ServerSettings.Instance.AniDb.ServerPort)
+                newAniDB_ServerPort != settings.AniDb.ServerPort)
             {
                 anidbSettingsChanged = true;
                 contract.ErrorMessage += "AniDB Server Port must be numeric and greater than 0" +
                                          Environment.NewLine;
             }
 
-            if (contractIn.AniDB_Username != ServerSettings.Instance.AniDb.Username)
+            if (contractIn.AniDB_Username != settings.AniDb.Username)
             {
                 anidbSettingsChanged = true;
                 if (string.IsNullOrEmpty(contractIn.AniDB_Username))
@@ -489,7 +492,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 }
             }
 
-            if (contractIn.AniDB_Password != ServerSettings.Instance.AniDb.Password)
+            if (contractIn.AniDB_Password != settings.AniDb.Password)
             {
                 anidbSettingsChanged = true;
                 if (string.IsNullOrEmpty(contractIn.AniDB_Password))
@@ -498,7 +501,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 }
             }
 
-            if (contractIn.AniDB_ServerAddress != ServerSettings.Instance.AniDb.ServerAddress)
+            if (contractIn.AniDB_ServerAddress != settings.AniDb.ServerAddress)
             {
                 anidbSettingsChanged = true;
                 if (string.IsNullOrEmpty(contractIn.AniDB_ServerAddress))
@@ -518,115 +521,115 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 return contract;
             }
 
-            ServerSettings.Instance.AniDb.ClientPort = newAniDB_ClientPort;
-            ServerSettings.Instance.AniDb.Password = contractIn.AniDB_Password;
-            ServerSettings.Instance.AniDb.ServerAddress = contractIn.AniDB_ServerAddress;
-            ServerSettings.Instance.AniDb.ServerPort = newAniDB_ServerPort;
-            ServerSettings.Instance.AniDb.Username = contractIn.AniDB_Username;
-            ServerSettings.Instance.AniDb.AVDumpClientPort = newAniDB_AVDumpClientPort;
-            ServerSettings.Instance.AniDb.AVDumpKey = contractIn.AniDB_AVDumpKey;
+            settings.AniDb.ClientPort = newAniDB_ClientPort;
+            settings.AniDb.Password = contractIn.AniDB_Password;
+            settings.AniDb.ServerAddress = contractIn.AniDB_ServerAddress;
+            settings.AniDb.ServerPort = newAniDB_ServerPort;
+            settings.AniDb.Username = contractIn.AniDB_Username;
+            settings.AniDb.AVDumpClientPort = newAniDB_AVDumpClientPort;
+            settings.AniDb.AVDumpKey = contractIn.AniDB_AVDumpKey;
 
-            ServerSettings.Instance.AniDb.DownloadRelatedAnime = contractIn.AniDB_DownloadRelatedAnime;
-            ServerSettings.Instance.AniDb.DownloadReleaseGroups = contractIn.AniDB_DownloadReleaseGroups;
-            ServerSettings.Instance.AniDb.DownloadReviews = contractIn.AniDB_DownloadReviews;
-            ServerSettings.Instance.AniDb.DownloadSimilarAnime = contractIn.AniDB_DownloadSimilarAnime;
+            settings.AniDb.DownloadRelatedAnime = contractIn.AniDB_DownloadRelatedAnime;
+            settings.AniDb.DownloadReleaseGroups = contractIn.AniDB_DownloadReleaseGroups;
+            settings.AniDb.DownloadReviews = contractIn.AniDB_DownloadReviews;
+            settings.AniDb.DownloadSimilarAnime = contractIn.AniDB_DownloadSimilarAnime;
 
-            ServerSettings.Instance.AniDb.MyList_AddFiles = contractIn.AniDB_MyList_AddFiles;
-            ServerSettings.Instance.AniDb.MyList_ReadUnwatched = contractIn.AniDB_MyList_ReadUnwatched;
-            ServerSettings.Instance.AniDb.MyList_ReadWatched = contractIn.AniDB_MyList_ReadWatched;
-            ServerSettings.Instance.AniDb.MyList_SetUnwatched = contractIn.AniDB_MyList_SetUnwatched;
-            ServerSettings.Instance.AniDb.MyList_SetWatched = contractIn.AniDB_MyList_SetWatched;
-            ServerSettings.Instance.AniDb.MyList_StorageState = (AniDBFile_State)contractIn.AniDB_MyList_StorageState;
-            ServerSettings.Instance.AniDb.MyList_DeleteType = (AniDBFileDeleteType)contractIn.AniDB_MyList_DeleteType;
-            //ServerSettings.Instance.AniDb.MaxRelationDepth = contractIn.AniDB_MaxRelationDepth;
+            settings.AniDb.MyList_AddFiles = contractIn.AniDB_MyList_AddFiles;
+            settings.AniDb.MyList_ReadUnwatched = contractIn.AniDB_MyList_ReadUnwatched;
+            settings.AniDb.MyList_ReadWatched = contractIn.AniDB_MyList_ReadWatched;
+            settings.AniDb.MyList_SetUnwatched = contractIn.AniDB_MyList_SetUnwatched;
+            settings.AniDb.MyList_SetWatched = contractIn.AniDB_MyList_SetWatched;
+            settings.AniDb.MyList_StorageState = (AniDBFile_State)contractIn.AniDB_MyList_StorageState;
+            settings.AniDb.MyList_DeleteType = (AniDBFileDeleteType)contractIn.AniDB_MyList_DeleteType;
+            //settings.AniDb.MaxRelationDepth = contractIn.AniDB_MaxRelationDepth;
 
-            ServerSettings.Instance.AniDb.MyList_UpdateFrequency =
+            settings.AniDb.MyList_UpdateFrequency =
                 (ScheduledUpdateFrequency)contractIn.AniDB_MyList_UpdateFrequency;
-            ServerSettings.Instance.AniDb.Calendar_UpdateFrequency =
+            settings.AniDb.Calendar_UpdateFrequency =
                 (ScheduledUpdateFrequency)contractIn.AniDB_Calendar_UpdateFrequency;
-            ServerSettings.Instance.AniDb.Anime_UpdateFrequency =
+            settings.AniDb.Anime_UpdateFrequency =
                 (ScheduledUpdateFrequency)contractIn.AniDB_Anime_UpdateFrequency;
-            ServerSettings.Instance.AniDb.MyListStats_UpdateFrequency =
+            settings.AniDb.MyListStats_UpdateFrequency =
                 (ScheduledUpdateFrequency)contractIn.AniDB_MyListStats_UpdateFrequency;
-            ServerSettings.Instance.AniDb.File_UpdateFrequency =
+            settings.AniDb.File_UpdateFrequency =
                 (ScheduledUpdateFrequency)contractIn.AniDB_File_UpdateFrequency;
 
-            ServerSettings.Instance.AniDb.DownloadCharacters = contractIn.AniDB_DownloadCharacters;
-            ServerSettings.Instance.AniDb.DownloadCreators = contractIn.AniDB_DownloadCreators;
+            settings.AniDb.DownloadCharacters = contractIn.AniDB_DownloadCharacters;
+            settings.AniDb.DownloadCreators = contractIn.AniDB_DownloadCreators;
 
             // Web Cache
-            ServerSettings.Instance.WebCache.Address = contractIn.WebCache_Address;
-            ServerSettings.Instance.WebCache.XRefFileEpisode_Get = contractIn.WebCache_XRefFileEpisode_Get;
-            ServerSettings.Instance.WebCache.XRefFileEpisode_Send = contractIn.WebCache_XRefFileEpisode_Send;
-            ServerSettings.Instance.WebCache.TvDB_Get = contractIn.WebCache_TvDB_Get;
-            ServerSettings.Instance.WebCache.TvDB_Send = contractIn.WebCache_TvDB_Send;
-            ServerSettings.Instance.WebCache.Trakt_Get = contractIn.WebCache_Trakt_Get;
-            ServerSettings.Instance.WebCache.Trakt_Send = contractIn.WebCache_Trakt_Send;
+            settings.WebCache.Address = contractIn.WebCache_Address;
+            settings.WebCache.XRefFileEpisode_Get = contractIn.WebCache_XRefFileEpisode_Get;
+            settings.WebCache.XRefFileEpisode_Send = contractIn.WebCache_XRefFileEpisode_Send;
+            settings.WebCache.TvDB_Get = contractIn.WebCache_TvDB_Get;
+            settings.WebCache.TvDB_Send = contractIn.WebCache_TvDB_Send;
+            settings.WebCache.Trakt_Get = contractIn.WebCache_Trakt_Get;
+            settings.WebCache.Trakt_Send = contractIn.WebCache_Trakt_Send;
 
             // TvDB
-            ServerSettings.Instance.TvDB.AutoLink = contractIn.TvDB_AutoLink;
-            ServerSettings.Instance.TvDB.AutoFanart = contractIn.TvDB_AutoFanart;
-            ServerSettings.Instance.TvDB.AutoFanartAmount = contractIn.TvDB_AutoFanartAmount;
-            ServerSettings.Instance.TvDB.AutoPosters = contractIn.TvDB_AutoPosters;
-            ServerSettings.Instance.TvDB.AutoPostersAmount = contractIn.TvDB_AutoPostersAmount;
-            ServerSettings.Instance.TvDB.AutoWideBanners = contractIn.TvDB_AutoWideBanners;
-            ServerSettings.Instance.TvDB.AutoWideBannersAmount = contractIn.TvDB_AutoWideBannersAmount;
-            ServerSettings.Instance.TvDB.UpdateFrequency = (ScheduledUpdateFrequency)contractIn.TvDB_UpdateFrequency;
-            ServerSettings.Instance.TvDB.Language = contractIn.TvDB_Language;
+            settings.TvDB.AutoLink = contractIn.TvDB_AutoLink;
+            settings.TvDB.AutoFanart = contractIn.TvDB_AutoFanart;
+            settings.TvDB.AutoFanartAmount = contractIn.TvDB_AutoFanartAmount;
+            settings.TvDB.AutoPosters = contractIn.TvDB_AutoPosters;
+            settings.TvDB.AutoPostersAmount = contractIn.TvDB_AutoPostersAmount;
+            settings.TvDB.AutoWideBanners = contractIn.TvDB_AutoWideBanners;
+            settings.TvDB.AutoWideBannersAmount = contractIn.TvDB_AutoWideBannersAmount;
+            settings.TvDB.UpdateFrequency = (ScheduledUpdateFrequency)contractIn.TvDB_UpdateFrequency;
+            settings.TvDB.Language = contractIn.TvDB_Language;
 
             // MovieDB
-            ServerSettings.Instance.MovieDb.AutoFanart = contractIn.MovieDB_AutoFanart;
-            ServerSettings.Instance.MovieDb.AutoFanartAmount = contractIn.MovieDB_AutoFanartAmount;
-            ServerSettings.Instance.MovieDb.AutoPosters = contractIn.MovieDB_AutoPosters;
-            ServerSettings.Instance.MovieDb.AutoPostersAmount = contractIn.MovieDB_AutoPostersAmount;
+            settings.MovieDb.AutoFanart = contractIn.MovieDB_AutoFanart;
+            settings.MovieDb.AutoFanartAmount = contractIn.MovieDB_AutoFanartAmount;
+            settings.MovieDb.AutoPosters = contractIn.MovieDB_AutoPosters;
+            settings.MovieDb.AutoPostersAmount = contractIn.MovieDB_AutoPostersAmount;
 
             // Import settings
-            ServerSettings.Instance.Import.VideoExtensions = contractIn.VideoExtensions.Split(',').ToList();
-            ServerSettings.Instance.Import.UseExistingFileWatchedStatus =
+            settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',').ToList();
+            settings.Import.UseExistingFileWatchedStatus =
                 contractIn.Import_UseExistingFileWatchedStatus;
-            ServerSettings.Instance.AutoGroupSeries = contractIn.AutoGroupSeries;
-            ServerSettings.Instance.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
-            ServerSettings.Instance.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
-            ServerSettings.Instance.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
+            settings.AutoGroupSeries = contractIn.AutoGroupSeries;
+            settings.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
+            settings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
+            settings.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
             if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
             {
-                ServerSettings.Instance.FileQualityPreferences =
-                    ServerSettings.Deserialize<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
+                settings.FileQualityPreferences =
+                    SettingsProvider.Deserialize<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
             }
 
-            ServerSettings.Instance.Import.RunOnStart = contractIn.RunImportOnStart;
-            ServerSettings.Instance.Import.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
-            ServerSettings.Instance.Import.Hash_CRC32 = contractIn.Hash_CRC32;
-            ServerSettings.Instance.Import.Hash_MD5 = contractIn.Hash_MD5;
-            ServerSettings.Instance.Import.Hash_SHA1 = contractIn.Hash_SHA1;
-            ServerSettings.Instance.Import.RenameOnImport = contractIn.Import_RenameOnImport;
-            ServerSettings.Instance.Import.MoveOnImport = contractIn.Import_MoveOnImport;
-            ServerSettings.Instance.Import.SkipDiskSpaceChecks = contractIn.SkipDiskSpaceChecks;
+            settings.Import.RunOnStart = contractIn.RunImportOnStart;
+            settings.Import.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
+            settings.Import.Hash_CRC32 = contractIn.Hash_CRC32;
+            settings.Import.Hash_MD5 = contractIn.Hash_MD5;
+            settings.Import.Hash_SHA1 = contractIn.Hash_SHA1;
+            settings.Import.RenameOnImport = contractIn.Import_RenameOnImport;
+            settings.Import.MoveOnImport = contractIn.Import_MoveOnImport;
+            settings.Import.SkipDiskSpaceChecks = contractIn.SkipDiskSpaceChecks;
 
             // Language
-            ServerSettings.Instance.LanguagePreference = contractIn.LanguagePreference.Split(',').ToList();
-            ServerSettings.Instance.LanguageUseSynonyms = contractIn.LanguageUseSynonyms;
-            ServerSettings.Instance.EpisodeTitleSource = (DataSourceType)contractIn.EpisodeTitleSource;
-            ServerSettings.Instance.SeriesDescriptionSource = (DataSourceType)contractIn.SeriesDescriptionSource;
-            ServerSettings.Instance.SeriesNameSource = (DataSourceType)contractIn.SeriesNameSource;
+            settings.LanguagePreference = contractIn.LanguagePreference.Split(',').ToList();
+            settings.LanguageUseSynonyms = contractIn.LanguageUseSynonyms;
+            settings.EpisodeTitleSource = (DataSourceType)contractIn.EpisodeTitleSource;
+            settings.SeriesDescriptionSource = (DataSourceType)contractIn.SeriesDescriptionSource;
+            settings.SeriesNameSource = (DataSourceType)contractIn.SeriesNameSource;
 
             // Trakt
-            ServerSettings.Instance.TraktTv.Enabled = contractIn.Trakt_IsEnabled;
-            ServerSettings.Instance.TraktTv.AuthToken = contractIn.Trakt_AuthToken;
-            ServerSettings.Instance.TraktTv.RefreshToken = contractIn.Trakt_RefreshToken;
-            ServerSettings.Instance.TraktTv.TokenExpirationDate = contractIn.Trakt_TokenExpirationDate;
-            ServerSettings.Instance.TraktTv.UpdateFrequency =
+            settings.TraktTv.Enabled = contractIn.Trakt_IsEnabled;
+            settings.TraktTv.AuthToken = contractIn.Trakt_AuthToken;
+            settings.TraktTv.RefreshToken = contractIn.Trakt_RefreshToken;
+            settings.TraktTv.TokenExpirationDate = contractIn.Trakt_TokenExpirationDate;
+            settings.TraktTv.UpdateFrequency =
                 (ScheduledUpdateFrequency)contractIn.Trakt_UpdateFrequency;
-            ServerSettings.Instance.TraktTv.SyncFrequency = (ScheduledUpdateFrequency)contractIn.Trakt_SyncFrequency;
+            settings.TraktTv.SyncFrequency = (ScheduledUpdateFrequency)contractIn.Trakt_SyncFrequency;
 
             //Plex
-            ServerSettings.Instance.Plex.Server = contractIn.Plex_ServerHost;
-            ServerSettings.Instance.Plex.Libraries = contractIn.Plex_Sections.Length > 0
+            settings.Plex.Server = contractIn.Plex_ServerHost;
+            settings.Plex.Libraries = contractIn.Plex_Sections.Length > 0
                 ? contractIn.Plex_Sections.Split(',').Select(int.Parse).ToList()
                 : new List<int>();
 
             // SAVE!
-            ServerSettings.Instance.SaveSettings();
+            _settingsProvider.SaveSettings();
 
             if (anidbSettingsChanged)
             {
@@ -636,9 +639,9 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 handler.CloseConnections();
 
                 Thread.Sleep(1000);
-                handler.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
-                    ServerSettings.Instance.AniDb.ServerAddress,
-                    ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
+                handler.Init(settings.AniDb.Username, settings.AniDb.Password,
+                    settings.AniDb.ServerAddress,
+                    settings.AniDb.ServerPort, settings.AniDb.ClientPort);
             }
         }
         catch (Exception ex)
@@ -657,7 +660,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
         try
         {
-            return ServerSettings.Instance.ToContract();
+            var settings = _settingsProvider.GetSettings();
+            return settings.ToContract();
         }
         catch (Exception ex)
         {
@@ -803,9 +807,10 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             handler.CloseConnections();
 
             log += "Init..." + Environment.NewLine;
-            handler.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
-                ServerSettings.Instance.AniDb.ServerAddress,
-                ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
+            var settings = _settingsProvider.GetSettings();
+            handler.Init(settings.AniDb.Username, settings.AniDb.Password,
+                settings.AniDb.ServerAddress,
+                settings.AniDb.ServerPort, settings.AniDb.ClientPort);
 
             log += "Login..." + Environment.NewLine;
             if (handler.Login())
