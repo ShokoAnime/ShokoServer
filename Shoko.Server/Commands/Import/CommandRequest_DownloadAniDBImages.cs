@@ -29,6 +29,7 @@ namespace Shoko.Server.Commands.Import;
 public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
 {
     private readonly IUDPConnectionHandler _handler;
+    private readonly ISettingsProvider _settingsProvider;
     public int AnimeID { get; set; }
     public bool ForceDownload { get; set; }
 
@@ -61,6 +62,7 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
 
         try
         {
+            var settings = _settingsProvider.GetSettings();
             var types = new List<ImageEntityType>
             {
                 ImageEntityType.AniDB_Cover, ImageEntityType.AniDB_Character, ImageEntityType.AniDB_Creator
@@ -87,7 +89,7 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
                         break;
 
                     case ImageEntityType.AniDB_Character:
-                        if (!ServerSettings.Instance.AniDb.DownloadCharacters)
+                        if (!settings.AniDb.DownloadCharacters)
                         {
                             continue;
                         }
@@ -116,7 +118,7 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
                         break;
 
                     case ImageEntityType.AniDB_Creator:
-                        if (!ServerSettings.Instance.AniDb.DownloadCreators)
+                        if (!settings.AniDb.DownloadCreators)
                         {
                             continue;
                         }
@@ -188,9 +190,6 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
                         }
                         catch (Exception ex)
                         {
-                            Thread.CurrentThread.CurrentUICulture =
-                                CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
-
                             Logger.LogWarning(Resources.Command_DeleteError, fileNames, ex.Message);
                             return;
                         }
@@ -363,10 +362,11 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_DownloadAniDBImages(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) :
+    public CommandRequest_DownloadAniDBImages(ILoggerFactory loggerFactory, IUDPConnectionHandler handler, ISettingsProvider settingsProvider) :
         base(loggerFactory)
     {
         _handler = handler;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_DownloadAniDBImages()

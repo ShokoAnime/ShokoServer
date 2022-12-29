@@ -30,6 +30,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
 {
     private readonly IRequestFactory _requestFactory;
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly IServerSettings _settings;
     public bool ForceRefresh { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
@@ -53,8 +54,8 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
             var request = _requestFactory.Create<RequestMyList>(
                 r =>
                 {
-                    r.Username = ServerSettings.Instance.AniDb.Username;
-                    r.Password = ServerSettings.Instance.AniDb.Password;
+                    r.Username = _settings.AniDb.Username;
+                    r.Password = _settings.AniDb.Password;
                 }
             );
             var response = request.Execute();
@@ -66,8 +67,8 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
             }
 
             var serialized = JsonConvert.SerializeObject(response.Response, Formatting.Indented);
-            Directory.CreateDirectory(ServerSettings.Instance.MyListDirectory);
-            File.WriteAllText(Path.Join(ServerSettings.Instance.MyListDirectory, "mylist.json"), serialized);
+            Directory.CreateDirectory(Utils.MyListDirectory);
+            File.WriteAllText(Path.Join(Utils.MyListDirectory, "mylist.json"), serialized);
 
             var totalItems = 0;
             var watchedItems = 0;
@@ -108,7 +109,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
 
                     // We don't have the file
                     // If it's local only, then we don't update. The rest update in one way or another
-                    if (ServerSettings.Instance.AniDb.MyList_DeleteType == AniDBFileDeleteType.DeleteLocalOnly)
+                    if (_settings.AniDb.MyList_DeleteType == AniDBFileDeleteType.DeleteLocalOnly)
                         continue;
                     filesToRemove.Add(myItem.FileID.Value);
                 }
@@ -157,12 +158,12 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         if (localWatchedDate is not null && localWatchedDate.Value.Millisecond > 0)
             localWatchedDate = localWatchedDate.Value.AddMilliseconds(-localWatchedDate.Value.Millisecond);
 
-        var localState = ServerSettings.Instance.AniDb.MyList_StorageState;
+        var localState = _settings.AniDb.MyList_StorageState;
         var shouldUpdate = false;
         var updateDate = myitem.ViewedAt;
 
         // we don't support multiple AniDB accounts, so we can just only iterate to set states
-        if (ServerSettings.Instance.AniDb.MyList_ReadWatched && localWatchedDate == null && updateDate != null)
+        if (_settings.AniDb.MyList_ReadWatched && localWatchedDate == null && updateDate != null)
         {
             foreach (var juser in aniDBUsers)
             {
@@ -174,7 +175,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
             }
         }
         // if we did the previous, then we don't want to undo it
-        else if (ServerSettings.Instance.AniDb.MyList_ReadUnwatched && localWatchedDate != null && updateDate == null)
+        else if (_settings.AniDb.MyList_ReadUnwatched && localWatchedDate != null && updateDate == null)
         {
             foreach (var juser in aniDBUsers)
             {
@@ -184,12 +185,12 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
                     .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
             }
         }
-        else if (ServerSettings.Instance.AniDb.MyList_SetUnwatched && localWatchedDate == null && updateDate != null)
+        else if (_settings.AniDb.MyList_SetUnwatched && localWatchedDate == null && updateDate != null)
         {
             shouldUpdate = true;
             updateDate = null;
         }
-        else if (ServerSettings.Instance.AniDb.MyList_SetWatched && localWatchedDate != null && !localWatchedDate.Equals(updateDate))
+        else if (_settings.AniDb.MyList_SetWatched && localWatchedDate != null && !localWatchedDate.Equals(updateDate))
         {
             shouldUpdate = true;
             updateDate = localWatchedDate.Value.ToUniversalTime();
@@ -226,7 +227,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         }
         else
         {
-            var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.MyList_UpdateFrequency);
+            var freqHours = Utils.GetScheduledHours(_settings.AniDb.MyList_UpdateFrequency);
 
             // if we have run this in the last 24 hours and are not forcing it, then exit
             var tsLastRun = DateTime.Now - sched.LastUpdate;
@@ -245,7 +246,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
     private int AddMissingFiles(ILookup<string, SVR_AniDB_File> localFiles,
         ILookup<int, ResponseMyList> onlineFiles)
     {
-        if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return 0;
+        if (!_settings.AniDb.MyList_AddFiles) return 0;
         var missingFiles = 0;
         foreach (var vid in RepoFactory.VideoLocal.GetAll()
                      .Where(a => !string.IsNullOrEmpty(a.Hash)).ToList())
@@ -323,10 +324,11 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
     }
 
     public CommandRequest_SyncMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory,
-        ICommandRequestFactory commandFactory) : base(loggerFactory)
+        ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
         _requestFactory = requestFactory;
         _commandFactory = commandFactory;
+        _settings = settingsProvider.GetSettings();
     }
 
     protected CommandRequest_SyncMyList() { }

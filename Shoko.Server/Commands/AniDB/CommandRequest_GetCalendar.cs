@@ -21,6 +21,7 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
 {
     private readonly IRequestFactory _requestFactory;
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISettingsProvider _settingsProvider;
 
     public bool ForceRefresh { get; set; }
 
@@ -52,7 +53,8 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
             }
             else
             {
-                var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Calendar_UpdateFrequency);
+                var settings = _settingsProvider.GetSettings();
+                var freqHours = Utils.GetScheduledHours(settings.AniDb.Calendar_UpdateFrequency);
 
                 // if we have run this in the last 12 hours and are not forcing it, then exit
                 var tsLastRun = DateTime.Now - sched.LastUpdate;
@@ -186,10 +188,11 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
     }
 
     public CommandRequest_GetCalendar(ILoggerFactory loggerFactory, IRequestFactory requestFactory,
-        ICommandRequestFactory commandFactory) : base(loggerFactory)
+        ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
         _requestFactory = requestFactory;
         _commandFactory = commandFactory;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_GetCalendar()

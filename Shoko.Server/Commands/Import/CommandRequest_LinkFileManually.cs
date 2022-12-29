@@ -21,6 +21,7 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_LinkFileManually : CommandRequestImplementation
 {
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly IServerSettings _settings;
     public int VideoLocalID { get; set; }
     public int EpisodeID { get; set; }
     public int Percentage { get; set; }
@@ -92,7 +93,7 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
 
         ShokoEventHandler.Instance.OnFileMatched(_vlocal.GetBestVideoLocalPlace());
 
-        if (ServerSettings.Instance.AniDb.MyList_AddFiles)
+        if (_settings.AniDb.MyList_AddFiles)
         {
             var cmdAddFile = _commandFactory.Create<CommandRequest_AddFileToMyList>(c => c.Hash = _vlocal.Hash);
             cmdAddFile.Save();
@@ -101,7 +102,7 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
 
     private void ProcessFileQualityFilter()
     {
-        if (!ServerSettings.Instance.FileQualityFilterEnabled) return;
+        if (!_settings.FileQualityFilterEnabled) return;
 
         var videoLocals = _episode.GetVideoLocals();
         if (videoLocals == null) return;
@@ -176,10 +177,11 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_LinkFileManually(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory) :
+    public CommandRequest_LinkFileManually(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) :
         base(loggerFactory)
     {
         _commandFactory = commandFactory;
+        _settings = settingsProvider.GetSettings();
     }
 
     protected CommandRequest_LinkFileManually()

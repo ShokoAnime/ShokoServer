@@ -23,6 +23,7 @@ namespace Shoko.Server.Commands.AniDB;
 public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementation
 {
     private readonly IRequestFactory _requestFactory;
+    private readonly ISettingsProvider _settingsProvider;
 
     public string FullFileName { get; set; }
     public string Hash { get; set; }
@@ -53,6 +54,7 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
 
         try
         {
+            var settings = _settingsProvider.GetSettings();
             // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
             var vid = RepoFactory.VideoLocal.GetByHash(Hash);
             if (vid == null)
@@ -68,7 +70,7 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
                     var request = _requestFactory.Create<RequestUpdateFile>(
                         r =>
                         {
-                            r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
+                            r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
                             r.Hash = vid.Hash;
                             r.Size = vid.FileSize;
                             r.IsWatched = true;
@@ -82,7 +84,7 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
                     var request = _requestFactory.Create<RequestUpdateFile>(
                         r =>
                         {
-                            r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
+                            r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
                             r.Hash = vid.Hash;
                             r.Size = vid.FileSize;
                             r.IsWatched = false;
@@ -103,7 +105,7 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
                         var request = _requestFactory.Create<RequestUpdateEpisode>(
                             r =>
                             {
-                                r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
+                                r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
                                 r.EpisodeNumber = episode.EpisodeNumber;
                                 r.AnimeID = episode.AnimeID;
                                 r.IsWatched = true;
@@ -117,7 +119,7 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
                         var request = _requestFactory.Create<RequestUpdateEpisode>(
                             r =>
                             {
-                                r.State = ServerSettings.Instance.AniDb.MyList_StorageState.GetMyList_State();
+                                r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
                                 r.EpisodeNumber = episode.EpisodeNumber;
                                 r.AnimeID = episode.AnimeID;
                                 r.IsWatched = false;
@@ -211,10 +213,11 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
         return cq;
     }
 
-    public CommandRequest_UpdateMyListFileStatus(ILoggerFactory loggerFactory, IRequestFactory requestFactory) :
+    public CommandRequest_UpdateMyListFileStatus(ILoggerFactory loggerFactory, IRequestFactory requestFactory, ISettingsProvider settingsProvider) :
         base(loggerFactory)
     {
         _requestFactory = requestFactory;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_UpdateMyListFileStatus()

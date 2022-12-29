@@ -23,6 +23,7 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_ProcessFile : CommandRequestImplementation
 {
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly IServerSettings _settings;
     public int VideoLocalID { get; set; }
     public bool ForceAniDB { get; set; }
 
@@ -118,7 +119,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
         // update stats for groups and series. The series are not saved until here, so it's absolutely necessary!!
         animeIDs.Keys.ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
 
-        if (ServerSettings.Instance.FileQualityFilterEnabled)
+        if (_settings.FileQualityFilterEnabled)
         {
             videoLocals.Sort(FileQualityFilter.CompareTo);
             var keep = videoLocals
@@ -155,7 +156,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
         }
 
         // Add this file to the users list
-        if (ServerSettings.Instance.AniDb.MyList_AddFiles && !SkipMyList && vidLocal.MyListID <= 0)
+        if (_settings.AniDb.MyList_AddFiles && !SkipMyList && vidLocal.MyListID <= 0)
         {
             _commandFactory.Create<CommandRequest_AddFileToMyList>(c =>
             {
@@ -167,31 +168,30 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
         return aniFile;
     }
 
-    private static void GetWatchedStateIfNeeded(SVR_VideoLocal vidLocal, List<SVR_VideoLocal> videoLocals)
+    private void GetWatchedStateIfNeeded(SVR_VideoLocal vidLocal, List<SVR_VideoLocal> videoLocals)
     {
-        if (ServerSettings.Instance.Import.UseExistingFileWatchedStatus)
+        if (!_settings.Import.UseExistingFileWatchedStatus) return;
+
+        // Copy over watched states
+        foreach (var user in RepoFactory.JMMUser.GetAll())
         {
-            // Copy over watched states
-            foreach (var user in RepoFactory.JMMUser.GetAll())
+            var watchedVideo = videoLocals.FirstOrDefault(a =>
+                a?.GetUserRecord(user.JMMUserID)?.WatchedDate != null);
+            // No files that are watched
+            if (watchedVideo == null)
             {
-                var watchedVideo = videoLocals.FirstOrDefault(a =>
-                    a?.GetUserRecord(user.JMMUserID)?.WatchedDate != null);
-                // No files that are watched
-                if (watchedVideo == null)
-                {
-                    continue;
-                }
-
-                var watchedRecord = watchedVideo.GetUserRecord(user.JMMUserID);
-                var userRecord = vidLocal.GetOrCreateUserRecord(user.JMMUserID);
-
-                userRecord.WatchedDate = watchedRecord.WatchedDate;
-                userRecord.WatchedCount = watchedRecord.WatchedCount;
-                userRecord.ResumePosition = watchedRecord.ResumePosition;
-
-                userRecord.LastUpdated = DateTime.Now;
-                RepoFactory.VideoLocalUser.Save(userRecord);
+                continue;
             }
+
+            var watchedRecord = watchedVideo.GetUserRecord(user.JMMUserID);
+            var userRecord = vidLocal.GetOrCreateUserRecord(user.JMMUserID);
+
+            userRecord.WatchedDate = watchedRecord.WatchedDate;
+            userRecord.WatchedCount = watchedRecord.WatchedCount;
+            userRecord.ResumePosition = watchedRecord.ResumePosition;
+
+            userRecord.LastUpdated = DateTime.Now;
+            RepoFactory.VideoLocalUser.Save(userRecord);
         }
     }
 
@@ -288,8 +288,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
                 {
                     c.AnimeID = animeID;
                     c.ForceRefresh = true;
-                    c.DownloadRelations = ServerSettings.Instance.AutoGroupSeries ||
-                                          ServerSettings.Instance.AniDb.DownloadRelatedAnime;
+                    c.DownloadRelations = _settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime;
                     c.CreateSeriesEntry = true;
                 });
 
@@ -307,9 +306,8 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
                     {
                         c.AnimeID = animeID;
                         c.ForceRefresh = true;
-                        c.DownloadRelations = ServerSettings.Instance.AutoGroupSeries ||
-                                              ServerSettings.Instance.AniDb.DownloadRelatedAnime;
-                        c.CreateSeriesEntry = ServerSettings.Instance.AniDb.AutomaticallyImportSeries;
+                        c.DownloadRelations = _settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime;
+                        c.CreateSeriesEntry = _settings.AniDb.AutomaticallyImportSeries;
                     }
                 );
                 animeCommand.Save();
@@ -473,10 +471,11 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_ProcessFile(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory) :
+    public CommandRequest_ProcessFile(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) :
         base(loggerFactory)
     {
         _commandFactory = commandFactory;
+        _settings = settingsProvider.GetSettings();
     }
 
     protected CommandRequest_ProcessFile()

@@ -701,7 +701,7 @@ public partial class ShokoServiceImplementation
             else
             {
                 // title search so look at the web cache
-                foreach (var tit in new AniDBTitleHelper(_settingsProvider).SearchTitle(HttpUtility.UrlDecode(titleQuery)))
+                foreach (var tit in Utils.AniDBTitleHelper.SearchTitle(HttpUtility.UrlDecode(titleQuery)))
                 {
                     var res = new CL_AnimeSearch
                     {

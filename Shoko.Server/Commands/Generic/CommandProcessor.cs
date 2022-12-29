@@ -108,7 +108,6 @@ public abstract class CommandProcessor : IDisposable
 
     public CommandProcessor()
     {
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
         WorkerCommands.WorkerReportsProgress = true;
         WorkerCommands.WorkerSupportsCancellation = true;
         WorkerCommands.DoWork += WorkerCommands_DoWork;
@@ -145,7 +144,6 @@ public abstract class CommandProcessor : IDisposable
     public virtual void Init(IServiceProvider provider)
     {
         ServiceProvider = provider;
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
         var logFactory = provider.GetRequiredService<ILoggerFactory>();
         Logger = logFactory.CreateLogger(GetType());
 

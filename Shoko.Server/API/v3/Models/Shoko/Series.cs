@@ -17,6 +17,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 using RelationType = Shoko.Plugin.Abstractions.DataModels.RelationType;
@@ -643,7 +644,7 @@ public class Series : BaseModel
                 return;
             }
 
-            var result = AniDBTitleHelper.Instance.SearchAnimeID(relation.RelatedAnimeID);
+            var result = Utils.AniDBTitleHelper.SearchAnimeID(relation.RelatedAnimeID);
             if (result != null)
             {
                 Type = SeriesType.Unknown;
@@ -718,7 +719,7 @@ public class Series : BaseModel
                 return;
             }
 
-            var result = AniDBTitleHelper.Instance.SearchAnimeID(similar.SimilarAnimeID);
+            var result = Utils.AniDBTitleHelper.SearchAnimeID(similar.SimilarAnimeID);
             if (result != null)
             {
                 Type = SeriesType.Unknown;

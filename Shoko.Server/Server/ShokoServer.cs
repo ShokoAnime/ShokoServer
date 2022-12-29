@@ -25,6 +25,7 @@ using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
@@ -43,7 +44,6 @@ public class ShokoServer
 {
     //private static bool doneFirstTrakTinfo = false;
     private readonly ILogger<ShokoServer> logger;
-    internal static LogRotator logrotator = new();
     private static DateTime lastTraktInfoUpdate = DateTime.Now;
     private static DateTime lastVersionCheck = DateTime.Now;
 
@@ -66,11 +66,9 @@ public class ShokoServer
     private static BackgroundWorker workerMediaInfo = new();
 
     internal static BackgroundWorker workerSetupDB = new();
-    internal static BackgroundWorker LogRotatorWorker = new();
 
     private static Timer autoUpdateTimer;
     private static Timer autoUpdateTimerShort;
-    internal static Timer LogRotatorTimer;
 
     private DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12, 0, 0));
     private List<RecoveringFileSystemWatcher> _fileWatchers;
@@ -87,10 +85,10 @@ public class ShokoServer
         return new[] { "SQLite", "Microsoft SQL Server 2014", "MySQL/MariaDB" };
     }
 
-    private ShokoServer(ILogger<ShokoServer> logger)
+    private ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider)
     {
         this.logger = logger;
-        SetupNetHosts();
+        SetupNetHosts(settingsProvider);
     }
 
     ~ShokoServer()
@@ -185,13 +183,6 @@ public class ShokoServer
 
         settingsProvider.DebugSettingsToLog();
 
-        //logrotator worker setup
-        LogRotatorWorker.WorkerReportsProgress = false;
-        LogRotatorWorker.WorkerSupportsCancellation = false;
-        LogRotatorWorker.DoWork += LogRotatorWorker_DoWork;
-        LogRotatorWorker.RunWorkerCompleted +=
-            LogRotatorWorker_RunWorkerCompleted;
-
         ServerState.Instance.DatabaseAvailable = false;
         ServerState.Instance.ServerOnline = false;
         ServerState.Instance.ServerStarting = false;
@@ -236,8 +227,7 @@ public class ShokoServer
         Utils.ShokoServer = this;
 
         // run rotator once and set 24h delay
-        logrotator.Start();
-        StartLogRotatorTimer();
+        Utils.ServiceContainer.GetRequiredService<LogRotator>().Start();
 
         Analytics.PostEvent("Server", "StartupFinished");
         // for log readability, this will simply init the singleton
@@ -327,21 +317,21 @@ public class ShokoServer
         return true;
     }
 
-    public bool NetPermissionWrapper(Func<bool> action)
+    public bool NetPermissionWrapper(Func<ISettingsProvider, bool> action, ISettingsProvider settingsProvider)
     {
         try
         {
-            if (!action()) return false;
+            if (!action(settingsProvider)) return false;
         }
         catch (Exception e)
         {
             if (Utils.IsAdministrator())
             {
-                Utils.ShowMessage(null, "Settings the ports, after that JMMServer will quit, run again in normal mode");
+                Utils.ShowMessage(null, "Settings the ports, after that ShokoServer will quit, run again in normal mode");
 
                 try
                 {
-                    action();
+                    action(settingsProvider);
                 }
                 catch (Exception exception)
                 {
@@ -364,16 +354,6 @@ public class ShokoServer
         }
 
         return true;
-    }
-
-    private void LogRotatorWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-    {
-        // for later use
-    }
-
-    private void LogRotatorWorker_DoWork(object sender, DoWorkEventArgs e)
-    {
-        logrotator.Start();
     }
 
     private void InitCulture()
@@ -434,29 +414,12 @@ public class ShokoServer
         DatabaseSetup?.Invoke(this, null);
     }
 
-    public static void StartLogRotatorTimer()
-    {
-        LogRotatorTimer = new Timer
-        {
-            AutoReset = true,
-            // 86400000 = 24h
-            Interval = 86400000
-        };
-        LogRotatorTimer.Elapsed += LogRotatorTimer_Elapsed;
-        LogRotatorTimer.Start();
-    }
-
-    private static void LogRotatorTimer_Elapsed(object sender, ElapsedEventArgs e)
-    {
-        logrotator.Start();
-    }
-
-    public bool SetupNetHosts()
+    public bool SetupNetHosts(ISettingsProvider settingsProvider)
     {
         logger.LogInformation("Initializing Web Hosts...");
         ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingHosts;
         var started = true;
-        started &= NetPermissionWrapper(StartWebHost);
+        started &= NetPermissionWrapper(StartWebHost, settingsProvider);
         if (!started)
         {
             StopHost();
@@ -1027,13 +990,15 @@ public class ShokoServer
         }
     }
 
-    private IWebHost InitWebHost(IServerSettings settings)
+    private IWebHost InitWebHost(ISettingsProvider settingsProvider)
     {
         if (webHost != null)
         {
             return webHost;
         }
 
+        var settings = settingsProvider.GetSettings();
+        Loader.ISettingsProvider = settingsProvider;
         var port = settings.ServerPort;
         var result = new WebHostBuilder().UseKestrel(options =>
             {
@@ -1057,19 +1022,19 @@ public class ShokoServer
                     o.Dsn = SentryDsn;
                 })
             .Build();
+        Loader.ISettingsProvider = Utils.SettingsProvider = result.Services.GetRequiredService<ISettingsProvider>();
         return result;
     }
 
     /// <summary>
     /// Running Nancy and Validating all require aspects before running it
     /// </summary>
-    private bool StartWebHost()
+    private bool StartWebHost(ISettingsProvider settingsProvider)
     {
         if (webHost == null)
         {
-            var settings = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>().GetSettings();
-            webHost = InitWebHost(settings);
-            Utils.ServiceContainer = webHost?.Services;
+            webHost = InitWebHost(settingsProvider);
+            Utils.ServiceContainer = webHost.Services;
         }
 
         //JsonSettings.MaxJsonLength = int.MaxValue;

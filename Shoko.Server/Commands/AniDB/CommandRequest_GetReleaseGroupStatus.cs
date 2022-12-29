@@ -23,6 +23,7 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
 {
     private readonly IRequestFactory _requestFactory;
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISettingsProvider _settingsProvider;
     public int AnimeID { get; set; }
     public bool ForceRefresh { get; set; }
 
@@ -113,7 +114,8 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
                 series.QueueUpdateStats();
             }
 
-            if (ServerSettings.Instance.AniDb.DownloadReleaseGroups && response is { Response.Count: > 0 })
+            var settings = _settingsProvider.GetSettings();
+            if (settings.AniDb.DownloadReleaseGroups && response is { Response.Count: > 0 })
             {
                 // shouldn't need the where, but better safe than sorry.
                 response.Response.DistinctBy(a => a.GroupID).Where(a => a.GroupID != 0).Select(a =>
@@ -198,10 +200,11 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
     }
 
     public CommandRequest_GetReleaseGroupStatus(ILoggerFactory loggerFactory, IRequestFactory requestFactory,
-        ICommandRequestFactory commandFactory) : base(loggerFactory)
+        ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
         _requestFactory = requestFactory;
         _commandFactory = commandFactory;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_GetReleaseGroupStatus()

@@ -21,6 +21,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -1394,7 +1395,6 @@ public class SeriesController : BaseController
         [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50,
         [FromQuery] [Range(1, int.MaxValue)] int page = 1)
     {
-        var titleHelper = new AniDBTitleHelper(SettingsProvider);
         // We're searching using the anime ID, so first check the local db then the title cache for a match.
         if (int.TryParse(query, out var animeID))
         {
@@ -1406,7 +1406,7 @@ public class SeriesController : BaseController
             }
 
             // Check the title cache for a match.
-            var result = titleHelper.SearchAnimeID(animeID);
+            var result = Utils.AniDBTitleHelper.SearchAnimeID(animeID);
             if (result != null)
             {
                 return new ListResult<Series.AniDB>(1,
@@ -1417,7 +1417,7 @@ public class SeriesController : BaseController
         }
 
         // Search the title cache for anime matching the query.
-        return titleHelper.SearchTitle(HttpUtility.UrlDecode(query))
+        return Utils.AniDBTitleHelper.SearchTitle(HttpUtility.UrlDecode(query))
             .Select(result =>
             {
                 var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);

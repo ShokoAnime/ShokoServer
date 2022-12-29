@@ -758,7 +758,8 @@ public class Core : BaseController
     [HttpGet("log/get")]
     public ActionResult StartRotateLogs()
     {
-        LogRotator.Instance.Start();
+        var rotator = HttpContext.RequestServices.GetRequiredService<LogRotator>();
+        rotator.Start();
         return APIStatus.OK();
     }
 

@@ -10,12 +10,14 @@ using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
 using NLog.Targets.Wrappers;
 using Shoko.Models.Enums;
 using Shoko.Server.API.SignalR.NLog;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
@@ -23,8 +25,15 @@ namespace Shoko.Server.Utilities;
 
 public static class Utils
 {
+    private static AniDBTitleHelper s_aniDBTitleHelper;
     public static ShokoServer ShokoServer { get; set; }
     public static IServiceProvider ServiceContainer { get; set; }
+    public static ISettingsProvider SettingsProvider { get; set; }
+
+    public static AniDBTitleHelper AniDBTitleHelper
+    {
+        get => s_aniDBTitleHelper ??= new AniDBTitleHelper(ServiceContainer.GetRequiredService<ISettingsProvider>());
+    }
     public static string ApplicationPath
     {
         get

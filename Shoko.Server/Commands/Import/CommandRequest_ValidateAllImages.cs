@@ -22,6 +22,7 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_ValidateAllImages : CommandRequestImplementation
 {
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly IServerSettings _settings;
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
 
     public override QueueStateStruct PrettyDescription => new()
@@ -65,7 +66,7 @@ public class CommandRequest_ValidateAllImages : CommandRequestImplementation
                 }
             }
 
-            if (ServerSettings.Instance.TvDB.AutoFanart)
+            if (_settings.TvDB.AutoFanart)
             {
                 count = 0;
                 queueState.extraParams = new[] { Resources.Command_ValidateAllImages_TvDBFanarts };
@@ -96,7 +97,7 @@ public class CommandRequest_ValidateAllImages : CommandRequestImplementation
                 }
             }
 
-            if (ServerSettings.Instance.TvDB.AutoPosters)
+            if (_settings.TvDB.AutoPosters)
             {
                 count = 0;
                 queueState.extraParams = new[] { Resources.Command_ValidateAllImages_TvDBPosters };
@@ -127,7 +128,7 @@ public class CommandRequest_ValidateAllImages : CommandRequestImplementation
                 }
             }
 
-            if (ServerSettings.Instance.TvDB.AutoWideBanners)
+            if (_settings.TvDB.AutoWideBanners)
             {
                 count = 0;
                 Logger.LogInformation("Scanning TvDB Banners for corrupted images");
@@ -158,7 +159,7 @@ public class CommandRequest_ValidateAllImages : CommandRequestImplementation
                 }
             }
 
-            if (ServerSettings.Instance.MovieDb.AutoPosters)
+            if (_settings.MovieDb.AutoPosters)
             {
                 queueState.extraParams = new[] { Resources.Command_ValidateAllImages_MovieDBPosters };
                 ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -189,7 +190,7 @@ public class CommandRequest_ValidateAllImages : CommandRequestImplementation
                 }
             }
 
-            if (ServerSettings.Instance.MovieDb.AutoFanart)
+            if (_settings.MovieDb.AutoFanart)
             {
                 queueState.extraParams = new[] { Resources.Command_ValidateAllImages_MovieDBFanarts };
                 ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -244,7 +245,7 @@ public class CommandRequest_ValidateAllImages : CommandRequestImplementation
                 }
             }
 
-            if (ServerSettings.Instance.AniDb.DownloadCharacters)
+            if (_settings.AniDb.DownloadCharacters)
             {
                 queueState.extraParams = new[] { Resources.Command_ValidateAllImages_AniDBCharacters };
                 ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -273,7 +274,7 @@ public class CommandRequest_ValidateAllImages : CommandRequestImplementation
                 }
             }
 
-            if (ServerSettings.Instance.AniDb.DownloadCreators)
+            if (_settings.AniDb.DownloadCreators)
             {
                 queueState.extraParams = new[] { Resources.Command_ValidateAllImages_AniDBSeiyuus };
                 ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -614,10 +615,11 @@ public class CommandRequest_ValidateAllImages : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_ValidateAllImages(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory) :
+    public CommandRequest_ValidateAllImages(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) :
         base(loggerFactory)
     {
         _commandFactory = commandFactory;
+        _settings = settingsProvider.GetSettings();
     }
 
     protected CommandRequest_ValidateAllImages()

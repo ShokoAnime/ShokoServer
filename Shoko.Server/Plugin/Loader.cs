@@ -15,10 +15,13 @@ namespace Shoko.Server.Plugin;
 
 public class Loader : ISettingsProvider
 {
-    public static Loader Instance { get; } = new();
-    public IDictionary<Type, IPlugin> Plugins { get; } = new Dictionary<Type, IPlugin>();
     private readonly IList<Type> _pluginTypes = new List<Type>();
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+    private readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
+    private static Loader _instance;
+    public static Loader Instance { get => _instance ??= new(); }
+    public IDictionary<Type, IPlugin> Plugins { get; } = new Dictionary<Type, IPlugin>();
+    public static Settings.ISettingsProvider ISettingsProvider;
 
     internal void Load(IServiceCollection serviceCollection)
     {
@@ -36,37 +39,33 @@ public class Loader : ISettingsProvider
         var userPluginDir = Path.Combine(Utils.ApplicationPath, "plugins");
         var userPlugins = Directory.Exists(userPluginDir)
             ? Directory.GetFiles(userPluginDir, "*.dll", SearchOption.AllDirectories)
-            : new string[0];
+            : Array.Empty<string>();
 
-        foreach (var dll in userPlugins.Concat(
-                     Directory.GetFiles(dirname, "plugins/*.dll", SearchOption.AllDirectories)))
+        var settings = ISettingsProvider.GetSettings();
+        foreach (var dll in userPlugins.Concat(Directory.GetFiles(dirname, "plugins/*.dll", SearchOption.AllDirectories)))
         {
             try
             {
                 var name = Path.GetFileNameWithoutExtension(dll);
-                if (ServerSettings.Instance.Plugins.EnabledPlugins.ContainsKey(name) &&
-                    !ServerSettings.Instance.Plugins.EnabledPlugins[name])
+                if (settings.Plugins.EnabledPlugins.ContainsKey(name) && !settings.Plugins.EnabledPlugins[name])
                 {
-                    Logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
+                    _logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
                     continue;
                 }
 
-                Logger.Debug($"Trying to load {dll}");
+                _logger.Debug($"Trying to load {dll}");
                 assemblies.Add(Assembly.LoadFrom(dll));
                 // TryAdd, because if it made it this far, then it's missing or true.
-                ServerSettings.Instance.Plugins.EnabledPlugins.TryAdd(name, true);
-                if (!ServerSettings.Instance.Plugins.Priority.Contains(name))
-                {
-                    ServerSettings.Instance.Plugins.Priority.Add(name);
-                }
+                settings.Plugins.EnabledPlugins.TryAdd(name, true);
+                if (!settings.Plugins.Priority.Contains(name)) settings.Plugins.Priority.Add(name);
             }
             catch (FileLoadException)
             {
-                Logger.Debug("BadImageFormatException");
+                _logger.Debug("BadImageFormatException");
             }
             catch (BadImageFormatException)
             {
-                Logger.Debug("BadImageFormatException");
+                _logger.Debug("BadImageFormatException");
             }
         }
 
@@ -84,7 +83,7 @@ public class Loader : ISettingsProvider
             }
             catch (Exception e)
             {
-                Logger.Debug(e);
+                _logger.Debug(e);
                 return new Type[0];
             }
         }).Where(a => a.GetInterfaces().Contains(typeof(IPlugin)));
@@ -104,39 +103,34 @@ public class Loader : ISettingsProvider
 
     internal void InitPlugins(IServiceProvider provider)
     {
-        Logger.Info("Loading {0} plugins", _pluginTypes.Count);
+        _logger.Info("Loading {0} plugins", _pluginTypes.Count);
 
         foreach (var pluginType in _pluginTypes)
         {
             var plugin = (IPlugin)ActivatorUtilities.CreateInstance(provider, pluginType);
             Plugins.Add(pluginType, plugin);
             LoadSettings(pluginType, plugin);
-            Logger.Info($"Loaded: {plugin.Name}");
+            _logger.Info($"Loaded: {plugin.Name}");
             plugin.Load();
         }
 
         // When we initialized the plugins, we made entries for the Enabled State of Plugins
-        ServerSettings.Instance.SaveSettings();
+        ISettingsProvider.SaveSettings();
     }
 
     private void LoadSettings(Type type, IPlugin plugin)
     {
-        (var name, var t) = type.Assembly.GetTypes()
+        var (name, t) = type.Assembly.GetTypes()
             .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
             .DistinctBy(a => a.GetAssemblyName())
             .Select(a => (a.GetAssemblyName() + ".json", a)).FirstOrDefault();
-        if (string.IsNullOrEmpty(name) || name == ".json")
-        {
-            return;
-        }
+        if (string.IsNullOrEmpty(name) || name == ".json") return;
 
         try
         {
-            if (ServerSettings.Instance.Plugins.EnabledPlugins.ContainsKey(name) &&
-                !ServerSettings.Instance.Plugins.EnabledPlugins[name])
-            {
+            var serverSettings = ISettingsProvider.GetSettings();
+            if (serverSettings.Plugins.EnabledPlugins.ContainsKey(name) && !serverSettings.Plugins.EnabledPlugins[name])
                 return;
-            }
 
             var settingsPath = Path.Combine(Utils.ApplicationPath, "Plugins", name);
             var obj = !File.Exists(settingsPath)
@@ -144,23 +138,20 @@ public class Loader : ISettingsProvider
                 : SettingsProvider.Deserialize(t, File.ReadAllText(settingsPath));
             // Plugins.Settings will be empty, since it's ignored by the serializer
             var settings = (IPluginSettings)obj;
-            ServerSettings.Instance.Plugins.Settings.Add(settings);
+            serverSettings.Plugins.Settings.Add(settings);
 
             plugin.OnSettingsLoaded(settings);
         }
         catch (Exception e)
         {
-            Logger.Error(e, $"Unable to initialize Settings for {name}");
+            _logger.Error(e, $"Unable to initialize Settings for {name}");
         }
     }
 
     public void SaveSettings(IPluginSettings settings)
     {
         var name = settings.GetType().GetAssemblyName() + ".json";
-        if (string.IsNullOrEmpty(name) || name == ".json")
-        {
-            return;
-        }
+        if (string.IsNullOrEmpty(name) || name == ".json") return;
 
         try
         {
@@ -171,7 +162,7 @@ public class Loader : ISettingsProvider
         }
         catch (Exception e)
         {
-            Logger.Error(e, $"Unable to Save Settings for {name}");
+            _logger.Error(e, $"Unable to Save Settings for {name}");
         }
     }
 }

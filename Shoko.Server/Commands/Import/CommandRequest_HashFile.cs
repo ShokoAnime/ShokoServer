@@ -25,6 +25,7 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_HashFile : CommandRequestImplementation
 {
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISettingsProvider _settingsProvider;
     public string FileName { get; set; }
     public bool ForceHash { get; set; }
 
@@ -125,17 +126,18 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             return;
         }
 
-        if (ServerSettings.Instance.Import.FileLockChecking)
+        var settings = _settingsProvider.GetSettings();
+        if (settings.Import.FileLockChecking)
         {
             var numAttempts = 0;
             var writeAccess = folder.IsDropSource == 1;
 
             // At least 1s between to ensure that size has the chance to change
-            var waitTime = ServerSettings.Instance.Import.FileLockWaitTimeMS;
+            var waitTime = settings.Import.FileLockWaitTimeMS;
             if (waitTime < 1000)
             {
-                waitTime = ServerSettings.Instance.Import.FileLockWaitTimeMS = 4000;
-                ServerSettings.Instance.SaveSettings();
+                waitTime = settings.Import.FileLockWaitTimeMS = 4000;
+                _settingsProvider.SaveSettings();
             }
 
             // We do checks in the file watcher, but we want to make sure we can still access the file
@@ -343,7 +345,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
                     Logger.LogWarning("Existing File: {FullServerPath}", dupPlace.FullServerPath);
                     Logger.LogWarning("---------------------------------------------");
 
-                    if (ServerSettings.Instance.Import.AutomaticallyDeleteDuplicatesOnImport)
+                    if (settings.Import.AutomaticallyDeleteDuplicatesOnImport)
                     {
                         vlocalplace.RemoveRecordAndDeletePhysicalFile();
                         return;
@@ -634,10 +636,11 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_HashFile(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory) :
+    public CommandRequest_HashFile(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) :
         base(loggerFactory)
     {
         _commandFactory = commandFactory;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_HashFile()

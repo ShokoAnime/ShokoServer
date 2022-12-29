@@ -38,4 +38,5 @@ public interface IServerSettings
     string ImagesPath { get; set; }
     string UpdateChannel { get; set; }
     bool TraceLog { get; set; }
+    int CachingDatabaseTimeout { get; set; }
 }

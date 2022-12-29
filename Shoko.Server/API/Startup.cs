@@ -60,9 +60,11 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        
         services.AddSingleton<ISettingsProvider, SettingsProvider>();
         services.AddSingleton(Loader.Instance);
         services.AddSingleton(ShokoService.CmdProcessorGeneral);
+        services.AddSingleton<LogRotator>();
         services.AddSingleton<TraktTVHelper>();
         services.AddSingleton<TvDBApiHelper>();
         services.AddSingleton<MovieDBHelper>();

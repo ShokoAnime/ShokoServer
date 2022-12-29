@@ -32,6 +32,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
     private readonly HttpXmlUtils _xmlUtils;
     private readonly IRequestFactory _requestFactory;
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly IServerSettings _settings;
 
     public int AnimeID { get; set; }
     public bool ForceRefresh { get; set; }
@@ -83,7 +84,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
             if (anime != null && update != null)
             {
                 var ts = DateTime.Now - update.UpdatedAt;
-                if (ts.TotalHours < ServerSettings.Instance.AniDb.MinimumHoursToRedownloadAnimeInfo)
+                if (ts.TotalHours < _settings.AniDb.MinimumHoursToRedownloadAnimeInfo)
                 {
                     animeRecentlyUpdated = true;
                 }
@@ -165,12 +166,12 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
             return;
         }
 
-        if (ServerSettings.Instance.AniDb.MaxRelationDepth <= 0)
+        if (_settings.AniDb.MaxRelationDepth <= 0)
         {
             return;
         }
 
-        if (!ServerSettings.Instance.AutoGroupSeries && !ServerSettings.Instance.AniDb.DownloadRelatedAnime)
+        if (!_settings.AutoGroupSeries && !_settings.AniDb.DownloadRelatedAnime)
         {
             return;
         }
@@ -182,7 +183,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
     private void ProcessRelationsRecursive(ResponseGetAnime response, IRequestFactory requestFactory,
         IHttpConnectionHandler handler, AnimeCreator animeCreator, int depth)
     {
-        if (depth > ServerSettings.Instance.AniDb.MaxRelationDepth)
+        if (depth > _settings.AniDb.MaxRelationDepth)
         {
             return;
         }
@@ -196,7 +197,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
             if (relatedAnime != null && update != null)
             {
                 var ts = DateTime.Now - update.UpdatedAt;
-                if (ts.TotalHours < ServerSettings.Instance.AniDb.MinimumHoursToRedownloadAnimeInfo)
+                if (ts.TotalHours < _settings.AniDb.MinimumHoursToRedownloadAnimeInfo)
                 {
                     animeRecentlyUpdated = true;
                 }
@@ -205,7 +206,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
             var download = !animeRecentlyUpdated && !CacheOnly;
 
             // we only want to pull right now if we are grouping, and not if it was recently or banned
-            if (download && ServerSettings.Instance.AutoGroupSeries && !handler.IsBanned)
+            if (download && _settings.AutoGroupSeries && !handler.IsBanned)
             {
                 try
                 {
@@ -216,7 +217,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                     relatedAnime ??= new SVR_AniDB_Anime();
                     animeCreator.CreateAnime(relationResponse.Response, relatedAnime, depth);
                     // we just downloaded depth, so the next recursion is depth + 1
-                    if (depth + 1 > ServerSettings.Instance.AniDb.MaxRelationDepth)
+                    if (depth + 1 > _settings.AniDb.MaxRelationDepth)
                     {
                         return;
                     }
@@ -326,7 +327,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
 
     public CommandRequest_GetAnimeHTTP(ILoggerFactory loggerFactory, IHttpConnectionHandler handler,
         HttpAnimeParser parser, AnimeCreator animeCreator, HttpXmlUtils xmlUtils, IRequestFactory requestFactory,
-        ICommandRequestFactory commandFactory) : base(loggerFactory)
+        ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
         _handler = handler;
         _parser = parser;
@@ -334,6 +335,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
         _xmlUtils = xmlUtils;
         _requestFactory = requestFactory;
         _commandFactory = commandFactory;
+        _settings = settingsProvider.GetSettings();
     }
 
     protected CommandRequest_GetAnimeHTTP()
