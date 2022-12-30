@@ -15,6 +15,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Properties;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 using Mime = MimeMapping.MimeUtility;
 
 namespace Shoko.Server.API.v2.Modules;
@@ -767,5 +768,9 @@ public class Image : BaseController
         im2.Save(ms, ImageFormat.Png);
         ms.Seek(0, SeekOrigin.Begin);
         return ms;
+    }
+
+    public Image(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

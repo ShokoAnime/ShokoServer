@@ -18,8 +18,8 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Databases;
 
@@ -29,14 +29,15 @@ public class DatabaseFixes
 
     public static void MigrateAniDBToNet()
     {
-        var anidb = ServerSettings.Instance.AniDb.ServerAddress;
+        var settings = Utils.SettingsProvider.GetSettings();
+        var anidb = settings.AniDb.ServerAddress;
         if (!anidb.EndsWith(".info", StringComparison.InvariantCultureIgnoreCase))
         {
             return;
         }
 
-        ServerSettings.Instance.AniDb.ServerAddress = anidb.Substring(0, anidb.Length - 5) + ".net";
-        ServerSettings.Instance.SaveSettings();
+        settings.AniDb.ServerAddress = anidb.Substring(0, anidb.Length - 5) + ".net";
+        Utils.SettingsProvider.SaveSettings();
     }
 
     public static void DeleteSerieUsersWithoutSeries()
@@ -460,7 +461,7 @@ public class DatabaseFixes
         var i = 0;
         var list = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.Description))
             .Select(a => a.AnimeID).Distinct().ToList();
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         foreach (var animeID in list)
         {
             if (i % 10 == 0)
@@ -809,9 +810,9 @@ public class DatabaseFixes
 
     public static void FixTagParentIDsAndNameOverrides()
     {
-        var xmlUtils = ShokoServer.ServiceContainer.GetService<HttpXmlUtils>();
-        var animeParser = ShokoServer.ServiceContainer.GetService<HttpAnimeParser>();
-        var animeCreator = ShokoServer.ServiceContainer.GetService<AnimeCreator>();
+        var xmlUtils = Utils.ServiceContainer.GetService<HttpXmlUtils>();
+        var animeParser = Utils.ServiceContainer.GetService<HttpAnimeParser>();
+        var animeCreator = Utils.ServiceContainer.GetService<AnimeCreator>();
         var animeList = RepoFactory.AniDB_Anime.GetAll();
         logger.Info($"Updating anidb tags for {animeList.Count} local anidb anime entries...");
 

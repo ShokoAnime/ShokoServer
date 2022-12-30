@@ -15,6 +15,7 @@ using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Models;
 
@@ -2074,7 +2075,7 @@ public class SVR_GroupFilter : GroupFilter
 
     public void QueueUpdate()
     {
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         var cmdRefreshGroupFilter =
             commandFactory.Create<CommandRequest_RefreshGroupFilter>(c => c.GroupFilterID = GroupFilterID);
         cmdRefreshGroupFilter.Save();

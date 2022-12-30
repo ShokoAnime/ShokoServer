@@ -23,7 +23,7 @@ using Shoko.Server.Plex;
 using Shoko.Server.Plex.Libraries;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules;
@@ -37,7 +37,7 @@ public class PlexWebhook : BaseController
     private readonly ICommandRequestFactory _commandFactory;
     private readonly TraktTVHelper _traktHelper;
 
-    public PlexWebhook(ICommandRequestFactory commandFactory, ILogger<PlexWebhook> logger, TraktTVHelper traktHelper)
+    public PlexWebhook(ICommandRequestFactory commandFactory, ILogger<PlexWebhook> logger, TraktTVHelper traktHelper, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _commandFactory = commandFactory;
         _logger = logger;
@@ -257,7 +257,7 @@ public class PlexWebhook : BaseController
     [HttpGet("sync/all")]
     public ActionResult SyncAll()
     {
-        ShokoServer.Instance.SyncPlex();
+        Utils.ShokoServer.SyncPlex();
         return APIStatus.OK();
     }
 
@@ -266,7 +266,7 @@ public class PlexWebhook : BaseController
     public ActionResult SyncForUser(int uid)
     {
         JMMUser user = HttpContext.GetUser();
-        ShokoServer.Instance.SyncPlex();
+        Utils.ShokoServer.SyncPlex();
         return APIStatus.OK();
     }
 

@@ -6,6 +6,7 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -185,5 +186,9 @@ public class ReverseTreeController : BaseController
         return episodes
             .Select(a => new Episode(HttpContext, a, includeDataFrom))
             .ToList();
+    }
+
+    public ReverseTreeController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

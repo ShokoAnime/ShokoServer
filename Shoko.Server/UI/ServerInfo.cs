@@ -1,7 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Globalization;
-using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
@@ -13,7 +12,6 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server;
@@ -57,8 +55,8 @@ public class ServerInfo : INotifyPropertyChangedExt
         ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += CmdProcessorImages_OnQueueCountChangedEvent;
         ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += CmdProcessorImages_OnQueueStateChangedEvent;
 
-        var http = ShokoServer.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
-        var udp = ShokoServer.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+        var http = Utils.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
+        var udp = Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
         http.AniDBStateUpdate += OnAniDBStateUpdate;
         udp.AniDBStateUpdate += OnAniDBStateUpdate;
     }
@@ -74,15 +72,14 @@ public class ServerInfo : INotifyPropertyChangedExt
         ShokoService.CmdProcessorImages.OnQueueCountChangedEvent -= CmdProcessorImages_OnQueueCountChangedEvent;
         ShokoService.CmdProcessorImages.OnQueueStateChangedEvent -= CmdProcessorImages_OnQueueStateChangedEvent;
 
-        var http = ShokoServer.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
-        var udp = ShokoServer.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+        var http = Utils.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
+        var udp = Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
         http.AniDBStateUpdate -= OnAniDBStateUpdate;
         udp.AniDBStateUpdate -= OnAniDBStateUpdate;
     }
 
     private void OnAniDBStateUpdate(object sender, AniDBStateUpdate e)
     {
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
         switch (e.UpdateType)
         {
             case UpdateType.None:
@@ -424,8 +421,6 @@ public class ServerInfo : INotifyPropertyChangedExt
     {
         get
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
-
             waitingOnResponseAniDBUDPString = Resources.Command_Idle;
             return waitingOnResponseAniDBUDPString;
         }

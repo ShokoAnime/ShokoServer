@@ -4,8 +4,11 @@ using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
 using Shoko.Server.Commands;
 using Shoko.Server.Server;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 #endregion
 namespace Shoko.CLI;
@@ -13,26 +16,28 @@ namespace Shoko.CLI;
 public class Worker : BackgroundService
 {
     private readonly IHostApplicationLifetime? _appLifetime;
-    private readonly StartServer               _startServer;
-    
+
     public Worker() { }
-    public Worker(IHostApplicationLifetime lifetime, StartServer startServer)
+    public Worker(IHostApplicationLifetime lifetime)
     {
-        _appLifetime      = lifetime;
-        _startServer = startServer;
+        _appLifetime = lifetime;
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _startServer.StartupServer(AddEventHandlers, ServerCouldStart);
+        Utils.SetInstance();
+        Utils.InitLogger();
+        var loggerFactory = new LoggerFactory().AddNLog();
+        var settingsProvider = new SettingsProvider(loggerFactory.CreateLogger<SettingsProvider>());
+        var shokoServer = new ShokoServer(loggerFactory.CreateLogger<ShokoServer>(), settingsProvider);
+        Utils.ShokoServer = shokoServer;
+        new StartServer(loggerFactory.CreateLogger<StartServer>(), settingsProvider).StartupServer(AddEventHandlers, () => shokoServer.StartUpServer());
         return Task.CompletedTask;
     }
-    
-    private bool ServerCouldStart() => ShokoServer.Instance.StartUpServer();
 
     private void AddEventHandlers()
     {
-        ShokoServer.Instance.ServerShutdown                       += OnInstanceOnServerShutdown;
+        Utils.ShokoServer.ServerShutdown                       += OnInstanceOnServerShutdown;
         Utils.YesNoRequired                                       += OnUtilsOnYesNoRequired;
         ServerState.Instance.PropertyChanged                      += OnInstanceOnPropertyChanged;
         ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnCmdProcessorGeneralOnQueueStateChangedEvent;

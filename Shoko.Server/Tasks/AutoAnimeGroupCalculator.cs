@@ -8,6 +8,7 @@ using Shoko.Models.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Tasks;
 
@@ -67,10 +68,11 @@ public class AutoAnimeGroupCalculator
     /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
     public static AutoAnimeGroupCalculator CreateFromServerSettings()
     {
-        var exclusionsSetting = ServerSettings.Instance.AutoGroupSeriesRelationExclusions;
+        var settings = Utils.SettingsProvider.GetSettings();
+        var exclusionsSetting = settings.AutoGroupSeriesRelationExclusions;
         var exclusions = AutoGroupExclude.None;
         var relationsToFuzzyTitleTest = AnimeRelationType.None;
-        var mainAnimeSelectionStrategy = ServerSettings.Instance.AutoGroupSeriesUseScoreAlgorithm
+        var mainAnimeSelectionStrategy = settings.AutoGroupSeriesUseScoreAlgorithm
             ? MainAnimeSelectionStrategy.Weighted
             : MainAnimeSelectionStrategy.MinAirDate;
 

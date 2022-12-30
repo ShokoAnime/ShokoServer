@@ -11,6 +11,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -655,4 +656,8 @@ public class TreeController : BaseController
     }
 
     #endregion
+
+    public TreeController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
+    }
 }

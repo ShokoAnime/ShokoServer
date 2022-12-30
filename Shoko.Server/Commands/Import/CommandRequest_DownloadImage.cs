@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Threading;
@@ -21,7 +20,6 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands;
 
@@ -267,9 +265,6 @@ public class CommandRequest_DownloadImage : CommandRequestImplementation
                     }
                     catch (Exception ex)
                     {
-                        Thread.CurrentThread.CurrentUICulture =
-                            CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
-
                         Logger.LogWarning(Resources.Command_DeleteError, fileName, ex.Message);
                         return;
                     }

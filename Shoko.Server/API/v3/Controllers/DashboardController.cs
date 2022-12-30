@@ -12,6 +12,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -455,5 +456,9 @@ public class DashboardController : BaseController
                 return new Dashboard.EpisodeDetails(episode, anime);
             })
             .ToList();
+    }
+
+    public DashboardController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

@@ -2,6 +2,7 @@
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 using Media = Shoko.Models.PlexAndKodi.Media;
 
 namespace Shoko.Server.API.v2.Modules;
@@ -90,5 +91,9 @@ public class Dev : BaseController
         }
 
         return video.Media == null ? null : new Media(id, video.Media);
+    }
+
+    public Dev(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

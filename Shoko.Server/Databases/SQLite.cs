@@ -12,6 +12,7 @@ using Shoko.Server.Databases.SqliteFixes;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
 
@@ -30,11 +31,11 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
         File.Copy(GetDatabaseFilePath(), fullfilename);
     }
 
-    private static string DatabasePath => ServerSettings.Instance.Database.MySqliteDirectory;
+    private static string DatabasePath => Utils.SettingsProvider.GetSettings().Database.MySqliteDirectory;
 
     private static string GetDatabaseFilePath()
     {
-        var dbName = Path.Combine(DatabasePath, ServerSettings.Instance.Database.SQLite_DatabaseFile);
+        var dbName = Path.Combine(DatabasePath, Utils.SettingsProvider.GetSettings().Database.SQLite_DatabaseFile);
         return dbName;
     }
 
@@ -105,7 +106,7 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
         // if (!File.Exists(GetDatabaseFilePath()))
         //     SqliteConnection.CreateFile(GetDatabaseFilePath());
 
-        ServerSettings.Instance.Database.SQLite_DatabaseFile = GetDatabaseFilePath();
+        Utils.SettingsProvider.GetSettings().Database.SQLite_DatabaseFile = GetDatabaseFilePath();
     }
 
 

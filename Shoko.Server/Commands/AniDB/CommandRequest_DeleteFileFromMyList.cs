@@ -24,6 +24,7 @@ namespace Shoko.Server.Commands.AniDB;
 public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
 {
     private readonly IRequestFactory _requestFactory;
+    private readonly ISettingsProvider _settingsProvider;
 
     public string Hash { get; set; }
     public long FileSize { get; set; }
@@ -55,8 +56,9 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
 
         try
         {
+            var settings = _settingsProvider.GetSettings();
             UDPRequest<Void> request;
-            switch (ServerSettings.Instance.AniDb.MyList_DeleteType)
+            switch (settings.AniDb.MyList_DeleteType)
             {
                 case AniDBFileDeleteType.Delete:
                     if (!string.IsNullOrEmpty(Hash))
@@ -330,10 +332,11 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_DeleteFileFromMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory) : base(
+    public CommandRequest_DeleteFileFromMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory, ISettingsProvider settingsProvider) : base(
         loggerFactory)
     {
         _requestFactory = requestFactory;
+        _settingsProvider = settingsProvider;
         EpisodeType = EpisodeType.Episode; // default
     }
 

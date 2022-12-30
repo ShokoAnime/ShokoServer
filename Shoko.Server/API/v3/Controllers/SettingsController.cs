@@ -27,9 +27,9 @@ public class SettingsController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet]
-    public ActionResult<ServerSettings> GetSettings()
+    public ActionResult<IServerSettings> GetSettings()
     {
-        return ServerSettings.Instance;
+        return new ActionResult<IServerSettings>(SettingsProvider.GetSettings());
     }
 
     /// <summary>
@@ -46,17 +46,18 @@ public class SettingsController : BaseController
             return BadRequest("The settings object is invalid.");
         }
 
-        settings.ApplyTo(ServerSettings.Instance, ModelState);
+        var existingSettings = SettingsProvider.GetSettings();
+        settings.ApplyTo((ServerSettings)existingSettings, ModelState);
         if (!skipValidation)
         {
-            TryValidateModel(ServerSettings.Instance);
+            TryValidateModel(existingSettings);
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
         }
 
-        ServerSettings.Instance.SaveSettings();
+        SettingsProvider.SaveSettings();
         return Ok();
     }
 
@@ -82,5 +83,9 @@ public class SettingsController : BaseController
         }
 
         return Ok();
+    }
+
+    public SettingsController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

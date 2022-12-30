@@ -18,7 +18,6 @@ using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Directory = Shoko.Models.Plex.Libraries.Directory;
 using MediaContainer = Shoko.Models.Plex.Connections.MediaContainer;
@@ -63,7 +62,8 @@ public class PlexHelper
     {
         get
         {
-            if (string.IsNullOrEmpty(ServerSettings.Instance.Plex.Server))
+            var settings = Utils.SettingsProvider.GetSettings();
+            if (string.IsNullOrEmpty(settings.Plex.Server))
             {
                 return null;
             }
@@ -73,31 +73,31 @@ public class PlexHelper
                 _mediaDevice = null;
             }
 
-            if (_mediaDevice != null && ServerSettings.Instance.Plex.Server == _mediaDevice.ClientIdentifier)
+            if (_mediaDevice != null && settings.Plex.Server == _mediaDevice.ClientIdentifier)
             {
                 return _mediaDevice;
             }
 
             _mediaDevice = GetPlexServers()
-                .FirstOrDefault(s => s.ClientIdentifier == ServerSettings.Instance.Plex.Server);
+                .FirstOrDefault(s => s.ClientIdentifier == settings.Plex.Server);
             if (_mediaDevice != null)
             {
                 _lastMediaCacheTime = DateTime.Now;
                 return _mediaDevice;
             }
 
-            if (!ServerSettings.Instance.Plex.Server.Contains(':'))
+            if (!settings.Plex.Server.Contains(':'))
             {
                 return null;
             }
 
 
-            var strings = ServerSettings.Instance.Plex.Server.Split(':');
+            var strings = settings.Plex.Server.Split(':');
             _mediaDevice = GetPlexServers().FirstOrDefault(s =>
                 s.Connection.Any(c => c.Address == strings[0] && c.Port == strings[1]));
             if (_mediaDevice != null)
             {
-                ServerSettings.Instance.Plex.Server = _mediaDevice.ClientIdentifier;
+                settings.Plex.Server = _mediaDevice.ClientIdentifier;
             }
 
             _lastMediaCacheTime = DateTime.Now;
@@ -452,9 +452,10 @@ public class PlexHelper
 
     public void UseServer(MediaDevice server)
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         if (server == null)
         {
-            ServerSettings.Instance.Plex.Server = null;
+            settings.Plex.Server = null;
             return;
         }
 
@@ -463,7 +464,7 @@ public class PlexHelper
             return; //not allowed.
         }
 
-        ServerSettings.Instance.Plex.Server = server.ClientIdentifier;
+        settings.Plex.Server = server.ClientIdentifier;
         ServerCache = server;
     }
 

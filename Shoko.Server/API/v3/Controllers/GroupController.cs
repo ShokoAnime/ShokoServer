@@ -11,6 +11,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -432,4 +433,8 @@ public class GroupController : BaseController
     }
 
     #endregion
+
+    public GroupController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
+    }
 }

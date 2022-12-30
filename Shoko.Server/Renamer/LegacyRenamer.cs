@@ -11,7 +11,6 @@ using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
@@ -1708,9 +1707,10 @@ public class LegacyRenamer : IRenamer
             var epname = RepoFactory.AniDB_Episode_Title
                 .GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.English)
                 .FirstOrDefault()?.Title;
-            if (epname?.Length > ServerSettings.Instance.LegacyRenamerMaxEpisodeLength)
+            var settings = Utils.SettingsProvider.GetSettings();
+            if (epname?.Length > settings.LegacyRenamerMaxEpisodeLength)
             {
-                epname = epname.Substring(0, ServerSettings.Instance.LegacyRenamerMaxEpisodeLength - 1) + "…";
+                epname = epname.Substring(0, settings.LegacyRenamerMaxEpisodeLength - 1) + "…";
             }
 
             newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameEnglish, epname);
@@ -1725,9 +1725,10 @@ public class LegacyRenamer : IRenamer
             var epname = RepoFactory.AniDB_Episode_Title
                 .GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.Romaji)
                 .FirstOrDefault()?.Title;
-            if (epname?.Length > ServerSettings.Instance.LegacyRenamerMaxEpisodeLength)
+            var settings = Utils.SettingsProvider.GetSettings();
+            if (epname?.Length > settings.LegacyRenamerMaxEpisodeLength)
             {
-                epname = epname.Substring(0, ServerSettings.Instance.LegacyRenamerMaxEpisodeLength - 1) + "…";
+                epname = epname.Substring(0, settings.LegacyRenamerMaxEpisodeLength - 1) + "…";
             }
 
             newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameRomaji, epname);
@@ -2171,6 +2172,7 @@ public class LegacyRenamer : IRenamer
     public (SVR_ImportFolder dest, string folder) GetDestinationFolder(MoveEventArgs args)
     {
         SVR_ImportFolder destFolder = null;
+        var settings = Utils.SettingsProvider.GetSettings();
         foreach (var fldr in RepoFactory.ImportFolder.GetAll())
         {
             if (!fldr.FolderIsDropDestination)
@@ -2189,7 +2191,7 @@ public class LegacyRenamer : IRenamer
             }
 
             // Continue if on a separate drive and there's no space
-            if (!ServerSettings.Instance.Import.SkipDiskSpaceChecks &&
+            if (!settings.Import.SkipDiskSpaceChecks &&
                 !args.FileInfo.FilePath.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
             {
                 var available = 0L;
@@ -2289,7 +2291,7 @@ public class LegacyRenamer : IRenamer
 
                 // check space
                 if (!args.FileInfo.FilePath.StartsWith(Path.GetPathRoot(dstImportFolder.ImportFolderLocation)) &&
-                    !ServerSettings.Instance.Import.SkipDiskSpaceChecks)
+                    !settings.Import.SkipDiskSpaceChecks)
                 {
                     var available = 0L;
                     try

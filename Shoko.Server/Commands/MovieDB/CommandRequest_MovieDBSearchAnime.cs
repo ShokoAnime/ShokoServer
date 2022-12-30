@@ -20,6 +20,7 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
 {
     private readonly MovieDBHelper _helper;
+    private readonly ISettingsProvider _settingsProvider;
     public int AnimeID { get; set; }
     public bool ForceRefresh { get; set; }
 
@@ -39,7 +40,8 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
         try
         {
             // Use TvDB setting
-            if (!ServerSettings.Instance.TvDB.AutoLink)
+            var settings = _settingsProvider.GetSettings();
+            if (!settings.TvDB.AutoLink)
             {
                 return;
             }
@@ -152,9 +154,10 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_MovieDBSearchAnime(ILoggerFactory loggerFactory, MovieDBHelper helper) : base(loggerFactory)
+    public CommandRequest_MovieDBSearchAnime(ILoggerFactory loggerFactory, MovieDBHelper helper, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
         _helper = helper;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_MovieDBSearchAnime()

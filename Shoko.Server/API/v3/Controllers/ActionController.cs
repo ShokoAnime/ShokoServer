@@ -18,6 +18,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -34,7 +35,7 @@ public class ActionController : BaseController
     private readonly IHttpConnectionHandler _httpHandler;
 
     public ActionController(ILogger<ActionController> logger, ICommandRequestFactory commandFactory,
-        TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, IHttpConnectionHandler httpHandler)
+        TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, IHttpConnectionHandler httpHandler, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _logger = logger;
         _commandFactory = commandFactory;
@@ -95,8 +96,9 @@ public class ActionController : BaseController
     [HttpGet("SyncTrakt")]
     public ActionResult SyncTrakt()
     {
-        if (!ServerSettings.Instance.TraktTv.Enabled ||
-            string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+        var settings = SettingsProvider.GetSettings().TraktTv;
+        if (!settings.Enabled ||
+            string.IsNullOrEmpty(settings.AuthToken))
         {
             return BadRequest();
         }
@@ -135,7 +137,7 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllImages")]
     public ActionResult UpdateAllImages()
     {
-        ShokoServer.Instance.DownloadAllImages();
+        Utils.ShokoServer.DownloadAllImages();
         return Ok();
     }
 
@@ -157,8 +159,9 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllTraktInfo")]
     public ActionResult UpdateTraktInfo()
     {
-        if (!ServerSettings.Instance.TraktTv.Enabled ||
-            string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+        var settings = SettingsProvider.GetSettings().TraktTv;
+        if (!settings.Enabled ||
+            string.IsNullOrEmpty(settings.AuthToken))
         {
             return BadRequest();
         }

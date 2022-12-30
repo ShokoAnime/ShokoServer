@@ -396,56 +396,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("TvDB/CrossRef/FromWebCache")]
     public string LinkTvDBUsingWebCacheLinks(List<CrossRef_AniDB_TvDBV2> links)
     {
-        try
-        {
-            if (!ServerSettings.Instance.WebCache.Enabled)
-            {
-                return "The WebCache is disabled.";
-            }
-
-            if (links.Count == 0)
-            {
-                return "No links were given in the request. This is a bug.";
-            }
-
-            var link = links[0];
-
-            var existingLinks = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(link.AnimeID);
-            RepoFactory.CrossRef_AniDB_TvDB.Delete(existingLinks);
-            RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(link.AnimeID);
-
-            // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
-            var cmdRequest = _commandFactory.Create<CommandRequest_LinkAniDBTvDB>(
-                c =>
-                {
-                    c.AnimeID = link.AnimeID;
-                    c.TvDBID = link.TvDBID;
-                    c.AdditiveLink = link.IsAdditive;
-                }
-            );
-            cmdRequest.Save();
-
-            var overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(links);
-            foreach (var episodeOverride in overrides)
-            {
-                var exists =
-                    RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
-                        episodeOverride.AniDBEpisodeID, episodeOverride.TvDBEpisodeID);
-                if (exists != null)
-                {
-                    continue;
-                }
-
-                RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Save(episodeOverride);
-            }
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-            return ex.Message;
-        }
+        return "The WebCache is disabled.";
     }
 
     [HttpPost("TvDB/CrossRef/Episode/{aniDBID}/{tvDBID}")]
@@ -1016,7 +967,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            if (!ServerSettings.Instance.TraktTv.Enabled)
+            if (!_settingsProvider.GetSettings().TraktTv.Enabled)
             {
                 return string.Empty;
             }

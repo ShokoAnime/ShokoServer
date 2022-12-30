@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
+using System.Timers;
 using NLog;
 using NLog.Targets;
 using Shoko.Server.Settings;
@@ -10,16 +13,43 @@ namespace Shoko.Server.Server;
 
 public class LogRotator
 {
-    private static readonly Lazy<LogRotator> _instance = new(() => new LogRotator());
-    public static LogRotator Instance => _instance.Value;
+    private readonly ISettingsProvider _settingsProvider;
+    private readonly Timer _timer;
+    private readonly BackgroundWorker _worker = new();
+
+    public LogRotator(ISettingsProvider settingsProvider)
+    {
+        _settingsProvider = settingsProvider;
+        _timer = new Timer
+        {
+            AutoReset = true,
+            // 86400000 = 24h
+            Interval = 86400000
+        };
+        _timer.Elapsed += TimerElapsed;
+        _worker.WorkerReportsProgress = false;
+        _worker.WorkerSupportsCancellation = false;
+        _worker.DoWork += WorkerDoWork;
+    }
+
+    private void TimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.LogRotator.Enabled) return;
+
+        _worker.RunWorkerAsync();
+    }
+    
+    private void WorkerDoWork(object sender, DoWorkEventArgs e)
+    {
+        Delete_Logs();
+        Compress_Logs();
+    }
 
     public void Start()
     {
-        if (ServerSettings.Instance.LogRotator.Enabled)
-        {
-            Delete_Logs();
-            Compress_Logs();
-        }
+        _worker.RunWorkerAsync();
+        _timer.Start();
     }
 
     internal static string GetCurrentLogFile()
@@ -37,27 +67,18 @@ public class LogRotator
 
     private List<string> GetFileNames()
     {
-        var list = new List<string>();
         var di = new DirectoryInfo(GetDirectory());
         if (!di.Exists)
         {
             di.Create();
         }
 
-        if (di != null)
-        {
-            foreach (var fi in di.GetFiles())
-            {
-                list.Add(fi.Name);
-            }
-        }
-
-        return list;
+        return di.GetFiles().Select(fi => fi.FullName).ToList();
     }
 
     private DateTime GetDateTime(string filename)
     {
-        filename = filename.Substring(0, filename.Length - 4);
+        filename = Path.GetFileNameWithoutExtension(filename);
         if (!DateTime.TryParse(filename, out var date))
         {
             date = DateTime.Now;
@@ -68,73 +89,53 @@ public class LogRotator
 
     private void Compress_Logs()
     {
-        if (ServerSettings.Instance.LogRotator.Zip)
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.LogRotator.Zip) return;
+
+        //compress
+        var compress = GetFileNames().Where(file => !file.EndsWith(".zip")).ToList();
+
+        //remove current logs file from compress list
+        compress.Remove(new FileInfo(GetCurrentLogFile()).FullName);
+
+        foreach (var file_ext in compress)
         {
-            //compress
-            var compress = new List<string>();
-            foreach (var file in GetFileNames())
-            {
-                if (!file.Contains(".zip"))
-                {
-                    compress.Add(file);
-                }
-            }
+            var file = Path.GetFileNameWithoutExtension(file_ext);
+            var path = Path.Combine(GetDirectory(), file);
 
-            //remove current logs file from compress list
-            compress.Remove(new FileInfo(GetCurrentLogFile()).Name);
+            if (!File.Exists(file_ext))
+                continue;
 
-            foreach (var file_ext in compress)
-            {
-                var file = file_ext.Replace("txt", string.Empty);
-                var path = Path.Combine(GetDirectory(), file);
-
-                if (File.Exists(path + "txt"))
-                {
-                    using (var fs =
-                           new FileStream(path + "zip", FileMode.Create))
-                    using (var arch = new ZipArchive(fs, ZipArchiveMode.Create))
-                    {
-                        arch.CreateEntryFromFile(path + "txt", file_ext);
-                    }
-
-                    File.Delete(path + "txt");
-                }
-            }
+            using var fs = new FileStream(path + ".zip", FileMode.Create);
+            using var arch = new ZipArchive(fs, ZipArchiveMode.Create);
+            arch.CreateEntryFromFile(file_ext, Path.GetFileName(file_ext));
+            File.Delete(file_ext);
         }
     }
 
     private void Delete_Logs()
     {
-        if (ServerSettings.Instance.LogRotator.Delete)
-        {
-            if (!string.IsNullOrEmpty(ServerSettings.Instance.LogRotator.Delete_Days))
-            {
-                //delete
-                var now = DateTime.Now;
-                var delete = new List<string>();
-                if (int.TryParse(ServerSettings.Instance.LogRotator.Delete_Days, out var days))
-                {
-                    double dec = -1 * days;
-                    now = now.AddDays(dec);
-                    foreach (var file in GetFileNames())
-                    {
-                        var lol = GetDateTime(file);
-                        if (GetDateTime(file) < now && file.Contains(".zip"))
-                        {
-                            delete.Add(Path.Combine(GetDirectory(), file));
-                        }
-                    }
-                }
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.LogRotator.Delete) return;
 
-                foreach (var file in delete)
-                {
-                    var path = Path.Combine(GetDirectory(), file);
-                    if (File.Exists(path))
-                    {
-                        File.Delete(path);
-                    }
-                }
-            }
+        if (string.IsNullOrEmpty(settings.LogRotator.Delete_Days)) return;
+
+        //delete
+        var now = DateTime.Now;
+        var delete = new List<string>();
+        if (int.TryParse(settings.LogRotator.Delete_Days, out var days))
+        {
+            double dec = -1 * days;
+            now = now.AddDays(dec);
+            delete.AddRange(from file in GetFileNames() let lol = GetDateTime(file) where GetDateTime(file) < now && file.EndsWith(".zip") select Path.Combine(GetDirectory(), file));
+        }
+
+        foreach (var file in delete)
+        {
+            var path = Path.Combine(GetDirectory(), file);
+            if (!File.Exists(path)) continue;
+
+            File.Delete(path);
         }
     }
 }

@@ -3,15 +3,16 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Settings;
 
 public class DatabaseSettings
 {
-    public string MySqliteDirectory { get; set; } = Path.Combine(ServerSettings.ApplicationPath, "SQLite");
+    public string MySqliteDirectory { get; set; } = Path.Combine(Utils.ApplicationPath, "SQLite");
 
     public string DatabaseBackupDirectory { get; set; } =
-        Path.Combine(ServerSettings.ApplicationPath, "DatabaseBackup");
+        Path.Combine(Utils.ApplicationPath, "DatabaseBackup");
 
     [JsonIgnore] public string DefaultUserUsername { get; set; } = "Default";
     [JsonIgnore] public string DefaultUserPassword { get; set; } = string.Empty;

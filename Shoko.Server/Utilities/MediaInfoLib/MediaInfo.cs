@@ -115,34 +115,23 @@ public static class MediaInfo
 
     private static string GetMediaInfoPathForOS()
     {
-        if (ServerSettings.Instance.Import.MediaInfoPath != null &&
-            File.Exists(ServerSettings.Instance.Import.MediaInfoPath))
-        {
-            return ServerSettings.Instance.Import.MediaInfoPath;
-        }
+        var settings = Utils.SettingsProvider.GetSettings();
+        var path = settings.Import.MediaInfoPath;
+        if (path != null && File.Exists(path)) return path;
 
-        if (Utils.IsRunningOnLinuxOrMac())
-        {
-            return "mediainfo";
-        }
+        if (Utils.IsRunningOnLinuxOrMac()) return "mediainfo";
 
         var exePath = Assembly.GetEntryAssembly()?.Location;
         var exeDir = Path.GetDirectoryName(exePath);
-        if (exeDir == null)
-        {
-            return null;
-        }
+        if (exeDir == null) return null;
 
         var appPath = Path.Combine(exeDir, "MediaInfo", "MediaInfo.exe");
-        if (!File.Exists(appPath))
-        {
-            return null;
-        }
+        if (!File.Exists(appPath)) return null;
 
-        if (ServerSettings.Instance.Import.MediaInfoPath == null)
+        if (path == null)
         {
-            ServerSettings.Instance.Import.MediaInfoPath = appPath;
-            ServerSettings.Instance.SaveSettings();
+            settings.Import.MediaInfoPath = appPath;
+            Utils.SettingsProvider.SaveSettings();
         }
 
         return appPath;
@@ -153,7 +142,7 @@ public static class MediaInfo
         MediaContainer m = null;
         var mediaTask = Task.FromResult(GetMediaInfo_New(filename));
 
-        var timeout = ServerSettings.Instance.Import.MediaInfoTimeoutMinutes;
+        var timeout = Utils.SettingsProvider.GetSettings().Import.MediaInfoTimeoutMinutes;
         if (timeout > 0)
         {
             var task = Task.WhenAny(mediaTask, Task.Delay(TimeSpan.FromMinutes(timeout))).Result;

@@ -7,6 +7,7 @@ using Shoko.Commons;
 using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules;
@@ -91,7 +92,7 @@ public class Version : BaseController
             }
         }
 
-        var webUIFileInfo = new FileInfo(Path.Combine(Settings.ServerSettings.ApplicationPath, "webui/index.ver"));
+        var webUIFileInfo = new FileInfo(Path.Combine(Utils.ApplicationPath, "webui/index.ver"));
         if (webUIFileInfo.Exists)
         {
             var webui_version = System.IO.File.ReadAllText(webUIFileInfo.FullName);
@@ -104,5 +105,9 @@ public class Version : BaseController
         }
 
         return list;
+    }
+
+    public Version(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

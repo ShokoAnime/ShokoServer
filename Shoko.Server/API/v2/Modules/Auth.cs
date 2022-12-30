@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using NLog;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v2.Modules;
 
@@ -78,5 +79,9 @@ public class Auth : BaseController
     {
         RepoFactory.AuthTokens.DeleteWithToken(apikey);
         return Ok();
+    }
+
+    public Auth(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

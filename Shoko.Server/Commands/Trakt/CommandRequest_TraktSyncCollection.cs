@@ -18,6 +18,7 @@ namespace Shoko.Server.Commands;
 [Command(CommandRequestType.Trakt_SyncCollection)]
 public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
 {
+    private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
     public bool ForceRefresh { get; set; }
 
@@ -34,8 +35,9 @@ public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
 
         try
         {
-            if (!ServerSettings.Instance.TraktTv.Enabled ||
-                string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+            var settings = _settingsProvider.GetSettings();
+            if (!settings.TraktTv.Enabled ||
+                string.IsNullOrEmpty(settings.TraktTv.AuthToken))
             {
                 return;
             }
@@ -51,7 +53,7 @@ public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
             }
             else
             {
-                var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TraktTv.SyncFrequency);
+                var freqHours = Utils.GetScheduledHours(settings.TraktTv.SyncFrequency);
 
                 // if we have run this in the last xxx hours then exit
                 var tsLastRun = DateTime.Now - sched.LastUpdate;
@@ -120,9 +122,10 @@ public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_TraktSyncCollection(ILoggerFactory loggerFactory, TraktTVHelper helper) : base(loggerFactory)
+    public CommandRequest_TraktSyncCollection(ILoggerFactory loggerFactory, TraktTVHelper helper, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
         _helper = helper;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_TraktSyncCollection()

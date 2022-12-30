@@ -22,6 +22,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
 {
     private readonly IRequestFactory _requestFactory;
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISettingsProvider _settingsProvider;
     public bool ForceRefresh { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
@@ -43,7 +44,8 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
             var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
             if (sched != null)
             {
-                var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Anime_UpdateFrequency);
+                var settings = _settingsProvider.GetSettings();
+                var freqHours = Utils.GetScheduledHours(settings.AniDb.Anime_UpdateFrequency);
 
                 // if we have run this in the last 12 hours and are not forcing it, then exit
                 var tsLastRun = DateTime.Now - sched.LastUpdate;
@@ -205,10 +207,11 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
     }
 
     public CommandRequest_GetUpdated(ILoggerFactory loggerFactory, IRequestFactory requestFactory,
-        ICommandRequestFactory commandFactory) : base(loggerFactory)
+        ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
         _requestFactory = requestFactory;
         _commandFactory = commandFactory;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_GetUpdated()

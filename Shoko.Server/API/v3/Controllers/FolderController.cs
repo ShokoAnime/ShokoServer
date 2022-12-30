@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -70,5 +71,9 @@ public class FolderController : BaseController
 
             return new Folder() { Path = dir.FullName, IsAccessible = childItems != null, Sizes = childItems };
         }).ToList();
+    }
+
+    public FolderController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

@@ -32,7 +32,8 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
         //2) The SqlServer running account should have read write access to our backup dir which is nono
         // So we backup in the default SQL SERVER BACKUP DIRECTORY.
 
-        string cmd = "BACKUP DATABASE[" + ServerSettings.Instance.Database.Schema + "] TO DISK = '" +
+        var settings = Utils.SettingsProvider.GetSettings();
+        string cmd = "BACKUP DATABASE[" + settings.Database.Schema + "] TO DISK = '" +
                      fullfilename.Replace("'", "''") + "'";
 
 
@@ -68,13 +69,15 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
 
     public override string GetTestConnectionString()
     {
-        return $"data source={ServerSettings.Instance.Database.Hostname};Initial Catalog=master;user id={ServerSettings.Instance.Database.Username};password={ServerSettings.Instance.Database.Password};persist security info=True;MultipleActiveResultSets=True";
+        var settings = Utils.SettingsProvider.GetSettings();
+        return $"data source={settings.Database.Hostname};Initial Catalog=master;user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True";
     }
 
     public override string GetConnectionString()
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         return
-            $"data source={ServerSettings.Instance.Database.Hostname};Initial Catalog={ServerSettings.Instance.Database.Schema};user id={ServerSettings.Instance.Database.Username};password={ServerSettings.Instance.Database.Password};persist security info=True;MultipleActiveResultSets=True";
+            $"data source={settings.Database.Hostname};Initial Catalog={settings.Database.Schema};user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True";
     }
 
     public ISessionFactory CreateSessionFactory()
@@ -102,7 +105,8 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
 
     public bool DatabaseAlreadyExists()
     {
-        var cmd = $"Select count(*) from sysdatabases where name = '{ServerSettings.Instance.Database.Schema}'";
+        var settings = Utils.SettingsProvider.GetSettings();
+        var cmd = $"Select count(*) from sysdatabases where name = '{settings.Database.Schema}'";
         using var tmpConn = new SqlConnection(GetTestConnectionString());
         tmpConn.Open();
         var count = ExecuteScalar(tmpConn, cmd);
@@ -118,7 +122,8 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         if (DatabaseAlreadyExists()) return;
 
-        var cmd = $"CREATE DATABASE {ServerSettings.Instance.Database.Schema}";
+        var settings = Utils.SettingsProvider.GetSettings();
+        var cmd = $"CREATE DATABASE {settings.Database.Schema}";
         using var connection = new SqlConnection(GetTestConnectionString());
         var command = new SqlCommand(cmd, connection);
         connection.Open();

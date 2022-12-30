@@ -6,14 +6,13 @@ using SharpCompress.Common;
 using SharpCompress.Readers;
 using Shoko.Commons.Utils;
 using Shoko.Server.Repositories;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server;
 
 public static class AVDumpHelper
 {
-    public static readonly string Destination = Path.Combine(ServerSettings.ApplicationPath, "Utilities", "AVDump");
+    public static readonly string Destination = Path.Combine(Utils.ApplicationPath, "Utilities", "AVDump");
     public static readonly string AVDumpZipDestination = Path.Combine(Destination, "avdump2.zip");
 
     public const string AVDump2URL = @"http://static.anidb.net/client/avdump2/avdump2_7100.zip";
@@ -232,9 +231,10 @@ public static class AVDumpHelper
         var executable = avdumpDestination;
         var fileName = (char)34 + file + (char)34;
 
-        var args = $"--Auth={ServerSettings.Instance.AniDb.Username.Trim()}:" +
-                   $"{ServerSettings.Instance.AniDb.AVDumpKey?.Trim()}" +
-                   $" --LPort={ServerSettings.Instance.AniDb.AVDumpClientPort} --PrintEd2kLink -t {fileName}";
+        var settings = Utils.SettingsProvider.GetSettings();
+        var args = $"--Auth={settings.AniDb.Username.Trim()}:" +
+                   $"{settings.AniDb.AVDumpKey?.Trim()}" +
+                   $" --LPort={settings.AniDb.AVDumpClientPort} --PrintEd2kLink -t {fileName}";
 
         if (Utils.IsRunningOnLinuxOrMac())
         {

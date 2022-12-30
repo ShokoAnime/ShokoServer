@@ -24,6 +24,7 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
 {
     private readonly IRequestFactory _requestFactory;
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISettingsProvider _settingsProvider;
 
     public string Hash { get; set; }
     public bool ReadStates { get; set; } = true;
@@ -68,6 +69,8 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
                 return;
             }
 
+            var settings = _settingsProvider.GetSettings();
+
             // when adding a file via the API, newWatchedStatus will return with current watched status on AniDB
             // if the file is already on the user's list
 
@@ -84,7 +87,7 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
 
             UDPResponse<ResponseMyListFile> response = null;
             // this only gets overwritten if the response is File Already in MyList
-            var state = ServerSettings.Instance.AniDb.MyList_StorageState;
+            var state = settings.AniDb.MyList_StorageState;
 
             if (isManualLink)
             {
@@ -164,8 +167,8 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
             Logger.LogInformation(
                 "Added File to MyList. File: {FileName}  Manual Link: {IsManualLink}  Watched Locally: {Unknown}  Watched AniDB: {ResponseIsWatched}  Local State: {AniDbMyListStorageState}  AniDB State: {State}  ReadStates: {ReadStates}  ReadWatched Setting: {AniDbMyListReadWatched}  ReadUnwatched Setting: {AniDbMyListReadUnwatched}",
                 _videoLocal.GetBestVideoLocalPlace()?.FileName, isManualLink, originalWatchedDate != null,
-                response?.Response?.IsWatched, ServerSettings.Instance.AniDb.MyList_StorageState, state, ReadStates,
-                ServerSettings.Instance.AniDb.MyList_ReadWatched, ServerSettings.Instance.AniDb.MyList_ReadUnwatched
+                response?.Response?.IsWatched, settings.AniDb.MyList_StorageState, state, ReadStates,
+                settings.AniDb.MyList_ReadWatched, settings.AniDb.MyList_ReadUnwatched
             );
             if (juser != null)
             {
@@ -175,12 +178,12 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
                 if (ReadStates)
                 {
                     // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
-                    if (ServerSettings.Instance.AniDb.MyList_ReadWatched && watched && !watchedLocally)
+                    if (settings.AniDb.MyList_ReadWatched && watched && !watchedLocally)
                     {
                         _videoLocal.ToggleWatchedStatus(true, false, newWatchedDate?.ToLocalTime(), false, juser.JMMUserID,
                             false, false);
                     }
-                    else if (ServerSettings.Instance.AniDb.MyList_ReadUnwatched && !watched && watchedLocally)
+                    else if (settings.AniDb.MyList_ReadUnwatched && !watched && watchedLocally)
                     {
                         _videoLocal.ToggleWatchedStatus(false, false, null, false, juser.JMMUserID,
                             false, false);
@@ -202,8 +205,8 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
             }
 
             // lets also try adding to the users trakt collection
-            if (ServerSettings.Instance.TraktTv.Enabled &&
-                !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+            if (settings.TraktTv.Enabled &&
+                !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
             {
                 foreach (var aep in _videoLocal.GetAnimeEpisodes())
                 {
@@ -283,10 +286,11 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
     }
 
     public CommandRequest_AddFileToMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory,
-        ICommandRequestFactory commandFactory) : base(loggerFactory)
+        ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
         _requestFactory = requestFactory;
         _commandFactory = commandFactory;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_AddFileToMyList()

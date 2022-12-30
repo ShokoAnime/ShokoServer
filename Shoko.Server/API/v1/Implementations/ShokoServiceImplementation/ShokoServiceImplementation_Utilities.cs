@@ -96,13 +96,13 @@ public partial class ShokoServiceImplementation
         return value.CompactWhitespaces();
     }
 
-    private static double GetLowestLevenshteinDistance(SVR_AnimeSeries a, string query)
+    private static double GetLowestLevenshteinDistance(IList<string> languagePreference, SVR_AnimeSeries a, string query)
     {
         if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return 1;
         double dist = 1;
         var dice = new SorensenDice();
         var languages = new HashSet<string> {"en", "x-jat"};
-        languages.UnionWith(ServerSettings.Instance.LanguagePreference.Select(b => b.ToLower()));
+        languages.UnionWith(languagePreference.Select(b => b.ToLower()));
             
         foreach (var title in RepoFactory.AniDB_Anime_Title.GetByAnimeID(a.AniDB_ID)
                      .Where(b => b.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Short && languages.Contains(b.LanguageCode))
@@ -132,9 +132,10 @@ public partial class ShokoServiceImplementation
         var series_list = new List<CL_AniDB_Anime>();
         if (user == null) return series_list;
 
+        var languagePreference = _settingsProvider.GetSettings().LanguagePreference;
         var series = RepoFactory.AnimeSeries.GetAll()
             .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null)
-            .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(a, input))).OrderBy(a => a.Item2)
+            .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(languagePreference, a, input))).OrderBy(a => a.Item2)
             .ThenBy(a => a.Item1.GetSeriesName())
             .Select(a => a.Item1).ToList();
 
@@ -700,7 +701,7 @@ public partial class ShokoServiceImplementation
             else
             {
                 // title search so look at the web cache
-                foreach (var tit in AniDBTitleHelper.Instance.SearchTitle(HttpUtility.UrlDecode(titleQuery)))
+                foreach (var tit in Utils.AniDBTitleHelper.SearchTitle(HttpUtility.UrlDecode(titleQuery)))
                 {
                     var res = new CL_AnimeSearch
                     {
@@ -854,11 +855,12 @@ public partial class ShokoServiceImplementation
         try
         {
             var requestFactory = HttpContext.RequestServices.GetRequiredService<IRequestFactory>();
+            var settings = _settingsProvider.GetSettings();
             var request = requestFactory.Create<RequestMyList>(
                 r =>
                 {
-                    r.Username = ServerSettings.Instance.AniDb.Username;
-                    r.Password = ServerSettings.Instance.AniDb.Password;
+                    r.Username = settings.AniDb.Username;
+                    r.Password = settings.AniDb.Password;
                 }
             );
             var response = request.Execute();

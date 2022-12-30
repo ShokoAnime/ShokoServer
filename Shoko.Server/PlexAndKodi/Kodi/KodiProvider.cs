@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.PlexAndKodi.Kodi;
 
@@ -11,7 +11,7 @@ public class KodiProvider : IProvider
     //public const string MediaTagVersion = "1420942002";
 
     public string ServiceAddress => ShokoServer.PathAddressKodi;
-    public int ServicePort => ServerSettings.Instance.ServerPort;
+    public int ServicePort => Utils.SettingsProvider.GetSettings().ServerPort;
     public bool UseBreadCrumbs => false; // turn off breadcrumbs navigation (plex)
     public bool ConstructFakeIosParent => false; //turn off plex workaround for ios (plex)
     public bool AutoWatch => false; //turn off marking watched on stream side (plex)

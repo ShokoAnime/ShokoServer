@@ -18,6 +18,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.MediaInfoLib;
 
 namespace Shoko.Server.Repositories.Cached;
@@ -122,7 +123,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 .ToList();
             max = list.Count;
 
-            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+            var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             list.ForEach(
                 a =>
                 {

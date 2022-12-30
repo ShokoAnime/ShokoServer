@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB;
@@ -9,17 +8,15 @@ namespace Shoko.Server.Providers.AniDB;
 public class HttpXmlUtils
 {
     private readonly ILogger<HttpXmlUtils> _logger;
-    private readonly ServerSettings _settings;
 
-    public HttpXmlUtils(ILogger<HttpXmlUtils> logger, ServerSettings settings)
+    public HttpXmlUtils(ILogger<HttpXmlUtils> logger)
     {
         _logger = logger;
-        _settings = settings;
     }
 
     public string LoadAnimeHTTPFromFile(int animeID)
     {
-        var filePath = _settings.AnimeXmlDirectory;
+        var filePath = Utils.AnimeXmlDirectory;
         var fileName = $"AnimeDoc_{animeID}.xml";
         var fileNameWithPath = Path.Combine(filePath, fileName);
 
@@ -47,7 +44,7 @@ public class HttpXmlUtils
     {
         try
         {
-            var filePath = _settings.AnimeXmlDirectory;
+            var filePath = Utils.AnimeXmlDirectory;
             var fileName = $"AnimeDoc_{animeID}.xml";
             var fileNameWithPath = Path.Combine(filePath, fileName);
 

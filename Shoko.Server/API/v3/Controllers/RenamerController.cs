@@ -17,6 +17,7 @@ public class RenamerController : BaseController
     [HttpGet]
     public ActionResult<List<RenamerInfo>> Index()
     {
+        var settings = SettingsProvider.GetSettings();
         return RenameFileHelper.Renamers.Select(r =>
         {
             return new RenamerInfo
@@ -24,11 +25,9 @@ public class RenamerController : BaseController
                 Description = r.Value.description,
                 Id = r.Key,
                 Enabled =
-                    ServerSettings.Instance.Plugins.EnabledRenamers.ContainsKey(r.Key)
-                        ? ServerSettings.Instance.Plugins.EnabledRenamers[r.Key]
-                        : true,
-                Priority = ServerSettings.Instance.Plugins.Priority.Contains(r.Key)
-                    ? ServerSettings.Instance.Plugins.Priority.IndexOf(r.Key)
+                    !settings.Plugins.EnabledRenamers.ContainsKey(r.Key) || settings.Plugins.EnabledRenamers[r.Key],
+                Priority = settings.Plugins.Priority.Contains(r.Key)
+                    ? settings.Plugins.Priority.IndexOf(r.Key)
                     : int.MaxValue
             };
         }).ToList();
@@ -37,22 +36,28 @@ public class RenamerController : BaseController
     [HttpDelete("{renamerID}")]
     public ActionResult Disable(string renamerID)
     {
-        ServerSettings.Instance.Plugins.EnabledRenamers[renamerID] = false;
-        ServerSettings.Instance.SaveSettings();
+        var settings = SettingsProvider.GetSettings();
+        settings.Plugins.EnabledRenamers[renamerID] = false;
+        SettingsProvider.SaveSettings();
         return Ok();
     }
 
     [HttpPatch("{renamerID}")]
     public ActionResult SetPriority(string renamerID, [FromBody] int priority)
     {
-        if (ServerSettings.Instance.Plugins.EnabledRenamers.TryGetValue(renamerID, out var isEnabled) && !isEnabled)
+        var settings = SettingsProvider.GetSettings();
+        if (settings.Plugins.EnabledRenamers.TryGetValue(renamerID, out var isEnabled) && !isEnabled)
         {
-            ServerSettings.Instance.Plugins.EnabledRenamers[renamerID] = true;
+            settings.Plugins.EnabledRenamers[renamerID] = true;
         }
 
-        ServerSettings.Instance.Plugins.RenamerPriorities[renamerID] = priority;
-        ServerSettings.Instance.SaveSettings();
+        settings.Plugins.RenamerPriorities[renamerID] = priority;
+        SettingsProvider.SaveSettings();
 
         return Ok();
+    }
+
+    public RenamerController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

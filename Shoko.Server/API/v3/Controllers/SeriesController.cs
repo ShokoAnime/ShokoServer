@@ -21,6 +21,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -33,7 +34,7 @@ public class SeriesController : BaseController
     private readonly ICommandRequestFactory _commandFactory;
     private readonly IHttpConnectionHandler _httpHandler;
 
-    public SeriesController(ICommandRequestFactory commandFactory, IHttpConnectionHandler httpHandler)
+    public SeriesController(ICommandRequestFactory commandFactory, IHttpConnectionHandler httpHandler, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _commandFactory = commandFactory;
         _httpHandler = httpHandler;
@@ -653,7 +654,8 @@ public class SeriesController : BaseController
     {
         if (!createSeriesEntry.HasValue)
         {
-            createSeriesEntry = ServerSettings.Instance.AniDb.AutomaticallyImportSeries;
+            var settings = SettingsProvider.GetSettings();
+            createSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
         }
 
         return Series.QueueAniDBRefresh(_commandFactory, _httpHandler, anidbID, force, downloadRelations,
@@ -677,7 +679,8 @@ public class SeriesController : BaseController
     {
         if (!createSeriesEntry.HasValue)
         {
-            createSeriesEntry = ServerSettings.Instance.AniDb.AutomaticallyImportSeries;
+            var settings = SettingsProvider.GetSettings();
+            createSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
         }
 
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1310,7 +1313,8 @@ public class SeriesController : BaseController
             .AsParallel();
 
         var languages = new HashSet<string> { "en", "x-jat" };
-        languages.UnionWith(ServerSettings.Instance.LanguagePreference);
+        var settings = SettingsProvider.GetSettings();
+        languages.UnionWith(settings.LanguagePreference);
         var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<double, string>>();
 
         if (fuzzy)
@@ -1402,7 +1406,7 @@ public class SeriesController : BaseController
             }
 
             // Check the title cache for a match.
-            var result = AniDBTitleHelper.Instance.SearchAnimeID(animeID);
+            var result = Utils.AniDBTitleHelper.SearchAnimeID(animeID);
             if (result != null)
             {
                 return new ListResult<Series.AniDB>(1,
@@ -1413,7 +1417,7 @@ public class SeriesController : BaseController
         }
 
         // Search the title cache for anime matching the query.
-        return AniDBTitleHelper.Instance.SearchTitle(HttpUtility.UrlDecode(query))
+        return Utils.AniDBTitleHelper.SearchTitle(HttpUtility.UrlDecode(query))
             .Select(result =>
             {
                 var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);

@@ -4,6 +4,7 @@ using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Properties;
+using Shoko.Server.Settings;
 using Mime = MimeMapping.MimeUtility;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -110,5 +111,9 @@ public class ImageController : BaseController
         }
 
         return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
+    }
+
+    public ImageController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    {
     }
 }

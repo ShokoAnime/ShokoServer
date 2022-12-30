@@ -21,6 +21,7 @@ public class CommandRequest_SyncMyVotes : CommandRequestImplementation
 {
     private readonly IRequestFactory _requestFactory;
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISettingsProvider _settingsProvider;
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
     public override QueueStateStruct PrettyDescription => new()
@@ -36,11 +37,12 @@ public class CommandRequest_SyncMyVotes : CommandRequestImplementation
 
         try
         {
+            var settings = _settingsProvider.GetSettings();
             var request = _requestFactory.Create<RequestVotes>(
                 r =>
                 {
-                    r.Username = ServerSettings.Instance.AniDb.Username;
-                    r.Password = ServerSettings.Instance.AniDb.Password;
+                    r.Username = settings.AniDb.Username;
+                    r.Password = settings.AniDb.Password;
                 }
             );
             var response = request.Execute();
@@ -135,10 +137,11 @@ public class CommandRequest_SyncMyVotes : CommandRequestImplementation
     }
 
     public CommandRequest_SyncMyVotes(ILoggerFactory loggerFactory, IRequestFactory requestFactory,
-        ICommandRequestFactory commandFactory) : base(loggerFactory)
+        ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
         _requestFactory = requestFactory;
         _commandFactory = commandFactory;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_SyncMyVotes()

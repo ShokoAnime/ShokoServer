@@ -17,19 +17,21 @@ public class AniDBTitleHelper
     // ensure that it doesn't try to download at the same time
     private static readonly object AccessLock = new();
 
-    private static readonly string CacheFilePath = Path.Combine(ServerSettings.ApplicationPath, "anime-titles.xml");
+    private static readonly string CacheFilePath = Path.Combine(Utils.ApplicationPath, "anime-titles.xml");
 
     private static readonly string CacheFilePathTemp =
-        Path.Combine(ServerSettings.ApplicationPath, "anime-titles.xml") + ".temp";
+        Path.Combine(Utils.ApplicationPath, "anime-titles.xml") + ".temp";
 
     private static readonly string CacheFilePathBak =
-        Path.Combine(ServerSettings.ApplicationPath, "anime-titles.xml") + ".bak";
+        Path.Combine(Utils.ApplicationPath, "anime-titles.xml") + ".bak";
 
     private ResponseAniDBTitles _cache;
+    private readonly ISettingsProvider _settingsProvider;
 
-    private static AniDBTitleHelper _instance;
-
-    public static AniDBTitleHelper Instance => _instance ??= new AniDBTitleHelper();
+    public AniDBTitleHelper(ISettingsProvider settingsProvider)
+    {
+        _settingsProvider = settingsProvider;
+    }
 
     public ResponseAniDBTitles.Anime SearchAnimeID(int animeID)
     {
@@ -62,11 +64,12 @@ public class AniDBTitleHelper
 
             if (_cache != null)
             {
+                var languages = _settingsProvider.GetSettings().LanguagePreference;
                 return SeriesSearch.SearchCollection(
                         query, _cache.Animes,
                         anime => anime.Titles
                             .Where(a => a.Language == TitleLanguage.English || a.Language == TitleLanguage.Romaji ||
-                                        ServerSettings.Instance.LanguagePreference.Contains(a.LanguageCode))
+                                        languages.Contains(a.LanguageCode))
                             .Select(a => a.Title)
                             .ToList()
                     )

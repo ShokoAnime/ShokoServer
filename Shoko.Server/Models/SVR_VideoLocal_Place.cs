@@ -125,7 +125,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 return (false, renamed, string.Empty);
             }
 
-            ShokoServer.Instance.AddFileWatcherExclusion(newFullName);
+            Utils.ShokoServer.AddFileWatcherExclusion(newFullName);
 
             logger.Info($"Renaming file From \"{fullFileName}\" to \"{newFullName}\"");
             try
@@ -136,7 +136,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             catch (Exception e)
             {
                 logger.Info($"Renaming file FAILED! From \"{fullFileName}\" to \"{newFullName}\" - {e}");
-                ShokoServer.Instance.RemoveFileWatcherExclusion(newFullName);
+                Utils.ShokoServer.RemoveFileWatcherExclusion(newFullName);
                 return (false, renamed, "Error: Failed to rename file");
             }
 
@@ -175,7 +175,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             if (tup == null)
             {
                 logger.Error($"Unable to LOCATE file \"{newFullName}\" inside the import folders");
-                ShokoServer.Instance.RemoveFileWatcherExclusion(newFullName);
+                Utils.ShokoServer.RemoveFileWatcherExclusion(newFullName);
                 return (false, renamed, "Error: Unable to resolve new path");
             }
 
@@ -233,7 +233,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             return (true, string.Empty, $"Error: {ex.Message}");
         }
 
-        ShokoServer.Instance.RemoveFileWatcherExclusion(newFullName);
+        Utils.ShokoServer.RemoveFileWatcherExclusion(newFullName);
         return (true, renamed, string.Empty);
     }
 
@@ -243,7 +243,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         var seriesToUpdate = new List<SVR_AnimeSeries>();
         var v = VideoLocal;
         List<DuplicateFile> dupFiles = null;
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         if (!string.IsNullOrEmpty(FilePath))
         {
             dupFiles = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
@@ -345,7 +345,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
     {
         logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
         var v = VideoLocal;
-        var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
 
         List<DuplicateFile> dupFiles = null;
         if (!string.IsNullOrEmpty(FilePath) && removeDuplicateFileEntries)
@@ -638,7 +638,8 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
     public void RenameAndMoveAsRequired()
     {
-        var invert = ServerSettings.Instance.Import.RenameThenMove;
+        var settings = Utils.SettingsProvider.GetSettings();
+        var invert = settings.Import.RenameThenMove;
         // Move first so that we don't bother the filesystem watcher
         var succeeded = invert ? RenameIfRequired() : MoveFileIfRequired();
         if (!succeeded)
@@ -682,27 +683,27 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             }
         }
 
-        ShokoServer.Instance.AddFileWatcherExclusion(FullServerPath);
+        Utils.ShokoServer.AddFileWatcherExclusion(FullServerPath);
         try
         {
-            LinuxFS.SetLinuxPermissions(FullServerPath, ServerSettings.Instance.Linux.UID,
-                ServerSettings.Instance.Linux.GID, ServerSettings.Instance.Linux.Permission);
+            LinuxFS.SetLinuxPermissions(FullServerPath, settings.Linux.UID,
+                settings.Linux.GID, settings.Linux.Permission);
         }
         catch (InvalidOperationException e)
         {
-            logger.Error(e, $"Unable to set permissions ({ServerSettings.Instance.Linux.UID}:{ServerSettings.Instance.Linux.GID} {ServerSettings.Instance.Linux.Permission}) on file {FileName}: Access Denied");
+            logger.Error(e, $"Unable to set permissions ({settings.Linux.UID}:{settings.Linux.GID} {settings.Linux.Permission}) on file {FileName}: Access Denied");
         }
         catch (Exception e)
         {
             logger.Error(e, "Error setting Linux Permissions: {0}", e);
         }
-        ShokoServer.Instance.RemoveFileWatcherExclusion(FullServerPath);
+        Utils.ShokoServer.RemoveFileWatcherExclusion(FullServerPath);
     }
 
     // returns false if we should retry
     private bool RenameIfRequired()
     {
-        if (!ServerSettings.Instance.Import.RenameOnImport)
+        if (!Utils.SettingsProvider.GetSettings().Import.RenameOnImport)
         {
             logger.Trace($"Skipping rename of \"{FullServerPath}\" as rename on import is disabled");
             return true;
@@ -795,7 +796,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             return (string.Empty, "ERROR: A file already exists at the destination");
         }
 
-        ShokoServer.Instance.AddFileWatcherExclusion(newFullServerPath);
+        Utils.ShokoServer.AddFileWatcherExclusion(newFullServerPath);
 
         logger.Info($"Moving file from \"{FullServerPath}\" to \"{newFullServerPath}\"");
         try
@@ -805,7 +806,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         catch (Exception e)
         {
             logger.Error($"Unable to MOVE file: \"{FullServerPath}\" to \"{newFullServerPath}\" error {e}");
-            ShokoServer.Instance.RemoveFileWatcherExclusion(newFullServerPath);
+            Utils.ShokoServer.RemoveFileWatcherExclusion(newFullServerPath);
             return (newFullServerPath, "ERROR: " + e);
         }
 
@@ -827,7 +828,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
         }
 
-        ShokoServer.Instance.RemoveFileWatcherExclusion(newFullServerPath);
+        Utils.ShokoServer.RemoveFileWatcherExclusion(newFullServerPath);
         return (newFolderPath, string.Empty);
     }
 
@@ -835,7 +836,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
     private bool MoveFileIfRequired(bool deleteEmpty = true)
     {
         // TODO move A LOT of this into renamer helper methods. A renamer can do them optionally
-        if (!ServerSettings.Instance.Import.MoveOnImport)
+        if (!Utils.SettingsProvider.GetSettings().Import.MoveOnImport)
         {
             logger.Trace($"Skipping move of \"{FullServerPath}\" as move on import is disabled");
             return true;
@@ -901,7 +902,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             {
                 try
                 {
-                    ShokoServer.Instance.AddFileWatcherExclusion(destFullTree);
+                    Utils.ShokoServer.AddFileWatcherExclusion(destFullTree);
                     Directory.CreateDirectory(destFullTree);
                 }
                 catch (Exception e)
@@ -911,7 +912,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 }
                 finally
                 {
-                    ShokoServer.Instance.RemoveFileWatcherExclusion(destFullTree);
+                    Utils.ShokoServer.RemoveFileWatcherExclusion(destFullTree);
                 }
             }
 
@@ -997,7 +998,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     }
 
                     // Move
-                    ShokoServer.Instance.AddFileWatcherExclusion(newFullServerPath);
+                    Utils.ShokoServer.AddFileWatcherExclusion(newFullServerPath);
                     logger.Info($"Moving file from \"{FullServerPath}\" to \"{newFullServerPath}\"");
                     try
                     {
@@ -1006,7 +1007,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     catch (Exception e)
                     {
                         logger.Error($"Unable to MOVE file: \"{FullServerPath}\" to \"{newFullServerPath}\" error {e}");
-                        ShokoServer.Instance.RemoveFileWatcherExclusion(newFullServerPath);
+                        Utils.ShokoServer.RemoveFileWatcherExclusion(newFullServerPath);
                         return false;
                     }
 
@@ -1026,7 +1027,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             }
             else
             {
-                ShokoServer.Instance.AddFileWatcherExclusion(newFullServerPath);
+                Utils.ShokoServer.AddFileWatcherExclusion(newFullServerPath);
                 logger.Info($"Moving file from \"{FullServerPath}\" to \"{newFullServerPath}\"");
                 try
                 {
@@ -1035,7 +1036,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 catch (Exception e)
                 {
                     logger.Error($"Unable to MOVE file: \"{FullServerPath}\" to \"{newFullServerPath}\" error {e}");
-                    ShokoServer.Instance.RemoveFileWatcherExclusion(newFullServerPath);
+                    Utils.ShokoServer.RemoveFileWatcherExclusion(newFullServerPath);
                     return false;
                 }
 
@@ -1185,7 +1186,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             // If it has folder, recurse
             foreach (var d in Directory.EnumerateDirectories(dir))
             {
-                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(Path.GetDirectoryName(d) ?? string.Empty, s))) continue;
+                if (Utils.SettingsProvider.GetSettings().Import.Exclude.Any(s => Regex.IsMatch(Path.GetDirectoryName(d) ?? string.Empty, s))) continue;
                 RecursiveDeleteEmptyDirectories(d, false);
             }
         }

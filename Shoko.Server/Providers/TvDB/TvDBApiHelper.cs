@@ -27,11 +27,13 @@ public class TvDBApiHelper
     private readonly ITvDbClient _client;
     private readonly ILogger<TvDBApiHelper> _logger;
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISettingsProvider _settingsProvider;
 
-    public TvDBApiHelper(ILogger<TvDBApiHelper> logger, ICommandRequestFactory commandFactory)
+    public TvDBApiHelper(ILogger<TvDBApiHelper> logger, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider)
     {
         _logger = logger;
         _commandFactory = commandFactory;
+        _settingsProvider = settingsProvider;
         _client = new TvDbClient();
         _client.BaseUrl = "https://api-beta.thetvdb.com";
     }
@@ -50,7 +52,7 @@ public class TvDBApiHelper
     {
         try
         {
-            _client.AcceptedLanguage = ServerSettings.Instance.TvDB.Language;
+            _client.AcceptedLanguage = _settingsProvider.GetSettings().TvDB.Language;
             if (string.IsNullOrEmpty(_client.Authentication.Token))
             {
                 TvDBRateLimiter.Instance.EnsureRate();
@@ -235,7 +237,8 @@ public class TvDBApiHelper
             "Adding TvDB Link: AniDB(ID:{AnimeID}) -> TvDB(ID:{TvDbid})", animeID, tvDBID
         );
 
-        if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+        var settings = _settingsProvider.GetSettings();
+        if (settings.TraktTv.Enabled && !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
         {
             // check for Trakt associations
             var trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
@@ -348,9 +351,10 @@ public class TvDBApiHelper
         var summary = GetSeriesImagesCounts(seriesID);
         if (summary == null) return;
 
-        if (summary.Fanart > 0 && ServerSettings.Instance.TvDB.AutoFanart) DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
-        if (summary.Poster > 0 && ServerSettings.Instance.TvDB.AutoPosters) DownloadAutomaticImages(GetPosterOnline(seriesID), seriesID, forceDownload);
-        if (summary.Season > 0 && ServerSettings.Instance.TvDB.AutoWideBanners) DownloadAutomaticImages(GetBannerOnline(seriesID), seriesID, forceDownload);
+        var settings = _settingsProvider.GetSettings();
+        if (summary.Fanart > 0 && settings.TvDB.AutoFanart) DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
+        if (summary.Poster > 0 && settings.TvDB.AutoPosters) DownloadAutomaticImages(GetPosterOnline(seriesID), seriesID, forceDownload);
+        if (summary.Season > 0 && settings.TvDB.AutoWideBanners) DownloadAutomaticImages(GetBannerOnline(seriesID), seriesID, forceDownload);
     }
 
     private ImagesSummary GetSeriesImagesCounts(int seriesID)
@@ -449,6 +453,7 @@ public class TvDBApiHelper
             var images = await GetSeriesImagesAsync(seriesID, KeyType.Fanart);
 
             var count = 0;
+            var settings = _settingsProvider.GetSettings();
             foreach (var image in images)
             {
                 var id = image.Id;
@@ -457,7 +462,7 @@ public class TvDBApiHelper
                     continue;
                 }
 
-                if (count >= ServerSettings.Instance.TvDB.AutoFanartAmount)
+                if (count >= settings.TvDB.AutoFanartAmount)
                 {
                     break;
                 }
@@ -530,6 +535,7 @@ public class TvDBApiHelper
             var images = posters.Concat(season).ToArray();
 
             var count = 0;
+            var settings = _settingsProvider.GetSettings();
             foreach (var image in images)
             {
                 var id = image.Id;
@@ -538,7 +544,7 @@ public class TvDBApiHelper
                     continue;
                 }
 
-                if (count >= ServerSettings.Instance.TvDB.AutoPostersAmount)
+                if (count >= settings.TvDB.AutoPostersAmount)
                 {
                     break;
                 }
@@ -611,6 +617,7 @@ public class TvDBApiHelper
             var images = season.Concat(series).ToArray();
 
             var count = 0;
+            var settings = _settingsProvider.GetSettings();
             foreach (var image in images)
             {
                 var id = image.Id;
@@ -619,7 +626,7 @@ public class TvDBApiHelper
                     continue;
                 }
 
-                if (count >= ServerSettings.Instance.TvDB.AutoWideBannersAmount)
+                if (count >= settings.TvDB.AutoWideBannersAmount)
                 {
                     break;
                 }
@@ -676,14 +683,15 @@ public class TvDBApiHelper
 
     public void DownloadAutomaticImages(List<TvDB_ImageFanart> images, int seriesID, bool forceDownload)
     {
-        if (!ServerSettings.Instance.TvDB.AutoFanart) return;
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TvDB.AutoFanart) return;
         // find out how many images we already have locally
         var imageCount = RepoFactory.TvDB_ImageFanart.GetBySeriesID(seriesID).Count(fanart =>
             !string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()));
 
         foreach (var img in images)
         {
-            if (imageCount < ServerSettings.Instance.TvDB.AutoFanartAmount && !string.IsNullOrEmpty(img.GetFullImagePath()))
+            if (imageCount < settings.TvDB.AutoFanartAmount && !string.IsNullOrEmpty(img.GetFullImagePath()))
             {
                 var fileExists = File.Exists(img.GetFullImagePath());
                 if (fileExists && !forceDownload) continue;
@@ -714,14 +722,15 @@ public class TvDBApiHelper
 
     public void DownloadAutomaticImages(List<TvDB_ImagePoster> images, int seriesID, bool forceDownload)
     {
-        if (!ServerSettings.Instance.TvDB.AutoPosters) return;
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TvDB.AutoPosters) return;
         // find out how many images we already have locally
         var imageCount = RepoFactory.TvDB_ImagePoster.GetBySeriesID(seriesID).Count(fanart =>
             !string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()));
 
         foreach (var img in images)
         {
-            if (imageCount < ServerSettings.Instance.TvDB.AutoPostersAmount && !string.IsNullOrEmpty(img.GetFullImagePath()))
+            if (imageCount < settings.TvDB.AutoPostersAmount && !string.IsNullOrEmpty(img.GetFullImagePath()))
             {
                 var fileExists = File.Exists(img.GetFullImagePath());
                 if (fileExists && !forceDownload) continue;
@@ -752,14 +761,15 @@ public class TvDBApiHelper
     
     public void DownloadAutomaticImages(List<TvDB_ImageWideBanner> images, int seriesID, bool forceDownload)
     {
+        var settings = _settingsProvider.GetSettings();
         // find out how many images we already have locally
-        if (!ServerSettings.Instance.TvDB.AutoWideBanners) return;
+        if (!settings.TvDB.AutoWideBanners) return;
         var imageCount = RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(seriesID).Count(banner =>
             !string.IsNullOrEmpty(banner.GetFullImagePath()) && File.Exists(banner.GetFullImagePath()));
 
         foreach (var img in images)
         {
-            if (imageCount < ServerSettings.Instance.TvDB.AutoWideBannersAmount && !string.IsNullOrEmpty(img.GetFullImagePath()))
+            if (imageCount < settings.TvDB.AutoWideBannersAmount && !string.IsNullOrEmpty(img.GetFullImagePath()))
             {
                 var fileExists = File.Exists(img.GetFullImagePath());
                 if (fileExists && !forceDownload) continue;
@@ -973,7 +983,8 @@ public class TvDBApiHelper
 
     public void ScanForMatches()
     {
-        if (!ServerSettings.Instance.TvDB.AutoLink)
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TvDB.AutoLink)
         {
             return;
         }

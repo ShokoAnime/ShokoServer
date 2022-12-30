@@ -10,14 +10,102 @@ using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using NLog.Config;
+using NLog.Targets;
+using NLog.Targets.Wrappers;
 using Shoko.Models.Enums;
+using Shoko.Server.API.SignalR.NLog;
+using Shoko.Server.Providers.AniDB.Titles;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities;
 
 public static class Utils
 {
+    private static AniDBTitleHelper s_aniDBTitleHelper;
+    public static ShokoServer ShokoServer { get; set; }
+    public static IServiceProvider ServiceContainer { get; set; }
+    public static ISettingsProvider SettingsProvider { get; set; }
+
+    public static AniDBTitleHelper AniDBTitleHelper
+    {
+        get => s_aniDBTitleHelper ??= new AniDBTitleHelper(ServiceContainer.GetRequiredService<ISettingsProvider>());
+    }
+    public static string ApplicationPath
+    {
+        get
+        {
+            if (IsLinux)
+            {
+                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".shoko",
+                    DefaultInstance);
+            }
+
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                DefaultInstance);
+        }
+    }
+    public static string DefaultInstance { get; set; } = Assembly.GetEntryAssembly().GetName().Name;
+    public static string DefaultImagePath => Path.Combine(ApplicationPath, "images");
+    public static string AnimeXmlDirectory { get; set; } = Path.Combine(ApplicationPath, "Anime_HTTP");
+    public static string MyListDirectory { get; set; } = Path.Combine(ApplicationPath, "MyList");
+
+    private static string? GetInstanceFromCommandLineArguments()
+    {
+        const int notFound = -1;
+        var       args     = Environment.GetCommandLineArgs();
+        var       idx      = Array.FindIndex(args, x => string.Equals(x, "instance", StringComparison.InvariantCultureIgnoreCase));
+        if (idx is notFound)
+            return null;
+        if (idx >= args.Length - 1)
+            return null;
+        return args[idx + 1];
+    }
+
+    public static void SetInstance()
+    {
+        var instance = GetInstanceFromCommandLineArguments();
+        if (string.IsNullOrWhiteSpace(instance) is false)
+            DefaultInstance = instance;
+    }
+
+    public static void InitLogger()
+    {
+        var target = (FileTarget)LogManager.Configuration.FindTargetByName("file");
+        if (target != null)
+        {
+            target.FileName = Utils.ApplicationPath + "/logs/${shortdate}.log";
+        }
+
+#if LOGWEB
+            // Disable blackhole http info logs
+            LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Microsoft.AspNetCore"))?.DisableLoggingForLevel(LogLevel.Info);
+            LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Shoko.Server.API.Authentication"))?.DisableLoggingForLevel(LogLevel.Info);
+#endif
+#if DEBUG
+        // Enable debug logging
+        LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Contains(target))
+            ?.EnableLoggingForLevel(LogLevel.Debug);
+#endif
+
+        var signalrTarget =
+            new AsyncTargetWrapper(
+                new SignalRTarget { Name = "signalr", MaxLogsCount = 1000, Layout = "${message}" }, 50,
+                AsyncTargetWrapperOverflowAction.Discard);
+        LogManager.Configuration.AddTarget("signalr", signalrTarget);
+        LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Info, signalrTarget));
+        var consoleTarget = (ColoredConsoleTarget)LogManager.Configuration.FindTargetByName("console");
+        if (consoleTarget != null)
+        {
+            consoleTarget.Layout = "${date:format=HH\\:mm\\:ss}| ${logger:shortname=true} --- ${message}";
+        }
+
+        LogManager.ReconfigExistingLoggers();
+    }
+
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool IsWow64Process(IntPtr hProcess, [MarshalAs(UnmanagedType.Bool)] out bool isWow64);
@@ -1128,52 +1216,6 @@ public static class Utils
         buffer.CopyTo(lastLine + 1, retVal, 0, lineCount - lastLine - 1);
         buffer.CopyTo(0, retVal, lineCount - lastLine - 1, lastLine + 1);
         return retVal;
-    }
-
-    public static void RestartAsAdmin()
-    {
-        if (IsRunningOnLinuxOrMac())
-        {
-            return; //Again, mono cannot handle this.
-        }
-
-        var BatchFile = Path.Combine(Path.GetTempPath(), "RestartAsAdmin.bat");
-        var exeName = Process.GetCurrentProcess().MainModule.FileName;
-
-        var proc = new Process();
-
-        proc.StartInfo.FileName = "cmd.exe";
-        proc.StartInfo.Arguments = $@"/c {BatchFile}";
-        proc.StartInfo.Verb = "runas";
-        proc.StartInfo.CreateNoWindow = true;
-        proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-        proc.StartInfo.UseShellExecute = true;
-
-        try
-        {
-            var BatchFileStream = new StreamWriter(BatchFile);
-
-            try
-            {
-                // Wait a few seconds to allow shutdown later on, use task kill just in case still running
-                var batchline =
-                    $"timeout 5 && taskkill /F /IM {AppDomain.CurrentDomain.FriendlyName} /fi \"memusage gt 2\" && \"{exeName}\"";
-                logger.Log(LogLevel.Info, "RestartAsAdmin batch line: " + batchline);
-                BatchFileStream.WriteLine(batchline);
-            }
-            finally
-            {
-                BatchFileStream.Close();
-            }
-
-            proc.Start();
-            ServerSettings.DoServerShutdown(new ServerSettings.ReasonedEventArgs());
-            Environment.Exit(0);
-        }
-        catch (Exception ex)
-        {
-            logger.Log(LogLevel.Error, "Error occured during RestartAsAdmin(): " + ex.Message);
-        }
     }
 
     public static bool IsDirectoryWritable(string dirPath, bool throwIfFails = false)

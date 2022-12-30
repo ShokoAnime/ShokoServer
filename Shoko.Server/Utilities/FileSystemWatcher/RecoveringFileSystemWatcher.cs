@@ -36,7 +36,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         if (path == null) throw new ArgumentException(nameof(path) + " cannot be null");
         if (!Directory.Exists(path)) throw new ArgumentException(nameof(path) + $" must be a directory that exists: {path}");
         // bad, but meh for now
-        _logger = ShokoServer.ServiceContainer.GetRequiredService<ILoggerFactory>().CreateLogger("ImportFolderWatcher: " + path);
+        _logger = Utils.ServiceContainer.GetRequiredService<ILoggerFactory>().CreateLogger("ImportFolderWatcher: " + path);
         _path = path;
         _filters = filters?.AsReadOnlyCollection() ?? Enumerable.Empty<string>().AsReadOnlyCollection();
 

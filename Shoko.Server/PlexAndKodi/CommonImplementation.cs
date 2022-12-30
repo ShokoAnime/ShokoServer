@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using NLog;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Client;
@@ -22,8 +22,8 @@ using Shoko.Server.PlexAndKodi.Plex;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using Directory = Shoko.Models.Plex.Libraries.Directory;
 using MediaContainer = Shoko.Models.PlexAndKodi.MediaContainer;
 using Stream = System.IO.Stream;
@@ -34,9 +34,16 @@ namespace Shoko.Server.PlexAndKodi;
 
 public class CommonImplementation
 {
-    public static Logger logger = LogManager.GetCurrentClassLogger();
+    private readonly ILogger<CommonImplementation> _logger;
+    private readonly ISettingsProvider _settingsProvider;
 
     //private functions are use internal
+
+    public CommonImplementation(ILogger<CommonImplementation> logger, ISettingsProvider settingsProvider)
+    {
+        _logger = logger;
+        _settingsProvider = settingsProvider;
+    }
 
     public Stream GetSupportImage(string name)
     {
@@ -157,14 +164,14 @@ public class CommonImplementation
             var dinfo = prov.GetPlexClient();
             if (dinfo != null)
             {
-                logger.Info(dinfo.ToString());
+                _logger.LogInformation(dinfo.ToString());
             }
 
             return ret.GetStream(prov);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new MediaContainer { ErrorString = "System Error, see JMMServer logs for more information" };
         }
     }
@@ -201,7 +208,7 @@ public class CommonImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new MediaContainer { ErrorString = "System Error, see JMMServer logs for more information" };
         }
     }
@@ -540,7 +547,7 @@ public class CommonImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new PlexContract_Users { ErrorString = "System Error, see JMMServer logs for more information" };
         }
 
@@ -558,7 +565,7 @@ public class CommonImplementation
         }
         catch (Exception e)
         {
-            logger.Error(e, e.ToString());
+            _logger.LogError(e, e.ToString());
             rsp.Code = "500";
             rsp.Message = "System Error, see JMMServer logs for more information";
         }
@@ -788,7 +795,7 @@ public class CommonImplementation
         {
             rsp.Code = "500";
             rsp.Message = "Internal Error : " + ex;
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
         }
 
         return rsp;
@@ -845,7 +852,7 @@ public class CommonImplementation
         {
             rsp.Code = "500";
             rsp.Message = "Internal Error : " + ex;
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
         }
 
         return rsp;
@@ -906,7 +913,7 @@ public class CommonImplementation
         {
             rsp.Code = "500";
             rsp.Message = "Internal Error : " + ex;
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
         }
 
         return rsp;
@@ -923,7 +930,7 @@ public class CommonImplementation
                 return rsp;
             }
 
-            var commandFactory = ShokoServer.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+            var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
             if (vt == (int)AniDBVoteType.Episode)
             {
                 var ep = RepoFactory.AnimeEpisode.GetByID(objid);
@@ -944,7 +951,7 @@ public class CommonImplementation
 
                 var msg = string.Format("Voting for anime episode: {0} - Value: {1}", ep.AnimeEpisodeID,
                     vvalue);
-                logger.Info(msg);
+                _logger.LogInformation(msg);
 
                 // lets save to the database and assume it will work
                 var thisVote = RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode);
@@ -968,7 +975,7 @@ public class CommonImplementation
 
                 msg = string.Format("Voting for anime episode Formatted: {0} - Value: {1}", ep.AnimeEpisodeID,
                     iVoteValue);
-                logger.Info(msg);
+                _logger.LogInformation(msg);
                 thisVote.VoteValue = iVoteValue;
                 RepoFactory.AniDB_Vote.Save(thisVote);
 
@@ -995,7 +1002,7 @@ public class CommonImplementation
                 }
 
                 var msg = string.Format("Voting for anime: {0} - Value: {1}", anime.AnimeID, vvalue);
-                logger.Info(msg);
+                _logger.LogInformation(msg);
 
                 // lets save to the database and assume it will work
                 var thisVote =
@@ -1020,7 +1027,7 @@ public class CommonImplementation
                 }
 
                 msg = string.Format("Voting for anime Formatted: {0} - Value: {1}", anime.AnimeID, iVoteValue);
-                logger.Info(msg);
+                _logger.LogInformation(msg);
                 thisVote.VoteValue = iVoteValue;
                 RepoFactory.AniDB_Vote.Save(thisVote);
                 var cmdVote = commandFactory.Create<CommandRequest_VoteAnime>(
@@ -1041,7 +1048,7 @@ public class CommonImplementation
         {
             rsp.Code = "500";
             rsp.Message = "Internal Error : " + ex;
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
         }
 
         return rsp;
@@ -1049,7 +1056,7 @@ public class CommonImplementation
 
     public Response TraktScrobble(IProvider prov, string animeId, int typeTrakt, float progressTrakt, int status)
     {
-        var traktHelper = ShokoServer.ServiceContainer.GetRequiredService<TraktTVHelper>();
+        var traktHelper = Utils.ServiceContainer.GetRequiredService<TraktTVHelper>();
         var rsp = new Response { Code = "400", Message = "Bad Request" };
         try
         {
@@ -1095,7 +1102,7 @@ public class CommonImplementation
         {
             rsp.Code = "500";
             rsp.Message = "Internal Error : " + ex;
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
         }
 
         return rsp;
@@ -1432,20 +1439,21 @@ public class CommonImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new MediaContainer { ErrorString = "System Error, see JMMServer logs for more information" };
         }
     }
 
     public void UseDirectories(int userId, List<Directory> directories)
     {
+        var settings = _settingsProvider.GetSettings();
         if (directories == null)
         {
-            ServerSettings.Instance.Plex.Libraries = new List<int>();
+            settings.Plex.Libraries = new List<int>();
             return;
         }
 
-        ServerSettings.Instance.Plex.Libraries = directories.Select(s => s.Key).ToList();
+        settings.Plex.Libraries = directories.Select(s => s.Key).ToList();
     }
 
     public Directory[] Directories(int userId)

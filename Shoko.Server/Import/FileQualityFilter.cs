@@ -7,7 +7,7 @@ using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server;
 
@@ -50,14 +50,14 @@ public static class FileQualityFilter
     reference said enum through a CompareByType
 
     */
-    public static FileQualityPreferences Settings => ServerSettings.Instance.FileQualityPreferences;
+    public static FileQualityPreferences Settings => Utils.SettingsProvider.GetSettings().FileQualityPreferences;
 
     #region Checks
 
     public static bool CheckFileKeep(SVR_VideoLocal file)
     {
         var result = true;
-        var allowUnknown = ServerSettings.Instance.FileQualityPreferences.AllowDeletingFilesWithMissingInfo;
+        var allowUnknown = Utils.SettingsProvider.GetSettings().FileQualityPreferences.AllowDeletingFilesWithMissingInfo;
 
         var aniFile = file?.GetAniDBFile();
         // Don't delete files with missing info. If it's not getting updated, then do it manually
