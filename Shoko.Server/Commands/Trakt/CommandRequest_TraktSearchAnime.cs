@@ -24,6 +24,7 @@ namespace Shoko.Server.Commands;
 [Command(CommandRequestType.Trakt_SearchAnime)]
 public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
 {
+    private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
     public int AnimeID { get; set; }
     public bool ForceRefresh { get; set; }
@@ -43,6 +44,7 @@ public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
 
         try
         {
+            var settings = _settingsProvider.GetSettings();
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var sessionWrapper = session.Wrap();
@@ -123,7 +125,7 @@ public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
                 }
 
                 // Use TvDB setting due to similarity
-                if (!ServerSettings.Instance.TvDB.AutoLink)
+                if (!settings.TvDB.AutoLink)
                 {
                     return;
                 }
@@ -244,9 +246,10 @@ public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_TraktSearchAnime(ILoggerFactory loggerFactory, TraktTVHelper helper) : base(loggerFactory)
+    public CommandRequest_TraktSearchAnime(ILoggerFactory loggerFactory, TraktTVHelper helper, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
         _helper = helper;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_TraktSearchAnime()

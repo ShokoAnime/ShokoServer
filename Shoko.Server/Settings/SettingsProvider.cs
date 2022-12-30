@@ -23,6 +23,7 @@ public class SettingsProvider : ISettingsProvider
     private readonly ILogger<SettingsProvider> _logger;
     private const string SettingsFilename = "settings-server.json";
     private static readonly object SettingsLock = new();
+    private static IServerSettings Instance { get; set; }
 
     public SettingsProvider(ILogger<SettingsProvider> logger)
     {
@@ -41,8 +42,6 @@ public class SettingsProvider : ISettingsProvider
         Instance = settings;
         SaveSettings();
     }
-
-    private static IServerSettings Instance { get; set; }
 
     private void LoadSettings()
     {
@@ -234,7 +233,6 @@ public class SettingsProvider : ISettingsProvider
         {
             ContractResolver = new NullToDefaultValueResolver(),
             Converters = new List<JsonConverter> { new StringEnumConverter() },
-            Error = (sender, args) => { args.ErrorContext.Handled = true; },
             ObjectCreationHandling = ObjectCreationHandling.Replace,
             MissingMemberHandling = MissingMemberHandling.Ignore
         };
@@ -314,7 +312,7 @@ public class SettingsProvider : ISettingsProvider
         lock (SettingsLock)
         {
             var onDisk = File.Exists(path) ? File.ReadAllText(path) : string.Empty;
-            var inCode = Serialize(this, true);
+            var inCode = Serialize(Instance, true);
             if (!onDisk.Equals(inCode, StringComparison.Ordinal))
             {
                 File.WriteAllText(path, inCode);
@@ -467,7 +465,7 @@ public class SettingsProvider : ISettingsProvider
 
         _logger.LogInformation("----------------- SERVER SETTINGS ----------------------");
 
-        DumpSettings(this, "Settings");
+        DumpSettings(Instance, "Settings");
 
         _logger.LogInformation("-------------------------------------------------------");
     }

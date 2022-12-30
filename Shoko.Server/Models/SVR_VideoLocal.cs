@@ -18,6 +18,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using Media = Shoko.Models.PlexAndKodi.Media;
 using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 
@@ -254,6 +255,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
     public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, int userID,
         bool syncTrakt, bool updateWatchedDate)
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         var user = RepoFactory.JMMUser.GetByID(userID);
         if (user == null) return;
@@ -272,8 +274,8 @@ public class SVR_VideoLocal : VideoLocal, IHash
         if (user.IsAniDBUser == 1)
         {
             if (updateOnline)
-                if ((watched && ServerSettings.Instance.AniDb.MyList_SetWatched) ||
-                    (!watched && ServerSettings.Instance.AniDb.MyList_SetUnwatched))
+                if ((watched && settings.AniDb.MyList_SetWatched) ||
+                    (!watched && settings.AniDb.MyList_SetUnwatched))
                 {
                     var cmd = commandFactory.Create<CommandRequest_UpdateMyListFileStatus>(
                         c =>
@@ -335,8 +337,8 @@ public class SVR_VideoLocal : VideoLocal, IHash
                             if (juser.IsAniDBUser == 1)
                                 ep.SaveWatchedStatus(true, juser.JMMUserID, watchedDate, updateWatchedDate);
 
-                    if (syncTrakt && ServerSettings.Instance.TraktTv.Enabled &&
-                        !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+                    if (syncTrakt && settings.TraktTv.Enabled &&
+                        !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
                     {
                         var cmdSyncTrakt = commandFactory.Create<CommandRequest_TraktHistoryEpisode>(
                             c =>
@@ -386,8 +388,8 @@ public class SVR_VideoLocal : VideoLocal, IHash
                     if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
                         toUpdateSeries.Add(ser.AnimeSeriesID, ser);
 
-                    if (syncTrakt && ServerSettings.Instance.TraktTv.Enabled &&
-                        !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+                    if (syncTrakt && settings.TraktTv.Enabled &&
+                        !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
                     {
                         var cmdSyncTrakt = commandFactory.Create<CommandRequest_TraktHistoryEpisode>(
                             c =>

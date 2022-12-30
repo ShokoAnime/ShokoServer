@@ -12,6 +12,7 @@ namespace Shoko.Server.Settings;
 
 public class ServerSettings : IServerSettings
 {
+    [Range(1, 65535, ErrorMessage = "PluginAutoWatchThreshold must be between 1 and 65535")]
     public ushort ServerPort { get; set; } = 8111;
 
     [Range(0, 1, ErrorMessage = "PluginAutoWatchThreshold must be between 0 and 1")]

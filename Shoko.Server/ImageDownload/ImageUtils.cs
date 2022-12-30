@@ -7,8 +7,8 @@ public class ImageUtils
 {
     public static string GetBaseImagesPath()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
-        if (!string.IsNullOrEmpty(settings.ImagesPath) &&
+        var settings = Utils.SettingsProvider?.GetSettings();
+        if (!string.IsNullOrEmpty(settings?.ImagesPath) &&
             Directory.Exists(settings.ImagesPath))
         {
             return settings.ImagesPath;

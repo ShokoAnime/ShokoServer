@@ -17,6 +17,7 @@ namespace Shoko.Server.Commands;
 [Command(CommandRequestType.Trakt_SyncCollectionSeries)]
 public class CommandRequest_TraktSyncCollectionSeries : CommandRequestImplementation
 {
+    private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
     public int AnimeSeriesID { get; set; }
     public string SeriesName { get; set; }
@@ -36,8 +37,9 @@ public class CommandRequest_TraktSyncCollectionSeries : CommandRequestImplementa
 
         try
         {
-            if (!ServerSettings.Instance.TraktTv.Enabled ||
-                string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+            var settings = _settingsProvider.GetSettings();
+            if (!settings.TraktTv.Enabled ||
+                string.IsNullOrEmpty(settings.TraktTv.AuthToken))
             {
                 return;
             }
@@ -103,10 +105,11 @@ public class CommandRequest_TraktSyncCollectionSeries : CommandRequestImplementa
         return cq;
     }
 
-    public CommandRequest_TraktSyncCollectionSeries(ILoggerFactory loggerFactory, TraktTVHelper helper) :
+    public CommandRequest_TraktSyncCollectionSeries(ILoggerFactory loggerFactory, TraktTVHelper helper, ISettingsProvider settingsProvider) :
         base(loggerFactory)
     {
         _helper = helper;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_TraktSyncCollectionSeries()

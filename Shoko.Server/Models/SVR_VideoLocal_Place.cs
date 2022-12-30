@@ -638,7 +638,8 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
     public void RenameAndMoveAsRequired()
     {
-        var invert = ServerSettings.Instance.Import.RenameThenMove;
+        var settings = Utils.SettingsProvider.GetSettings();
+        var invert = settings.Import.RenameThenMove;
         // Move first so that we don't bother the filesystem watcher
         var succeeded = invert ? RenameIfRequired() : MoveFileIfRequired();
         if (!succeeded)
@@ -685,12 +686,12 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         Utils.ShokoServer.AddFileWatcherExclusion(FullServerPath);
         try
         {
-            LinuxFS.SetLinuxPermissions(FullServerPath, ServerSettings.Instance.Linux.UID,
-                ServerSettings.Instance.Linux.GID, ServerSettings.Instance.Linux.Permission);
+            LinuxFS.SetLinuxPermissions(FullServerPath, settings.Linux.UID,
+                settings.Linux.GID, settings.Linux.Permission);
         }
         catch (InvalidOperationException e)
         {
-            logger.Error(e, $"Unable to set permissions ({ServerSettings.Instance.Linux.UID}:{ServerSettings.Instance.Linux.GID} {ServerSettings.Instance.Linux.Permission}) on file {FileName}: Access Denied");
+            logger.Error(e, $"Unable to set permissions ({settings.Linux.UID}:{settings.Linux.GID} {settings.Linux.Permission}) on file {FileName}: Access Denied");
         }
         catch (Exception e)
         {
@@ -702,7 +703,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
     // returns false if we should retry
     private bool RenameIfRequired()
     {
-        if (!ServerSettings.Instance.Import.RenameOnImport)
+        if (!Utils.SettingsProvider.GetSettings().Import.RenameOnImport)
         {
             logger.Trace($"Skipping rename of \"{FullServerPath}\" as rename on import is disabled");
             return true;
@@ -835,7 +836,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
     private bool MoveFileIfRequired(bool deleteEmpty = true)
     {
         // TODO move A LOT of this into renamer helper methods. A renamer can do them optionally
-        if (!ServerSettings.Instance.Import.MoveOnImport)
+        if (!Utils.SettingsProvider.GetSettings().Import.MoveOnImport)
         {
             logger.Trace($"Skipping move of \"{FullServerPath}\" as move on import is disabled");
             return true;
@@ -1185,7 +1186,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             // If it has folder, recurse
             foreach (var d in Directory.EnumerateDirectories(dir))
             {
-                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(Path.GetDirectoryName(d) ?? string.Empty, s))) continue;
+                if (Utils.SettingsProvider.GetSettings().Import.Exclude.Any(s => Regex.IsMatch(Path.GetDirectoryName(d) ?? string.Empty, s))) continue;
                 RecursiveDeleteEmptyDirectories(d, false);
             }
         }

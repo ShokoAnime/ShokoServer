@@ -17,6 +17,7 @@ namespace Shoko.Server.Commands;
 [Command(CommandRequestType.Trakt_EpisodeHistory)]
 public class CommandRequest_TraktHistoryEpisode : CommandRequestImplementation
 {
+    private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
     public int AnimeEpisodeID { get; set; }
     public int Action { get; set; }
@@ -36,10 +37,12 @@ public class CommandRequest_TraktHistoryEpisode : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_TraktHistoryEpisode: {0}-{1}", AnimeEpisodeID, Action);
 
+        var settings = _settingsProvider.GetSettings();
+
         try
         {
-            if (!ServerSettings.Instance.TraktTv.Enabled ||
-                string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+            if (!settings.TraktTv.Enabled ||
+                string.IsNullOrEmpty(settings.TraktTv.AuthToken))
             {
                 return;
             }
@@ -109,9 +112,10 @@ public class CommandRequest_TraktHistoryEpisode : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_TraktHistoryEpisode(ILoggerFactory loggerFactory, TraktTVHelper helper) : base(loggerFactory)
+    public CommandRequest_TraktHistoryEpisode(ILoggerFactory loggerFactory, TraktTVHelper helper, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
         _helper = helper;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_TraktHistoryEpisode()

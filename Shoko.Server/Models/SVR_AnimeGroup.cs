@@ -17,6 +17,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+using Shoko.Server.Utilities;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
@@ -155,7 +156,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
 
     public static bool IsRelationTypeInExclusions(string type)
     {
-        var list = ServerSettings.Instance.AutoGroupSeriesRelationExclusions.Split('|');
+        var list = Utils.SettingsProvider.GetSettings().AutoGroupSeriesRelationExclusions.Split('|');
         return list.Any(a => a.Equals(type, StringComparison.InvariantCultureIgnoreCase));
     }
 

@@ -24,6 +24,7 @@ namespace Shoko.Server.Commands;
 [Command(CommandRequestType.TvDB_SearchAnime)]
 public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
 {
+    private readonly ISettingsProvider _settingsProvider;
     private readonly TvDBApiHelper _helper;
     public int AnimeID { get; set; }
     public bool ForceRefresh { get; set; }
@@ -43,7 +44,8 @@ public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
 
         try
         {
-            if (!ServerSettings.Instance.TvDB.AutoLink)
+            var settings = _settingsProvider.GetSettings();
+            if (!settings.TvDB.AutoLink)
             {
                 return;
             }
@@ -236,9 +238,10 @@ public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_TvDBSearchAnime(ILoggerFactory loggerFactory, TvDBApiHelper helper) : base(loggerFactory)
+    public CommandRequest_TvDBSearchAnime(ILoggerFactory loggerFactory, TvDBApiHelper helper, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
         _helper = helper;
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_TvDBSearchAnime()

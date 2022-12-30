@@ -59,9 +59,7 @@ public static class Program
 
     private static void ConfigureServices(IServiceCollection services)
     {
-        services.AddSingleton<ShokoServer>();
         services.AddHostedService<Worker>();
-        services.AddSingleton<StartServer>();
     }
 
 #region IConfigurationBuilderExtensions

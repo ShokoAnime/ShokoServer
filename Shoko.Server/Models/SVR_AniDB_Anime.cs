@@ -611,7 +611,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
             if (title != null) return title.Title;
 
             // try synonyms
-            if (ServerSettings.Instance.LanguageUseSynonyms)
+            if (Utils.SettingsProvider.GetSettings().LanguageUseSynonyms)
             {
                 title = titles.FirstOrDefault(title => title.TitleType == TitleType.Synonym && title.Language == thisLanguage);
                 if (title != null) return title.Title;
@@ -691,15 +691,16 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         // check for TvDB associations
         if (Restricted == 0)
         {
-            if (ServerSettings.Instance.TvDB.AutoLink)
+            var settings = Utils.SettingsProvider.GetSettings();
+            if (settings.TvDB.AutoLink)
             {
                 var cmd = commandFactory.Create<CommandRequest_TvDBSearchAnime>(c => c.AnimeID = AnimeID);
                 cmd.Save();
             }
 
             // check for Trakt associations
-            if (ServerSettings.Instance.TraktTv.Enabled &&
-                !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+            if (settings.TraktTv.Enabled &&
+                !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
             {
                 var cmd = commandFactory.Create<CommandRequest_TraktSearchAnime>(c => c.AnimeID = AnimeID);
                 cmd.Save();

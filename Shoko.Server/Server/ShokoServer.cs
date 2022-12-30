@@ -85,7 +85,7 @@ public class ShokoServer
         return new[] { "SQLite", "Microsoft SQL Server 2014", "MySQL/MariaDB" };
     }
 
-    private ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider)
+    public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider)
     {
         this.logger = logger;
         var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);

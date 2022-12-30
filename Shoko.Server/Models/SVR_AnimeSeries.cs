@@ -20,6 +20,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Models;
@@ -80,7 +81,7 @@ public class SVR_AnimeSeries : AnimeSeries
         }
         else
         {
-            if (ServerSettings.Instance.SeriesNameSource == DataSourceType.AniDB)
+            if (Utils.SettingsProvider.GetSettings().SeriesNameSource == DataSourceType.AniDB)
             {
                 seriesName = GetAnime().PreferredTitle;
             }

@@ -21,6 +21,7 @@ namespace Shoko.Server.Commands.Plex;
 [Command(CommandRequestType.Plex_Sync)]
 internal class CommandRequest_PlexSyncWatched : CommandRequestImplementation
 {
+    private readonly ISettingsProvider _settingsProvider;
     public JMMUser User;
 
     protected override void Process()
@@ -29,9 +30,10 @@ internal class CommandRequest_PlexSyncWatched : CommandRequestImplementation
             "Syncing watched videos for: {Username}, if nothing happens make sure you have your libraries configured in Shoko",
             User.Username);
 
+        var settings = _settingsProvider.GetSettings();
         foreach (var section in PlexHelper.GetForUser(User).GetDirectories())
         {
-            if (!ServerSettings.Instance.Plex.Libraries.Contains(section.Key))
+            if (!settings.Plex.Libraries.Contains(section.Key))
             {
                 continue;
             }
@@ -139,8 +141,9 @@ internal class CommandRequest_PlexSyncWatched : CommandRequestImplementation
             .AddSeconds(unixTime);
     }
 
-    public CommandRequest_PlexSyncWatched(ILoggerFactory loggerFactory) : base(loggerFactory)
+    public CommandRequest_PlexSyncWatched(ILoggerFactory loggerFactory, ISettingsProvider settingsProvider) : base(loggerFactory)
     {
+        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_PlexSyncWatched()

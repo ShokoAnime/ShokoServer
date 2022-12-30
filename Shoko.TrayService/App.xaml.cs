@@ -39,15 +39,13 @@ public partial class App
 
         Utils.SetInstance();
         Utils.InitLogger();
-
         var loggerFactory = new LoggerFactory().AddNLog();
         _logger = loggerFactory.CreateLogger("App.xaml");
         var settingsProvider = new SettingsProvider(loggerFactory.CreateLogger<SettingsProvider>());
-        new StartServer(loggerFactory.CreateLogger<StartServer>(), settingsProvider).StartupServer(AddEventHandlers, ServerStart);
+        var shokoServer = new ShokoServer(loggerFactory.CreateLogger<ShokoServer>(), settingsProvider);
+        Utils.ShokoServer = shokoServer;
+        new StartServer(loggerFactory.CreateLogger<StartServer>(), settingsProvider).StartupServer(AddEventHandlers, () => shokoServer.StartUpServer());
     }
-
-    private static bool ServerStart() 
-        => Utils.ShokoServer.StartUpServer();
 
     private void AddEventHandlers()
     {
