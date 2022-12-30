@@ -1,0 +1,65 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
+using System.Reflection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+namespace Shoko.Server.Server;
+
+public static class StartupExtensions
+{
+    public static IConfigurationBuilder AddCommandLineIfNotNull(this IConfigurationBuilder configurationBuilder)
+    {
+        var tmpArgs = Environment.GetCommandLineArgs();
+        var args = tmpArgs.Length > 1 ? new string[tmpArgs.Length - 1] : null;
+        if (args is null)
+            return configurationBuilder;
+        
+        Array.Copy(tmpArgs, 1, args, 0, args.Length);
+        configurationBuilder.AddCommandLine(args);
+        return configurationBuilder;
+    }
+
+    public static IConfigurationBuilder AddDevelopmentAssembly(this IConfigurationBuilder configurationBuilder, IHostEnvironment env)
+    {
+        if (env.IsDevelopment() is false || string.IsNullOrWhiteSpace(env.ApplicationName))
+            return configurationBuilder;
+
+        var appAssembly = Assembly.Load(new AssemblyName(env.ApplicationName));
+        configurationBuilder.AddUserSecrets(appAssembly, optional: true);
+        return configurationBuilder;
+    }
+
+    public static IHostBuilder ConfigureHost(this IHostBuilder builder) => builder.ConfigureHostConfiguration(ConfigureHost);
+    public static IHostBuilder ConfigureApp(this IHostBuilder builder) => builder.ConfigureAppConfiguration(ConfigureApp);
+    public static IHostBuilder ConfigureServiceProvider(this IHostBuilder builder) => builder.UseDefaultServiceProvider(ConfigureDefaultServiceProvider);
+    
+    private static void ConfigureHost(IConfigurationBuilder configurationBuilder)
+        => configurationBuilder.AddEnvironmentVariables(prefix: "DOTNET_")
+            .AddCommandLineIfNotNull();
+
+    private static void ConfigureApp(HostBuilderContext hostingContext, IConfigurationBuilder configurationBuilder)
+    {
+        var shouldReloadOnChange = hostingContext.Configuration.GetValue("hostBuilder:reloadConfigOnChange", defaultValue: true);
+        configurationBuilder.AddJsonFile("appsettings.json",
+                optional: true,
+                reloadOnChange: shouldReloadOnChange)
+            .AddJsonFile($"appsettings.{hostingContext.HostingEnvironment.EnvironmentName}.json",
+                optional: true,
+                reloadOnChange: shouldReloadOnChange)
+            .AddDevelopmentAssembly(hostingContext.HostingEnvironment)
+            .AddEnvironmentVariables()
+            .AddCommandLineIfNotNull();
+    }
+
+    private static void ConfigureDefaultServiceProvider(HostBuilderContext context, ServiceProviderOptions options)
+    {
+        var isDevelopment = context.HostingEnvironment.IsDevelopment();
+        options.ValidateScopes  = isDevelopment;
+        options.ValidateOnBuild = isDevelopment;
+    }
+}

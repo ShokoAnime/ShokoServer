@@ -1,15 +1,15 @@
 ﻿#region
 using System;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NLog.Extensions.Logging;
-using Shoko.Server.Commands;
+using NLog.Web;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -23,9 +23,11 @@ public partial class App
 {
     private static TaskbarIcon? _icon;
     private ILogger _logger = null!;
+    private static App s_instance = null!;
 
     private void OnStartup(object a, StartupEventArgs e)
     {
+        s_instance = this;
         Console.CancelKeyPress += OnConsoleOnCancelKeyPress;
         InitialiseTaskbarIcon();
         try
@@ -39,36 +41,20 @@ public partial class App
 
         Utils.SetInstance();
         Utils.InitLogger();
-        var loggerFactory = new LoggerFactory().AddNLog();
-        _logger = loggerFactory.CreateLogger("App.xaml");
-        var settingsProvider = new SettingsProvider(loggerFactory.CreateLogger<SettingsProvider>());
-        var shokoServer = new ShokoServer(loggerFactory.CreateLogger<ShokoServer>(), settingsProvider);
-        Utils.ShokoServer = shokoServer;
-        new StartServer(loggerFactory.CreateLogger<StartServer>(), settingsProvider).StartupServer(AddEventHandlers, () => shokoServer.StartUpServer());
+        // startup DI builds ShokoServer and StartServer, then those build the runtime DI. The startup DI allows logging and other DI handling during startup
+        new HostBuilder().UseContentRoot(Directory.GetCurrentDirectory())
+            .ConfigureHost()
+            .ConfigureApp()
+            .ConfigureServiceProvider()
+            .UseNLog()
+            .ConfigureServices(ConfigureServices)
+            .Build()
+            // we use Start() instead of Run() to avoid blocking the main thread with a spin/wait
+            .Start();
     }
 
-    private void AddEventHandlers()
-    {
-        Utils.ShokoServer.ServerShutdown += OnInstanceOnServerShutdown;
-        Utils.YesNoRequired += OnUtilsOnYesNoRequired;
-        ServerState.Instance.PropertyChanged += OnInstanceOnPropertyChanged;
-        ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnCmdProcessorGeneralOnOnQueueStateChangedEvent;
-    }
-
-    private void OnCmdProcessorGeneralOnOnQueueStateChangedEvent(QueueStateEventArgs ev) 
-        => Console.WriteLine("General Queue state change: {0}", ev.QueueState.formatMessage());
-    
-    private static void OnUtilsOnYesNoRequired(object? _, Utils.CancelReasonEventArgs e) 
-        => e.Cancel = true;
-    
-    private void OnInstanceOnServerShutdown(object? o, EventArgs eventArgs) 
-        => Shutdown();
-
-    private static void OnInstanceOnPropertyChanged(object? _, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
-            Console.WriteLine("Startup failed! Error message: {0}", ServerState.Instance.StartupFailedMessage);
-    }
+    public static void OnInstanceOnServerShutdown(object? o, EventArgs eventArgs) 
+        => s_instance.Shutdown();
 
     private void InitialiseTaskbarIcon()
     {
@@ -142,5 +128,13 @@ public partial class App
             url = url.Replace("&", "^&");
             Process.Start(new ProcessStartInfo("cmd", $"/c start {url}"){CreateNoWindow = true});
         }
+    }
+
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        services.AddHostedService<Worker>();
+        services.AddSingleton<ISettingsProvider, SettingsProvider>();
+        services.AddSingleton<ShokoServer>();
+        services.AddSingleton<StartServer>();
     }
 }

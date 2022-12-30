@@ -4,11 +4,8 @@ using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using NLog.Extensions.Logging;
 using Shoko.Server.Commands;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 #endregion
 namespace Shoko.CLI;
@@ -16,22 +13,21 @@ namespace Shoko.CLI;
 public class Worker : BackgroundService
 {
     private readonly IHostApplicationLifetime? _appLifetime;
+    private readonly ShokoServer _server;
+    private readonly StartServer _startup;
 
     public Worker() { }
-    public Worker(IHostApplicationLifetime lifetime)
+    public Worker(IHostApplicationLifetime lifetime, ShokoServer server, StartServer startup)
     {
         _appLifetime = lifetime;
+        _server = server;
+        _startup = startup;
+        Utils.ShokoServer = server;
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        Utils.SetInstance();
-        Utils.InitLogger();
-        var loggerFactory = new LoggerFactory().AddNLog();
-        var settingsProvider = new SettingsProvider(loggerFactory.CreateLogger<SettingsProvider>());
-        var shokoServer = new ShokoServer(loggerFactory.CreateLogger<ShokoServer>(), settingsProvider);
-        Utils.ShokoServer = shokoServer;
-        new StartServer(loggerFactory.CreateLogger<StartServer>(), settingsProvider).StartupServer(AddEventHandlers, () => shokoServer.StartUpServer());
+        _startup.StartupServer(AddEventHandlers, () => _server.StartUpServer());
         return Task.CompletedTask;
     }
 
