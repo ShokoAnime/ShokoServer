@@ -26,6 +26,7 @@ using Shoko.Server.API.SignalR;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.SignalR.Legacy;
 using Shoko.Server.Commands;
+using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.MovieDB;
@@ -68,6 +69,7 @@ public class Startup
         services.AddSingleton<TraktTVHelper>();
         services.AddSingleton<TvDBApiHelper>();
         services.AddSingleton<MovieDBHelper>();
+        services.AddScoped<CommonImplementation>();
         AniDBStartup.ConfigureServices(services);
         CommandStartup.Configure(services);
         Loader.Instance.Load(services);
