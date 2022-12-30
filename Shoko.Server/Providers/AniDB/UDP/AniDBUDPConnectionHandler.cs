@@ -10,6 +10,7 @@ using Shoko.Server.Providers.AniDB.UDP.Connection;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Server;
+using Shoko.Server.Settings;
 using Shoko.Server.Settings.DI;
 using Timer = System.Timers.Timer;
 
@@ -33,7 +34,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
     public string ImageServerUrl => string.Format(Constants.URLS.AniDB_Images, _cdnDomain);
 
-    private SettingsProvider SettingsProvider { get; set; }
+    private ISettingsProvider SettingsProvider { get; set; }
 
     private Timer _pulseTimer;
 
@@ -71,7 +72,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         LastAniDBMessageNonPing < LastAniDBPing ? LastAniDBPing : LastAniDBMessageNonPing;
 
     public AniDBUDPConnectionHandler(IRequestFactory requestFactory, ILoggerFactory loggerFactory,
-        CommandProcessorGeneral queue, SettingsProvider settings, UDPRateLimiter rateLimiter) : base(loggerFactory,
+        CommandProcessorGeneral queue, ISettingsProvider settings, UDPRateLimiter rateLimiter) : base(loggerFactory,
         queue, rateLimiter)
     {
         _requestFactory = requestFactory;
@@ -92,7 +93,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
     public bool Init(string username, string password, string serverName, ushort serverPort, ushort clientPort)
     {
-        var settings = SettingsProvider.Settings;
+        var settings = SettingsProvider.GetSettings();
         settings.AniDb.ServerAddress = serverName;
         settings.AniDb.ServerPort = serverPort;
         settings.AniDb.ClientPort = clientPort;
@@ -115,7 +116,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             _socketHandler = null;
         }
 
-        var settings = SettingsProvider.Settings;
+        var settings = SettingsProvider.GetSettings();
         _socketHandler = new AniDBSocketHandler(_loggerFactory, settings.AniDb.ServerAddress, settings.AniDb.ServerPort,
             settings.AniDb.ClientPort);
         _isLoggedOn = false;
@@ -399,7 +400,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
     public bool Login()
     {
-        var settings = SettingsProvider.Settings;
+        var settings = SettingsProvider.GetSettings();
         if (Login(settings.AniDb.Username, settings.AniDb.Password))
         {
             return true;
@@ -543,10 +544,10 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             return false;
         }
 
-        var settings = SettingsProvider.Settings;
+        var settings = SettingsProvider.GetSettings();
         settings.AniDb.Username = username;
         settings.AniDb.Password = password;
-        settings.SaveSettings();
+        SettingsProvider.SaveSettings();
         return true;
     }
 

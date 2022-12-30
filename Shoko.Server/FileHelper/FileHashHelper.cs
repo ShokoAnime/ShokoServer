@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using NLog;
 using Shoko.Models.Server;
-using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.FileHelper;
 
@@ -47,7 +47,7 @@ public class FileHashHelper
 
         try
         {
-            var exts = ServerSettings.Instance.Import.VideoExtensions;
+            var exts = Utils.SettingsProvider.GetSettings().Import.VideoExtensions;
 
             if (exts == null || exts.Count == 0)
             {

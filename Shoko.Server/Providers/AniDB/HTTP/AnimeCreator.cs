@@ -21,20 +21,23 @@ namespace Shoko.Server.Providers.AniDB.HTTP;
 public class AnimeCreator
 {
     private readonly ILogger<AnimeCreator> _logger;
+    private readonly ISettingsProvider _settingsProvider;
 
-    public AnimeCreator(ILogger<AnimeCreator> logger)
+    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings)
     {
         _logger = logger;
+        _settingsProvider = settings;
     }
 
 
     public void CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
+        var settings = _settingsProvider.GetSettings();
         _logger.LogTrace("------------------------------------------------");
         _logger.LogTrace(
             "PopulateAndSaveFromHTTP: for {AnimeID} - {MainTitle} @ Depth: {RelationDepth}/{MaxRelationDepth}",
             response.Anime.AnimeID, response.Anime.MainTitle, relDepth,
-            ServerSettings.Instance.AniDb.MaxRelationDepth
+            settings.AniDb.MaxRelationDepth
         );
         _logger.LogTrace("------------------------------------------------");
 

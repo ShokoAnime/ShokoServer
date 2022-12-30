@@ -3,7 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.Http;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.PlexAndKodi.Plex;
 
@@ -61,7 +61,7 @@ public class PlexProvider : IProvider
     public string ExcludeTags => "Kodi";
 
     public string ServiceAddress => ShokoServer.PathAddressPlex;
-    public int ServicePort => ServerSettings.Instance.ServerPort;
+    public int ServicePort => Utils.SettingsProvider.GetSettings().ServerPort;
     public bool UseBreadCrumbs => true;
     public bool ConstructFakeIosParent => true;
     public bool AutoWatch => true;

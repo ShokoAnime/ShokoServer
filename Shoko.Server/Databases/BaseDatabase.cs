@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using NHibernate.Util;
 using NLog;
 using Shoko.Commons.Properties;
@@ -14,7 +12,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using Constants = Shoko.Server.Server.Constants;
 
 namespace Shoko.Server.Databases;
@@ -26,7 +24,8 @@ public abstract class BaseDatabase<T>
 
     public string GetDatabaseBackupName(int version)
     {
-        var backupath = ServerSettings.Instance.Database.DatabaseBackupDirectory;
+        var settings = Utils.SettingsProvider.GetSettings();
+        var backupath = settings.Database.DatabaseBackupDirectory;
         try
         {
             Directory.CreateDirectory(backupath);
@@ -36,7 +35,7 @@ public abstract class BaseDatabase<T>
             //ignored
         }
 
-        var fname = ServerSettings.Instance.Database.Schema + "_" + version.ToString("D3") + "_" +
+        var fname = settings.Database.Schema + "_" + version.ToString("D3") + "_" +
                     DateTime.Now.Year.ToString("D4") + DateTime.Now.Month.ToString("D2") +
                     DateTime.Now.Day.ToString("D2") + DateTime.Now.Hour.ToString("D2") +
                     DateTime.Now.Minute.ToString("D2");
@@ -244,8 +243,6 @@ public abstract class BaseDatabase<T>
 
     public void PopulateInitialData()
     {
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
-
         var message = Resources.Database_Users;
 
         Logger.Info($"Starting Server: {message}");
@@ -288,8 +285,6 @@ public abstract class BaseDatabase<T>
         {
             return;
         }
-
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
         // Favorites
         var gf = new SVR_GroupFilter
@@ -447,11 +442,11 @@ public abstract class BaseDatabase<T>
             return;
         }
 
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
+        var settings = Utils.SettingsProvider.GetSettings();
 
-        var defaultPassword = ServerSettings.Instance.Database.DefaultUserPassword == ""
+        var defaultPassword = settings.Database.DefaultUserPassword == ""
             ? ""
-            : Digest.Hash(ServerSettings.Instance.Database.DefaultUserPassword);
+            : Digest.Hash(settings.Database.DefaultUserPassword);
         var defaultUser = new SVR_JMMUser
         {
             CanEditServerSettings = 1,
@@ -460,7 +455,7 @@ public abstract class BaseDatabase<T>
             IsAniDBUser = 1,
             IsTraktUser = 1,
             Password = defaultPassword,
-            Username = ServerSettings.Instance.Database.DefaultUserUsername
+            Username = settings.Database.DefaultUserUsername
         };
         RepoFactory.JMMUser.Save(defaultUser, true);
 
@@ -485,8 +480,6 @@ public abstract class BaseDatabase<T>
         }
 
         var initialScript = new RenameScript();
-
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
         initialScript.ScriptName = Resources.Rename_Default;
         initialScript.IsEnabledOnImport = 0;
@@ -546,8 +539,6 @@ public abstract class BaseDatabase<T>
             {
                 return;
             }
-
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             // Dropped
             var tag = new CustomTag

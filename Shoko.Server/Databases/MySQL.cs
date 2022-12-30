@@ -9,7 +9,7 @@ using NHibernate;
 using Shoko.Commons.Properties;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
 
@@ -429,7 +429,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
         new(35, 2,
             "CREATE TABLE `CrossRef_CustomTag` ( `CrossRef_CustomTagID` INT NOT NULL AUTO_INCREMENT, `CustomTagID` int NOT NULL, `CrossRefID` int NOT NULL, `CrossRefType` int NOT NULL, PRIMARY KEY (`CrossRef_CustomTagID`) ) ; "),
         new(36, 1,
-            $"ALTER DATABASE {ServerSettings.Instance.Database.Schema} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;"),
+            $"ALTER DATABASE {Utils.SettingsProvider.GetSettings().Database.Schema} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;"),
         new(37, 1,
             "ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_AnimeID` ;"),
         new(37, 2, "ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_Anime` ;"),
@@ -952,14 +952,16 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
 
     public override string GetConnectionString()
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         return
-            $"Server={ServerSettings.Instance.Database.Hostname};Database={ServerSettings.Instance.Database.Schema};User ID={ServerSettings.Instance.Database.Username};Password={ServerSettings.Instance.Database.Password};Default Command Timeout=3600";
+            $"Server={settings.Database.Hostname};Database={settings.Database.Schema};User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
     }
 
     public override string GetTestConnectionString()
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         return
-            $"Server={ServerSettings.Instance.Database.Hostname};Database=mysql;User ID={ServerSettings.Instance.Database.Username};Password={ServerSettings.Instance.Database.Password};Default Command Timeout=3600";
+            $"Server={settings.Database.Hostname};Database=mysql;User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
     }
 
     public override bool HasVersionsTable()
@@ -976,12 +978,13 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
 
     public ISessionFactory CreateSessionFactory()
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         return Fluently.Configure()
             .Database(MySQLConfiguration.Standard.ConnectionString(
-                x => x.Database(ServerSettings.Instance.Database.Schema + ";CharSet=utf8mb4")
-                    .Server(ServerSettings.Instance.Database.Hostname)
-                    .Username(ServerSettings.Instance.Database.Username)
-                    .Password(ServerSettings.Instance.Database.Password)))
+                x => x.Database(settings.Database.Schema + ";CharSet=utf8mb4")
+                    .Server(settings.Database.Hostname)
+                    .Username(settings.Database.Username)
+                    .Password(settings.Database.Password)))
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
@@ -993,12 +996,13 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
 
     public bool DatabaseAlreadyExists()
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         try
         {
             var connStr = GetConnectionString();
 
             var sql =
-                $"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{ServerSettings.Instance.Database.Schema}'";
+                $"SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{settings.Database.Schema}'";
             Logger.Trace(sql);
 
             using var conn = new MySqlConnection(connStr);
@@ -1016,12 +1020,13 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
             Logger.Error(ex, ex.ToString());
         }
 
-        Logger.Trace("db does not exist: {0}", ServerSettings.Instance.Database.Schema);
+        Logger.Trace("db does not exist: {0}", settings.Database.Schema);
         return false;
     }
 
     public void CreateDatabase()
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         try
         {
             if (DatabaseAlreadyExists())
@@ -1030,10 +1035,10 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
             }
 
             var connStr =
-                $"Server={ServerSettings.Instance.Database.Hostname};User ID={ServerSettings.Instance.Database.Username};Password={ServerSettings.Instance.Database.Password}";
+                $"Server={settings.Database.Hostname};User ID={settings.Database.Username};Password={settings.Database.Password}";
             Logger.Trace(connStr);
             var sql =
-                $"CREATE DATABASE {ServerSettings.Instance.Database.Schema} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
+                $"CREATE DATABASE {settings.Database.Schema} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
             Logger.Trace(sql);
 
             using (var conn = new MySqlConnection(connStr))
@@ -1053,14 +1058,15 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         ConnectionWrapper(GetConnectionString(), myConn =>
         {
+            var settings = Utils.SettingsProvider.GetSettings();
             var create = false;
             var fixtablesforlinux = false;
             var count = ExecuteScalar(myConn,
-                $"select count(*) from information_schema.tables where table_schema='{ServerSettings.Instance.Database.Schema}' and table_name = 'Versions'");
+                $"select count(*) from information_schema.tables where table_schema='{settings.Database.Schema}' and table_name = 'Versions'");
             if (count == 0)
             {
                 count = ExecuteScalar(myConn,
-                    $"select count(*) from information_schema.tables where table_schema='{ServerSettings.Instance.Database.Schema}' and table_name = 'versions'");
+                    $"select count(*) from information_schema.tables where table_schema='{settings.Database.Schema}' and table_name = 'versions'");
                 if (count > 0)
                 {
                     fixtablesforlinux = true;
@@ -1079,7 +1085,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
             }
 
             count = ExecuteScalar(myConn,
-                $"select count(*) from information_schema.columns where table_schema='{ServerSettings.Instance.Database.Schema}' and table_name = 'Versions' and column_name = 'VersionRevision'");
+                $"select count(*) from information_schema.columns where table_schema='{settings.Database.Schema}' and table_name = 'Versions' and column_name = 'VersionRevision'");
             if (count == 0)
             {
                 ExecuteWithException(myConn, updateVersionTable);
@@ -1105,14 +1111,15 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
 
     private static void MySQLFixUTF8()
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         var sql =
             "SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
             "FROM information_schema.COLUMNS " +
-            $"WHERE table_schema = '{ServerSettings.Instance.Database.Schema}' " +
+            $"WHERE table_schema = '{settings.Database.Schema}' " +
             "AND collation_name != 'utf8mb4_unicode_ci'";
 
         using (var conn = new MySqlConnection(
-                   $"Server={ServerSettings.Instance.Database.Hostname};User ID={ServerSettings.Instance.Database.Username};Password={ServerSettings.Instance.Database.Password};database={ServerSettings.Instance.Database.Schema}"))
+                   $"Server={settings.Database.Hostname};User ID={settings.Database.Username};Password={settings.Database.Password};database={settings.Database.Schema}"))
         {
             var mySQL = (MySQL)DatabaseFactory.Instance;
             conn.Open();

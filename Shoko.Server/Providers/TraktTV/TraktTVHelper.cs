@@ -27,11 +27,13 @@ public class TraktTVHelper
 {
     private readonly ILogger<TraktTVHelper> _logger;
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISettingsProvider _settingsProvider;
 
-    public TraktTVHelper(ILogger<TraktTVHelper> logger, ICommandRequestFactory commandFactory)
+    public TraktTVHelper(ILogger<TraktTVHelper> logger, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider)
     {
         _logger = logger;
         _commandFactory = commandFactory;
+        _settingsProvider = settingsProvider;
     }
 
     #region Helpers
@@ -210,11 +212,10 @@ public class TraktTVHelper
     {
         var headers = new Dictionary<string, string>
         {
-            { "Authorization", $"Bearer {ServerSettings.Instance.TraktTv.AuthToken}" },
+            { "Authorization", $"Bearer {_settingsProvider.GetSettings().TraktTv.AuthToken}" },
             { "trakt-api-key", TraktConstants.ClientID },
             { "trakt-api-version", "2" }
         };
-
 
         return headers;
     }
@@ -225,20 +226,21 @@ public class TraktTVHelper
 
     public void RefreshAuthToken()
     {
+        var settings = _settingsProvider.GetSettings();
         try
         {
-            if (!ServerSettings.Instance.TraktTv.Enabled ||
-                string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken) ||
-                string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.RefreshToken))
+            if (!settings.TraktTv.Enabled ||
+                string.IsNullOrEmpty(settings.TraktTv.AuthToken) ||
+                string.IsNullOrEmpty(settings.TraktTv.RefreshToken))
             {
-                ServerSettings.Instance.TraktTv.AuthToken = string.Empty;
-                ServerSettings.Instance.TraktTv.RefreshToken = string.Empty;
-                ServerSettings.Instance.TraktTv.TokenExpirationDate = string.Empty;
+                settings.TraktTv.AuthToken = string.Empty;
+                settings.TraktTv.RefreshToken = string.Empty;
+                settings.TraktTv.TokenExpirationDate = string.Empty;
 
                 return;
             }
 
-            var token = new TraktV2RefreshToken { refresh_token = ServerSettings.Instance.TraktTv.RefreshToken };
+            var token = new TraktV2RefreshToken { refresh_token = settings.TraktTv.RefreshToken };
             var json = JSONHelper.Serialize(token);
             var headers = new Dictionary<string, string>();
 
@@ -250,33 +252,33 @@ public class TraktTVHelper
                 var loginResponse = retData.FromJSON<TraktAuthToken>();
 
                 // save the token to the config file to use for subsequent API calls
-                ServerSettings.Instance.TraktTv.AuthToken = loginResponse.AccessToken;
-                ServerSettings.Instance.TraktTv.RefreshToken = loginResponse.RefreshToken;
+                settings.TraktTv.AuthToken = loginResponse.AccessToken;
+                settings.TraktTv.RefreshToken = loginResponse.RefreshToken;
 
                 long.TryParse(loginResponse.CreatedAt, out var createdAt);
                 long.TryParse(loginResponse.ExpiresIn, out var validity);
                 var expireDate = createdAt + validity;
 
-                ServerSettings.Instance.TraktTv.TokenExpirationDate = expireDate.ToString();
+                settings.TraktTv.TokenExpirationDate = expireDate.ToString();
 
                 return;
             }
 
-            ServerSettings.Instance.TraktTv.AuthToken = string.Empty;
-            ServerSettings.Instance.TraktTv.RefreshToken = string.Empty;
-            ServerSettings.Instance.TraktTv.TokenExpirationDate = string.Empty;
+            settings.TraktTv.AuthToken = string.Empty;
+            settings.TraktTv.RefreshToken = string.Empty;
+            settings.TraktTv.TokenExpirationDate = string.Empty;
         }
         catch (Exception ex)
         {
-            ServerSettings.Instance.TraktTv.AuthToken = string.Empty;
-            ServerSettings.Instance.TraktTv.RefreshToken = string.Empty;
-            ServerSettings.Instance.TraktTv.TokenExpirationDate = string.Empty;
+            settings.TraktTv.AuthToken = string.Empty;
+            settings.TraktTv.RefreshToken = string.Empty;
+            settings.TraktTv.TokenExpirationDate = string.Empty;
 
             _logger.LogError(ex, "Error in TraktTVHelper.RefreshAuthToken: {Ex}", ex);
         }
         finally
         {
-            ServerSettings.Instance.SaveSettings();
+            Utils.SettingsProvider.SaveSettings();
         }
     }
 
@@ -370,16 +372,17 @@ public class TraktTVHelper
                 var response = SendData(TraktURIs.OAuthDeviceToken, json, "POST", headers, ref retData);
                 if (response == TraktStatusCodes.Success)
                 {
+                    var settings = _settingsProvider.GetSettings();
                     var tokenResponse = retData.FromJSON<TraktAuthToken>();
-                    ServerSettings.Instance.TraktTv.AuthToken = tokenResponse.AccessToken;
-                    ServerSettings.Instance.TraktTv.RefreshToken = tokenResponse.RefreshToken;
+                    settings.TraktTv.AuthToken = tokenResponse.AccessToken;
+                    settings.TraktTv.RefreshToken = tokenResponse.RefreshToken;
 
                     long.TryParse(tokenResponse.CreatedAt, out var createdAt);
                     long.TryParse(tokenResponse.ExpiresIn, out var validity);
                     var expireDate = createdAt + validity;
 
-                    ServerSettings.Instance.TraktTv.TokenExpirationDate = expireDate.ToString();
-                    ServerSettings.Instance.SaveSettings();
+                    settings.TraktTv.TokenExpirationDate = expireDate.ToString();
+                    _settingsProvider.SaveSettings();
                     break;
                 }
 
@@ -499,7 +502,7 @@ public class TraktTVHelper
 
     public void ScanForMatches()
     {
-        if (!ServerSettings.Instance.TraktTv.Enabled)
+        if (!_settingsProvider.GetSettings().TraktTv.Enabled)
         {
             return;
         }
@@ -749,14 +752,15 @@ public class TraktTVHelper
         var ret = new CL_Response<bool>();
         try
         {
-            if (!ServerSettings.Instance.TraktTv.Enabled)
+            var settings = _settingsProvider.GetSettings();
+            if (!settings.TraktTv.Enabled)
             {
                 ret.ErrorMessage = "Trakt has not been enabled";
                 ret.Result = false;
                 return ret;
             }
 
-            if (string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+            if (string.IsNullOrEmpty(settings.TraktTv.AuthToken))
             {
                 ret.ErrorMessage = "Trakt has not been authorized";
                 ret.Result = false;
@@ -878,8 +882,9 @@ public class TraktTVHelper
     {
         try
         {
-            if (!ServerSettings.Instance.TraktTv.Enabled ||
-                string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+            var settings = _settingsProvider.GetSettings();
+            if (!settings.TraktTv.Enabled ||
+                string.IsNullOrEmpty(settings.TraktTv.AuthToken))
             {
                 return;
             }
@@ -910,8 +915,9 @@ public class TraktTVHelper
     {
         try
         {
-            if (!ServerSettings.Instance.TraktTv.Enabled ||
-                string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+            var settings = _settingsProvider.GetSettings();
+            if (!settings.TraktTv.Enabled ||
+                string.IsNullOrEmpty(settings.TraktTv.AuthToken))
             {
                 return;
             }
@@ -964,8 +970,9 @@ public class TraktTVHelper
     {
         try
         {
-            if (!ServerSettings.Instance.TraktTv.Enabled ||
-                string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+            var settings = _settingsProvider.GetSettings();
+            if (!settings.TraktTv.Enabled ||
+                string.IsNullOrEmpty(settings.TraktTv.AuthToken))
             {
                 return 401;
             }
@@ -1050,7 +1057,8 @@ public class TraktTVHelper
     {
         var results = new List<TraktV2SearchShowResult>();
 
-        if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
         {
             return results;
         }
@@ -1096,7 +1104,8 @@ public class TraktTVHelper
     {
         var results = new List<TraktV2SearchTvDBIDShowResult>();
 
-        if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
         {
             return results;
         }
@@ -1143,7 +1152,8 @@ public class TraktTVHelper
     {
         TraktV2ShowExtended resultShow;
 
-        if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
         {
             return null;
         }
@@ -1276,8 +1286,8 @@ public class TraktTVHelper
         var ret = new List<TraktV2Comment>();
         try
         {
-            if (!ServerSettings.Instance.TraktTv.Enabled ||
-                string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+            var settings = _settingsProvider.GetSettings();
+            if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
             {
                 return ret;
             }
@@ -1345,7 +1355,8 @@ public class TraktTVHelper
 
     private List<TraktV2ShowWatchedResult> GetWatchedShows(ref int traktCode)
     {
-        if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
         {
             return new List<TraktV2ShowWatchedResult>();
         }
@@ -1382,7 +1393,8 @@ public class TraktTVHelper
 
     public List<TraktV2ShowCollectedResult> GetCollectedShows(ref int traktCode)
     {
-        if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
         {
             return new List<TraktV2ShowCollectedResult>();
         }
@@ -1422,7 +1434,7 @@ public class TraktTVHelper
 
     public void UpdateAllInfo()
     {
-        if (!ServerSettings.Instance.TraktTv.Enabled)
+        if (!_settingsProvider.GetSettings().TraktTv.Enabled)
         {
             return;
         }
@@ -1488,8 +1500,8 @@ public class TraktTVHelper
     {
         try
         {
-            if (!ServerSettings.Instance.TraktTv.Enabled ||
-                string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+            var settings = _settingsProvider.GetSettings();
+            if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
             {
                 return;
             }
@@ -2050,8 +2062,8 @@ public class TraktTVHelper
     {
         try
         {
-            if (!ServerSettings.Instance.TraktTv.Enabled ||
-                string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+            var settings = _settingsProvider.GetSettings();
+            if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
             {
                 return false;
             }

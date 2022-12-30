@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Globalization;
 using System.Threading;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Properties;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Databases;
@@ -51,12 +49,13 @@ public static class DatabaseFactory
         {
             if (_instance == null)
             {
-                if (ServerSettings.Instance.Database.Type.Trim()
+                var settings = Utils.SettingsProvider.GetSettings();
+                if (settings.Database.Type.Trim()
                     .Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
                 {
                     _instance = new SQLServer();
                 }
-                else if (ServerSettings.Instance.Database.Type.Trim()
+                else if (settings.Database.Type.Trim()
                          .Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
                 {
                     _instance = new SQLite();
@@ -100,8 +99,6 @@ public static class DatabaseFactory
                 Instance.CreateDatabase();
                 Thread.Sleep(3000);
             }
-
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             CloseSessionFactory();
 

@@ -11,14 +11,12 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using Directory = Shoko.Models.PlexAndKodi.Directory;
 
 namespace Shoko.Server.PlexAndKodi;
@@ -28,56 +26,56 @@ public static class Helper
     public static string ConstructVideoLocalStream(this IProvider prov, int userid, int vid, string name,
         bool autowatch)
     {
-        return prov.ServerUrl(ServerSettings.Instance.ServerPort,
+        return prov.ServerUrl(Utils.SettingsProvider.GetSettings().ServerPort,
             "Stream/" + vid + "/" + userid + "/" + autowatch + "/" + name, prov.IsExternalRequest());
     }
 
     public static string ConstructFileStream(this IProvider prov, int userid, string file, bool autowatch)
     {
-        return prov.ServerUrl(ServerSettings.Instance.ServerPort,
+        return prov.ServerUrl(Utils.SettingsProvider.GetSettings().ServerPort,
             "Stream/Filename/" + Base64EncodeUrl(file) + "/" + userid + "/" + autowatch, prov.IsExternalRequest());
     }
 
     public static string ConstructImageLink(this IProvider prov, int type, int id)
     {
-        return prov.ServerUrl(ServerSettings.Instance.ServerPort,
+        return prov.ServerUrl(Utils.SettingsProvider.GetSettings().ServerPort,
             ShokoServer.PathAddressREST + "/" + type + "/" + id);
     }
 
     public static string ConstructSupportImageLink(this IProvider prov, string name)
     {
         var relation = prov.GetRelation().ToString(CultureInfo.InvariantCulture);
-        return prov.ServerUrl(ServerSettings.Instance.ServerPort,
+        return prov.ServerUrl(Utils.SettingsProvider.GetSettings().ServerPort,
             ShokoServer.PathAddressREST + "/Support/" + name + "/" + relation);
     }
 
     public static string ConstructSupportImageLinkTV(this IProvider prov, string name)
     {
-        return prov.ServerUrl(ServerSettings.Instance.ServerPort,
+        return prov.ServerUrl(Utils.SettingsProvider.GetSettings().ServerPort,
             ShokoServer.PathAddressREST + "/Support/" + name);
     }
 
     public static string ConstructThumbLink(this IProvider prov, int type, int id)
     {
         var relation = prov.GetRelation().ToString(CultureInfo.InvariantCulture);
-        return prov.ServerUrl(ServerSettings.Instance.ServerPort,
+        return prov.ServerUrl(Utils.SettingsProvider.GetSettings().ServerPort,
             ShokoServer.PathAddressREST + "/Thumb/" + type + "/" + id + "/" + relation);
     }
 
     public static string ConstructTVThumbLink(this IProvider prov, int type, int id)
     {
-        return prov.ServerUrl(ServerSettings.Instance.ServerPort,
+        return prov.ServerUrl(Utils.SettingsProvider.GetSettings().ServerPort,
             ShokoServer.PathAddressREST + "/Thumb/" + type + "/" + id + "/1.3333");
     }
 
     public static string ConstructCharacterImage(this IProvider prov, int id)
     {
-        return prov.ServerUrl(ServerSettings.Instance.ServerPort, ShokoServer.PathAddressREST + "/2/" + id);
+        return prov.ServerUrl(Utils.SettingsProvider.GetSettings().ServerPort, ShokoServer.PathAddressREST + "/2/" + id);
     }
 
     public static string ConstructSeiyuuImage(this IProvider prov, int id)
     {
-        return prov.ServerUrl(ServerSettings.Instance.ServerPort, ShokoServer.PathAddressREST + "/3/" + id);
+        return prov.ServerUrl(Utils.SettingsProvider.GetSettings().ServerPort, ShokoServer.PathAddressREST + "/3/" + id);
     }
 
     public static readonly Lazy<Dictionary<string, double>> _relations = new(CreateRelationsMap, true);
@@ -105,7 +103,7 @@ public static class Helper
     private static Dictionary<string, double> CreateRelationsMap()
     {
         var relations = new Dictionary<string, double>();
-        var aspects = ServerSettings.Instance.Plex.ThumbnailAspects.Split(',');
+        var aspects = Utils.SettingsProvider.GetSettings().Plex.ThumbnailAspects.Split(',');
 
         for (var x = 0; x < aspects.Length; x += 2)
         {

@@ -88,6 +88,9 @@ public class ShokoServer
     private ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider)
     {
         this.logger = logger;
+        var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
         SetupNetHosts(settingsProvider);
     }
 

@@ -15,6 +15,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Tasks;
 
@@ -49,7 +50,7 @@ internal class AnimeGroupCreator
     /// Uses the current server configuration to determine if auto grouping series is enabled.
     /// </remarks>
     public AnimeGroupCreator()
-        : this(ServerSettings.Instance.AutoGroupSeries)
+        : this(Utils.SettingsProvider.GetSettings().AutoGroupSeries)
     {
     }
 

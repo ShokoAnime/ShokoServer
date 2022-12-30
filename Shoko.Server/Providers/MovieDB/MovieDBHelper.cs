@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Web;
 using Microsoft.Extensions.Logging;
-using NHibernate;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -12,8 +11,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using TMDbLib.Client;
 
 namespace Shoko.Server.Providers.MovieDB;
@@ -81,11 +79,12 @@ public class MovieDBHelper
         }
 
         // download the posters
-        if (ServerSettings.Instance.MovieDb.AutoPosters || isTrakt)
+        var settings = Utils.SettingsProvider.GetSettings();
+        if (settings.MovieDb.AutoPosters || isTrakt)
         {
             foreach (var poster in RepoFactory.MovieDB_Poster.GetByMovieID( movie.MovieId))
             {
-                if (numPostersDownloaded < ServerSettings.Instance.MovieDb.AutoPostersAmount)
+                if (numPostersDownloaded < settings.MovieDb.AutoPostersAmount)
                 {
                     // download the image
                     if (string.IsNullOrEmpty(poster.GetFullImagePath()) || File.Exists(poster.GetFullImagePath()))
@@ -117,11 +116,11 @@ public class MovieDBHelper
         }
 
         // download the fanart
-        if (ServerSettings.Instance.MovieDb.AutoFanart || isTrakt)
+        if (settings.MovieDb.AutoFanart || isTrakt)
         {
             foreach (var fanart in RepoFactory.MovieDB_Fanart.GetByMovieID(movie.MovieId))
             {
-                if (numFanartDownloaded < ServerSettings.Instance.MovieDb.AutoFanartAmount)
+                if (numFanartDownloaded < settings.MovieDb.AutoFanartAmount)
                 {
                     // download the image
                     if (string.IsNullOrEmpty(fanart.GetFullImagePath()) || File.Exists(fanart.GetFullImagePath()))

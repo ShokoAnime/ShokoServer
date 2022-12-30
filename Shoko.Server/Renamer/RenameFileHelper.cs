@@ -11,9 +11,8 @@ using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Plugin.Abstractions.Attributes;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server;
 
@@ -83,7 +82,7 @@ public class RenameFileHelper
             }
             catch (Exception e)
             {
-                if (!ServerSettings.Instance.Plugins.DeferOnError || args.Cancel)
+                if (!Utils.SettingsProvider.GetSettings().Plugins.DeferOnError || args.Cancel)
                 {
                     throw;
                 }
@@ -150,7 +149,7 @@ public class RenameFileHelper
             }
             catch (Exception e)
             {
-                if (!ServerSettings.Instance.Plugins.DeferOnError || args.Cancel)
+                if (!Utils.SettingsProvider.GetSettings().Plugins.DeferOnError || args.Cancel)
                 {
                     throw;
                 }
@@ -220,10 +219,11 @@ public class RenameFileHelper
 
     public static IList<IRenamer> GetPluginRenamersSorted(string renamerName)
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         return _getEnabledRenamers(renamerName).OrderBy(a => renamerName == a.Key ? 0 : int.MaxValue)
             .ThenBy(a =>
-                ServerSettings.Instance.Plugins.RenamerPriorities.ContainsKey(a.Key)
-                    ? ServerSettings.Instance.Plugins.RenamerPriorities[a.Key]
+                settings.Plugins.RenamerPriorities.ContainsKey(a.Key)
+                    ? settings.Plugins.RenamerPriorities[a.Key]
                     : int.MaxValue)
             .ThenBy(a => a.Key, StringComparer.InvariantCulture)
             .Select(a => (IRenamer)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, a.Value.type))
@@ -233,6 +233,7 @@ public class RenameFileHelper
     private static IEnumerable<KeyValuePair<string, (Type type, string description)>> _getEnabledRenamers(
         string renamerName)
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         foreach (var kvp in Renamers)
         {
             if (!string.IsNullOrEmpty(renamerName) && kvp.Key != renamerName)
@@ -240,7 +241,7 @@ public class RenameFileHelper
                 continue;
             }
 
-            if (ServerSettings.Instance.Plugins.EnabledRenamers.TryGetValue(kvp.Key, out var isEnabled) && !isEnabled)
+            if (settings.Plugins.EnabledRenamers.TryGetValue(kvp.Key, out var isEnabled) && !isEnabled)
             {
                 continue;
             }

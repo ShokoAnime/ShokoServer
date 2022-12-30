@@ -1,8 +1,6 @@
 ﻿using System;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Settings;
-using NLog;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Server;
 #nullable enable

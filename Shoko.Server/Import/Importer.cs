@@ -22,7 +22,6 @@ using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Utils = Shoko.Server.Utilities.Utils;
 
@@ -137,6 +136,7 @@ public static class Importer
 
     public static void RunImport_ScanFolder(int importFolderID, bool skipMyList = false)
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // get a complete list of files
         var fileList = new List<string>();
@@ -194,7 +194,7 @@ public static class Importer
                     }
                 }
 
-                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
+                if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
                 {
                     Logger.Trace("Import exclusion, skipping --- {0}", fileName);
                     continue;
@@ -230,6 +230,7 @@ public static class Importer
 
     public static void RunImport_DropFolders()
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // get a complete list of files
         var fileList = new List<string>();
@@ -258,7 +259,7 @@ public static class Importer
         {
             i++;
 
-            if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
+            if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
             {
                 Logger.Trace("Import exclusion, skipping --- {0}", fileName);
                 continue;
@@ -284,6 +285,7 @@ public static class Importer
 
     public static void RunImport_NewFiles()
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // first build a list of files that we already know about, as we don't want to process them again
         var filesAll = RepoFactory.VideoLocalPlace.GetAll();
@@ -336,7 +338,7 @@ public static class Importer
         var fileListNew = new List<string>();
         foreach (var fileName in fileList)
         {
-            if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
+            if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
             {
                 Logger.Trace("Import exclusion, skipping --- {0}", fileName);
                 continue;
@@ -379,6 +381,7 @@ public static class Importer
 
     public static void RunImport_GetImages()
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // AniDB posters
         foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
@@ -399,7 +402,7 @@ public static class Importer
         }
 
         // TvDB Posters
-        if (ServerSettings.Instance.TvDB.AutoPosters)
+        if (settings.TvDB.AutoPosters)
         {
             var postersCount = new Dictionary<int, int>();
 
@@ -444,7 +447,7 @@ public static class Importer
                     postersAvailable = postersCount[tvPoster.SeriesID];
                 }
 
-                if (fileExists || postersAvailable >= ServerSettings.Instance.TvDB.AutoPostersAmount)
+                if (fileExists || postersAvailable >= settings.TvDB.AutoPostersAmount)
                 {
                     continue;
                 }
@@ -470,7 +473,7 @@ public static class Importer
         }
 
         // TvDB Fanart
-        if (ServerSettings.Instance.TvDB.AutoFanart)
+        if (settings.TvDB.AutoFanart)
         {
             var fanartCount = new Dictionary<int, int>();
             var allFanart = RepoFactory.TvDB_ImageFanart.GetAll();
@@ -514,7 +517,7 @@ public static class Importer
                     fanartAvailable = fanartCount[tvFanart.SeriesID];
                 }
 
-                if (fileExists || fanartAvailable >= ServerSettings.Instance.TvDB.AutoFanartAmount)
+                if (fileExists || fanartAvailable >= settings.TvDB.AutoFanartAmount)
                 {
                     continue;
                 }
@@ -540,7 +543,7 @@ public static class Importer
         }
 
         // TvDB Wide Banners
-        if (ServerSettings.Instance.TvDB.AutoWideBanners)
+        if (settings.TvDB.AutoWideBanners)
         {
             var fanartCount = new Dictionary<int, int>();
 
@@ -585,7 +588,7 @@ public static class Importer
                     bannersAvailable = fanartCount[tvBanner.SeriesID];
                 }
 
-                if (fileExists || bannersAvailable >= ServerSettings.Instance.TvDB.AutoWideBannersAmount)
+                if (fileExists || bannersAvailable >= settings.TvDB.AutoWideBannersAmount)
                 {
                     continue;
                 }
@@ -636,7 +639,7 @@ public static class Importer
         }
 
         // MovieDB Posters
-        if (ServerSettings.Instance.MovieDb.AutoPosters)
+        if (settings.MovieDb.AutoPosters)
         {
             var postersCount = new Dictionary<int, int>();
 
@@ -681,7 +684,7 @@ public static class Importer
                     postersAvailable = postersCount[moviePoster.MovieId];
                 }
 
-                if (fileExists || postersAvailable >= ServerSettings.Instance.MovieDb.AutoPostersAmount)
+                if (fileExists || postersAvailable >= settings.MovieDb.AutoPostersAmount)
                 {
                     continue;
                 }
@@ -707,7 +710,7 @@ public static class Importer
         }
 
         // MovieDB Fanart
-        if (ServerSettings.Instance.MovieDb.AutoFanart)
+        if (settings.MovieDb.AutoFanart)
         {
             var fanartCount = new Dictionary<int, int>();
 
@@ -752,7 +755,7 @@ public static class Importer
                     fanartAvailable = fanartCount[movieFanart.MovieId];
                 }
 
-                if (fileExists || fanartAvailable >= ServerSettings.Instance.MovieDb.AutoFanartAmount)
+                if (fileExists || fanartAvailable >= settings.MovieDb.AutoFanartAmount)
                 {
                     continue;
                 }
@@ -778,7 +781,7 @@ public static class Importer
         }
 
         // AniDB Characters
-        if (ServerSettings.Instance.AniDb.DownloadCharacters)
+        if (settings.AniDb.DownloadCharacters)
         {
             foreach (var chr in RepoFactory.AniDB_Character.GetAll())
             {
@@ -806,7 +809,7 @@ public static class Importer
         }
 
         // AniDB Creators
-        if (ServerSettings.Instance.AniDb.DownloadCreators)
+        if (settings.AniDb.DownloadCreators)
         {
             foreach (var seiyuu in RepoFactory.AniDB_Seiyuu.GetAll())
             {
@@ -859,7 +862,8 @@ public static class Importer
 
     public static void RunImport_ScanTrakt()
     {
-        if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+        var settings = Utils.SettingsProvider.GetSettings();
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
         {
             return;
         }
@@ -1250,14 +1254,15 @@ public static class Importer
 
     public static void CheckForTvDBUpdates(bool forceRefresh)
     {
-        if (ServerSettings.Instance.TvDB.UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
+        var settings = Utils.SettingsProvider.GetSettings();
+        if (settings.TvDB.UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
         {
             return;
         }
 
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         var tvDBHelper = Utils.ServiceContainer.GetRequiredService<TvDBApiHelper>();
-        var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TvDB.UpdateFrequency);
+        var freqHours = Utils.GetScheduledHours(settings.TvDB.UpdateFrequency);
 
         // update tvdb info every 12 hours
 
@@ -1310,13 +1315,14 @@ public static class Importer
 
     public static void CheckForCalendarUpdate(bool forceRefresh)
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        if (ServerSettings.Instance.AniDb.Calendar_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
+        if (settings.AniDb.Calendar_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
         {
             return;
         }
 
-        var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Calendar_UpdateFrequency);
+        var freqHours = Utils.GetScheduledHours(settings.AniDb.Calendar_UpdateFrequency);
 
         // update the calendar every 12 hours
         // we will always assume that an anime was downloaded via http first
@@ -1343,13 +1349,14 @@ public static class Importer
 
     public static void CheckForAnimeUpdate(bool forceRefresh)
     {
+        var settings = Utils.SettingsProvider.GetSettings();
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        if (ServerSettings.Instance.AniDb.Anime_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
+        if (settings.AniDb.Anime_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
         {
             return;
         }
 
-        var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Anime_UpdateFrequency);
+        var freqHours = Utils.GetScheduledHours(settings.AniDb.Anime_UpdateFrequency);
 
         // check for any updated anime info every 12 hours
 
@@ -1378,13 +1385,14 @@ public static class Importer
 
     public static void CheckForMyListSyncUpdate(bool forceRefresh)
     {
-        if (ServerSettings.Instance.AniDb.MyList_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
+        var settings = Utils.SettingsProvider.GetSettings();
+        if (settings.AniDb.MyList_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
         {
             return;
         }
 
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.MyList_UpdateFrequency);
+        var freqHours = Utils.GetScheduledHours(settings.AniDb.MyList_UpdateFrequency);
 
         // update the calendar every 24 hours
 
@@ -1410,18 +1418,19 @@ public static class Importer
 
     public static void CheckForTraktSyncUpdate(bool forceRefresh)
     {
-        if (!ServerSettings.Instance.TraktTv.Enabled)
+        var settings = Utils.SettingsProvider.GetSettings();
+        if (!settings.TraktTv.Enabled)
         {
             return;
         }
 
-        if (ServerSettings.Instance.TraktTv.SyncFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
+        if (settings.TraktTv.SyncFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
         {
             return;
         }
 
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TraktTv.SyncFrequency);
+        var freqHours = Utils.GetScheduledHours(settings.TraktTv.SyncFrequency);
 
         // update the calendar every xxx hours
 
@@ -1440,7 +1449,7 @@ public static class Importer
             }
         }
 
-        if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+        if (settings.TraktTv.Enabled && !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
         {
             var cmd = commandFactory.Create<CommandRequest_TraktSyncCollection>();
             cmd.Save();
@@ -1449,18 +1458,19 @@ public static class Importer
 
     public static void CheckForTraktAllSeriesUpdate(bool forceRefresh)
     {
-        if (!ServerSettings.Instance.TraktTv.Enabled)
+        var settings = Utils.SettingsProvider.GetSettings();
+        if (!settings.TraktTv.Enabled)
         {
             return;
         }
 
-        if (ServerSettings.Instance.TraktTv.UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
+        if (settings.TraktTv.UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
         {
             return;
         }
 
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TraktTv.UpdateFrequency);
+        var freqHours = Utils.GetScheduledHours(settings.TraktTv.UpdateFrequency);
 
         // update the calendar every xxx hours
         var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate);
@@ -1486,7 +1496,8 @@ public static class Importer
     {
         try
         {
-            if (!ServerSettings.Instance.TraktTv.Enabled)
+            var settings = Utils.SettingsProvider.GetSettings();
+            if (!settings.TraktTv.Enabled)
             {
                 return;
             }
@@ -1531,12 +1542,13 @@ public static class Importer
 
     public static void CheckForAniDBFileUpdate(bool forceRefresh)
     {
-        if (ServerSettings.Instance.AniDb.File_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
+        var settings = Utils.SettingsProvider.GetSettings();
+        if (settings.AniDb.File_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
         {
             return;
         }
 
-        var freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.File_UpdateFrequency);
+        var freqHours = Utils.GetScheduledHours(settings.AniDb.File_UpdateFrequency);
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
 
         // check for any updated anime info every 12 hours

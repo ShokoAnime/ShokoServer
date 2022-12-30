@@ -27,12 +27,12 @@ public class ShokoServiceImplementationKodi : IShokoServerKodi, IHttpContextAcce
     private readonly ISettingsProvider _settingsProvider;
 
     public ShokoServiceImplementationKodi(ICommandRequestFactory commandFactory,
-        ILogger<ShokoServiceImplementationKodi> logger, ILogger<CommonImplementation> commonLogger, ISettingsProvider settingsProvider)
+        ILogger<ShokoServiceImplementationKodi> logger, ISettingsProvider settingsProvider, CommonImplementation impl)
     {
         _settingsProvider = settingsProvider;
         _service = new ShokoServiceImplementation(null, null, null, commandFactory, _settingsProvider);
         _logger = logger;
-        _impl = new CommonImplementation(commonLogger, settingsProvider);
+        _impl = impl;
     }
 
 

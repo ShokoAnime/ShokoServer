@@ -5,7 +5,7 @@ using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -65,7 +65,8 @@ public class CrossRef_AniDB_TvDB_EpisodeRepository : BaseCachedRepository<CrossR
             using var transaction = session.BeginTransaction();
             // I'm aware that this is stupid, but it's MySQL's fault
             // see https://stackoverflow.com/questions/45494/mysql-error-1093-cant-specify-target-table-for-update-in-from-clause
-            if (ServerSettings.Instance.Database.Type.Equals("mysql", StringComparison.InvariantCultureIgnoreCase))
+            var settings = Utils.SettingsProvider.GetSettings();
+            if (settings.Database.Type.Equals("mysql", StringComparison.InvariantCultureIgnoreCase))
             {
                 try
                 {
@@ -89,7 +90,7 @@ WHERE AniDB_Episode.AnimeID = :animeid
                 .SetInt32("animeid", AnimeID).SetInt32("rating", (int)MatchRating.UserVerified)
                 .ExecuteUpdate();
 
-            if (ServerSettings.Instance.Database.Type.Equals("mysql", StringComparison.InvariantCultureIgnoreCase))
+            if (settings.Database.Type.Equals("mysql", StringComparison.InvariantCultureIgnoreCase))
             {
                 try
                 {
