@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Utils;
-using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using Constants = Shoko.Server.Server.Constants;
 using Formatting = Newtonsoft.Json.Formatting;
@@ -64,7 +63,7 @@ public class SettingsProvider : ISettingsProvider
         LoadSettingsFromFile(path);
         SaveSettings();
 
-        ShokoServer.SetTraceLogging(Instance.TraceLog);
+        Utils.SetTraceLogging(Instance.TraceLog);
     }
 
     private static ServerSettings LoadLegacySettings()

@@ -12,8 +12,7 @@ using System.Threading;
 using System.Timers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NLog;
-using NLog.Targets;
+using Quartz;
 using Sentry;
 using Shoko.Commons.Properties;
 using Shoko.Server.Commands;
@@ -26,12 +25,12 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Settings;
 using Shoko.Server.UI;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.FileSystemWatcher;
 using Trinet.Core.IO.Ntfs;
-using LogLevel = NLog.LogLevel;
 using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Server;
@@ -40,6 +39,8 @@ public class ShokoServer
 {
     //private static bool doneFirstTrakTinfo = false;
     private readonly ILogger<ShokoServer> logger;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ISchedulerFactory _schedulerFactory;
     private static DateTime lastTraktInfoUpdate = DateTime.Now;
     private static DateTime lastVersionCheck = DateTime.Now;
 
@@ -51,13 +52,6 @@ public class ShokoServer
     public static string PathAddressREST = "api/Image";
     public static string PathAddressPlex = "api/Plex";
     public static string PathAddressKodi = "Kodi";
-
-    private static BackgroundWorker workerImport = new();
-    private static BackgroundWorker workerScanFolder = new();
-    private static BackgroundWorker workerScanDropFolders = new();
-    private static BackgroundWorker workerRemoveMissing = new();
-    private static BackgroundWorker workerDeleteImportFolder = new();
-    private static BackgroundWorker workerMediaInfo = new();
 
     internal static BackgroundWorker workerSetupDB = new();
 
@@ -79,9 +73,11 @@ public class ShokoServer
         return new[] { "SQLite", "Microsoft SQL Server 2014", "MySQL/MariaDB" };
     }
 
-    public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider)
+    public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider, IServiceProvider serviceProvider, ISchedulerFactory schedulerFactory)
     {
         this.logger = logger;
+        _serviceProvider = serviceProvider;
+        _schedulerFactory = schedulerFactory;
         var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
@@ -99,26 +95,6 @@ public class ShokoServer
         ShokoEventHandler.Instance.Shutdown -= ShutDown;
     }
 
-    public static void SetTraceLogging(bool enabled)
-    {
-        var rule = LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Any(b => b is FileTarget));
-        if (rule == null)
-        {
-            return;
-        }
-
-        if (enabled)
-        {
-            rule.EnableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
-        }
-        else
-        {
-            rule.DisableLoggingForLevel(LogLevel.Trace);
-        }
-
-        LogManager.ReconfigExistingLoggers();
-    }
-
     public bool StartUpServer()
     {
         _sentry = SentrySdk.Init(opts =>
@@ -134,9 +110,8 @@ public class ShokoServer
             Analytics.PostEvent("Server", "Linux Startup");
         }
 
-        var settingsProvider = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>();
+        var settingsProvider = _serviceProvider.GetRequiredService<ISettingsProvider>();
         var settings = settingsProvider.GetSettings();
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(settings.Culture);
 
         // Check if any of the DLL are blocked, common issue with daily builds
         if (!CheckBlockedFiles())
@@ -155,7 +130,7 @@ public class ShokoServer
         }
 
         //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
-        CommandHelper.LoadCommands(Utils.ServiceContainer);
+        CommandHelper.LoadCommands(_serviceProvider);
 
         if (!Utils.IsLinux)
         {
@@ -180,8 +155,8 @@ public class ShokoServer
         // var services = new ServiceCollection();
         // ConfigureServices(services);
         // Plugin.Loader.Instance.Load(services);
-        // Utils.ServiceContainer = services.BuildServiceProvider();
-        // Plugin.Loader.Instance.InitPlugins(Utils.ServiceContainer);
+        // _serviceProvider = services.BuildServiceProvider();
+        // Plugin.Loader.Instance.InitPlugins(_serviceProvider);
 
         settingsProvider.DebugSettingsToLog();
 
@@ -194,30 +169,7 @@ public class ShokoServer
 
         downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
         downloadImagesWorker.WorkerSupportsCancellation = true;
-
-        workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
-
-        workerImport.WorkerReportsProgress = true;
-        workerImport.WorkerSupportsCancellation = true;
-        workerImport.DoWork += WorkerImport_DoWork;
-
-        workerScanFolder.WorkerReportsProgress = true;
-        workerScanFolder.WorkerSupportsCancellation = true;
-        workerScanFolder.DoWork += WorkerScanFolder_DoWork;
-
-
-        workerScanDropFolders.WorkerReportsProgress = true;
-        workerScanDropFolders.WorkerSupportsCancellation = true;
-        workerScanDropFolders.DoWork += WorkerScanDropFolders_DoWork;
-
-        workerRemoveMissing.WorkerReportsProgress = true;
-        workerRemoveMissing.WorkerSupportsCancellation = true;
-        workerRemoveMissing.DoWork += WorkerRemoveMissing_DoWork;
-
-        workerDeleteImportFolder.WorkerReportsProgress = false;
-        workerDeleteImportFolder.WorkerSupportsCancellation = true;
-        workerDeleteImportFolder.DoWork += WorkerDeleteImportFolder_DoWork;
-
+        
         workerSetupDB.WorkerReportsProgress = true;
         workerSetupDB.ProgressChanged += (sender, args) => WorkerSetupDB_ReportProgress();
         workerSetupDB.DoWork += WorkerSetupDB_DoWork;
@@ -228,11 +180,11 @@ public class ShokoServer
         InitCulture();
 
         // run rotator once and set 24h delay
-        Utils.ServiceContainer.GetRequiredService<LogRotator>().Start();
+        _serviceProvider.GetRequiredService<LogRotator>().Start();
 
         Analytics.PostEvent("Server", "StartupFinished");
         // for log readability, this will simply init the singleton
-        Utils.ServiceContainer.GetService<IUDPConnectionHandler>();
+        _serviceProvider.GetService<IUDPConnectionHandler>();
         return true;
     }
 
@@ -335,7 +287,7 @@ public class ShokoServer
         var setupComplete = bool.Parse(e.Result.ToString());
         if (!setupComplete)
         {
-            var settings = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>().GetSettings();
+            var settings = _serviceProvider.GetRequiredService<ISettingsProvider>().GetSettings();
             ServerState.Instance.ServerOnline = false;
             if (!string.IsNullOrEmpty(settings.Database.Type))
             {
@@ -353,7 +305,7 @@ public class ShokoServer
         ServerInfo.Instance.RefreshImportFolders();
         ServerState.Instance.ServerStartingStatus = Resources.Server_Complete;
         ServerState.Instance.ServerOnline = true;
-        var settingsProvider = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>();
+        var settingsProvider = _serviceProvider.GetRequiredService<ISettingsProvider>();
         var settings = settingsProvider.GetSettings();
         settings.FirstRun = false;
         settingsProvider.SaveSettings();
@@ -389,9 +341,8 @@ public class ShokoServer
 
     private void WorkerSetupDB_DoWork(object sender, DoWorkEventArgs e)
     {
-        var settingsProvider = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>();
+        var settingsProvider = _serviceProvider.GetRequiredService<ISettingsProvider>();
         var settings = settingsProvider.GetSettings();
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(settings.Culture);
 
         try
         {
@@ -409,7 +360,7 @@ public class ShokoServer
 
 
             // wait until the queue count is 0
-            // ie the cancel has actuall worked
+            // ie the cancel has actually worked
             while (true)
             {
                 if (ShokoService.CmdProcessorGeneral.QueueCount == 0 &&
@@ -464,9 +415,9 @@ public class ShokoServer
             Scanner.Instance.Init();
 
             ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingQueue;
-            ShokoService.CmdProcessorGeneral.Init(Utils.ServiceContainer);
-            ShokoService.CmdProcessorHasher.Init(Utils.ServiceContainer);
-            ShokoService.CmdProcessorImages.Init(Utils.ServiceContainer);
+            ShokoService.CmdProcessorGeneral.Init(_serviceProvider);
+            ShokoService.CmdProcessorHasher.Init(_serviceProvider);
+            ShokoService.CmdProcessorImages.Init(_serviceProvider);
 
             ServerState.Instance.DatabaseAvailable = true;
 
@@ -502,7 +453,8 @@ public class ShokoServer
 
             if (settings.Import.RunOnStart && folders.Count > 0)
             {
-                RunImport();
+                var scheduler = _schedulerFactory.GetScheduler().Result;
+                scheduler.TriggerJob(ImportJob.Key);
             }
 
             ServerState.Instance.ServerOnline = true;
@@ -525,27 +477,11 @@ public class ShokoServer
     #endregion
 
     #region Update all media info
-
-    private void WorkerMediaInfo_DoWork(object sender, DoWorkEventArgs e)
+    
+    public void RefreshAllMediaInfo()
     {
-        // first build a list of files that we already know about, as we don't want to process them again
-        var filesAll = RepoFactory.VideoLocal.GetAll();
-        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        foreach (var vl in filesAll)
-        {
-            var cr = commandFactory.Create<CommandRequest_ReadMediaInfo>(c => c.VideoLocalID = vl.VideoLocalID);
-            cr.Save();
-        }
-    }
-
-    public static void RefreshAllMediaInfo()
-    {
-        if (workerMediaInfo.IsBusy)
-        {
-            return;
-        }
-
-        workerMediaInfo.RunWorkerAsync();
+        var scheduler = _schedulerFactory.GetScheduler().Result;
+        scheduler.TriggerJob(MediaInfoJob.Key);
     }
 
     #endregion
@@ -601,7 +537,7 @@ public class ShokoServer
 
             //verNew = verInfo.versions.ServerVersionAbs;
 
-            var settingsProvider = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>();
+            var settingsProvider = _serviceProvider.GetRequiredService<ISettingsProvider>();
             var settings = settingsProvider.GetSettings();
             verNew =
                 JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(
@@ -709,7 +645,7 @@ public class ShokoServer
     public void StartWatchingFiles()
     {
         _fileWatchers = new List<RecoveringFileSystemWatcher>();
-        var settingsProvider = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>();
+        var settingsProvider = _serviceProvider.GetRequiredService<ISettingsProvider>();
         var settings = settingsProvider.GetSettings();
 
         foreach (var share in RepoFactory.ImportFolder.GetAll())
@@ -756,7 +692,7 @@ public class ShokoServer
 
     private void FileAdded(object sender, string path)
     {
-        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = _serviceProvider.GetRequiredService<ICommandRequestFactory>();
         if (!File.Exists(path)) return;
         if (!FileHashHelper.IsVideo(path)) return;
 
@@ -799,40 +735,28 @@ public class ShokoServer
         _fileWatchers.Clear();
     }
 
-    public static void ScanDropFolders()
+    public void ScanDropFolders()
     {
-        if (!workerScanDropFolders.IsBusy)
-        {
-            workerScanDropFolders.RunWorkerAsync();
-        }
+        var scheduler = _schedulerFactory.GetScheduler().Result;
+        scheduler.TriggerJob(ScanDropFoldersJob.Key);
     }
 
-    public static void ScanFolder(int importFolderID)
+    public void ScanFolder(int importFolderID)
     {
-        if (!workerScanFolder.IsBusy)
+        var scheduler = _schedulerFactory.GetScheduler().Result;
+        scheduler.TriggerJob(ScanFolderJob.Key, new JobDataMap
         {
-            workerScanFolder.RunWorkerAsync(importFolderID);
-        }
+            {"importFolderID", importFolderID}
+        });
     }
-
-    public static void RunImport()
+    
+    public void RemoveMissingFiles(bool removeMyList = true)
     {
-        Analytics.PostEvent("Importer", "Run");
-
-        if (!workerImport.IsBusy)
+        var scheduler = _schedulerFactory.GetScheduler().Result;
+        scheduler.TriggerJob(RemoveMissingFilesJob.Key, new JobDataMap
         {
-            workerImport.RunWorkerAsync();
-        }
-    }
-
-    public static void RemoveMissingFiles(bool removeMyList = true)
-    {
-        Analytics.PostEvent("Importer", "RemoveMissing");
-
-        if (!workerRemoveMissing.IsBusy)
-        {
-            workerRemoveMissing.RunWorkerAsync(removeMyList);
-        }
+            {"removeMyList", removeMyList}
+        });
     }
 
     public static void SyncMyList()
@@ -840,104 +764,25 @@ public class ShokoServer
         Importer.CheckForMyListSyncUpdate(true);
     }
 
-    public static void DeleteImportFolder(int importFolderID)
+    public void DeleteImportFolder(int importFolderID)
     {
-        if (!workerDeleteImportFolder.IsBusy)
+        var scheduler = _schedulerFactory.GetScheduler().Result;
+        scheduler.TriggerJob(DeleteImportFolderJob.Key, new JobDataMap
         {
-            workerDeleteImportFolder.RunWorkerAsync(importFolderID);
-        }
+            {"importFolderID", importFolderID}
+        });
     }
 
-    private void WorkerRemoveMissing_DoWork(object sender, DoWorkEventArgs e)
+    private void SetupAniDBProcessor()
     {
-        try
-        {
-            Importer.RemoveRecordsWithoutPhysicalFiles(e.Argument as bool? ?? true);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, ex.ToString());
-        }
-    }
-
-    private void WorkerDeleteImportFolder_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            var importFolderID = int.Parse(e.Argument.ToString());
-            Importer.DeleteImportFolder(importFolderID);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, ex.ToString());
-        }
-    }
-
-    private void WorkerScanFolder_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            Importer.RunImport_ScanFolder(int.Parse(e.Argument.ToString()));
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, ex.ToString());
-        }
-    }
-
-    private void WorkerScanDropFolders_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            Importer.RunImport_DropFolders();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, ex.ToString());
-        }
-    }
-
-    private void WorkerImport_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            Importer.RunImport_NewFiles();
-            Importer.RunImport_IntegrityCheck();
-
-            // drop folder
-            Importer.RunImport_DropFolders();
-
-            // TvDB association checks
-            Importer.RunImport_ScanTvDB();
-
-            // Trakt association checks
-            Importer.RunImport_ScanTrakt();
-
-            // MovieDB association checks
-            Importer.RunImport_ScanMovieDB();
-
-            // Check for missing images
-            Importer.RunImport_GetImages();
-
-            // Check for previously ignored files
-            Importer.CheckForPreviouslyIgnored();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, ex.ToString());
-        }
-    }
-
-    private static void SetupAniDBProcessor()
-    {
-        var handler = Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
-        var settings = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>().GetSettings().AniDb;
+        var handler = _serviceProvider.GetRequiredService<IUDPConnectionHandler>();
+        var settings = _serviceProvider.GetRequiredService<ISettingsProvider>().GetSettings().AniDb;
         handler.Init(settings.Username, settings.Password, settings.ServerAddress, settings.ServerPort, settings.ClientPort);
     }
 
-    private static void AniDBDispose()
+    private void AniDBDispose()
     {
-        var handler = Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+        var handler = _serviceProvider.GetRequiredService<IUDPConnectionHandler>();
         handler.ForceLogout();
         handler.CloseConnections();
     }
@@ -956,7 +801,7 @@ public class ShokoServer
     /// <returns>true if there was any commands added to the queue, flase otherwise</returns>
     public bool SyncPlex()
     {
-        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = _serviceProvider.GetRequiredService<ICommandRequestFactory>();
         Analytics.PostEvent("Plex", "SyncAll");
 
         var flag = false;
@@ -974,7 +819,7 @@ public class ShokoServer
         return flag;
     }
 
-    public static void RunWorkSetupDB()
+    public void RunWorkSetupDB()
     {
         workerSetupDB.RunWorkerAsync();
     }

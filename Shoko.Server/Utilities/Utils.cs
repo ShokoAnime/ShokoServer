@@ -106,6 +106,26 @@ public static class Utils
         LogManager.ReconfigExistingLoggers();
     }
 
+    public static void SetTraceLogging(bool enabled)
+    {
+        var rule = LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Any(b => b is FileTarget));
+        if (rule == null)
+        {
+            return;
+        }
+
+        if (enabled)
+        {
+            rule.EnableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
+        }
+        else
+        {
+            rule.DisableLoggingForLevel(LogLevel.Trace);
+        }
+
+        LogManager.ReconfigExistingLoggers();
+    }
+
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool IsWow64Process(IntPtr hProcess, [MarshalAs(UnmanagedType.Bool)] out bool isWow64);

@@ -6,6 +6,7 @@ using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Client;
@@ -22,8 +23,10 @@ using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server;
 
@@ -41,14 +44,16 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly MovieDBHelper _movieDBHelper;
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ISettingsProvider _settingsProvider;
+    private readonly ISchedulerFactory _schedulerFactory;
 
     public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper,
-        ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider)
+        ICommandRequestFactory commandFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
     {
         _tvdbHelper = tvdbHelper;
         _traktHelper = traktHelper;
         _movieDBHelper = movieDBHelper;
         _commandFactory = commandFactory;
+        _schedulerFactory = schedulerFactory;
         _settingsProvider = settingsProvider;
     }
 
@@ -676,9 +681,10 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     #region Actions
 
     [HttpPost("Folder/Import")]
-    public void RunImport()
+    public async void RunImport()
     {
-        ShokoServer.RunImport();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.TriggerJob(ImportJob.Key);
     }
 
     [HttpPost("File/Hashes/Sync")]
@@ -695,19 +701,19 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     [HttpPost("Folder/Scan/{importFolderID}")]
     public void ScanFolder(int importFolderID)
     {
-        ShokoServer.ScanFolder(importFolderID);
+        Utils.ShokoServer.ScanFolder(importFolderID);
     }
 
     [HttpPost("Folder/RemoveMissing")]
     public void RemoveMissingFiles()
     {
-        ShokoServer.RemoveMissingFiles();
+        Utils.ShokoServer.RemoveMissingFiles();
     }
 
     [HttpPost("Folder/RefreshMediaInfo")]
     public void RefreshAllMediaInfo()
     {
-        ShokoServer.RefreshAllMediaInfo();
+        Utils.ShokoServer.RefreshAllMediaInfo();
     }
 
     [HttpPost("AniDB/MyList/Sync")]

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
+using Quartz;
 using Shoko.Commons.Properties;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.API;
@@ -15,6 +16,8 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Scheduling.Jobs;
+using Shoko.Server.Services.ConnectivityMon;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
@@ -48,6 +51,35 @@ public class Startup
             services.AddSingleton<MovieDBHelper>();
             services.AddScoped<CommonImplementation>();
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
+            services.AddSingleton<ICommandRequestFactory, CommandRequestFactory>();
+            services.AddSingleton<IConnectivityMonitor>(_ => new GeneralConnectivityMonitor());
+
+            services.AddQuartz(q =>
+            {
+                // as of 3.3.2 this also injects scoped services (like EF DbContext) without problems
+                q.UseMicrosoftDependencyInjectionJobFactory();
+
+                // Register the connectivity monitor job with a trigger that executes every 5 minutes
+                q.ScheduleJob<ConnectivityMonitorJob>(
+                    trigger => trigger.WithCronSchedule("0 */5 * * * ?").StartNow(), 
+                    j => j.WithIdentity(ConnectivityMonitorJob.Key).DisallowConcurrentExecution().Build());
+
+                q.AddJob<ImportJob>(j => j.WithIdentity(ImportJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
+                q.AddJob<ScanFolderJob>(j => j.WithIdentity(ScanFolderJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
+                q.AddJob<ScanDropFoldersJob>(j => j.WithIdentity(ScanDropFoldersJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
+                q.AddJob<RemoveMissingFilesJob>(j => j.WithIdentity(RemoveMissingFilesJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
+                q.AddJob<DeleteImportFolderJob>(j => j.WithIdentity(DeleteImportFolderJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
+                q.AddJob<MediaInfoJob>(j => j.WithIdentity(MediaInfoJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
+
+                // TODO, in the future, when commands are Jobs, we'll use a AddCommands() extension like below for those, but manual registration for scheduled tasks like above
+            });
+
+            services.AddQuartzServer(options =>
+            {
+                // when shutting down we want jobs to complete gracefully
+                options.WaitForJobsToComplete = true;
+            });
+
             services.AddAniDB();
             services.AddCommands();
             services.AddPlugins();
@@ -82,7 +114,7 @@ public class Startup
 
         var settings = _settingsProvider?.GetSettings();
         if (settings?.FirstRun is false)
-            ShokoServer.RunWorkSetupDB();
+            Utils.ShokoServer.RunWorkSetupDB();
         else
             _logger.LogWarning("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
     }
