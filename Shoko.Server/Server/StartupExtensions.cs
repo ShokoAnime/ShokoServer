@@ -1,9 +1,6 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 using System;
 using System.Reflection;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -34,15 +31,10 @@ public static class StartupExtensions
         return configurationBuilder;
     }
 
-    public static IHostBuilder ConfigureHost(this IHostBuilder builder) => builder.ConfigureHostConfiguration(ConfigureHost);
-    public static IHostBuilder ConfigureApp(this IHostBuilder builder) => builder.ConfigureAppConfiguration(ConfigureApp);
-    public static IHostBuilder ConfigureServiceProvider(this IHostBuilder builder) => builder.UseDefaultServiceProvider(ConfigureDefaultServiceProvider);
-    
-    private static void ConfigureHost(IConfigurationBuilder configurationBuilder)
-        => configurationBuilder.AddEnvironmentVariables(prefix: "DOTNET_")
-            .AddCommandLineIfNotNull();
+    public static IWebHostBuilder ConfigureApp(this IWebHostBuilder builder) => builder.ConfigureAppConfiguration(ConfigureApp);
+    public static IWebHostBuilder ConfigureServiceProvider(this IWebHostBuilder builder) => builder.UseDefaultServiceProvider(ConfigureDefaultServiceProvider);
 
-    private static void ConfigureApp(HostBuilderContext hostingContext, IConfigurationBuilder configurationBuilder)
+    private static void ConfigureApp(WebHostBuilderContext hostingContext, IConfigurationBuilder configurationBuilder)
     {
         var shouldReloadOnChange = hostingContext.Configuration.GetValue("hostBuilder:reloadConfigOnChange", defaultValue: true);
         configurationBuilder.AddJsonFile("appsettings.json",
@@ -52,11 +44,12 @@ public static class StartupExtensions
                 optional: true,
                 reloadOnChange: shouldReloadOnChange)
             .AddDevelopmentAssembly(hostingContext.HostingEnvironment)
+            .AddEnvironmentVariables(prefix: "DOTNET_")
             .AddEnvironmentVariables()
             .AddCommandLineIfNotNull();
     }
 
-    private static void ConfigureDefaultServiceProvider(HostBuilderContext context, ServiceProviderOptions options)
+    private static void ConfigureDefaultServiceProvider(WebHostBuilderContext context, ServiceProviderOptions options)
     {
         var isDevelopment = context.HostingEnvironment.IsDevelopment();
         options.ValidateScopes  = isDevelopment;

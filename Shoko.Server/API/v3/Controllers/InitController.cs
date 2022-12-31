@@ -26,10 +26,12 @@ namespace Shoko.Server.API.v3.Controllers;
 public class InitController : BaseController
 {
     private readonly ILogger<InitController> _logger;
+    private readonly ShokoServer _shokoServer;
 
-    public InitController(ILogger<InitController> logger, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public InitController(ILogger<InitController> logger, ISettingsProvider settingsProvider, ShokoServer shokoServer) : base(settingsProvider)
     {
         _logger = logger;
+        _shokoServer = shokoServer;
     }
 
     private record WebUIVersion {

@@ -2,14 +2,13 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NLog.Web;
+using NLog.Extensions.Logging;
+using Shoko.Server;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -41,16 +40,19 @@ public partial class App
 
         Utils.SetInstance();
         Utils.InitLogger();
-        // startup DI builds ShokoServer and StartServer, then those build the runtime DI. The startup DI allows logging and other DI handling during startup
-        new HostBuilder().UseContentRoot(Directory.GetCurrentDirectory())
-            .ConfigureHost()
-            .ConfigureApp()
-            .ConfigureServiceProvider()
-            .UseNLog()
-            .ConfigureServices(ConfigureServices)
-            .Build()
-            // we use Start() instead of Run() to avoid blocking the main thread with a spin/wait
-            .Start();
+        var logFactory = new LoggerFactory().AddNLog();
+        _logger = logFactory.CreateLogger("App.xaml");
+        var settingsProvider = new SettingsProvider(logFactory.CreateLogger<SettingsProvider>());
+        Utils.SettingsProvider = settingsProvider;
+        var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
+        startup.Start();
+        AddEventHandlers();
+    }
+
+    private void AddEventHandlers()
+    {
+        ShokoEventHandler.Instance.Shutdown += OnInstanceOnServerShutdown;
+        Utils.YesNoRequired += (_, args) => args.Cancel = true;
     }
 
     public static void OnInstanceOnServerShutdown(object? o, EventArgs eventArgs) 
@@ -111,7 +113,6 @@ public partial class App
     {
         base.OnExit(e);
         _logger.LogInformation("Exit was Requested. Shutting Down");
-        ShokoService.CancelAndWaitForQueues();
         if (_icon is not null)
             _icon.Visibility = Visibility.Hidden;
     }
@@ -128,13 +129,5 @@ public partial class App
             url = url.Replace("&", "^&");
             Process.Start(new ProcessStartInfo("cmd", $"/c start {url}"){CreateNoWindow = true});
         }
-    }
-
-    private static void ConfigureServices(IServiceCollection services)
-    {
-        services.AddHostedService<Worker>();
-        services.AddSingleton<ISettingsProvider, SettingsProvider>();
-        services.AddSingleton<ShokoServer>();
-        services.AddSingleton<StartServer>();
     }
 }

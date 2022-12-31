@@ -5,10 +5,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.API.WebUI;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+using WebUIGroupExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIGroupExtra;
+using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -23,7 +25,7 @@ namespace Shoko.Server.API.v3.Controllers;
 public class WebUIController : BaseController
 {
     [HttpPost("GroupView")]
-    public ActionResult<List<WebUI.WebUIGroupExtra>> GetGroupView([FromBody] WebUI.Input.WebUIGroupViewBody body)
+    public ActionResult<List<WebUIGroupExtra>> GetGroupView([FromBody] Input.WebUIGroupViewBody body)
     {
         var user = User;
         return body.GroupIDs
@@ -42,7 +44,7 @@ public class WebUIController : BaseController
                     return null;
                 }
 
-                return new WebUI.WebUIGroupExtra(HttpContext, group, series, anime, body.TagFilter, body.OrderByName,
+                return new WebUIGroupExtra(HttpContext, group, series, anime, body.TagFilter, body.OrderByName,
                     body.TagLimit);
             })
             .ToList();

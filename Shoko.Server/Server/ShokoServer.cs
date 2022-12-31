@@ -10,22 +10,18 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using System.Timers;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Targets;
-using NLog.Web;
 using Sentry;
 using Shoko.Commons.Properties;
-using Shoko.Server.API;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
@@ -55,8 +51,6 @@ public class ShokoServer
     public static string PathAddressREST = "api/Image";
     public static string PathAddressPlex = "api/Plex";
     public static string PathAddressKodi = "Kodi";
-
-    private static IWebHost webHost;
 
     private static BackgroundWorker workerImport = new();
     private static BackgroundWorker workerScanFolder = new();
@@ -91,13 +85,18 @@ public class ShokoServer
         var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
-        SetupNetHosts(settingsProvider);
+        ShokoEventHandler.Instance.Shutdown += ShutDown;
+    }
+
+    private void ShutDown(object sender, CancelEventArgs e)
+    {
+        ShutDown();
     }
 
     ~ShokoServer()
     {
         _sentry.Dispose();
-        ShutDown();
+        ShokoEventHandler.Instance.Shutdown -= ShutDown;
     }
 
     public static void SetTraceLogging(bool enabled)
@@ -227,7 +226,6 @@ public class ShokoServer
         ServerState.Instance.LoadSettings(settings);
 
         InitCulture();
-        Utils.ShokoServer = this;
 
         // run rotator once and set 24h delay
         Utils.ServiceContainer.GetRequiredService<LogRotator>().Start();
@@ -320,45 +318,6 @@ public class ShokoServer
         return true;
     }
 
-    public bool NetPermissionWrapper(Func<ISettingsProvider, bool> action, ISettingsProvider settingsProvider)
-    {
-        try
-        {
-            if (!action(settingsProvider)) return false;
-        }
-        catch (Exception e)
-        {
-            if (Utils.IsAdministrator())
-            {
-                Utils.ShowMessage(null, "Settings the ports, after that ShokoServer will quit, run again in normal mode");
-
-                try
-                {
-                    action(settingsProvider);
-                }
-                catch (Exception exception)
-                {
-                    Utils.ShowErrorMessage("Unable start hosting");
-                    logger.LogError("Unable to run task: {MethodName}", action.Method.Name);
-                    logger.LogError(exception, "Error was: {Ex}", exception);
-                }
-                finally
-                {
-                    ShutDown();
-                }
-
-                return false;
-            }
-
-            Utils.ShowErrorMessage("Unable to start hosting, please run Shoko Server as administrator once");
-            logger.LogError(e, "Error was: {Ex}", e);
-            ShutDown();
-            return false;
-        }
-
-        return true;
-    }
-
     private void InitCulture()
     {
     }
@@ -415,21 +374,6 @@ public class ShokoServer
     private void ShowDatabaseSetup()
     {
         DatabaseSetup?.Invoke(this, null);
-    }
-
-    public bool SetupNetHosts(ISettingsProvider settingsProvider)
-    {
-        logger.LogInformation("Initializing Web Hosts...");
-        ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingHosts;
-        var started = true;
-        started &= NetPermissionWrapper(StartWebHost, settingsProvider);
-        if (!started)
-        {
-            StopHost();
-            return false;
-        }
-
-        return true;
     }
 
     public void RestartAniDBSocket()
@@ -706,14 +650,6 @@ public class ShokoServer
         return output;
     }
 
-    public event EventHandler<ReasonedEventArgs> ServerShutdown;
-    public event EventHandler ServerRestart;
-
-    private void RestartServer()
-    {
-        ServerRestart?.Invoke(this, null);
-    }
-
     #endregion
 
     private void AutoUpdateTimerShort_Elapsed(object sender, ElapsedEventArgs e)
@@ -749,11 +685,10 @@ public class ShokoServer
 
     private void ShutDown()
     {
-        StopWatchingFiles();
-        AniDBDispose();
-        StopHost();
-        ServerShutdown?.Invoke(this, null);
         Analytics.PostEvent("Server", "Shutdown");
+        StopWatchingFiles();
+        ShokoService.CancelAndWaitForQueues();
+        AniDBDispose();
     }
 
     #endregion
@@ -993,75 +928,6 @@ public class ShokoServer
         }
     }
 
-    private IWebHost InitWebHost(ISettingsProvider settingsProvider)
-    {
-        if (webHost != null)
-        {
-            return webHost;
-        }
-
-        var settings = settingsProvider.GetSettings();
-        Loader.ISettingsProvider = settingsProvider;
-        var port = settings.ServerPort;
-        var result = new WebHostBuilder().UseKestrel(options =>
-            {
-                options.ListenAnyIP(port);
-            })
-            .UseStartup<Startup>()
-            .ConfigureLogging(logging =>
-            {
-                logging.ClearProviders();
-                logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-#if !LOGWEB
-                logging.AddFilter("Microsoft", Microsoft.Extensions.Logging.LogLevel.Warning);
-                logging.AddFilter("System", Microsoft.Extensions.Logging.LogLevel.Warning);
-                logging.AddFilter("Shoko.Server.API", Microsoft.Extensions.Logging.LogLevel.Warning);
-#endif
-            }).UseNLog()
-            .UseSentry(
-                o =>
-                {
-                    o.Release = Utils.GetApplicationVersion();
-                    o.Dsn = SentryDsn;
-                })
-            .Build();
-        Loader.ISettingsProvider = Utils.SettingsProvider = result.Services.GetRequiredService<ISettingsProvider>();
-        return result;
-    }
-
-    /// <summary>
-    /// Running Nancy and Validating all require aspects before running it
-    /// </summary>
-    private bool StartWebHost(ISettingsProvider settingsProvider)
-    {
-        if (webHost == null)
-        {
-            webHost = InitWebHost(settingsProvider);
-            Utils.ServiceContainer = webHost.Services;
-        }
-
-        //JsonSettings.MaxJsonLength = int.MaxValue;
-
-        // Even with error callbacks, this may still throw an error in some parts, so log it!
-        try
-        {
-            if (webHost == null) return false;
-            webHost.Start();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "An error occurred starting the web host: {Ex}", ex);
-            return false;
-        }
-    }
-
-    public static void StopHost()
-    {
-        webHost?.Dispose();
-        webHost = null;
-    }
-
     private static void SetupAniDBProcessor()
     {
         var handler = Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
@@ -1111,20 +977,5 @@ public class ShokoServer
     public static void RunWorkSetupDB()
     {
         workerSetupDB.RunWorkerAsync();
-    }
-
-    //public static event EventHandler<ReasonedEventArgs> ServerError;
-    public void ShutdownServer(ReasonedEventArgs args)
-    {
-        ServerShutdown?.Invoke(null, args);
-    }
-
-    public class ReasonedEventArgs : EventArgs
-    {
-        // ReSharper disable once UnusedAutoPropertyAccessor.Global
-        public string Reason { get; set; }
-
-        // ReSharper disable once UnusedAutoPropertyAccessor.Global
-        public Exception Exception { get; set; }
     }
 }

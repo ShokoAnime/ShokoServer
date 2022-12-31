@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.API.WebUI;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 

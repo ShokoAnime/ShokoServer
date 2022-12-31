@@ -38,10 +38,12 @@ public class Init : BaseController
 {
     private readonly ILogger<Init> _logger;
     private readonly IServerSettings _settings;
+    private readonly ShokoServer _shokoServer;
 
-    public Init(ILogger<Init> logger, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public Init(ILogger<Init> logger, ISettingsProvider settingsProvider, ShokoServer shokoServer) : base(settingsProvider)
     {
         _logger = logger;
+        _shokoServer = shokoServer;
         _settings = settingsProvider.GetSettings();
     }
 

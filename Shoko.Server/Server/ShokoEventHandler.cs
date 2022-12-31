@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using Shoko.Plugin.Abstractions;
@@ -20,6 +21,10 @@ public class ShokoEventHandler : IShokoEventHandler
     public event EventHandler<EpisodeInfoUpdatedEventArgs> EpisodeUpdated;
     public event EventHandler<SettingsSavedEventArgs> SettingsSaved;
 
+    public event EventHandler Start;
+    public event EventHandler<CancelEventArgs> Shutdown;
+
+
     private static ShokoEventHandler _instance;
 
     public static ShokoEventHandler Instance
@@ -36,7 +41,7 @@ public class ShokoEventHandler : IShokoEventHandler
         }
     }
 
-    internal void OnFileDetected(SVR_ImportFolder folder, FileInfo file)
+    public void OnFileDetected(SVR_ImportFolder folder, FileInfo file)
     {
         var path = file.FullName.Replace(folder.ImportFolderLocation, "");
         if (!path.StartsWith("/"))
@@ -48,21 +53,21 @@ public class ShokoEventHandler : IShokoEventHandler
             new FileDetectedEventArgs { FileInfo = file, ImportFolder = folder, RelativePath = path });
     }
 
-    internal void OnFileHashed(SVR_ImportFolder folder, SVR_VideoLocal_Place vlp)
+    public void OnFileHashed(SVR_ImportFolder folder, SVR_VideoLocal_Place vlp)
     {
         var path = vlp.FilePath;
         FileHashed?.Invoke(null,
             new FileHashedEventArgs { FileInfo = vlp, ImportFolder = folder, RelativePath = path });
     }
 
-    internal void OnFileDeleted(SVR_ImportFolder folder, SVR_VideoLocal_Place vlp)
+    public void OnFileDeleted(SVR_ImportFolder folder, SVR_VideoLocal_Place vlp)
     {
         var path = vlp.FilePath;
         FileDeleted?.Invoke(null,
             new FileDeletedEventArgs { FileInfo = vlp, ImportFolder = folder, RelativePath = path });
     }
 
-    internal void OnFileMatched(SVR_VideoLocal_Place vlp)
+    public void OnFileMatched(SVR_VideoLocal_Place vlp)
     {
         var series =
             vlp.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).DistinctBy(a => a.AniDB_ID).ToList() ??
@@ -81,24 +86,36 @@ public class ShokoEventHandler : IShokoEventHandler
         );
     }
 
-    internal void OnAniDBBanned(AniDBBanType type, DateTime time, DateTime resumeTime)
+    public void OnAniDBBanned(AniDBBanType type, DateTime time, DateTime resumeTime)
     {
         AniDBBanned?.Invoke(null, new AniDBBannedEventArgs { Type = type, Time = time, ResumeTime = resumeTime });
     }
 
-    internal void OnSeriesUpdated(DataSourceEnum source, SVR_AniDB_Anime anime)
+    public void OnSeriesUpdated(DataSourceEnum source, SVR_AniDB_Anime anime)
     {
         SeriesUpdated?.Invoke(null, new SeriesInfoUpdatedEventArgs { Type = source, AnimeInfo = anime });
     }
 
-    internal void OnEpisodeUpdated(DataSourceEnum source, SVR_AniDB_Anime anime, SVR_AnimeEpisode episode)
+    public void OnEpisodeUpdated(DataSourceEnum source, SVR_AniDB_Anime anime, SVR_AnimeEpisode episode)
     {
         EpisodeUpdated?.Invoke(null,
             new EpisodeInfoUpdatedEventArgs { Type = source, AnimeInfo = anime, EpisodeInfo = episode });
     }
 
-    internal void OnSettingsSaved()
+    public void OnSettingsSaved()
     {
         SettingsSaved?.Invoke(null, new SettingsSavedEventArgs());
+    }
+
+    public void OnStart()
+    {
+        Start?.Invoke(null, EventArgs.Empty);
+    }
+
+    public bool OnShutdown()
+    {
+        var args = new CancelEventArgs();
+        Shutdown?.Invoke(null, args);
+        return !args.Cancel;
     }
 }

@@ -1,9 +1,9 @@
 ﻿#region
 using System;
-using System.IO;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using NLog.Web;
+using System.ComponentModel;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
+using Shoko.Server.Commands;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -25,22 +25,41 @@ public static class Program
         }
         Utils.SetInstance();
         Utils.InitLogger();
+        
         // startup DI builds ShokoServer and StartServer, then those build the runtime DI. The startup DI allows logging and other DI handling during startup
-        new HostBuilder().UseContentRoot(Directory.GetCurrentDirectory())
-            .ConfigureHost()
-            .ConfigureApp()
-            .ConfigureServiceProvider()
-            .UseNLog()
-            .ConfigureServices(ConfigureServices)
-            .Build()
-            .Run();
+
+        var logFactory = new LoggerFactory().AddNLog();
+        var settingsProvider = new SettingsProvider(logFactory.CreateLogger<SettingsProvider>());
+        Utils.SettingsProvider = settingsProvider;
+        var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
+        startup.Start();
+        AddEventHandlers();
+        startup.WaitForShutdown();
+    }
+    
+    private static void AddEventHandlers()
+    {
+        Utils.YesNoRequired += OnUtilsOnYesNoRequired;
+        ServerState.Instance.PropertyChanged += OnInstanceOnPropertyChanged;
+        ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnCmdProcessorGeneralOnQueueStateChangedEvent;
+        ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += OnCmdProcessorImagesOnQueueStateChangedEvent;
+        ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += OnCmdProcessorHasherOnQueueStateChangedEvent;
     }
 
-    private static void ConfigureServices(IServiceCollection services)
+    private static void OnCmdProcessorGeneralOnQueueStateChangedEvent(QueueStateEventArgs ev) 
+        => Console.WriteLine($@"General Queue state change: {ev.QueueState.formatMessage()}");
+
+    private static void OnCmdProcessorImagesOnQueueStateChangedEvent(QueueStateEventArgs ev) 
+        => Console.WriteLine($@"Images Queue state change: {ev.QueueState.formatMessage()}");
+
+    private static void OnCmdProcessorHasherOnQueueStateChangedEvent(QueueStateEventArgs ev) 
+        => Console.WriteLine($@"Hasher Queue state change: {ev.QueueState.formatMessage()}");
+
+    private static void OnInstanceOnPropertyChanged(object? _, PropertyChangedEventArgs e)
     {
-        services.AddHostedService<Worker>();
-        services.AddSingleton<ISettingsProvider, SettingsProvider>();
-        services.AddSingleton<ShokoServer>();
-        services.AddSingleton<StartServer>();
+        if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
+            Console.WriteLine("Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
     }
+
+    private static void OnUtilsOnYesNoRequired(object? _, Utils.CancelReasonEventArgs e) => e.Cancel = true;
 }

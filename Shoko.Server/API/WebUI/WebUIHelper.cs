@@ -4,10 +4,9 @@ using System.Net;
 using Newtonsoft.Json;
 using SharpCompress.Common;
 using SharpCompress.Readers;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-namespace Shoko.Server.API;
+namespace Shoko.Server.API.WebUI;
 
 public static class WebUIHelper
 {

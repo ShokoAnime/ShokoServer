@@ -1,78 +1,51 @@
-﻿using System;
+using System;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using NLog;
 using Sentry;
 using Shoko.Server.API.ActionFilters;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.SignalR;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.SignalR.Legacy;
-using Shoko.Server.Commands;
-using Shoko.Server.PlexAndKodi;
+using Shoko.Server.API.Swagger;
+using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.API.WebUI;
 using Shoko.Server.Plugin;
-using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.MovieDB;
-using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Providers.TvDB;
-using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
-using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
-using QueueEmitter = Shoko.Server.API.SignalR.Aggregate.QueueEmitter;
+using File = System.IO.File;
 using LegacyAniDBEmitter = Shoko.Server.API.SignalR.Legacy.AniDBEmitter;
 using LegacyQueueEmitter = Shoko.Server.API.SignalR.Legacy.QueueEmitter;
 using LegacyShokoEventEmitter = Shoko.Server.API.SignalR.Legacy.ShokoEventEmitter;
+using QueueEmitter = Shoko.Server.API.SignalR.Aggregate.QueueEmitter;
+using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
 
 namespace Shoko.Server.API;
 
-public class Startup
+public static class APIExtensions
 {
-    private IWebHostEnvironment HostingEnvironment { get; }
-    private IConfiguration Configuration { get; }
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-
-    public Startup(IWebHostEnvironment env)
+    public static IServiceCollection AddAPI(this IServiceCollection services)
     {
-        var builder = new ConfigurationBuilder()
-            .SetBasePath(env.ContentRootPath);
+        services.AddSingleton<LoggingEmitter>();
+        services.AddSingleton<LegacyQueueEmitter>();
+        services.AddSingleton<LegacyAniDBEmitter>();
+        services.AddSingleton<LegacyShokoEventEmitter>();
+        services.AddSingleton<AniDBEmitter>();
+        services.AddSingleton<ShokoEventEmitter>();
+        services.AddSingleton<QueueEmitter>();
 
-        HostingEnvironment = env;
-        Configuration = builder.Build();
-    }
-
-    public void ConfigureServices(IServiceCollection services)
-    {
-        
-        services.AddSingleton<ISettingsProvider, SettingsProvider>();
-        services.AddSingleton(Loader.Instance);
-        services.AddSingleton(ShokoService.CmdProcessorGeneral);
-        services.AddSingleton<LogRotator>();
-        services.AddSingleton<TraktTVHelper>();
-        services.AddSingleton<TvDBApiHelper>();
-        services.AddSingleton<MovieDBHelper>();
-        services.AddScoped<CommonImplementation>();
-        AniDBStartup.ConfigureServices(services);
-        CommandStartup.Configure(services);
-        Loader.Instance.Load(services);
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = CustomAuthOptions.DefaultScheme;
@@ -117,9 +90,12 @@ public class Startup
                     {
                         new OpenApiSecurityScheme
                         {
-                            Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ApiKey" }
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme, Id = "ApiKey"
+                            }
                         },
-                        new string[] { }
+                        Array.Empty<string>()
                     }
                 });
 
@@ -135,53 +111,24 @@ public class Startup
                     options.IncludeXmlComments(xmlPath);
                 }
 
-                foreach (var type in Loader.Instance.Plugins.Keys)
-                {
-                    var assembly = type.Assembly;
-                    var location = assembly.Location;
-                    var xml = Path.Combine(Path.GetDirectoryName(location),
-                        $"{Path.GetFileNameWithoutExtension(location)}.xml");
-                    if (File.Exists(xml))
-                    {
-                        options.IncludeXmlComments(xml); //Include the XML comments if it exists.
-                    }
-                }
+                options.AddPlugins();
 
-                options.MapType<v3.Models.Shoko.SeriesType>(() => new OpenApiSchema { Type = "string" });
-                options.MapType<v3.Models.Shoko.EpisodeType>(() => new OpenApiSchema { Type = "string" });
+                options.MapType<SeriesType>(() => new OpenApiSchema { Type = "string" });
+                options.MapType<EpisodeType>(() => new OpenApiSchema { Type = "string" });
 
                 options.CustomSchemaIds(x => x.FullName);
             });
         services.AddSwaggerGenNewtonsoftSupport();
-
-        services.AddSignalR(o =>
-        {
-            o.EnableDetailedErrors = true;
-        });
-
-        services.AddSingleton<LoggingEmitter>();
-        services.AddSingleton<LegacyQueueEmitter>();
-        services.AddSingleton<LegacyAniDBEmitter>();
-        services.AddSingleton<LegacyShokoEventEmitter>();
-        services.AddSingleton<AniDBEmitter>();
-        services.AddSingleton<ShokoEventEmitter>();
-        services.AddSingleton<QueueEmitter>();
+        services.AddSignalR(o => { o.EnableDetailedErrors = true; });
 
         // allow CORS calls from other both local and non-local hosts
         services.AddCors(options =>
         {
-            options.AddDefaultPolicy(
-                builder =>
-                {
-                    builder
-                        .AllowAnyOrigin()
-                        .AllowAnyMethod()
-                        .AllowAnyHeader();
-                });
+            options.AddDefaultPolicy(builder => { builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader(); });
         });
 
         // this caused issues with auth. https://stackoverflow.com/questions/43574552
-        var mvc = services.AddMvc(options =>
+        services.AddMvc(options =>
             {
                 options.EnableEndpointRouting = false;
                 options.AllowEmptyInputInBodyModelBinding = true;
@@ -210,18 +157,9 @@ public class Startup
                 json.SerializerSettings.NullValueHandling = NullValueHandling.Include;
                 json.SerializerSettings.DefaultValueHandling = DefaultValueHandling.Populate;
                 // json.SerializerSettings.DateFormatString = "yyyy-MM-dd";
-            });
-
-        foreach (var type in Loader.Instance.Plugins.Keys)
-        {
-            var assembly = type.Assembly;
-            if (assembly == Assembly.GetCallingAssembly())
-            {
-                continue; //Skip the current assembly, this is implicitly added by ASP.
-            }
-
-            mvc.AddApplicationPart(assembly).AddControllersAsServices();
-        }
+            })
+            .AddPluginControllers()
+            .AddControllersAsServices();
 
         services.AddApiVersioning(o =>
         {
@@ -241,9 +179,27 @@ public class Startup
         {
             options.AllowSynchronousIO = true;
         });
+        return services;
+    }
+    
+    private static OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)
+    {
+        var info = new OpenApiInfo
+        {
+            Title = $"Shoko API {description.ApiVersion}",
+            Version = description.ApiVersion.ToString(),
+            Description = "Shoko Server API."
+        };
+
+        if (description.IsDeprecated)
+        {
+            info.Description += " This API version has been deprecated.";
+        }
+
+        return info;
     }
 
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    public static IApplicationBuilder UseAPI(this IApplicationBuilder app)
     {
         app.Use(async (context, next) =>
         {
@@ -261,7 +217,6 @@ public class Startup
                 {
                     // ignore
                 }
-                Logger.Error(e, "Configure threw an error from {0}: {1}", next?.Target?.GetType().FullName ?? next?.Method.Module.FullyQualifiedName, e);
                 throw;
             }
         });
@@ -292,7 +247,6 @@ public class Startup
             }
         });
 
-
         app.UseSwagger();
         app.UseSwaggerUI(
             options =>
@@ -321,9 +275,11 @@ public class Startup
         app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
         app.UseMvc();
-    }
 
-    public static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
+        return app;
+    }
+    
+    private static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
     {
         foreach (var dir in source.GetDirectories())
         {
@@ -334,143 +290,5 @@ public class Startup
         {
             file.CopyTo(Path.Combine(target.FullName, file.Name));
         }
-    }
-
-    private static OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)
-    {
-        var info = new OpenApiInfo
-        {
-            Title = $"Shoko API {description.ApiVersion}",
-            Version = description.ApiVersion.ToString(),
-            Description = "Shoko Server API."
-        };
-
-        if (description.IsDeprecated)
-        {
-            info.Description += " This API version has been deprecated.";
-        }
-
-        return info;
-    }
-}
-
-internal class ShokoApiReader : IApiVersionReader
-{
-    public void AddParameters(IApiVersionParameterDescriptionContext context)
-    {
-        context.AddParameter(null, ApiVersionParameterLocation.Path);
-    }
-
-    public string Read(HttpRequest request)
-    {
-        if (!string.IsNullOrEmpty(request.Headers["api-version"]))
-        {
-            return null;
-        }
-
-        if (!string.IsNullOrEmpty(request.Query["api-version"]))
-        {
-            return null;
-        }
-
-        PathString[] apiv1 = { "/v1", "/api/Image", "/api/Kodi", "/api/Metro", "/api/Plex", "/Stream" };
-
-        PathString[] apiv2 =
-        {
-            "/api/webui", "/api/version", "/plex", "/api/init", "/api/dev", "/api/modules", "/api/core",
-            "/api/links", "/api/cast", "/api/group", "/api/filter", "/api/cloud", "/api/serie", "/api/ep",
-            "/api/file", "/api/queue", "/api/myid", "/api/news", "/api/search", "/api/remove_missing_files",
-            "/api/stats_update", "/api/medainfo_update", "/api/hash", "/api/rescan", "/api/rescanunlinked",
-            "/api/folder", "/api/rescanmanuallinks", "/api/rehash", "/api/config", "/api/rehashunlinked",
-            "/api/rehashmanuallinks", "/api/ep"
-        };
-
-        if (apiv1.Any(request.Path.StartsWithSegments))
-        {
-            return "1.0";
-        }
-
-        if (apiv2.Any(request.Path.StartsWithSegments))
-        {
-            return "2.0";
-        }
-
-        return "2.0"; //default to 2.0
-    }
-}
-
-internal class WebUiFileProvider : PhysicalFileProvider, IFileProvider
-{
-    public WebUiFileProvider(string root) : base(root)
-    {
-    }
-
-    public new IDirectoryContents GetDirectoryContents(string subpath)
-    {
-        return base.GetDirectoryContents(subpath);
-    }
-
-    public new IFileInfo GetFileInfo(string subpath)
-    {
-        var fileInfo = base.GetFileInfo(subpath);
-        if (fileInfo is NotFoundFileInfo || !fileInfo.Exists)
-        {
-            return base.GetFileInfo("index.html");
-        }
-
-        return fileInfo;
-    }
-}
-
-/*
-public class SwaggerDefaultValues : IOperationFilter
-{
-    /// <summary>
-    /// Applies the filter to the specified operation using the given context.
-    /// </summary>
-    /// <param name="operation">The operation to apply the filter to.</param>
-    /// <param name="context">The current operation filter context.</param>
-    public void Apply(OpenApiOperation operation, OperationFilterContext context)
-    {
-        if (operation.Parameters == null)
-        {
-            return;
-        }
-
-        // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/issues/412
-        // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/pull/413
-        foreach (var parameter in operation.Parameters.OfType<Non>())
-        {
-            var description = context.ApiDescription.ParameterDescriptions.First(p => p.Name == parameter.Name);
-            var routeInfo = description.RouteInfo;
-
-            if (parameter.Description == null)
-            {
-                parameter.Description = description.ModelMetadata?.Description;
-            }
-
-            if (routeInfo == null)
-            {
-                continue;
-            }
-
-            if (parameter.Default == null)
-            {
-                parameter.Default = routeInfo.DefaultValue;
-            }
-
-            parameter.Required |= !routeInfo.IsOptional;
-        }
-    }
-}
-*/
-
-internal static class ApiExtensions
-{
-    public static ApiVersionModel GetApiVersion(this ActionDescriptor actionDescriptor)
-    {
-        return actionDescriptor?.Properties
-            .Where(kvp => (Type)kvp.Key == typeof(ApiVersionModel))
-            .Select(kvp => kvp.Value as ApiVersionModel).FirstOrDefault();
     }
 }

@@ -9,7 +9,7 @@ namespace Shoko.Server.Providers.AniDB;
 
 public static class AniDBStartup
 {
-    public static void ConfigureServices(IServiceCollection services)
+    public static IServiceCollection AddAniDB(this IServiceCollection services)
     {
         services.AddSingleton<HttpAnimeParser>();
         services.AddSingleton<AnimeCreator>();
@@ -37,5 +37,7 @@ public static class AniDBStartup
         {
             services.AddTransient(type);
         }
+
+        return services;
     }
 }

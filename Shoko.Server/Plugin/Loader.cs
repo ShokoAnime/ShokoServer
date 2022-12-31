@@ -9,39 +9,33 @@ using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-using ISettingsProvider = Shoko.Plugin.Abstractions.ISettingsProvider;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Shoko.Server.Plugin;
 
-public class Loader : ISettingsProvider
+public static class Loader
 {
-    private readonly IList<Type> _pluginTypes = new List<Type>();
-    private readonly Logger _logger = LogManager.GetCurrentClassLogger();
+    private static readonly IList<Type> _pluginTypes = new List<Type>();
+    private static readonly Logger s_logger = LogManager.GetCurrentClassLogger();
+    private static IDictionary<Type, IPlugin> Plugins { get; } = new Dictionary<Type, IPlugin>();
 
-    private static Loader _instance;
-    public static Loader Instance { get => _instance ??= new(); }
-    public IDictionary<Type, IPlugin> Plugins { get; } = new Dictionary<Type, IPlugin>();
-    public static Settings.ISettingsProvider ISettingsProvider;
-
-    internal void Load(IServiceCollection serviceCollection)
+    internal static IServiceCollection AddPlugins(this IServiceCollection serviceCollection)
     {
         // add plugin api related things to service collection
-        serviceCollection.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
-
         var assemblies = new List<Assembly>();
         var assembly = Assembly.GetExecutingAssembly();
         var uri = new UriBuilder(assembly.GetName().CodeBase);
         var dirname = Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path));
-        // if (dirname == null) return;
         assemblies.Add(Assembly.GetCallingAssembly()); //add this to dynamically load as well.
 
-        //Load plugins from the user config dir too.
+        // Load plugins from the user config dir too.
         var userPluginDir = Path.Combine(Utils.ApplicationPath, "plugins");
         var userPlugins = Directory.Exists(userPluginDir)
             ? Directory.GetFiles(userPluginDir, "*.dll", SearchOption.AllDirectories)
             : Array.Empty<string>();
 
-        var settings = ISettingsProvider.GetSettings();
+        // using static reference because we have a pre-init settings handler, which will be updated after init
+        var settings = Utils.SettingsProvider.GetSettings();
         foreach (var dll in userPlugins.Concat(Directory.GetFiles(dirname, "plugins/*.dll", SearchOption.AllDirectories)))
         {
             try
@@ -49,11 +43,11 @@ public class Loader : ISettingsProvider
                 var name = Path.GetFileNameWithoutExtension(dll);
                 if (settings.Plugins.EnabledPlugins.ContainsKey(name) && !settings.Plugins.EnabledPlugins[name])
                 {
-                    _logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
+                    s_logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
                     continue;
                 }
 
-                _logger.Debug($"Trying to load {dll}");
+                s_logger.Debug($"Trying to load {dll}");
                 assemblies.Add(Assembly.LoadFrom(dll));
                 // TryAdd, because if it made it this far, then it's missing or true.
                 settings.Plugins.EnabledPlugins.TryAdd(name, true);
@@ -61,19 +55,54 @@ public class Loader : ISettingsProvider
             }
             catch (FileLoadException)
             {
-                _logger.Debug("BadImageFormatException");
+                s_logger.Debug("BadImageFormatException");
             }
             catch (BadImageFormatException)
             {
-                _logger.Debug("BadImageFormatException");
+                s_logger.Debug("BadImageFormatException");
             }
         }
 
         RenameFileHelper.FindRenamers(assemblies);
         LoadPlugins(assemblies, serviceCollection);
+
+        return serviceCollection;
     }
 
-    private void LoadPlugins(IEnumerable<Assembly> assemblies, IServiceCollection serviceCollection)
+    public static IMvcBuilder AddPluginControllers(this IMvcBuilder mvc)
+    {
+        foreach (var type in Plugins.Keys)
+        {
+            var assembly = type.Assembly;
+            if (assembly == Assembly.GetCallingAssembly())
+            {
+                continue; //Skip the current assembly, this is implicitly added by ASP.
+            }
+
+            mvc.AddApplicationPart(assembly);
+        }
+
+        return mvc;
+    }
+
+    public static SwaggerGenOptions AddPlugins(this SwaggerGenOptions options)
+    {
+        foreach (var type in Plugins.Keys)
+        {
+            var assembly = type.Assembly;
+            var location = assembly.Location;
+            var xml = Path.Combine(Path.GetDirectoryName(location),
+                $"{Path.GetFileNameWithoutExtension(location)}.xml");
+            if (File.Exists(xml))
+            {
+                options.IncludeXmlComments(xml, true); //Include the XML comments if it exists.
+            }
+        }
+
+        return options;
+    }
+
+    private static void LoadPlugins(IEnumerable<Assembly> assemblies, IServiceCollection serviceCollection)
     {
         var implementations = assemblies.SelectMany(a =>
         {
@@ -83,7 +112,7 @@ public class Loader : ISettingsProvider
             }
             catch (Exception e)
             {
-                _logger.Debug(e);
+                s_logger.Debug(e);
                 return new Type[0];
             }
         }).Where(a => a.GetInterfaces().Contains(typeof(IPlugin)));
@@ -101,24 +130,24 @@ public class Loader : ISettingsProvider
         }
     }
 
-    internal void InitPlugins(IServiceProvider provider)
+    internal static void InitPlugins(IServiceProvider provider)
     {
-        _logger.Info("Loading {0} plugins", _pluginTypes.Count);
+        s_logger.Info("Loading {0} plugins", _pluginTypes.Count);
 
         foreach (var pluginType in _pluginTypes)
         {
             var plugin = (IPlugin)ActivatorUtilities.CreateInstance(provider, pluginType);
             Plugins.Add(pluginType, plugin);
             LoadSettings(pluginType, plugin);
-            _logger.Info($"Loaded: {plugin.Name}");
+            s_logger.Info($"Loaded: {plugin.Name}");
             plugin.Load();
         }
 
         // When we initialized the plugins, we made entries for the Enabled State of Plugins
-        ISettingsProvider.SaveSettings();
+        Utils.SettingsProvider.SaveSettings();
     }
 
-    private void LoadSettings(Type type, IPlugin plugin)
+    private static void LoadSettings(Type type, IPlugin plugin)
     {
         var (name, t) = type.Assembly.GetTypes()
             .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
@@ -128,7 +157,7 @@ public class Loader : ISettingsProvider
 
         try
         {
-            var serverSettings = ISettingsProvider.GetSettings();
+            var serverSettings = Utils.SettingsProvider.GetSettings();
             if (serverSettings.Plugins.EnabledPlugins.ContainsKey(name) && !serverSettings.Plugins.EnabledPlugins[name])
                 return;
 
@@ -144,11 +173,11 @@ public class Loader : ISettingsProvider
         }
         catch (Exception e)
         {
-            _logger.Error(e, $"Unable to initialize Settings for {name}");
+            s_logger.Error(e, $"Unable to initialize Settings for {name}");
         }
     }
 
-    public void SaveSettings(IPluginSettings settings)
+    public static void SaveSettings(IPluginSettings settings)
     {
         var name = settings.GetType().GetAssemblyName() + ".json";
         if (string.IsNullOrEmpty(name) || name == ".json") return;
@@ -162,7 +191,7 @@ public class Loader : ISettingsProvider
         }
         catch (Exception e)
         {
-            _logger.Error(e, $"Unable to Save Settings for {name}");
+            s_logger.Error(e, $"Unable to Save Settings for {name}");
         }
     }
 }
