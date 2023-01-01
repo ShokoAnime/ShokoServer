@@ -13,6 +13,7 @@ using System.Timers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using QuartzJobFactory;
 using Sentry;
 using Shoko.Commons.Properties;
 using Shoko.Server.Commands;
@@ -744,19 +745,21 @@ public class ShokoServer
     public void ScanFolder(int importFolderID)
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.TriggerJob(ScanFolderJob.Key, new JobDataMap
-        {
-            {"importFolderID", importFolderID}
-        });
+        scheduler.StartJob(JobBuilder<ScanFolderJob>.Create()
+                .StoreDurably()
+                .UsingJobData(a => a.ImportFolderID = importFolderID)
+                .WithGeneratedIdentity()
+                .Build());
     }
-    
+
     public void RemoveMissingFiles(bool removeMyList = true)
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.TriggerJob(RemoveMissingFilesJob.Key, new JobDataMap
-        {
-            {"removeMyList", removeMyList}
-        });
+        scheduler.StartJob(JobBuilder<RemoveMissingFilesJob>.Create()
+            .StoreDurably()
+            .UsingJobData(a => a.RemoveMyList = removeMyList)
+            .WithIdentity(RemoveMissingFilesJob.Key)
+            .Build());
     }
 
     public static void SyncMyList()
@@ -767,10 +770,12 @@ public class ShokoServer
     public void DeleteImportFolder(int importFolderID)
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.TriggerJob(DeleteImportFolderJob.Key, new JobDataMap
-        {
-            {"importFolderID", importFolderID}
-        });
+        scheduler.ScheduleJob(JobBuilder<DeleteImportFolderJob>.Create()
+                .StoreDurably()
+                .UsingJobData(a => a.ImportFolderID = importFolderID)
+                .WithGeneratedIdentity()
+                .Build(),
+            TriggerBuilder.Create().StartNow().Build());
     }
 
     private void SetupAniDBProcessor()

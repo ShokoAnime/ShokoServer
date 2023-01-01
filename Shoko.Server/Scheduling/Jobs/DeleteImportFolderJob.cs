@@ -10,17 +10,13 @@ namespace Shoko.Server.Scheduling.Jobs;
 
 internal class DeleteImportFolderJob : IJob
 {
+    public int ImportFolderID { get; set; }
 
-    public static readonly JobKey Key = new("DeleteImportFolder", "Legacy");
-    
-    
     public async Task Execute(IJobExecutionContext context)
     {
-        var folderId = context.MergedJobDataMap.GetInt("importFolderID");
-        
         try
         {
-            Importer.DeleteImportFolder(folderId);
+            Importer.DeleteImportFolder(ImportFolderID);
         }
         catch (Exception ex)
         {

@@ -12,14 +12,14 @@ namespace Shoko.Server.Scheduling.Jobs;
 internal class RemoveMissingFilesJob : IJob
 {
     public static readonly JobKey Key = new("RemoveMissingFiles", "Legacy");
+    public bool RemoveMyList { get; set; }
     
     public async Task Execute(IJobExecutionContext context)
     {
         Analytics.PostEvent("Importer", "RemoveMissing");
-        var removeMyList = context.MergedJobDataMap.GetBoolean("removeMyList");
         try
         {
-            Importer.RemoveRecordsWithoutPhysicalFiles(removeMyList);
+            Importer.RemoveRecordsWithoutPhysicalFiles(RemoveMyList);
         }
         catch (Exception ex)
         {

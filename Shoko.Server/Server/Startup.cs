@@ -53,6 +53,8 @@ public class Startup
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
             services.AddSingleton<ICommandRequestFactory, CommandRequestFactory>();
             services.AddSingleton<IConnectivityMonitor>(_ => new GeneralConnectivityMonitor());
+            services.AddTransient<ScanFolderJob>();
+            services.AddTransient<DeleteImportFolderJob>();
 
             services.AddQuartz(q =>
             {
@@ -65,10 +67,9 @@ public class Startup
                     j => j.WithIdentity(ConnectivityMonitorJob.Key).DisallowConcurrentExecution().Build());
 
                 q.AddJob<ImportJob>(j => j.WithIdentity(ImportJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
-                q.AddJob<ScanFolderJob>(j => j.WithIdentity(ScanFolderJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
+                q.AddJob<ScanFolderJob>(j => j.DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
                 q.AddJob<ScanDropFoldersJob>(j => j.WithIdentity(ScanDropFoldersJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
                 q.AddJob<RemoveMissingFilesJob>(j => j.WithIdentity(RemoveMissingFilesJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
-                q.AddJob<DeleteImportFolderJob>(j => j.WithIdentity(DeleteImportFolderJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
                 q.AddJob<MediaInfoJob>(j => j.WithIdentity(MediaInfoJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
 
                 // TODO, in the future, when commands are Jobs, we'll use a AddCommands() extension like below for those, but manual registration for scheduled tasks like above

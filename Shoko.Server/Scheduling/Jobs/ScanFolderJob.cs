@@ -10,16 +10,13 @@ namespace Shoko.Server.Scheduling.Jobs;
 
 internal class ScanFolderJob : IJob
 {
+    public int ImportFolderID { get; set; }
 
-    public static readonly JobKey Key = new("ScanFolder", "Legacy");
-    
     public async Task Execute(IJobExecutionContext context)
     {
-        var folderId = context.MergedJobDataMap.GetInt("importFolderID");
-        
         try
         {
-            Importer.RunImport_ScanFolder(folderId);
+            Importer.RunImport_ScanFolder(ImportFolderID);
         }
         catch (Exception ex)
         {
