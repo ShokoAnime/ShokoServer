@@ -90,7 +90,7 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error processing CommandRequest_TvDBSearchAnime: {AnimeID} - {Ex}", AnimeID, ex);
+            Logger.LogError(ex, "Error processing CommandRequest_TvDBSearchAnime: {AnimeID}", AnimeID);
         }
     }
 

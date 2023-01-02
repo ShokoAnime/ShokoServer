@@ -87,7 +87,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error processing CommandRequest_ProcessFile: {VideoLocalID} - {Ex}", VideoLocalID, ex);
+            Logger.LogError(ex, "Error processing CommandRequest_ProcessFile: {VideoLocalID}", VideoLocalID);
         }
     }
 

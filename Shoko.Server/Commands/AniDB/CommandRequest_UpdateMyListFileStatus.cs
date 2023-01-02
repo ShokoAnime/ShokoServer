@@ -146,7 +146,7 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_UpdateMyListFileStatus: {Hash} - {Ex}", Hash, ex);
+            Logger.LogError(ex, "Error processing CommandRequest_UpdateMyListFileStatus: {Hash}", Hash);
         }
     }
 

@@ -125,7 +125,7 @@ public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex);
+            Logger.LogError(ex, "Error processing CommandRequest_TvDBSearchAnime: {AnimeID}", AnimeID);
         }
     }
 

@@ -159,9 +159,8 @@ public static class CommandHelper
         }
         catch (Exception e)
         {
-            logger.LogError("There was an error loading {CommandType}: The XML was {CommandDetails}",
+            logger.LogError(e, "There was an error loading {CommandType}: The XML was {CommandDetails}\n",
                 (CommandRequestType)crdb.CommandType, crdb.CommandDetails);
-            logger.LogError("There was an error loading {CommandType}: {E}", (CommandRequestType)crdb.CommandType, e);
         }
 
         return null;

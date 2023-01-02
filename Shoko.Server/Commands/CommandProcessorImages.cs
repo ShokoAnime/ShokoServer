@@ -78,7 +78,7 @@ public class CommandProcessorImages : CommandProcessor
                     }
                     catch (Exception ex)
                     {
-                        Logger.LogError(ex, "ProcessCommand exception: {CommandID}\n{Ex}", crdb.CommandID, ex);
+                        Logger.LogError(ex, "ProcessCommand exception: {CommandID}", crdb.CommandID);
                     }
                     finally
                     {
@@ -91,7 +91,7 @@ public class CommandProcessorImages : CommandProcessor
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, "Error Processing Commands: {EX}", exception);
+                Logger.LogError(exception, "Error Processing Commands");
             }
         }
     }

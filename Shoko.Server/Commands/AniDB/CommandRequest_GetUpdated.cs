@@ -87,7 +87,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_GetUpdated: {Ex}", ex);
+            Logger.LogError(ex, "Error processing CommandRequest_GetUpdated");
         }
     }
 

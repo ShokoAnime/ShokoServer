@@ -166,9 +166,7 @@ public static class Importer
                 }
                 catch (Exception ex)
                 {
-                    var msg = string.Format("Error RunImport_ScanFolder XREF: {0} - {1}", vl.FullServerPath,
-                        ex);
-                    Logger.Info(msg);
+                    Logger.Error(ex, $"Error RunImport_ScanFolder XREF: {vl.FullServerPath}");
                 }
             }
 

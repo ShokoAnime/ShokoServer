@@ -223,7 +223,7 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error processing CommandRequest_AddFileToMyList: {Hash} - {Ex}", Hash, ex);
+            Logger.LogError(ex, "Error processing CommandRequest_AddFileToMyList: {Hash}", Hash);
         }
     }
 

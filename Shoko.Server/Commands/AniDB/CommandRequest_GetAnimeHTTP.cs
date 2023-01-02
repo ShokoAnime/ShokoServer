@@ -154,7 +154,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
         }
         catch (AniDBBannedException ex)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_GetAnimeHTTP: {AnimeID} - {Ex}", AnimeID, ex);
+            Logger.LogError(ex, "Error processing CommandRequest_GetAnimeHTTP: {AnimeID}", AnimeID);
         }
     }
 

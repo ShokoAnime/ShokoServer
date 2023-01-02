@@ -421,7 +421,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to Remove Characters for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Remove Characters for {MainTitle}", anime.MainTitle);
         }
 
 
@@ -441,7 +441,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to Remove Seiyuus for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Remove Seiyuus for {MainTitle}", anime.MainTitle);
         }
 
         var charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
@@ -578,13 +578,13 @@ public class AnimeCreator
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError(e, "Unable to Populate and Save Seiyuus for {MainTitle}: {Ex}", anime.AnimeID, e);
+                        _logger.LogError(e, "Unable to Populate and Save Seiyuus for {MainTitle}", anime.AnimeID);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unable to Populate and Save Characters for {MainTitle}: {Ex}", anime.AnimeID, ex);
+                _logger.LogError(ex, "Unable to Populate and Save Characters for {MainTitle}", anime.AnimeID);
             }
         }
 
@@ -597,7 +597,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to Save Characters and Seiyuus for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Save Characters and Seiyuus for {MainTitle}", anime.MainTitle);
         }
     }
 
@@ -615,7 +615,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to Remove Staff for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Remove Staff for {MainTitle}", anime.MainTitle);
         }
 
         var animeStaffToSave = new List<AniDB_Anime_Staff>();
@@ -687,7 +687,7 @@ public class AnimeCreator
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unable to Populate and Save Staff for {MainTitle}: {Ex}", anime.MainTitle, ex);
+                _logger.LogError(ex, "Unable to Populate and Save Staff for {MainTitle}", anime.MainTitle);
             }
         }
 
@@ -698,7 +698,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to Save Staff for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Save Staff for {MainTitle}", anime.MainTitle);
         }
     }
 

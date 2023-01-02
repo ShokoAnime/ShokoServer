@@ -175,7 +175,7 @@ public class MovieDBHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError("Error in MovieDB Search: {Message}", ex.Message);
+            _logger.LogError(ex, "Error in MovieDB Search");
         }
 
         return results;
@@ -197,7 +197,7 @@ public class MovieDBHelper
             }
             catch (Exception e)
             {
-                _logger.LogError("Failed to Update MovieDB Movie ID: {Id} Error: {E}", movie.MovieId, e);
+                _logger.LogError(e, "Failed to Update MovieDB Movie ID: {Id}", movie.MovieId);
             }
         }
     }
@@ -218,7 +218,7 @@ public class MovieDBHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in UpdateMovieInfo: {Ex}", ex);
+            _logger.LogError(ex, "Error in UpdateMovieInfo");
         }
     }
 

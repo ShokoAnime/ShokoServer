@@ -41,8 +41,7 @@ public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error processing CommandRequest_LinkAniDBTvDB: {0} - {1}", AnimeID,
-                ex);
+            Logger.LogError(ex, "Error processing CommandRequest_LinkAniDBTvDB: {AnimeID}", AnimeID);
         }
     }
 

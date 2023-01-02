@@ -93,7 +93,7 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_GetCalendar: {Ex}", ex);
+            Logger.LogError(ex, "Error processing CommandRequest_GetCalendar");
         }
     }
 

@@ -55,7 +55,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error processing file: {Filename}\n{Ex}", FileName, ex);
+            Logger.LogError(ex, "Error processing file: {Filename}", FileName);
         }
     }
 

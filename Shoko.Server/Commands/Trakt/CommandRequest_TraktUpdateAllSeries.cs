@@ -74,7 +74,7 @@ public class CommandRequest_TraktUpdateAllSeries : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error processing CommandRequest_TraktUpdateAllSeries: {0}", ex);
+            Logger.LogError(ex, "Error processing CommandRequest_TraktUpdateAllSeries");
         }
     }
 

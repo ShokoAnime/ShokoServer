@@ -257,7 +257,7 @@ public class ActionController : BaseController
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error checking and queuing AniDB XML Updates: {E}", e);
+            _logger.LogError(e, "Error checking and queuing AniDB XML Updates");
             return InternalError(e.Message);
         }
 

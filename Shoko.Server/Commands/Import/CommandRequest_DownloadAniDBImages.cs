@@ -230,7 +230,7 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_DownloadAniDBImages: {AnimeID} - {Ex}", AnimeID, ex);
+            Logger.LogError(ex, "Error processing CommandRequest_DownloadAniDBImages: {AnimeID}", AnimeID);
         }
     }
 

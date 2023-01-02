@@ -47,7 +47,7 @@ public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error processing CommandRequest_ReadMediaInfo: {VideoLocalID} - {Ex}", VideoLocalID, ex);
+            Logger.LogError(ex, "Error processing CommandRequest_ReadMediaInfo: {VideoLocalID}", VideoLocalID);
         }
     }
 

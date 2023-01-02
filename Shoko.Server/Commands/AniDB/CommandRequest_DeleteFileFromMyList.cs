@@ -254,7 +254,7 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
         }
         catch (AniDBBannedException ex)
         {
-            Logger.LogError(ex, "Error processing {Type}: Hash: {Hash} - {Ex}", GetType().Name, Hash, ex);
+            Logger.LogError(ex, "Error processing {Type}: Hash: {Hash}", GetType().Name, Hash);
         }
     }
 

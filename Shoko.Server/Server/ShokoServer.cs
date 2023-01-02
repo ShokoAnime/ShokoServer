@@ -165,15 +165,6 @@ public class ShokoServer
             Environment.Exit(1);
         }
 
-        // Migrate programdata folder from JMMServer to ShokoServer
-        // this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
-        if (!MigrateProgramDataLocation())
-        {
-            Utils.ShowErrorMessage(Resources.Migration_LoadError,
-                Resources.ShokoServer);
-            Environment.Exit(1);
-        }
-
         //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
         CommandHelper.LoadCommands(Utils.ServiceContainer);
 
@@ -245,8 +236,6 @@ public class ShokoServer
 
         ServerState.Instance.LoadSettings(settings);
 
-        InitCulture();
-
         // run rotator once and set 24h delay
         Utils.ServiceContainer.GetRequiredService<LogRotator>().Start();
 
@@ -301,47 +290,6 @@ public class ShokoServer
 
         return result;
     }
-
-    public bool MigrateProgramDataLocation()
-    {
-        var oldApplicationPath =
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "JMMServer");
-        var newApplicationPath =
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                Assembly.GetEntryAssembly().GetName().Name);
-        if (Directory.Exists(oldApplicationPath) && !Directory.Exists(newApplicationPath))
-        {
-            try
-            {
-                var migrationdirs = new List<MigrationDirectory>
-                {
-                    new() { From = oldApplicationPath, To = newApplicationPath }
-                };
-
-                foreach (var md in migrationdirs)
-                {
-                    if (!md.SafeMigrate())
-                    {
-                        break;
-                    }
-                }
-
-                logger.LogInformation("Successfully migrated programdata folder");
-            }
-            catch (Exception e)
-            {
-                logger.LogError("Error occured during MigrateProgramDataLocation(): {Ex}", e);
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private void InitCulture()
-    {
-    }
-
 
     #region Database settings and initial start up
 

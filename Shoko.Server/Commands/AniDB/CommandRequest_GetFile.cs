@@ -221,7 +221,7 @@ public class CommandRequest_GetFile : CommandRequestImplementation
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError(e, "Could not get Episode Info for {EpisodeID}: {Ex}", episode.EpisodeID, e);
+                        Logger.LogError(e, "Could not get Episode Info for {EpisodeID}", episode.EpisodeID);
                     }
                 }
 

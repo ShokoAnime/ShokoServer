@@ -125,7 +125,7 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_GetReleaseGroupStatus: {AnimeID} - {Ex}", AnimeID, ex);
+            Logger.LogError(ex, "Error processing CommandRequest_GetReleaseGroupStatus: {AnimeID}", AnimeID);
         }
     }
 

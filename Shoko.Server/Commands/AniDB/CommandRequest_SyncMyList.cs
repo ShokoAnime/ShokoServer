@@ -115,7 +115,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError(ex, "A MyList Item threw an error while syncing: {Ex}", ex);
+                    Logger.LogError(ex, "A MyList Item threw an error while syncing");
                 }
             }
 
@@ -142,7 +142,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_SyncMyList: {Ex} ", ex);
+            Logger.LogError(ex, "Error processing CommandRequest_SyncMyList");
         }
     }
 

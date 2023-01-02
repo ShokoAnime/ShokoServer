@@ -262,7 +262,7 @@ public class SettingsProvider : ISettingsProvider
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "An error occurred while loading the settings from file: {Ex}", e);
+            _logger.LogError(e, "An error occurred while loading the settings from file");
         }
 
         if (delete)

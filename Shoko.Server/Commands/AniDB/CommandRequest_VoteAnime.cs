@@ -50,7 +50,7 @@ public class CommandRequest_VoteAnime : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_Vote: {CommandID} - {Exception}", CommandID, ex);
+            Logger.LogError(ex, "Error processing CommandRequest_Vote: {CommandID}", CommandID);
         }
     }
 

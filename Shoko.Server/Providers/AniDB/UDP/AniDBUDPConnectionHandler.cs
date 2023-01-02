@@ -279,7 +279,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to logout: {Message}", ex);
+            Logger.LogError(ex, "Failed to logout");
         }
 
         try
@@ -288,7 +288,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to close socket: {Message}", ex);
+            Logger.LogError(ex, "Failed to close socket");
         }
 
         try
@@ -297,7 +297,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to reinitialize socket: {Message}", ex);
+            Logger.LogError(ex, "Failed to reinitialize socket");
         }
     }
 
@@ -442,7 +442,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Unable to login to AniDB: {Ex}", e);
+            Logger.LogError(e, "Unable to login to AniDB");
             response = new UDPResponse<ResponseLogin>();
         }
 
@@ -516,7 +516,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                 return login.Execute();
             }
 
-            Logger.LogError(e, "Unable to login to AniDB: {Ex}", e);
+            Logger.LogError(e, "Unable to login to AniDB");
             return new UDPResponse<ResponseLogin>();
         }
     }

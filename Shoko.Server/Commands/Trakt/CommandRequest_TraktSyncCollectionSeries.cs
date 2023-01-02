@@ -47,7 +47,7 @@ public class CommandRequest_TraktSyncCollectionSeries : CommandRequestImplementa
             var series = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
             if (series == null)
             {
-                Logger.LogError("Could not find anime series: {0}", AnimeSeriesID);
+                Logger.LogError("Could not find anime series: {AnimeSeriesID}", AnimeSeriesID);
                 return;
             }
 
@@ -55,7 +55,7 @@ public class CommandRequest_TraktSyncCollectionSeries : CommandRequestImplementa
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error processing CommandRequest_TraktSyncCollectionSeries: {0}", ex);
+            Logger.LogError(ex, "Error processing CommandRequest_TraktSyncCollectionSeries");
         }
     }
 

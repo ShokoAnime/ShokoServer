@@ -71,7 +71,7 @@ public abstract class CommandRequestImplementation : ICommandRequest
                 throw;
             }
 
-            Logger.LogError(e, "Error processing {Type}: {CommandDetails} - {Exception}", GetType().Name, CommandID, e);
+            Logger.LogError(e, "Error processing {Type}: {CommandDetails}", GetType().Name, CommandID);
         }
     }
 
@@ -128,14 +128,14 @@ public abstract class CommandRequestImplementation : ICommandRequest
         }
         catch (TransactionException e)
         {
-            Logger.LogError(e, "Failed to Save CommandRequest, retying: {Ex}", e);
+            Logger.LogError(e, "Failed to Save CommandRequest, retying");
             try
             {
                 RepoFactory.CommandRequest.Save(cri);
             }
             catch (TransactionException ex)
             {
-                Logger.LogError(e, "Still Failed to Save CommandRequest: {Ex}", ex);
+                Logger.LogError(ex, "Still Failed to Save CommandRequest");
             }
         }
 

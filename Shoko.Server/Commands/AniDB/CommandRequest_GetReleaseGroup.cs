@@ -68,7 +68,7 @@ public class CommandRequest_GetReleaseGroup : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error processing CommandRequest_GetReleaseGroup: {GroupID} - {Ex}", GroupID, ex);
+            Logger.LogError(ex, "Error processing CommandRequest_GetReleaseGroup: {GroupID}", GroupID);
         }
     }
 

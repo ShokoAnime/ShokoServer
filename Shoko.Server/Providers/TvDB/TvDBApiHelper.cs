@@ -65,7 +65,7 @@ public class TvDBApiHelper
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error in TvDBAuth: {Ex}", e);
+            _logger.LogError(e, "Error in TvDBAuth");
             Analytics.PostEvent("TvDB", "Login Failed");
             throw;
         }
@@ -119,14 +119,14 @@ public class TvDBApiHelper
                 return null;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
             Analytics.PostException(exception);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TvDBApiHelper.GetSeriesInfoOnline: {Ex}", ex);
+            _logger.LogError(ex, "Error in TvDBApiHelper.GetSeriesInfoOnline");
             Analytics.PostException(ex);
         }
 
@@ -190,7 +190,7 @@ public class TvDBApiHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in SearchSeries: {Ex}", ex);
+            _logger.LogError(ex, "Error in SearchSeries");
             Analytics.PostException(ex);
         }
 
@@ -332,14 +332,14 @@ public class TvDBApiHelper
                 return languages;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
             Analytics.PostException(exception);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TVDBHelper.GetSeriesBannersOnline: {Ex}", ex);
+            _logger.LogError(ex, "Error in TVDBHelper.GetSeriesBannersOnline");
             Analytics.PostException(ex);
         }
 
@@ -389,7 +389,7 @@ public class TvDBApiHelper
                 return null;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
             Analytics.PostException(exception);
@@ -426,7 +426,7 @@ public class TvDBApiHelper
                 return new Image[] { };
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
             Analytics.PostException(exception);
@@ -503,14 +503,14 @@ public class TvDBApiHelper
                 return tvImages;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
             Analytics.PostException(exception);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TVDBApiHelper.GetSeriesFanartOnlineAsync: {Ex}", ex);
+            _logger.LogError(ex, "Error in TVDBApiHelper.GetSeriesFanartOnlineAsync");
             Analytics.PostException(ex);
         }
 
@@ -585,14 +585,14 @@ public class TvDBApiHelper
                 return tvImages;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
             Analytics.PostException(exception);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync: {Ex}", ex);
+            _logger.LogError(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync");
             Analytics.PostException(ex);
         }
 
@@ -667,14 +667,14 @@ public class TvDBApiHelper
                 return tvImages;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
             Analytics.PostException(exception);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync: {Ex}", ex);
+            _logger.LogError(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync");
             Analytics.PostException(ex);
         }
 
@@ -849,14 +849,14 @@ public class TvDBApiHelper
                 return apiEpisodes;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
             Analytics.PostException(exception);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TvDBApiHelper.GetEpisodesOnlineAsync: {Ex}", ex);
+            _logger.LogError(ex, "Error in TvDBApiHelper.GetEpisodesOnlineAsync");
             Analytics.PostException(ex);
         }
 
@@ -939,7 +939,7 @@ public class TvDBApiHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TVDBHelper.GetEpisodes: {Ex}", ex);
+            _logger.LogError(ex, "Error in TVDBHelper.GetEpisodes");
             Analytics.PostException(ex);
             return null;
         }
@@ -1090,13 +1090,13 @@ public class TvDBApiHelper
                 case (int)HttpStatusCode.NotFound: return seriesList;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in GetUpdatedSeriesList: {Ex}", ex);
+            _logger.LogError(ex, "Error in GetUpdatedSeriesList");
         }
 
         return seriesList;
@@ -1200,7 +1200,7 @@ public class TvDBApiHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "IncrementalTvDBUpdate: {Ex}", ex);
+            _logger.LogError(ex, "IncrementalTvDBUpdate");
             return string.Empty;
         }
     }

@@ -233,7 +233,7 @@ public class Init : BaseController
         }
         catch (Exception e)
         {
-            _logger.LogError("There was an error starting the server: {E}", e);
+            _logger.LogError(e, "There was an error starting the server");
             return APIStatus.InternalError($"There was an error starting the server: {e}");
         }
         return APIStatus.OK();

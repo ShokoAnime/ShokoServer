@@ -108,7 +108,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Could not bind to local port: {Ex}", ex);
+            _logger.LogError(ex, "Could not bind to local port");
             return false;
         }
 
@@ -122,7 +122,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Could not bind to remote port: {Ex}", ex);
+            _logger.LogError(ex, "Could not bind to remote port");
             return false;
         }
 
@@ -154,7 +154,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
             }
             catch (SocketException ex)
             {
-                _logger.LogError(ex, "Failed to Shutdown and Disconnect the connection to AniDB: {@Ex}", ex);
+                _logger.LogError(ex, "Failed to Shutdown and Disconnect the connection to AniDB");
             }
             finally
             {

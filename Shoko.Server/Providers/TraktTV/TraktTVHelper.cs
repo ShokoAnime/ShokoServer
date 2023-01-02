@@ -109,8 +109,7 @@ public class TraktTVHelper
             {
                 if (webEx.Response is HttpWebResponse response)
                 {
-                    _logger.LogError("Error in SendData: {StatusCode} - {WebEx}", (int)response.StatusCode,
-                        webEx.ToString());
+                    _logger.LogError(webEx, "Error in SendData: {StatusCode}", (int)response.StatusCode);
                     ret = (int)response.StatusCode;
 
                     try
@@ -136,7 +135,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError("Error in SendData: {Ex}", ex);
+            _logger.LogError(ex, "Error in SendData");
         }
 
         return ret;
@@ -194,7 +193,7 @@ public class TraktTVHelper
         }
         catch (WebException e)
         {
-            _logger.LogError(e, "Error in GetFromTrakt: {Ex}", e.ToString());
+            _logger.LogError(e, "Error in GetFromTrakt");
 
             var httpResponse = (HttpWebResponse)e.Response;
             traktCode = (int?)httpResponse?.StatusCode ?? 0;
@@ -203,7 +202,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError("Error in GetFromTrakt: {Ex}", ex);
+            _logger.LogError(ex, "Error in GetFromTrakt");
             return null;
         }
     }
@@ -274,7 +273,7 @@ public class TraktTVHelper
             settings.TraktTv.RefreshToken = string.Empty;
             settings.TraktTv.TokenExpirationDate = string.Empty;
 
-            _logger.LogError(ex, "Error in TraktTVHelper.RefreshAuthToken: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.RefreshAuthToken");
         }
         finally
         {
@@ -334,7 +333,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.GetTraktDeviceCode: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.GetTraktDeviceCode");
             throw;
         }
     }
@@ -400,7 +399,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.TraktAuthDeviceCodeToken: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.TraktAuthDeviceCodeToken");
             throw;
         }
     }
@@ -797,7 +796,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.PostCommentShow: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.PostCommentShow");
             ret.ErrorMessage = ex.Message;
             ret.Result = false;
             return ret;
@@ -907,7 +906,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.SyncEpisodeToTrakt: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.SyncEpisodeToTrakt");
         }
     }
 
@@ -961,7 +960,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError("Error in TraktTVHelper.SyncEpisodeToTrakt: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.SyncEpisodeToTrakt");
         }
     }
 
@@ -1044,7 +1043,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.Scrobble: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.Scrobble");
             return 500;
         }
     }
@@ -1094,7 +1093,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in Trakt SearchSeries: {Ex}", ex);
+            _logger.LogError(ex, "Error in Trakt SearchSeries");
         }
 
         return null;
@@ -1135,7 +1134,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in SearchSeries: {Ex}", ex);
+            _logger.LogError(ex, "Error in SearchSeries");
         }
 
         return null;
@@ -1197,7 +1196,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.GetShowInfo: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.GetShowInfo");
             return null;
         }
 
@@ -1271,7 +1270,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.SaveExtendedShowInfo: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.SaveExtendedShowInfo");
         }
     }
 
@@ -1347,7 +1346,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.GetShowComments: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.GetShowComments");
         }
 
         return ret;
@@ -1385,7 +1384,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in SearchSeries: {Ex}", ex);
+            _logger.LogError(ex, "Error in SearchSeries");
         }
 
         return new List<TraktV2ShowWatchedResult>();
@@ -1424,7 +1423,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in SearchSeries: {Ex}", ex);
+            _logger.LogError(ex, "Error in SearchSeries");
         }
 
         return new List<TraktV2ShowCollectedResult>();
@@ -1492,7 +1491,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.SyncCollectionToTrakt_Series: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.SyncCollectionToTrakt_Series");
         }
     }
 
@@ -1823,7 +1822,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.SyncCollectionToTrakt: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.SyncCollectionToTrakt");
         }
     }
 
@@ -1867,7 +1866,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.CleanupDatabase: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.CleanupDatabase");
             return false;
         }
     }
@@ -2052,7 +2051,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.SyncTraktEpisode: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.SyncTraktEpisode");
             return null;
         }
     }
@@ -2097,7 +2096,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.GetTraktCollectionInfo: {Ex}", ex);
+            _logger.LogError(ex, "Error in TraktTVHelper.GetTraktCollectionInfo");
             return false;
         }
     }

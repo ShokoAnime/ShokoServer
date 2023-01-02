@@ -51,7 +51,7 @@ public class RecoveringFileSystemWatcher : IDisposable
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Unable to add Exclusion Regex: {Regex}, {Ex}", exclusion, e);
+                _logger.LogError(e, "Unable to add Exclusion Regex: {Regex}", exclusion);
             }
         }
 
@@ -81,7 +81,7 @@ public class RecoveringFileSystemWatcher : IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in FileSystemWatcher: {Ex}", ex);
+                _logger.LogError(ex, "Error in FileSystemWatcher");
             }
             finally
             {
@@ -139,7 +139,7 @@ public class RecoveringFileSystemWatcher : IDisposable
 
     private void WatcherOnError(object sender, ErrorEventArgs e)
     {
-        _logger.LogError(e.GetException(), "Error in FileSystemWatcher. Attempting recovery: {Ex}", e.GetException());
+        _logger.LogError(e.GetException(), "Error in FileSystemWatcher. Attempting recovery");
         try
         {
             _watcher?.Dispose();
@@ -155,7 +155,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in FileSystemWatcher. Could not recover: {Ex}", ex);
+            _logger.LogError(ex, "Error in FileSystemWatcher. Could not recover");
         }
     }
 
@@ -185,7 +185,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in FileSystemWatcher. Retrying in {Time}s: {Ex}", _directoryFailedRetryInterval.TotalSeconds, ex);
+            _logger.LogError(ex, "Error in FileSystemWatcher. Retrying in {Time}s", _directoryFailedRetryInterval.TotalSeconds);
             if (_watcher != null)
                 _watcher.EnableRaisingEvents = false;
             _recoveringTimer?.Change(_directoryFailedRetryInterval, Timeout.InfiniteTimeSpan);

@@ -73,7 +73,7 @@ public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error processing CommandRequest_TraktSyncCollection: {0}", ex);
+            Logger.LogError(ex, "Error processing CommandRequest_TraktSyncCollection");
         }
     }
 

@@ -61,9 +61,7 @@ public class CommandRequest_TraktCollectionEpisode : CommandRequestImplementatio
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error processing CommandRequest_TraktCollectionEpisode: {0} - {1} - {2}", AnimeEpisodeID,
-                Action,
-                ex);
+            Logger.LogError(ex, "Error processing CommandRequest_TraktCollectionEpisode: {0} - {1}", AnimeEpisodeID, Action);
         }
     }
 

@@ -95,7 +95,7 @@ public class CommandRequest_SyncMyVotes : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_SyncMyVotes: {Ex} ", ex);
+            Logger.LogError(ex, "Error processing CommandRequest_SyncMyVotes");
         }
     }
 

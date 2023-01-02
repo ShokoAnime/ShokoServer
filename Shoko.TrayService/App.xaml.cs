@@ -97,7 +97,7 @@ public partial class App
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to Open WebUI: {Ex}", e);
+            _logger.LogError(e, "Failed to Open WebUI");
         }
     }
 

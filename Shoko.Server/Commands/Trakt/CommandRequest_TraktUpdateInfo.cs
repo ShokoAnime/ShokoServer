@@ -37,8 +37,7 @@ public class CommandRequest_TraktUpdateInfo : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error processing CommandRequest_TraktUpdateInfo: {0} - {1}", TraktID,
-                ex);
+            Logger.LogError(ex, "Error processing CommandRequest_TraktUpdateInfo: {TraktID}", TraktID);
         }
     }
 

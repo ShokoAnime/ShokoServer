@@ -206,7 +206,7 @@ public class InitController : BaseController
         }
         catch (Exception e)
         {
-            _logger.LogError(e, $"There was an error starting the server: {e}");
+            _logger.LogError(e, "There was an error starting the server");
             return InternalError($"There was an error starting the server: {e}");
         }
         return Ok();

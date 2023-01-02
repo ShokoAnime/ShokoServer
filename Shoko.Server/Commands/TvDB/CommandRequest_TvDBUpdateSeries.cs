@@ -49,8 +49,7 @@ public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error processing CommandRequest_TvDBUpdateSeries: {0} - {1}", TvDBSeriesID,
-                ex);
+            Logger.LogError(ex, "Error processing CommandRequest_TvDBUpdateSeries: {SeriesID}", TvDBSeriesID);
         }
     }
 

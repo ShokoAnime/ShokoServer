@@ -469,11 +469,11 @@ public static class Utils
         return !args.Cancel;
     }
 
-    public static void ShowErrorMessage(Exception ex)
+    public static void ShowErrorMessage(Exception ex, string message = null)
     {
         //MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = ex.Message });
-        logger.Error(ex, ex.ToString());
+        ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = message ?? ex.Message });
+        logger.Error(ex, message);
     }
 
     public static void ShowErrorMessage(string msg)

@@ -91,7 +91,7 @@ public class CommandProcessorHasher : CommandProcessor
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError(ex, "ProcessCommand exception: {CommandID}\n{Ex}", crdb.CommandID, ex);
+                    Logger.LogError(ex, "ProcessCommand exception: {CommandID}", crdb.CommandID);
                     Logger.LogInformation(ex, "Removing ProcessCommand: {CommandID}", crdb.CommandID);
                     RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
                 }
@@ -105,7 +105,7 @@ public class CommandProcessorHasher : CommandProcessor
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, "Error Processing Commands: {EX}", exception);
+                Logger.LogError(exception, "Error Processing Commands");
             }
         }
     }
