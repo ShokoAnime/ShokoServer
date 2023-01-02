@@ -51,6 +51,12 @@ jobs:
           tag: ${{ steps.release_info.outputs.tag }}
           file_glob: true
 
+      - name: Sentry Release
+        uses: getsentry/action-release@v1.2.1
+        with:
+          environment: 'stable'
+          version: ${{ steps.release_info.outputs.version }}
+
   cli-standalone-stable:
     runs-on: ubuntu-latest
 
