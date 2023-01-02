@@ -121,21 +121,42 @@ public class ShokoServer
 
     public bool StartUpServer()
     {
-        _sentry = SentrySdk.Init(opts =>
-        {
-            opts.Dsn = SentryDsn;
-            opts.Release = Utils.GetApplicationVersion();
-        });
-
-
-        Analytics.PostEvent("Server", "Startup");
-        if (Utils.IsLinux)
-        {
-            Analytics.PostEvent("Server", "Linux Startup");
-        }
-
         var settingsProvider = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>();
         var settings = settingsProvider.GetSettings();
+
+        // Only try to set up Sentry if the user DID NOT OPT __OUT__.
+        if (!settings.SentryOptOut)
+        {
+            // Get the release and extra info from the assembly.
+            var extraInfo = Utils.GetApplicationExtraVersion().Split(",")
+                .Select(raw => raw.Split("="))
+                .Where(pair => pair.Length == 2 && !string.IsNullOrEmpty(pair[1]))
+                .ToDictionary(pair => pair[0], pair => pair[1]);
+
+            // Only initialize the SDK if we're not on a local build.
+            //
+            // If the release channel is not set or if it's set to "local" then
+            // it's considered to be a local build.
+            if (extraInfo.TryGetValue("channel", out var releaseChannel) && releaseChannel != "local")
+                _sentry = SentrySdk.Init(opts =>
+                {
+                    // Assign the DSN key and release version.
+                    opts.Dsn = SentryDsn;
+                    opts.Release = Utils.GetApplicationVersion();
+                    opts.DefaultTags.Add("release.channel", releaseChannel);
+
+                    // Conditionally assign the extra info if they're included in the assembly.
+                    if (extraInfo.TryGetValue("commit", out var gitCommit))
+                        opts.DefaultTags.Add("commit", gitCommit);
+                    if (extraInfo.TryGetValue("tag", out var gitTag))
+                        opts.DefaultTags.Add("commit.tag", gitTag);
+
+                    // Append the release channel for the release on non-stable branches.
+                    if (releaseChannel != "stable")
+                        opts.Release += string.IsNullOrEmpty(gitCommit) ? $"-{releaseChannel}" : $"-{releaseChannel}-{gitCommit[0..7]}";
+                });
+        }
+
         Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(settings.Culture);
 
         // Check if any of the DLL are blocked, common issue with daily builds

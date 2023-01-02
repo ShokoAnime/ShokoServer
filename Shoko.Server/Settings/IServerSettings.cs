@@ -39,4 +39,5 @@ public interface IServerSettings
     string UpdateChannel { get; set; }
     bool TraceLog { get; set; }
     int CachingDatabaseTimeout { get; set; }
+    bool SentryOptOut { get; set; }
 }

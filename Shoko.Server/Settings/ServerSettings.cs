@@ -105,4 +105,6 @@ public class ServerSettings : IServerSettings
     public LinuxSettings Linux { get; set; } = new();
 
     public bool TraceLog { get; set; }
+
+    public bool SentryOptOut { get; set; } = false;
 }
