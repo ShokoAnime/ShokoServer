@@ -40,6 +40,7 @@ public class ShokoServer
 {
     //private static bool doneFirstTrakTinfo = false;
     private readonly ILogger<ShokoServer> logger;
+    private readonly ISettingsProvider _settingsProvider;
     private static DateTime lastTraktInfoUpdate = DateTime.Now;
     private static DateTime lastVersionCheck = DateTime.Now;
 
@@ -82,6 +83,7 @@ public class ShokoServer
     public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider)
     {
         this.logger = logger;
+        _settingsProvider = settingsProvider;
         var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
@@ -121,8 +123,7 @@ public class ShokoServer
 
     public bool StartUpServer()
     {
-        var settingsProvider = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>();
-        var settings = settingsProvider.GetSettings();
+        var settings = _settingsProvider.GetSettings();
 
         // Only try to set up Sentry if the user DID NOT OPT __OUT__.
         if (!settings.SentryOptOut)
@@ -156,8 +157,6 @@ public class ShokoServer
                         opts.Release += string.IsNullOrEmpty(gitCommit) ? $"-{releaseChannel}" : $"-{releaseChannel}-{gitCommit[0..7]}";
                 });
         }
-
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(settings.Culture);
 
         // Check if any of the DLL are blocked, common issue with daily builds
         if (!CheckBlockedFiles())
@@ -204,7 +203,7 @@ public class ShokoServer
         // Utils.ServiceContainer = services.BuildServiceProvider();
         // Plugin.Loader.Instance.InitPlugins(Utils.ServiceContainer);
 
-        settingsProvider.DebugSettingsToLog();
+        _settingsProvider.DebugSettingsToLog();
 
         ServerState.Instance.DatabaseAvailable = false;
         ServerState.Instance.ServerOnline = false;
@@ -356,7 +355,7 @@ public class ShokoServer
         var setupComplete = bool.Parse(e.Result.ToString());
         if (!setupComplete)
         {
-            var settings = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>().GetSettings();
+            var settings = _settingsProvider.GetSettings();
             ServerState.Instance.ServerOnline = false;
             if (!string.IsNullOrEmpty(settings.Database.Type))
             {
@@ -374,10 +373,9 @@ public class ShokoServer
         ServerInfo.Instance.RefreshImportFolders();
         ServerState.Instance.ServerStartingStatus = Resources.Server_Complete;
         ServerState.Instance.ServerOnline = true;
-        var settingsProvider = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>();
-        var settings = settingsProvider.GetSettings();
+        var settings = _settingsProvider.GetSettings();
         settings.FirstRun = false;
-        settingsProvider.SaveSettings();
+        _settingsProvider.SaveSettings();
         if (string.IsNullOrEmpty(settings.AniDb.Username) ||
             string.IsNullOrEmpty(settings.AniDb.Password))
         {
@@ -410,9 +408,7 @@ public class ShokoServer
 
     private void WorkerSetupDB_DoWork(object sender, DoWorkEventArgs e)
     {
-        var settingsProvider = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>();
-        var settings = settingsProvider.GetSettings();
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(settings.Culture);
+        var settings = _settingsProvider.GetSettings();
 
         try
         {
@@ -622,8 +618,7 @@ public class ShokoServer
 
             //verNew = verInfo.versions.ServerVersionAbs;
 
-            var settingsProvider = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>();
-            var settings = settingsProvider.GetSettings();
+            var settings = _settingsProvider.GetSettings();
             verNew =
                 JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(
                     JMMAutoUpdatesHelper.GetLatestVersionNumber(settings.UpdateChannel))
@@ -730,8 +725,7 @@ public class ShokoServer
     public void StartWatchingFiles()
     {
         _fileWatchers = new List<RecoveringFileSystemWatcher>();
-        var settingsProvider = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>();
-        var settings = settingsProvider.GetSettings();
+        var settings = _settingsProvider.GetSettings();
 
         foreach (var share in RepoFactory.ImportFolder.GetAll())
         {
