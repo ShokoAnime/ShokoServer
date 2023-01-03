@@ -30,6 +30,17 @@ jobs:
           branch: true
           prefix: v
           prefixRegex: "[vV]?"
+          
+      - name: Sentry Release
+        uses: getsentry/action-release@v1.2.1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          # SENTRY_URL: https://sentry.io/
+        with:
+          environment: 'daily'
+          version: ${{ steps.release_info.outputs.version }}
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v1
