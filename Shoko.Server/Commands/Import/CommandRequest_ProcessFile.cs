@@ -62,26 +62,33 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
 
         try
         {
+            // Check if the video local (file) is available.
             if (vlocal == null)
             {
                 vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+                if (vlocal == null)
+                    return;
             }
 
-            if (vlocal == null)
-            {
-                return;
-            }
+            // Store a hash-set of the old cross-references for comparison later.
+            var oldXRefs = vlocal.EpisodeCrossRefs
+                .Select(xref => xref.EpisodeID)
+                .ToHashSet();
 
-            //now that we have all the has info, we can get the AniDB Info
+            // Process and get the anidb file entry.
             var aniFile = ProcessFile_AniDB(vlocal);
+
+            // Rename and/or move the physical file(s) if needed.
             vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
-            if (aniFile != null)
+            // Check if an anidb file is now available and if the cross-references changed.
+            if (aniFile != null && vlocal.EpisodeCrossRefs.Select(xref => xref.EpisodeID).ToHashSet().SetEquals(oldXRefs))
             {
-                // Set the import date.
+                // Set the import date
                 vlocal.DateTimeImported = DateTime.Now;
                 RepoFactory.VideoLocal.Save(vlocal);
 
+                // Dispatch the on file matched event.
                 ShokoEventHandler.Instance.OnFileMatched(vlocal.GetBestVideoLocalPlace());
             }
         }
