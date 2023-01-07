@@ -67,11 +67,14 @@ public class ShokoEventHandler : IShokoEventHandler
             new FileDeletedEventArgs { FileInfo = vlp, ImportFolder = folder, RelativePath = path });
     }
 
-    public void OnFileMatched(SVR_VideoLocal_Place vlp)
+    public void OnFileMatched(SVR_VideoLocal_Place vlp, SVR_VideoLocal vl)
     {
-        var series =
-            vlp.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).DistinctBy(a => a.AniDB_ID).ToList() ??
-            new List<SVR_AnimeSeries>();
+        var episodes = vl.GetAnimeEpisodes()
+            .ToList();
+        var series = episodes
+            .DistinctBy(e => e.AnimeSeriesID)
+            .Select(e => e.GetAnimeSeries())
+            .ToList();
         FileMatched?.Invoke(
             null,
             new FileMatchedEventArgs
@@ -80,8 +83,8 @@ public class ShokoEventHandler : IShokoEventHandler
                 FileInfo = vlp,
                 ImportFolder = vlp.ImportFolder,
                 AnimeInfo = series.Select(a => a.GetAnime()).Cast<IAnime>().ToList(),
-                EpisodeInfo = vlp.VideoLocal?.GetAnimeEpisodes().Cast<IEpisode>().ToList(),
-                GroupInfo = series.Select(a => a.AnimeGroup).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList()
+                EpisodeInfo = episodes.Cast<IEpisode>().ToList(),
+                GroupInfo = series.DistinctBy(a => a.AnimeGroupID).Select(a => a.AnimeGroup).Cast<IGroup>().ToList()
             }
         );
     }

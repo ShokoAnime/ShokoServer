@@ -89,7 +89,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
                 RepoFactory.VideoLocal.Save(vlocal);
 
                 // Dispatch the on file matched event.
-                ShokoEventHandler.Instance.OnFileMatched(vlocal.GetBestVideoLocalPlace());
+                ShokoEventHandler.Instance.OnFileMatched(vlocal.GetBestVideoLocalPlace(), vlocal);
             }
         }
         catch (Exception ex)
