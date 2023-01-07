@@ -641,12 +641,16 @@ public class SeriesController : BaseController
     /// Queue a refresh of the AniDB Info for series with AniDB ID
     /// </summary>
     /// <param name="anidbID">AniDB ID</param>
-    /// <param name="force">Forcefully retrive updated data from AniDB</param>
+    /// <param name="force">Try to forcefully retrive updated data from AniDB if
+    /// we're not banned and if the the last update is outside the no-update
+    /// window (configured in the settings).</param>
     /// <param name="downloadRelations">Download relations for the series</param>
-    /// <param name="createSeriesEntry">Also create the Series entries if they doesn't exist</param>
-    /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
+    /// <param name="createSeriesEntry">Also create the Series entries if
+    /// it/they do not exist</param>
+    /// <param name="immediate">Try to immediately refresh the data if we're
+    /// not HTTP banned.</param>
     /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
-    /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
+    /// <returns>True if the refresh was performed at once, otherwise false if it was queued.</returns>
     [HttpPost("AniDB/{anidbID}/Refresh")]
     public ActionResult<bool> RefreshAniDBByAniDBID([FromRoute] int anidbID, [FromQuery] bool force = false,
         [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
@@ -666,10 +670,14 @@ public class SeriesController : BaseController
     /// Queue a refresh of the AniDB Info for series with ID
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
-    /// <param name="force">Forcefully retrive updated data from AniDB</param>
+    /// <param name="force">Try to forcefully retrive updated data from AniDB if
+    /// we're not banned and if the the last update is outside the no-update
+    /// window (configured in the settings).</param>
     /// <param name="downloadRelations">Download relations for the series</param>
-    /// <param name="createSeriesEntry">Create the Series entries for related series if they doesn't exist</param>
-    /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
+    /// <param name="createSeriesEntry">Also create the Series entries if
+    /// it/they do not exist</param>
+    /// <param name="immediate">Try to immediately refresh the data if we're
+    /// not HTTP banned.</param>
     /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
     /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
     [HttpPost("{seriesID}/AniDB/Refresh")]
