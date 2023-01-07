@@ -30,17 +30,6 @@ jobs:
           branch: true
           prefix: v
           prefixRegex: "[vV]?"
-          
-      - name: Sentry Release
-        uses: getsentry/action-release@v1.2.1
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-          # SENTRY_URL: https://sentry.io/
-        with:
-          environment: 'daily'
-          version: ${{ steps.release_info.outputs.version }}
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v1
@@ -49,12 +38,31 @@ jobs:
 
       - run: dotnet publish -c Release --no-self-contained Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=dev,commit=${{ github.sha }}\""
 
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
           name: Shoko.CLI_Framework_any-x64.zip
           path: Shoko.Server/bin/Release/net6.0/${{matrix.rid}}/publish/
+
+      - id: commit_info
+        name: Shorten commit sha for Sentry Release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const sha = context.sha.substring(0, 7);
+            core.setOutput("sha", sha);
+
+      # Only add the release to sentry if the build is successful.
+      - name: Sentry Release
+        uses: getsentry/action-release@v1.2.1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          # SENTRY_URL: https://sentry.io/
+        with:
+          environment: 'dev'
+          version: ${{ steps.release_info.outputs.version }}-dev-${{ steps.commit_info.sha }}
 
   cli-standalone-daily:
     runs-on: ubuntu-latest

@@ -138,13 +138,13 @@ public class ShokoServer
             //
             // If the release channel is not set or if it's set to "local" then
             // it's considered to be a local build.
-            if (extraInfo.TryGetValue("channel", out var releaseChannel) && releaseChannel != "local")
+            if (extraInfo.TryGetValue("channel", out var environment) && environment != "local")
                 _sentry = SentrySdk.Init(opts =>
                 {
                     // Assign the DSN key and release version.
                     opts.Dsn = SentryDsn;
+                    opts.Environment = environment;
                     opts.Release = Utils.GetApplicationVersion();
-                    opts.DefaultTags.Add("release.channel", releaseChannel);
 
                     // Conditionally assign the extra info if they're included in the assembly.
                     if (extraInfo.TryGetValue("commit", out var gitCommit))
@@ -153,8 +153,8 @@ public class ShokoServer
                         opts.DefaultTags.Add("commit.tag", gitTag);
 
                     // Append the release channel for the release on non-stable branches.
-                    if (releaseChannel != "stable")
-                        opts.Release += string.IsNullOrEmpty(gitCommit) ? $"-{releaseChannel}" : $"-{releaseChannel}-{gitCommit[0..7]}";
+                    if (environment != "stable")
+                        opts.Release += string.IsNullOrEmpty(gitCommit) ? $"-{environment}" : $"-{environment}-{gitCommit[0..7]}";
                 });
         }
 
