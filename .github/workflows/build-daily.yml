@@ -62,7 +62,7 @@ jobs:
           # SENTRY_URL: https://sentry.io/
         with:
           environment: 'dev'
-          version: ${{ steps.release_info.outputs.version }}-dev-${{ steps.commit_info.sha }}
+          version: ${{ steps.release_info.outputs.version }}-dev-${{ steps.commit_info.outputs.sha }}
 
   cli-standalone-daily:
     runs-on: ubuntu-latest
