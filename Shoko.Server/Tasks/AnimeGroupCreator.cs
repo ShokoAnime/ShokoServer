@@ -419,6 +419,7 @@ internal class AnimeGroupCreator
                 animeGroup.GroupName = animeGroup.SortName = series.GetSeriesName();
                 animeGroup.Description = series.GetAnime().Description;
                 animeGroup.MainAniDBAnimeID = mainAnimeId;
+                animeGroup.DateTimeUpdated = DateTime.Now;
                 RepoFactory.AnimeGroup.Save(animeGroup, true, true);
             }
         }
