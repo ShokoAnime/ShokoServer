@@ -140,15 +140,9 @@ public static class CommandHelper
     {
         var logFactory = provider.GetRequiredService<ILoggerFactory>();
         var logger = logFactory.CreateLogger(typeof(CommandHelper));
-        if (crdb == null)
-        {
-            return null;
-        }
+        if (crdb == null) return null;
 
-        if (!_commandRequestImpls.TryGetValue((CommandRequestType)crdb.CommandType, out var type))
-        {
-            return null;
-        }
+        if (!_commandRequestImpls.TryGetValue((CommandRequestType)crdb.CommandType, out var type)) return null;
 
         try
         {

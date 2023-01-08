@@ -131,7 +131,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
             var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
 
             // but only if it hasn't been recently updated
-            var ts = DateTime.Now - update.UpdatedAt;
+            var ts = DateTime.Now - (update?.UpdatedAt ?? DateTime.UnixEpoch);
             if (ts.TotalHours > 4)
             {
                 var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
@@ -149,10 +149,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
             // this will allow us to determine which anime has missing episodes
             // so we only get by an anime where we also have an associated series
             var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-            if (ser == null)
-            {
-                continue;
-            }
+            if (ser == null) continue;
 
             var cmdStatus = _commandFactory.Create<CommandRequest_GetReleaseGroupStatus>(c =>
             {

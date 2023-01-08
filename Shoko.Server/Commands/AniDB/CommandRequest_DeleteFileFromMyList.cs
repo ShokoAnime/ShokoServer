@@ -285,11 +285,11 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
                     out var mylistID) && mylistID != 0)
             {
                 var vid = RepoFactory.VideoLocal.GetByMyListID(mylistID);
-                if (vid != null)
-                {
-                    Hash = vid.Hash;
-                    FileSize = vid.FileSize;
-                }
+                if (vid == null) return false;
+
+                Hash = vid.Hash;
+                FileSize = vid.FileSize;
+                return true;
             }
 
             // populate the fields
