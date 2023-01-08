@@ -764,12 +764,13 @@ public class FileController : BaseController
     [HttpGet("PathEndsWith/{*path}")]
     public ActionResult<List<File>> SearchByFilename([FromRoute] string path)
     {
+        if (string.IsNullOrEmpty(path)) return BadRequest("need a path");
         var query = path;
         if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
         if (query.Contains("%")) query = Uri.UnescapeDataString(query);
         query = query.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
         var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
-            .Where(a => a.FullServerPath.EndsWith(query, StringComparison.OrdinalIgnoreCase))
+            .Where(a => a.FullServerPath?.EndsWith(query, StringComparison.OrdinalIgnoreCase) ?? false)
             .Select(a => a.VideoLocal)
             .Where(a =>
             {

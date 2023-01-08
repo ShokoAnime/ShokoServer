@@ -1502,11 +1502,15 @@ public class SeriesController : BaseController
             .TrimEnd(Path.DirectorySeparatorChar);
         // There should be no circumstance where FullServerPath has no Directory Name, unless you have missing import folders
         return RepoFactory.VideoLocalPlace.GetAll().AsParallel()
-            .Where(a => a.FullServerPath != null && Path.GetDirectoryName(a.FullServerPath)
-                .EndsWith(query, StringComparison.OrdinalIgnoreCase))
-            .SelectMany(a => a.VideoLocal.GetAnimeEpisodes()).Select(a => a.GetAnimeSeries())
+            .Where(a =>
+            {
+                if (a.FullServerPath == null) return false;
+                var dir = Path.GetDirectoryName(a.FullServerPath);
+                return dir != null && dir.EndsWith(query, StringComparison.OrdinalIgnoreCase);
+            })
+            .SelectMany(a => a.VideoLocal?.GetAnimeEpisodes() ?? Enumerable.Empty<SVR_AnimeEpisode>()).Select(a => a.GetAnimeSeries())
             .Distinct()
-            .Where(ser => ser == null || user.AllowedSeries(ser)).Select(a => new Series(HttpContext, a)).ToList();
+            .Where(ser => ser != null && user.AllowedSeries(ser)).Select(a => new Series(HttpContext, a)).ToList();
     }
 
     #region Helpers
