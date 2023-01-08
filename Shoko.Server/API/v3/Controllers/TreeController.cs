@@ -526,11 +526,12 @@ public class TreeController : BaseController
     /// </remarks>
     /// <param name="seriesID">Series ID</param>
     /// <param name="includeMissing">Include missing episodes in the list.</param>
+    /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/Episode")]
     public ActionResult<List<Episode>> GetEpisodes([FromRoute] int seriesID, [FromQuery] bool includeMissing = false,
-        [FromQuery] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery] bool includeHidden = false, [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -543,7 +544,7 @@ public class TreeController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        return series.GetAnimeEpisodes(true)
+        return series.GetAnimeEpisodes(orderList: true, includeHidden: includeHidden)
             .Select(a => new Episode(HttpContext, a, includeDataFrom))
             .Where(a => a.Size > 0 || includeMissing)
             .ToList();
@@ -558,14 +559,17 @@ public class TreeController : BaseController
     /// <param name="seriesID">Series ID</param>
     /// <param name="onlyUnwatched">Only show the next unwatched episode.</param>
     /// <param name="includeSpecials">Include specials in the search.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeMissing">Include missing episodes in the list.</param>
+    /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeRewatching">Include already watched episodes in the
     /// search if we determine the user is "re-watching" the series.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/NextUpEpisode")]
     public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID,
         [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true,
-        [FromQuery] HashSet<DataSource> includeDataFrom = null, [FromQuery] bool includeRewatching = false)
+        [FromQuery] bool includeMissing = true, [FromQuery] bool includeHidden = false,
+        [FromQuery] bool includeRewatching = false, [FromQuery] HashSet<DataSource> includeDataFrom = null)
     {
         var user = User;
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -581,8 +585,10 @@ public class TreeController : BaseController
 
         var episode = series.GetNextEpisode(user.JMMUserID, new()
         {
-            IncludeRewatching = includeRewatching,
             IncludeCurrentlyWatching = !onlyUnwatched,
+            IncludeHidden = includeHidden,
+            IncludeMissing = includeMissing,
+            IncludeRewatching = includeRewatching,
             IncludeSpecials = includeSpecials,
         });
         if (episode == null)

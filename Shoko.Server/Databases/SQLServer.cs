@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
 {
     public string Name { get; } = "SQLServer";
-    public int RequiredVersion { get; } = 100;
+    public int RequiredVersion { get; } = 101;
 
     public void BackupDatabase(string fullfilename)
     {
@@ -665,6 +665,8 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
         new DatabaseCommand(100, 8, "ALTER TABLE AniDB_Anime_Tag ADD LocalSpoiler integer NOT NULL DEFAULT 0;"),
         new DatabaseCommand(100, 9, "ALTER TABLE AniDB_Anime_Tag DROP COLUMN Approval;"),
         new DatabaseCommand(100, 10, DatabaseFixes.FixTagParentIDsAndNameOverrides),
+        new DatabaseCommand(101, 1, "ALTER TABLE AnimeEpisode ADD IsHidden integer NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(101, 2, "ALTER TABLE AnimeSeries_User ADD HiddenUnwatchedEpisodeCount integer NOT NULL DEFAULT 0;"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

@@ -20,5 +20,6 @@ public class AnimeSeries_UserMap : ClassMap<SVR_AnimeSeries_User>
         Map(x => x.WatchedDate);
         Map(x => x.WatchedEpisodeCount).Not.Nullable();
         Map(x => x.LastEpisodeUpdate);
+        Map(x => x.HiddenUnwatchedEpisodeCount).Not.Nullable();
     }
 }

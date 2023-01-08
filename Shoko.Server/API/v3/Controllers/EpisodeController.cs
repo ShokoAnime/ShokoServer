@@ -49,6 +49,27 @@ public class EpisodeController : BaseController
 
         return new Episode(HttpContext, episode, includeDataFrom);
     }
+    
+    /// <summary>
+    /// Set or unset the episode hidden status by the given <paramref name="episodeID"/>.
+    /// </summary>
+    /// <param name="episodeID">Shoko episode ID</param>
+    /// <param name="value">The new value to set.</param>
+    /// <returns></returns>
+    [HttpPost("{episodeID}/IsHidden")]
+    public ActionResult PostEpisodeSetHidden([FromRoute] int episodeID, [FromQuery] bool value = true)
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        if (episode == null)
+        {
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+        }
+
+        episode.IsHidden = value;
+        RepoFactory.AnimeEpisode.Save(episode);
+
+        return Ok();
+    }
 
     /// <summary>
     /// Get the <see cref="Episode.AniDB"/> entry for the given <paramref name="episodeID"/>.

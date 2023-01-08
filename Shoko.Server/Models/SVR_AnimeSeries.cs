@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -167,16 +167,30 @@ public class SVR_AnimeSeries : AnimeSeries
     }
 
 
-    public List<SVR_AnimeEpisode> GetAnimeEpisodes(bool orderList = false)
+    /// <summary>
+    /// Get episodes for the series.
+    /// </summary>
+    /// <param name="orderList">Order the returned list.</param>
+    /// <param name="includeHidden">Include ignored episodes in the list.</param>
+    /// <returns>A list of episodes for the series.</returns>
+    public List<SVR_AnimeEpisode> GetAnimeEpisodes(bool orderList = false, bool includeHidden = true)
     {
         if (orderList)
         {
             // TODO: Convert to a LINQ query once we've switched to EF Core.
             return RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
+                .Where(episode => includeHidden || !episode.IsHidden)
                 .Select(episode => (episode, anidbEpisode: episode.AniDB_Episode))
                 .OrderBy(tuple => tuple.anidbEpisode.EpisodeType)
                 .ThenBy(tuple => tuple.anidbEpisode.EpisodeNumber)
                 .Select(tuple => tuple.episode)
+                .ToList();
+        }
+        if (!includeHidden)
+        {
+            // TODO: Convert to a LINQ query once we've switched to EF Core.
+            return RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
+                .Where(episode => !episode.IsHidden)
                 .ToList();
         }
         return RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID);
@@ -464,6 +478,11 @@ public class SVR_AnimeSeries : AnimeSeries
         public bool IncludeCurrentlyWatching = false;
 
         /// <summary>
+        /// Include hidden episodes in the search.
+        /// </summary>
+        public bool IncludeHidden = false;
+
+        /// <summary>
         /// Include missing episodes in the search.
         /// </summary>
         public bool IncludeMissing = false;
@@ -497,7 +516,7 @@ public class SVR_AnimeSeries : AnimeSeries
         // we're searching for the next episode for "re-watching" sessions.
         var episodesCount = 0;
         var speicalsCount = 0;
-        var episodeList = GetAnimeEpisodes()
+        var episodeList = GetAnimeEpisodes(orderList: false, includeHidden: options.IncludeHidden)
             .Select(episode => (episode, episode.AniDB_Episode))
             .Where(tuple =>
             {
@@ -1511,6 +1530,7 @@ public class SVR_AnimeSeries : AnimeSeries
                 var userRecord = GetOrCreateUserRecord(juser.JMMUserID);
 
                 var unwatchedCount = 0;
+                var hiddenUnwatchedCount = 0;
                 var watchedCount = 0;
                 var watchedEpisodeCount = 0;
                 DateTime? lastEpisodeUpdate = null;
@@ -1542,7 +1562,10 @@ public class SVR_AnimeSeries : AnimeSeries
 
                         if (vlUser?.WatchedDate == null && epUser?.WatchedDate == null)
                         {
-                            Interlocked.Increment(ref unwatchedCount);
+                            if (ep.IsHidden)
+                                Interlocked.Increment(ref hiddenUnwatchedCount);
+                            else
+                                Interlocked.Increment(ref unwatchedCount);
                             return;
                         }
 
@@ -1576,6 +1599,7 @@ public class SVR_AnimeSeries : AnimeSeries
                         Interlocked.Add(ref watchedCount, vlUser?.WatchedCount ?? epUser.WatchedCount);
                     });
                 userRecord.UnwatchedEpisodeCount = unwatchedCount;
+                userRecord.HiddenUnwatchedEpisodeCount = hiddenUnwatchedCount;
                 userRecord.WatchedEpisodeCount = watchedEpisodeCount;
                 userRecord.WatchedCount = watchedCount;
                 userRecord.WatchedDate = watchedDate;

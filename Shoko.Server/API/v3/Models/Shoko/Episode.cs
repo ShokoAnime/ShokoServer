@@ -51,6 +51,13 @@ public class Episode : BaseModel
     public int WatchCount { get; set; }
 
     /// <summary>
+    /// Episode is marked as "ignored." Which means it won't be show up in the
+    /// api unless explictly requested, and will not count against the unwatched
+    /// count for the series.
+    /// </summary>
+    public bool IsHidden { get; set; }
+
+    /// <summary>
     /// The <see cref="Episode.AniDB"/>, if <see cref="DataSource.AniDB"/> is
     /// included in the data to add.
     /// </summary>
@@ -87,6 +94,7 @@ public class Episode : BaseModel
         ResumePosition = fileUserRecord?.ResumePositionTimeSpan;
         Watched = fileUserRecord?.WatchedDate;
         WatchCount = episodeUserRecord?.WatchedCount ?? 0;
+        IsHidden = episode.IsHidden;
         Name = GetEpisodeTitle(episode.AniDB_EpisodeID);
         Size = files.Count;
 
