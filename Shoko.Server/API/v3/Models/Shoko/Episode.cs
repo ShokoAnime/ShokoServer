@@ -31,16 +31,25 @@ public class Episode : BaseModel
     public TimeSpan Duration { get; set; }
 
     /// <summary>
-    /// Where to resume the next playback.
+    /// Where to resume the next playback for the most recently watched file, if
+    /// any. Otherwise `null` if no files for the episode have any resume
+    /// positions.
     /// </summary>
     public TimeSpan? ResumePosition { get; set; }
 
     /// <summary>
-    /// The Last Watched Date for the current user. If null, it is unwatched
+    /// The last watched date and time for the current user for the most
+    /// recently watched file, if any. Or `null` if it is considered
+    /// "unwatched."
     /// </summary>
-    [Required]
     public DateTime? Watched { get; set; }
-    
+
+    /// <summary>
+    /// Total number of times the episode have been watched (till completion) by
+    /// the user across all files.
+    /// </summary>
+    public int WatchCount { get; set; }
+
     /// <summary>
     /// The <see cref="Episode.AniDB"/>, if <see cref="DataSource.AniDB"/> is
     /// included in the data to add.
@@ -60,22 +69,13 @@ public class Episode : BaseModel
     public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource> includeDataFrom = null)
     {
         var userID = context.GetUser()?.JMMUserID ?? 0;
+        var episodeUserRecord = episode.GetUserRecord(userID);
         var anidbEpisode = episode.AniDB_Episode;
         var tvdbEpisodes = episode.TvDBEpisodes;
         var files = episode.GetVideoLocals();
-        var (file, userRecord) = files
-            .Select(file =>
-            {
-                var userRecord = file.GetUserRecord(userID);
-                if (userRecord == null)
-                {
-                    return (file, null);
-                }
-
-                return (file, userRecord);
-            })
-            .Where(tuple => tuple.Item1 != null)
-            .OrderByDescending(tuple => tuple.Item2?.LastUpdated)
+        var (file, fileUserRecord) = files
+            .Select(file => (file, userRecord: file.GetUserRecord(userID)))
+            .OrderByDescending(tuple => tuple.userRecord?.LastUpdated)
             .FirstOrDefault();
         IDs = new EpisodeIDs
         {
@@ -84,8 +84,9 @@ public class Episode : BaseModel
             TvDB = tvdbEpisodes.Select(a => a.Id).ToList()
         };
         Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, anidbEpisode.LengthSeconds);
-        ResumePosition = userRecord?.ResumePositionTimeSpan;
-        Watched = userRecord?.WatchedDate;
+        ResumePosition = fileUserRecord?.ResumePositionTimeSpan;
+        Watched = fileUserRecord?.WatchedDate;
+        WatchCount = episodeUserRecord?.WatchedCount ?? 0;
         Name = GetEpisodeTitle(episode.AniDB_EpisodeID);
         Size = files.Count;
 
