@@ -559,11 +559,13 @@ public class TreeController : BaseController
     /// <param name="onlyUnwatched">Only show the next unwatched episode.</param>
     /// <param name="includeSpecials">Include specials in the search.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeRewatching">Include already watched episodes in the
+    /// search if we determine the user is "re-watching" the series.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/NextUpEpisode")]
     public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID,
         [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true,
-        [FromQuery] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery] HashSet<DataSource> includeDataFrom = null, [FromQuery] bool includeRewatching = false)
     {
         var user = User;
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -577,7 +579,12 @@ public class TreeController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        var episode = series.GetNextEpisode(user.JMMUserID, onlyUnwatched, includeSpecials);
+        var episode = series.GetNextEpisode(user.JMMUserID, new()
+        {
+            IncludeRewatching = includeRewatching,
+            IncludeCurrentlyWatching = !onlyUnwatched,
+            IncludeSpecials = includeSpecials,
+        });
         if (episode == null)
         {
             return null;

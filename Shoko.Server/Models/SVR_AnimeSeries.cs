@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -449,56 +449,142 @@ public class SVR_AnimeSeries : AnimeSeries
     }
 
     /// <summary>
+    /// Series next-up query options for use with <see cref="GetNextEpisode"/>.
+    /// </summary>
+    public class NextUpQueryOptions
+    {
+        /// <summary>
+        /// Disable the first episode in the series from showing up.
+        /// /// </summary>
+        public bool DisableFirstEpisode = false;
+
+        /// <summary>
+        /// Include currently watching episodes in the search.
+        /// </summary>
+        public bool IncludeCurrentlyWatching = false;
+
+        /// <summary>
+        /// Include missing episodes in the search.
+        /// </summary>
+        public bool IncludeMissing = false;
+
+        /// <summary>
+        /// Include already watched episodes in the search if we determine the
+        /// user is "re-watching" the series.
+        /// </summary>
+        public bool IncludeRewatching = false;
+
+        /// <summary>
+        /// Include specials in the search.
+        /// </summary>
+        public bool IncludeSpecials = true;
+    }
+
+    /// <summary>
     /// Get the next episode for the series for a user.
     /// </summary>
     /// <param name="userID">User ID</param>
-    /// <param name="onlyUnwatched">Only check for unwatched episodes.</param>
-    /// <param name="includeSpecials">Include specials when searching.</param>
+    /// <param name="options">Next-up query options.</param>
     /// <returns></returns>
-    public SVR_AnimeEpisode GetNextEpisode(int userID, bool onlyUnwatched, bool includeSpecials = true)
+    public SVR_AnimeEpisode GetNextEpisode(int userID, NextUpQueryOptions options = null)
     {
-        // Filter the episodes to only normal or special episodes and order them in rising order.
-        var episodes = GetAnimeEpisodes()
+        // Initialise the options if they're not provided.
+        if (options == null)
+            options = new();
+
+        // Filter the episodes to only normal or special episodes and order them
+        // in rising order. Also count the number of episodes and specials if
+        // we're searching for the next episode for "re-watching" sessions.
+        var episodesCount = 0;
+        var speicalsCount = 0;
+        var episodeList = GetAnimeEpisodes()
             .Select(episode => (episode, episode.AniDB_Episode))
-            .Where(tuple => tuple.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode ||
-                            (includeSpecials && tuple.AniDB_Episode.EpisodeType == (int)EpisodeType.Special))
+            .Where(tuple =>
+            {
+                if (tuple.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode)
+                {
+                    episodesCount++;
+                    return true;
+                }
+
+                if (options.IncludeSpecials && tuple.AniDB_Episode.EpisodeType == (int)EpisodeType.Special)
+                {
+                    speicalsCount++;
+                    return true;
+                }
+
+                return false;
+            })
             .OrderBy(tuple => tuple.AniDB_Episode.EpisodeType)
             .ThenBy(tuple => tuple.AniDB_Episode.EpisodeNumber)
-            .Select(tuple => tuple.episode)
             .ToList();
-        // Look for active watch sessions and return the episode for the most recent session if found.
-        if (!onlyUnwatched)
+
+        // Look for active watch sessions and return the episode for the most
+        // recent session if found.
+        if (options.IncludeCurrentlyWatching)
         {
-            var (episode, _) = episodes
-                .SelectMany(episode => episode.GetVideoLocals().Select(file => (episode, file.GetUserRecord(userID))))
-                .Where(tuple => tuple.Item2 != null)
-                .OrderByDescending(tuple => tuple.Item2.LastUpdated)
-                .FirstOrDefault(tuple => tuple.Item2.ResumePosition > 0);
-            if (episode != null)
+            var (currentlyWatchingEpisode, _) = episodeList
+                .SelectMany(tuple => tuple.episode.GetVideoLocals().Select(file => (episode: tuple.episode, fileUR: file.GetUserRecord(userID))))
+                .Where(tuple => tuple.fileUR != null)
+                .OrderByDescending(tuple => tuple.fileUR.LastUpdated)
+                .FirstOrDefault(tuple => tuple.fileUR.ResumePosition > 0);
+
+            if (currentlyWatchingEpisode != null)
             {
-                return episode;
+                return currentlyWatchingEpisode;
             }
         }
-        // Skip check if there is an active watch session for the series and we don't allow active watch sessions.
-        else if (episodes.Any(episode =>
-                     episode.GetVideoLocals().Any(file => (file.GetUserRecord(userID)?.ResumePosition ?? 0) > 0)))
+        // Skip check if there is an active watch session for the series and we
+        // don't allow active watch sessions.
+        else if (episodeList.Any(tuple =>
+                     tuple.episode.GetVideoLocals().Any(file => (file.GetUserRecord(userID)?.ResumePosition ?? 0) > 0)))
         {
             return null;
         }
 
+        // When "re-watching" we look for the next episode after the last
+        // watched episode.
+        if (options.IncludeRewatching)
+        {
+            var (lastWatchedEpisode, _) = episodeList
+                .SelectMany(tuple => tuple.episode.GetVideoLocals().Select(file => (episode: tuple.episode, fileUR: file.GetUserRecord(userID))))
+                .Where(tuple => tuple.fileUR != null && tuple.fileUR.WatchedDate.HasValue)
+                .OrderByDescending(tuple => tuple.fileUR.LastUpdated)
+                .FirstOrDefault();
+
+            if (lastWatchedEpisode != null) {
+                // Return `null` if we're on the last episode in the list, or
+                // if we're on the last normal episode and there is no specials
+                // after it.
+                var nextIndex = episodeList.FindIndex(tuple => tuple.episode == lastWatchedEpisode) + 1;
+                if ((nextIndex == episodeList.Count) || (nextIndex == episodesCount) && (!options.IncludeSpecials || speicalsCount == 0))
+                    return null;
+
+                var (nextEpisode, _) = episodeList.Skip(nextIndex)
+                    .FirstOrDefault(options.IncludeMissing ? _ => true : tuple => tuple.episode.GetVideoLocals().Count > 0);
+                return nextEpisode;
+            }
+        }
+
         // Find the first episode that's unwatched.
-        return episodes
-            .Where(episode =>
+        var (unwatchedEpisode, anidbEpisode) = episodeList
+            .Where(tuple =>
             {
-                var episodeUserRecord = episode.GetUserRecord(userID);
+                var episodeUserRecord = tuple.episode.GetUserRecord(userID);
                 if (episodeUserRecord == null)
                 {
                     return true;
                 }
 
-                return episodeUserRecord.WatchedCount == 0 || !episodeUserRecord.WatchedDate.HasValue;
+                return episodeUserRecord.WatchedCount == 0;
             })
-            .FirstOrDefault(episode => episode.GetVideoLocals().Count > 0);
+            .FirstOrDefault(options.IncludeMissing ? _ => true : tuple => tuple.episode.GetVideoLocals().Count > 0);
+
+        // Disable first episode from showing up in the search.
+        if (options.DisableFirstEpisode && anidbEpisode != null && anidbEpisode.EpisodeType == (int)EpisodeType.Episode && anidbEpisode.EpisodeNumber == 1)
+            return null;
+
+        return unwatchedEpisode;
     }
 
     public SVR_AniDB_Anime GetAnime()

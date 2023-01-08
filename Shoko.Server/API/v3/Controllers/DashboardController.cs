@@ -355,11 +355,14 @@ public class DashboardController : BaseController
     /// <param name="onlyUnwatched">Only show unwatched episodes.</param>
     /// <param name="includeSpecials">Include specials in the search.</param>
     /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
+    /// <param name="includeRewatching">Include already watched episodes in the
+    /// search if we determine the user is "re-watching" the series.</param>
     /// <returns></returns>
     [HttpGet("NextUpEpisodes")]
     public List<Dashboard.EpisodeDetails> GetNextUpEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20,
         [FromQuery] [Range(0, int.MaxValue)] int page = 0, [FromQuery] bool onlyUnwatched = true,
-        [FromQuery] bool includeSpecials = true, [FromQuery] bool includeRestricted = false)
+        [FromQuery] bool includeSpecials = true, [FromQuery] bool includeRestricted = false,
+        [FromQuery] bool includeRewatching = false)
     {
         var user = HttpContext.GetUser();
         var episodeList = RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID)
@@ -369,7 +372,13 @@ public class DashboardController : BaseController
             .Select(record => record.AnimeSeries)
             .Where(series => user.AllowedSeries(series) &&
                 (includeRestricted || series.GetAnime().Restricted != 1))
-            .Select(series => (series, episode: series.GetNextEpisode(user.JMMUserID, onlyUnwatched, includeSpecials)))
+            .Select(series => (series, episode: series.GetNextEpisode(user.JMMUserID, new()
+                {
+                    DisableFirstEpisode = true,
+                    IncludeRewatching = includeRewatching,
+                    IncludeCurrentlyWatching = !onlyUnwatched,
+                    IncludeSpecials = includeSpecials,
+                })))
             .Where(tuple => tuple.episode != null);
         if (pageSize <= 0)
         {

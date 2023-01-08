@@ -82,7 +82,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return null;
             }
 
-            var episode = series.GetNextEpisode(userID, true);
+            var episode = series.GetNextEpisode(userID);
             if (episode == null)
             {
                 return null;
