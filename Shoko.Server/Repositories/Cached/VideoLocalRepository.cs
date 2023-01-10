@@ -221,33 +221,6 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
             transaction.Commit();
         }
-
-        ServerState.Instance.ServerStartingStatus = string.Format(
-            Resources.Database_Validating, nameof(VideoLocal),
-            " Cleaning Fragmented Records"
-        );
-        using (var transaction = session.BeginTransaction())
-        {
-            var list2 = Cache.Values.SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
-                .Where(
-                    a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
-                         a.GetEpisode() == null
-                ).ToArray();
-            count = 0;
-            max = list2.Length;
-            foreach (var xref in list2)
-            {
-                // We don't need to update anything since they don't exist
-                RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
-                count++;
-                ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, nameof(VideoLocal),
-                    " Cleaning Fragmented Records - " + count + "/" + max
-                );
-            }
-
-            transaction.Commit();
-        }
     }
 
     public List<SVR_VideoLocal> GetByImportFolder(int importFolderID)
