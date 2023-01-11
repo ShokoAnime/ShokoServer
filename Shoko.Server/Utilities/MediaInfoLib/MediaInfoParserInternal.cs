@@ -1068,7 +1068,12 @@ public static class MediaInfoParserInternal
 
         ResolutionArea43 = new Dictionary<int, string>
         {
-            { 720 * 576, "576p" }, { 720 * 480, "480p" }, { 480 * 360, "360p" }, { 320 * 240, "240p" }
+            { 1440 * 1080, "1080p" },
+            { 960 * 720, "720p" },
+            { 720 * 576, "576p" },
+            { 720 * 480, "480p" },
+            { 480 * 360, "360p" },
+            { 320 * 240, "240p" }
         };
     }
 
