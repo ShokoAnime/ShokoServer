@@ -1306,8 +1306,24 @@ public class SeriesController : BaseController
     /// <param name="fuzzy">whether or not to use fuzzy search</param>
     /// <param name="limit">number of return items</param>
     /// <returns>List<see cref="SeriesSearchResult"/></returns>
+    [HttpGet("Search")]
+    public ActionResult<IEnumerable<SeriesSearchResult>> SearchQuery([FromQuery] string query, [FromQuery] bool fuzzy = true,
+        [FromQuery] int limit = int.MaxValue)
+        => SearchInternal(query, fuzzy, limit);
+
+    /// <summary>
+    /// Search for series with given query in name or tag
+    /// </summary>
+    /// <param name="query">target string</param>
+    /// <param name="fuzzy">whether or not to use fuzzy search</param>
+    /// <param name="limit">number of return items</param>
+    /// <returns>List<see cref="SeriesSearchResult"/></returns>
     [HttpGet("Search/{query}")]
-    public ActionResult<IEnumerable<SeriesSearchResult>> Search([FromRoute] string query, [FromQuery] bool fuzzy = true,
+    public ActionResult<IEnumerable<SeriesSearchResult>> SearchPath([FromRoute] string query, [FromQuery] bool fuzzy = true,
+        [FromQuery] int limit = int.MaxValue)
+        => SearchInternal(HttpUtility.UrlDecode(query), fuzzy, limit);
+
+    internal ActionResult<IEnumerable<SeriesSearchResult>> SearchInternal([FromRoute] string query, [FromQuery] bool fuzzy = true,
         [FromQuery] int limit = int.MaxValue)
     {
         var user = User;
@@ -1398,10 +1414,29 @@ public class SeriesController : BaseController
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
-    [HttpGet("AniDB/Search/{query}")]
-    public ActionResult<ListResult<Series.AniDB>> AnidbSearch([FromRoute] string query, [FromQuery] bool? local = null,
+    [HttpGet("AniDB/Search")]
+    public ActionResult<ListResult<Series.AniDB>> AnidbSearchQuery([FromQuery] string query, [FromQuery] bool? local = null,
         [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50,
         [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        => AnidbSearchInternal(query, local, includeTitles, pageSize, page);
+
+    /// <summary>
+    /// Search the title dump for the given query or directly using the anidb id.
+    /// </summary>
+    /// <param name="query">Query to search for</param>
+    /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
+    /// <param name="includeTitles">Include titles in the results.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns></returns>
+    [HttpGet("AniDB/Search/{query}")]
+    public ActionResult<ListResult<Series.AniDB>> AnidbSearchPath([FromRoute] string query, [FromQuery] bool? local = null,
+        [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50,
+        [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        => AnidbSearchInternal(HttpUtility.UrlDecode(query), local, includeTitles, pageSize, page);
+
+    internal ListResult<Series.AniDB> AnidbSearchInternal(string query, bool? local = null,
+        bool includeTitles = true, int pageSize = 50, int page = 1)
     {
         // We're searching using the anime ID, so first check the local db then the title cache for a match.
         if (int.TryParse(query, out var animeID))
@@ -1442,7 +1477,7 @@ public class SeriesController : BaseController
                 .ToListResult(page, pageSize);
 
         // Search the title cache for anime matching the query.
-        return Utils.AniDBTitleHelper.SearchTitle(HttpUtility.UrlDecode(query))
+        return Utils.AniDBTitleHelper.SearchTitle(query)
             .Select(result =>
             {
                 var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
