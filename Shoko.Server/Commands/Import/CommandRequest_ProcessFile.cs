@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
@@ -82,7 +82,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
             vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
             // Check if an anidb file is now available and if the cross-references changed.
-            if (aniFile != null && vlocal.EpisodeCrossRefs.Select(xref => xref.EpisodeID).ToHashSet().SetEquals(oldXRefs))
+            if (aniFile != null && !vlocal.EpisodeCrossRefs.Select(xref => xref.EpisodeID).ToHashSet().SetEquals(oldXRefs))
             {
                 // Set the import date
                 vlocal.DateTimeImported = DateTime.Now;

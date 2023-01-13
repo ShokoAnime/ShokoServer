@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
 {
     public string Name { get; } = "MySQL";
-    public int RequiredVersion { get; } = 108;
+    public int RequiredVersion { get; } = 109;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -716,6 +716,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
         new(107, 10, DatabaseFixes.FixTagParentIDsAndNameOverrides),
         new(108, 1, "ALTER TABLE AnimeEpisode ADD IsHidden integer NOT NULL DEFAULT 0;"),
         new(108, 2, "ALTER TABLE AnimeSeries_User ADD HiddenUnwatchedEpisodeCount integer NOT NULL DEFAULT 0;"),
+        new(109, 1, "UPDATE VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash SET DateTimeImported = DateTimeCreated;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
 {
     public string Name { get; } = "SQLServer";
-    public int RequiredVersion { get; } = 101;
+    public int RequiredVersion { get; } = 102;
 
     public void BackupDatabase(string fullfilename)
     {
@@ -667,6 +667,7 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
         new DatabaseCommand(100, 10, DatabaseFixes.FixTagParentIDsAndNameOverrides),
         new DatabaseCommand(101, 1, "ALTER TABLE AnimeEpisode ADD IsHidden integer NOT NULL DEFAULT 0;"),
         new DatabaseCommand(101, 2, "ALTER TABLE AnimeSeries_User ADD HiddenUnwatchedEpisodeCount integer NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(102, 1, "UPDATE v SET DateTimeImported = DateTimeCreated FROM VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash;"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

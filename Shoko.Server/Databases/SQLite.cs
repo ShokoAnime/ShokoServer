@@ -22,7 +22,7 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
 {
     public string Name { get; } = "SQLite";
 
-    public int RequiredVersion { get; } = 94;
+    public int RequiredVersion { get; } = 95;
 
 
     public void BackupDatabase(string fullfilename)
@@ -632,6 +632,7 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
         new(93, 10, DatabaseFixes.FixTagParentIDsAndNameOverrides),
         new(94, 1, "ALTER TABLE AnimeEpisode ADD IsHidden integer NOT NULL DEFAULT 0;"),
         new(94, 2, "ALTER TABLE AnimeSeries_User ADD HiddenUnwatchedEpisodeCount integer NOT NULL DEFAULT 0;"),
+        new(95, 1, "UPDATE VideoLocal SET DateTimeImported = DateTimeCreated WHERE EXISTS(SELECT Hash FROM CrossRef_File_Episode xref WHERE xref.Hash = VideoLocal.Hash)"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)
