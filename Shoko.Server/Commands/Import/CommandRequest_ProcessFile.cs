@@ -231,18 +231,6 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
         // if we don't, we will need to re-download the anime info (which also has episode info)
         if (xrefs.Count == 0)
         {
-            xrefs.Select(a => a.AnimeID).Distinct().ForEach(animeID =>
-            {
-                if (animeIDs.ContainsKey(animeID))
-                {
-                    animeIDs[animeID] = true;
-                }
-                else
-                {
-                    animeIDs.Add(animeID, true);
-                }
-            });
-
             // if we have the AniDB file, but no cross refs it means something has been broken
             Logger.LogDebug("Could not find any cross ref records for: {Ed2KHash}", vidLocal.ED2KHash);
         }
