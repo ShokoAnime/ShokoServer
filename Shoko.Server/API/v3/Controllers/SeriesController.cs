@@ -1484,7 +1484,7 @@ public class SeriesController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("PathEndsWith/{*path}")]
-    public ActionResult<List<Series>> GetSeries([FromRoute] string path)
+    public ActionResult<List<Series>> PathEndsWith([FromRoute] string path)
     {
         var user = User;
         var query = path;
