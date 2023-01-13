@@ -33,6 +33,32 @@ public class AniDBTitleHelper
         _settingsProvider = settingsProvider;
     }
 
+    public IEnumerable<ResponseAniDBTitles.Anime> GetAll()
+    {
+        try
+        {
+            if (_cache == null)
+            {
+                CreateCache();
+            }
+
+            if (_cache != null)
+            {
+                return _cache.Animes;
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+        if (_cache == null)
+        {
+            CreateCache();
+        }
+
+        return new List<ResponseAniDBTitles.Anime>();
+    }
+
     public ResponseAniDBTitles.Anime SearchAnimeID(int animeID)
     {
         try

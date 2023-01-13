@@ -1424,6 +1424,23 @@ public class SeriesController : BaseController
             return new ListResult<Series.AniDB>();
         }
 
+        // Return all known entries on anidb if no query is given.
+        if (string.IsNullOrEmpty(query))
+            return Utils.AniDBTitleHelper.GetAll()
+                .OrderBy(anime => anime.AnimeID)
+                .Select(result =>
+                {
+                    var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
+                    if (local.HasValue && series == null == local.Value)
+                    {
+                        return null;
+                    }
+
+                    return new Series.AniDB(result, series, includeTitles);
+                })
+                .Where(result => result != null)
+                .ToListResult(page, pageSize);
+
         // Search the title cache for anime matching the query.
         return Utils.AniDBTitleHelper.SearchTitle(HttpUtility.UrlDecode(query))
             .Select(result =>
