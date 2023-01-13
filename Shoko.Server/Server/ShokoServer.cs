@@ -97,7 +97,7 @@ public class ShokoServer
 
     ~ShokoServer()
     {
-        _sentry.Dispose();
+        _sentry?.Dispose();
         ShokoEventHandler.Instance.Shutdown -= ShutDown;
     }
 
