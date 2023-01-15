@@ -5,9 +5,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Info;
 
@@ -63,6 +65,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
         {
             case UDPReturnCode.FILE:
                 {
+                    UpdateAccessTime(Size, Hash, true);
                     // The spaces here are added for readability. They aren't in the response
                     // fileid |anime|episode|group|MyListID |other eps|deprecated|state|quality|source|audio lang|sub lang|file description|filename                                                                                                    |mylist state|mylist filestate|viewcount|view date
                     // 2442444|14360|225455 |8482 |291278112|         |    0     |4097 |  high |  www | japanese | english|                |Magia Record: Mahou Shoujo Madoka Magica Gaiden - 03 - Sorry for Making You My Friend - [Doki](a076b874).mkv|   3        |         0      |     1   |1584060577
@@ -253,10 +256,19 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                     };
                 }
             case UDPReturnCode.NO_SUCH_FILE:
+                UpdateAccessTime(Size, Hash, false);
                 return new UDPResponse<ResponseGetFile> { Code = code, Response = null };
         }
 
+        UpdateAccessTime(Size, Hash, false);
         throw new UnexpectedUDPResponseException(code, receivedData);
+    }
+
+    private static void UpdateAccessTime(long fileSize, string hash, bool hasResponse)
+    {
+        // Putting this here for no chance of error. It is ALWAYS created or updated when AniDB is called!
+        var file = new AniDB_FileUpdate { FileSize = fileSize, Hash = hash, HasResponse = hasResponse, UpdatedAt = DateTime.Now };
+        RepoFactory.AniDB_FileUpdate.Save(file);
     }
 
     private static GetFile_Quality ParseQuality(string qualityString)

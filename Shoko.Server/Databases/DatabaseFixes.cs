@@ -246,7 +246,10 @@ public class DatabaseFixes
                 .List<object[]>().Select(a => new CrossRef_AniDB_TvDB
                 {
                     AniDBID = (int)a[0], TvDBID = (int)a[1], CrossRefSource = (CrossRefSource)a[2]
-                }).DistinctBy(a => new[] { a.AniDBID, a.TvDBID }).ToList();
+                }).DistinctBy(a => new[]
+                {
+                    a.AniDBID, a.TvDBID
+                }).ToList();
             foreach (var link in links)
             {
                 var exists =
@@ -376,9 +379,7 @@ public class DatabaseFixes
 
         var stafftosave = allstaff.Select(a => new AnimeStaff
         {
-            Name = a.SeiyuuName?.Replace("`", "'"),
-            AniDBID = a.SeiyuuID,
-            ImagePath = a.GetPosterPath()?.Replace(creatorBasePath, "")
+            Name = a.SeiyuuName?.Replace("`", "'"), AniDBID = a.SeiyuuID, ImagePath = a.GetPosterPath()?.Replace(creatorBasePath, "")
         }).ToList();
         RepoFactory.AnimeStaff.Save(stafftosave);
 
@@ -495,10 +496,31 @@ public class DatabaseFixes
     public static void MigrateAniDB_AnimeUpdates()
     {
         var tosave = RepoFactory.AniDB_Anime.GetAll()
-            .Select(anime => new AniDB_AnimeUpdate { AnimeID = anime.AnimeID, UpdatedAt = anime.DateTimeUpdated })
+            .Select(anime => new AniDB_AnimeUpdate
+            {
+                AnimeID = anime.AnimeID, UpdatedAt = anime.DateTimeUpdated
+            })
             .ToList();
 
         RepoFactory.AniDB_AnimeUpdate.Save(tosave);
+    }
+
+    public static void MigrateAniDB_FileUpdates()
+    {
+        var tosave = RepoFactory.AniDB_File.GetAll()
+            .Select(file => new AniDB_FileUpdate
+            {
+                FileSize = file.FileSize, Hash = file.Hash, HasResponse = true, UpdatedAt = file.DateTimeUpdated
+            })
+            .ToList();
+
+        tosave.AddRange(RepoFactory.CrossRef_File_Episode.GetAll().Where(a => RepoFactory.AniDB_File.GetByHash(a.Hash) == null)
+            .Select(a => (xref: a, vl: RepoFactory.VideoLocal.GetByHash(a.Hash))).Select(a => new AniDB_FileUpdate
+            {
+                FileSize = a.xref.FileSize, Hash = a.xref.Hash, HasResponse = false, UpdatedAt = a.vl.DateTimeCreated
+            }));
+
+        RepoFactory.AniDB_FileUpdate.Save(tosave);
     }
 
     public static void FixDuplicateTagFiltersAndUpdateSeasons()

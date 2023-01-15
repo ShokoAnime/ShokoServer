@@ -32,7 +32,7 @@ public class RequestGetAnime : HttpRequest<ResponseGetAnime>
     /// <exception cref="AniDBBannedException">Will throw if banned. Won't extend ban, so it's safe to use this as a check</exception>
     protected override HttpResponse<ResponseGetAnime> ParseResponse(HttpResponse<string> receivedData)
     {
-        UpdateAnimeUpdateTime(AnimeID);
+        UpdateAccessTime(AnimeID);
 
         // save a file cache of the response
         var rawXml = receivedData.Response.Trim();
@@ -42,7 +42,7 @@ public class RequestGetAnime : HttpRequest<ResponseGetAnime>
         return new HttpResponse<ResponseGetAnime> { Code = receivedData.Code, Response = response };
     }
 
-    private static void UpdateAnimeUpdateTime(int animeId)
+    private static void UpdateAccessTime(int animeId)
     {
         // Putting this here for no chance of error. It is ALWAYS created or updated when AniDB is called!
         var anime = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeId);
