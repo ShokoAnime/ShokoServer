@@ -19,13 +19,13 @@ public static class LinuxFS
 
         RealUser ??= UnixUserInfo.GetRealUser();
 
-        // if uid is not valid (< 0) and we are not root (RealUser.UserId != 0), then set it to the current user
+        // if uid is not valid (<0), skip
         // if uid = 0 (trying to set as root), and we are not root (RealUser.UserId != 0), then set it to the current user
         // if uid = 0 and we are root (RealUser.UserId = 0), then nothing changes, and it can use those values
-        if (uid <= 0 && RealUser.UserId != 0)
+        if (uid == 0 && RealUser.UserId != 0)
             uid = RealUser.UserId;
 
-        if (gid <= 0 && RealUser.GroupId != 0)
+        if (gid == 0 && RealUser.GroupId != 0)
             gid = RealUser.GroupId;
 
         var file = new UnixFileInfo(path);
