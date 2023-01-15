@@ -15,6 +15,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Dockerfile = Dockerfile
 		SharedAssemblyInfo.cs = SharedAssemblyInfo.cs
 		Dockerfile.aarch64 = Dockerfile.aarch64
+		.editorconfig = .editorconfig
+		.git-blame-ignore-revs = .git-blame-ignore-revs
+		.gitignore = .gitignore
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shoko.CLI", "Shoko.CLI\Shoko.CLI.csproj", "{3A8E0177-9701-4A59-A6CD-16C6908839EA}"

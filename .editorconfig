@@ -5,7 +5,7 @@ root = true
 
 # Don't use tabs for indentation.
 [*]
-indent_style = space 
+indent_style = space
 # (Please don't specify an indent_size here; that has too many unintended consequences.)
 
 
@@ -44,7 +44,7 @@ resharper_csharp_align_multiline_expression = false
 resharper_csharp_align_multiline_parameter = false
 resharper_csharp_case_block_braces = next_line_shifted_2
 resharper_csharp_insert_final_newline = true
-resharper_csharp_max_line_length = 9273
+resharper_csharp_max_line_length = 160
 resharper_csharp_wrap_multiple_type_parameter_constraints_style = wrap_if_long
 resharper_indent_anonymous_method_block = false
 resharper_indent_nested_foreach_stmt = false
@@ -72,7 +72,7 @@ resharper_outdent_binary_ops = false
 resharper_outdent_commas = false
 resharper_outdent_dots = false
 resharper_outdent_statement_labels = false
-resharper_parentheses_non_obvious_operations = none, conditional_and, bitwise_exclusive_or, shift, multiplicative, bitwise_and
+resharper_parentheses_non_obvious_operations = none, conditional_and, bitwise_exclusive_or, shift, bitwise_and
 resharper_parentheses_redundancy_style = remove
 resharper_parentheses_same_type_operations = true
 resharper_place_expr_accessor_on_single_line = if_owner_is_single_line
