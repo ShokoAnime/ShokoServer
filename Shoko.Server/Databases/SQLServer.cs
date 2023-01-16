@@ -669,7 +669,7 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
         new DatabaseCommand(101, 2, "ALTER TABLE AnimeSeries_User ADD HiddenUnwatchedEpisodeCount integer NOT NULL DEFAULT 0;"),
         new DatabaseCommand(102, 1, "UPDATE v SET DateTimeImported = DateTimeCreated FROM VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash;"),
         new DatabaseCommand(103, 1, "CREATE TABLE AniDB_FileUpdate ( AniDB_FileUpdateID INT IDENTITY(1,1) NOT NULL, FileSize BIGINT NOT NULL, Hash nvarchar(150) NOT NULL, HasResponse BIT NOT NULL, UpdatedAt datetime NOT NULL )"),
-        new DatabaseCommand(103, 2, "CREATE UNIQUE INDEX UIX_AniDB_FileUpdate ON AniDB_FileUpdate(FileSize, Hash)"),
+        new DatabaseCommand(103, 2, "CREATE INDEX IX_AniDB_FileUpdate ON AniDB_FileUpdate(FileSize, Hash)"),
         new DatabaseCommand(103, 3, DatabaseFixes.MigrateAniDB_FileUpdates),
     };
 
