@@ -515,7 +515,7 @@ public class DatabaseFixes
             .ToList();
 
         tosave.AddRange(RepoFactory.CrossRef_File_Episode.GetAll().Where(a => RepoFactory.AniDB_File.GetByHash(a.Hash) == null)
-            .Select(a => (xref: a, vl: RepoFactory.VideoLocal.GetByHash(a.Hash))).Select(a => new AniDB_FileUpdate
+            .Select(a => (xref: a, vl: RepoFactory.VideoLocal.GetByHash(a.Hash))).Where(a => a.vl != null).Select(a => new AniDB_FileUpdate
             {
                 FileSize = a.xref.FileSize, Hash = a.xref.Hash, HasResponse = false, UpdatedAt = a.vl.DateTimeCreated
             }));
