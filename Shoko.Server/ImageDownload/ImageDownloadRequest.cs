@@ -108,7 +108,7 @@ public class ImageDownloadRequest
                     fs.Write(bytes, 0, bytes.Length);
 
                 // Make sure the directory structure exists.
-                var dirPath = Path.GetDirectoryName(tempPath);
+                var dirPath = Path.GetDirectoryName(FilePath);
                 if (!string.IsNullOrEmpty(dirPath) && !Directory.Exists(dirPath))
                     Directory.CreateDirectory(dirPath);
 
@@ -116,11 +116,6 @@ public class ImageDownloadRequest
                 if (File.Exists(FilePath))
                 {
                     File.Delete(FilePath);
-                }
-                // Otherwise ensure that the target directory exists.
-                else
-                {
-                    new FileInfo(FilePath).Directory?.Create();
                 }
 
                 // Move the temp file to it's final destination.
