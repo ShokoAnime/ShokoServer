@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.IO;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
@@ -114,7 +114,14 @@ public class ImageDownloadRequest
 
                 // Delete the existing file if we're re-downloading.
                 if (File.Exists(FilePath))
+                {
                     File.Delete(FilePath);
+                }
+                // Otherwise ensure that the target directory exists.
+                else
+                {
+                    new FileInfo(FilePath).Directory?.Create();
+                }
 
                 // Move the temp file to it's final destination.
                 File.Move(tempPath, FilePath);
