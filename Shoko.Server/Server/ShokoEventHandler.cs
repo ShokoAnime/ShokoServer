@@ -15,6 +15,7 @@ public class ShokoEventHandler : IShokoEventHandler
     public event EventHandler<FileDeletedEventArgs> FileDeleted;
     public event EventHandler<FileDetectedEventArgs> FileDetected;
     public event EventHandler<FileHashedEventArgs> FileHashed;
+    public event EventHandler<FileEventArgs> FileNotMatched;
     public event EventHandler<FileMatchedEventArgs> FileMatched;
     public event EventHandler<AniDBBannedEventArgs> AniDBBanned;
     public event EventHandler<SeriesInfoUpdatedEventArgs> SeriesUpdated;
@@ -85,6 +86,19 @@ public class ShokoEventHandler : IShokoEventHandler
                 AnimeInfo = series.Select(a => a.GetAnime()).Cast<IAnime>().ToList(),
                 EpisodeInfo = episodes.Cast<IEpisode>().ToList(),
                 GroupInfo = series.DistinctBy(a => a.AnimeGroupID).Select(a => a.AnimeGroup).Cast<IGroup>().ToList()
+            }
+        );
+    }
+
+    public void OnFileNotMatched(SVR_VideoLocal_Place vlp, SVR_VideoLocal vl)
+    {
+        FileNotMatched?.Invoke(
+            null,
+            new FileEventArgs
+            {
+                RelativePath = vlp.FilePath,
+                FileInfo = vlp,
+                ImportFolder = vlp.ImportFolder
             }
         );
     }

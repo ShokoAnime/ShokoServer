@@ -1557,13 +1557,7 @@ public static class Importer
         {
             // if we have run this in the last 12 hours and are not forcing it, then exit
             var tsLastRun = DateTime.Now - sched.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours)
-            {
-                if (!forceRefresh)
-                {
-                    return;
-                }
-            }
+            if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
         }
 
         // files which have been hashed, but don't have an associated episode
@@ -1571,6 +1565,7 @@ public static class Importer
 
         foreach (var vl in filesWithoutEpisode)
         {
+            // somehow calculate a falloff
             var cmd = commandFactory.Create<CommandRequest_ProcessFile>(
                 c =>
                 {

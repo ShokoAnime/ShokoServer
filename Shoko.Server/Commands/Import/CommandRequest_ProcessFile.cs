@@ -75,13 +75,13 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
                 .Select(xref => xref.EpisodeID)
                 .ToHashSet();
 
-            // Process and get the anidb file entry.
+            // Process and get the AniDB file entry.
             var aniFile = ProcessFile_AniDB(vlocal);
 
             // Rename and/or move the physical file(s) if needed.
             vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
-            // Check if an anidb file is now available and if the cross-references changed.
+            // Check if an AniDB file is now available and if the cross-references changed.
             if (aniFile != null && !vlocal.EpisodeCrossRefs.Select(xref => xref.EpisodeID).ToHashSet().SetEquals(oldXRefs))
             {
                 // Set the import date
@@ -90,6 +90,11 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
 
                 // Dispatch the on file matched event.
                 ShokoEventHandler.Instance.OnFileMatched(vlocal.GetBestVideoLocalPlace(), vlocal);
+            }
+            // We called AniDB above, presumably. If we didn't, it'll be 0, and we don't want to call this. If we did, then it's 1, and not found
+            else if (aniFile == null && RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vlocal.FileSize, vlocal.Hash).Count == 1)
+            {
+                ShokoEventHandler.Instance.OnFileNotMatched(vlocal.GetBestVideoLocalPlace(), vlocal);
             }
         }
         catch (Exception ex)

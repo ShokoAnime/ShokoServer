@@ -18,6 +18,10 @@ namespace Shoko.Plugin.Abstractions
         /// </summary>
         event EventHandler<FileHashedEventArgs> FileHashed;
         /// <summary>
+        /// Fired when a file is scanned for the first time and found to be unrecognized. There is no data except the file, as it's unrecognized
+        /// </summary>
+        event EventHandler<FileEventArgs> FileNotMatched;
+        /// <summary>
         /// Fired when a cross reference is made and data is gathered for a file. This has most if not all relevant data for a file. TvDB may take longer.
         /// Use <see cref="EpisodeUpdated"/> with a filter on the data source to ensure the desired data is gathered.
         /// </summary>

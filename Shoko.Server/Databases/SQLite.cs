@@ -22,7 +22,7 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
 {
     public string Name { get; } = "SQLite";
 
-    public int RequiredVersion { get; } = 95;
+    public int RequiredVersion { get; } = 96;
 
 
     public void BackupDatabase(string fullfilename)
@@ -633,6 +633,9 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
         new(94, 1, "ALTER TABLE AnimeEpisode ADD IsHidden integer NOT NULL DEFAULT 0;"),
         new(94, 2, "ALTER TABLE AnimeSeries_User ADD HiddenUnwatchedEpisodeCount integer NOT NULL DEFAULT 0;"),
         new(95, 1, "UPDATE VideoLocal SET DateTimeImported = DateTimeCreated WHERE EXISTS(SELECT Hash FROM CrossRef_File_Episode xref WHERE xref.Hash = VideoLocal.Hash)"),
+        new(96, 1, "CREATE TABLE AniDB_FileUpdate ( AniDB_FileUpdateID INTEGER PRIMARY KEY AUTOINCREMENT, FileSize INTEGER NOT NULL, Hash TEXT NOT NULL, HasResponse INTEGER NOT NULL, UpdatedAt timestamp NOT NULL )"),
+        new(96, 2, "CREATE UNIQUE INDEX UIX_AniDB_FileUpdate ON AniDB_FileUpdate(FileSize, Hash)"),
+        new(96, 3, DatabaseFixes.MigrateAniDB_FileUpdates),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)
