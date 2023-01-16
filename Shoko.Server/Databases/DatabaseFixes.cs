@@ -832,9 +832,9 @@ public class DatabaseFixes
 
     public static void FixTagParentIDsAndNameOverrides()
     {
-        var xmlUtils = Utils.ServiceContainer.GetService<HttpXmlUtils>();
-        var animeParser = Utils.ServiceContainer.GetService<HttpAnimeParser>();
-        var animeCreator = Utils.ServiceContainer.GetService<AnimeCreator>();
+        var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
+        var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
+        var animeCreator = Utils.ServiceContainer.GetRequiredService<AnimeCreator>();
         var animeList = RepoFactory.AniDB_Anime.GetAll();
         logger.Info($"Updating anidb tags for {animeList.Count} local anidb anime entries...");
 
@@ -855,6 +855,7 @@ public class DatabaseFixes
             try
             {
                 response = animeParser.Parse(anime.AnimeID, xml);
+                if (response == null) throw new NullReferenceException(nameof(response));
             }
             catch (Exception e)
             {
