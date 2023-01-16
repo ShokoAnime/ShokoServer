@@ -847,14 +847,18 @@ public class DatabaseFixes
             var xml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID);
             if (string.IsNullOrEmpty(xml))
             {
-                logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime with id {anime.AnimeID}");
+                logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
                 continue;
             }
 
-            var response = animeParser.Parse(anime.AnimeID, xml);
-            if (response == null)
+            ResponseGetAnime response;
+            try
             {
-                logger.Warn($"Unable to parse cached Anime_HTTP xml dum for anime with id {anime.AnimeID}");
+                response = animeParser.Parse(anime.AnimeID, xml);
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, $"Unable to parse cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
                 continue;
             }
 
