@@ -15,7 +15,7 @@ public class ShokoEventHandler : IShokoEventHandler
     public event EventHandler<FileDeletedEventArgs> FileDeleted;
     public event EventHandler<FileDetectedEventArgs> FileDetected;
     public event EventHandler<FileHashedEventArgs> FileHashed;
-    public event EventHandler<FileEventArgs> FileNotMatched;
+    public event EventHandler<FileNotMatchedEventArgs> FileNotMatched;
     public event EventHandler<FileMatchedEventArgs> FileMatched;
     public event EventHandler<AniDBBannedEventArgs> AniDBBanned;
     public event EventHandler<SeriesInfoUpdatedEventArgs> SeriesUpdated;
@@ -90,15 +90,18 @@ public class ShokoEventHandler : IShokoEventHandler
         );
     }
 
-    public void OnFileNotMatched(SVR_VideoLocal_Place vlp, SVR_VideoLocal vl)
+    public void OnFileNotMatched(SVR_VideoLocal_Place vlp, SVR_VideoLocal vl, int autoMatchAttempts, bool hasXRefs, bool isUDPBanned)
     {
         FileNotMatched?.Invoke(
             null,
-            new FileEventArgs
+            new FileNotMatchedEventArgs
             {
                 RelativePath = vlp.FilePath,
                 FileInfo = vlp,
-                ImportFolder = vlp.ImportFolder
+                ImportFolder = vlp.ImportFolder,
+                AutoMatchAttempts = autoMatchAttempts,
+                HasCrossReferences = hasXRefs,
+                IsUDPBanned = isUDPBanned,
             }
         );
     }

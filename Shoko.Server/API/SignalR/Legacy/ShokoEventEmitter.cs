@@ -17,6 +17,7 @@ public class ShokoEventEmitter : IDisposable
         EventHandler.FileDetected += OnFileDetected;
         EventHandler.FileHashed += OnFileHashed;
         EventHandler.FileMatched += OnFileMatched;
+        EventHandler.FileNotMatched += OnFileNotMatched;
         EventHandler.SeriesUpdated += OnSeriesUpdated;
         EventHandler.EpisodeUpdated += OnEpisodeUpdated;
     }
@@ -26,6 +27,7 @@ public class ShokoEventEmitter : IDisposable
         EventHandler.FileDetected -= OnFileDetected;
         EventHandler.FileHashed -= OnFileHashed;
         EventHandler.FileMatched -= OnFileMatched;
+        EventHandler.FileNotMatched -= OnFileNotMatched;
         EventHandler.SeriesUpdated -= OnSeriesUpdated;
         EventHandler.EpisodeUpdated -= OnEpisodeUpdated;
     }
@@ -43,6 +45,11 @@ public class ShokoEventEmitter : IDisposable
     private async void OnFileMatched(object sender, FileMatchedEventArgs e)
     {
         await Hub.Clients.All.SendAsync("FileMatched", new FileMatchedEventSignalRModel(e));
+    }
+
+    private async void OnFileNotMatched(object sender, FileNotMatchedEventArgs e)
+    {
+        await Hub.Clients.All.SendAsync("FileNotMatched", new FileNotMatchedEventSignalRModel(e));
     }
 
     private async void OnSeriesUpdated(object sender, SeriesInfoUpdatedEventArgs e)

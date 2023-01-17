@@ -12,6 +12,7 @@ using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -23,8 +24,13 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_ProcessFile : CommandRequestImplementation
 {
     private readonly ICommandRequestFactory _commandFactory;
+
     private readonly IServerSettings _settings;
+
+    private readonly IUDPConnectionHandler _udpConnectionHandler;
+
     public int VideoLocalID { get; set; }
+
     public bool ForceAniDB { get; set; }
 
     public bool SkipMyList { get; set; }
@@ -82,19 +88,26 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
             vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
             // Check if an AniDB file is now available and if the cross-references changed.
-            if (aniFile != null && !vlocal.EpisodeCrossRefs.Select(xref => xref.EpisodeID).ToHashSet().SetEquals(oldXRefs))
+            var newXRefs = vlocal.EpisodeCrossRefs
+                .Select(xref => xref.EpisodeID)
+                .ToHashSet();
+            var xRefsMatch = newXRefs.SetEquals(oldXRefs);
+            if (aniFile != null && newXRefs.Count > 0 && !xRefsMatch)
             {
-                // Set the import date
+                // Set/update the import date
                 vlocal.DateTimeImported = DateTime.Now;
                 RepoFactory.VideoLocal.Save(vlocal);
 
                 // Dispatch the on file matched event.
                 ShokoEventHandler.Instance.OnFileMatched(vlocal.GetBestVideoLocalPlace(), vlocal);
             }
-            // We called AniDB above, presumably. If we didn't, it'll be 0, and we don't want to call this. If we did, then it's 1, and not found
-            else if (aniFile == null && RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vlocal.FileSize, vlocal.Hash).Count == 1)
+            // Fire the file not matched event if we didn't update the cross-references.
+            else
             {
-                ShokoEventHandler.Instance.OnFileNotMatched(vlocal.GetBestVideoLocalPlace(), vlocal);
+                var autoMatchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vlocal.FileSize, vlocal.Hash).Count;
+                var hasXRefs = newXRefs.Count > 0 && xRefsMatch;
+                var isUDPBanned = _udpConnectionHandler.IsBanned;
+                ShokoEventHandler.Instance.OnFileNotMatched(vlocal.GetBestVideoLocalPlace(), vlocal, autoMatchAttempts, hasXRefs, isUDPBanned);
             }
         }
         catch (Exception ex)
@@ -471,11 +484,12 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
         return cq;
     }
 
-    public CommandRequest_ProcessFile(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) :
+    public CommandRequest_ProcessFile(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider, IUDPConnectionHandler udpConnectionHandler) :
         base(loggerFactory)
     {
         _commandFactory = commandFactory;
         _settings = settingsProvider.GetSettings();
+        _udpConnectionHandler = udpConnectionHandler;
     }
 
     protected CommandRequest_ProcessFile()
