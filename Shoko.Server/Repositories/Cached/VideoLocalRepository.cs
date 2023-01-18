@@ -495,20 +495,50 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         return ReadLock(() => _hashes.GetMultiple(""));
     }
 
-    public List<SVR_VideoLocal> GetVideosWithoutEpisode()
+    public List<SVR_VideoLocal> GetVideosWithoutEpisode(bool includeBrokenXRefs = false)
     {
         return ReadLock(
             () => Cache.Values
-                .Where(
-                    a =>
-                    {
-                        if (a.IsIgnored != 0) return false;
+                .Where( a =>
+                {
+                    if (a.IsIgnored != 0)
+                        return false;
 
-                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
-                        if (!xrefs.Any()) return true;
+                    var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
+                    if (!xrefs.Any())
+                        return true;
+
+                    if (includeBrokenXRefs)
                         return !xrefs.Any(IsImported);
-                    }
-                )
+
+                    return false;
+                })
+                .OrderByNatural(local =>
+                {
+                    var place = local?.GetBestVideoLocalPlace();
+                    if (place == null) return null;
+                    return place.FullServerPath ?? place.FilePath;
+                })
+                .ThenBy(local => local?.VideoLocalID ?? 0)
+                .ToList()
+        );
+    }
+
+    public List<SVR_VideoLocal> GetVideosWithBrokenCrossReferences()
+    {
+        return ReadLock(
+            () => Cache.Values
+                .Where( a =>
+                {
+                    if (a.IsIgnored != 0)
+                        return false;
+
+                    var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
+                    if (!xrefs.Any())
+                        return false;
+
+                    return !xrefs.All(IsImported);
+                })
                 .OrderByNatural(local =>
                 {
                     var place = local?.GetBestVideoLocalPlace();

@@ -1071,7 +1071,7 @@ public partial class ShokoServiceImplementation
         var contracts = new List<CL_VideoLocal>();
         try
         {
-            contracts.AddRange(RepoFactory.VideoLocal.GetVideosWithoutEpisode().Select(vid => vid.ToClient(userID)));
+            contracts.AddRange(RepoFactory.VideoLocal.GetVideosWithoutEpisode(true).Select(vid => vid.ToClient(userID)));
         }
         catch (Exception ex)
         {

@@ -914,6 +914,30 @@ public class FileController : BaseController
     }
 
     /// <summary>
+    /// Get all files with broken cross-references.
+    /// </summary>
+    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+    /// <param name="page">Page number.</param>
+    /// <param name="includeXRefs">Set to false to exclude series and episode cross-references.</param>
+    /// <returns></returns>
+    [HttpGet("BrokenCrossReferences")]
+    public ActionResult<ListResult<File>> GetFilesWithBrokenCrossReferences([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
+    {
+        return RepoFactory.VideoLocal.GetVideosWithBrokenCrossReferences()
+            .ToListResult(
+                file => new File(HttpContext, file)
+                {
+                    SeriesIDs = includeXRefs ? file.EpisodeCrossRefs
+                        .GroupBy(xref => xref.AnimeID, xref => new File.CrossReferenceIDs { ID = 0, AniDB = xref.EpisodeID, TvDB = new() })
+                        .Select(tuples => new File.SeriesCrossReference { SeriesID = new() { ID = 0, AniDB = tuples.Key, TvDB = new() }, EpisodeIDs = tuples.ToList() })
+                        .ToList() : null
+                },
+                page,
+                pageSize
+            );
+    }
+
+    /// <summary>
     /// Get unrecognized files.
     /// Use pageSize and page (index 0) in the query to enable pagination.
     /// </summary>
