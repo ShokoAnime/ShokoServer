@@ -1565,7 +1565,10 @@ public static class Importer
 
         foreach (var vl in filesWithoutEpisode)
         {
-            // somehow calculate a falloff
+            var matchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vl.FileSize, vl.Hash).Count;
+            if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
+                continue;
+
             var cmd = commandFactory.Create<CommandRequest_ProcessFile>(
                 c =>
                 {

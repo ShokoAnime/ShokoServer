@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Shoko.Models.Enums;
 
 namespace Shoko.Server.Settings;
@@ -29,6 +30,12 @@ public class ImportSettings
     public RenamingLanguage DefaultEpisodeLanguage { get; set; } = RenamingLanguage.Romaji;
 
     public bool RunOnStart { get; set; } = false;
+
+    /// <summary>
+    /// Max auto-scan attempts per file for unrecognized files.
+    /// </summary>
+    [Range(0, 100)]
+    public int MaxAutoScanAttemptsPerFile { get; set; } = 15;
 
     public bool ScanDropFoldersOnStart { get; set; } = false;
 
