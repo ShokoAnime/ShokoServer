@@ -155,7 +155,7 @@ public class Series : BaseModel
             c.CreateSeriesEntry = createSeriesEntry;
             c.BubbleExceptions = immediate;
         });
-        if (immediate && !handler.IsBanned)
+        if (immediate && (command.CacheOnly || !handler.IsBanned))
         {
             try
             {
