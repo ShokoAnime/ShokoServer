@@ -320,7 +320,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
                         c.AnimeID = animeID;
                         c.ForceRefresh = true;
                         c.DownloadRelations = _settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime;
-                        c.CreateSeriesEntry = _settings.AniDb.AutomaticallyImportSeries;
+                        c.CreateSeriesEntry = true;
                     }
                 );
                 animeCommand.Save();
