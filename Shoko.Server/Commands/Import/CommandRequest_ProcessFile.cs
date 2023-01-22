@@ -281,7 +281,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
             if (anime != null && update != null)
             {
                 var ts = DateTime.Now - update.UpdatedAt;
-                if (ts.TotalHours < 4)
+                if (ts.TotalHours < _settings.AniDb.MinimumHoursToRedownloadAnimeInfo)
                 {
                     animeRecentlyUpdated = true;
                 }
@@ -291,7 +291,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
                 missingEpisodes = true;
             }
 
-            // even if we are missing episode info, don't get data  more than once every 4 hours
+            // even if we are missing episode info, don't get data  more than once every `x` hours
             // this is to prevent banning
             if (missingEpisodes && !animeRecentlyUpdated)
             {
