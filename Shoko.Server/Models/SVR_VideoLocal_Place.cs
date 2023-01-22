@@ -104,7 +104,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         // actually rename the file
         var path = Path.GetDirectoryName(fullFileName);
         var newFullName = Path.Combine(path, renamed);
-        var textStreams = SubtitleHelper.GetSubtitleStreams(FullServerPath);
 
         try
         {
@@ -141,34 +140,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             }
 
             // Rename external subs!
-            var oldBasename = Path.GetFileNameWithoutExtension(fullFileName);
-            var newBasename = Path.GetFileNameWithoutExtension(renamed);
-            foreach (var sub in textStreams)
-            {
-                if (string.IsNullOrEmpty(sub.Filename))
-                {
-                    continue;
-                }
-
-                var oldSubPath = Path.Combine(path, sub.Filename);
-
-                if (!File.Exists(oldSubPath))
-                {
-                    logger.Error($"Unable to rename external subtitle \"{sub.Filename}\". Cannot access the file");
-                    continue;
-                }
-
-                var newSub = sub.Filename.Replace(oldBasename, newBasename);
-                try
-                {
-                    var file = new FileInfo(oldSubPath);
-                    file.MoveTo(newSub);
-                }
-                catch (Exception e)
-                {
-                    logger.Error($"Unable to rename external subtitle \"{sub.Filename}\" to \"{newSub}\". {e}");
-                }
-            }
+            RenameExternalSubtitles(fullFileName, renamed);
 
             logger.Info($"Renaming file SUCCESS! From \"{fullFileName}\" to \"{newFullName}\"");
             var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
@@ -519,6 +491,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             try
             {
                 File.Delete(FullServerPath);
+                DeleteExternalSubtitles(FullServerPath);
             }
             catch (Exception ex)
             {
@@ -568,6 +541,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         try
         {
             File.Delete(FullServerPath);
+            DeleteExternalSubtitles(FullServerPath);
         }
         catch (FileNotFoundException)
         {
@@ -612,6 +586,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             try
             {
                 File.Delete(FullServerPath);
+                DeleteExternalSubtitles(FullServerPath);
             }
             catch (Exception ex)
             {
@@ -991,7 +966,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     // Normally we'd let the Multiple Files Utility handle it, but let's just delete the V1
                     logger.Info("The existing file is a V1 from the same group. Replacing it.");
                     // Delete the destination
-                    (var success, var _) = destVideoLocalPlace.RemoveAndDeleteFile();
+                    var (success, _) = destVideoLocalPlace.RemoveAndDeleteFile();
                     if (!success)
                     {
                         return false;
@@ -1102,6 +1077,72 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 catch (Exception e)
                 {
                     logger.Error($"Unable to MOVE file: \"{subtitleFile}\" to \"{newSubPath}\" error {e}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, ex.ToString());
+        }
+    }
+
+    private static void RenameExternalSubtitles(string fullFileName, string renamed)
+    {
+        var textStreams = SubtitleHelper.GetSubtitleStreams(fullFileName);
+        var path = Path.GetDirectoryName(fullFileName);
+        var oldBasename = Path.GetFileNameWithoutExtension(fullFileName);
+        var newBasename = Path.GetFileNameWithoutExtension(renamed);
+        foreach (var sub in textStreams)
+        {
+            if (string.IsNullOrEmpty(sub.Filename))
+            {
+                continue;
+            }
+
+            var oldSubPath = Path.Combine(path, sub.Filename);
+
+            if (!File.Exists(oldSubPath))
+            {
+                logger.Error($"Unable to rename external subtitle \"{sub.Filename}\". Cannot access the file");
+                continue;
+            }
+
+            var newSub = Path.Combine(path, sub.Filename.Replace(oldBasename, newBasename));
+            try
+            {
+                var file = new FileInfo(oldSubPath);
+                file.MoveTo(newSub);
+            }
+            catch (Exception e)
+            {
+                logger.Error($"Unable to rename external subtitle \"{sub.Filename}\" to \"{newSub}\". {e}");
+            }
+        }
+    }
+
+    private static void DeleteExternalSubtitles(string originalFileName)
+    {
+        try
+        {
+            var textStreams = SubtitleHelper.GetSubtitleStreams(originalFileName);
+            // move any subtitle files
+            foreach (var subtitleFile in textStreams)
+            {
+                if (string.IsNullOrEmpty(subtitleFile.Filename)) continue;
+
+                var srcParent = Path.GetDirectoryName(originalFileName);
+                if (string.IsNullOrEmpty(srcParent)) continue;
+
+                var subPath = Path.Combine(srcParent, subtitleFile.Filename);
+                if (!File.Exists(subPath)) continue;
+
+                try
+                {
+                    File.Delete(subPath);
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e, $"Unable to delete file: \"{subtitleFile}\"");
                 }
             }
         }
