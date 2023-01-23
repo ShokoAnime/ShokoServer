@@ -68,8 +68,9 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
 
         try
         {
-            if (_handler.IsBanned)
+            if (ForceRefresh && _handler.IsBanned)
             {
+                Logger.LogDebug("We're HTTP banned and requested a forced online update for anime with ID {AnimeID}.", AnimeID);
                 throw new AniDBBannedException
                 {
                     BanType = UpdateType.HTTPBan,
@@ -79,7 +80,6 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
 
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
             var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(AnimeID);
-            var skip = true;
             var animeRecentlyUpdated = false;
             if (anime != null && update != null)
             {
@@ -90,53 +90,98 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                 }
             }
 
-            if (!animeRecentlyUpdated && !CacheOnly)
+            // If we're not only using the cache, the anime was not recently
+            // updated, we're not http banned, and the user requested a forced
+            // online refresh _or_ if there is no local anime record, then try
+            // to fetch a new updated record online but fallback to loading from
+            // the cache unless we request a forced online refresh.
+            ResponseGetAnime response = null;
+            if (!CacheOnly && !animeRecentlyUpdated && !_handler.IsBanned && (ForceRefresh || anime == null))
             {
-                if (ForceRefresh)
+                try
                 {
-                    skip = false;
+                    var request = _requestFactory.Create<RequestGetAnime>(r => r.AnimeID = AnimeID);
+                    var httpResponse = request.Execute();
+                    response = httpResponse.Response;
+                    if (response == null)
+                    {
+                        Logger.LogError("No such anime with ID: {AnimeID}", AnimeID);
+                        return;
+                    }
                 }
-                else if (anime == null)
+                catch (AniDBBannedException)
                 {
-                    skip = false;
+                    // Don't even try to load from the cache if we requested a
+                    // forced online refresh.
+                    if (anime != null)
+                    {
+                        Logger.LogDebug("We're HTTP banned and requested a forced online update for anime with ID {AnimeID}.", AnimeID);
+                        throw;
+                    }
+
+                    // If the anime record doesn't exist yet then try to load it
+                    // from the cache. A stall record is better than no record
+                    // in most cases.
+                    var xml = _xmlUtils.LoadAnimeHTTPFromFile(AnimeID);
+                    if (xml == null)
+                    {
+                        Logger.LogDebug("We're HTTP Banned and unable to find a cached AnimeDoc_{AnimeID}.xml file.", AnimeID);
+                        throw;
+                    }
+
+                    try
+                    {
+                        response = _parser.Parse(AnimeID, xml);
+                    }
+                    catch
+                    {
+                        Logger.LogDebug("Failed to parse the cached AnimeDoc_{AnimeID}.xml file.", AnimeID);
+                        throw;
+                    }
+
+                    Logger.LogDebug("We're HTTP banned but were able to load the cached AnimeDoc_{AnimeID}.xml file from the cache.", AnimeID);
                 }
             }
-
-            ResponseGetAnime response = null;
-            if (skip)
+            // Else, try to load a cached xml file.
+            else
             {
                 var xml = _xmlUtils.LoadAnimeHTTPFromFile(AnimeID);
-                if (xml != null)
+                if (xml == null)
+                {
+                    var sayWeAreBanned = !CacheOnly && _handler.IsBanned;
+                    Logger.LogDebug(
+                        sayWeAreBanned ?
+                            "We're HTTP Banned and unable to find a cached AnimeDoc_{AnimeID}.xml file." :
+                            "Unable to find a cached AnimeDoc_{AnimeID}.xml file.",
+                        AnimeID
+                    );
+                    return;
+                }
+
+                try
                 {
                     response = _parser.Parse(AnimeID, xml);
                 }
-            }
-            else
-            {
-                var request = _requestFactory.Create<RequestGetAnime>(r => r.AnimeID = AnimeID);
-                var httpResponse = request.Execute();
-                response = httpResponse.Response;
-            }
-
-            if (response == null)
-            {
-                Logger.LogError("No such anime with ID: {AnimeID}", AnimeID);
-                return;
+                catch
+                {
+                    Logger.LogDebug("Failed to parse the cached AnimeDoc_{AnimeID}.xml file.", AnimeID);
+                    throw;
+                }
             }
 
+            // Create or update the anime record,
             anime ??= new SVR_AniDB_Anime();
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var sessionWrapper = session.Wrap();
             _animeCreator.CreateAnime(response, anime, 0);
 
+            // then conditionally create the series record if it doesn't exist,
             var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
-            // conditionally create AnimeSeries if it doesn't exist
             if (series == null && CreateSeriesEntry)
             {
                 series = anime.CreateAnimeSeriesAndGroup();
             }
 
-            // create AnimeEpisode records for all episodes in this anime only if we have a series
+            // and then create or update the episode records if we have an
+            // existing series record.
             if (series != null)
             {
                 series.CreateAnimeEpisodes(anime);
@@ -147,19 +192,18 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
 
             Result = anime;
 
-            ProcessRelations(response, _requestFactory, _handler, _animeCreator);
+            ProcessRelations(response);
 
             // Request an image download
             _commandFactory.Create<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = anime.AnimeID).Save();
         }
-        catch (AniDBBannedException ex)
+        catch (Exception ex)
         {
             Logger.LogError(ex, "Error processing CommandRequest_GetAnimeHTTP: {AnimeID}", AnimeID);
         }
     }
 
-    private void ProcessRelations(ResponseGetAnime response, IRequestFactory requestFactory,
-        IHttpConnectionHandler handler, AnimeCreator animeCreator)
+    private void ProcessRelations(ResponseGetAnime response)
     {
         if (!DownloadRelations)
         {
@@ -171,79 +215,67 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
             return;
         }
 
+        if (RelDepth > _settings.AniDb.MaxRelationDepth)
+        {
+            return;
+        }
+
         if (!_settings.AutoGroupSeries && !_settings.AniDb.DownloadRelatedAnime)
         {
             return;
         }
 
-        // this command is RelDepth, so any further relations are +1
-        ProcessRelationsRecursive(response, requestFactory, handler, animeCreator, RelDepth + 1);
-    }
-
-    private void ProcessRelationsRecursive(ResponseGetAnime response, IRequestFactory requestFactory,
-        IHttpConnectionHandler handler, AnimeCreator animeCreator, int depth)
-    {
-        if (depth > _settings.AniDb.MaxRelationDepth)
-        {
-            return;
-        }
-
+        // Queue or process the related series.
         foreach (var relation in response.Relations)
         {
-            var relatedAnime = RepoFactory.AniDB_Anime.GetByAnimeID(relation.RelatedAnimeID);
-            var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(relation.RelatedAnimeID);
+            // Skip queuing/processing the command if it is already queued.
+            if (RepoFactory.CommandRequest.GetByCommandID(GetCommandID(relation.RelatedAnimeID)) != null)
+                continue;
 
-            var animeRecentlyUpdated = false;
-            if (relatedAnime != null && update != null)
+            // Skip queuing/processing the command if the anime record were
+            // recently updated.
+            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(relation.RelatedAnimeID);
+            if (anime != null)
             {
-                var ts = DateTime.Now - update.UpdatedAt;
+                // Check when the anime was last updated online if we are
+                // forcing a refresh and we're not banned, otherwise check when
+                // the local anime record was last updated (be it from a fresh
+                // online xml file or from a cached xml file).
+                var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(relation.RelatedAnimeID);
+                var updatedAt = ForceRefresh && !_handler.IsBanned && update != null ? update.UpdatedAt : anime.DateTimeUpdated;
+                var ts = DateTime.Now - updatedAt;
                 if (ts.TotalHours < _settings.AniDb.MinimumHoursToRedownloadAnimeInfo)
                 {
-                    animeRecentlyUpdated = true;
-                }
-            }
-
-            var download = !animeRecentlyUpdated && !CacheOnly;
-
-            // we only want to pull right now if we are grouping, and not if it was recently or banned
-            if (download && _settings.AutoGroupSeries && !handler.IsBanned)
-            {
-                try
-                {
-                    var relationRequest =
-                        requestFactory.Create<RequestGetAnime, ResponseGetAnime>(r =>
-                            r.AnimeID = relation.RelatedAnimeID);
-                    var relationResponse = relationRequest.Execute();
-                    relatedAnime ??= new SVR_AniDB_Anime();
-                    animeCreator.CreateAnime(relationResponse.Response, relatedAnime, depth);
-                    // we just downloaded depth, so the next recursion is depth + 1
-                    if (depth + 1 > _settings.AniDb.MaxRelationDepth)
-                    {
-                        return;
-                    }
-
-                    ProcessRelationsRecursive(relationResponse.Response, requestFactory, handler, animeCreator,
-                        depth + 1);
                     continue;
                 }
-                catch (AniDBBannedException)
-                {
-                    // pass to allow making command requests
-                }
             }
 
-            // here, we either didn't do the above, or it was stopped by a ban. Either way, we haven't downloaded depth, so queue that
-            if (RepoFactory.CommandRequest.GetByCommandID(GetCommandID(relation.RelatedAnimeID)) != null) continue;
+            try
+            {
+                var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                    c =>
+                    {
+                        c.AnimeID = relation.RelatedAnimeID;
+                        c.DownloadRelations = true;
+                        c.RelDepth = RelDepth + 1;
+                        c.CacheOnly = CacheOnly;
+                        c.ForceRefresh = ForceRefresh;
+                        c.CreateSeriesEntry = CreateSeriesEntry && _settings.AniDb.AutomaticallyImportSeries;
+                    }
+                );
 
-            var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
-                c =>
-                {
-                    c.AnimeID = relation.RelatedAnimeID;
-                    c.DownloadRelations = true;
-                    c.RelDepth = depth;
-                }
-            );
-            command.Save();
+                // Process the command now if we need the data for auto-grouping.
+                if (_settings.AutoGroupSeries && (CacheOnly && !_handler.IsBanned))
+                    command.ProcessCommand();
+                // Otherwise append the command to the queue.
+                else
+                    command.Save();
+            }
+            catch (AniDBBannedException)
+            {
+                // Catch banned exceptions if we run the command in-place.
+                continue;
+            }
         }
     }
 
