@@ -55,17 +55,15 @@ jobs:
 
       - uses: docker/setup-buildx-action@v2
         name: Set up Docker Buildx
-        with:
-          # Disable provenance for now, until it works with docker manifest create.
-          # The manifest list produced by the new feature is incompatible with the
-          # expected format used in the docker manifest create command.
-          provenance: false
 
       - name: Log into docker hub
         run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
 
+        # Disabled provenance for now, until it works with docker manifest create.
+        # The manifest list produced by the new feature is incompatible with the
+        # expected format used in the docker manifest create command.
       - name: Build and Push the Docker image
-        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ steps.release_info.outputs.version }}-${{ github.event.inputs.release }} --build-arg channel=${{ github.event.inputs.release }} --build-arg commit=${{ github.sha }} --build-arg tag=${{ steps.release_info.outputs.tag }} --push
+        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ steps.release_info.outputs.version }}-${{ github.event.inputs.release }} --build-arg channel=${{ github.event.inputs.release }} --build-arg commit=${{ github.sha }} --build-arg tag=${{ steps.release_info.outputs.tag }} --push --provenance=false
 
   docker-manual-push_manifest:
     needs: docker-manual-build
