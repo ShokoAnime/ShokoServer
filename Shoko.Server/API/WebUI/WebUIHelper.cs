@@ -20,7 +20,7 @@ public static class WebUIHelper
     public static void GetUrlAndUpdate(string tagName, string _channel = null)
     {
         ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
-        var release = DownloadApiResponse($"/releases/tags/{tagName}");
+        var release = DownloadApiResponse($"releases/tags/{tagName}");
         string url = null;
         foreach (var assets in release.assets)
         {
@@ -124,7 +124,7 @@ public static class WebUIHelper
         // checking it if we're looking for a pre-release.
         if (!stable)
             return GetVersionTag(false);
-        var release = DownloadApiResponse("/releases/latest");
+        var release = DownloadApiResponse("releases/latest");
         return release.tag_name;
     }
 
@@ -136,7 +136,7 @@ public static class WebUIHelper
     /// <returns></returns>
     public static string GetVersionTag(bool stable)
     {
-        var releases = DownloadApiResponse("/releases");
+        var releases = DownloadApiResponse("releases");
         foreach (var release in releases)
         {
             // Filter out pre-releases from the stable release channel, but don't
@@ -162,14 +162,16 @@ public static class WebUIHelper
     /// Download an api response from github.
     /// </summary>
     /// <param name="endpoint">Endpoint to probe for data.</param>
+    /// <param name="repoName">Repository name.</param>
     /// <returns></returns>
-    private static dynamic DownloadApiResponse(string endpoint)
+    internal static dynamic DownloadApiResponse(string endpoint, string repoName = null)
     {
+        if (string.IsNullOrEmpty(repoName))
+            repoName = "shokoanime/shokoserver-webui";
         var client = new WebClient();
         client.Headers.Add("Accept: application/vnd.github.v3+json");
         client.Headers.Add("User-Agent", $"ShokoServer/{Utils.GetApplicationVersion()}");
-        var response = client.DownloadString(new Uri($"https://api.github.com/repos/shokoanime/shokoserver-webui{endpoint}"));
-        dynamic result = JsonConvert.DeserializeObject(response);
-        return result;
+        var response = client.DownloadString(new Uri($"https://api.github.com/repos/{repoName}/{endpoint}"));
+        return JsonConvert.DeserializeObject(response);
     }
 }
