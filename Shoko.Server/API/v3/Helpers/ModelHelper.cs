@@ -117,6 +117,7 @@ public static class ModelHelper
     public static SeriesSizes GenerateSeriesSizes(List<SVR_AnimeEpisode> episodeList, int userID)
     {
         var sizes = new SeriesSizes();
+        var fileSet = new HashSet<int>();
         foreach (var episode in episodeList)
         {
             var anidbEpisode = episode?.AniDB_Episode;
@@ -125,6 +126,10 @@ public static class ModelHelper
             var isWatched = (episode.GetUserRecord(userID)?.WatchedCount ?? 0) > 0;
             foreach (var file in fileList)
             {
+                // Only iterate the same file once.
+                if (!fileSet.Add(file.VideoLocalID))
+                    continue;
+
                 var anidbFile = file.GetAniDBFile();
                 if (anidbFile == null)
                 {
