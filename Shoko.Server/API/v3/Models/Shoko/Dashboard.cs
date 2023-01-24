@@ -195,6 +195,7 @@ public static class Dashboard
         /// <summary>
         /// If the file/episode is considered watched.
         /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime? Watched { get; set; }
 
         /// <summary>

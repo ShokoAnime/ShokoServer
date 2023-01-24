@@ -42,6 +42,7 @@ public class Episode : BaseModel
     /// recently watched file, if any. Or `null` if it is considered
     /// "unwatched."
     /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime? Watched { get; set; }
 
     /// <summary>

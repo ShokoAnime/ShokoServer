@@ -40,6 +40,7 @@ public class MediaInfo
     /// <summary>
     /// Date when encoding took place, if known.
     /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime? Encoded { get; }
 
     /// <summary>
