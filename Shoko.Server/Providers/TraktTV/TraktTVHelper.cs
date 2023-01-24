@@ -506,8 +506,6 @@ public class TraktTVHelper
             return;
         }
 
-        Analytics.PostEvent("TraktTV", nameof(ScanForMatches));
-
         var allSeries = RepoFactory.AnimeSeries.GetAll();
 
         var allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();

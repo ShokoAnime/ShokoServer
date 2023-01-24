@@ -16,9 +16,10 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 using TvDbSharper;
 using TvDbSharper.Dto;
+
+using SentrySdk = Sentry.SentrySdk;
 
 namespace Shoko.Server.Providers.TvDB;
 
@@ -66,7 +67,6 @@ public class TvDBApiHelper
         catch (Exception e)
         {
             _logger.LogError(e, "Error in TvDBAuth");
-            Analytics.PostEvent("TvDB", "Login Failed");
             throw;
         }
     }
@@ -109,25 +109,22 @@ public class TvDBApiHelper
                 {
                     return await GetSeriesInfoOnlineAsync(seriesID, forceRefresh);
                 }
-
-                Analytics.PostEvent("TvDB", "Login Failed", "Tried to Get Series Without Login");
-                // suppress 404 and move on
             }
+            // suppress 404 and move on
             else if (exception.StatusCode == (int)HttpStatusCode.NotFound)
             {
-                Analytics.PostEvent("TvDB", "404: GetSeriesInfo", $"{seriesID}");
                 return null;
             }
 
             _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in TvDBApiHelper.GetSeriesInfoOnline");
-            Analytics.PostException(ex);
+            SentrySdk.CaptureException(ex);
         }
 
         return null;
@@ -186,12 +183,12 @@ public class TvDBApiHelper
                 "TvDB returned an error code: {StatusCode}\\n        {Message}\\n        when searching for {Criteria}",
                 exception.StatusCode, exception.Message, criteria
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in SearchSeries");
-            Analytics.PostException(ex);
+            SentrySdk.CaptureException(ex);
         }
 
         return results;
@@ -335,12 +332,12 @@ public class TvDBApiHelper
             _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in TVDBHelper.GetSeriesBannersOnline");
-            Analytics.PostException(ex);
+            SentrySdk.CaptureException(ex);
         }
 
         return languages;
@@ -392,7 +389,7 @@ public class TvDBApiHelper
             _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
 
         return null;
@@ -429,7 +426,7 @@ public class TvDBApiHelper
             _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch
         {
@@ -506,12 +503,12 @@ public class TvDBApiHelper
             _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in TVDBApiHelper.GetSeriesFanartOnlineAsync");
-            Analytics.PostException(ex);
+            SentrySdk.CaptureException(ex);
         }
 
         return tvImages;
@@ -588,12 +585,12 @@ public class TvDBApiHelper
             _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync");
-            Analytics.PostException(ex);
+            SentrySdk.CaptureException(ex);
         }
 
         return tvImages;
@@ -670,12 +667,12 @@ public class TvDBApiHelper
             _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync");
-            Analytics.PostException(ex);
+            SentrySdk.CaptureException(ex);
         }
 
         return tvImages;
@@ -841,23 +838,22 @@ public class TvDBApiHelper
                 {
                     return await GetEpisodesOnlineAsync(seriesID);
                 }
-                // suppress 404 and move on
             }
+            // suppress 404 and move on
             else if (exception.StatusCode == (int)HttpStatusCode.NotFound)
             {
-                Analytics.PostEvent("TvDB", "404: Get Episode List for Series", $"{seriesID}");
                 return apiEpisodes;
             }
 
             _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in TvDBApiHelper.GetEpisodesOnlineAsync");
-            Analytics.PostException(ex);
+            SentrySdk.CaptureException(ex);
         }
 
         return apiEpisodes;
@@ -940,7 +936,7 @@ public class TvDBApiHelper
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in TVDBHelper.GetEpisodes");
-            Analytics.PostException(ex);
+            SentrySdk.CaptureException(ex);
             return null;
         }
     }

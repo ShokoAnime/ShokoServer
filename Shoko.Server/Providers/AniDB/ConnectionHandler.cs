@@ -63,7 +63,6 @@ public abstract class ConnectionHandler
                     UpdateTime = DateTime.Now,
                     PauseTimeSecs = TimeSpan.FromHours(BanTimerResetLength).Seconds
                 };
-                Analytics.PostEvent("AniDB", "Http Banned");
             }
             else
             {

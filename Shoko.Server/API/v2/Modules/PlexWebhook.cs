@@ -247,8 +247,6 @@ public class PlexWebhook : BaseController
     [HttpGet("sync")]
     public ActionResult Sync()
     {
-        Analytics.PostEvent("Plex", "SyncOne");
-
         _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser()).Save();
         return APIStatus.OK();
     }

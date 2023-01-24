@@ -844,15 +844,12 @@ public static class Importer
     public static void ValidateAllImages()
     {
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        Analytics.PostEvent("Management", nameof(ValidateAllImages));
-
         var cmd = commandFactory.Create<CommandRequest_ValidateAllImages>();
         cmd.Save();
     }
 
     public static void RunImport_ScanTvDB()
     {
-        Analytics.PostEvent("Management", nameof(RunImport_ScanTvDB));
         var tvDBHelper = Utils.ServiceContainer.GetRequiredService<TvDBApiHelper>();
 
         tvDBHelper.ScanForMatches();
@@ -872,14 +869,12 @@ public static class Importer
 
     public static void RunImport_ScanMovieDB()
     {
-        Analytics.PostEvent("Management", nameof(RunImport_ScanMovieDB));
         var movieDBHelper = Utils.ServiceContainer.GetRequiredService<MovieDBHelper>();
         movieDBHelper.ScanForMatches();
     }
 
     public static void RunImport_UpdateTvDB(bool forced)
     {
-        Analytics.PostEvent("Management", nameof(RunImport_UpdateTvDB));
         var tvDBHelper = Utils.ServiceContainer.GetRequiredService<TvDBApiHelper>();
         tvDBHelper.UpdateAllInfo(forced);
     }
@@ -887,7 +882,6 @@ public static class Importer
     public static void RunImport_UpdateAllAniDB()
     {
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        Analytics.PostEvent("Management", nameof(RunImport_UpdateAllAniDB));
 
         foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
         {
@@ -1146,7 +1140,6 @@ public static class Importer
     public static void UpdateAllStats()
     {
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        Analytics.PostEvent("Management", "Update All Stats");
         foreach (var ser in RepoFactory.AnimeSeries.GetAll())
         {
             ser.QueueUpdateStats();

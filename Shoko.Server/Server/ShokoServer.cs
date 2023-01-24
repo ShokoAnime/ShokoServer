@@ -239,7 +239,6 @@ public class ShokoServer
         // run rotator once and set 24h delay
         Utils.ServiceContainer.GetRequiredService<LogRotator>().Start();
 
-        Analytics.PostEvent("Server", "StartupFinished");
         // for log readability, this will simply init the singleton
         Utils.ServiceContainer.GetService<IUDPConnectionHandler>();
         return true;
@@ -649,7 +648,6 @@ public class ShokoServer
 
     private void ShutDown()
     {
-        Analytics.PostEvent("Server", "Shutdown");
         StopWatchingFiles();
         ShokoService.CancelAndWaitForQueues();
         AniDBDispose();
@@ -780,7 +778,6 @@ public class ShokoServer
 
     public static void RunImport()
     {
-        Analytics.PostEvent("Importer", "Run");
 
         if (!workerImport.IsBusy)
         {
@@ -790,8 +787,6 @@ public class ShokoServer
 
     public static void RemoveMissingFiles(bool removeMyList = true)
     {
-        Analytics.PostEvent("Importer", "RemoveMissing");
-
         if (!workerRemoveMissing.IsBusy)
         {
             workerRemoveMissing.RunWorkerAsync(removeMyList);
@@ -920,8 +915,6 @@ public class ShokoServer
     public bool SyncPlex()
     {
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        Analytics.PostEvent("Plex", "SyncAll");
-
         var flag = false;
         foreach (var user in RepoFactory.JMMUser.GetAll())
         {

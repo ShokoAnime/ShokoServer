@@ -247,7 +247,6 @@ public sealed class UnhandledExceptionManager
     {
         try
         {
-            Analytics.PostException(objException, true);
             SentrySdk.CaptureException(objException);
         }
         catch
