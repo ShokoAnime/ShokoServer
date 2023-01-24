@@ -127,23 +127,28 @@ public class WebUIController : BaseController
                 var releases = WebUIHelper.DownloadApiResponse("releases?per_page=10&page=1");
                 foreach (var release in releases)
                 {
-                    string version = release.tag_name;
+                    string tagName = release.tag_name;
+                    string version = tagName[0] == 'v' ? tagName[1..] : tagName;
                     foreach (var asset in release.assets)
                     {
                         // We don't care what the zip is named, only that it is attached.
                         // This is because we changed the signature from "latest.zip" to
                         // "Shoko-WebUI-{obj.tag_name}.zip" in the upgrade to web ui v2
                         string fileName = asset.name;
-                        if (fileName == "latest.zip" || fileName == $"Shoko-WebUI-{version}.zip")
+                        if (fileName == "latest.zip" || fileName == $"Shoko-WebUI-{tagName}.zip")
                         {
-                            var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{version}");
+                            var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}");
                             string commit = tag["object"].sha;
-                            string releaseDate = release.published_at;
+                            DateTime releaseDate = release.published_at;
+                            string description = release.body;
                             return Cache.Set<ComponentVersion>(key, new ComponentVersion
                             {
                                 Version = version,
                                 Commit = commit[0..7],
                                 ReleaseChannel = ReleaseChannel.Dev,
+                                ReleaseDate = release.published_at,
+                                Tag = tagName,
+                                Description = description.Trim(),
                             }, CacheTTL);
                         }
                     }
@@ -157,15 +162,20 @@ public class WebUIController : BaseController
             default:
             {
                 var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest");
-                string version = latestRelease.tag_name;
+                string tagName = latestRelease.tag_name;
+                string version = tagName[0] == 'v' ? tagName[1..] : tagName;
                 var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{version}");
                 string commit = tag["object"].sha;
+                DateTime releaseDate = latestRelease.published_at;
+                string description = latestRelease.body;
                 return Cache.Set<ComponentVersion>(key, new ComponentVersion
                 {
                     Version = version,
                     Commit = commit[0..7],
                     ReleaseChannel = ReleaseChannel.Stable,
-                    Tag = version,
+                    ReleaseDate = releaseDate,
+                    Tag = tagName,
+                    Description = description.Trim(),
                 }, CacheTTL);
             }
         }
@@ -193,15 +203,37 @@ public class WebUIController : BaseController
             case ReleaseChannel.Dev:
             {
                 var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest", "shokoanime/shokoserver");
-                var latestCommit = WebUIHelper.DownloadApiResponse("git/ref/heads/master", "shokoanime/shokoserver");
+                var masterBranch = WebUIHelper.DownloadApiResponse("git/ref/heads/master", "shokoanime/shokoserver");
+                string commitSha = masterBranch["object"].sha;
+                var latestCommit = WebUIHelper.DownloadApiResponse($"commits/{commitSha}", "shokoanime/shokoserver");
                 string tagName = latestRelease.tag_name;
                 string version = tagName[1..] + ".0";
-                string commit = latestCommit["object"].sha;
+                DateTime releaseDate = latestCommit.commit.author.date;
+                string description;
+                // We're on a local build.
+                if (!Utils.GetApplicationExtraVersion().TryGetValue("commit", out var currentCommit))
+                {
+                    description = "Local build detected. Unable to determine the relativeness of the latest daily release.";
+                }
+                // We're not on the latest daily release.
+                else if (!string.Equals(currentCommit, commitSha))
+                {
+                    var diff = WebUI.WebUIHelper.DownloadApiResponse($"compare/{commitSha}...{currentCommit}", "shokoanime/shokoserver");
+                    var aheadBy = (int)diff.ahead_by;
+                    var behindBy = (int)diff.behind_by;
+                    description = $"You are currently {aheadBy} commits ahead and {behindBy} commits behind the latest daily release.";
+                }
+                // We're on the latest daily release.
+                else {
+                    description = "All caught up! You are running the latest daily release.";
+                }
                 return Cache.Set<ComponentVersion>(key, new ComponentVersion
                 {
                     Version = version,
-                    Commit = commit,
+                    Commit = commitSha,
                     ReleaseChannel = ReleaseChannel.Dev,
+                    ReleaseDate = releaseDate,
+                    Description = description,
                 }, CacheTTL);
             }
 
@@ -213,12 +245,16 @@ public class WebUIController : BaseController
                 var tagResponse = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}", "shokoanime/shokoserver");
                 string version = tagName[1..] + ".0";
                 string commit = tagResponse["object"].sha;
+                DateTime releaseDate = latestRelease.published_at;
+                string description = latestRelease.body;
                 return Cache.Set<ComponentVersion>(key, new ComponentVersion
                 {
                     Version = version,
                     Commit = commit,
                     ReleaseChannel = ReleaseChannel.Stable,
+                    ReleaseDate = releaseDate,
                     Tag = tagName,
+                    Description = description.Trim(),
                 }, CacheTTL);
             }
         }
