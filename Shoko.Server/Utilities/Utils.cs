@@ -497,33 +497,25 @@ public static class Utils
         logger.Error(msg);
     }
 
-    public static string GetApplicationVersion(Assembly a)
+    public static string GetApplicationVersion(Assembly a = null)
     {
+        a ??= Assembly.GetExecutingAssembly();
         return a.GetName().Version.ToString();
     }
 
-    public static string GetApplicationExtraVersion(Assembly a)
+    public static Dictionary<string, string> GetApplicationExtraVersion()
     {
-        var version =
-            (AssemblyInformationalVersionAttribute)a.GetCustomAttribute(
-                typeof(AssemblyInformationalVersionAttribute));
+        var version = Assembly.GetExecutingAssembly().GetCustomAttribute(typeof(AssemblyInformationalVersionAttribute))
+            as AssemblyInformationalVersionAttribute;
         if (version == null)
-        {
-            return string.Empty;
-        }
+            return new();
 
-        return version.InformationalVersion;
+        return version.InformationalVersion.Split(",")
+                .Select(raw => raw.Split("="))
+                .Where(pair => pair.Length == 2 && !string.IsNullOrEmpty(pair[1]))
+                .ToDictionary(pair => pair[0], pair => pair[1]);
     }
-
-    public static string GetApplicationVersion()
-    {
-        return GetApplicationVersion(Assembly.GetExecutingAssembly());
-    }
-
-    public static string GetApplicationExtraVersion()
-    {
-        return GetApplicationExtraVersion(Assembly.GetExecutingAssembly());
-    }
+    
 
     public static long GetCurrentUTCTime()
     {

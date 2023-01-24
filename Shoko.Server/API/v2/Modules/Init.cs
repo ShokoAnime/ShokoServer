@@ -64,9 +64,8 @@ public class Init : BaseController
         };
         list.Add(version);
 
-        string versionExtra = Utils.GetApplicationExtraVersion();
-
-        if (!string.IsNullOrEmpty(versionExtra))
+        var extraVersionDict = Utils.GetApplicationExtraVersion();
+        if (extraVersionDict.TryGetValue("commit", out var versionExtra))
         {
             version = new ComponentVersion
             {

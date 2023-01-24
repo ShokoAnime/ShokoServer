@@ -65,26 +65,16 @@ public class InitController : BaseController
             MediaInfo = new()
         };
 
-        foreach (var raw in Utils.GetApplicationExtraVersion().Split(","))
-        {
-            var pair = raw.Split("=");
-            if (pair.Length != 2 || string.IsNullOrEmpty(pair[1])) continue;
-            switch (pair[0])
-            {
-                case "tag":
-                    versionSet.Server.Tag = pair[1];
-                    break;
-                case "commit":
-                    versionSet.Server.Commit = pair[1];
-                    break;
-                case "channel":
-                    if (Enum.TryParse<ReleaseChannel>(pair[1], true, out var channel))
-                        versionSet.Server.ReleaseChannel = channel;
-                    else
-                        versionSet.Server.ReleaseChannel = ReleaseChannel.Debug;
-                    break;
-            }
-        }
+        var extraVersionDict = Utils.GetApplicationExtraVersion();
+        if (extraVersionDict.TryGetValue("tag", out var tag))
+            versionSet.Server.Tag = tag;
+        if (extraVersionDict.TryGetValue("commit", out var commit))
+            versionSet.Server.Commit = commit;
+        if (extraVersionDict.TryGetValue("channel", out var rawChannel))
+            if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var channel))
+                versionSet.Server.ReleaseChannel = channel;
+            else
+                versionSet.Server.ReleaseChannel = ReleaseChannel.Debug;
 
         var mediaInfoFileInfo = new FileInfo(Path.Combine(Assembly.GetEntryAssembly().Location, "../MediaInfo", "MediaInfo.exe"));
         versionSet.MediaInfo = new()

@@ -31,9 +31,8 @@ public class Version : BaseController
         var version = new ComponentVersion { version = Utils.GetApplicationVersion(), name = "server" };
         list.Add(version);
 
-        var versionExtra = Utils.GetApplicationExtraVersion();
-
-        if (!string.IsNullOrEmpty(versionExtra))
+        var extraVersionDict = Utils.GetApplicationExtraVersion();
+        if (extraVersionDict.TryGetValue("commit", out var versionExtra))
         {
             version = new ComponentVersion { version = versionExtra, name = "servercommit" };
             list.Add(version);

@@ -129,10 +129,7 @@ public class ShokoServer
         if (!settings.SentryOptOut)
         {
             // Get the release and extra info from the assembly.
-            var extraInfo = Utils.GetApplicationExtraVersion().Split(",")
-                .Select(raw => raw.Split("="))
-                .Where(pair => pair.Length == 2 && !string.IsNullOrEmpty(pair[1]))
-                .ToDictionary(pair => pair[0], pair => pair[1]);
+            var extraInfo = Utils.GetApplicationExtraVersion();
 
             // Only initialize the SDK if we're not on a local build.
             //
