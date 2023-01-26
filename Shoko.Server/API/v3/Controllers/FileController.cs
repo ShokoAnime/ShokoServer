@@ -758,28 +758,80 @@ public class FileController : BaseController
     }
 
     /// <summary>
-    /// Search for a file by path or name. Internally, it will convert / to the system directory separator and match against the string
+    /// Search for a file by path or name. Internally, it will convert forward
+    /// slash (/) and backwards slash (\) to the system directory separator
+    /// before matching.
     /// </summary>
-    /// <param name="path">a path to search for. URL Encoded</param>
-    /// <returns></returns>
-    [HttpGet("PathEndsWith/{*path}")]
-    public ActionResult<List<File>> SearchByFilename([FromRoute] string path)
+    /// <param name="path">The path to search for.</param>
+    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="limit">Limit the number of returned results.</param>
+    /// <returns>A list of all files with a file location that ends with the given path.</returns>
+    [HttpGet("PathEndsWith")]
+    public ActionResult<List<File>> PathEndsWithQuery([FromRoute, FromQuery] string path, [FromQuery] bool includeXRefs = true,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null,
+        [Range(0, 100)] int limit = 0)
+        => PathEndsWithInternal(path, includeXRefs, includeDataFrom, limit);
+
+    /// <summary>
+    /// Search for a file by path or name. Internally, it will convert forward
+    /// slash (/) and backwards slash (\) to the system directory separator
+    /// before matching.
+    /// </summary>
+    /// <param name="path">The path to search for. URL encoded.</param>
+    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="limit">Limit the number of returned results.</param>
+    /// <returns>A list of all files with a file location that ends with the given path.</returns>
+    [HttpGet("PathEndsWith/{path}")]
+    public ActionResult<List<File>> PathEndsWithPath([FromRoute] string path, [FromQuery] bool includeXRefs = true,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null,
+        [Range(0, 100)] int limit = 0)
+        => PathEndsWithInternal(Uri.UnescapeDataString(path), includeXRefs, includeDataFrom, limit);
+
+    /// <summary>
+    /// Search for a file by path or name. Internally, it will convert forward
+    /// slash (/) and backwards slash (\) to the system directory separator
+    /// before matching.
+    /// </summary>
+    /// <param name="path">The path to search for.</param>
+    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="limit">Limit the number of returned results.</param>
+    /// <returns>A list of all files with a file location that ends with the given path.</returns>
+    internal ActionResult<List<File>> PathEndsWithInternal(string path, bool includeXRefs,
+        HashSet<DataSource> includeDataFrom, int limit = 0)
     {
-        if (string.IsNullOrEmpty(path)) return BadRequest("need a path");
-        var query = path;
-        if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
-        if (query.Contains("%")) query = Uri.UnescapeDataString(query);
-        query = query.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-        var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
-            .Where(a => a.FullServerPath?.EndsWith(query, StringComparison.OrdinalIgnoreCase) ?? false)
-            .Select(a => a.VideoLocal)
-            .Where(a =>
+        if (string.IsNullOrWhiteSpace(path))
+            return new List<File>();
+
+        var query = path
+            .Replace('/', Path.DirectorySeparatorChar)
+            .Replace('\\', Path.DirectorySeparatorChar);
+        var results = RepoFactory.VideoLocalPlace.GetAll()
+            .AsParallel()
+            .Where(location => location.FullServerPath?.EndsWith(query, StringComparison.OrdinalIgnoreCase) ?? false)
+            .Select(location => location.VideoLocal)
+            .Where(file =>
             {
-                if (a == null) return false;
-                var ser = a.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
-                return ser == null || User.AllowedSeries(ser);
-            }).Distinct().Select(a => new File(HttpContext, a, true)).ToList();
-        return results;
+                if (file == null)
+                    return false;
+
+                var xrefs = file.EpisodeCrossRefs;
+                var series = xrefs.Count > 0 ? RepoFactory.AnimeSeries.GetByAnimeID(xrefs[0].AnimeID) : null;
+                return series == null || User.AllowedSeries(series);
+            })
+            .DistinctBy(file => file.VideoLocalID);
+
+        if (limit <= 0)
+            return results
+                .Select(a => new File(HttpContext, a, true, includeDataFrom))
+                .ToList();
+
+        return results
+            .Take(limit)
+            .Select(a => new File(HttpContext, a, true, includeDataFrom))
+            .ToList();
     }
 
     /// <summary>
