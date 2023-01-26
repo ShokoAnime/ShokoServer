@@ -230,15 +230,19 @@ public class ActionController : BaseController
     {
         try
         {
-            var allAnime = RepoFactory.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
+            // Check existing anime.
+            int index = 0;
+            var queuedCount = 0;
+            var allAnime = RepoFactory.AniDB_Anime.GetAll()
+                .Select(a => a.AnimeID)
+                .OrderBy(a => a)
+                .ToHashSet();
             _logger.LogInformation("Starting the check for {AllAnimeCount} anime XML files", allAnime.Count);
-            var updatedAnime = 0;
-            for (var i = 0; i < allAnime.Count; i++)
+            foreach (var animeID in allAnime)
             {
-                var animeID = allAnime[i];
-                if (i % 10 == 1)
+                if (++index % 10 == 1)
                 {
-                    _logger.LogInformation("Checking anime {I}/{AllAnimeCount} for XML file", i + 1, allAnime.Count);
+                    _logger.LogInformation("Checking anime for XML file {I}/{AllAnimeCount}", index + 1, allAnime.Count);
                 }
 
                 var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
@@ -250,10 +254,29 @@ public class ActionController : BaseController
                 }
 
                 Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, true, false, false);
-                updatedAnime++;
+                queuedCount++;
             }
 
-            _logger.LogInformation("Updating {UpdatedAnime} anime", updatedAnime);
+            // Queue missing anime needed by existing files.
+            index = 0;
+            var missingAnime = RepoFactory.VideoLocal.GetVideosWithBrokenCrossReferences()
+                .SelectMany(file => file.EpisodeCrossRefs.Select(xRef => xRef.AnimeID))
+                .Distinct()
+                .Where(id => !allAnime.Contains(id))
+                .ToHashSet();
+            _logger.LogInformation("Queueing {MissingAnimeCount} anime XML files", missingAnime.Count);
+            foreach (var animeID in missingAnime)
+            {
+                if (++index % 10 == 1)
+                {
+                    _logger.LogInformation("Queuing missing anime {I}/{MissingAnimeCount}", index + 1, missingAnime.Count);
+                }
+
+                Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, false, true, true);
+                queuedCount++;
+            }
+
+            _logger.LogInformation("Queued {UpdatedAnime} anime", queuedCount);
         }
         catch (Exception e)
         {
