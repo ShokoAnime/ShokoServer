@@ -973,10 +973,10 @@ public class FileController : BaseController
     /// <param name="page">Page number.</param>
     /// <param name="includeXRefs">Set to false to exclude series and episode cross-references.</param>
     /// <returns></returns>
-    [HttpGet("BrokenCrossReferences")]
-    public ActionResult<ListResult<File>> GetFilesWithBrokenCrossReferences([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
+    [HttpGet("MissingCrossReferenceData")]
+    public ActionResult<ListResult<File>> GetFilesWithMissingCrossReferenceData([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
     {
-        return RepoFactory.VideoLocal.GetVideosWithBrokenCrossReferences()
+        return RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData()
             .ToListResult(
                 file => new File(HttpContext, file)
                 {

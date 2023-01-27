@@ -524,7 +524,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         );
     }
 
-    public List<SVR_VideoLocal> GetVideosWithBrokenCrossReferences()
+    public List<SVR_VideoLocal> GetVideosWithMissingCrossReferenceData()
     {
         return ReadLock(
             () => Cache.Values

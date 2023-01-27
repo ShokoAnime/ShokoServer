@@ -259,7 +259,7 @@ public class ActionController : BaseController
 
             // Queue missing anime needed by existing files.
             index = 0;
-            var missingAnime = RepoFactory.VideoLocal.GetVideosWithBrokenCrossReferences()
+            var missingAnime = RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData()
                 .SelectMany(file => file.EpisodeCrossRefs.Select(xRef => xRef.AnimeID))
                 .Distinct()
                 .Where(id => !allAnime.Contains(id))
