@@ -967,7 +967,7 @@ public class FileController : BaseController
     }
 
     /// <summary>
-    /// Get all files with broken cross-references.
+    /// Get all files with missing cross-references data.
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
