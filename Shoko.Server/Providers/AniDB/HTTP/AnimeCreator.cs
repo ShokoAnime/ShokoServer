@@ -652,6 +652,7 @@ public class AnimeCreator
                 var roleType = rawStaff.CreatorType switch
                 {
                     "Animation Work" => StaffRoleType.Studio,
+                    "Work" => StaffRoleType.Studio,
                     "Original Work" => StaffRoleType.SourceWork,
                     "Music" => StaffRoleType.Music,
                     "Character Design" => StaffRoleType.CharacterDesign,
