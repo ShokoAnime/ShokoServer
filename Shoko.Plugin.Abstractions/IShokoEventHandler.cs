@@ -30,6 +30,14 @@ namespace Shoko.Plugin.Abstractions
         /// </summary>
         event EventHandler<FileMatchedEventArgs> FileMatched;
         /// <summary>
+        /// Fired when a file is renamed
+        /// </summary>
+        event EventHandler<FileRenamedEventArgs> FileRenamed;
+        /// <summary>
+        /// Fired when a file is moved
+        /// </summary>
+        event EventHandler<FileMovedEventArgs> FileMoved;
+        /// <summary>
         /// Fired when an AniDB Ban happens...and it will.
         /// </summary>
         event EventHandler<AniDBBannedEventArgs> AniDBBanned;

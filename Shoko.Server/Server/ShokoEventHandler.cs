@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -17,6 +16,8 @@ public class ShokoEventHandler : IShokoEventHandler
     public event EventHandler<FileHashedEventArgs> FileHashed;
     public event EventHandler<FileNotMatchedEventArgs> FileNotMatched;
     public event EventHandler<FileMatchedEventArgs> FileMatched;
+    public event EventHandler<FileRenamedEventArgs> FileRenamed;
+    public event EventHandler<FileMovedEventArgs> FileMoved;
     public event EventHandler<AniDBBannedEventArgs> AniDBBanned;
     public event EventHandler<SeriesInfoUpdatedEventArgs> SeriesUpdated;
     public event EventHandler<EpisodeInfoUpdatedEventArgs> EpisodeUpdated;
@@ -104,6 +105,18 @@ public class ShokoEventHandler : IShokoEventHandler
                 IsUDPBanned = isUDPBanned,
             }
         );
+    }
+
+    public void OnFileMoved(SVR_ImportFolder oldFolder, SVR_ImportFolder newFolder, string oldPath, string newPath, SVR_VideoLocal_Place vlp)
+    {
+        FileMoved?.Invoke(null,
+            new FileMovedEventArgs { FileInfo = vlp, NewImportFolder = newFolder, OldImportFolder = oldFolder, NewRelativePath = newPath, OldRelativePath = oldPath});
+    }
+
+    public void OnFileRenamed(SVR_ImportFolder folder, string oldName, string newName, SVR_VideoLocal_Place vlp)
+    {
+        FileRenamed?.Invoke(null,
+            new FileRenamedEventArgs { FileInfo = vlp, ImportFolder = folder, OldFileName = oldName, NewFileName = newName, RelativePath = vlp.FilePath});
     }
 
     public void OnAniDBBanned(AniDBBanType type, DateTime time, DateTime resumeTime)

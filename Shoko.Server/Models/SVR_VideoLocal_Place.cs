@@ -197,6 +197,8 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             // just in case
             VideoLocal.FileName = renamed;
             RepoFactory.VideoLocal.Save(VideoLocal, false);
+            
+            ShokoEventHandler.Instance.OnFileRenamed(ImportFolder, Path.GetFileName(fullFileName), renamed, this);
         }
         catch (Exception ex)
         {
@@ -787,6 +789,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
         // Save for later. Scan for subtitles while the vlplace is still set for the source location
         var originalFileName = FullServerPath;
+        var oldPath = FilePath;
 
         MoveDuplicateFiles(newFilePath, destFolder);
 
@@ -803,6 +806,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
         }
 
+        ShokoEventHandler.Instance.OnFileMoved(dropFolder, destFolder, oldPath, newFilePath, this);
         Utils.ShokoServer.RemoveFileWatcherExclusion(newFullServerPath);
         return (newFolderPath, string.Empty);
     }
@@ -899,6 +903,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             }
 
             var originalFileName = FullServerPath;
+            var oldPath = FilePath;
 
             if (File.Exists(newFullServerPath))
             {
@@ -1030,6 +1035,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             }
 
             MoveExternalSubtitles(newFullServerPath, originalFileName);
+            ShokoEventHandler.Instance.OnFileMoved(dropFolder, destFolder, oldPath, newFilePath, this);
         }
         catch (Exception ex)
         {
