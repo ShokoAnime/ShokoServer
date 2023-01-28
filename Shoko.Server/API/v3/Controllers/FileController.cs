@@ -55,7 +55,7 @@ public class FileController : BaseController
     /// <returns></returns>
     [HttpGet("{fileID}")]
     public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -141,7 +141,7 @@ public class FileController : BaseController
     /// <returns></returns>
     [HttpGet("AniDB/{anidbFileID}/File")]
     public ActionResult<File> GetFileByAnidbFileID([FromRoute] int anidbFileID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
         if (anidb == null)
@@ -769,7 +769,7 @@ public class FileController : BaseController
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [HttpGet("PathEndsWith")]
     public ActionResult<List<File>> PathEndsWithQuery([FromRoute, FromQuery] string path, [FromQuery] bool includeXRefs = true,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [Range(0, 100)] int limit = 0)
         => PathEndsWithInternal(path, includeXRefs, includeDataFrom, limit);
 
@@ -785,7 +785,7 @@ public class FileController : BaseController
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [HttpGet("PathEndsWith/{path}")]
     public ActionResult<List<File>> PathEndsWithPath([FromRoute] string path, [FromQuery] bool includeXRefs = true,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [Range(0, 100)] int limit = 0)
         => PathEndsWithInternal(Uri.UnescapeDataString(path), includeXRefs, includeDataFrom, limit);
 

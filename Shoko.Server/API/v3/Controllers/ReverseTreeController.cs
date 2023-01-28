@@ -141,7 +141,7 @@ public class ReverseTreeController : BaseController
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/Series")]
     public ActionResult<Series> GetSeriesFromEpisode([FromRoute] int episodeID, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -171,7 +171,7 @@ public class ReverseTreeController : BaseController
     /// <returns></returns>
     [HttpGet("File/{fileID}/Episode")]
     public ActionResult<List<Episode>> GetEpisodeFromFile([FromRoute] int fileID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)

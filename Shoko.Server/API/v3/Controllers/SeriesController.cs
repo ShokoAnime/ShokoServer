@@ -104,7 +104,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("{seriesID}")]
     public ActionResult<Series> GetSeries([FromRoute] int seriesID, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -621,7 +621,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}/Series")]
     public ActionResult<Series> GetSeriesByAnidbID([FromRoute] int anidbID, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByAnimeID(anidbID);
         if (series == null)

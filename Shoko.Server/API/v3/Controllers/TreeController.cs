@@ -348,7 +348,7 @@ public class TreeController : BaseController
     [HttpGet("Filter/{filterID}/Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetSeriesInFilteredGroup([FromRoute] int filterID, [FromRoute] int groupID,
         [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false,
-        [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Return the groups with no group filter applied.
         if (filterID == 0)
@@ -460,7 +460,7 @@ public class TreeController : BaseController
     [HttpGet("Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetSeriesInGroup([FromRoute] int groupID, [FromQuery] bool recursive = false,
         [FromQuery] bool includeMissing = false, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -492,7 +492,7 @@ public class TreeController : BaseController
     /// <returns></returns>
     [HttpGet("Group/{groupID}/MainSeries")]
     public ActionResult<Series> GetMainSeriesInGroup([FromRoute] int groupID, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -533,7 +533,7 @@ public class TreeController : BaseController
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/Episode")]
     public ActionResult<List<Episode>> GetEpisodes([FromRoute] int seriesID, [FromQuery] bool includeMissing = false,
-        [FromQuery] bool includeHidden = false, [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery] bool includeHidden = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -571,7 +571,7 @@ public class TreeController : BaseController
     public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID,
         [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true,
         [FromQuery] bool includeMissing = true, [FromQuery] bool includeHidden = false,
-        [FromQuery] bool includeRewatching = false, [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery] bool includeRewatching = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var user = User;
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -612,7 +612,7 @@ public class TreeController : BaseController
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/File")]
     public ActionResult<List<File>> GetFilesForSeries([FromRoute] int seriesID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool? isManuallyLinked = null)
     {
         var user = User;
@@ -647,7 +647,7 @@ public class TreeController : BaseController
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/File")]
     public ActionResult<List<File>> GetFilesForEpisode([FromRoute] int episodeID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool? isManuallyLinked = null)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);

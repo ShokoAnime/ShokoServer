@@ -40,7 +40,7 @@ public class EpisodeController : BaseController
     /// <returns></returns>
     [HttpGet("{episodeID}")]
     public ActionResult<Episode> GetEpisodeByEpisodeID([FromRoute] int episodeID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -120,7 +120,7 @@ public class EpisodeController : BaseController
     /// <returns></returns>
     [HttpGet("AniDB/{anidbEpisodeID}/Episode")]
     public ActionResult<Episode> GetEpisode([FromRoute] int anidbEpisodeID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedHashSetModelBinder<DataSource>))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var anidb = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID);
         if (anidb == null)
