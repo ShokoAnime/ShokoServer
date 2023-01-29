@@ -768,7 +768,7 @@ public class FileController : BaseController
     /// <param name="limit">Limit the number of returned results.</param>
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [HttpGet("PathEndsWith")]
-    public ActionResult<List<File>> PathEndsWithQuery([FromRoute, FromQuery] string path, [FromQuery] bool includeXRefs = true,
+    public ActionResult<List<File>> PathEndsWithQuery([FromQuery] string path, [FromQuery] bool includeXRefs = true,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [Range(0, 100)] int limit = 0)
         => PathEndsWithInternal(path, includeXRefs, includeDataFrom, limit);
