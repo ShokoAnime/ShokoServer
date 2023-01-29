@@ -293,7 +293,7 @@ public class FileController : BaseController
         }
 
         if (watched.HasValue)
-            file.ToggleWatchedStatus(watched.HasValue, User.JMMUserID);
+            file.ToggleWatchedStatus(watched.Value, User.JMMUserID);
         file.SetResumePosition(playbackPositionTicks, User.JMMUserID);
 
         return NoContent();
