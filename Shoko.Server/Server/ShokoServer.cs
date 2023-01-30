@@ -22,6 +22,7 @@ using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
@@ -184,12 +185,7 @@ public class ShokoServer
             }
         }
 
-        // RenameFileHelper.InitialiseRenamers();
-        // var services = new ServiceCollection();
-        // ConfigureServices(services);
-        // Plugin.Loader.Instance.Load(services);
-        // Utils.ServiceContainer = services.BuildServiceProvider();
-        // Plugin.Loader.Instance.InitPlugins(Utils.ServiceContainer);
+        Loader.InitPlugins(Utils.ServiceContainer);
 
         _settingsProvider.DebugSettingsToLog();
 
