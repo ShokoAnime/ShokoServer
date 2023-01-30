@@ -131,11 +131,11 @@ public class ShokoServer
             // Get the release and extra info from the assembly.
             var extraInfo = Utils.GetApplicationExtraVersion();
 
-            // Only initialize the SDK if we're not on a local build.
+            // Only initialize the SDK if we're not on a debug build.
             //
-            // If the release channel is not set or if it's set to "local" then
-            // it's considered to be a local build.
-            if (extraInfo.TryGetValue("channel", out var environment) && environment != "local")
+            // If the release channel is not set or if it's set to "debug" then
+            // it's considered to be a debug build.
+            if (extraInfo.TryGetValue("channel", out var environment) && environment != "debug")
                 _sentry = SentrySdk.Init(opts =>
                 {
                     // Assign the DSN key and release version.
