@@ -47,7 +47,7 @@ public static class Loader
                     continue;
                 }
 
-                s_logger.Debug($"Trying to load {dll}");
+                s_logger.Info($"Trying to load {dll}");
                 assemblies.Add(Assembly.LoadFrom(dll));
                 // TryAdd, because if it made it this far, then it's missing or true.
                 settings.Plugins.EnabledPlugins.TryAdd(name, true);
