@@ -52,6 +52,7 @@ public static class Loader
                 // TryAdd, because if it made it this far, then it's missing or true.
                 settings.Plugins.EnabledPlugins.TryAdd(name, true);
                 if (!settings.Plugins.Priority.Contains(name)) settings.Plugins.Priority.Add(name);
+                Utils.SettingsProvider.SaveSettings();
             }
             catch (FileLoadException)
             {
