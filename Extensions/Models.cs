@@ -167,14 +167,6 @@ namespace Shoko.Commons.Extensions
             return anime?.AniDBAnime?.IsInSeason(season, year) ?? false;
         }
 
-        public static bool IsTvDBLinkDisabled(this AniDB_Anime anime) => (anime.DisableExternalLinksFlag & Shoko.Models.Constants.LinkFlags.FlagLinkTvDB) > 0;
-
-        public static bool IsTraktLinkDisabled(this AniDB_Anime anime) => (anime.DisableExternalLinksFlag & Shoko.Models.Constants.LinkFlags.FlagLinkTrakt) > 0;
-
-        public static bool IsMALLinkDisabled(this AniDB_Anime anime) => (anime.DisableExternalLinksFlag & Shoko.Models.Constants.LinkFlags.FlagLinkMAL) > 0;
-
-        public static bool IsMovieDBLinkDisabled(this AniDB_Anime anime) => (anime.DisableExternalLinksFlag & Shoko.Models.Constants.LinkFlags.FlagLinkMovieDB) > 0;
-
         public static int GetAirDateAsSeconds(this AniDB_Anime anime) => AniDB.GetAniDBDateAsSeconds(anime.AirDate);
 
         public static string GetAirDateFormatted(this AniDB_Anime anime) => AniDB.GetAniDBDate(anime.GetAirDateAsSeconds());
