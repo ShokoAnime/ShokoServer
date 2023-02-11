@@ -300,23 +300,22 @@ public class Series : BaseModel
     /// </summary>
     /// <param name="ctx"></param>
     /// <param name="animeID"></param>
-    /// <param name="roleType"></param>
+    /// <param name="roleTypes"></param>
     /// <returns></returns>
-    public static List<Role> GetCast(HttpContext ctx, int animeID, Role.CreatorRoleType? roleType = null)
+    public static List<Role> GetCast(HttpContext ctx, int animeID, HashSet<Role.CreatorRoleType> roleTypes = null)
     {
         var roles = new List<Role>();
-        var xrefAnimeStaff = roleType.HasValue
-            ? RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(animeID,
-                (StaffRoleType)roleType.Value)
-            : RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(animeID);
+        var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(animeID);
         foreach (var xref in xrefAnimeStaff)
         {
+            // Filter out any roles that are not of the desired type.
+            if (roleTypes != null && !roleTypes.Contains((Role.CreatorRoleType)xref.RoleType))
+                continue;
+
             var character = xref.RoleID.HasValue ? RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value) : null;
             var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
             if (staff == null)
-            {
                 continue;
-            }
 
             var role = new Role
             {

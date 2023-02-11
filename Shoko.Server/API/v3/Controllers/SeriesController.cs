@@ -1312,7 +1312,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("{seriesID}/Cast")]
     public ActionResult<List<Role>> GetSeriesCast([FromRoute] int seriesID,
-        [FromQuery] Role.CreatorRoleType? roleType = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Role.CreatorRoleType> roleType = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
