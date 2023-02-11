@@ -54,8 +54,6 @@ namespace Shoko.Models.Client
             AnimeNfo = obj.AnimeNfo;
             AnisonID = obj.AnisonID;
             SyoboiID = obj.SyoboiID;
-            Site_JP = obj.Site_JP;
-            Site_EN = obj.Site_EN;
             Wikipedia_ID = obj.Wikipedia_ID;
             WikipediaJP_ID = obj.WikipediaJP_ID;
             CrunchyrollID = obj.CrunchyrollID;
