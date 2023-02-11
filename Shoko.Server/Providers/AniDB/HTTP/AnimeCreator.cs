@@ -763,12 +763,18 @@ public class AnimeCreator
                     }
                 case AniDB_ResourceLinkType.Site_JP:
                     {
-                        anime.Site_JP = resource.ResourceID;
+                        if (string.IsNullOrEmpty(anime.Site_JP))
+                            anime.Site_JP = resource.ResourceID;
+                        else
+                            anime.Site_JP += "|" + resource.ResourceID;
                         break;
                     }
                 case AniDB_ResourceLinkType.Site_EN:
                     {
-                        anime.Site_EN = resource.ResourceID;
+                        if (string.IsNullOrEmpty(anime.Site_EN))
+                            anime.Site_EN = resource.ResourceID;
+                        else
+                            anime.Site_EN += "|" + resource.ResourceID;
                         break;
                     }
                 case AniDB_ResourceLinkType.Wiki_EN:
