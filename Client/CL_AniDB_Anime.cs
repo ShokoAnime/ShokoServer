@@ -7,6 +7,7 @@ namespace Shoko.Models.Client
 {
     public class CL_AniDB_Anime : AniDB_Anime, ICloneable
     {
+        public int DisableExternalLinksFlag { get; set; }
         public CL_AniDB_Anime_DefaultImage DefaultImagePoster { get; set; }
         public CL_AniDB_Anime_DefaultImage DefaultImageFanart { get; set; }
         public CL_AniDB_Anime_DefaultImage DefaultImageWideBanner { get; set; }
@@ -59,7 +60,7 @@ namespace Shoko.Models.Client
             WikipediaJP_ID = obj.WikipediaJP_ID;
             CrunchyrollID = obj.CrunchyrollID;
             LatestEpisodeNumber = obj.LatestEpisodeNumber;
-            DisableExternalLinksFlag = obj.DisableExternalLinksFlag;
+            DisableExternalLinksFlag = 0;
         }
 
         public new object Clone()

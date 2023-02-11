@@ -45,7 +45,6 @@ namespace Shoko.Models.Server
         public string WikipediaJP_ID { get; set; }
         public string CrunchyrollID { get; set; }
         public int? LatestEpisodeNumber { get; set; }
-        public int DisableExternalLinksFlag { get; set; }
 
         #endregion
 
@@ -91,7 +90,6 @@ namespace Shoko.Models.Server
                 WikipediaJP_ID = WikipediaJP_ID,
                 CrunchyrollID = CrunchyrollID,
                 LatestEpisodeNumber = LatestEpisodeNumber,
-                DisableExternalLinksFlag = DisableExternalLinksFlag
             };
         }
     }
