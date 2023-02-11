@@ -22,11 +22,16 @@ public class AniDB_AnimeMap : ClassMap<SVR_AniDB_Anime>
         Map(x => x.ANNID);
         Map(x => x.AnisonID);
         Map(x => x.SyoboiID);
+        Map(x => x.VNDBID);
+        Map(x => x.BangumiID);
+        Map(x => x.LianID);
         Map(x => x.Site_EN);
         Map(x => x.Site_JP);
         Map(x => x.Wikipedia_ID);
         Map(x => x.WikipediaJP_ID);
         Map(x => x.CrunchyrollID);
+        Map(x => x.FunimationID);
+        Map(x => x.HiDiveID);
         Map(x => x.AvgReviewRating).Not.Nullable();
         Map(x => x.BeginYear).Not.Nullable();
         Map(x => x.DateTimeDescUpdated).Not.Nullable();

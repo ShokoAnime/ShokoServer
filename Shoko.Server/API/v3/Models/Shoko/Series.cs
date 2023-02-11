@@ -92,8 +92,9 @@ public class Series : BaseModel
     public Series(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false, HashSet<DataSourceType> includeDataFrom = null)
     {
         var uid = ctx.GetUser()?.JMMUserID ?? 0;
+        var anime = ser.GetAnime();
 
-        AddBasicAniDBInfo(ctx, ser);
+        AddBasicAniDBInfo(ctx, ser, anime);
 
         var ael = ser.GetAnimeEpisodes();
         var contract = ser.Contract;
@@ -114,18 +115,62 @@ public class Series : BaseModel
         Updated = ser.DateTimeUpdated;
 
         if (includeDataFrom?.Contains(DataSourceType.AniDB) ?? false)
-            this._AniDB = new Series.AniDBWithDate(ctx, ser.GetAnime(), ser);
+            this._AniDB = new Series.AniDBWithDate(ctx, anime, ser);
         if (includeDataFrom?.Contains(DataSourceType.TvDB) ?? false)
             this._TvDB = GetTvDBInfo(ctx, ser);
     }
 
-    private void AddBasicAniDBInfo(HttpContext ctx, SVR_AnimeSeries ser)
+    private void AddBasicAniDBInfo(HttpContext ctx, SVR_AnimeSeries series, SVR_AniDB_Anime anime)
     {
-        var anime = ser.GetAnime();
         if (anime == null)
         {
             return;
         }
+
+        Links = new();
+        if (!string.IsNullOrEmpty(anime.Site_EN))
+            foreach (var site in anime.Site_EN.Split('|'))
+                Links.Add(new() { Type = "source", Name = "Official Site (EN)", URL = site });
+
+        if (!string.IsNullOrEmpty(anime.Site_JP))
+            foreach (var site in anime.Site_JP.Split('|'))
+                Links.Add(new() { Type = "source", Name = "Official Site (JP)", URL = site });
+
+        if (!string.IsNullOrEmpty(anime.Wikipedia_ID))
+            Links.Add(new() { Type = "wiki", Name = "Wikipedia (EN)", URL = $"https://en.wikipedia.org/{anime.Wikipedia_ID}" });
+
+        if (!string.IsNullOrEmpty(anime.WikipediaJP_ID))
+            Links.Add(new() { Type = "wiki", Name = "Wikipedia (JP)", URL = $"https://en.wikipedia.org/{anime.WikipediaJP_ID}" });
+
+        if (!string.IsNullOrEmpty(anime.CrunchyrollID))
+            Links.Add(new() { Type = "streaming", Name = "Crunchyroll", URL = $"https://crunchyroll.com/anime/{anime.CrunchyrollID}" });
+
+        if (!string.IsNullOrEmpty(anime.FunimationID))
+            Links.Add(new() { Type = "streaming", Name = "Funimation", URL = anime.FunimationID });
+
+        if (!string.IsNullOrEmpty(anime.HiDiveID))
+            Links.Add(new() { Type = "streaming", Name = "HiDive", URL = $"https://www.hidive.com/{anime.HiDiveID}" });
+
+        if (anime.AllCinemaID.HasValue && anime.AllCinemaID.Value > 0)
+            Links.Add(new() { Type = "foreign-metadata", Name = "allcinema", URL = $"https://allcinema.net/cinema/{anime.AllCinemaID.Value}" });
+
+        if (anime.AnisonID.HasValue && anime.AnisonID.Value > 0)
+            Links.Add(new() { Type = "foreign-metadata", Name = "Anison", URL = $"https://anison.info/data/program/{anime.AnisonID.Value}.html" });
+
+        if (anime.SyoboiID.HasValue && anime.SyoboiID.Value > 0)
+            Links.Add(new() { Type = "foreign-metadata", Name = "syoboi", URL = $"https://cal.syoboi.jp/tid/{anime.SyoboiID.Value}/time" });
+
+        if (anime.BangumiID.HasValue && anime.BangumiID.Value > 0)
+            Links.Add(new() { Type = "foreign-metadata", Name = "bangumi", URL = $"https://bgm.tv/subject/{anime.BangumiID.Value}" });
+
+        if (anime.LianID.HasValue && anime.LianID.Value > 0)
+            Links.Add(new() { Type = "foreign-metadata", Name = ".liam", URL = $"http://lain.gr.jp/mediadb/media/{anime.LianID.Value}" });
+
+        if (anime.ANNID.HasValue && anime.ANNID.Value > 0)
+            Links.Add(new() { Type = "english-metadata", Name = "AnimeNewsNetwork", URL = $"https://www.animenewsnetwork.com/encyclopedia/anime.php?id={anime.ANNID.Value}" });
+
+        if (anime.VNDBID.HasValue && anime.VNDBID.Value > 0)
+            Links.Add(new() { Type = "english-metadata", Name = "VNDB", URL = $"https://vndb.org/v{anime.VNDBID.Value}" });
 
         var vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime) ??
                    RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp);
@@ -1071,21 +1116,22 @@ public class Series : BaseModel
     public class Resource
     {
         /// <summary>
+        /// Resource type.
+        /// </summary>
+        [Required]
+        public string Type { get; set; }
+
+        /// <summary>
         /// site name
         /// </summary>
         [Required]
-        public string name { get; set; }
+        public string Name { get; set; }
 
         /// <summary>
         /// the url to the series page
         /// </summary>
         [Required]
-        public string url { get; set; }
-
-        /// <summary>
-        /// favicon or something. A logo
-        /// </summary>
-        public Image image { get; set; }
+        public string URL { get; set; }
     }
 }
 

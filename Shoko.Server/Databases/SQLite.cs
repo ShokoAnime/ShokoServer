@@ -638,6 +638,11 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
         new(96, 3, DatabaseFixes.MigrateAniDB_FileUpdates),
         new(97, 1, "ALTER TABLE AniDB_Anime DROP COLUMN DisableExternalLinksFlag;"),
         new(97, 2, "ALTER TABLE AnimeSeries ADD DisableAutoMatchFlags integer NOT NULL DEFAULT 0;"),
+        new(97, 3, "ALTER TABLE AniDB_Anime ADD VNDBID INT NULL"),
+        new(97, 4, "ALTER TABLE AniDB_Anime ADD BangumiID INT NULL"),
+        new(97, 5, "ALTER TABLE AniDB_Anime ADD LianID INT NULL"),
+        new(97, 6, "ALTER TABLE AniDB_Anime ADD FunimationID TEXT NULL"),
+        new(97, 7, "ALTER TABLE AniDB_Anime ADD HiDiveID TEXT NULL"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

@@ -761,6 +761,51 @@ public class AnimeCreator
                         anime.AnimeNfo = id;
                         break;
                     }
+                case AniDB_ResourceLinkType.VNDB:
+                    {
+                        if (!int.TryParse(resource.ResourceID, out id))
+                        {
+                            break;
+                        }
+
+                        if (id == 0)
+                        {
+                            break;
+                        }
+
+                        anime.VNDBID = id;
+                        break;
+                    }
+                case AniDB_ResourceLinkType.Bangumi:
+                    {
+                        if (!int.TryParse(resource.ResourceID, out id))
+                        {
+                            break;
+                        }
+
+                        if (id == 0)
+                        {
+                            break;
+                        }
+
+                        anime.BangumiID = id;
+                        break;
+                    }
+                case AniDB_ResourceLinkType.DotLian:
+                    {
+                        if (!int.TryParse(resource.ResourceID, out id))
+                        {
+                            break;
+                        }
+
+                        if (id == 0)
+                        {
+                            break;
+                        }
+
+                        anime.LianID = id;
+                        break;
+                    }
                 case AniDB_ResourceLinkType.Site_JP:
                     {
                         if (string.IsNullOrEmpty(anime.Site_JP))
@@ -830,6 +875,16 @@ public class AnimeCreator
                 case AniDB_ResourceLinkType.Crunchyroll:
                     {
                         anime.CrunchyrollID = resource.ResourceID;
+                        break;
+                    }
+                case AniDB_ResourceLinkType.Funimation:
+                    {
+                        anime.FunimationID = resource.ResourceID;
+                        break;
+                    }
+                case AniDB_ResourceLinkType.HiDive:
+                    {
+                        anime.HiDiveID = resource.ResourceID;
                         break;
                     }
                 case AniDB_ResourceLinkType.MAL:
