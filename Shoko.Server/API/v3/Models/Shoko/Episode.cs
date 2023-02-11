@@ -59,14 +59,14 @@ public class Episode : BaseModel
     public bool IsHidden { get; set; }
 
     /// <summary>
-    /// The <see cref="Episode.AniDB"/>, if <see cref="DataSource.AniDB"/> is
+    /// The <see cref="Episode.AniDB"/>, if <see cref="DataSourceType.AniDB"/> is
     /// included in the data to add.
     /// </summary>
     [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
     public AniDB _AniDB { get; set; }
 
     /// <summary>
-    /// The <see cref="Episode.TvDB"/> entries, if <see cref="DataSource.TvDB"/>
+    /// The <see cref="Episode.TvDB"/> entries, if <see cref="DataSourceType.TvDB"/>
     /// is included in the data to add.
     /// </summary>
     [JsonProperty("TvDB", NullValueHandling = NullValueHandling.Ignore)]
@@ -74,7 +74,7 @@ public class Episode : BaseModel
 
     public Episode() { }
 
-    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource> includeDataFrom = null)
+    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSourceType> includeDataFrom = null)
     {
         var userID = context.GetUser()?.JMMUserID ?? 0;
         var episodeUserRecord = episode.GetUserRecord(userID);
@@ -99,9 +99,9 @@ public class Episode : BaseModel
         Name = GetEpisodeTitle(episode.AniDB_EpisodeID);
         Size = files.Count;
 
-        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
+        if (includeDataFrom?.Contains(DataSourceType.AniDB) ?? false)
             this._AniDB = new Episode.AniDB(anidbEpisode);
-        if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
+        if (includeDataFrom?.Contains(DataSourceType.TvDB) ?? false)
             this._TvDB = tvdbEpisodes.Select(tvdbEpisode => new TvDB(tvdbEpisode));
     }
 

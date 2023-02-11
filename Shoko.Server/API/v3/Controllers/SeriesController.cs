@@ -8,6 +8,7 @@ using System.Web;
 using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -100,11 +101,11 @@ public class SeriesController : BaseController
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
     /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}")]
     public ActionResult<Series> GetSeries([FromRoute] int seriesID, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -139,6 +140,74 @@ public class SeriesController : BaseController
         series.DeleteSeries(deleteFiles, true);
 
         return Ok();
+    }
+
+    /// <summary>
+    /// Get the auto-matching settings for the series.
+    /// </summary>
+    /// <param name="seriesID"></param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("{seriesID}/AutoMatchSettings")]
+    public ActionResult<Series.AutoMatchSettings> GetAutoMatchSettingsBySeriesID([FromRoute] int seriesID)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        return new Series.AutoMatchSettings(series);
+    }
+
+    /// <summary>
+    /// Patch the auto-matching settings in the v3 model and merge it back into
+    /// the database model.
+    /// </summary>
+    /// <param name="seriesID"></param>
+    /// <param name="patchDocument"></param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPatch("{seriesID}/AutoMatchSettings")]
+    public ActionResult<Series.AutoMatchSettings> PatchAutoMatchSettingsBySeriesID([FromRoute] int seriesID, [FromBody] JsonPatchDocument<Series.AutoMatchSettings> patchDocument)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        // Patch the settings in the v3 model and merge it back into the database
+        // model.
+        var autoMatchSettings = new Series.AutoMatchSettings(series);
+        patchDocument.ApplyTo(autoMatchSettings, ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        return autoMatchSettings.MergeWithExisting(series);
+    }
+
+    /// <summary>
+    /// Replace the auto-matching settings with the representation sent from the
+    /// client.
+    /// </summary>
+    /// <param name="seriesID"></param>
+    /// <param name="autoMatchSettings"></param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPut("{seriesID}/AutoMatchSettings")]
+    public ActionResult<Series.AutoMatchSettings> PutAutoMatchSettingsBySeriesID([FromRoute] int seriesID, [FromBody] Series.AutoMatchSettings autoMatchSettings)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        return autoMatchSettings.MergeWithExisting(series);
     }
 
     /// <summary>
@@ -617,11 +686,11 @@ public class SeriesController : BaseController
     /// </summary>
     /// <param name="anidbID">AniDB ID</param>
     /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}/Series")]
     public ActionResult<Series> GetSeriesByAnidbID([FromRoute] int anidbID, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByAnimeID(anidbID);
         if (series == null)

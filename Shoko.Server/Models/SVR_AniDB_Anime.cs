@@ -659,7 +659,6 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
     public SVR_AniDB_Anime()
     {
-        DisableExternalLinksFlag = 0;
     }
 
     #region Init and Populate
@@ -692,7 +691,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         if (Restricted == 0)
         {
             var settings = Utils.SettingsProvider.GetSettings();
-            if (settings.TvDB.AutoLink)
+            if (settings.TvDB.AutoLink && !series.IsTvDBAutoMatchingDisabled)
             {
                 var cmd = commandFactory.Create<CommandRequest_TvDBSearchAnime>(c => c.AnimeID = AnimeID);
                 cmd.Save();
@@ -700,13 +699,14 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
             // check for Trakt associations
             if (settings.TraktTv.Enabled &&
-                !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
+                !string.IsNullOrEmpty(settings.TraktTv.AuthToken) &&
+                !series.IsTraktAutoMatchingDisabled)
             {
                 var cmd = commandFactory.Create<CommandRequest_TraktSearchAnime>(c => c.AnimeID = AnimeID);
                 cmd.Save();
             }
 
-            if (AnimeType == (int)Shoko.Models.Enums.AnimeType.Movie)
+            if (AnimeType == (int)Shoko.Models.Enums.AnimeType.Movie && !series.IsTMDBAutoMatchingDisabled)
             {
                 var cmd = commandFactory.Create<CommandRequest_MovieDBSearchAnime>(c => c.AnimeID = AnimeID);
                 cmd.Save();

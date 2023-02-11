@@ -517,22 +517,14 @@ public class TraktTVHelper
 
         foreach (var ser in allSeries)
         {
-            if (alreadyLinked.Contains(ser.AniDB_ID))
-            {
+            if (ser.IsTraktAutoMatchingDisabled || alreadyLinked.Contains(ser.AniDB_ID))
                 continue;
-            }
 
             var anime = ser.GetAnime();
-
-            if (anime != null)
-            {
-                _logger.LogTrace("Found anime without Trakt association: {MaintTitle}", anime.MainTitle);
-            }
-
-            if (anime.IsTraktLinkDisabled())
-            {
+            if (anime == null)
                 continue;
-            }
+
+            _logger.LogTrace("Found anime without Trakt association: {MaintTitle}", anime.MainTitle);
 
             var cmd = _commandFactory.Create<CommandRequest_TraktSearchAnime>(c => c.AnimeID = ser.AniDB_ID);
             cmd.Save();

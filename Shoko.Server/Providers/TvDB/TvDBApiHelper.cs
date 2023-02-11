@@ -235,7 +235,10 @@ public class TvDBApiHelper
         );
 
         var settings = _settingsProvider.GetSettings();
-        if (settings.TraktTv.Enabled && !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+        if (settings.TraktTv.Enabled &&
+            !string.IsNullOrEmpty(settings.TraktTv.AuthToken) &&
+            !series.IsTraktAutoMatchingDisabled)
         {
             // check for Trakt associations
             var trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
@@ -989,6 +992,15 @@ public class TvDBApiHelper
 
         foreach (var ser in allSeries)
         {
+            if (ser.IsTvDBAutoMatchingDisabled)
+                continue;
+
+            var anime = ser.GetAnime();
+            if (anime == null)
+                continue;
+
+            _logger.LogTrace("Found anime without TvDB association: {MaintTitle}", anime.MainTitle);
+
             var cmd = _commandFactory.Create<CommandRequest_TvDBSearchAnime>(c => c.AnimeID = ser.AniDB_ID);
             cmd.Save();
         }

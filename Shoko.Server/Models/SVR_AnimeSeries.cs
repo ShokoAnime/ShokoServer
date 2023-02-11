@@ -35,6 +35,117 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public DateTime UpdatedAt { get; set; }
 
+    public DataSourceType DisableAutoMatchFlags { get; set; } = 0;
+
+    #endregion
+
+    #region Disabled Auto Matching
+
+    public bool IsTvDBAutoMatchingDisabled
+    {
+        get
+        {
+            return DisableAutoMatchFlags.HasFlag(DataSourceType.TvDB);
+        }
+        set
+        {
+            if (value)
+                DisableAutoMatchFlags |= DataSourceType.TvDB;
+            else
+                DisableAutoMatchFlags &= ~DataSourceType.TvDB;
+        }
+    }
+
+    public bool IsTMDBAutoMatchingDisabled
+    {
+        get
+        {
+            return DisableAutoMatchFlags.HasFlag(DataSourceType.TMDB);
+        }
+        set
+        {
+            if (value)
+                DisableAutoMatchFlags |= DataSourceType.TMDB;
+            else
+                DisableAutoMatchFlags &= ~DataSourceType.TMDB;
+        }
+    }
+
+    public bool IsTraktAutoMatchingDisabled
+    {
+        get
+        {
+            return DisableAutoMatchFlags.HasFlag(DataSourceType.Trakt);
+        }
+        set
+        {
+            if (value)
+                DisableAutoMatchFlags |= DataSourceType.Trakt;
+            else
+                DisableAutoMatchFlags &= ~DataSourceType.Trakt;
+        }
+    }
+
+    public bool IsMALAutoMatchingDisabled
+    {
+        get
+        {
+            return DisableAutoMatchFlags.HasFlag(DataSourceType.MAL);
+        }
+        set
+        {
+            if (value)
+                DisableAutoMatchFlags |= DataSourceType.MAL;
+            else
+                DisableAutoMatchFlags &= ~DataSourceType.MAL;
+        }
+    }
+
+    public bool IsAniListAutoMatchingDisabled
+    {
+        get
+        {
+            return DisableAutoMatchFlags.HasFlag(DataSourceType.AniList);
+        }
+        set
+        {
+            if (value)
+                DisableAutoMatchFlags |= DataSourceType.AniList;
+            else
+                DisableAutoMatchFlags &= ~DataSourceType.AniList;
+        }
+    }
+
+    public bool IsAnimeshonAutoMatchingDisabled
+    {
+        get
+        {
+            return DisableAutoMatchFlags.HasFlag(DataSourceType.Animeshon);
+        }
+        set
+        {
+            if (value)
+                DisableAutoMatchFlags |= DataSourceType.Animeshon;
+            else
+                DisableAutoMatchFlags &= ~DataSourceType.Animeshon;
+        }
+    }
+
+    public bool IsKitsuAutoMatchingDisabled
+    {
+        get
+        {
+            return DisableAutoMatchFlags.HasFlag(DataSourceType.Kitsu);
+        }
+        set
+        {
+            if (value)
+                DisableAutoMatchFlags |= DataSourceType.Kitsu;
+            else
+                DisableAutoMatchFlags &= ~DataSourceType.Kitsu;
+        }
+    }
+
     #endregion
 
     public const int CONTRACT_VERSION = 9;

@@ -155,7 +155,7 @@ public static class ModelClients
             AllCinemaID = anime.AllCinemaID,
             AnimeNfo = anime.AnimeNfo,
             LatestEpisodeNumber = anime.LatestEpisodeNumber,
-            DisableExternalLinksFlag = anime.DisableExternalLinksFlag
+            DisableExternalLinksFlag = 0
         };
     }
 

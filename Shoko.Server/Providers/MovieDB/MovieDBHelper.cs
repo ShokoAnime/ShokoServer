@@ -281,34 +281,24 @@ public class MovieDBHelper
 
         foreach (var ser in allSeries)
         {
+            if (ser.IsTMDBAutoMatchingDisabled)
+                continue;
+
             var anime = ser.GetAnime();
             if (anime == null)
-            {
                 continue;
-            }
-
-            if (anime.IsMovieDBLinkDisabled())
-            {
-                continue;
-            }
 
             // don't scan if it is associated on the TvDB
             if (anime.GetCrossRefTvDB().Count > 0)
-            {
                 continue;
-            }
 
             // don't scan if it is associated on the MovieDB
             if (anime.GetCrossRefMovieDB() != null)
-            {
                 continue;
-            }
 
             // don't scan if it is not a movie
             if (!anime.GetSearchOnMovieDB())
-            {
                 continue;
-            }
 
             _logger.LogTrace("Found anime movie without MovieDB association: {MainTitle}", anime.MainTitle);
 

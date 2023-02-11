@@ -29,5 +29,6 @@ public class AnimeSeriesMap : ClassMap<SVR_AnimeSeries>
         Map(x => x.ContractSize).Not.Nullable();
         Map(x => x.AirsOn);
         Map(x => x.UpdatedAt).Not.Nullable();
+        Map(x => x.DisableAutoMatchFlags).Not.Nullable();
     }
 }

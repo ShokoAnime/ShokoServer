@@ -6,9 +6,9 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.Converters;
-using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -87,13 +87,13 @@ public class File
     public File() { }
 
     /// <summary>
-    /// The <see cref="File.AniDB"/>, if <see cref="DataSource.AniDB"/> is
+    /// The <see cref="File.AniDB"/>, if <see cref="DataSourceType.AniDB"/> is
     /// included in the data to add.
     /// </summary>
     [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
     public AniDB _AniDB { get; set; }
 
-    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null)
+    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSourceType> includeDataFrom = null)
     {
         var userID = context?.GetUser()?.JMMUserID ?? 0;
         var userRecord = file.GetUserRecord(userID);
@@ -147,7 +147,7 @@ public class File
                 .ToList();
         }
 
-        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
+        if (includeDataFrom?.Contains(DataSourceType.AniDB) ?? false)
         {
             var anidbFile = file.GetAniDBFile();
             if (anidbFile != null)

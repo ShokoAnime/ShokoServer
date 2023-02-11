@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
 {
     public string Name { get; } = "MySQL";
-    public int RequiredVersion { get; } = 110;
+    public int RequiredVersion { get; } = 111;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -720,6 +720,8 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
         new(110, 1, "CREATE TABLE `AniDB_FileUpdate` ( `AniDB_FileUpdateID` INT NOT NULL AUTO_INCREMENT, `FileSize` BIGINT NOT NULL, `Hash` varchar(50) NOT NULL, `HasResponse` BIT NOT NULL, `UpdatedAt` datetime NOT NULL, PRIMARY KEY (`AniDB_FileUpdateID`) );"),
         new(110, 2, "ALTER TABLE `AniDB_FileUpdate` ADD INDEX `IX_AniDB_FileUpdate` (`FileSize` ASC, `Hash` ASC) ;"),
         new(110, 3, DatabaseFixes.MigrateAniDB_FileUpdates),
+        new(111, 1, "ALTER TABLE AniDB_Anime DROP COLUMN DisableExternalLinksFlag;"),
+        new(111, 2, "ALTER TABLE AnimeSeries ADD DisableAutoMatchFlags integer NOT NULL DEFAULT 0;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

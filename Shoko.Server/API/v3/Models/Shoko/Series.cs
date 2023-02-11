@@ -72,14 +72,14 @@ public class Series : BaseModel
     public DateTime Updated { get; set; }
 
     /// <summary>
-    /// The <see cref="Series.AniDB"/>, if <see cref="DataSource.AniDB"/> is
+    /// The <see cref="Series.AniDB"/>, if <see cref="DataSourceType.AniDB"/> is
     /// included in the data to add.
     /// </summary>
     [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
     public AniDBWithDate _AniDB { get; set; }
 
     /// <summary>
-    /// The <see cref="Series.TvDB"/> entries, if <see cref="DataSource.TvDB"/>
+    /// The <see cref="Series.TvDB"/> entries, if <see cref="DataSourceType.TvDB"/>
     /// is included in the data to add.
     /// </summary>
     [JsonProperty("TvDB", NullValueHandling = NullValueHandling.Ignore)]
@@ -89,7 +89,7 @@ public class Series : BaseModel
 
     public Series() { }
 
-    public Series(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false, HashSet<DataSource> includeDataFrom = null)
+    public Series(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false, HashSet<DataSourceType> includeDataFrom = null)
     {
         var uid = ctx.GetUser()?.JMMUserID ?? 0;
 
@@ -113,9 +113,9 @@ public class Series : BaseModel
         Created = ser.DateTimeCreated;
         Updated = ser.DateTimeUpdated;
 
-        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
+        if (includeDataFrom?.Contains(DataSourceType.AniDB) ?? false)
             this._AniDB = new Series.AniDBWithDate(ctx, ser.GetAnime(), ser);
-        if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
+        if (includeDataFrom?.Contains(DataSourceType.TvDB) ?? false)
             this._TvDB = GetTvDBInfo(ctx, ser);
     }
 
@@ -536,6 +536,91 @@ public class Series : BaseModel
     }
 
     #endregion
+
+    /// <summary>
+    /// Auto-matching settings for the series.
+    /// </summary>
+    public class AutoMatchSettings
+    {
+        public AutoMatchSettings()
+        {
+            TvDB = false;
+            TMDB = false;
+            Trakt = false;
+            MAL = false;
+            AniList = false;
+            Animeshon = false;
+            Kitsu = false;
+        }
+
+        public AutoMatchSettings(SVR_AnimeSeries series)
+        {
+            TvDB = !series.IsTvDBAutoMatchingDisabled;
+            TMDB = !series.IsTMDBAutoMatchingDisabled;
+            Trakt = !series.IsTraktAutoMatchingDisabled;
+            MAL = !series.IsMALAutoMatchingDisabled;
+            AniList = !series.IsAniListAutoMatchingDisabled;
+            Animeshon = !series.IsAnimeshonAutoMatchingDisabled;
+            Kitsu = !series.IsKitsuAutoMatchingDisabled;
+        }
+
+        public AutoMatchSettings MergeWithExisting(SVR_AnimeSeries series)
+        {
+            series.IsTvDBAutoMatchingDisabled = !TvDB;
+            series.IsTMDBAutoMatchingDisabled = !TMDB;
+            series.IsTraktAutoMatchingDisabled = !Trakt;
+            series.IsMALAutoMatchingDisabled = !MAL;
+            series.IsAniListAutoMatchingDisabled = !AniList;
+            series.IsAnimeshonAutoMatchingDisabled = !Animeshon;
+            series.IsKitsuAutoMatchingDisabled = !Kitsu;
+
+            RepoFactory.AnimeSeries.Save(series, true);
+
+            return new AutoMatchSettings(series);
+        }
+
+        /// <summary>
+        /// Auto-match against TvDB.
+        /// </summary>
+        [Required]
+        public bool TvDB { get; set; }
+
+        /// <summary>
+        /// Auto-match against The Movie Database (TMDB).
+        /// </summary>
+        [Required]
+        public bool TMDB { get; set; }
+
+        /// <summary>
+        /// Auto-match against Trakt.
+        /// </summary>
+        [Required]
+        public bool Trakt { get; set; }
+
+        /// <summary>
+        /// Auto-match against My Anime List (MAL).
+        /// </summary>
+        [Required]
+        public bool MAL { get; set; }
+
+        /// <summary>
+        /// Auto-match against AniList.
+        /// </summary>
+        [Required]
+        public bool AniList { get; set; }
+
+        /// <summary>
+        /// Auto-match against Animeshon.
+        /// </summary>
+        [Required]
+        public bool Animeshon { get; set; }
+
+        /// <summary>
+        /// Auto-match against Kitsu.
+        /// </summary>
+        [Required]
+        public bool Kitsu { get; set; }
+    }
 
     /// <summary>
     /// Basic anidb data across all anidb types.

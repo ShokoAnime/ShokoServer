@@ -2488,21 +2488,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("AniDB/Anime/ExternalLinksFlag/{animeID}/{flags}")]
     public void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags)
     {
-        try
-        {
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-            if (anime == null)
-            {
-                return;
-            }
-
-            anime.DisableExternalLinksFlag = flags;
-            RepoFactory.AniDB_Anime.Save(anime);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-        }
+        logger.Trace("UpdateAnimeDisableExternalLinksFlag is deprecated.");
     }
 
     [HttpPost("Group/DefaultSeries/{animeGroupID}/{animeSeriesID}")]
