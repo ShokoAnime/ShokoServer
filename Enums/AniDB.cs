@@ -80,7 +80,13 @@ namespace Shoko.Models.Enums
         Syoboi = 8, // Airing Schedule (Japanese site)
         ALLCinema = 9,
         Anison = 10,
-        Crunchyroll = 28 // Series page, not episodes
+        DotLian = 11, // .lian (JP VA and anime site)
+        VNDB = 14, // The Visual Novel Database, for related VN game, if any.
+        Crunchyroll = 28, // Series page, not episodes
+        Amazon = 32, // amazon.com
+        Funimation = 34, // See Crunchyroll comment ☝
+        Bangumi = 38, // Japanese site
+        HiDive = 42, // Streaming service, series page.
     }
 
     public enum AnimeType

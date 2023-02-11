@@ -39,11 +39,16 @@ namespace Shoko.Models.Server
         public int? AnimeNfo { get; set; }
         public int? AnisonID { get; set; }
         public int? SyoboiID { get; set; }
+        public int? VNDBID { get; set; }
+        public int? BangumiID { get; set; }
+        public int? LianID { get; set; }
         public string Site_JP { get; set; }
         public string Site_EN { get; set; }
         public string Wikipedia_ID { get; set; }
         public string WikipediaJP_ID { get; set; }
         public string CrunchyrollID { get; set; }
+        public string FunimationID { get; set; }
+        public string HiDiveID { get; set; }
         public int? LatestEpisodeNumber { get; set; }
 
         #endregion
