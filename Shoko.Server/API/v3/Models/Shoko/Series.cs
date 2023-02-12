@@ -618,7 +618,7 @@ public class Series : BaseModel
             series.IsAnimeshonAutoMatchingDisabled = !Animeshon;
             series.IsKitsuAutoMatchingDisabled = !Kitsu;
 
-            RepoFactory.AnimeSeries.Save(series, true);
+            RepoFactory.AnimeSeries.Save(series, false, true, true);
 
             return new AutoMatchSettings(series);
         }
