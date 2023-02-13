@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Shoko.Models.Enums
 {
@@ -80,7 +80,7 @@ namespace Shoko.Models.Enums
         Syoboi = 8, // Airing Schedule (Japanese site)
         ALLCinema = 9,
         Anison = 10,
-        DotLian = 11, // .lian (JP VA and anime site)
+        DotLain = 11, // .lain (JP VA and anime site)
         VNDB = 14, // The Visual Novel Database, for related VN game, if any.
         Crunchyroll = 28, // Series page, not episodes
         Amazon = 32, // amazon.com
