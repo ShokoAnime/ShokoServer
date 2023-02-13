@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Shoko.Models.Enums
 {
@@ -72,7 +72,7 @@ namespace Shoko.Models.Enums
     {
         ANN = 1,
         MAL = 2, // MAL ID, there may be more than one
-        AnimeNFO = 3,
+        AnimeNFO = 3, // Dead site.
         Site_JP = 4, // Official Japanese Site
         Site_EN = 5, // Official English Site
         Wiki_EN = 6, // wikipedia.com

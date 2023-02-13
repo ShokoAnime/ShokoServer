@@ -33,10 +33,8 @@ namespace Shoko.Models.Server
         public DateTime DateTimeDescUpdated { get; set; }
         public int ImageEnabled { get; set; }
         public int Restricted { get; set; }
-        public int? AnimePlanetID { get; set; }
         public int? ANNID { get; set; }
         public int? AllCinemaID { get; set; }
-        public int? AnimeNfo { get; set; }
         public int? AnisonID { get; set; }
         public int? SyoboiID { get; set; }
         public int? VNDBID { get; set; }
@@ -83,10 +81,8 @@ namespace Shoko.Models.Server
                 DateTimeDescUpdated = DateTimeDescUpdated,
                 ImageEnabled = ImageEnabled,
                 Restricted = Restricted,
-                AnimePlanetID = AnimePlanetID,
                 ANNID = ANNID,
                 AllCinemaID = AllCinemaID,
-                AnimeNfo = AnimeNfo,
                 AnisonID = AnisonID,
                 SyoboiID = SyoboiID,
                 Site_JP = Site_JP,

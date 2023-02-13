@@ -48,10 +48,8 @@ namespace Shoko.Models.Client
             DateTimeDescUpdated = obj.DateTimeDescUpdated;
             ImageEnabled = obj.ImageEnabled;
             Restricted = obj.Restricted;
-            AnimePlanetID = obj.AnimePlanetID;
             ANNID = obj.ANNID;
             AllCinemaID = obj.AllCinemaID;
-            AnimeNfo = obj.AnimeNfo;
             AnisonID = obj.AnisonID;
             SyoboiID = obj.SyoboiID;
             Wikipedia_ID = obj.Wikipedia_ID;
