@@ -163,8 +163,8 @@ public class Series : BaseModel
         if (anime.BangumiID.HasValue && anime.BangumiID.Value > 0)
             Links.Add(new() { Type = "foreign-metadata", Name = "bangumi", URL = $"https://bgm.tv/subject/{anime.BangumiID.Value}" });
 
-        if (anime.LianID.HasValue && anime.LianID.Value > 0)
-            Links.Add(new() { Type = "foreign-metadata", Name = ".liam", URL = $"http://lain.gr.jp/mediadb/media/{anime.LianID.Value}" });
+        if (anime.LainID.HasValue && anime.LainID.Value > 0)
+            Links.Add(new() { Type = "foreign-metadata", Name = ".lain", URL = $"http://lain.gr.jp/mediadb/media/{anime.LainID.Value}" });
 
         if (anime.ANNID.HasValue && anime.ANNID.Value > 0)
             Links.Add(new() { Type = "english-metadata", Name = "AnimeNewsNetwork", URL = $"https://www.animenewsnetwork.com/encyclopedia/anime.php?id={anime.ANNID.Value}" });

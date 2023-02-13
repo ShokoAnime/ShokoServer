@@ -15,16 +15,14 @@ public class AniDB_AnimeMap : ClassMap<SVR_AniDB_Anime>
         Map(x => x.AllCinemaID);
         Map(x => x.AllTitles);
         Map(x => x.AllTags);
-        Map(x => x.AnimeNfo);
         Map(x => x.AnimeID).Not.Nullable();
-        Map(x => x.AnimePlanetID);
         Map(x => x.AnimeType).Not.Nullable();
         Map(x => x.ANNID);
         Map(x => x.AnisonID);
         Map(x => x.SyoboiID);
         Map(x => x.VNDBID);
         Map(x => x.BangumiID);
-        Map(x => x.LianID);
+        Map(x => x.LainID);
         Map(x => x.Site_EN);
         Map(x => x.Site_JP);
         Map(x => x.Wikipedia_ID);

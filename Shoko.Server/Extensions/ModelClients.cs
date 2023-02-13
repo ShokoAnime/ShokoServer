@@ -150,10 +150,8 @@ public static class ModelClients
             DateTimeDescUpdated = anime.DateTimeDescUpdated,
             ImageEnabled = anime.ImageEnabled,
             Restricted = anime.Restricted,
-            AnimePlanetID = anime.AnimePlanetID,
             ANNID = anime.ANNID,
             AllCinemaID = anime.AllCinemaID,
-            AnimeNfo = anime.AnimeNfo,
             LatestEpisodeNumber = anime.LatestEpisodeNumber,
             DisableExternalLinksFlag = 0
         };

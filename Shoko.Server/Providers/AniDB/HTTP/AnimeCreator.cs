@@ -118,7 +118,6 @@ public class AnimeCreator
         anime.AirDate = animeInfo.AirDate;
         anime.AllCinemaID = animeInfo.AllCinemaID;
         anime.AnimeID = animeInfo.AnimeID;
-        anime.AnimePlanetID = animeInfo.AnimePlanetID;
         anime.AnimeType = (int)animeInfo.AnimeType;
         anime.ANNID = animeInfo.ANNID;
         anime.AvgReviewRating = animeInfo.AvgReviewRating;
@@ -746,21 +745,6 @@ public class AnimeCreator
                         anime.AllCinemaID = id;
                         break;
                     }
-                case AniDB_ResourceLinkType.AnimeNFO:
-                    {
-                        if (!int.TryParse(resource.ResourceID, out id))
-                        {
-                            break;
-                        }
-
-                        if (id == 0)
-                        {
-                            break;
-                        }
-
-                        anime.AnimeNfo = id;
-                        break;
-                    }
                 case AniDB_ResourceLinkType.VNDB:
                     {
                         if (!int.TryParse(resource.ResourceID, out id))
@@ -791,7 +775,7 @@ public class AnimeCreator
                         anime.BangumiID = id;
                         break;
                     }
-                case AniDB_ResourceLinkType.DotLian:
+                case AniDB_ResourceLinkType.DotLain:
                     {
                         if (!int.TryParse(resource.ResourceID, out id))
                         {
@@ -803,7 +787,7 @@ public class AnimeCreator
                             break;
                         }
 
-                        anime.LianID = id;
+                        anime.LainID = id;
                         break;
                     }
                 case AniDB_ResourceLinkType.Site_JP:
