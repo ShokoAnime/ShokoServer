@@ -591,10 +591,10 @@ public class Series : BaseModel
             TvDB = false;
             TMDB = false;
             Trakt = false;
-            MAL = false;
-            AniList = false;
-            Animeshon = false;
-            Kitsu = false;
+            // MAL = false;
+            // AniList = false;
+            // Animeshon = false;
+            // Kitsu = false;
         }
 
         public AutoMatchSettings(SVR_AnimeSeries series)
@@ -602,10 +602,10 @@ public class Series : BaseModel
             TvDB = !series.IsTvDBAutoMatchingDisabled;
             TMDB = !series.IsTMDBAutoMatchingDisabled;
             Trakt = !series.IsTraktAutoMatchingDisabled;
-            MAL = !series.IsMALAutoMatchingDisabled;
-            AniList = !series.IsAniListAutoMatchingDisabled;
-            Animeshon = !series.IsAnimeshonAutoMatchingDisabled;
-            Kitsu = !series.IsKitsuAutoMatchingDisabled;
+            // MAL = !series.IsMALAutoMatchingDisabled;
+            // AniList = !series.IsAniListAutoMatchingDisabled;
+            // Animeshon = !series.IsAnimeshonAutoMatchingDisabled;
+            // Kitsu = !series.IsKitsuAutoMatchingDisabled;
         }
 
         public AutoMatchSettings MergeWithExisting(SVR_AnimeSeries series)
@@ -613,10 +613,10 @@ public class Series : BaseModel
             series.IsTvDBAutoMatchingDisabled = !TvDB;
             series.IsTMDBAutoMatchingDisabled = !TMDB;
             series.IsTraktAutoMatchingDisabled = !Trakt;
-            series.IsMALAutoMatchingDisabled = !MAL;
-            series.IsAniListAutoMatchingDisabled = !AniList;
-            series.IsAnimeshonAutoMatchingDisabled = !Animeshon;
-            series.IsKitsuAutoMatchingDisabled = !Kitsu;
+            // series.IsMALAutoMatchingDisabled = !MAL;
+            // series.IsAniListAutoMatchingDisabled = !AniList;
+            // series.IsAnimeshonAutoMatchingDisabled = !Animeshon;
+            // series.IsKitsuAutoMatchingDisabled = !Kitsu;
 
             RepoFactory.AnimeSeries.Save(series, false, true, true);
 
@@ -641,29 +641,29 @@ public class Series : BaseModel
         [Required]
         public bool Trakt { get; set; }
 
-        /// <summary>
-        /// Auto-match against My Anime List (MAL).
-        /// </summary>
-        [Required]
-        public bool MAL { get; set; }
+        // /// <summary>
+        // /// Auto-match against My Anime List (MAL).
+        // /// </summary>
+        // [Required]
+        // public bool MAL { get; set; }
 
-        /// <summary>
-        /// Auto-match against AniList.
-        /// </summary>
-        [Required]
-        public bool AniList { get; set; }
+        // /// <summary>
+        // /// Auto-match against AniList.
+        // /// </summary>
+        // [Required]
+        // public bool AniList { get; set; }
 
-        /// <summary>
-        /// Auto-match against Animeshon.
-        /// </summary>
-        [Required]
-        public bool Animeshon { get; set; }
+        // /// <summary>
+        // /// Auto-match against Animeshon.
+        // /// </summary>
+        // [Required]
+        // public bool Animeshon { get; set; }
 
-        /// <summary>
-        /// Auto-match against Kitsu.
-        /// </summary>
-        [Required]
-        public bool Kitsu { get; set; }
+        // /// <summary>
+        // /// Auto-match against Kitsu.
+        // /// </summary>
+        // [Required]
+        // public bool Kitsu { get; set; }
     }
 
     /// <summary>
