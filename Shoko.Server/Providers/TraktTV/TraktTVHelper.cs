@@ -496,6 +496,14 @@ public class TraktTVHelper
 
         RepoFactory.CrossRef_AniDB_TraktV2.Delete(xref.CrossRef_AniDB_TraktV2ID);
 
+        // Disable auto-matching when we remove an existing match for the series.
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+        if (series != null)
+        {
+            series.IsTraktAutoMatchingDisabled = true;
+            RepoFactory.AnimeSeries.Save(series, false, true, true);
+        }
+
         SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
     }
 

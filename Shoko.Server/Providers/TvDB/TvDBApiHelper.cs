@@ -977,6 +977,14 @@ public class TvDBApiHelper
         RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(
             RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID));
 
+        // Disable auto-matching when we remove an existing match for the series.
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+        if (series != null)
+        {
+            series.IsTvDBAutoMatchingDisabled = true;
+            RepoFactory.AnimeSeries.Save(series, false, true, true);
+        }
+
         SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
     }
 
