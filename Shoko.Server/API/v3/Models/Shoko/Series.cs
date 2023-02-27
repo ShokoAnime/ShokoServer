@@ -814,8 +814,8 @@ public class Series : BaseModel
             Rating = null;
             UserApproval = new Rating
             {
-                Value = new Vote(similar.Approval, similar.Total).GetRating(),
-                MaxValue = 10,
+                Value = new Vote(similar.Approval, similar.Total).GetRating(100),
+                MaxValue = 100,
                 Votes = similar.Total,
                 Source = "AniDB",
                 Type = "User Approval"
