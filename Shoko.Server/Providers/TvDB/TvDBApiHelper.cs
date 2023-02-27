@@ -194,7 +194,7 @@ public class TvDBApiHelper
         return results;
     }
 
-    public void LinkAniDBTvDB(int animeID, int tvDBID, bool additiveLink = false)
+    public void LinkAniDBTvDB(int animeID, int tvDBID, bool additiveLink, bool isAutomatic = false)
     {
         if (!additiveLink)
         {
@@ -226,7 +226,7 @@ public class TvDBApiHelper
 
         xref.TvDBID = tvDBID;
 
-        xref.CrossRefSource = CrossRefSource.User;
+        xref.CrossRefSource = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
 
         RepoFactory.CrossRef_AniDB_TvDB.Save(xref);
 

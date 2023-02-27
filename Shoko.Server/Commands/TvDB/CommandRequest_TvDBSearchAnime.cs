@@ -57,7 +57,7 @@ public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
 
             if (tvDBID != null)
             {
-                _helper.LinkAniDBTvDB(AnimeID, tvDBID.Value, true);
+                _helper.LinkAniDBTvDB(AnimeID, tvDBID.Value, true, true);
                 return;
             }
 
@@ -140,7 +140,7 @@ public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
                     results[0].SeriesName,
                     results[0].SeriesID);
                 tvser = _helper.GetSeriesInfoOnline(results[0].SeriesID, false);
-                _helper.LinkAniDBTvDB(AnimeID, results[0].SeriesID, true);
+                _helper.LinkAniDBTvDB(AnimeID, results[0].SeriesID, true, true);
 
                 // add links for multiple seasons (for long shows)
                 AddCrossRef_AniDB_TvDBV2(AnimeID, results[0].SeriesID, CrossRefSource.Automatic);
@@ -159,7 +159,7 @@ public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
                         sres.SeriesName,
                         sres.SeriesID);
                     tvser = _helper.GetSeriesInfoOnline(results[0].SeriesID, false);
-                    _helper.LinkAniDBTvDB(AnimeID, sres.SeriesID, true);
+                    _helper.LinkAniDBTvDB(AnimeID, sres.SeriesID, true, true);
 
                     // add links for multiple seasons (for long shows)
                     AddCrossRef_AniDB_TvDBV2(AnimeID, results[0].SeriesID, CrossRefSource.Automatic);
