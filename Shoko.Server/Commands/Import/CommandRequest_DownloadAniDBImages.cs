@@ -135,7 +135,7 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
                     if (req.DownloadNow())
                         Logger.LogInformation("Image downloaded: {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
                     else
-                        Logger.LogWarning("Image failed to download; FilePath from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                        Logger.LogWarning("Image failed to download; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
                 }
                 catch (WebException e)
                 {
