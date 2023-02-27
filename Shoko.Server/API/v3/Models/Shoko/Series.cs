@@ -810,7 +810,7 @@ public class Series : BaseModel
             ID = similar.SimilarAnimeID;
             ShokoID = series?.AnimeSeriesID;
             SetTitles(similar, series, includeTitles);
-            Poster = GetAniDBPoster(similar.AnimeID);
+            Poster = GetAniDBPoster(similar.SimilarAnimeID);
             Rating = null;
             UserApproval = new Rating
             {
