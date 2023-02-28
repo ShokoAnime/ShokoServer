@@ -206,7 +206,7 @@ public static class AVDumpHelper
         }
         catch (Exception ex)
         {
-            logger.Error($"An error occurred while AVDumping the file \"file\":\n{ex}");
+            logger.Error($"An error occurred while AVDumping the file \"{file}\":\n{ex}");
             return $"An error occurred while AVDumping the file:\n{ex}";
         }
     }
