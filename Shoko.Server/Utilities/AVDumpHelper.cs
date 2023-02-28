@@ -197,8 +197,7 @@ public static class AVDumpHelper
             // Logs only the last argument to AVDump, the filename
             logger.Info($"Dumping File with AVDump: \"{startInfo.ArgumentList[^1]}\"");
 
-            using var pProcess = new Process();
-            pProcess.StartInfo = startInfo;
+            using var pProcess = new Process { StartInfo = startInfo };
             pProcess.Start();
             var strOutput = pProcess.StandardOutput.ReadToEnd();
             pProcess.WaitForExit();
