@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
@@ -359,7 +359,9 @@ public class SettingsProvider : ISettingsProvider
                 value = Serialize(value);
             }
 
-            if (prop.Name.ToLower().EndsWith("password"))
+            if (prop.Name.ToLower().EndsWith("password") ||
+                prop.Name.ToLower().EndsWith("key") ||
+                prop.Name.ToLower().EndsWith("token"))
             {
                 value = "***HIDDEN***";
             }
