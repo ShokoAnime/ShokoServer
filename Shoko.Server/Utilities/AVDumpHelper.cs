@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 using NLog;
 using SharpCompress.Common;
 using SharpCompress.Readers;
@@ -194,7 +195,9 @@ public static class AVDumpHelper
 
             var filenameArgs = GetFilenameAndArgsForOS(file);
 
-            logger.Info($"Dumping File with AVDump: {filenameArgs.Item1} {filenameArgs.Item2}");
+            // Censor the --Auth section for logging, replacing only the password
+            var censoredArgs = Regex.Replace(filenameArgs.Item2, "(--Auth=([^:]+):)([^ ]+)", "$1***HIDDEN***");
+            logger.Info($"Dumping File with AVDump: {filenameArgs.Item1} {censoredArgs}");
 
             var pProcess = new Process
             {
