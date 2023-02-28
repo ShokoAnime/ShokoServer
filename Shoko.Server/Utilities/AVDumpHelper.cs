@@ -1,7 +1,6 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Text.RegularExpressions;
 using NLog;
 using SharpCompress.Common;
 using SharpCompress.Readers;
@@ -193,31 +192,16 @@ public static class AVDumpHelper
                 return "Could not find Video File: " + file;
             }
 
-            var filenameArgs = GetFilenameAndArgsForOS(file);
+            var startInfo = GetExecutableAndArgListForOS(file);
 
-            // Censor the --Auth section for logging, replacing only the password
-            var censoredArgs = Regex.Replace(filenameArgs.Item2, "(--Auth=([^:]+):)([^ ]+)", "$1***HIDDEN***");
-            logger.Info($"Dumping File with AVDump: {filenameArgs.Item1} {censoredArgs}");
+            // Logs only the last argument to AVDump, the filename
+            logger.Info($"Dumping File with AVDump: \"{startInfo.ArgumentList[^1]}\"");
 
-            var pProcess = new Process
-            {
-                StartInfo =
-                {
-                    FileName = filenameArgs.Item1,
-                    Arguments = filenameArgs.Item2,
-                    UseShellExecute = false,
-                    WindowStyle = ProcessWindowStyle.Hidden,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
-                }
-            };
-
+            using var pProcess = new Process();
+            pProcess.StartInfo = startInfo;
             pProcess.Start();
             var strOutput = pProcess.StandardOutput.ReadToEnd();
-
-            //Wait for process to finish
             pProcess.WaitForExit();
-
             return strOutput;
         }
         catch (Exception ex)
@@ -227,24 +211,35 @@ public static class AVDumpHelper
         }
     }
 
-    private static Tuple<string, string> GetFilenameAndArgsForOS(string file)
+    private static ProcessStartInfo GetExecutableAndArgListForOS(string file)
     {
         // Windows: avdumpDestination --Auth=....
         // Mono: mono avdumpDestination --Auth=...
-        var executable = avdumpDestination;
-        var fileName = (char)34 + file + (char)34;
 
-        var settings = Utils.SettingsProvider.GetSettings();
-        var args = $"--Auth={settings.AniDb.Username.Trim()}:" +
-                   $"{settings.AniDb.AVDumpKey?.Trim()}" +
-                   $" --LPort={settings.AniDb.AVDumpClientPort} --PrintEd2kLink -t {fileName}";
+        var startInfo = new ProcessStartInfo(avdumpDestination)
+        {
+            UseShellExecute = false,
+            WindowStyle = ProcessWindowStyle.Hidden,
+            RedirectStandardOutput = true,
+            CreateNoWindow = true
+        };
 
         if (Utils.IsRunningOnLinuxOrMac())
         {
-            executable = "mono";
-            args = $"{avdumpDestination} {args}";
+            startInfo.FileName = "mono";
+            startInfo.ArgumentList.Add(avdumpDestination);
         }
 
-        return Tuple.Create(executable, args);
+        var settings = Utils.SettingsProvider.GetSettings();
+
+        startInfo.ArgumentList.Add(
+            $"--Auth={settings.AniDb.Username.Trim()}:" +
+            $"{settings.AniDb.AVDumpKey?.Trim()}");
+        startInfo.ArgumentList.Add($"--LPort={settings.AniDb.AVDumpClientPort}");
+        startInfo.ArgumentList.Add("--PrintEd2kLink");
+        startInfo.ArgumentList.Add("-t");
+        startInfo.ArgumentList.Add(file);
+
+        return startInfo;
     }
 }
