@@ -84,7 +84,7 @@ public class WebUIController : BaseController
                 return BadRequest("If trying to update");
         }
 
-        WebUIHelper.GetUrlAndUpdate(LatestWebUIVersion(channel).Version);
+        WebUIHelper.GetUrlAndUpdate(LatestWebUIVersion(channel).Tag);
         return Redirect("/webui/index.html");
     }
 
@@ -99,7 +99,7 @@ public class WebUIController : BaseController
     [HttpGet("Update")]
     public ActionResult UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable)
     {
-        WebUIHelper.GetUrlAndUpdate(LatestWebUIVersion(channel).Version);
+        WebUIHelper.GetUrlAndUpdate(LatestWebUIVersion(channel).Tag);
         return NoContent();
     }
 
