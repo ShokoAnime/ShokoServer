@@ -758,6 +758,58 @@ public class SVR_AnimeSeries : AnimeSeries
         }
     }
 
+    /// <summary>
+    /// Get the most recent days in the week the show airs on.
+    /// </summary>
+    /// <param name="animeEpisodes">Optionally pass in the episodes so we don't have to fetch them.</param>
+    /// <param name="includeThreshold">Threshold of episodes to include in the calculation.</param>
+    /// <returns></returns>
+    public List<DayOfWeek> GetAirsOnDaysOfWeek(List<SVR_AnimeEpisode> animeEpisodes = null, int includeThreshold = 24)
+    {
+        // Fetch the anime episodes now if we didn't get them supplied to us.
+        if (animeEpisodes == null)
+            animeEpisodes = GetAnimeEpisodes();
+
+        var now = DateTime.Now;
+        var filteredEpisodes = animeEpisodes
+            .Select(episode =>
+            {
+                var aniDB = episode.AniDB_Episode;
+                var airDate = aniDB.GetAirDateAsDate();
+                return (episode, aniDB, airDate);
+            })
+            .Where(tuple =>
+            {
+                // We ignore all other types except the "normal" type.
+                if ((EpisodeType)tuple.aniDB.EpisodeType != EpisodeType.Episode)
+                    return false;
+
+                // We ignore any unknown air dates and dates in the future.
+                if (!tuple.airDate.HasValue || tuple.airDate.Value > now)
+                    return false;
+
+                return true;
+            })
+            .ToList();
+
+        // Threshold used to filter out outliners, e.g. a weekday that only happens
+        // once or twice for whatever reason, or when a show gets an early preview,
+        // an episode moving, etc..
+        var outlierThreshold = Math.Min((int)Math.Ceiling(filteredEpisodes.Count / 12D), 4);
+        return filteredEpisodes
+            .OrderByDescending(tuple => tuple.aniDB.EpisodeNumber)
+            // We check up to the `x` last aired episodes to get a grasp on which days
+            // it airs on. This helps reduce variance in days for long-running
+            // shows, such as One Piece, etc..
+            .Take(includeThreshold)
+            .Select(tuple => tuple.airDate.Value.DayOfWeek)
+            .GroupBy(weekday => weekday)
+            .Where(list => list.Count() > outlierThreshold)
+            .Select(list => list.Key)
+            .OrderBy(weekday => weekday)
+            .ToList();
+    }
+
     public void Populate(SVR_AniDB_Anime anime)
     {
         AniDB_ID = anime.AnimeID;

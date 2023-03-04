@@ -50,6 +50,17 @@ public class Series : BaseModel
     public Rating UserRating { get; set; }
 
     /// <summary>
+    /// The inferred days of the week this series airs on.
+    /// </summary>
+    /// <remarks>
+    /// Will only be set for series of type <see cref="SeriesType.TV"/> and
+    /// <see cref="SeriesType.Web"/>.
+    /// </remarks>
+    /// <value>Each weekday</value>
+    [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
+    public List<DayOfWeek> AirsOn { get; set; }
+
+    /// <summary>
     /// links to series pages on various sites
     /// </summary>
     public List<Resource> Links { get; set; }
@@ -93,6 +104,7 @@ public class Series : BaseModel
     {
         var uid = ctx.GetUser()?.JMMUserID ?? 0;
         var anime = ser.GetAnime();
+        var animeType = (AnimeType)anime.AnimeType;
 
         AddBasicAniDBInfo(ctx, ser, anime);
 
@@ -105,6 +117,7 @@ public class Series : BaseModel
 
         IDs = GetIDs(ser);
         Images = GetDefaultImages(ctx, ser, randomiseImages);
+        AirsOn = animeType == AnimeType.TVSeries || animeType == AnimeType.Web ? ser.GetAirsOnDaysOfWeek(ael) : new();
 
         Name = ser.GetSeriesName();
         Sizes = ModelHelper.GenerateSeriesSizes(ael, uid);
