@@ -1242,14 +1242,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                         }
 
                         allYears.UnionWith(years);
-                        foreach (var year in years)
-                        foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
-                        {
-                            if (anime.IsInSeason(season, year))
-                            {
-                                allSeasons.Add($"{season} {year}");
-                            }
-                        }
+                        allSeasons.UnionWith(anime.GetSeasons().Select(tuple => $"{tuple.Season} {tuple.Year}"));
                     }
                 }
 

@@ -905,21 +905,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
                 .ToList();
 
             // Seasons
-            if (anime.AirDate != null)
-            {
-                var beginYear = anime.AirDate.Value.Year;
-                var endYear = anime.EndDate?.Year ?? DateTime.Today.Year;
-                for (var year = beginYear; year <= endYear; year++)
-                {
-                    foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
-                    {
-                        if (anime.IsInSeason(season, year))
-                        {
-                            contract.Stat_AllSeasons.Add($"{season} {year}");
-                        }
-                    }
-                }
-            }
+            contract.Stat_AllSeasons.UnionWith(anime.GetSeasons().Select(tuple => $"{tuple.Season} {tuple.Year}"));
 
             // Anime tags
             var dictAnimeTags = animeTagsByAnime[anime.AnimeID]
@@ -1036,21 +1022,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
             }
         }
 
-        if (AirDate != null)
-        {
-            var beginYear = AirDate.Value.Year;
-            var endYear = EndDate?.Year ?? DateTime.Today.Year;
-            for (var year = beginYear; year <= endYear; year++)
-            {
-                foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
-                {
-                    if (this.IsInSeason(season, year))
-                    {
-                        cl.Stat_AllSeasons.Add($"{season} {year}");
-                    }
-                }
-            }
-        }
+        cl.Stat_AllSeasons.UnionWith(this.GetSeasons().Select(tuple => $"{tuple.Season} {tuple.Year}"));
 
         sw.Restart();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generating Tag Contracts");
