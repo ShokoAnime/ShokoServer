@@ -527,13 +527,16 @@ public class TreeController : BaseController
     /// <see cref="Filter"/> or <see cref="Group"/> is irrelevant at this level.
     /// </remarks>
     /// <param name="seriesID">Series ID</param>
+    /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
+    /// <param name="page">The page index.</param>
     /// <param name="includeMissing">Include missing episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/Episode")]
-    public ActionResult<List<Episode>> GetEpisodes([FromRoute] int seriesID, [FromQuery] bool includeMissing = false,
-        [FromQuery] bool includeHidden = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
+    public ActionResult<ListResult<Episode>> GetEpisodes([FromRoute] int seriesID, [FromQuery] bool includeMissing = false,
+        [FromQuery] bool includeHidden = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery] [Range(0, 1000)] int pageSize = 20, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -547,9 +550,8 @@ public class TreeController : BaseController
         }
 
         return series.GetAnimeEpisodes(orderList: true, includeHidden: includeHidden)
-            .Select(a => new Episode(HttpContext, a, includeDataFrom))
-            .Where(a => a.Size > 0 || includeMissing)
-            .ToList();
+            .Where(a => includeMissing || a.GetVideoLocals().Count > 0)
+            .ToListResult(a => new Episode(HttpContext, a, includeDataFrom), page, pageSize);
     }
 
     /// <summary>
