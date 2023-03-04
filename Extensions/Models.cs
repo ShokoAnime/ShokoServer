@@ -98,29 +98,47 @@ namespace Shoko.Commons.Extensions
             if (anime.AirDate == null) return false;
             // If it isn't a normal series, then it won't adhere to standard airing norms
             if (anime.AnimeType != (int) AnimeType.TVSeries && anime.AnimeType != (int) AnimeType.Web) return false;
+            return IsInSeason(anime.AirDate.Value, anime.EndDate, season, year);
+        }
+
+        public static bool IsInSeason(this CL_AniDB_AnimeDetailed anime, AnimeSeason season, int year)
+        {
+            return anime?.AniDBAnime?.IsInSeason(season, year) ?? false;
+        }
+
+        public static bool IsInSeason(DateTime startDate, DateTime? endDate, AnimeSeason season, int year)
+        {
             DateTime seasonStartBegin;
             DateTime seasonStartEnd;
+            // because series don't all start on the same day, we have a buffer from the start and end of the season
+            const double Buffer = 0.75D;
+            var days = (int)Math.Ceiling(Buffer * 30);
+            DateTime seasonStart;
             switch (season)
             {
                 case AnimeSeason.Winter:
-                    // January +- 0.5
-                    seasonStartBegin = new DateTime(year - 1, 12, 16);
-                    seasonStartEnd = new DateTime(year, 1, 15);
+                    // January +- buffer
+                    seasonStart = new DateTime(year, 1, 1);
+                    seasonStartBegin = seasonStart.AddDays(-days);
+                    seasonStartEnd = seasonStart.AddDays(days);
                     break;
                 case AnimeSeason.Spring:
-                    // April +- 0.5
-                    seasonStartBegin = new DateTime(year, 3, 16);
-                    seasonStartEnd = new DateTime(year, 4, 15);
+                    // April +- buffer
+                    seasonStart = new DateTime(year, 4, 1);
+                    seasonStartBegin = seasonStart.AddDays(-days);
+                    seasonStartEnd = seasonStart.AddDays(days);
                     break;
                 case AnimeSeason.Summer:
-                    // July +- 0.5
-                    seasonStartBegin = new DateTime(year, 6, 15);
-                    seasonStartEnd = new DateTime(year, 7, 15);
+                    // July +- buffer
+                    seasonStart = new DateTime(year, 7, 1);
+                    seasonStartBegin = seasonStart.AddDays(-days);
+                    seasonStartEnd = seasonStart.AddDays(days);
                     break;
                 case AnimeSeason.Fall:
-                    // October +- 0.5
-                    seasonStartBegin = new DateTime(year, 9, 15);
-                    seasonStartEnd = new DateTime(year, 10, 15);
+                    // October +- buffer
+                    seasonStart = new DateTime(year, 10, 1);
+                    seasonStartBegin = seasonStart.AddDays(-days);
+                    seasonStartEnd = seasonStart.AddDays(days);
                     break;
                 default:
                     return false;
@@ -129,42 +147,17 @@ namespace Shoko.Commons.Extensions
             if (seasonStartBegin > DateTime.Today) return false;
 
             // If it starts in a season, then it is definitely going to be in it
-            if (anime.AirDate.Value >= seasonStartBegin && anime.AirDate.Value <= seasonStartEnd) return true;
-            // If it aired before the season, but hasn't finished by the season, count it.
-            if (anime.AirDate.Value < seasonStartBegin)
+            if (startDate >= seasonStartBegin && startDate <= seasonStartEnd) return true;
+            // If it aired before the season, but hasn't finished by the time the season has started, count it.
+            if (startDate < seasonStartBegin)
             {
                 // null EndDate means it's still airing now
-                if (anime.EndDate == null) return true;
-                // A season can run long, so don't count it unless it continues well into the season
-                switch (season)
-                {
-                    case AnimeSeason.Winter:
-                        // January + 1
-                        seasonStartBegin = new DateTime(year, 2, 1);
-                        break;
-                    case AnimeSeason.Spring:
-                        // April + 1
-                        seasonStartBegin = new DateTime(year, 5, 1);
-                        break;
-                    case AnimeSeason.Summer:
-                        // July + 1
-                        seasonStartBegin = new DateTime(year, 8, 1);
-                        break;
-                    case AnimeSeason.Fall:
-                        // October + 1
-                        seasonStartBegin = new DateTime(year, 11, 1);
-                        break;
-                    default:
-                        return false;
-                }
-                if (anime.EndDate.Value > seasonStartBegin) return true;
+                if (endDate == null) return true;
+                // A season can run long, so don't count it unless it continues well into the season (buffer * 2)
+                if (endDate.Value > seasonStart.AddDays(days * 2)) return true;
             }
-            return false;
-        }
 
-        public static bool IsInSeason(this CL_AniDB_AnimeDetailed anime, AnimeSeason season, int year)
-        {
-            return anime?.AniDBAnime?.IsInSeason(season, year) ?? false;
+            return false;
         }
 
         public static IEnumerable<(int Year, AnimeSeason Season)> GetSeasons(this AniDB_Anime anime)
