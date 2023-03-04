@@ -167,6 +167,22 @@ namespace Shoko.Commons.Extensions
             return anime?.AniDBAnime?.IsInSeason(season, year) ?? false;
         }
 
+        public static IEnumerable<(int Year, AnimeSeason Season)> GetSeasons(this AniDB_Anime anime)
+        {
+            if (anime?.AirDate == null) yield break;
+
+            var beginYear = anime.AirDate.Value.Year;
+            var endYear = anime.EndDate?.Year ?? DateTime.Today.Year;
+            for (var year = beginYear; year <= endYear; year++)
+            {
+                foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
+                {
+                    if (!anime.IsInSeason(season, year)) continue;
+                    yield return (year, season);
+                }
+            }
+        }
+
         public static int GetAirDateAsSeconds(this AniDB_Anime anime) => AniDB.GetAniDBDateAsSeconds(anime.AirDate);
 
         public static string GetAirDateFormatted(this AniDB_Anime anime) => AniDB.GetAniDBDate(anime.GetAirDateAsSeconds());
