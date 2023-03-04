@@ -1325,7 +1325,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return Series.GetCast(HttpContext, series.AniDB_ID, roleType);
+        return Series.GetCast(series.AniDB_ID, roleType);
     }
 
     #endregion

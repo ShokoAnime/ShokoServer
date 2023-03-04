@@ -356,11 +356,10 @@ public class Series : BaseModel
     /// <summary>
     /// Cast is aggregated, and therefore not in each provider
     /// </summary>
-    /// <param name="ctx"></param>
     /// <param name="animeID"></param>
     /// <param name="roleTypes"></param>
     /// <returns></returns>
-    public static List<Role> GetCast(HttpContext ctx, int animeID, HashSet<Role.CreatorRoleType> roleTypes = null)
+    public static List<Role> GetCast(int animeID, HashSet<Role.CreatorRoleType> roleTypes = null)
     {
         var roles = new List<Role>();
         var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(animeID);
