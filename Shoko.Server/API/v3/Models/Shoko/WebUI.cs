@@ -39,7 +39,7 @@ public class WebUI
                 }
             }
 
-            Tags = Series.GetTags(context, anime, filter, excludeDescriptions: true, orderByName)
+            Tags = Series.GetTags(anime, filter, excludeDescriptions: true, orderByName)
                 .Take(tagLimit)
                 .ToList();
         }

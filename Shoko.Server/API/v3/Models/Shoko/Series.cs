@@ -403,7 +403,7 @@ public class Series : BaseModel
         return roles;
     }
 
-    public static List<Tag> GetTags(HttpContext ctx, SVR_AniDB_Anime anime, TagFilter.Filter filter,
+    public static List<Tag> GetTags(SVR_AniDB_Anime anime, TagFilter.Filter filter,
         bool excludeDescriptions = false, bool orderByName = false, bool onlyVerified = true)
     {
         // Only get the user tags if we don't exclude it (false == false), or if we invert the logic and want to include it (true == true).

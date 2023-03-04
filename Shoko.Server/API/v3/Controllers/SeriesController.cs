@@ -1281,7 +1281,7 @@ public class SeriesController : BaseController
             return new List<Tag>();
         }
 
-        return Series.GetTags(HttpContext, anidb, filter, excludeDescriptions, orderByName, onlyVerified);
+        return Series.GetTags(anidb, filter, excludeDescriptions, orderByName, onlyVerified);
     }
 
     /// <summary>
