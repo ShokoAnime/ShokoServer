@@ -14,6 +14,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 using WebUIGroupExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIGroupExtra;
+using WebUISeriesExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesExtra;
 using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -58,6 +59,23 @@ public class WebUIController : BaseController
                     body.TagLimit);
             })
             .ToList();
+    }
+
+    [HttpGet("Series/{seriesID}")]
+    public ActionResult<WebUISeriesExtra> GetSeries([FromRoute] int seriesID)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+        {
+            return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
+        }
+
+        if (!User.AllowedSeries(series))
+        {
+            return Forbid(SeriesController.SeriesForbiddenForUser);
+        }
+
+        return new WebUISeriesExtra(HttpContext, series);
     }
 
     /// <summary>
