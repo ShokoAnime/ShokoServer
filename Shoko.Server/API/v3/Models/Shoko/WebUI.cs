@@ -15,7 +15,7 @@ public class WebUI
 {
     public class WebUIGroupExtra
     {
-        public WebUIGroupExtra(HttpContext context, SVR_AnimeGroup group, SVR_AnimeSeries series, SVR_AniDB_Anime anime,
+        public WebUIGroupExtra(SVR_AnimeGroup group, SVR_AnimeSeries series, SVR_AniDB_Anime anime,
             TagFilter.Filter filter = TagFilter.Filter.None, bool orderByName = false, int tagLimit = 30)
         {
             ID = group.AnimeGroupID;
