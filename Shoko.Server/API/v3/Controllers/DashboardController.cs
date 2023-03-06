@@ -150,8 +150,8 @@ public class DashboardController : BaseController
             .ToList();
         var tagDict = tags
             .ToDictionary(tag => tag.Name.ToLowerInvariant());
-        var tagFilter = new TagFilter<Tag>(name => tagDict.TryGetValue(name.ToLowerInvariant(), out var tag) ? tag :
-            new Tag() { Name = name, Weight = 0 }, tag => tag.Name);
+        var tagFilter = new TagFilter<Tag>(name => tagDict.TryGetValue(name.ToLowerInvariant(), out var tag)
+            ? tag : null, tag => tag.Name, name => new Tag { Name = name, Weight = 0 });
         if (pageSize <= 0)
             return tagFilter
                 .ProcessTags(filter, tags)

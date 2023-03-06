@@ -38,7 +38,8 @@ public class TagController : BaseController
             .Where(tag => !onlyVerified || tag.Verified)
             .DistinctBy(a => a.TagName)
             .ToList();
-        var tagFilter = new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName);
+        var tagFilter = new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName, 
+            name => new AniDB_Tag { TagNameSource = name });
         return tagFilter
             .ProcessTags(filter, selectedTags)
             .Where(tag => user.IsAdmin == 1 || user.AllowedTag(tag))

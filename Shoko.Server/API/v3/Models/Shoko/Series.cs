@@ -414,7 +414,8 @@ public class Series : BaseModel
         var selectedTags = anime.GetAniDBTags(onlyVerified)
             .DistinctBy(a => a.TagName)
             .ToList();
-        var tagFilter = new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName);
+        var tagFilter = new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName, 
+            name => new AniDB_Tag { TagNameSource = name });
         var anidbTags = tagFilter
             .ProcessTags(filter, selectedTags)
             .Select(tag => 
