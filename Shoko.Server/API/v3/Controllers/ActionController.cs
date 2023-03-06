@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Commons.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
@@ -398,6 +399,19 @@ public class ActionController : BaseController
     {
         _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser()).Save();
         return Ok();
+    }
+    
+    /// <summary>
+    /// Forcibly runs AddToMyList commands for all manual links
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("AddAllManualLinksToMyList")]
+    public ActionResult AddAllManualLinksToMyList()
+    {
+        var cmds = RepoFactory.VideoLocal.GetManuallyLinkedVideos().Select(a => _commandFactory.Create<CommandRequest_AddFileToMyList>(c => c.Hash = a.Hash)).ToList();
+        cmds.ForEach(a => a.Save());
+        return Ok($"Saved {cmds.Count} AddToMyList Commands");
     }
 
     #endregion
