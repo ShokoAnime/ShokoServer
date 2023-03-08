@@ -70,9 +70,9 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
                 return;
             }
 
-            var requests = new List<ImageDownloadRequest>()
+            var requests = new List<ImageDownloadRequest>
             {
-                new ImageDownloadRequest(anime, ForceDownload, _handler.ImageServerUrl),
+                new(anime, ForceDownload, _handler.ImageServerUrl)
             };
 
             var characterOffset = requests.Count;
@@ -83,13 +83,10 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
                     .Where(a => !string.IsNullOrEmpty(a?.PicName))
                     .DistinctBy(a => a.CharID)
                     .ToList();
-                if (characters == null || characters.Count == 0)
-                {
+                if (characters.Any())
+                    requests.AddRange(characters.Select(character => new ImageDownloadRequest(character, ForceDownload, _handler.ImageServerUrl)));
+                else
                     Logger.LogWarning(FailedToDownloadNoID, "characters for anime", AnimeID);
-                    return;
-                }
-
-                requests.AddRange(characters.Select(character => new ImageDownloadRequest(character, ForceDownload, _handler.ImageServerUrl)));
             }
 
             var creatorOffset = requests.Count;
@@ -110,13 +107,10 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
                     .DistinctBy(creator => creator.SeiyuuID)
                     .ToList();
 
-                if (creators == null || creators.Count == 0)
-                {
+                if (creators.Any())
+                    requests.AddRange(creators.Select(va => new ImageDownloadRequest(va, ForceDownload, _handler.ImageServerUrl)));
+                else
                     Logger.LogWarning(FailedToDownloadNoID, "creators for anime", AnimeID);
-                    return;
-                }
-
-                requests.AddRange(creators.Select(va => new ImageDownloadRequest(va, ForceDownload, _handler.ImageServerUrl)));
             }
 
             for (var index = 0; index < requests.Count; index++)
