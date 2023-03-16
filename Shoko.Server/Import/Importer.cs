@@ -1177,6 +1177,7 @@ public static class Importer
             var files = RepoFactory.AniDB_File.GetAll()
                 .Where(a => a.GroupID == 0 || !anidbReleaseGroupIDs.Contains(a.GroupID))
                 .Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash))
+                .Where(f => f != null)
                 .DistinctBy(a => a.VideoLocalID)
                 .ToList();
             foreach (var file in files)
