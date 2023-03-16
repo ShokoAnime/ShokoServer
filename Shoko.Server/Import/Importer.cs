@@ -1174,6 +1174,19 @@ public static class Importer
                 }
             }
 
+            if (missingInfo)
+            {
+                var files = RepoFactory.AniDB_File.GetAll().Where(a => a.GroupID == 0).Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash))
+                    .DistinctBy(a => a.VideoLocalID).ToList();
+                foreach (var videoLocal in files)
+                {
+                    if (!vidsToUpdate.Contains(videoLocal.VideoLocalID))
+                    {
+                        vidsToUpdate.Add(videoLocal.VideoLocalID);
+                    }
+                }
+            }
+
             if (!countOnly)
             {
                 foreach (var id in vidsToUpdate)

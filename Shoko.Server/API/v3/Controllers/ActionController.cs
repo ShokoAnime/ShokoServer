@@ -391,6 +391,20 @@ public class ActionController : BaseController
     }
 
     /// <summary>
+    /// Update AniDB Files with missing group info
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("UpdateMissingAniDBFileInfo")]
+    public ActionResult UpdateMissingAniDBFileInfo(bool? missingInfo, bool? outOfDate)
+    {
+        missingInfo ??= true;
+        outOfDate ??= false;
+        Importer.UpdateAniDBFileData(missingInfo.Value, outOfDate.Value, false);
+        return Ok();
+    }
+
+    /// <summary>
     /// Update the AniDB Calendar data for use on the dashboard.
     /// </summary>
     /// <returns></returns>
