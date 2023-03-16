@@ -229,60 +229,50 @@ public class ActionController : BaseController
     [HttpGet("DownloadMissingAniDBAnimeData")]
     public ActionResult UpdateMissingAniDBXML()
     {
-        try
+        // Check existing anime.
+        int index = 0;
+        var queuedCount = 0;
+        var allAnime = RepoFactory.AniDB_Anime.GetAll()
+            .Select(a => a.AnimeID)
+            .OrderBy(a => a)
+            .ToHashSet();
+        _logger.LogInformation("Starting the check for {AllAnimeCount} anime XML files", allAnime.Count);
+        foreach (var animeID in allAnime)
         {
-            // Check existing anime.
-            int index = 0;
-            var queuedCount = 0;
-            var allAnime = RepoFactory.AniDB_Anime.GetAll()
-                .Select(a => a.AnimeID)
-                .OrderBy(a => a)
-                .ToHashSet();
-            _logger.LogInformation("Starting the check for {AllAnimeCount} anime XML files", allAnime.Count);
-            foreach (var animeID in allAnime)
+            if (++index % 10 == 1)
             {
-                if (++index % 10 == 1)
-                {
-                    _logger.LogInformation("Checking anime for XML file {I}/{AllAnimeCount}", index + 1, allAnime.Count);
-                }
-
-                var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
-                var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
-
-                if (rawXml != null)
-                {
-                    continue;
-                }
-
-                Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, true, false, false);
-                queuedCount++;
+                _logger.LogInformation("Checking anime for XML file {I}/{AllAnimeCount}", index + 1, allAnime.Count);
             }
 
-            // Queue missing anime needed by existing files.
-            index = 0;
-            var missingAnime = RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData()
-                .SelectMany(file => file.EpisodeCrossRefs.Select(xRef => xRef.AnimeID))
-                .Distinct()
-                .Where(id => !allAnime.Contains(id))
-                .ToHashSet();
-            _logger.LogInformation("Queueing {MissingAnimeCount} anime XML files", missingAnime.Count);
-            foreach (var animeID in missingAnime)
-            {
-                if (++index % 10 == 1)
-                {
-                    _logger.LogInformation("Queuing missing anime {I}/{MissingAnimeCount}", index + 1, missingAnime.Count);
-                }
+            var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
+            var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
 
-                Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, false, true, true);
-                queuedCount++;
+            if (rawXml != null)
+            {
+                continue;
             }
 
-            _logger.LogInformation("Queued {UpdatedAnime} anime", queuedCount);
+            Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, true, false, false);
+            queuedCount++;
         }
-        catch (Exception e)
+
+        // Queue missing anime needed by existing files.
+        index = 0;
+        var missingAnime = RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData()
+            .SelectMany(file => file.EpisodeCrossRefs.Select(xRef => xRef.AnimeID))
+            .Distinct()
+            .Where(id => !allAnime.Contains(id))
+            .ToHashSet();
+        _logger.LogInformation("Queueing {MissingAnimeCount} anime XML files", missingAnime.Count);
+        foreach (var animeID in missingAnime)
         {
-            _logger.LogError(e, "Error checking and queuing AniDB XML Updates");
-            return InternalError(e.Message);
+            if (++index % 10 == 1)
+            {
+                _logger.LogInformation("Queuing missing anime {I}/{MissingAnimeCount}", index + 1, missingAnime.Count);
+            }
+
+            Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, true, true, true);
+            queuedCount++;
         }
 
         return Ok();
