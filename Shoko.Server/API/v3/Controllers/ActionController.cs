@@ -279,6 +279,44 @@ public class ActionController : BaseController
     }
 
     /// <summary>
+    /// Download any missing anidb release groups.
+    /// </summary>
+    [Authorize("admin")]
+    [HttpGet("DownloadMissingAniDBReleaseGroups")]
+    public ActionResult UpdateMissingAniDBReleaseGroups()
+    {
+        // Queue missing release groups.
+        int index = 0;
+        var queuedCount = 0;
+        var anidbFiles = RepoFactory.AniDB_File.GetAll();
+        var anidbReleaseGroupIDs = RepoFactory.AniDB_ReleaseGroup.GetAll()
+            .Select(group => group.GroupID)
+            .ToHashSet();
+
+        _logger.LogInformation("Starting the check for {AllAniDBFileCount} anidb files for missing release groups", anidbFiles.Count);
+
+        foreach (var anidbFile in anidbFiles)
+        {
+            if (++index % 10 == 1)
+                _logger.LogInformation("Checking anidb files for missing release group {I}/{AllAniDBFileCount}", index + 1, anidbFiles.Count);
+
+            if (anidbReleaseGroupIDs.Contains(anidbFile.GroupID))
+                continue;
+            
+            var command = _commandFactory.Create<CommandRequest_GetReleaseGroup>(c =>
+            {
+                c.GroupID = anidbFile.GroupID;
+                c.ForceRefresh = true;
+            });
+            command.Save();
+        }
+
+        _logger.LogInformation("Queued {UpdatedReleaseGroups} release groups", queuedCount);
+
+        return Ok();
+    }
+
+    /// <summary>
     /// Regenerate All Episode Matchings for TvDB. Generally, don't do this unless there was an error that was fixed.
     /// In those cases, you'd be told to.
     /// </summary>
