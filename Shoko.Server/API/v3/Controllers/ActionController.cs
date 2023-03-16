@@ -279,44 +279,6 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Download any missing anidb release groups.
-    /// </summary>
-    [Authorize("admin")]
-    [HttpGet("DownloadMissingAniDBReleaseGroups")]
-    public ActionResult UpdateMissingAniDBReleaseGroups()
-    {
-        // Queue missing release groups.
-        int index = 0;
-        var queuedCount = 0;
-        var anidbFiles = RepoFactory.AniDB_File.GetAll();
-        var anidbReleaseGroupIDs = RepoFactory.AniDB_ReleaseGroup.GetAll()
-            .Select(group => group.GroupID)
-            .ToHashSet();
-
-        _logger.LogInformation("Starting the check for {AllAniDBFileCount} anidb files for missing release groups", anidbFiles.Count);
-
-        foreach (var anidbFile in anidbFiles)
-        {
-            if (++index % 10 == 1)
-                _logger.LogInformation("Checking anidb files for missing release group {I}/{AllAniDBFileCount}", index + 1, anidbFiles.Count);
-
-            if (anidbReleaseGroupIDs.Contains(anidbFile.GroupID))
-                continue;
-            
-            var command = _commandFactory.Create<CommandRequest_GetReleaseGroup>(c =>
-            {
-                c.GroupID = anidbFile.GroupID;
-                c.ForceRefresh = true;
-            });
-            command.Save();
-        }
-
-        _logger.LogInformation("Queued {UpdatedReleaseGroups} release groups", queuedCount);
-
-        return Ok();
-    }
-
-    /// <summary>
     /// Regenerate All Episode Matchings for TvDB. Generally, don't do this unless there was an error that was fixed.
     /// In those cases, you'd be told to.
     /// </summary>
@@ -391,16 +353,17 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Update AniDB Files with missing group info
+    /// Update AniDB Files with missing file info, including with missing release
+    /// groups and/or with out-of-date internal data versions.
     /// </summary>
+    /// <param name="missingInfo">Update files with missing release group info</param>
+    /// <param name="outOfDate">Update files with and out-of-date internal version.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("UpdateMissingAniDBFileInfo")]
-    public ActionResult UpdateMissingAniDBFileInfo(bool? missingInfo, bool? outOfDate)
+    public ActionResult UpdateMissingAniDBFileInfo([FromQuery] bool missingInfo = true, [FromQuery] bool outOfDate = false)
     {
-        missingInfo ??= true;
-        outOfDate ??= false;
-        Importer.UpdateAniDBFileData(missingInfo.Value, outOfDate.Value, false);
+        Importer.UpdateAniDBFileData(missingInfo, outOfDate, false);
         return Ok();
     }
 

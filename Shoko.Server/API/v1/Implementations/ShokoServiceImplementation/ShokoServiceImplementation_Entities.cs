@@ -923,7 +923,15 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("AniDB/Refresh/{missingInfo}/{outOfDate}/{countOnly}")]
     public int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly)
     {
-        return Importer.UpdateAniDBFileData(missingInfo, outOfDate, countOnly);
+        try
+        {
+            return Importer.UpdateAniDBFileData(missingInfo, outOfDate, countOnly);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, ex.ToString());
+            return 0;
+        }
     }
 
     [HttpPost("File/Refresh/{videoLocalID}")]

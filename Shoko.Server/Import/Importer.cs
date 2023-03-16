@@ -1155,56 +1155,49 @@ public static class Importer
     }
 
 
-    public static int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly)
+    public static int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool dryRun)
     {
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        var vidsToUpdate = new List<int>();
-        try
+        var vidsToUpdate = new HashSet<int>();
+        if (outOfDate)
         {
-            if (outOfDate)
-            {
-                var vids = RepoFactory.VideoLocal.GetByInternalVersion(1);
+            var files = RepoFactory.VideoLocal.GetByInternalVersion(1);
 
-                foreach (var vid in vids)
-                {
-                    if (!vidsToUpdate.Contains(vid.VideoLocalID))
-                    {
-                        vidsToUpdate.Add(vid.VideoLocalID);
-                    }
-                }
-            }
-
-            if (missingInfo)
+            foreach (var file in files)
             {
-                var files = RepoFactory.AniDB_File.GetAll().Where(a => a.GroupID == 0).Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash))
-                    .DistinctBy(a => a.VideoLocalID).ToList();
-                foreach (var videoLocal in files)
-                {
-                    if (!vidsToUpdate.Contains(videoLocal.VideoLocalID))
-                    {
-                        vidsToUpdate.Add(videoLocal.VideoLocalID);
-                    }
-                }
-            }
-
-            if (!countOnly)
-            {
-                foreach (var id in vidsToUpdate)
-                {
-                    var cmd = commandFactory.Create<CommandRequest_GetFile>(
-                        c =>
-                        {
-                            c.VideoLocalID = id;
-                            c.ForceAniDB = true;
-                        }
-                    );
-                    cmd.Save();
-                }
+                vidsToUpdate.Add(file.VideoLocalID);
             }
         }
-        catch (Exception ex)
+
+        if (missingInfo)
         {
-            Logger.Error(ex, ex.ToString());
+            var anidbReleaseGroupIDs = RepoFactory.AniDB_ReleaseGroup.GetAll()
+                .Select(group => group.GroupID)
+                .ToHashSet();
+            var files = RepoFactory.AniDB_File.GetAll()
+                .Where(a => a.GroupID == 0 || !anidbReleaseGroupIDs.Contains(a.GroupID))
+                .Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash))
+                .DistinctBy(a => a.VideoLocalID)
+                .ToList();
+            foreach (var file in files)
+            {
+                vidsToUpdate.Add(file.VideoLocalID);
+            }
+        }
+
+        if (!dryRun)
+        {
+            foreach (var id in vidsToUpdate)
+            {
+                var cmd = commandFactory.Create<CommandRequest_GetFile>(
+                    c =>
+                    {
+                        c.VideoLocalID = id;
+                        c.ForceAniDB = true;
+                    }
+                );
+                cmd.Save();
+            }
         }
 
         return vidsToUpdate.Count;
