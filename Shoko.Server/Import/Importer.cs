@@ -1176,7 +1176,7 @@ public static class Importer
             var anidbReleaseGroupIDs = RepoFactory.AniDB_ReleaseGroup.GetAll()
                 .Select(group => group.GroupID)
                 .ToHashSet();
-            var missingGroups = RepoFactory.AniDB_File.GetAll().Select(a => a.GroupID).Where(a => !anidbReleaseGroupIDs.Contains(a)).ToList();
+            var missingGroups = RepoFactory.AniDB_File.GetAll().Select(a => a.GroupID).Where(a => a != 0 && !anidbReleaseGroupIDs.Contains(a)).ToList();
             groupsToUpdate.UnionWith(missingGroups);
 
             var missingFiles = RepoFactory.AniDB_File.GetAll()
@@ -1184,7 +1184,6 @@ public static class Importer
                 .Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash))
                 .Where(f => f != null)
                 .Select(a => a.VideoLocalID)
-                .Distinct()
                 .ToList();
             vidsToUpdate.UnionWith(missingFiles);
         }
