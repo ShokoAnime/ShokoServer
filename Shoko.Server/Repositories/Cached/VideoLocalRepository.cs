@@ -376,7 +376,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     public List<SVR_VideoLocal> GetRandomFiles(int maxResults)
     {
-        var values = ReadLock(Cache.Values.ToList);
+        var values = ReadLock(Cache.Values.ToList).Where(a => a.EpisodeCrossRefs.Any()).ToList();
 
         using var en = new UniqueRandoms(0, values.Count - 1).GetEnumerator();
         var vids = new List<SVR_VideoLocal>();
