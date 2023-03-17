@@ -1157,8 +1157,10 @@ public static class Importer
 
     public static int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool dryRun)
     {
+        Logger.Info("Updating Missing AniDB_File Info");
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         var vidsToUpdate = new HashSet<int>();
+        var groupsToUpdate = new HashSet<int>();
         if (outOfDate)
         {
             var files = RepoFactory.VideoLocal.GetByInternalVersion(1);
@@ -1174,31 +1176,32 @@ public static class Importer
             var anidbReleaseGroupIDs = RepoFactory.AniDB_ReleaseGroup.GetAll()
                 .Select(group => group.GroupID)
                 .ToHashSet();
-            var files = RepoFactory.AniDB_File.GetAll()
-                .Where(a => a.GroupID == 0 || !anidbReleaseGroupIDs.Contains(a.GroupID))
+            var missingGroups = RepoFactory.AniDB_File.GetAll().Select(a => a.GroupID).Where(a => !anidbReleaseGroupIDs.Contains(a)).ToList();
+            groupsToUpdate.UnionWith(missingGroups);
+
+            var missingFiles = RepoFactory.AniDB_File.GetAll()
+                .Where(a => a.GroupID == 0)
                 .Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash))
                 .Where(f => f != null)
-                .DistinctBy(a => a.VideoLocalID)
+                .Select(a => a.VideoLocalID)
+                .Distinct()
                 .ToList();
-            foreach (var file in files)
-            {
-                vidsToUpdate.Add(file.VideoLocalID);
-            }
+            vidsToUpdate.UnionWith(missingFiles);
         }
 
         if (!dryRun)
         {
-            foreach (var id in vidsToUpdate)
-            {
-                var cmd = commandFactory.Create<CommandRequest_GetFile>(
-                    c =>
-                    {
-                        c.VideoLocalID = id;
-                        c.ForceAniDB = true;
-                    }
-                );
-                cmd.Save();
-            }
+            Logger.Info("Queuing {0} GetFile commands", vidsToUpdate.Count);
+            vidsToUpdate.Select(id => commandFactory.Create<CommandRequest_GetFile>(
+                c =>
+                {
+                    c.VideoLocalID = id;
+                    c.ForceAniDB = true;
+                }
+            )).ForEach(a => a.Save());
+
+            Logger.Info("Queuing {0} GetReleaseGroup commands", groupsToUpdate.Count);
+            groupsToUpdate.Select(a => commandFactory.Create<CommandRequest_GetReleaseGroup>(c => c.GroupID = a)).ForEach(a => a.Save());
         }
 
         return vidsToUpdate.Count;
