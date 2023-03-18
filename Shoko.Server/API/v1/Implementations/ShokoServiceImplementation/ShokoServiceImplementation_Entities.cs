@@ -106,6 +106,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             return
                 RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID)
+                    .Where(a => a != null && !a.IsHidden)
                     .Select(a => a.GetUserContract(userID))
                     .Where(a => a != null)
                     .Where(a => a.WatchedCount == 0)
@@ -1266,6 +1267,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             return
                 RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID)
+                    .Where(a => a != null && !a.IsHidden)
                     .Select(a => a.GetUserContract(userID))
                     .Where(a => a != null)
                     .ToList();
