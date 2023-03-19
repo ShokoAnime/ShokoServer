@@ -7,14 +7,15 @@ namespace Shoko.Server.FileHelper;
 
 internal class NativeHasher
 {
-    public static (string e2dk, string crc32, string md5, string sha1) GetHash(string filename)
+    public static (string e2dk, string crc32, string md5, string sha1) GetHash(string filename, bool hashCRC, bool hashMD5, bool hashSHA1)
     {
         var sb = new StringBuilder();
         Native.rhash_library_init();
-        var ctx = Native.rhash_init(RHashIds.RHASH_ED2K | RHashIds.RHASH_CRC32 | RHashIds.RHASH_MD5 |
-                                    RHashIds.RHASH_SHA1);
-
-        string e2dk = "", crc32 = "", md5 = "", sha1 = "";
+        var ids = RHashIds.RHASH_ED2K;
+        if (hashCRC) ids |= RHashIds.RHASH_CRC32;
+        if (hashMD5) ids |= RHashIds.RHASH_MD5;
+        if (hashSHA1) ids |= RHashIds.RHASH_SHA1;
+        var ctx = Native.rhash_init(ids);
 
         using (Stream source = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
         {
@@ -32,16 +33,16 @@ internal class NativeHasher
         var output = Marshal.AllocHGlobal(200);
 
         Native.rhash_print(output, ctx, RHashIds.RHASH_ED2K, RhashPrintSumFlags.RHPR_DEFAULT);
-        e2dk = Marshal.PtrToStringAnsi(output);
+        var e2dk = Marshal.PtrToStringAnsi(output);
 
         Native.rhash_print(output, ctx, RHashIds.RHASH_CRC32, RhashPrintSumFlags.RHPR_DEFAULT);
-        crc32 = Marshal.PtrToStringAnsi(output);
+        var crc32 = Marshal.PtrToStringAnsi(output);
 
         Native.rhash_print(output, ctx, RHashIds.RHASH_MD5, RhashPrintSumFlags.RHPR_DEFAULT);
-        md5 = Marshal.PtrToStringAnsi(output);
+        var md5 = Marshal.PtrToStringAnsi(output);
 
         Native.rhash_print(output, ctx, RHashIds.RHASH_SHA1, RhashPrintSumFlags.RHPR_DEFAULT);
-        sha1 = Marshal.PtrToStringAnsi(output);
+        var sha1 = Marshal.PtrToStringAnsi(output);
 
         Marshal.FreeHGlobal(output);
 

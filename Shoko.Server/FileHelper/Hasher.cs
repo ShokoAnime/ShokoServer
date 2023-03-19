@@ -140,37 +140,19 @@ public class Hasher
                         : @"\\?\" + strPath; //only prepend non-UNC paths (or paths that have this already)
                 }
 
-                (var e2Dk, var crc32, var md5, var sha1) = NativeHasher.GetHash(filename);
+                var (e2Dk, crc32, md5, sha1) = NativeHasher.GetHash(filename, getCRC32, getMD5, getSHA1);
                 rhash.ED2K = e2Dk;
-                if (!string.IsNullOrEmpty(rhash.ED2K))
-                {
-                    gotHash = true;
-                }
-
-                if (getCRC32)
-                {
-                    rhash.CRC32 = crc32;
-                }
-
-                if (getMD5)
-                {
-                    rhash.MD5 = md5;
-                }
-
-                if (getSHA1)
-                {
-                    rhash.SHA1 = sha1;
-                }
+                if (!string.IsNullOrEmpty(rhash.ED2K)) gotHash = true;
+                if (getCRC32) rhash.CRC32 = crc32;
+                if (getMD5) rhash.MD5 = md5;
+                if (getSHA1) rhash.SHA1 = sha1;
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
             }
 
-            if (gotHash)
-            {
-                return rhash;
-            }
+            if (gotHash) return rhash;
 
             logger.Error("Error using DLL to get hash (Functon returned {0}), trying C# code instead: {0}", rval,
                 strPath);
