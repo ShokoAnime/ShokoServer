@@ -23,5 +23,7 @@ public class ResponseEpisode
 
     public DateTime? AirDate { get; set; }
 
+    public DateTime LastUpdated { get; set; }
+
     public List<ResponseTitle> Titles = new();
 }

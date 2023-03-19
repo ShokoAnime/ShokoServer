@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
 {
     public string Name { get; } = "MySQL";
-    public int RequiredVersion { get; } = 112;
+    public int RequiredVersion { get; } = 113;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -727,6 +727,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
         new(112, 2, "ALTER TABLE AniDB_Anime DROP COLUMN AnimePlanetID;"),
         new(112, 3, "ALTER TABLE AniDB_Anime DROP COLUMN AnimeNfo;"),
         new(112, 4, "ALTER TABLE AniDB_Anime ADD LainID INT NULL"),
+        new(113, 1, DatabaseFixes.FixEpisodeDateTimeUpdated),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
