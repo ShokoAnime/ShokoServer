@@ -876,4 +876,116 @@ public class DatabaseFixes
 
         logger.Info($"Done updating anidb tags for {animeList.Count} anidb anime entries.");
     }
+
+    public static void FixEpisodeDateTimeUpdated()
+    {
+        var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
+        var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
+        var animeCreator = Utils.ServiceContainer.GetRequiredService<AnimeCreator>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var anidbAnimeDict = RepoFactory.AniDB_Anime.GetAll()
+            .ToDictionary(an => an.AnimeID);
+        var anidbEpisodeDict = RepoFactory.AniDB_Episode.GetAll()
+            .ToDictionary(ep => ep.EpisodeID);
+        var anidbAnimeIDs = anidbEpisodeDict.Values
+            .GroupBy(ep => ep.AnimeID)
+            .Where(list => anidbAnimeDict.ContainsKey(list.Key))
+            .ToDictionary(list => anidbAnimeDict[list.Key], list => list.ToList());
+        // This list will _hopefully_ initially be an empty…
+        var episodesToSave = anidbEpisodeDict.Values
+            .Where(ep => !anidbAnimeDict.ContainsKey(ep.AnimeID))
+            .ToList();
+        var animeToUpdateSet = anidbEpisodeDict.Values
+            .Where(ep => !anidbAnimeDict.ContainsKey(ep.AnimeID))
+            .Select(ep => ep.AnimeID)
+            .Distinct()
+            .ToHashSet();
+
+        logger.Info($"Updating last updated episode timestamps for {anidbAnimeIDs.Count} local anidb anime entries...");
+
+        // …but if we do have any, then reset their timestamp now.
+        foreach (var faultyEpisode in episodesToSave)
+            faultyEpisode.DateTimeUpdated = DateTime.UnixEpoch;
+
+        var faultyCount = episodesToSave.Count;
+        var resetCount = 0;
+        var updatedCount = 0;
+        var progressCount = 0;
+        foreach (var (anime, episodeList) in anidbAnimeIDs)
+        {
+            if (++progressCount % 10 == 0)
+                logger.Info($"Updating last updated episode timestamps for local anidb anime entries... ({progressCount}/{anidbAnimeIDs.Count})");
+
+            var xml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID);
+            if (string.IsNullOrEmpty(xml))
+            {
+                logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
+                // We're unable to find the xml file, so the safest thing to do for future-proofing is to reset the dates.
+                foreach (var episode in episodeList)
+                {
+                    resetCount++;
+                    episode.DateTimeUpdated = DateTime.UnixEpoch;
+                    episodesToSave.Add(episode);
+                }
+                continue;
+            }
+
+            ResponseGetAnime response;
+            try
+            {
+                response = animeParser.Parse(anime.AnimeID, xml);
+                if (response == null) throw new NullReferenceException(nameof(response));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, $"Unable to parse cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
+                // We're unable to parse the xml file, so the safest thing to do for future-proofing is to reset the dates.
+                foreach (var episode in episodeList)
+                {
+                    resetCount++;
+                    episode.DateTimeUpdated = DateTime.UnixEpoch;
+                    episodesToSave.Add(episode);
+                }
+                continue;
+            }
+
+            var responseEpisodeDict = response.Episodes.ToDictionary(ep => ep.EpisodeID);
+            foreach (var episode in episodeList)
+            {
+                // The episode was found in the XML file, so we can safely update the timestamp.
+                if (responseEpisodeDict.TryGetValue(episode.EpisodeID, out var responseEpisode))
+                {
+                    updatedCount++;
+                    episode.DateTimeUpdated = responseEpisode.LastUpdated;
+                    episodesToSave.Add(episode);
+                }
+                // The episode was deleted from the anime at some point, or the cache is outdated.
+                else
+                {
+                    episode.DateTimeUpdated = DateTime.UnixEpoch;
+                    faultyCount++;
+                    episodesToSave.Add(episode);
+                    animeToUpdateSet.Add(episode.AnimeID);
+                }
+            }
+        }
+
+        // Save the changes, if any.
+        RepoFactory.AniDB_Episode.Save(episodesToSave);
+
+        // Queue an update for the anime entries that needs it, hopefully fixing
+        // the faulty episodes after the update.
+        foreach (var animeID in animeToUpdateSet)
+        {
+            var command = commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+            {
+                c.AnimeID = animeID;
+                c.ForceRefresh = true;
+                c.DownloadRelations = false;
+            });
+            command.Save();
+        }
+
+        logger.Info($"Done updating last updated episode timestamps for {anidbAnimeIDs.Count} local anidb anime entries. Updated {updatedCount} episodes, reset {resetCount} episodes and queued anime {animeToUpdateSet.Count} updates for {faultyCount} faulty episodes.");
+    }
 }

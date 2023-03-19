@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
 {
     public string Name { get; } = "SQLServer";
-    public int RequiredVersion { get; } = 105;
+    public int RequiredVersion { get; } = 106;
 
     public void BackupDatabase(string fullfilename)
     {
@@ -678,6 +678,7 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
         new DatabaseCommand(105, 2, "ALTER TABLE AniDB_Anime DROP COLUMN AnimePlanetID;"),
         new DatabaseCommand(105, 3, "ALTER TABLE AniDB_Anime DROP COLUMN AnimeNfo;"),
         new DatabaseCommand(105, 4, "ALTER TABLE AniDB_Anime ADD LainID INT NULL"),
+        new DatabaseCommand(106, 1, DatabaseFixes.FixEpisodeDateTimeUpdated),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
