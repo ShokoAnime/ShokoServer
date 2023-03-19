@@ -51,17 +51,6 @@ jobs:
           tag: ${{ steps.release_info.outputs.tag }}
           file_glob: true
 
-      - name: Sentry Release
-        uses: getsentry/action-release@v1.2.1
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-          # SENTRY_URL: https://sentry.io/
-        with:
-          environment: 'stable'
-          version: ${{ steps.release_info.outputs.version }}
-
   cli-standalone-stable:
     runs-on: ubuntu-latest
 
@@ -108,7 +97,7 @@ jobs:
           file_glob: true
 
   tray-service-framework-stable:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     strategy:
       matrix:
@@ -152,7 +141,7 @@ jobs:
           file_glob: true
 
   tray-service-standalone-stable:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     strategy:
       matrix:
@@ -194,3 +183,65 @@ jobs:
           file: ./Shoko.TrayService*.zip
           tag: ${{ steps.release_info.outputs.tag }}
           file_glob: true
+
+      - name: Build Installer
+        run: iscc /O".\\" ".\\Installer\\ShokoServer.iss"
+
+      - name: Upload Installer to GitHub
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./Shoko.Setup.exe
+          tag: ${{ steps.release_info.outputs.tag }}
+          file_glob: true
+
+      - name: Upload Installer to shokoanime.com
+        shell: pwsh
+        run:
+          $user = "${{ secrets.FTP_USERNAME }}";
+          $password = "${{ secrets.FTP_PASSWORD }}";
+          $ftp_server = "${{ secrets.FTP_SERVER }}";
+          $filename = "Shoko_Server_${{ steps.release_info.outputs.version }}.exe";
+
+          $current = [string](Get-Location);
+          $client = New-Object System.Net.WebClient;
+          $client.Credentials = New-Object System.Net.NetworkCredential($user, $password);
+          $client.UploadFile([string]($ftp_server) + "/files/shoko-server/" + $filename, [string]($current) + "\\Shoko.Setup.exe");
+
+  sentry-upload:
+    runs-on: ubuntu-latest
+
+    needs:
+      - cli-framework-stable
+      - cli-standalone-stable
+      - tray-service-framework-stable
+      - tray-service-standalone-stable
+
+    name: Upload version info to Sentry.io
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.ref }}"
+          submodules: recursive
+          fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Get release version
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          tag: "${{ github.ref }}"
+          prefix: v
+          prefixRegex: "[vV]?"
+
+      - name: Publish release
+        uses: getsentry/action-release@v1.2.1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          # SENTRY_URL: https://sentry.io/
+        with:
+          environment: 'stable'
+          version: ${{ steps.release_info.outputs.version }}
