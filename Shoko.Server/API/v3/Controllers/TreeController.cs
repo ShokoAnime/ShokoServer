@@ -611,11 +611,12 @@ public class TreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <param name="isManuallyLinked">Omit to select all files. Set to true to only select manually
     /// linked files, or set to false to only select automatically linked files.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/File")]
     public ActionResult<List<File>> GetFilesForSeries([FromRoute] int seriesID, [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
-        [FromQuery] bool? isManuallyLinked = null)
+        [FromQuery] bool? isManuallyLinked = null, [FromQuery] bool includeMediaInfo = false)
     {
         var user = User;
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -630,7 +631,7 @@ public class TreeController : BaseController
         }
 
         return series.GetVideoLocals(isManuallyLinked.HasValue ? isManuallyLinked.Value ? CrossRefSource.User : CrossRefSource.AniDB : null)        
-            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom))
+            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo))
             .ToList();
     }
 
@@ -646,11 +647,12 @@ public class TreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <param name="isManuallyLinked">Omit to select all files. Set to true to only select manually
     /// linked files, or set to false to only select automatically linked files.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/File")]
     public ActionResult<List<File>> GetFilesForEpisode([FromRoute] int episodeID, [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
-        [FromQuery] bool? isManuallyLinked = null)
+        [FromQuery] bool? isManuallyLinked = null, [FromQuery] bool includeMediaInfo = false)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -670,7 +672,7 @@ public class TreeController : BaseController
         }
 
         return episode.GetVideoLocals(isManuallyLinked.HasValue ? isManuallyLinked.Value ? CrossRefSource.User : CrossRefSource.AniDB : null)
-            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom))
+            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo))
             .ToList();
     }
 

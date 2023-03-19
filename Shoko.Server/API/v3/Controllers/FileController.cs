@@ -52,16 +52,18 @@ public class FileController : BaseController
     /// <param name="fileID">Shoko VideoLocalID</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
     /// <returns></returns>
     [HttpGet("{fileID}")]
     public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery] bool includeMediaInfo = false)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        return new File(HttpContext, file, includeXRefs, includeDataFrom);
+        return new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo);
     }
 
     /// <summary>
@@ -138,10 +140,12 @@ public class FileController : BaseController
     /// <param name="anidbFileID">AniDB File ID</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbFileID}/File")]
     public ActionResult<File> GetFileByAnidbFileID([FromRoute] int anidbFileID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery] bool includeMediaInfo = false)
     {
         var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
         if (anidb == null)
@@ -151,7 +155,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(AnidbNotFoundForFileID);
 
-        return new File(HttpContext, file, includeXRefs, includeDataFrom);
+        return new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo);
     }
 
     /// <summary>

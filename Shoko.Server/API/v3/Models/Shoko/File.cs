@@ -98,7 +98,13 @@ public class File
     [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
     public AniDB _AniDB { get; set; }
 
-    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSourceType> includeDataFrom = null)
+    /// <summary>
+    /// The <see cref="MediaInfo"/>, if to-be included in the response data.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public MediaInfo MediaInfo { get; set; }
+
+    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSourceType> includeDataFrom = null, bool includeMediaInfo = false)
     {
         var userID = context?.GetUser()?.JMMUserID ?? 0;
         var userRecord = file.GetUserRecord(userID);
@@ -158,6 +164,14 @@ public class File
             var anidbFile = file.GetAniDBFile();
             if (anidbFile != null)
                 this._AniDB = new File.AniDB(anidbFile);
+        }
+
+        if (includeMediaInfo)
+        {
+            var mediaContainer = file?.Media;
+            if (mediaContainer == null)
+                throw new Exception("Unable to find media container for File");
+            MediaInfo = new MediaInfo(file, mediaContainer);
         }
     }
 
