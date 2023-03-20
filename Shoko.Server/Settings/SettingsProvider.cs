@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
@@ -357,11 +357,6 @@ public class SettingsProvider : ISettingsProvider
             if (!IsPrimitive(type))
             {
                 value = Serialize(value);
-            }
-
-            if (prop.Name.ToLower().EndsWith("password"))
-            {
-                value = "***HIDDEN***";
             }
 
             _logger.LogInformation("{Path}.{PropName}: {Value}", path, prop.Name, value);
