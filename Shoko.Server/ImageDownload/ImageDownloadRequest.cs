@@ -55,6 +55,9 @@ public class ImageDownloadRequest
             _ => string.Empty
         };
 
+    public bool IsImageValid
+        => !string.IsNullOrEmpty(DownloadUrl) && !string.IsNullOrEmpty(FilePath) && File.Exists(FilePath) && Misc.IsImageValid(FilePath);
+
     private bool ShouldAniDBRateLimit 
         => ImageData switch
         {
@@ -82,7 +85,7 @@ public class ImageDownloadRequest
 
         var imageValid = File.Exists(FilePath) && Misc.IsImageValid(FilePath);
         if (imageValid && !ForceDownload)
-            return true;
+            return false;
 
         var tempPath = Path.Combine(ImageUtils.GetImagesTempFolder(), Path.GetFileName(FilePath));
         try

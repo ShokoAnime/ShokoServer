@@ -128,6 +128,8 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
                     // If this has any issues, it will throw an exception, so the catch below will handle it.
                     if (req.DownloadNow())
                         Logger.LogInformation("Image downloaded: {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                    else if (req.IsImageValid)
+                        Logger.LogTrace("Image already in cache: {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
                     else
                         Logger.LogWarning("Image failed to download; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
                 }
