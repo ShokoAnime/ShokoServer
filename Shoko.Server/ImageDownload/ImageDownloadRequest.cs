@@ -82,7 +82,7 @@ public class ImageDownloadRequest
 
         var imageValid = File.Exists(FilePath) && Misc.IsImageValid(FilePath);
         if (imageValid && !ForceDownload)
-            return false;
+            return true;
 
         var tempPath = Path.Combine(ImageUtils.GetImagesTempFolder(), Path.GetFileName(FilePath));
         try
