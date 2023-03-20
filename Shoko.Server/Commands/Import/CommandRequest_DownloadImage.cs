@@ -11,7 +11,6 @@ using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -157,7 +156,6 @@ public class CommandRequest_DownloadImage : CommandRequestImplementation
                         return;
                     }
 
-                    AniDbImageRateLimiter.Instance.EnsureRate();
                     req = new ImageDownloadRequest(anime, ForceDownload, _handler.ImageServerUrl);
                     break;
 
@@ -169,7 +167,6 @@ public class CommandRequest_DownloadImage : CommandRequestImplementation
                         return;
                     }
 
-                    AniDbImageRateLimiter.Instance.EnsureRate();
                     req = new ImageDownloadRequest(chr, ForceDownload, _handler.ImageServerUrl);
                     break;
 
@@ -181,7 +178,6 @@ public class CommandRequest_DownloadImage : CommandRequestImplementation
                         return;
                     }
 
-                    AniDbImageRateLimiter.Instance.EnsureRate();
                     req = new ImageDownloadRequest(va, ForceDownload, _handler.ImageServerUrl);
                     break;
             }

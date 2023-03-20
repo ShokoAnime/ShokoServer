@@ -1,12 +1,13 @@
 using System.Net;
 using System.IO;
+using System.Threading;
+using System.Net.Http;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
 using Shoko.Commons.Utils;
-using System.Threading;
-using System.Net.Http;
+using Shoko.Server.Providers.AniDB;
 
 #nullable enable
 namespace Shoko.Server.ImageDownload;
@@ -54,6 +55,15 @@ public class ImageDownloadRequest
             _ => string.Empty
         };
 
+    private bool ShouldAniDBRateLimit 
+        => ImageData switch
+        {
+            AniDB_Character => true,
+            AniDB_Seiyuu => true,
+            SVR_AniDB_Anime => true,
+            _ => false,
+        };
+
     public ImageDownloadRequest(object data, bool forceDownload, string? imageServerUrl = null)
     {
         ImageData = data;
@@ -77,6 +87,10 @@ public class ImageDownloadRequest
         var tempPath = Path.Combine(ImageUtils.GetImagesTempFolder(), Path.GetFileName(FilePath));
         try
         {
+            // Rate limit anidb image requests.
+            if (ShouldAniDBRateLimit)
+                AniDbImageRateLimiter.Instance.EnsureRate();
+
             // Ignore all certificate failures.
             ServicePointManager.Expect100Continue = true;
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
