@@ -13,6 +13,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using NLog.Config;
+using NLog.Filters;
 using NLog.Targets;
 using NLog.Targets.Wrappers;
 using Shoko.Models.Enums;
@@ -101,6 +102,19 @@ public static class Utils
         if (consoleTarget != null)
         {
             consoleTarget.Layout = "${date:format=HH\\:mm\\:ss}| ${logger:shortname=true} --- ${message}";
+        }
+
+        foreach (var loggingRule in LogManager.Configuration.LoggingRules)
+        {
+            if (loggingRule.Targets.Contains(target) || loggingRule.Targets.Contains(consoleTarget) || loggingRule.Targets.Contains(signalrTarget))
+            {
+                loggingRule.FilterDefaultAction = FilterResult.Log;
+                loggingRule.Filters.Add(new ConditionBasedFilter()
+                {
+                    Action = FilterResult.Ignore,
+                    Condition = "(contains(message, 'password') or contains(message, 'token') or contains(message, 'key')) and starts-with(message, 'Settings.')"
+                });
+            }
         }
 
         LogManager.ReconfigExistingLoggers();
