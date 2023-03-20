@@ -46,7 +46,7 @@ Name: "{commonstartup}\Shoko Server"; Filename: "{app}\ShokoServer.exe"; Tasks: 
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Shoko Server - Client Port"" dir=in action=allow protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
 Filename: "{app}\ShokoServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,Shoko Server}"
 Filename: "https://docs.shokoanime.com/server/install/"; Flags: shellexec runasoriginaluser postinstall; Description: "Shoko Server Install Guide"
-Filename: "https://shokoanime.com/blog/shoko-version-{#AppSlug}-released/"; Flags: shellexec runasoriginaluser postinstall; Description: "View {#AppVer} Release Notes"
+Filename: "https://shokoanime.com/blog/shoko-version-{#AppSlug}-released/"; Flags: shellexec runasoriginaluser postinstall; Check: BlogPostCheck; Description: "View {#AppVer} Release Notes" 
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Shoko Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
@@ -63,6 +63,18 @@ Source: ".\FixPermissions.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\net6.0-windows\win10-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Code]
+
+{ ///////////////////////////////////////////////////////////////////// }
+function BlogPostCheck(): Boolean;
+var
+  WinHttpReq: Variant;
+begin
+  WinHttpReq := CreateOleObject('WinHttp.WinHttpRequest.5.1');
+  WinHttpReq.Open('GET', 'https://shokoanime.com/blog/shoko-version-{#AppSlug}-released/', False);
+  WinHttpReq.Send('');
+  if WinHttpReq.Status := 200 then Result := True;
+  if WinHttpReq.Status <> 200 then Result := False;
+end;
 
 { ///////////////////////////////////////////////////////////////////// }
 function GetUninstallString(): String;
