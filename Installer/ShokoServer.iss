@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define AppVer GetVersionNumbersString('..\Shoko.Server\bin\Release\net6.0-windows\win10-x64\ShokoServer.exe')
-#define AppSlug Copy(StringChange(AppVer, ".", "-"), 1, Len(AppVer) - 2)
+#define AppSlug Copy(StringChange(AppVer, ".", ""), 1, Len(AppVer) - 1)
 #define MyAppExeName "ShokoServer.exe"
 
 [Setup]
@@ -46,7 +46,7 @@ Name: "{commonstartup}\Shoko Server"; Filename: "{app}\ShokoServer.exe"; Tasks: 
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Shoko Server - Client Port"" dir=in action=allow protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Open exception on firewall..."; Tasks: Firewall
 Filename: "{app}\ShokoServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,Shoko Server}"
 Filename: "https://docs.shokoanime.com/server/install/"; Flags: shellexec runasoriginaluser postinstall; Description: "Shoko Server Install Guide"
-Filename: "https://shokoanime.com/blog/shoko-version-{#AppSlug}-released/"; Flags: shellexec runasoriginaluser postinstall; Check: BlogPostCheck; Description: "View {#AppVer} Release Notes" 
+Filename: "https://shokoanime.com/blog/shoko-version-{#AppSlug}-released/"; Flags: shellexec runasoriginaluser postinstall; Check: BlogPostCheck; Description: "View {#AppVer} Release Notes"
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Shoko Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
