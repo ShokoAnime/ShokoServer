@@ -72,7 +72,7 @@ jobs:
             build_type: 'Standalone'
           - build_props: ''
             build_type: 'Framework'
-          - build_dir: '/net6.0'
+          - build_dir: '/net6.0-windows'
             build_type: 'Framework'
 
     name: Build Tray Service ${{ matrix.build_type }} (Daily)
