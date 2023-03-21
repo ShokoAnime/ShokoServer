@@ -56,7 +56,7 @@ jobs:
 
     strategy:
       matrix:
-        rid: ['win-x64', 'linux-x64']
+        rid: ['win-x64', 'linux-x64', 'linux-arm64']
         dotnet: [ '6.x' ]
 
     name: Build CLI — Standalone ${{ matrix.rid }} (Stable)
@@ -76,6 +76,12 @@ jobs:
           tag: "${{ github.ref }}"
           prefix: v
           prefixRegex: "[vV]?"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: arm64
+        if: ${{ matrix.rid == 'linux-arm64' }}
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v1

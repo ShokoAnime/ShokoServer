@@ -69,7 +69,7 @@ jobs:
 
     strategy:
       matrix:
-        rid: ['win-x64', 'linux-x64']
+        rid: ['win-x64', 'linux-x64', 'linux-arm64']
         dotnet: [ '6.x' ]
 
     name: Build CLI — Standalone ${{ matrix.rid }} (Daily)
@@ -82,11 +82,6 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: ${{ matrix.dotnet }}
-
       - name: Get current version
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
@@ -94,6 +89,17 @@ jobs:
           branch: true
           prefix: v
           prefixRegex: "[vV]?"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: arm64
+        if: ${{ matrix.rid == 'linux-arm64' }}
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
 
       - run: dotnet publish -c Release -r ${{ matrix.rid }} Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=dev,commit=${{ github.sha }}\""
 
