@@ -16,7 +16,6 @@ jobs:
         include:
           - build_type: 'Standalone'
             build_props: ''
-            rid: ['win-x64', 'linux-x64', 'linux-arm64']
           - build_type: 'Framework'
             build_props: '--no-self-contained'
             rid: 'win-x64'
