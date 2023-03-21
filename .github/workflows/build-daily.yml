@@ -109,6 +109,50 @@ jobs:
           name: Shoko.CLI_Standalone_${{ matrix.rid }}.zip
           path: Shoko.Server/bin/Release/net6.0/${{matrix.rid}}/publish/
 
+  cli-standalone-daily-linux-two:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        dotnet: [ '6.x' ]
+
+    name: Build CLI — Standalone linux-x64 (Daily) no matrix
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+          fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Get current version
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          branch: true
+          prefix: v
+          prefixRegex: "[vV]?"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: arm64
+        if: ${{ matrix.rid == 'linux-arm64' }}
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - run: dotnet publish -c Release -r linux-x64 Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=dev,commit=${{ github.sha }}\""
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Shoko.CLI_Standalone_linux-x64.zip
+          path: Shoko.Server/bin/Release/net6.0/${{matrix.rid}}/publish/
+
   tray-service-framework-daily:
     runs-on: windows-latest
 
