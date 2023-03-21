@@ -33,7 +33,7 @@ jobs:
 
       - name: Replace Sentry DSN key
         shell: pwsh
-        run: .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+        run: ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
 
       - name: Get current version
         id: release_info
