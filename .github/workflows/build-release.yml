@@ -211,11 +211,9 @@ jobs:
           $version = $version.Substring(0, $version.Length - 2);
 
           $current = [string](Get-Location);
-          $url = "$ftp_server/files/shoko-server/Shoko-Server-Setup-$version.exe";
-          $filepath = "$current\\Shoko.Setup.exe"
           $client = New-Object System.Net.WebClient;
           $client.Credentials = New-Object System.Net.NetworkCredential($username, $password);
-          $client.UploadFile($url, $filepath);
+          $client.UploadFile("$ftp_server/files/shoko-server/Shoko-Server-Setup-$version.exe", "$current\\Shoko.Setup.exe");
 
   sentry-upload:
     runs-on: ubuntu-latest
