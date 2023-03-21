@@ -132,15 +132,24 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
-      - name: Get release version
+      - name: Get current version
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
-          tag: "${{ github.ref }}"
+          branch: true
           prefix: v
           prefixRegex: "[vV]?"
 
-      - name: Publish release
+      - id: commit_info
+        name: Shorten commit sha for Sentry Release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const sha = context.sha.substring(0, 7);
+            core.setOutput("sha", sha);
+
+      # Only add the release to sentry if the build is successful.
+      - name: Sentry Release
         uses: getsentry/action-release@v1.2.1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -148,5 +157,5 @@ jobs:
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           # SENTRY_URL: https://sentry.io/
         with:
-          environment: 'stable'
-          version: ${{ steps.release_info.outputs.version }}
+          environment: 'dev'
+          version: ${{ steps.release_info.outputs.version }}-dev-${{ steps.commit_info.outputs.sha }}
