@@ -13,14 +13,15 @@ jobs:
       matrix:
         rid: ['win-x64', 'linux-x64', 'linux-arm64']
         dotnet: [ '6.x' ]
-        build_props: ['', '--no-self-contained']
         include:
           - build_type: 'Standalone'
             build_props: ''
+            rid: ['win-x64', 'linux-x64', 'linux-arm64']
           - build_type: 'Framework'
             build_props: '--no-self-contained'
+            rid: 'win-x64'
 
-    name: Build CLI — Standalone ${{ matrix.rid }} (Daily)
+    name: Build CLI — ${{ matrix.build_type }} ${{ matrix.rid }} (Daily)
 
     steps:
       - name: Checkout master
@@ -91,7 +92,7 @@ jobs:
           - build_type: 'Framework'
             build_props: ''
 
-    name: Build Tray Service (Daily)
+    name: Build Tray Service ${{ matrix.build_type }} (Daily)
 
     steps:
       - name: Checkout master
