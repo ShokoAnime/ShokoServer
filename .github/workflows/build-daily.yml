@@ -11,14 +11,14 @@ jobs:
 
     strategy:
       matrix:
-        rid: ['win-x64', 'linux-x64', 'linux-arm64']
+        rid: ['linux-x64', 'linux-arm64']
         dotnet: [ '6.x' ]
         include:
           - build_type: 'Standalone'
             build_props: ''
           - build_type: 'Framework'
             build_props: '--no-self-contained'
-            rid: 'win-x64'
+            rid: 'linux-x64'
 
     name: Build CLI — ${{ matrix.build_type }} ${{ matrix.rid }} (Daily)
 
@@ -63,12 +63,16 @@ jobs:
     strategy:
       matrix:
         dotnet: [ '6.x' ]
-        build_props: [ '-r win10-x64 --self-contained true -f net6.0-windows', '' ]
+        build_type: ['Standalone', 'Framework']
         include:
-          - build_type: 'Standalone'
-            build_props: '-r win10-x64 --self-contained true -f net6.0-windows'
-          - build_type: 'Framework'
-            build_props: ''
+          - build_props: '-r win10-x64 --self-contained true -f net6.0-windows'
+            build_type: 'Standalone'
+          - build_dir: '/net6.0-windows/win10-x64'
+            build_type: 'Standalone'
+          - build_props: ''
+            build_type: 'Framework'
+          - build_dir: '/net6.0'
+            build_type: 'Framework'
 
     name: Build Tray Service ${{ matrix.build_type }} (Daily)
 
@@ -99,7 +103,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: Shoko.TrayService_${{ matrix.build_type }}_win10-x64.zip
-          path: Shoko.Server/bin/Release/net6.0-windows/win10-x64/publish/
+          path: Shoko.Server/bin/Release${{ matrix.build_dir }}/publish/
 
       - name: Upload to shokoanime.com
         if: ${{ matrix.build_type == 'Standalone' }}
