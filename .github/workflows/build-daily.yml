@@ -13,11 +13,12 @@ jobs:
       matrix:
         rid: ['linux-x64', 'linux-arm64']
         dotnet: [ '6.x' ]
+        build_type: ['Standalone', 'Framework']
         include:
-          - build_type: 'Standalone'
-            build_props: ''
-          - build_type: 'Framework'
-            build_props: '--no-self-contained'
+          - build_props: ''
+            build_type: 'Standalone'
+          - build_props: '--no-self-contained'
+            build_type: 'Framework'
             rid: 'linux-x64'
 
     name: Build CLI — ${{ matrix.build_type }} ${{ matrix.rid }} (Daily)
