@@ -150,7 +150,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: Shoko.CLI_Standalone_linux-x64.zip
+          name: Shoko.CLI_Standalone_linux-x64_2.zip
           path: Shoko.Server/bin/Release/net6.0/${{matrix.rid}}/publish/
 
   tray-service-framework-daily:
