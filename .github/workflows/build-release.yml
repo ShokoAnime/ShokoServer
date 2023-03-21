@@ -198,15 +198,18 @@ jobs:
       - name: Upload Installer to shokoanime.com
         shell: pwsh
         run:
-          $user = "${{ secrets.FTP_USERNAME }}";
+          $username = "${{ secrets.FTP_USERNAME }}";
           $password = "${{ secrets.FTP_PASSWORD }}";
           $ftp_server = "${{ secrets.FTP_SERVER }}";
-          $filename = "Shoko_Server_${{ steps.release_info.outputs.version }}.exe";
+          $version = "${{ steps.release_info.outputs.version }}";
+          $version = $version.Substring(0, $version.Length - 2);
 
           $current = [string](Get-Location);
+          $url = "$ftp_server/files/shoko-server/Shoko-Server-Setup-$version.exe";
+          $filepath = "$current\\Shoko.Setup.exe"
           $client = New-Object System.Net.WebClient;
-          $client.Credentials = New-Object System.Net.NetworkCredential($user, $password);
-          $client.UploadFile([string]($ftp_server) + "/files/shoko-server/" + $filename, [string]($current) + "\\Shoko.Setup.exe");
+          $client.Credentials = New-Object System.Net.NetworkCredential($username, $password);
+          $client.UploadFile($url, $filepath);
 
   sentry-upload:
     runs-on: ubuntu-latest
