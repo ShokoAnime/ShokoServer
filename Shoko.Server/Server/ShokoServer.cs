@@ -74,7 +74,6 @@ public class ShokoServer
     public static List<UserCulture> userLanguages = new();
 
     private Mutex mutex;
-    private const string SentryDsn = "SENTRY_DSN_KEY_GOES_HERE";
 
     public string[] GetSupportedDatabases()
     {
@@ -126,7 +125,7 @@ public class ShokoServer
     {
         var settings = _settingsProvider.GetSettings();
         // Only try to set up Sentry if the user DID NOT OPT __OUT__.
-        if (!settings.SentryOptOut && SentryDsn.StartsWith("https://"))
+        if (!settings.SentryOptOut && Constants.SentryDsn.StartsWith("https://"))
         {
             // Get the release and extra info from the assembly.
             var extraInfo = Utils.GetApplicationExtraVersion();
@@ -139,7 +138,7 @@ public class ShokoServer
                 _sentry = SentrySdk.Init(opts =>
                 {
                     // Assign the DSN key and release version.
-                    opts.Dsn = SentryDsn;
+                    opts.Dsn = Constants.SentryDsn;
                     opts.Environment = environment;
                     opts.Release = Utils.GetApplicationVersion();
 

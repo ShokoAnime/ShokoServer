@@ -5,6 +5,8 @@ namespace Shoko.Server.Server;
 
 public static class Constants
 {
+    public const string SentryDsn = "SENTRY_DSN_KEY_GOES_HERE";
+
     public static readonly string WebCacheError = @"<error>No Results</error>";
     public static readonly string AniDBTitlesURL = @"http://anidb.net/api/anime-titles.xml.gz";
     public static readonly string AnonWebCacheUsername = @"AnonymousWebCacheUser";
