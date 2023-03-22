@@ -55,6 +55,22 @@ jobs:
           tag: ${{ steps.release_info.outputs.tag }}
           file_glob: true
 
+      - name: Upload Artifact to shokoanime.com
+        if: ${{ matrix.platform != 'Windows' }}
+        shell: pwsh
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        # We upload the framework dependent version for mac, until we know _if_
+        # and _how_ it's possible at all to create a self-contained release for
+        # mac.
+        run:
+          $version = "${{ steps.release_info.outputs.version }}";
+          $version = $version.Substring(0, $version.Length - 2);
+
+          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-$version-mac.zip" -local "Shoko.CLI_Framework_any-x64.zip";
+
   cli-standalone-stable:
     runs-on: ubuntu-latest
 
@@ -109,6 +125,19 @@ jobs:
           file: ./Shoko.CLI*.zip
           tag: ${{ steps.release_info.outputs.tag }}
           file_glob: true
+
+      - name: Upload Artifact to shokoanime.com
+        if: ${{ matrix.rid != 'win-x64' }}
+        shell: pwsh
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        run:
+          $version = "${{ steps.release_info.outputs.version }}";
+          $version = $version.Substring(0, $version.Length - 2);
+
+          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-$version-${{ matrix.rid }}.zip" -local "Shoko.CLI_Standalone_${{ matrix.rid }}.zip";
 
   tray-service-framework-stable:
     runs-on: windows-2022
@@ -219,17 +248,15 @@ jobs:
 
       - name: Upload Installer to shokoanime.com
         shell: pwsh
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
         run:
-          $username = "${{ secrets.FTP_USERNAME }}";
-          $password = "${{ secrets.FTP_PASSWORD }}";
-          $ftp_server = "${{ secrets.FTP_SERVER }}";
           $version = "${{ steps.release_info.outputs.version }}";
           $version = $version.Substring(0, $version.Length - 2);
 
-          $current = [string](Get-Location);
-          $client = New-Object System.Net.WebClient;
-          $client.Credentials = New-Object System.Net.NetworkCredential($username, $password);
-          $client.UploadFile("$ftp_server/files/shoko-server/Shoko-Server-Setup-$version.exe", "$current\\Shoko.Setup.exe");
+          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-$version-win-x64.exe" -local "Shoko.Setup.exe";
 
   sentry-upload:
     runs-on: ubuntu-latest
