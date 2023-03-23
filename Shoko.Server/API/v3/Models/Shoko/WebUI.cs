@@ -85,70 +85,70 @@ public class WebUI
         public List<Tag> Tags { get; set; }
     }
 
-public class WebUISeriesExtra
-{
-    /// <summary>
-    /// The first season this show was aired in.
-    /// </summary>
-    /// <value></value>
-    public Filter FirstAirSeason { get; set; }
-
-    /// <summary>
-    /// A pre-filtered list of studios for the show.
-    /// </summary>
-    public List<Role.Person> Studios { get; set; }
-
-    /// <summary>
-    /// A pre-filtered list of producers for the show.
-    /// </summary>
-    /// <value></value>
-    public List<Role.Person> Producers { get; set; }
-
-    /// <summary>
-    /// The inferred source material for the series.
-    /// </summary>
-    public string SourceMaterial { get; set; }
-
-    public WebUISeriesExtra(HttpContext ctx, SVR_AnimeSeries series)
+    public class WebUISeriesExtra
     {
-        var anime = series.GetAnime();
-        var cast = Series.GetCast(anime.AnimeID, new () { Role.CreatorRoleType.Studio, Role.CreatorRoleType.Producer });
+        /// <summary>
+        /// The first season this show was aired in.
+        /// </summary>
+        /// <value></value>
+        public Filter FirstAirSeason { get; set; }
 
-        FirstAirSeason = GetFirstAiringSeasonGroupFilter(ctx, anime);
-        Studios = cast
-            .Where(role => role.RoleName == Role.CreatorRoleType.Studio)
-            .Select(role => role.Staff)
-            .ToList();
-        Producers = cast
-            .Where(role => role.RoleName == Role.CreatorRoleType.Producer)
-            .Select(role => role.Staff)
-            .ToList();
-        SourceMaterial = Series.GetTags(anime, TagFilter.Filter.Invert | TagFilter.Filter.Source, excludeDescriptions: true)
-            .FirstOrDefault()?.Name ?? "Original Work";
+        /// <summary>
+        /// A pre-filtered list of studios for the show.
+        /// </summary>
+        public List<Role.Person> Studios { get; set; }
+
+        /// <summary>
+        /// A pre-filtered list of producers for the show.
+        /// </summary>
+        /// <value></value>
+        public List<Role.Person> Producers { get; set; }
+
+        /// <summary>
+        /// The inferred source material for the series.
+        /// </summary>
+        public string SourceMaterial { get; set; }
+
+        public WebUISeriesExtra(HttpContext ctx, SVR_AnimeSeries series)
+        {
+            var anime = series.GetAnime();
+            var cast = Series.GetCast(anime.AnimeID, new () { Role.CreatorRoleType.Studio, Role.CreatorRoleType.Producer });
+
+            FirstAirSeason = GetFirstAiringSeasonGroupFilter(ctx, anime);
+            Studios = cast
+                .Where(role => role.RoleName == Role.CreatorRoleType.Studio)
+                .Select(role => role.Staff)
+                .ToList();
+            Producers = cast
+                .Where(role => role.RoleName == Role.CreatorRoleType.Producer)
+                .Select(role => role.Staff)
+                .ToList();
+            SourceMaterial = Series.GetTags(anime, TagFilter.Filter.Invert | TagFilter.Filter.Source, excludeDescriptions: true)
+                .FirstOrDefault()?.Name ?? "Original Work";
+        }
+
+        private Filter GetFirstAiringSeasonGroupFilter(HttpContext ctx, SVR_AniDB_Anime anime)
+        {
+            var type = (AnimeType)anime.AnimeType;
+            if (type != AnimeType.TVSeries && type != AnimeType.Web)
+                return null;
+
+            var (year, season) = anime.GetSeasons()
+                .FirstOrDefault();
+            if (year == 0)
+                return null;
+
+            var seasonName = $"{season} {year}";
+            var seasonsFilterID = RepoFactory.GroupFilter.GetTopLevel()
+                .FirstOrDefault(f => f.GroupFilterName == "Seasons").GroupFilterID;
+            var firstAirSeason = RepoFactory.GroupFilter.GetByParentID(seasonsFilterID)
+                .FirstOrDefault(f => f.GroupFilterName == seasonName);
+            if (firstAirSeason == null)
+                return null;
+
+            return new Filter(ctx, firstAirSeason);
+        } 
     }
-
-    private Filter GetFirstAiringSeasonGroupFilter(HttpContext ctx, SVR_AniDB_Anime anime)
-    {
-        var type = (AnimeType)anime.AnimeType;
-        if (type != AnimeType.TVSeries && type != AnimeType.Web)
-            return null;
-
-        var (year, season) = anime.GetSeasons()
-            .FirstOrDefault();
-        if (year == 0)
-            return null;
-
-        var seasonName = $"{season} {year}";
-        var seasonsFilterID = RepoFactory.GroupFilter.GetTopLevel()
-            .FirstOrDefault(f => f.GroupFilterName == "Seasons").GroupFilterID;
-        var firstAirSeason = RepoFactory.GroupFilter.GetByParentID(seasonsFilterID)
-            .FirstOrDefault(f => f.GroupFilterName == seasonName);
-        if (firstAirSeason == null)
-            return null;
-
-        return new Filter(ctx, firstAirSeason);
-    } 
-}
 
     public class Input
     {
