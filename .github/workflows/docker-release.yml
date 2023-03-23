@@ -26,11 +26,15 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
+      - name: Replace Sentry DSN key
+        shell: pwsh
+        run: ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+
       - name: Get release info
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
-          tag: "{{ github.ref }}"
+          tag: "${{ github.ref }}"
           prefix: v
           prefixRegex: "[vV]?"
 
