@@ -260,8 +260,10 @@ public class WebUI
                             VideoCodecs = videoCodecs,
                             AudioCodecs = audioCodecs,
                             AudioLanguage = audioLanguage,
+                            AudioCount = media.Audio.Count,
                             SubtitleCodecs = subtitleCodecs,
                             SubtitleLanguage = subtitleLanguage,
+                            SubtitleCount = media.Subtitles.Count,
                             Location = dirPath,
                         },
                         Value = new {
@@ -277,7 +279,7 @@ public class WebUI
                 .Select(xref => episodes[xref.EpisodeID])
                 .DistinctBy(episode => episode.ID)
                 .ToDictionary(episode => episode.ID);
-            Ranges = files
+            Groups = files
                 .GroupBy(data => data.GroupBy, data => data.Value)
                 .Select(list =>
                 {
@@ -298,12 +300,13 @@ public class WebUI
                                     .Select(file => file.Size)
                                     .Sum();
                                 return new EpisodeRangeByType {
+                                    Count = sequence.Count,
                                     Range = range,
                                     FileSize = fileSize,
                                 };
                             }
                         );
-                    return new EpisodeRangeSummary()
+                    return new EpisodeGroupSummary()
                     {
                         GroupName = data.GroupName,
                         Version = data.Version,
@@ -314,9 +317,11 @@ public class WebUI
                         Height = data.Height,
                         VideoCodecs = data.VideoCodecs,
                         AudioCodecs = data.AudioCodecs,
+                        AudioLanguages = data.AudioLanguage.Split(", "),
+                        AudioCount = data.AudioCount,
                         SubtitleCodecs = data.SubtitleCodecs,
-                        AudioLanguage = data.AudioLanguage,
-                        SubtitleLanguage = data.SubtitleLanguage,
+                        SubtitleLanguages = data.SubtitleLanguage.Split(", "),
+                        SubtitleCount = data.SubtitleCount,
                         Location = data.Location,
                         RangeByType = episodeData,
                     };
@@ -331,14 +336,14 @@ public class WebUI
                 .ToList();
         }
 
-        public List<EpisodeRangeSummary> Ranges;
+        public List<EpisodeGroupSummary> Groups;
 
         public List<Episode.AniDB> MissingEpisodes;
 
         /// <summary>
-        /// Summary of an episode range.
+        /// Summary of a group of episodes.
         /// </summary>
-        public class EpisodeRangeSummary
+        public class EpisodeGroupSummary
         {
             /// <summary>
             /// The release group for the files in this range. Will be "Unknown"
@@ -352,7 +357,7 @@ public class WebUI
             public int Version;
 
             /// <summary>
-            /// The source type for the files in this range (e.g., Blu-ray, WEB-DL, etc.).
+            /// The source type for the files in this range (e.g., BluRay, Web, etc.).
             /// </summary>
             public FileSource Source;
 
@@ -377,29 +382,39 @@ public class WebUI
             public int Height;
 
             /// <summary>
-            /// The video codecs used in the files of this range (e.g., H.264, H.265, etc.).
+            /// The video codecs used in the files of this range (e.g., h264, h265, etc.).
             /// </summary>
             public string VideoCodecs;
 
             /// <summary>
-            /// The audio codecs used in the files of this range (e.g., AAC, AC3, DTS, etc.).
+            /// The audio codecs used in the files of this range (e.g., acc, ac3, dts, etc.).
             /// </summary>
             public string AudioCodecs;
 
             /// <summary>
-            /// The ISO 639-1 two-letter language code for the audio language of the files in this range (e.g., "en" for English, "ja" for Japanese, etc.).
+            /// The ISO 639-1 two-letter language codes for the audio streams of the files in this range (e.g., "en" for English, "ja" for Japanese, etc.).
             /// </summary>
-            public string AudioLanguage;
+            public IEnumerable<string> AudioLanguages;
 
             /// <summary>
-            /// The subtitle/text codecs used in the files of this range (e.g., SRT, VobSub, etc.).
+            /// The number of audio streams in the files in the range.
+            /// </summary>
+            public int AudioCount;
+
+            /// <summary>
+            /// The subtitle/text codecs used in the files of this range (e.g., srt, ass, etc.).
             /// </summary>
             public string SubtitleCodecs;
 
             /// <summary>
-            /// The ISO 639-1 two-letter language code for the subtitle/text language of the files in this range (e.g., "en" for English, "ja" for Japanese, etc.).
+            /// The ISO 639-1 two-letter language codes for the subtitle/text streams of the files in this range (e.g., "en" for English, "ja" for Japanese, etc.).
             /// </summary>
-            public string SubtitleLanguage;
+            public IEnumerable<string> SubtitleLanguages;
+
+            /// <summary>
+            /// The number of subtitle/text streams in the files in the range.
+            /// </summary>
+            public int SubtitleCount;
 
             /// <summary>
             /// The parent directory location of the files in this range.
@@ -417,6 +432,11 @@ public class WebUI
         /// </summary>
         public class EpisodeRangeByType
         {
+            /// <summary>
+            /// Total number of episodes for the type in the range.
+            /// </summary>
+            public int Count;
+
             /// <summary>
             /// The episode range included in this summary.
             /// </summary>
