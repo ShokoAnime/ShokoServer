@@ -79,6 +79,29 @@ public class WebUIController : BaseController
     }
 
     /// <summary>
+    /// Returns a summary of file information for the series with the given ID.
+    /// </summary>
+    /// <param name="seriesID">The ID of the series to retrieve file information for.</param>
+    /// <returns>A <c>WebUISeriesFileSummary</c> object containing a summary of file information for the series.</returns>
+    [HttpGet("Series/{seriesID}/FileSummary")]
+    public ActionResult<WebUISeriesFileSummary> GetSeriesFileSummary([FromRoute] int seriesID)
+    {
+        // Retrieve a summary of file information for the specified series if it exists and the user has permissions.
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+        {
+            return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
+        }
+
+        if (!User.AllowedSeries(series))
+        {
+            return Forbid(SeriesController.SeriesForbiddenForUser);
+        }
+
+        return new WebUISeriesFileSummary(series);
+    }
+
+    /// <summary>
     /// Install a fresh copy of the web ui for the selected
     /// <paramref name="channel"/>. Will only install if it detects that no
     /// previous version is installed.
