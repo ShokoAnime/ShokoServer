@@ -15,6 +15,7 @@ using Shoko.Server.Utilities;
 
 using WebUIGroupExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIGroupExtra;
 using WebUISeriesExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesExtra;
+using WebUISeriesFileSummary = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary;
 using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -35,9 +36,15 @@ public class WebUIController : BaseController
 
     private static readonly TimeSpan CacheTTL = TimeSpan.FromHours(1);
 
+    /// <summary>
+    /// Returns a list of extra information for each group ID in the given body.
+    /// </summary>
+    /// <param name="body">The body of the request, containing the group IDs and optional filter parameters.</param>
+    /// <returns>A list of <c>WebUIGroupExtra</c> objects containing extra information for each group.</returns>
     [HttpPost("GroupView")]
     public ActionResult<List<WebUIGroupExtra>> GetGroupView([FromBody] Input.WebUIGroupViewBody body)
     {
+        // Check user permissions for each requested group and return extra information.
         var user = User;
         return body.GroupIDs
             .Select(groupID =>
@@ -61,9 +68,15 @@ public class WebUIController : BaseController
             .ToList();
     }
 
+    /// <summary>
+    /// Returns extra information for the series with the given ID.
+    /// </summary>
+    /// <param name="seriesID">The ID of the series to retrieve information for.</param>
+    /// <returns>A <c>WebUISeriesExtra</c> object containing extra information for the series.</returns>
     [HttpGet("Series/{seriesID}")]
     public ActionResult<WebUISeriesExtra> GetSeries([FromRoute] int seriesID)
     {
+        // Retrieve extra information for the specified series if it exists and the user has permissions.
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
