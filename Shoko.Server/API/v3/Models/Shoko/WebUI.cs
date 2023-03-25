@@ -176,7 +176,7 @@ public class WebUI
                         AniDB = anidb,
                     };
                 })
-                .Where(episode => episode.Type == EpisodeType.Normal || episode.Type == EpisodeType.Special || episode.Type == EpisodeType.Unknown)
+                .Where(episode => episode.Type == EpisodeType.Normal || episode.Type == EpisodeType.Special)
                 .ToDictionary(episode => episode.ID);
             var anidbFiles = crossRefs
                 // We only check for the file if the source is anidb.
