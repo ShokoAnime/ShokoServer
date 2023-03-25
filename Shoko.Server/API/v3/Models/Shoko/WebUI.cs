@@ -233,14 +233,12 @@ public class WebUI
                         .OrderBy(codec => codec)
                         .ToList());
                     var subtitleLanguage = string.Join(", ", media.Subtitles
-                        .Select(stream => stream.LanguageCode)
-                        .Where(language => language != null)
+                        .Select(stream => stream.LanguageCode ?? "unk")
                         .Distinct()
                         .OrderBy(language => language)
                         .ToList());
                     var audioLanguage = string.Join(", ", media.Audio
-                        .Select(stream => stream.LanguageCode)
-                        .Where(language => language != null)
+                        .Select(stream => stream.LanguageCode ?? "unk")
                         .Distinct()
                         .OrderBy(language => language)
                         .ToList());
@@ -317,10 +315,10 @@ public class WebUI
                         Height = data.Height,
                         VideoCodecs = data.VideoCodecs,
                         AudioCodecs = data.AudioCodecs,
-                        AudioLanguages = data.AudioLanguage.Split(", "),
+                        AudioLanguages = string.IsNullOrEmpty(data.AudioLanguage) ? new string[] {} : data.AudioLanguage.Split(", "),
                         AudioCount = data.AudioCount,
                         SubtitleCodecs = data.SubtitleCodecs,
-                        SubtitleLanguages = data.SubtitleLanguage.Split(", "),
+                        SubtitleLanguages = string.IsNullOrEmpty(data.SubtitleLanguage) ? new string[] {} : data.SubtitleLanguage.Split(", "),
                         SubtitleCount = data.SubtitleCount,
                         Location = data.Location,
                         RangeByType = episodeData,
