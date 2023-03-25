@@ -14,6 +14,9 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
+using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
+using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
+
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>
@@ -532,11 +535,15 @@ public class TreeController : BaseController
     /// <param name="includeMissing">Include missing episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
-    /// <returns></returns>
+    /// <param name="includeWatched">Include watched episodes in the list.</param>
+    /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>.</param>
+    /// <returns>A list of episodes based on the specified filters.</returns>
     [HttpGet("Series/{seriesID}/Episode")]
-    public ActionResult<ListResult<Episode>> GetEpisodes([FromRoute] int seriesID, [FromQuery] bool includeMissing = false,
-        [FromQuery] bool includeHidden = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
-        [FromQuery] [Range(0, 1000)] int pageSize = 20, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+    public ActionResult<ListResult<Episode>> GetEpisodes([FromRoute] int seriesID,
+        [FromQuery] [Range(0, 1000)] int pageSize = 20, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] bool? includeMissing = null, [FromQuery] bool includeHidden = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery] bool? includeWatched = null, [FromQuery] EpisodeType? type = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -550,7 +557,22 @@ public class TreeController : BaseController
         }
 
         return series.GetAnimeEpisodes(orderList: true, includeHidden: includeHidden)
-            .Where(a => includeMissing || a.GetVideoLocals().Count > 0)
+            .Where(a =>
+            {
+                // Filter by episode type, if specified
+                if (type.HasValue && type.Value != Episode.MapAniDBEpisodeType((AniDBEpisodeType)a.AniDB_Episode.EpisodeType))
+                    return false;
+
+                // Filter by availability, if specified
+                if (includeMissing.HasValue && includeMissing.Value != a.GetVideoLocals().Count > 0)
+                    return false;
+
+                // Filter by user watched status, if specified
+                if (includeWatched.HasValue && includeWatched.Value != (a.GetUserRecord(User.JMMUserID)?.WatchedDate != null))
+                    return false;
+
+                return true;
+            })
             .ToListResult(a => new Episode(HttpContext, a, includeDataFrom), page, pageSize);
     }
 
