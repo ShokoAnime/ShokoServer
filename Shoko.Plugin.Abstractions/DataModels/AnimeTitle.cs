@@ -34,7 +34,7 @@ namespace Shoko.Plugin.Abstractions.DataModels
         Hungarian,
         Italian,
         Korean,
-        Lithuania,
+        Lithuanian,
         Mongolian,
         Malaysian,
         Dutch,
