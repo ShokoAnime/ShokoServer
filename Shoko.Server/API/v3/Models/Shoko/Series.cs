@@ -19,7 +19,7 @@ using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
-using AnimeType = Shoko.Models.Enums.AnimeType;
+using AniDBAnimeType = Shoko.Models.Enums.AnimeType;
 using RelationType = Shoko.Plugin.Abstractions.DataModels.RelationType;
 
 // ReSharper disable UnusedMember.Local
@@ -104,7 +104,7 @@ public class Series : BaseModel
     {
         var uid = ctx.GetUser()?.JMMUserID ?? 0;
         var anime = ser.GetAnime();
-        var animeType = (AnimeType)anime.AnimeType;
+        var animeType = (AniDBAnimeType)anime.AnimeType;
 
         AddBasicAniDBInfo(ctx, ser, anime);
 
@@ -117,7 +117,7 @@ public class Series : BaseModel
 
         IDs = GetIDs(ser);
         Images = GetDefaultImages(ctx, ser, randomiseImages);
-        AirsOn = animeType == AnimeType.TVSeries || animeType == AnimeType.Web ? ser.GetAirsOnDaysOfWeek(ael) : new();
+        AirsOn = animeType == AniDBAnimeType.TVSeries || animeType == AniDBAnimeType.Web ? ser.GetAirsOnDaysOfWeek(ael) : new();
 
         Name = ser.GetSeriesName();
         Sizes = ModelHelper.GenerateSeriesSizes(ael, uid);
@@ -439,27 +439,27 @@ public class Series : BaseModel
 
     public static SeriesType GetAniDBSeriesType(int? animeType)
     {
-        return animeType.HasValue ? GetAniDBSeriesType((AnimeType)animeType.Value) : SeriesType.Unknown;
+        return animeType.HasValue ? GetAniDBSeriesType((AniDBAnimeType)animeType.Value) : SeriesType.Unknown;
     }
 
-    public static SeriesType GetAniDBSeriesType(AnimeType animeType)
+    public static SeriesType GetAniDBSeriesType(AniDBAnimeType animeType)
     {
         switch (animeType)
         {
             default:
-            case AnimeType.None:
+            case AniDBAnimeType.None:
                 return SeriesType.Unknown;
-            case AnimeType.TVSeries:
+            case AniDBAnimeType.TVSeries:
                 return SeriesType.TV;
-            case AnimeType.Movie:
+            case AniDBAnimeType.Movie:
                 return SeriesType.Movie;
-            case AnimeType.OVA:
+            case AniDBAnimeType.OVA:
                 return SeriesType.OVA;
-            case AnimeType.TVSpecial:
+            case AniDBAnimeType.TVSpecial:
                 return SeriesType.TVSpecial;
-            case AnimeType.Web:
+            case AniDBAnimeType.Web:
                 return SeriesType.Web;
-            case AnimeType.Other:
+            case AniDBAnimeType.Other:
                 return SeriesType.Other;
         }
     }
