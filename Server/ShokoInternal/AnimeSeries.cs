@@ -18,6 +18,8 @@ namespace Shoko.Models.Server
         public DayOfWeek? AirsOn { get; set; }
         public int MissingEpisodeCount { get; set; }
         public int MissingEpisodeCountGroups { get; set; }
+        public int HiddenMissingEpisodeCount { get; set; }
+        public int HiddenMissingEpisodeCountGroups { get; set; }
         public int LatestLocalEpisodeNumber { get; set; }
         public string SeriesNameOverride { get; set; }
 
