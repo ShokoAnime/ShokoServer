@@ -988,4 +988,18 @@ public class DatabaseFixes
 
         logger.Info($"Done updating last updated episode timestamps for {anidbAnimeIDs.Count} local anidb anime entries. Updated {updatedCount} episodes, reset {resetCount} episodes and queued anime {animeToUpdateSet.Count} updates for {faultyCount} faulty episodes.");
     }
+    
+    public static void UpdateSeriesWithHiddenEpisodes()
+    {
+        var seriesList = RepoFactory.AnimeEpisode.GetAll()
+            .Where(episode => episode.IsHidden)
+            .Select(episode => episode.AnimeSeriesID)
+            .Distinct()
+            .Select(seriesID => RepoFactory.AnimeSeries.GetByID(seriesID))
+            .Where(series => series != null)
+            .ToList();
+
+        foreach (var series in seriesList)
+            series.UpdateStats(false, true);
+    }
 }

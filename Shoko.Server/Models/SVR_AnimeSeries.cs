@@ -1483,6 +1483,7 @@ public class SVR_AnimeSeries : AnimeSeries
 
         public void Add(SVR_AnimeEpisode ep, bool available)
         {
+            var hidden = ep.IsHidden;
             if (AnimeType == AnimeType.OVA || AnimeType == AnimeType.Movie)
             {
                 var ename = ep.Title;
@@ -1493,7 +1494,7 @@ public class SVR_AnimeSeries : AnimeSeries
                     m = partmatch.Match(ename);
                 }
 
-                var s = new StatEpisodes.StatEpisode { Available = available };
+                var s = new StatEpisodes.StatEpisode { Available = available, Hidden = hidden };
                 if (m?.Success ?? false)
                 {
                     int.TryParse(m.Groups[1].Value, out var part_number);
@@ -1566,7 +1567,8 @@ public class SVR_AnimeSeries : AnimeSeries
                     Match = string.Empty,
                     EpisodeType = StatEpisodes.StatEpisode.EpType.Complete,
                     PartCount = 0,
-                    Available = available
+                    Available = available,
+                    Hidden = hidden,
                 };
                 eps.Add(es);
                 Add(eps);
@@ -1587,6 +1589,7 @@ public class SVR_AnimeSeries : AnimeSeries
                 public int PartCount;
                 public EpType EpisodeType { get; set; }
                 public bool Available { get; set; }
+                public bool Hidden { get; set; }
             }
 
             public bool Available
@@ -1615,6 +1618,9 @@ public class SVR_AnimeSeries : AnimeSeries
                     return false;
                 }
             }
+
+            public bool Hidden
+                => this.Any(e => e.Hidden);
         }
     }
 
@@ -1781,6 +1787,8 @@ public class SVR_AnimeSeries : AnimeSeries
 
             MissingEpisodeCount = 0;
             MissingEpisodeCountGroups = 0;
+            HiddenMissingEpisodeCount = 0;
+            HiddenMissingEpisodeCountGroups = 0;
 
             // get all the group status records
             var grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(AniDB_ID);
@@ -1906,7 +1914,10 @@ public class SVR_AnimeSeries : AnimeSeries
             {
                 if (!eplst.Available)
                 {
-                    MissingEpisodeCount++;
+                    if (eplst.Hidden)
+                        HiddenMissingEpisodeCount++;
+                    else
+                        MissingEpisodeCount++;
                 }
             }
 
@@ -1914,7 +1925,10 @@ public class SVR_AnimeSeries : AnimeSeries
             {
                 if (!eplst.Available)
                 {
-                    MissingEpisodeCountGroups++;
+                    if (eplst.Hidden)
+                        HiddenMissingEpisodeCountGroups++;
+                    else
+                        MissingEpisodeCountGroups++;
                 }
             }
 

@@ -22,7 +22,7 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
 {
     public string Name { get; } = "SQLite";
 
-    public int RequiredVersion { get; } = 99;
+    public int RequiredVersion { get; } = 100;
 
 
     public void BackupDatabase(string fullfilename)
@@ -648,6 +648,9 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
         new(98, 3, "ALTER TABLE AniDB_Anime DROP COLUMN AnimeNfo;"),
         new(98, 4, "ALTER TABLE AniDB_Anime ADD LainID INT NULL"),
         new(99, 1, DatabaseFixes.FixEpisodeDateTimeUpdated),
+        new(100, 1, "ALTER TABLE AnimeSeries ADD HiddenMissingEpisodeCount integer NOT NULL DEFAULT 0;"),
+        new(100, 2, "ALTER TABLE AnimeSeries ADD HiddenMissingEpisodeCountGroups integer NOT NULL DEFAULT 0;"),
+        new(100, 3, DatabaseFixes.UpdateSeriesWithHiddenEpisodes),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)
