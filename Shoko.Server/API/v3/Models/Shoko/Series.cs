@@ -18,9 +18,11 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
+
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using AniDBAnimeType = Shoko.Models.Enums.AnimeType;
 using RelationType = Shoko.Plugin.Abstractions.DataModels.RelationType;
+using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -83,14 +85,14 @@ public class Series : BaseModel
     public DateTime Updated { get; set; }
 
     /// <summary>
-    /// The <see cref="Series.AniDB"/>, if <see cref="DataSourceType.AniDB"/> is
+    /// The <see cref="Series.AniDB"/>, if <see cref="DataSource.AniDB"/> is
     /// included in the data to add.
     /// </summary>
     [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
     public AniDBWithDate _AniDB { get; set; }
 
     /// <summary>
-    /// The <see cref="Series.TvDB"/> entries, if <see cref="DataSourceType.TvDB"/>
+    /// The <see cref="Series.TvDB"/> entries, if <see cref="DataSource.TvDB"/>
     /// is included in the data to add.
     /// </summary>
     [JsonProperty("TvDB", NullValueHandling = NullValueHandling.Ignore)]
@@ -100,7 +102,7 @@ public class Series : BaseModel
 
     public Series() { }
 
-    public Series(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false, HashSet<DataSourceType> includeDataFrom = null)
+    public Series(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false, HashSet<DataSource> includeDataFrom = null)
     {
         var uid = ctx.GetUser()?.JMMUserID ?? 0;
         var anime = ser.GetAnime();
@@ -127,9 +129,9 @@ public class Series : BaseModel
         Created = ser.DateTimeCreated;
         Updated = ser.DateTimeUpdated;
 
-        if (includeDataFrom?.Contains(DataSourceType.AniDB) ?? false)
+        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
             this._AniDB = new Series.AniDBWithDate(ctx, anime, ser);
-        if (includeDataFrom?.Contains(DataSourceType.TvDB) ?? false)
+        if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
             this._TvDB = GetTvDBInfo(ctx, ser);
     }
 

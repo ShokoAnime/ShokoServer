@@ -16,6 +16,7 @@ using Shoko.Server.Settings;
 
 using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
+using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -346,12 +347,12 @@ public class TreeController : BaseController
     /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/>. Even the <see cref="Series"/> within the sub-<see cref="Group"/>s.</param>
     /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the list.</param>
     /// <param name="randomImages">Randomise images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// /// <returns></returns>
     [HttpGet("Filter/{filterID}/Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetSeriesInFilteredGroup([FromRoute] int filterID, [FromRoute] int groupID,
         [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false,
-        [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
+        [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Return the groups with no group filter applied.
         if (filterID == 0)
@@ -458,12 +459,12 @@ public class TreeController : BaseController
     /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/></param>
     /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the list.</param>
     /// <param name="randomImages">Randomise images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetSeriesInGroup([FromRoute] int groupID, [FromQuery] bool recursive = false,
         [FromQuery] bool includeMissing = false, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -491,11 +492,11 @@ public class TreeController : BaseController
     /// </remarks>
     /// <param name="groupID"><see cref="Group"/> ID</param>
     /// <param name="randomImages">Randomise images shown for the <see cref="Series"/>.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/MainSeries")]
     public ActionResult<Series> GetMainSeriesInGroup([FromRoute] int groupID, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -534,7 +535,7 @@ public class TreeController : BaseController
     /// <param name="page">The page index.</param>
     /// <param name="includeMissing">Include missing episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
     /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>.</param>
     /// <returns>A list of episodes based on the specified filters.</returns>
@@ -542,7 +543,7 @@ public class TreeController : BaseController
     public ActionResult<ListResult<Episode>> GetEpisodes([FromRoute] int seriesID,
         [FromQuery] [Range(0, 1000)] int pageSize = 20, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool? includeMissing = null, [FromQuery] bool includeHidden = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool? includeWatched = null, [FromQuery] EpisodeType? type = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -589,13 +590,13 @@ public class TreeController : BaseController
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeRewatching">Include already watched episodes in the
     /// search if we determine the user is "re-watching" the series.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/NextUpEpisode")]
     public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID,
         [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true,
         [FromQuery] bool includeMissing = true, [FromQuery] bool includeHidden = false,
-        [FromQuery] bool includeRewatching = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
+        [FromQuery] bool includeRewatching = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var user = User;
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -630,14 +631,14 @@ public class TreeController : BaseController
     /// </summary>
     /// <param name="seriesID">Series ID</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="isManuallyLinked">Omit to select all files. Set to true to only select manually
     /// linked files, or set to false to only select automatically linked files.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/File")]
     public ActionResult<List<File>> GetFilesForSeries([FromRoute] int seriesID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool? isManuallyLinked = null, [FromQuery] bool includeMediaInfo = false)
     {
         var user = User;
@@ -666,14 +667,14 @@ public class TreeController : BaseController
     /// </summary>
     /// <param name="episodeID">Episode ID</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="isManuallyLinked">Omit to select all files. Set to true to only select manually
     /// linked files, or set to false to only select automatically linked files.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/File")]
     public ActionResult<List<File>> GetFilesForEpisode([FromRoute] int episodeID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool? isManuallyLinked = null, [FromQuery] bool includeMediaInfo = false)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);

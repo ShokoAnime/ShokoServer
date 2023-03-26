@@ -15,10 +15,12 @@ using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Commands;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+
 using CommandRequestPriority = Shoko.Server.Server.CommandRequestPriority;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using Path = System.IO.Path;
 using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
+using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -51,12 +53,12 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="fileID">Shoko VideoLocalID</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <returns></returns>
     [HttpGet("{fileID}")]
     public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool includeMediaInfo = false)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
@@ -139,12 +141,12 @@ public class FileController : BaseController
     /// </remarks>
     /// <param name="anidbFileID">AniDB File ID</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbFileID}/File")]
     public ActionResult<File> GetFileByAnidbFileID([FromRoute] int anidbFileID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool includeMediaInfo = false)
     {
         var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
@@ -768,12 +770,12 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="path">The path to search for.</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="limit">Limit the number of returned results.</param>
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [HttpGet("PathEndsWith")]
     public ActionResult<List<File>> PathEndsWithQuery([FromQuery] string path, [FromQuery] bool includeXRefs = true,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [Range(0, 100)] int limit = 0)
         => PathEndsWithInternal(path, includeXRefs, includeDataFrom, limit);
 
@@ -784,12 +786,12 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="path">The path to search for. URL encoded.</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="limit">Limit the number of returned results.</param>
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [HttpGet("PathEndsWith/{*path}")]
     public ActionResult<List<File>> PathEndsWithPath([FromRoute] string path, [FromQuery] bool includeXRefs = true,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [Range(0, 100)] int limit = 0)
         => PathEndsWithInternal(Uri.UnescapeDataString(path), includeXRefs, includeDataFrom, limit);
 
@@ -800,11 +802,11 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="path">The path to search for.</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="limit">Limit the number of returned results.</param>
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     internal ActionResult<List<File>> PathEndsWithInternal(string path, bool includeXRefs,
-        HashSet<DataSourceType> includeDataFrom, int limit = 0)
+        HashSet<DataSource> includeDataFrom, int limit = 0)
     {
         if (string.IsNullOrWhiteSpace(path))
             return new List<File>();

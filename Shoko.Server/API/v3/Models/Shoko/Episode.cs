@@ -14,7 +14,9 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
+
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
+using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -59,14 +61,14 @@ public class Episode : BaseModel
     public bool IsHidden { get; set; }
 
     /// <summary>
-    /// The <see cref="Episode.AniDB"/>, if <see cref="DataSourceType.AniDB"/> is
+    /// The <see cref="Episode.AniDB"/>, if <see cref="DataSource.AniDB"/> is
     /// included in the data to add.
     /// </summary>
     [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
     public AniDB _AniDB { get; set; }
 
     /// <summary>
-    /// The <see cref="Episode.TvDB"/> entries, if <see cref="DataSourceType.TvDB"/>
+    /// The <see cref="Episode.TvDB"/> entries, if <see cref="DataSource.TvDB"/>
     /// is included in the data to add.
     /// </summary>
     [JsonProperty("TvDB", NullValueHandling = NullValueHandling.Ignore)]
@@ -74,7 +76,7 @@ public class Episode : BaseModel
 
     public Episode() { }
 
-    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSourceType> includeDataFrom = null)
+    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource> includeDataFrom = null)
     {
         var userID = context.GetUser()?.JMMUserID ?? 0;
         var episodeUserRecord = episode.GetUserRecord(userID);
@@ -99,9 +101,9 @@ public class Episode : BaseModel
         Name = GetEpisodeTitle(episode.AniDB_EpisodeID);
         Size = files.Count;
 
-        if (includeDataFrom?.Contains(DataSourceType.AniDB) ?? false)
+        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
             this._AniDB = new Episode.AniDB(anidbEpisode);
-        if (includeDataFrom?.Contains(DataSourceType.TvDB) ?? false)
+        if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
             this._TvDB = tvdbEpisodes.Select(tvdbEpisode => new TvDB(tvdbEpisode));
     }
 
