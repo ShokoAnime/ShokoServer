@@ -56,7 +56,7 @@ public class Episode : BaseModel
     /// <summary>
     /// Episode is marked as "ignored." Which means it won't be show up in the
     /// api unless explictly requested, and will not count against the unwatched
-    /// count for the series.
+    /// counts and missing counts for the series.
     /// </summary>
     public bool IsHidden { get; set; }
 

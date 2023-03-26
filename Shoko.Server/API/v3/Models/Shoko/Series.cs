@@ -24,10 +24,6 @@ using AniDBAnimeType = Shoko.Models.Enums.AnimeType;
 using RelationType = Shoko.Plugin.Abstractions.DataModels.RelationType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 
-// ReSharper disable UnusedMember.Local
-// ReSharper disable UnusedAutoPropertyAccessor.Global
-using SSS = Shoko.Server.Server;
-
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 /// <summary>
@@ -1273,11 +1269,23 @@ public class SeriesSizes
 {
     public SeriesSizes() : base()
     {
+        Missing = 0;
+        Hidden = 0;
         FileSources = new FileSourceCounts();
         Total = new EpisodeTypeCounts();
         Local = new EpisodeTypeCounts();
         Watched = new EpisodeTypeCounts();
     }
+
+    /// <summary>
+    /// Count of missing episodes that are not hidden.
+    /// </summary>
+    public int Missing { get; set; }
+
+    /// <summary>
+    /// Count of hidden episodes, be it available or missing.
+    /// </summary>
+    public int Hidden { get; set; }
 
     /// <summary>
     /// Counts of each file source type available within the local colleciton

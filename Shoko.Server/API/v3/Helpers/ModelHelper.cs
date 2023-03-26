@@ -120,7 +120,7 @@ public static class ModelHelper
         var fileSet = new HashSet<int>();
         foreach (var episode in episodeList)
         {
-            var anidbEpisode = episode?.AniDB_Episode;
+            var anidbEpisode = episode.AniDB_Episode;
             var fileList = episode.GetVideoLocals();
             var isLocal = fileList.Count > 0;
             var isWatched = (episode.GetUserRecord(userID)?.WatchedCount ?? 0) > 0;
@@ -135,6 +135,11 @@ public static class ModelHelper
                 {
                     sizes.FileSources.Unknown++;
                     continue;
+                }
+
+                if (episode.IsHidden)
+                {
+                    sizes.Hidden++;
                 }
 
                 switch (File.ParseFileSource(anidbFile.File_Source))
@@ -196,6 +201,10 @@ public static class ModelHelper
                     {
                         sizes.Local.Episodes++;
                     }
+                    else if (!episode.IsHidden)
+                    {
+                        sizes.Missing++;
+                    }
 
                     if (isWatched)
                     {
@@ -221,6 +230,10 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Specials++;
+                    }
+                    else if (!episode.IsHidden)
+                    {
+                        sizes.Missing++;
                     }
 
                     if (isWatched)
