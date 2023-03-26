@@ -200,7 +200,7 @@ public class WebUIController : BaseController
                                 Version = version,
                                 Commit = commit[0..7],
                                 ReleaseChannel = ReleaseChannel.Dev,
-                                ReleaseDate = release.published_at,
+                                ReleaseDate = releaseDate,
                                 Tag = tagName,
                                 Description = description.Trim(),
                             }, CacheTTL);

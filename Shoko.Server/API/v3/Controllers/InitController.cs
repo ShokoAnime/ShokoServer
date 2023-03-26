@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.WebUI;
 using Shoko.Server.Databases;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -32,21 +33,6 @@ public class InitController : BaseController
     {
         _logger = logger;
         _shokoServer = shokoServer;
-    }
-
-    private record WebUIVersion {
-        /// <summary>
-        /// Package version.
-        /// </summary>
-        public string package = "1.0.0";
-        /// <summary>
-        /// Short-form git commit sha digest.
-        /// </summary>
-        public string git = "0000000";
-        /// <summary>
-        /// True if this is a debug package.
-        /// </summary>
-        public bool debug = false;
     }
 
     /// <summary>
@@ -82,15 +68,15 @@ public class InitController : BaseController
             Version = mediaInfoFileInfo.Exists ? FileVersionInfo.GetVersionInfo(mediaInfoFileInfo.FullName).FileVersion : null,
         };
 
-        var webUIFileInfo = new FileInfo(Path.Combine(Utils.ApplicationPath, "webui/version.json"));
-        if (webUIFileInfo.Exists)
+        var webuiVersion = WebUIHelper.LoadWebUIVersionInfo();
+        if (webuiVersion != null)
         {
-            var webuiVersion = Newtonsoft.Json.JsonConvert.DeserializeObject<WebUIVersion>(System.IO.File.ReadAllText(webUIFileInfo.FullName));
             versionSet.WebUI = new()
             {
                 Version = webuiVersion.package,
                 ReleaseChannel = webuiVersion.debug ? ReleaseChannel.Debug : webuiVersion.package.Contains("-dev") ? ReleaseChannel.Dev : ReleaseChannel.Stable,
                 Commit = webuiVersion.git,
+                ReleaseDate = webuiVersion.date,
             };
         }
 

@@ -11,6 +11,28 @@ namespace Shoko.Server.API.WebUI;
 public static class WebUIHelper
 {
     /// <summary>
+    /// Web UI Version Info.
+    /// </summary>
+    public record WebUIVersionInfo {
+        /// <summary>
+        /// Package version.
+        /// </summary>
+        public string package = "1.0.0";
+        /// <summary>
+        /// Short-form git commit sha digest.
+        /// </summary>
+        public string git = "0000000";
+        /// <summary>
+        /// True if this is a debug package.
+        /// </summary>
+        public bool debug = false;
+        /// <summary>
+        /// Release date for web ui release.
+        /// </summary>
+        public DateTime? date = null;
+    }
+
+    /// <summary>
     /// Find the download url for the <paramref name="tagName"/>, then download
     /// and install the update.
     /// </summary>
@@ -39,15 +61,16 @@ public static class WebUIHelper
         if (string.IsNullOrWhiteSpace(url))
             throw new Exception("404 Not found");
 
-        DownloadAndInstallUpdate(url);
+        DownloadAndInstallUpdate(url, release.published_at);
     }
 
     /// <summary>
     /// Download and install update.
     /// </summary>
     /// <param name="url">direct link to version you want to install</param>
+    /// <param name="releaseDate">the release date from the api response</param>
     /// <returns></returns>
-    public static void DownloadAndInstallUpdate(string url)
+    private static void DownloadAndInstallUpdate(string url, DateTime releaseDate)
     {
         var webuiDir = Path.Combine(Utils.ApplicationPath, "webui");
         var backupDir = Path.Combine(webuiDir, "old");
@@ -111,6 +134,33 @@ public static class WebUIHelper
         // Clean up the now unneeded backup and zip file because we have an updated install.
         Directory.Delete(backupDir, true);
         File.Delete(zipFile);
+
+        // Add release date to json
+        AddReleaseDate(releaseDate);
+    }
+
+    private static void AddReleaseDate(DateTime releaseDate)
+    {
+        var webUIFileInfo = new FileInfo(Path.Combine(Utils.ApplicationPath, "webui/version.json"));
+        if (webUIFileInfo.Exists)
+        {
+            // Load the web ui version info from disk.
+            var webuiVersion = Newtonsoft.Json.JsonConvert.DeserializeObject<WebUIVersionInfo>(System.IO.File.ReadAllText(webUIFileInfo.FullName));
+            // Set the release data and save the info again if the date is not set.
+            if (!webuiVersion.date.HasValue)
+            {
+                webuiVersion.date = releaseDate;
+                System.IO.File.WriteAllText(webUIFileInfo.FullName, Newtonsoft.Json.JsonConvert.SerializeObject(webuiVersion));
+            }
+        }
+    }
+
+    public static WebUIVersionInfo LoadWebUIVersionInfo()
+    {
+        var webUIFileInfo = new FileInfo(Path.Combine(Utils.ApplicationPath, "webui/version.json"));
+        if (webUIFileInfo.Exists)
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<WebUIVersionInfo>(System.IO.File.ReadAllText(webUIFileInfo.FullName));
+        return null;
     }
 
     /// <summary>
