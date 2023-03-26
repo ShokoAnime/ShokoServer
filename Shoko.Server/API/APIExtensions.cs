@@ -258,6 +258,7 @@ public static class APIExtensions
                     options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
                         description.GroupName.ToUpperInvariant());
                 }
+                options.EnablePersistAuthorization();
             });
         // Important for first run at least
         app.UseAuthentication();
