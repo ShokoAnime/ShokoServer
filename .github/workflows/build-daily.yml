@@ -54,7 +54,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r ${{ matrix.rid }} ${{ matrix.build_props }} Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=dev,commit=${{ github.sha }}\""
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} ${{ matrix.build_props }} Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=dev,commit=${{ github.sha }},date=${{ steps.release_info.outputs.date }}\""
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
@@ -106,7 +106,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService "/p:Version=\`"${{ steps.release_info.outputs.version }}\`",InformationalVersion=\`"channel=dev,commit=${{ github.sha }}\`""
+      - run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService "/p:Version=\`"${{ steps.release_info.outputs.version }}\`",InformationalVersion=\`"channel=dev,commit=${{ github.sha }},date=${{ steps.release_info.outputs.date }}\`""
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
@@ -148,16 +148,8 @@ jobs:
           prefix: v
           prefixRegex: "[vV]?"
 
-      - id: commit_info
-        name: Shorten commit sha for Sentry Release
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const sha = context.sha.substring(0, 7);
-            core.setOutput("sha", sha);
-
       # Only add the release to sentry if the build is successful.
-      - name: Sentry Release
+      - name: Push Sentry Release "${{ steps.release_info.outputs.version }}-dev-${{ steps.release_info.outputs.commit_short }}"
         uses: getsentry/action-release@v1.2.1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -166,4 +158,4 @@ jobs:
           # SENTRY_URL: https://sentry.io/
         with:
           environment: 'dev'
-          version: ${{ steps.release_info.outputs.version }}-dev-${{ steps.commit_info.outputs.sha }}
+          version: ${{ steps.release_info.outputs.version }}-dev-${{ steps.release_info.outputs.commit_short }}

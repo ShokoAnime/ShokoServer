@@ -41,7 +41,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release --no-self-contained Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }}\""
+      - run: dotnet publish -c Release --no-self-contained Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }},date=${{ steps.release_info.outputs.date }}\""
 
       - name: Archive Release
         shell: pwsh
@@ -112,7 +112,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r ${{ matrix.rid }} Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }}\""
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }},date=${{ steps.release_info.outputs.date }}\""
 
       - name: Archive Release (${{ matrix.rid }})
         shell: pwsh
@@ -173,7 +173,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r win10-x64 --no-self-contained Shoko.TrayService "/p:Version=\`"${{ steps.release_info.outputs.version }}\`",InformationalVersion=\`"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }}\`""
+      - run: dotnet publish -c Release -r win10-x64 --no-self-contained Shoko.TrayService "/p:Version=\`"${{ steps.release_info.outputs.version }}\`",InformationalVersion=\`"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }},date=${{ steps.release_info.outputs.date }}\`""
 
       - name: Archive Release
         shell: pwsh
@@ -221,7 +221,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net6.0-windows Shoko.TrayService "/p:Version=\`"${{ steps.release_info.outputs.version }}\`",InformationalVersion=\`"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }}\`""
+      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net6.0-windows Shoko.TrayService "/p:Version=\`"${{ steps.release_info.outputs.version }}\`",InformationalVersion=\`"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }},date=${{ steps.release_info.outputs.date }}\`""
 
       - name: Archive Release
         shell: pwsh
@@ -285,7 +285,7 @@ jobs:
           prefix: v
           prefixRegex: "[vV]?"
 
-      - name: Publish release
+      - name: Push Sentry release "${{ steps.release_info.outputs.version }}"
         uses: getsentry/action-release@v1.2.1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}

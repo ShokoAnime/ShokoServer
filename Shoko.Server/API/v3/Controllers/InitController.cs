@@ -61,6 +61,8 @@ public class InitController : BaseController
                 versionSet.Server.ReleaseChannel = channel;
             else
                 versionSet.Server.ReleaseChannel = ReleaseChannel.Debug;
+        if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
+            versionSet.Server.ReleaseDate = releaseDate;
 
         var mediaInfoFileInfo = new FileInfo(Path.Combine(Assembly.GetEntryAssembly().Location, "../MediaInfo", "MediaInfo.exe"));
         versionSet.MediaInfo = new()
