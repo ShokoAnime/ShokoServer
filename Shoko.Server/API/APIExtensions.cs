@@ -116,7 +116,7 @@ public static class APIExtensions
                 options.MapType<SeriesType>(() => new OpenApiSchema { Type = "string" });
                 options.MapType<EpisodeType>(() => new OpenApiSchema { Type = "string" });
 
-                options.CustomSchemaIds(x => x.FullName);
+                options.CustomSchemaIds(x => x.FullName.Replace("+", "."));
             });
         services.AddSwaggerGenNewtonsoftSupport();
         services.AddSignalR(o => { o.EnableDetailedErrors = true; });
