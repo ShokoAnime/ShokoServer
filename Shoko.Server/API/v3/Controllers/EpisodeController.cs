@@ -56,9 +56,10 @@ public class EpisodeController : BaseController
     /// </summary>
     /// <param name="episodeID">Shoko episode ID</param>
     /// <param name="value">The new value to set.</param>
+    /// <param name="updateStats">Update series and group stats.</param>
     /// <returns></returns>
     [HttpPost("{episodeID}/SetHidden")]
-    public ActionResult PostEpisodeSetHidden([FromRoute] int episodeID, [FromQuery] bool value = true)
+    public ActionResult PostEpisodeSetHidden([FromRoute] int episodeID, [FromQuery] bool value = true, [FromQuery] bool updateStats = true)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -68,6 +69,13 @@ public class EpisodeController : BaseController
 
         episode.IsHidden = value;
         RepoFactory.AnimeEpisode.Save(episode);
+
+        if (updateStats)
+        {
+            var series = episode.GetAnimeSeries();
+            series.UpdateStats(true, true);
+            series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
+        }
 
         return Ok();
     }
