@@ -565,11 +565,11 @@ public class TreeController : BaseController
                     return false;
 
                 // Filter by availability, if specified
-                if (includeMissing.HasValue && includeMissing.Value != a.GetVideoLocals().Count > 0)
+                if (includeMissing.HasValue && includeMissing.Value == a.GetVideoLocals().Count > 0)
                     return false;
 
                 // Filter by user watched status, if specified
-                if (includeWatched.HasValue && includeWatched.Value != (a.GetUserRecord(User.JMMUserID)?.WatchedDate != null))
+                if (includeWatched.HasValue && includeWatched.Value == (a.GetUserRecord(User.JMMUserID)?.WatchedDate != null))
                     return false;
 
                 return true;
