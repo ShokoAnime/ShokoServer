@@ -61,7 +61,8 @@ public static class WebUIHelper
         if (string.IsNullOrWhiteSpace(url))
             throw new Exception("404 Not found");
 
-        DownloadAndInstallUpdate(url, release.published_at);
+        DateTime releaseDate = release.published_at;
+        DownloadAndInstallUpdate(url, releaseDate);
     }
 
     /// <summary>
