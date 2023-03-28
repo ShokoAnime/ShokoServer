@@ -148,8 +148,16 @@ jobs:
           prefix: v
           prefixRegex: "[vV]?"
 
+      - id: commit_info
+        name: Shorten Commit Hash for Sentry Release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const sha = context.sha.substring(0, 7);
+            core.setOutput("sha", sha);
+
       # Only add the release to sentry if the build is successful.
-      - name: Push Sentry Release "${{ steps.release_info.outputs.version }}-dev-${{ steps.release_info.outputs.commit_short }}"
+      - name: Push Sentry Release "${{ steps.release_info.outputs.version }}-dev-${{ steps.commit_info.outputs.sha }}"
         uses: getsentry/action-release@v1.2.1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -158,4 +166,4 @@ jobs:
           # SENTRY_URL: https://sentry.io/
         with:
           environment: 'dev'
-          version: ${{ steps.release_info.outputs.version }}-dev-${{ steps.release_info.outputs.commit_short }}
+          version: ${{ steps.release_info.outputs.version }}-dev-${{ steps.commit_info.outputs.sha }}
