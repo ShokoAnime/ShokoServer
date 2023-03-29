@@ -8,8 +8,12 @@ Param(
 $username = $env:FTP_USERNAME;
 $password = $env:FTP_PASSWORD;
 $ftp_server = $env:FTP_SERVER;
-$localPath = (Get-Location).Path + "/" + $local
-$remotePath = "ftp://$ftp_server/files/shoko-server/$remote"
+$localPath = (Get-Location).Path + "/" + $local;
+$remotePath = "$ftp_server/files/shoko-server/$remote";
+if (!$remotePath.StartsWith("ftp://")) {
+    Write-Output "Adding protocol to remote path…";
+    $remotePath = "ftp://$remotePath";
+}
 
 # Log inputs.
 Write-Output "Starting file upload...";
