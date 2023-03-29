@@ -1,5 +1,5 @@
 Param(
-    [string] $remote = "Artifact.bin"
+    [string] $remote = "Artifact.bin",
     [string] $local = "Artifact.bin"
 )
 
