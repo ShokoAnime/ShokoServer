@@ -66,10 +66,7 @@ jobs:
         # and _how_ it's possible at all to create a self-contained release for
         # mac.
         run:
-          $version = "${{ steps.release_info.outputs.version }}";
-          $version = $version.Substring(0, $version.Length - 2);
-
-          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-$version-mac.zip" -local "Shoko.CLI_Framework_any-x64.zip";
+          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ steps.release_info.outputs.version_short }}-mac.zip" -local "Shoko.CLI_Framework_any-x64.zip";
 
   cli-standalone-stable:
     runs-on: ubuntu-latest
@@ -134,10 +131,7 @@ jobs:
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
         run:
-          $version = "${{ steps.release_info.outputs.version }}";
-          $version = $version.Substring(0, $version.Length - 2);
-
-          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-$version-${{ matrix.rid }}.zip" -local "Shoko.CLI_Standalone_${{ matrix.rid }}.zip";
+          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ steps.release_info.outputs.version_short }}-${{ matrix.rid }}.zip" -local "Shoko.CLI_Standalone_${{ matrix.rid }}.zip";
 
   tray-service-framework-stable:
     runs-on: windows-2022
@@ -253,10 +247,7 @@ jobs:
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
         run:
-          $version = "${{ steps.release_info.outputs.version }}";
-          $version = $version.Substring(0, $version.Length - 2);
-
-          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-$version-win-x64.exe" -local "Shoko.Setup.exe";
+          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ steps.release_info.outputs.version_short }}-win-x64.exe" -local "Shoko.Setup.exe";
 
   sentry-upload:
     runs-on: ubuntu-latest
