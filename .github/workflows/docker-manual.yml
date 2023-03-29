@@ -40,16 +40,13 @@ jobs:
         shell: pwsh
         run: ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
 
-      - name: Get next version
+      - name: Get release info
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
-          branch: true
+          tag: "${{ github.ref }}"
           prefix: v
           prefixRegex: "[vV]?"
-          suffix: ${{ github.event.inputs.release }}
-          suffixRegex: "dev|${{ github.event.inputs.release }}"
-          increment: suffix
 
       - uses: docker/setup-qemu-action@v1
         name: Set up QEMU
