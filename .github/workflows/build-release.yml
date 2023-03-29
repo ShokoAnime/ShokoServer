@@ -247,7 +247,7 @@ jobs:
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
         run:
-          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ steps.release_info.outputs.version_short }}-win-x64.exe" -local "Shoko.Setup.exe";
+          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ steps.release_info.outputs.version_short }}-Win.exe" -local "Shoko.Setup.exe";
 
   sentry-upload:
     runs-on: ubuntu-latest
