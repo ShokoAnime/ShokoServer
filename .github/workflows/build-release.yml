@@ -55,19 +55,6 @@ jobs:
           tag: ${{ steps.release_info.outputs.tag }}
           file_glob: true
 
-      - name: Upload Artifact to shokoanime.com
-        if: ${{ matrix.platform != 'Windows' }}
-        shell: pwsh
-        env:
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-        # We upload the framework dependent version for mac, until we know _if_
-        # and _how_ it's possible at all to create a self-contained release for
-        # mac.
-        run:
-          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ steps.release_info.outputs.version_short }}-mac.zip" -local "Shoko.CLI_Framework_any-x64.zip";
-
   cli-standalone-stable:
     runs-on: ubuntu-latest
 
