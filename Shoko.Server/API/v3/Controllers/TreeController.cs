@@ -542,9 +542,9 @@ public class TreeController : BaseController
     [HttpGet("Series/{seriesID}/Episode")]
     public ActionResult<ListResult<Episode>> GetEpisodes([FromRoute] int seriesID,
         [FromQuery] [Range(0, 1000)] int pageSize = 20, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool? includeMissing = null, [FromQuery] bool includeHidden = false,
+        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False, [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery] bool? includeWatched = null, [FromQuery] EpisodeType? type = null)
+        [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True, [FromQuery] EpisodeType? type = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -557,20 +557,38 @@ public class TreeController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        return series.GetAnimeEpisodes(orderList: true, includeHidden: includeHidden)
+        return series.GetAnimeEpisodes(orderList: true, includeHidden: includeHidden != IncludeOnlyFilter.False)
             .Where(a =>
             {
+                // Filter by hidden state, if spesified
+                if (includeHidden == IncludeOnlyFilter.Only && !a.IsHidden)
+                    return false;
+
                 // Filter by episode type, if specified
                 if (type.HasValue && type.Value != Episode.MapAniDBEpisodeType((AniDBEpisodeType)a.AniDB_Episode.EpisodeType))
                     return false;
 
                 // Filter by availability, if specified
-                if (includeMissing.HasValue && includeMissing.Value == a.GetVideoLocals().Count > 0)
-                    return false;
+                if (includeMissing != IncludeOnlyFilter.True)
+                {
+                    // If we should hide missing episodes and the episode has no files, then hide it.
+                    // Or if we should only show missing episodes and the episode has files, the hide it.
+                    var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
+                    var noFiles = a.GetVideoLocals().Count == 0;
+                    if (shouldHideMissing == noFiles)
+                        return false;
+                }
 
                 // Filter by user watched status, if specified
-                if (includeWatched.HasValue && includeWatched.Value == (a.GetUserRecord(User.JMMUserID)?.WatchedDate != null))
-                    return false;
+                if (includeWatched != IncludeOnlyFilter.True)
+                {
+                    // If we should hide watched episodes and the episode is watched, then hide it.
+                    // Or if we should only show watched episodes and the the episode is not watched, then hide it.
+                    var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
+                    var isWatched = a.GetUserRecord(User.JMMUserID)?.WatchedDate != null;
+                    if (shouldHideWatched == isWatched)
+                        return false;
+                }
 
                 return true;
             })
