@@ -186,7 +186,20 @@ public partial class ShokoServiceImplementation
             var result = true;
             foreach (var toDelete in videosToDelete)
             {
-                result &= toDelete.Places.All(a => a.RemoveAndDeleteFile().Item1);
+                result &= toDelete.Places.All(a =>
+                {
+                    try
+                    {
+                        a.RemoveRecordAndDeletePhysicalFile();
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, ex.ToString());
+                        return false;
+                        
+                    }
+                });
             }
             return result;
         }
@@ -422,95 +435,65 @@ public partial class ShokoServiceImplementation
         var ret = new CL_VideoLocal_Renamed
         {
             VideoLocalID = videoLocalID,
-            Success = true
+            VideoLocal = null,
+            Success = false,
         };
         if (scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
         {
-            ret.VideoLocal = null;
             ret.NewFileName = "ERROR: Do not attempt to use a temp file to rename.";
-            ret.Success = false;
             return ret;
         }
         try
         {
-            var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            var file = RepoFactory.VideoLocal.GetByID(videoLocalID);
+            if (file == null)
             {
-                ret.VideoLocal = null;
-                ret.NewFileName = "ERROR: Could not find file record";
-                ret.Success = false;
+                ret.NewFileName = "ERROR: Could not find file.";
                 return ret;
             }
 
-            ret.NewFileName = RenameFileHelper.GetFilename(vid?.GetBestVideoLocalPlace(), scriptName);
-
-            if (string.IsNullOrEmpty(ret.NewFileName))
+            var allLocations = file.Places;
+            if (allLocations.Count <= 0)
             {
-                ret.VideoLocal = null;
-                ret.Success = false;
-                ret.NewFileName = "ERROR: The file renamer returned a null or empty value.";
+                ret.NewFileName = "ERROR: No locations were found for the file. Run the \"Remove Missing Files\" action to remove the file.";
                 return ret;
             }
 
-            if (ret.NewFileName.StartsWith("*Error: ", StringComparison.OrdinalIgnoreCase))
+            // First do a dry-run on the best location.
+            var bestLocation = file.GetBestVideoLocalPlace();
+            var previewResult = bestLocation.AutoRelocateFile(new() { Preview = true, ScriptName = scriptName, SkipMove = !move });
+            if (!previewResult.Success)
             {
-                ret.VideoLocal = null;
-                ret.Success = false;
-                ret.NewFileName = "ERROR: " + ret.NewFileName.Substring(7);
+                ret.NewFileName = $"ERROR: {previewResult.ErrorMessage}";
                 return ret;
             }
 
-            if (vid.Places.Count <= 0)
-            {
-                ret.VideoLocal = null;
-                ret.Success = false;
-                ret.NewFileName = "ERROR: No Places were found for the VideoLocal. Run Remove Missing Files.";
-                return ret;
-            }
-
-            var errorCount = 0;
+            // Relocate the file locations.
+            var fullPath = string.Empty;
             var errorString = string.Empty;
-            var name = Path.GetFileName(vid.GetBestVideoLocalPlace().FilePath);
-
-            foreach (var place in vid.Places)
+            foreach (var place in allLocations)
             {
-                if (move)
-                {
-                    var resultString = place.MoveWithResultString(scriptName);
-                    if (!string.IsNullOrEmpty(resultString.Item2))
-                    {
-                        errorCount++;
-                        errorString = resultString.Item2;
-                        continue;
-                    }
-                    ret.NewDestination = resultString.Item1;
-                }
-
-                var output = place.RenameFile(false, scriptName);
-                var error = output.Item3;
-                if (string.IsNullOrEmpty(error)) name = output.Item2;
+                var result = place.AutoRelocateFile(new() { ScriptName = scriptName, SkipMove = !move });
+                if (result.Success)
+                    fullPath = result.FullServerPath;
                 else
-                {
-                    errorCount++;
-                    errorString = error;
-                }
+                    errorString = result.ErrorMessage;
             }
-            if (errorCount >= vid.Places.Count) // should never be greater but shit happens
+            if (!string.IsNullOrEmpty(errorString))
             {
-                ret.VideoLocal = null;
-                ret.Success = false;
                 ret.NewFileName = errorString;
                 return ret;
             }
-            if (ret.VideoLocal == null)
-                ret.VideoLocal = new CL_VideoLocal {VideoLocalID = videoLocalID };
+
+            // Return the full path if we moved, otherwise return the file name.
+            ret.Success = true;
+            ret.VideoLocal = new CL_VideoLocal { VideoLocalID = videoLocalID };
+            ret.NewFileName = move ? fullPath : Path.GetFileName(fullPath);
         }
         catch (Exception ex)
         {
             logger.Error(ex, ex.ToString());
-            ret.VideoLocal = null;
             ret.NewFileName = $"ERROR: {ex.Message}";
-            ret.Success = false;
         }
         return ret;
     }
@@ -1182,7 +1165,8 @@ public partial class ShokoServiceImplementation
             }
             if (place == null) return "Unable to get VideoLocal_Place";
 
-            return place.RemoveAndDeleteFile().Item2;
+            place.RemoveRecordAndDeletePhysicalFile();
+            return string.Empty;
         }
         catch (Exception ex)
         {

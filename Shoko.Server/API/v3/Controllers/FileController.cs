@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -19,7 +20,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Shoko.Models.Server;
-using Microsoft.Extensions.Logging;
 
 using CommandRequestPriority = Shoko.Server.Server.CommandRequestPriority;
 using AVDump = Shoko.Server.API.v3.Models.Shoko.AVDump;
@@ -781,11 +781,11 @@ public class FileController : BaseController
 
         _logger.LogTrace("Selected closest location {ClosestFullPath} for target {TargetFullPath} for File {FileID}", closestLocation.FullServerPath, fullPath, file.VideoLocalID);
 
-        var fileLocation = closestLocation.CreateHardLinkOrCopy(importFolder, sanitizedRelativePath);
-        if (fileLocation == null)
+        var newLocation = FileSystemUtils.CreateHardLinkOrCopy(closestLocation, importFolder, sanitizedRelativePath);
+        if (newLocation == null)
             return InternalError("Unable to create a new hard link or copy");
-        
-        return new File.Location(fileLocation, true);
+
+        return new File.Location(newLocation, true);
     }
 
     /// <summary>
@@ -828,13 +828,13 @@ public class FileController : BaseController
     }
 
     /// <summary>
-    /// Manually relocates a file to a new location specified by the user.
+    /// Directly relocates a file to a new location specified by the user.
     /// </summary>
     /// <param name="locationID">The ID of the file location to be relocated.</param>
     /// <param name="body">New location information.</param>
     /// <returns>A result object containing information about the relocation process.</returns>
-    [HttpPost("Location/{locationID}/Relocate")]
-    public ActionResult<File.Location.RelocateResult> ManuallyRelocateFileLocation([FromRoute] int locationID, [FromBody] File.Location.NewLocationBody body)
+    [HttpPost("Location/{locationID}/DirectlyRelocate")]
+    public ActionResult<File.Location.RelocateResult> DirectlyRelocateFileLocation([FromRoute] int locationID, [FromBody] File.Location.NewLocationBody body)
     {
         var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
         if (fileLocation == null)
@@ -855,21 +855,26 @@ public class FileController : BaseController
         var oldRelativePath = fileLocation.FilePath;
 
         // Rename and move the file.
-        var (_, newImportFolder, relativePath) = fileLocation.MoveFile(importFolder, sanitizedRelativePath, false, body.DeleteEmptyDirectories);
-        var success = newImportFolder != null && !string.IsNullOrEmpty(relativePath);
+        var result = fileLocation.DirectlyRelocateFile(new() { ImportFolder = importFolder, RelativePath = body.RelativePath });
+        if (!result.Success)
+            return new File.Location.RelocateResult
+            {
+                ID = fileLocation.VideoLocal_Place_ID,
+                FileID = fileLocation.VideoLocalID,
+                ErrorMessage = result.ErrorMessage,
+                IsSuccess = false,
+            };
 
         // Check if it was actually relocated, or if we landed on the same location as earlier.
-        var relocated = !string.IsNullOrEmpty(relativePath) && importFolder != null && (oldRelativePath != relativePath || oldImportFolderId != importFolder.ImportFolderID);
+        var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ImportFolderID;
         return new File.Location.RelocateResult
         {
             ID = fileLocation.VideoLocal_Place_ID,
             FileID = fileLocation.VideoLocalID,
-            ScriptID = null,
-            ImportFolderID = importFolder?.ImportFolderID,
-            RelativePath = relativePath,
-            IsSuccess = success,
+            ImportFolderID = result.ImportFolder.ImportFolderID,
+            RelativePath = result.RelativePath,
+            IsSuccess = true,
             IsRelocated = relocated,
-            IsPreview = false,
         };
     }
 
@@ -900,27 +905,43 @@ public class FileController : BaseController
             if (script == null)
                 return BadRequest($"Unknown script with id \"{body.ScriptID.Value}\"! Omit `ScriptID` or set it to 0 to use the default script!");
 
-            if (script.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
+            if (string.Equals(script.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
                 return BadRequest("Do not attempt to use a temp file to rename.");
         }
 
         // Store the old import folder id and relative path for comparission.
         var oldImportFolderId = fileLocation.ImportFolderID;
         var oldRelativePath = fileLocation.FilePath;
+        var settings = SettingsProvider.GetSettings();
 
         // Rename and move the file, or preview where it would land if we did.
-        var (success, relativePath, importFolder) = fileLocation.RenameAndMoveFile(script.ScriptName, body.Preview, body.DeleteEmptyDirectories);
+        var result = fileLocation.AutoRelocateFile(new()
+            {
+                Preview = body.Preview,
+                DeleteEmptyDirectories = body.DeleteEmptyDirectories,
+                ScriptName = script.ScriptName,
+                SkipMove = body.SkipMove.HasValue ? body.SkipMove.Value : settings.Import.MoveOnImport,
+                SkipRename = body.SkipRename.HasValue ? body.SkipRename.Value : settings.Import.RenameOnImport,
+            });
+        if (!result.Success)
+            return new File.Location.RelocateResult
+            {
+                ID = fileLocation.VideoLocal_Place_ID,
+                FileID = fileLocation.VideoLocalID,
+                ErrorMessage = result.ErrorMessage,
+                IsSuccess = false,
+            };
 
         // Check if it was actually relocated, or if we landed on the same location as earlier.
-        var relocated = !string.IsNullOrEmpty(relativePath) && importFolder != null && (oldRelativePath != relativePath || oldImportFolderId != importFolder.ImportFolderID);
+        var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldImportFolderId != result.ImportFolder.ImportFolderID;
         return new File.Location.RelocateResult
         {
             ID = fileLocation.VideoLocal_Place_ID,
             FileID = fileLocation.VideoLocalID,
             ScriptID = script.RenameScriptID,
-            ImportFolderID = importFolder?.ImportFolderID,
-            RelativePath = relativePath,
-            IsSuccess = success,
+            ImportFolderID = result.ImportFolder.ImportFolderID,
+            RelativePath = result.RelativePath,
+            IsSuccess = true,
             IsRelocated = relocated,
             IsPreview = body.Preview,
         };

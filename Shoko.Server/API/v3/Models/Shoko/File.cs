@@ -11,6 +11,7 @@ using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -255,11 +256,11 @@ public class File
         {
             ID = location.VideoLocal_Place_ID;
             FileID = location.VideoLocalID;
-            FileUID = location.GetFileUniqueIdentifier();
+            FileUID = FileSystemUtils.GetFileUniqueIdentifier(location.FullServerPath);
             ImportFolderID = location.ImportFolderID;
             RelativePath = location.FilePath;
             AbsolutePath = includeAbsolutePaths ? location.FullServerPath : null;
-            IsAccessible = location.GetFile() != null;
+            IsAccessible = location.GetFileInfo() != null;
         }
 
         /// <summary>
@@ -285,7 +286,13 @@ public class File
             /// a manual relocation.
             /// </summary>
             [Required]
-            public int? ScriptID { get; set; }
+            public int? ScriptID { get; set; } = null;
+
+            /// <summary>
+            /// The error message if the relocation was not successful.
+            /// </summary>
+            [Required]
+            public string? ErrorMessage { get; set; } = null;
 
             /// <summary>
             /// The new id of the <see cref="ImportFolder"/> where the file now
@@ -293,7 +300,7 @@ public class File
             /// <see cref="IsSuccess"/> to see the status of the relocation.
             /// </summary>
             [Required]
-            public int? ImportFolderID { get; set; }
+            public int? ImportFolderID { get; set; } = null;
 
             /// <summary>
             /// The new relative path from the <see cref="ImportFolder"/>'s path
@@ -301,13 +308,13 @@ public class File
             /// <see cref="IsSuccess"/> to see the status of the relocation.
             /// </summary>
             [Required]
-            public string? RelativePath { get; set; }
+            public string? RelativePath { get; set; } = null;
 
             /// <summary>
             /// Indicates whether the file was relocated successfully.
             /// </summary>
             [Required]
-            public bool IsSuccess { get; set; }
+            public bool IsSuccess { get; set; } = false;
 
             /// <summary>
             /// Indicates whether the file was actually relocated from one
@@ -315,14 +322,14 @@ public class File
             /// location.
             /// </summary>
             [Required]
-            public bool IsRelocated { get; set; }
+            public bool IsRelocated { get; set; } = false;
 
             /// <summary>
             /// Indicates if the result is only a preview and the file has not
             /// actually been relocated yet.
             /// </summary>
             [Required]
-            public bool IsPreview { get; set; }
+            public bool IsPreview { get; set; } = false;
         }
 
         /// <summary>
@@ -341,6 +348,18 @@ public class File
             /// relocation.
             /// </summary>
             public bool Preview { get; set; } = false;
+
+            /// <summary>
+            /// Skip moving the file. Leave as `null` to use the default
+            /// setting for move on import.
+            /// </summary>
+            public bool? SkipMove { get; set; } = null;
+
+            /// <summary>
+            /// Skip renaming the file. Leave as `null` to use the default
+            /// setting for rename on import.
+            /// </summary>
+            public bool? SkipRename { get; set; } = null;
 
             /// <summary>
             /// Indicates whether empty directories should be deleted after
@@ -377,7 +396,6 @@ public class File
         }
     }
     #nullable disable
-
 
     /// <summary>
     /// AniDB_File info
