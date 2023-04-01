@@ -141,53 +141,74 @@ public static class SeriesSearch
         return dist;
     }
 
-    public static List<SearchResult<T>> SearchCollection<T>(string query, IEnumerable<T> list,
+    /// <summary>
+    /// Searches a collection of items based on a search query using fuzzy search.
+    /// </summary>
+    /// <typeparam name="T">The type of the items in the collection.</typeparam>
+    /// <param name="query">The search query used to filter the collection.</param>
+    /// <param name="list">The collection of items to be searched.</param>
+    /// <param name="selector">A function that takes an item of type T and returns a list of strings that represent searchable properties of the item.</param>
+    /// <returns>A list of search results containing the matched items and their search-related information, such as index, distance, and exact match status.</returns>
+    public static IOrderedEnumerable<SearchResult<T>> SearchCollection<T>(string query, IEnumerable<T> list,
         Func<T, List<string>> selector)
     {
-        var parallelList = list.ToList().AsParallel();
-        var results = parallelList.Select(a =>
-        {
-            var titles = selector(a);
-            SearchResult<T> dist = null;
-            foreach (var title in titles)
+        return list.ToList().AsParallel()
+            .Select(a =>
             {
-                if (string.IsNullOrEmpty(title))
+                var titles = selector(a);
+                SearchResult<T> dist = null;
+                foreach (var title in titles)
                 {
-                    continue;
+                    if (string.IsNullOrEmpty(title))
+                    {
+                        continue;
+                    }
+
+                    var k = Math.Max(Math.Min((int)(title.Length / 6D), (int)(query.Length / 6D)), 1);
+                    if (query.Length <= 4 || title.Length <= 4)
+                    {
+                        k = 0;
+                    }
+
+                    var result =
+                        Misc.DiceFuzzySearch(title, query, k, a);
+                    if (result.Index == -1)
+                    {
+                        continue;
+                    }
+
+                    var searchGrouping = new SearchResult<T>
+                    {
+                        Distance = result.Distance,
+                        Index = result.Index,
+                        ExactMatch = result.ExactMatch,
+                        Match = title,
+                        Result = a
+                    };
+                    if (result.Distance < (dist?.Distance ?? int.MaxValue))
+                    {
+                        dist = searchGrouping;
+                    }
                 }
 
-                var k = Math.Max(Math.Min((int)(title.Length / 6D), (int)(query.Length / 6D)), 1);
-                if (query.Length <= 4 || title.Length <= 4)
-                {
-                    k = 0;
-                }
-
-                var result =
-                    Misc.DiceFuzzySearch(title, query, k, a);
-                if (result.Index == -1)
-                {
-                    continue;
-                }
-
-                var searchGrouping = new SearchResult<T>
-                {
-                    Distance = result.Distance,
-                    Index = result.Index,
-                    ExactMatch = result.ExactMatch,
-                    Match = title,
-                    Result = a
-                };
-                if (result.Distance < (dist?.Distance ?? int.MaxValue))
-                {
-                    dist = searchGrouping;
-                }
-            }
-
-            return dist;
-        }).Where(a => a != null && a.Index != -1).ToList().OrderBy(a => a.Index).ThenBy(a => a.Distance).ToList();
-
-        return results;
+                return dist;
+            })
+            .Where(a => a != null && a.Index != -1)
+            .ToList()
+            .OrderBy(a => a.Index)
+            .ThenBy(a => a.Distance);
     }
+
+    /// <summary>
+    /// Performs a fuzzy search on an enumerable collection.
+    /// </summary>
+    /// <typeparam name="T">The type of the items in the enumerable collection.</typeparam>
+    /// <param name="enumerable">The enumerable collection to be searched.</param>
+    /// <param name="query">The search query used to filter the collection.</param>
+    /// <param name="selector">A function that takes an item of type T and returns a list of strings that represent searchable properties of the item.</param>
+    /// <returns>An ordered enumerable of search results containing the matched items and their search-related information
+    public static IOrderedEnumerable<SearchResult<T>> FuzzySearch<T>(this IEnumerable<T> enumerable, string query, Func<T, List<string>> selector)
+        => SearchCollection(query, enumerable, selector);
 
     /// <summary>
     ///     Search for series with given query in name or tag

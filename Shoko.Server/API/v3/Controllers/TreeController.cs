@@ -5,6 +5,8 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -13,6 +15,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -538,6 +541,7 @@ public class TreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
     /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
+    /// <param name="search">An optional search query to filter episodes based on their titles.</param>
     /// <returns>A list of episodes based on the specified filters.</returns>
     [HttpGet("Series/{seriesID}/Episode")]
     public ActionResult<ListResult<Episode>> GetEpisodes([FromRoute] int seriesID,
@@ -545,7 +549,8 @@ public class TreeController : BaseController
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False, [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
+        [FromQuery] string search = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -558,7 +563,25 @@ public class TreeController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        return series.GetAnimeEpisodes(orderList: true, includeHidden: includeHidden != IncludeOnlyFilter.False)
+        IEnumerable<SVR_AnimeEpisode> episodes = series.GetAnimeEpisodes(orderList: true, includeHidden: includeHidden != IncludeOnlyFilter.False);
+        if (!string.IsNullOrEmpty(search))
+        {
+            var languages = SettingsProvider.GetSettings()
+                .LanguagePreference
+                .Select(lang => lang.GetTitleLanguage())
+                .Concat(new TitleLanguage[] { TitleLanguage.English, TitleLanguage.Romaji })
+                .ToHashSet();
+            episodes = episodes.FuzzySearch(
+                "",
+                ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB_EpisodeID)
+                    .Where(title => title != null && languages.Contains(title.Language))
+                    .Select(title => title.Title)
+                    .ToList()
+            )
+            .Select(a => a.Result);
+        }
+
+        return episodes
             .Where(a =>
             {
                 // Filter by hidden state, if spesified
