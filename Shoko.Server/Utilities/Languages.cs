@@ -24,16 +24,4 @@ public static class Languages
         }
         set => _preferredNamingLanguages = value;
     }
-
-    public static List<NamingLanguage> PreferredEpisodeNamingLanguages
-    {
-        get
-        {
-            var preference = Utils.SettingsProvider.GetSettings().EpisodeLanguagePreference?.Split(',') ?? new string[] { };
-            return preference
-                .Select(l => new NamingLanguage(l))
-                .Where(l => l.Language != TitleLanguage.Unknown)
-                .ToList();
-        }
-    }
 }

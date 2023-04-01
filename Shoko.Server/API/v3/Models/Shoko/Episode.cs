@@ -107,11 +107,10 @@ public class Episode : BaseModel
             this._TvDB = tvdbEpisodes.Select(tvdbEpisode => new TvDB(tvdbEpisode));
     }
 
-
     internal static string GetEpisodeTitle(int anidbEpisodeID)
     {
         // Try finding one of the preferred languages.
-        foreach (var language in Languages.PreferredEpisodeNamingLanguages)
+        foreach (var language in Languages.PreferredNamingLanguages)
         {
             var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidbEpisodeID, language.Language)
                 .FirstOrDefault()?.Title;

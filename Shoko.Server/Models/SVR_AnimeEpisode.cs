@@ -180,7 +180,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
         get
         {
             // Try finding one of the preferred languages.
-            foreach (var language in Languages.PreferredEpisodeNamingLanguages)
+            foreach (var language in Languages.PreferredNamingLanguages)
             {
                 var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, language.Language)
                     .FirstOrDefault()

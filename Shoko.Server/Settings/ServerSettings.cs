@@ -76,6 +76,7 @@ public class ServerSettings : IServerSettings
         }
     }
 
+    [Obsolete("Use LanguagePreference instead.")]
     public string EpisodeLanguagePreference { get; set; } = string.Empty;
 
     public bool LanguageUseSynonyms { get; set; } = true;
