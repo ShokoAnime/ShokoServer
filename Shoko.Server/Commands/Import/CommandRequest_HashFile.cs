@@ -106,26 +106,20 @@ public class CommandRequest_HashFile : CommandRequestImplementation
 
         if (duplicate.Value)
         {
-            var crProcfile3 = _commandFactory.Create<CommandRequest_ProcessFile>(
+            _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
                 c =>
                 {
                     c.VideoLocalID = vlocal.VideoLocalID;
                     c.ForceAniDB = false;
                 }
             );
-            _commandFactory.Save(crProcfile3);
             return;
         }
 
         SaveFileNameHash(filename, vlocal);
 
         if ((vlocal.Media?.GeneralStream?.Duration ?? 0) == 0 || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
-        {
-            if (vlocalplace.RefreshMediaInfo())
-            {
-                RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
-            }
-        }
+            vlocal.RefreshMediaInfo(vlocalplace);
 
         ShokoEventHandler.Instance.OnFileHashed(folder, vlocalplace);
 
@@ -306,7 +300,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             // Make sure we have an ID
             RepoFactory.VideoLocalPlace.Save(vlocalplace);
         }
-        
+
         return (existing, vlocal, vlocalplace, folder);
     }
 

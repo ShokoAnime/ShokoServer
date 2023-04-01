@@ -14,10 +14,10 @@ using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
+using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Media = Shoko.Models.PlexAndKodi.Media;
 using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
@@ -110,6 +110,52 @@ public class SVR_VideoLocal : VideoLocal, IHash
             MediaBlob = MessagePackSerializer.Serialize(_media, MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray));
             MediaSize = MediaBlob.Length;
             MediaVersion = MEDIA_VERSION;
+        }
+    }
+
+    public void RefreshMediaInfo(SVR_VideoLocal_Place place = null)
+    {
+        place ??= GetBestVideoLocalPlace(true);
+        var path = place?.FullServerPath;
+        if (place == null || string.IsNullOrEmpty(path))
+        {
+            logger.Error("Could not find Video: {VideoLocalID}", VideoLocalID);
+            return;
+        }
+
+        try
+        {
+
+            logger.Trace("Getting media info for: {0}", path);
+
+            if (place.GetFileInfo() == null)
+            {
+                logger.Error(
+                    $"File {path} failed to be retrived for MediaInfo");
+                return;
+            }
+
+            var mediaContainer = Utilities.MediaInfoLib.MediaInfo.GetMediaInfo(path); //Mediainfo should have libcurl.dll for http
+            var duration = mediaContainer?.GeneralStream?.Duration ?? 0;
+            if (duration == 0)
+                mediaContainer = null;
+
+            if (mediaContainer != null)
+            {
+                var subs = SubtitleHelper.GetSubtitleStreams(path);
+                if (subs.Count > 0)
+                    mediaContainer.media.track.AddRange(subs);
+
+                Media = mediaContainer;
+                RepoFactory.VideoLocal.Save(this, true);
+            }
+
+            logger.Error($"File {path} failed to read MediaInfo");
+        }
+        catch (Exception e)
+        {
+            logger.Error(
+                $"Unable to read the media information of file {path} ERROR: {e}");
         }
     }
 

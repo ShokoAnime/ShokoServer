@@ -233,8 +233,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             return;
         }
 
-        var place = obj.GetBestVideoLocalPlace(true);
-        place?.RefreshMediaInfo();
+        obj.RefreshMediaInfo();
     }
 
     public override void Delete(SVR_VideoLocal obj)
