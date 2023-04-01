@@ -7,6 +7,9 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class DuplicateFileRepository : BaseDirectRepository<DuplicateFile, int>
 {
+    public List<DuplicateFile> GetByFilePathsAndImportFolder(VideoLocal_Place place1, VideoLocal_Place place2)
+        => GetByFilePathsAndImportFolder(place1.FilePath, place2.FilePath, place1.ImportFolderID, place2.ImportFolderID);
+
     public List<DuplicateFile> GetByFilePathsAndImportFolder(string filePath1, string filePath2, int folderID1,
         int folderID2)
     {

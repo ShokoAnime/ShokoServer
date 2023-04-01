@@ -120,7 +120,7 @@ public class File
     public MediaInfo MediaInfo { get; set; }
 
     public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
-        this(file.GetUserRecord(context?.GetUser()?.JMMUserID ?? 0), file, withXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths) {}
+        this(file.GetUserRecord(context?.GetUser()?.JMMUserID ?? 0), file, withXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths) { }
 
     public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
     {
@@ -129,13 +129,7 @@ public class File
         IsVariation = file.IsVariation;
         Hashes = new Hashes { ED2K = file.Hash, MD5 = file.MD5, CRC32 = file.CRC32, SHA1 = file.SHA1 };
         Resolution = FileQualityFilter.GetResolution(file);
-        Locations = file.Places.Select(a => new Location
-        {
-            ImportFolderID = a.ImportFolderID,
-            RelativePath = a.FilePath,
-            AbsolutePath = includeAbsolutePaths ? a.FullServerPath : null,
-            IsAccessible = a.GetFile() != null,
-        }).ToList();
+        Locations = file.Places.Select(l => new Location(l, includeAbsolutePaths)).ToList();
         AVDump = new AVDumpInfo(file);
         Duration = file.DurationTimeSpan;
         ResumePosition = userRecord?.ResumePositionTimeSpan;
@@ -196,30 +190,194 @@ public class File
         }
     }
 
+    /// <summary>
+    /// Represents a file location.
+    /// </summary>
+    #nullable enable
     public class Location
     {
         /// <summary>
-        /// The Import Folder that this file resides in 
+        /// The file location id.
         /// </summary>
+        [Required]
+        public int ID { get; set; }
+
+        /// <summary>
+        /// The id of the <see cref="File"/> this location belong to.
+        /// </summary>
+        [Required]
+        public int FileID { get; set; }
+
+        /// <summary>
+        /// The id of the <see cref="ImportFolder"/> where this file resides.
+        /// </summary>
+        [Required]
         public int ImportFolderID { get; set; }
 
         /// <summary>
-        /// The relative path from the import folder's path on the server. The Filename can be easily extracted from this. Using the ImportFolder, you can get the full server path of the file or map it if the client has remote access to the filesystem. 
+        /// The platform-specific unique identifier for the file.
         /// </summary>
+        /// <remarks>
+        /// This property holds the unique identifier for the file, which is the
+        /// inode number on Unix-based systems, or the file ID on Windows
+        /// systems. These identifiers are unique within a specific volume, but
+        /// not guaranteed to be unique across different volumes. This property
+        /// is nullable, meaning it can have a value of null if the unique
+        /// identifier cannot be obtained or the file does not exist.
+        /// </remarks>
+        public long? FileUID { get; set; }
+
+        /// <summary>
+        /// The relative path from the <see cref="ImportFolder"/>'s path on the
+        /// server.
+        /// </summary>
+        /// <remarks>
+        /// The filename can be easily extracted from this. Using the
+        /// <see cref="ImportFolder"/>, you can get the full server path of the
+        /// file or map it if the client has remote access to the filesystem.
+        /// </remarks>
+        [Required]
         public string RelativePath { get; set; }
 
         /// <summary>
         /// The absolute path for the file on the server.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string AbsolutePath { get; set; }
+        public string? AbsolutePath { get; set; }
 
         /// <summary>
-        /// Can the server access the file right now
+        /// Indicates whether the server can access the file right now.
         /// </summary>
-        [JsonRequired]
+        [Required]
         public bool IsAccessible { get; set; }
+
+        public Location(SVR_VideoLocal_Place location, bool includeAbsolutePaths)
+        {
+            ID = location.VideoLocal_Place_ID;
+            FileID = location.VideoLocalID;
+            FileUID = location.GetFileUniqueIdentifier();
+            ImportFolderID = location.ImportFolderID;
+            RelativePath = location.FilePath;
+            AbsolutePath = includeAbsolutePaths ? location.FullServerPath : null;
+            IsAccessible = location.GetFile() != null;
+        }
+
+        /// <summary>
+        /// Represents the result of a file relocation process.
+        /// </summary>
+        public class RelocateResult
+        {
+            /// <summary>
+            /// The file location id.
+            /// </summary>
+            [Required]
+            public int ID { get; set; }
+
+            /// <summary>
+            /// The file id.
+            /// </summary>
+            [Required]
+            public int FileID { get; set; }
+
+            /// <summary>
+            /// The id of the script that produced the final location for the
+            /// file if the relocation was successful and was not the result of
+            /// a manual relocation.
+            /// </summary>
+            [Required]
+            public int? ScriptID { get; set; }
+
+            /// <summary>
+            /// The new id of the <see cref="ImportFolder"/> where the file now
+            /// resides, if the relocation was successful. Remember to check
+            /// <see cref="IsSuccess"/> to see the status of the relocation.
+            /// </summary>
+            [Required]
+            public int? ImportFolderID { get; set; }
+
+            /// <summary>
+            /// The new relative path from the <see cref="ImportFolder"/>'s path
+            /// on the server, if relocation was successful. Remember to check
+            /// <see cref="IsSuccess"/> to see the status of the relocation.
+            /// </summary>
+            [Required]
+            public string? RelativePath { get; set; }
+
+            /// <summary>
+            /// Indicates whether the file was relocated successfully.
+            /// </summary>
+            [Required]
+            public bool IsSuccess { get; set; }
+
+            /// <summary>
+            /// Indicates whether the file was actually relocated from one
+            /// location to another, or if it was already at it's correct
+            /// location.
+            /// </summary>
+            [Required]
+            public bool IsRelocated { get; set; }
+
+            /// <summary>
+            /// Indicates if the result is only a preview and the file has not
+            /// actually been relocated yet.
+            /// </summary>
+            [Required]
+            public bool IsPreview { get; set; }
+        }
+
+        /// <summary>
+        /// Represents the parameters for the automatic relocation process.
+        /// </summary>
+        public class AutoRelocateBody
+        {
+            /// <summary>
+            /// Optional. Id of the script to use instead of the default
+            /// script.
+            /// </summary>
+            public int? ScriptID { get; set; }
+
+            /// <summary>
+            /// Indicates whether the result should be a preview of the
+            /// relocation.
+            /// </summary>
+            public bool Preview { get; set; } = false;
+
+            /// <summary>
+            /// Indicates whether empty directories should be deleted after
+            /// relocating the file.
+            /// </summary>
+            public bool DeleteEmptyDirectories { get; set; } = true;
+        }
+
+        /// <summary>
+        /// Represents the information required to create or move to a new file
+        /// location.
+        /// </summary>
+        public class NewLocationBody
+        {
+            /// <summary>
+            /// The id of the <see cref="ImportFolder"/> where this file should
+            /// be relocated to.
+            /// </summary>
+            [Required]
+            public int ImportFolderID { get; set; }
+
+            /// <summary>
+            /// The new relative path from the <see cref="ImportFolder"/>'s path
+            /// on the server.
+            /// </summary>
+            [Required]
+            public string RelativePath { get; set; } = "";
+
+            /// <summary>
+            /// Indicates whether empty directories should be deleted after
+            /// relocating the file.
+            /// </summary>
+            public bool DeleteEmptyDirectories { get; set; } = true;
+        }
     }
+    #nullable disable
+
 
     /// <summary>
     /// AniDB_File info
@@ -286,7 +444,7 @@ public class File
         public bool? IsCensored { get; set; }
 
         /// <summary>
-        /// The original FileName. Useful for when you obtained from a shady source or when you renamed it without thinking. 
+        /// The original FileName. Useful for when you obtained from a shady source or when you renamed it without thinking.
         /// </summary>
         public string OriginalFileName { get; set; }
 
@@ -560,6 +718,7 @@ public class File
             [Required]
             public int[] fileIDs { get; set; }
         }
+
     }
 
     public enum FileSortCriteria
