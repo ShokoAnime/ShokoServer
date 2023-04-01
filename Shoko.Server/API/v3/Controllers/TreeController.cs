@@ -537,14 +537,15 @@ public class TreeController : BaseController
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
-    /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>.</param>
+    /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
     /// <returns>A list of episodes based on the specified filters.</returns>
     [HttpGet("Series/{seriesID}/Episode")]
     public ActionResult<ListResult<Episode>> GetEpisodes([FromRoute] int seriesID,
         [FromQuery] [Range(0, 1000)] int pageSize = 20, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False, [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True, [FromQuery] EpisodeType? type = null)
+        [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -565,8 +566,12 @@ public class TreeController : BaseController
                     return false;
 
                 // Filter by episode type, if specified
-                if (type.HasValue && type.Value != Episode.MapAniDBEpisodeType((AniDBEpisodeType)a.AniDB_Episode.EpisodeType))
-                    return false;
+                if (type != null)
+                {
+                    var mappedType = Episode.MapAniDBEpisodeType((AniDBEpisodeType)a.AniDB_Episode.EpisodeType);
+                    if (!type.Contains(mappedType))
+                        return false;
+                }
 
                 // Filter by availability, if specified
                 if (includeMissing != IncludeOnlyFilter.True)
