@@ -222,10 +222,10 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                     }
 
                     // audio languages
-                    var alangs = parts[10].Split(new[] { '\'' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                    var alangs = parts[10].Split(new[] { '\'' }, StringSplitOptions.RemoveEmptyEntries).Where(lang => lang != "none").ToList();
 
                     // sub languages
-                    var slangs = parts[11].Split(new[] { '\'' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                    var slangs = parts[11].Split(new[] { '\'' }, StringSplitOptions.RemoveEmptyEntries).Where(lang => lang != "none").ToList();
 
                     // mylist
                     var myList = ParseMyList(parts);
