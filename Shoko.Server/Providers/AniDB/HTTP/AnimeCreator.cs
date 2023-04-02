@@ -180,7 +180,6 @@ public class AnimeCreator
         {
             // Load the titles for the episode now, since we might need to check
             // them even if we don't update the episode itself.
-            var skipCounting = false;
             if (!currentAniDBEpisodeTitles.TryGetValue(rawEpisode.EpisodeID, out var currentTitles))
                 currentTitles = new();
 
@@ -194,11 +193,11 @@ public class AnimeCreator
                     // If the episode does not belong to the anime being
                     // processed, or if none of the titles changed since last
                     // time, then also skip updating the episode titles.
-                    if (episode.AnimeID != rawEpisode.AnimeID ||
-                        currentTitles.Count == rawEpisode.Titles.Count &&
-                        currentTitles.All(t1 => rawEpisode.Titles.Any(t2 => string.Equals(t1.Title, t2.Title))))
+                    if (episode.AnimeID != rawEpisode.AnimeID)
                         continue;
-                    skipCounting = true;
+                    if (currentTitles.Count == rawEpisode.Titles.Count &&
+                        currentTitles.All(t1 => rawEpisode.Titles.Any(t2 => string.Equals(t1.Title, t2.Title))))
+                        goto count;
                 }
                 // Update the existing record.
                 else
@@ -252,21 +251,16 @@ public class AnimeCreator
             if (currentTitles.Count > 0)
                 titlesToRemove.AddRange(currentTitles.Where(a => !newTitles.Any(b => b.Equals(a))));
 
-            // Skip counting the episode if we only needed to update the titles
-            // for it.
-            if (skipCounting)
-                continue;
-
             // Since the HTTP API doesn't return a count of the number of normal
             // episodes and/or specials, then we will calculate it now.
-            switch (episode.GetEpisodeTypeEnum())
+            count: switch (episode.GetEpisodeTypeEnum())
             {
                 case Shoko.Models.Enums.EpisodeType.Episode:
                     episodeCountNormal++;
                     break;
 
                 case Shoko.Models.Enums.EpisodeType.Special:
-                    episodeCountNormal++;
+                    episodeCountSpecial++;
                     break;
             }
         }
