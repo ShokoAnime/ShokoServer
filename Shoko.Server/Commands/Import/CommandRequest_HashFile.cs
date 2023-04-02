@@ -42,7 +42,9 @@ public class CommandRequest_HashFile : CommandRequestImplementation
 
     private QueueStateStruct PrettyDescriptionHashing => new()
     {
-        message = "Hashing File: {0}", queueState = QueueStateEnum.HashingFile, extraParams = new[] { FileName }
+        message = "Hashing File: {0}",
+        queueState = QueueStateEnum.HashingFile,
+        extraParams = new[] { FileName }
     };
 
     protected override void Process()
@@ -295,7 +297,9 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             Logger.LogTrace("No existing VideoLocal_Place, creating a new record");
             vlocalplace = new SVR_VideoLocal_Place
             {
-                FilePath = filePath, ImportFolderID = nshareID, ImportFolderType = folder.ImportFolderType
+                FilePath = filePath,
+                ImportFolderID = nshareID,
+                ImportFolderType = folder.ImportFolderType
             };
             // Make sure we have an ID
             RepoFactory.VideoLocalPlace.Save(vlocalplace);
@@ -519,31 +523,6 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         {
             vlocalplace.RemoveRecordAndDeletePhysicalFile();
             return null;
-        }
-
-        // check if we have a record of this in the database, if not create one
-        var dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(
-            vlocalplace.FilePath,
-            dupPlace.FilePath,
-            vlocalplace.ImportFolderID, dupPlace.ImportFolderID);
-        if (dupFiles.Count == 0)
-        {
-            dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(dupPlace.FilePath,
-                vlocalplace.FilePath, dupPlace.ImportFolderID, vlocalplace.ImportFolderID);
-        }
-
-        if (dupFiles.Count == 0)
-        {
-            var dup = new DuplicateFile
-            {
-                DateTimeUpdated = DateTime.Now,
-                FilePathFile1 = vlocalplace.FilePath,
-                FilePathFile2 = dupPlace.FilePath,
-                ImportFolderIDFile1 = vlocalplace.ImportFolderID,
-                ImportFolderIDFile2 = dupPlace.ImportFolderID,
-                Hash = vlocal.Hash
-            };
-            RepoFactory.DuplicateFile.Save(dup);
         }
 
         return true;

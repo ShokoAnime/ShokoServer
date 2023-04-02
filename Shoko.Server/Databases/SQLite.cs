@@ -22,7 +22,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name { get; } = "SQLite";
 
-    public override int RequiredVersion { get; } = 104;
+    public override int RequiredVersion { get; } = 105;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -672,6 +672,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(103, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion text;"),
         new(104, 1, DatabaseFixes.FixAnimeSourceLinks),
         new(104, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
+        new(105, 1, "DROP TABLE DuplicateFile"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

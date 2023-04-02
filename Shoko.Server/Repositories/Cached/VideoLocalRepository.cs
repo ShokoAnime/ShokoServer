@@ -570,14 +570,12 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     public List<SVR_VideoLocal> GetExactDuplicateVideos()
     {
-        return
-            RepoFactory.VideoLocalPlace.GetAll()
-                .GroupBy(a => a.VideoLocalID)
-                .Select(a => a.ToArray())
-                .Where(a => a.Length > 1)
-                .Select(a => GetByID(a[0].VideoLocalID))
-                .Where(a => a != null)
-                .ToList();
+        return RepoFactory.VideoLocalPlace.GetAll()
+            .GroupBy(a => a.VideoLocalID)
+            .Where(a => a.Count() > 1)
+            .Select(a => GetByID(a.Key))
+            .Where(a => a != null)
+            .ToList();
     }
 
     public List<SVR_VideoLocal> GetIgnoredVideos()

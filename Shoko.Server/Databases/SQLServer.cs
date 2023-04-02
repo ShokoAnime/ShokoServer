@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 111;
+    public override int RequiredVersion { get; } = 112;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -680,6 +680,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(110, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion nvarchar(128);"),
         new DatabaseCommand(111, 1, DatabaseFixes.FixAnimeSourceLinks),
         new DatabaseCommand(111, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
+        new DatabaseCommand(112, 1, "DROP TABLE DuplicateFile"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

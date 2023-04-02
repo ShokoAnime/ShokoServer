@@ -161,22 +161,6 @@ public static class FileSystemUtils
             };
             RepoFactory.VideoLocalPlace.Save(newLocation);
 
-            // Create a duplicte file entry if one does't exist (it probably doesn't).
-            if (RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(currentLocation, newLocation).Count == 0 &&
-                RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(newLocation, currentLocation).Count == 0)
-            {
-                var duplicateFile = new DuplicateFile
-                {
-                    DateTimeUpdated = DateTime.Now,
-                    FilePathFile1 = currentLocation.FilePath,
-                    FilePathFile2 = newLocation.FilePath,
-                    ImportFolderIDFile1 = currentLocation.ImportFolderID,
-                    ImportFolderIDFile2 = newLocation.ImportFolderID,
-                    Hash = file.Hash
-                };
-                RepoFactory.DuplicateFile.Save(duplicateFile);
-            }
-
             return newLocation;
         }
         finally {

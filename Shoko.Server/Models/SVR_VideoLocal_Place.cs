@@ -311,8 +311,8 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         if (File.Exists(newFullPath))
         {
             // A file with the same name exists at the destination.
-            // Handle Duplicate Files, A duplicate file record won't exist yet,
-            // so we'll check the old fashioned way
+            // Handle duplicate files, a duplicate file record won't exist yet,
+            // so we'll check the old fashioned way.
             logger.Trace("A file already exists at the new location, checking it for duplicate");
             var destVideoLocalPlace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newRelativePath,
                 request.ImportFolder.ImportFolderID);
@@ -413,8 +413,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                         };
                     }
 
-                    MoveDuplicateFiles(newRelativePath, request.ImportFolder);
-
                     ImportFolderID = request.ImportFolder.ImportFolderID;
                     FilePath = newRelativePath;
                     RepoFactory.VideoLocalPlace.Save(this);
@@ -443,8 +441,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     ErrorMessage = $"Unable to MOVE file: \"{oldFullPath}\" to \"{newFullPath}\" error {e}",
                 };
             }
-
-            MoveDuplicateFiles(newRelativePath, request.ImportFolder);
 
             ImportFolderID = request.ImportFolder.ImportFolderID;
             FilePath = newRelativePath;
@@ -885,38 +881,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         }
     }
 
-    private void MoveDuplicateFiles(string newFilePath, SVR_ImportFolder destFolder)
-    {
-        var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)
-            .ToList();
-
-        foreach (var dup in dups)
-        {
-            // Move source
-            if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
-            {
-                dup.FilePathFile1 = newFilePath;
-                dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
-            }
-            else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
-            {
-                dup.FilePathFile2 = newFilePath;
-                dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
-            }
-
-            // validate the dup file
-            // There are cases where a dup file was not cleaned up before, so we'll do it here, too
-            if (!string.Equals(dup.GetFullServerPath1(), dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-            {
-                RepoFactory.DuplicateFile.Save(dup);
-            }
-            else
-            {
-                RepoFactory.DuplicateFile.Delete(dup);
-            }
-        }
-    }
-
     private void RecursiveDeleteEmptyDirectories(string dir, bool importfolder)
     {
         try
@@ -1055,13 +1019,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
         var seriesToUpdate = new List<SVR_AnimeSeries>();
         var v = VideoLocal;
-        List<DuplicateFile> dupFiles = null;
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        if (!string.IsNullOrEmpty(FilePath))
-        {
-            dupFiles = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
-        }
-
         using (var session = DatabaseFactory.SessionFactory.OpenSession())
         {
             if (v?.Places?.Count <= 1)
@@ -1116,7 +1074,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                         .Select(a => a.GetAnimeSeries()));
                     RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, v);
 
-                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(s, a));
                     transaction.Commit();
                 });
             }
@@ -1135,7 +1092,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 {
                     using var transaction = s.BeginTransaction();
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, this);
-                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(s, a));
                     transaction.Commit();
                 });
             }
@@ -1149,17 +1105,11 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
 
     public void RemoveRecordWithOpenTransaction(ISession session, ICollection<SVR_AnimeSeries> seriesToUpdate,
-        bool updateMyListStatus = true, bool removeDuplicateFileEntries = true)
+        bool updateMyListStatus = true)
     {
         logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
         var v = VideoLocal;
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-
-        List<DuplicateFile> dupFiles = null;
-        if (!string.IsNullOrEmpty(FilePath) && removeDuplicateFileEntries)
-        {
-            dupFiles = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
-        }
 
         if (v?.Places?.Count <= 1)
         {
@@ -1213,7 +1163,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 using var transaction = session.BeginTransaction();
                 RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
                 RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
-                dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
 
                 transaction.Commit();
             });
@@ -1233,7 +1182,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             {
                 using var transaction = session.BeginTransaction();
                 RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-                dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                 transaction.Commit();
             });
         }

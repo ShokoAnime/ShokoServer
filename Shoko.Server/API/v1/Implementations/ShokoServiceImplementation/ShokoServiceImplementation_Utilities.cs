@@ -1119,15 +1119,50 @@ public partial class ShokoServiceImplementation
     [HttpGet("File/Duplicated")]
     public List<CL_DuplicateFile> GetAllDuplicateFiles()
     {
-        var dupFiles = new List<CL_DuplicateFile>();
         try
         {
-            return RepoFactory.DuplicateFile.GetAll().Select(a => a.ToClient()).ToList();
+            return RepoFactory.VideoLocal.GetExactDuplicateVideos()
+                .SelectMany(file =>
+                {
+                    var episode = file.GetAnimeEpisodes()
+                        .FirstOrDefault();
+                    var anidbEpisode = episode?.AniDB_Episode;
+                    var seriesName = episode?.GetAnimeSeries()?.GetSeriesName();
+                    var allLocations = file.Places;
+                    var bestLocation = file.GetBestVideoLocalPlace();
+                    return allLocations
+                        .Where(location => location.VideoLocal_Place_ID != bestLocation.VideoLocal_Place_ID)
+                        .Select(location =>
+                        {
+                            var duplicateFile = new CL_DuplicateFile()
+                            {
+                                DuplicateFileID = GetFakeDuplicteID(bestLocation.VideoLocal_Place_ID, location.VideoLocal_Place_ID),
+                                FilePathFile2 = location.FilePath,
+                                FilePathFile1 = bestLocation.FilePath,
+                                Hash = file.Hash,
+                                ImportFolderIDFile1 = bestLocation.ImportFolderID,
+                                ImportFolderIDFile2 = location.ImportFolderID,
+                                ImportFolder1 = bestLocation.ImportFolder,
+                                ImportFolder2 = location.ImportFolder,
+                                DateTimeUpdated = file.DateTimeUpdated,
+                            };
+                            if (episode != null && anidbEpisode != null)
+                            {
+                                duplicateFile.EpisodeName = episode.Title;
+                                duplicateFile.EpisodeNumber = anidbEpisode.EpisodeNumber;
+                                duplicateFile.EpisodeType = anidbEpisode.EpisodeType;
+                                duplicateFile.AnimeID = anidbEpisode.AnimeID;
+                                duplicateFile.AnimeName = seriesName;
+                            }
+                            return duplicateFile;
+                        });
+                })
+                .ToList();
         }
         catch (Exception ex)
         {
             logger.Error(ex, ex.ToString());
-            return dupFiles;
+            return new();
         }
     }
 
@@ -1142,29 +1177,19 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            var df = RepoFactory.DuplicateFile.GetByID(duplicateFileID);
-            if (df == null) return "Database entry does not exist";
-
-            if (fileNumber != 1 && fileNumber != 2) return string.Empty;
-            SVR_VideoLocal_Place place;
-            switch (fileNumber)
+            var (placeID1, placeID2) = GetLocationIDsFromFakeDuplicateID(duplicateFileID);
+            if (placeID1 == 0 || placeID2 == 0)
+                return "Unable to get VideoLocal_Place ids, refresh the view to fix.";
+            var place = (fileNumber) switch
             {
-                case 1:
-                    place =
-                        RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(df.FilePathFile1,
-                            df.ImportFolderIDFile1);
-                    break;
-                case 2:
-                    place =
-                        RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(df.FilePathFile2,
-                            df.ImportFolderIDFile2);
-                    break;
-                default:
-                    place = null;
-                    break;
-            }
-            if (place == null) return "Unable to get VideoLocal_Place";
+                1 => RepoFactory.VideoLocalPlace.GetByID(placeID1),
+                2 => RepoFactory.VideoLocalPlace.GetByID(placeID2),
+                _ => null,
+            };
+            if (place == null)
+                return "Unable to get VideoLocal_Place";
 
+            RemoveFakeDuplicateID(duplicateFileID);
             place.RemoveRecordAndDeletePhysicalFile();
             return string.Empty;
         }
@@ -1173,6 +1198,40 @@ public partial class ShokoServiceImplementation
             logger.Error(ex, ex.ToString());
             return ex.Message;
         }
+    }
+
+    private int IDCounter = 1;
+
+    private readonly Dictionary<int, (int, int)> Lookup = new();
+
+    private readonly Dictionary<(int, int), int> ReverseLookup = new();
+
+    [NonAction]
+    private int GetFakeDuplicteID(int fileLocationID1, int fileLocationID2)
+    {
+        var tuple = (fileLocationID1, fileLocationID2);
+        if (!ReverseLookup.TryGetValue(tuple, out var fakeDuplicateID))
+        {
+            ReverseLookup.Add(tuple, fakeDuplicateID = IDCounter++);
+            Lookup.Add(fakeDuplicateID, tuple);
+        }
+        return fakeDuplicateID;
+    }
+
+    [NonAction]
+    private (int location1, int location2) GetLocationIDsFromFakeDuplicateID(int fakeDuplicateID)
+    {
+        if (Lookup.TryGetValue(fakeDuplicateID, out var tuple))
+            return tuple;
+        return (0, 0);
+    }
+
+    [NonAction]
+    private void RemoveFakeDuplicateID(int fakeDuplicateID)
+    {
+        var tuple = Lookup[fakeDuplicateID];
+        ReverseLookup.Remove(tuple);
+        Lookup.Remove(fakeDuplicateID);
     }
 
     [HttpGet("File/ManuallyLinked/{userID}")]
@@ -1248,52 +1307,7 @@ public partial class ShokoServiceImplementation
     }
 
     [HttpPost("File/Duplicated/Reevaluate")]
-    public void ReevaluateDuplicateFiles()
-    {
-        try
-        {
-            foreach (var df in RepoFactory.DuplicateFile.GetAll())
-            {
-                if (df.GetImportFolder1() == null || df.GetImportFolder2() == null)
-                {
-                    var msg =
-                        string.Format(
-                            "Deleting duplicate file record as one of the import folders can't be found: {0} --- {1}",
-                            df.FilePathFile1, df.FilePathFile2);
-                    logger.Info(msg);
-                    RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
-                    continue;
-                }
-
-                // make sure that they are not actually the same file
-                if (df.GetFullServerPath1()
-                    .Equals(df.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                {
-                    var msg =
-                        string.Format(
-                            "Deleting duplicate file record as they are actually point to the same file: {0}",
-                            df.GetFullServerPath1());
-                    logger.Info(msg);
-                    RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
-                }
-
-                // check if both files still exist
-                if (!System.IO.File.Exists(df.GetFullServerPath1()) || !System.IO.File.Exists(df.GetFullServerPath2()))
-                {
-                    var msg =
-                        string.Format(
-                            "Deleting duplicate file record as one of the files can't be found: {0} --- {1}",
-                            df.GetFullServerPath1(), df.GetFullServerPath2());
-                    logger.Info(msg);
-                    RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-        }
-    }
+    public void ReevaluateDuplicateFiles() { }
 
     [HttpGet("File/Detailed/{animeID}/{relGroupName}/{resolution}/{videoSource}/{videoBitDepth}/{userID}")]
     public List<CL_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName,

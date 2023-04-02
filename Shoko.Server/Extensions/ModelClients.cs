@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
@@ -402,40 +402,6 @@ public static class ModelClients
         if (an != null)
         {
             cl.Anime = an.Contract.AniDBAnime;
-        }
-
-        return cl;
-    }
-
-    public static CL_DuplicateFile ToClient(this DuplicateFile duplicatefile)
-    {
-        var cl = new CL_DuplicateFile
-        {
-            DuplicateFileID = duplicatefile.DuplicateFileID,
-            FilePathFile1 = duplicatefile.FilePathFile1,
-            FilePathFile2 = duplicatefile.FilePathFile2,
-            Hash = duplicatefile.Hash,
-            ImportFolderIDFile1 = duplicatefile.ImportFolderIDFile1,
-            ImportFolderIDFile2 = duplicatefile.ImportFolderIDFile2,
-            ImportFolder1 = RepoFactory.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile1),
-            ImportFolder2 = RepoFactory.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile2),
-            DateTimeUpdated = duplicatefile.DateTimeUpdated
-        };
-        if (duplicatefile.GetAniDBFile() != null)
-        {
-            var eps = duplicatefile.GetAniDBFile().Episodes;
-            if (eps.Count > 0)
-            {
-                cl.EpisodeNumber = eps[0].EpisodeNumber;
-                cl.EpisodeType = eps[0].EpisodeType;
-                cl.EpisodeName = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(eps[0].EpisodeID)?.Title;
-                cl.AnimeID = eps[0].AnimeID;
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(eps[0].AnimeID);
-                if (anime != null)
-                {
-                    cl.AnimeName = anime.MainTitle;
-                }
-            }
         }
 
         return cl;
