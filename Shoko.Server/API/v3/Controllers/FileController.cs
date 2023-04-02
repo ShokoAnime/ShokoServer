@@ -862,7 +862,7 @@ public class FileController : BaseController
         var oldRelativePath = fileLocation.FilePath;
 
         // Rename and move the file.
-        var result = fileLocation.DirectlyRelocateFile(new() { ImportFolder = importFolder, RelativePath = body.RelativePath });
+        var result = fileLocation.DirectlyRelocateFile(new() { ImportFolder = importFolder, RelativePath = body.RelativePath, DeleteEmptyDirectories = body.DeleteEmptyDirectories });
         if (!result.Success)
             return new File.Location.RelocateResult
             {

@@ -169,12 +169,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
     public record DirectRelocateRequest
     {
         /// <summary>
-        /// Indicates whether the result should be a preview of the
-        /// relocation.
-        /// </summary>
-        public bool Preview { get; set; } = false;
-
-        /// <summary>
         /// The import folder where the file should be relocated to.
         /// </summary>
         public SVR_ImportFolder ImportFolder = null;
@@ -222,12 +216,12 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 ShouldRetry = false,
                 ErrorMessage = "The provided relative path leads outside the import folder.",
             };
-        var newRelativePath = Path.GetRelativePath(request.ImportFolder.ImportFolderLocation, fullPath);
 
         var oldRelativePath = FilePath;
         var oldFullPath = FullServerPath;
         if (string.IsNullOrWhiteSpace(oldRelativePath) || string.IsNullOrWhiteSpace(oldFullPath))
         {
+            logger.Warn($"Could not find or access the file to move: \"{VideoLocal_Place_ID}\"");
             return new()
             {
                 Success = false,
@@ -237,9 +231,9 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         }
 
         // this can happen due to file locks, so retry in awhile.
-        if (!File.Exists(oldRelativePath))
+        if (!File.Exists(oldFullPath))
         {
-            logger.Warn($"Could not find or access the file to move: \"{oldRelativePath}\"");
+            logger.Warn($"Could not find or access the file to move: \"{oldFullPath}\"");
             return new()
             {
                 Success = false,
@@ -249,6 +243,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         }
 
         var dropFolder = ImportFolder;
+        var newRelativePath = Path.GetRelativePath(request.ImportFolder.ImportFolderLocation, fullPath);
         var newFolderPath = Path.GetDirectoryName(newRelativePath);
         var newFullPath = Path.Combine(request.ImportFolder.ImportFolderLocation, newRelativePath);
         var newFileName = Path.GetFileName(newRelativePath);
@@ -268,9 +263,9 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         }
 
         // Last ditch effort to ensure we aren't moving a file unto itself
-        if (string.Equals(newFullPath, oldRelativePath, StringComparison.InvariantCultureIgnoreCase))
+        if (string.Equals(newFullPath, oldFullPath, StringComparison.InvariantCultureIgnoreCase))
         {
-            logger.Trace($"Resolved to move \"{newFullPath}\" unto itself. NOT MOVING");
+            logger.Trace($"Resolved to move \"{newFullPath}\" unto itself. Not moving.");
             return new()
             {
                 Success = true,
@@ -279,31 +274,27 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             };
         }
 
-        // Only actually do any operations if we're not previewing.
-        if (!request.Preview)
+        var destFullTree = Path.Combine(request.ImportFolder.ImportFolderLocation, newFolderPath);
+        if (!Directory.Exists(destFullTree))
         {
-            var destFullTree = Path.Combine(request.ImportFolder.ImportFolderLocation, newFolderPath);
-            if (!Directory.Exists(destFullTree))
+            try
             {
-                try
+                Utils.ShokoServer.AddFileWatcherExclusion(destFullTree);
+                Directory.CreateDirectory(destFullTree);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.Message);
+                return new()
                 {
-                    Utils.ShokoServer.AddFileWatcherExclusion(destFullTree);
-                    Directory.CreateDirectory(destFullTree);
-                }
-                catch (Exception e)
-                {
-                    logger.Error(e);
-                    return new()
-                    {
-                        Success = false,
-                        ShouldRetry = false,
-                        ErrorMessage = e.Message,
-                    };
-                }
-                finally
-                {
-                    Utils.ShokoServer.RemoveFileWatcherExclusion(destFullTree);
-                }
+                    Success = false,
+                    ShouldRetry = false,
+                    ErrorMessage = ex.Message,
+                };
+            }
+            finally
+            {
+                Utils.ShokoServer.RemoveFileWatcherExclusion(destFullTree);
             }
         }
 
@@ -311,9 +302,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         if (File.Exists(newFullPath))
         {
             // A file with the same name exists at the destination.
-            // Handle duplicate files, a duplicate file record won't exist yet,
-            // so we'll check the old fashioned way.
-            logger.Trace("A file already exists at the new location, checking it for duplicate");
+            logger.Trace("A file already exists at the new location, checking it for duplicate…");
             var destVideoLocalPlace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newRelativePath,
                 request.ImportFolder.ImportFolderID);
             var destVideoLocal = destVideoLocalPlace?.VideoLocal;
@@ -332,28 +321,25 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             {
                 logger.Debug($"Not moving file as it already exists at the new location, deleting source file instead: \"{oldFullPath}\" --- \"{newFullPath}\"");
 
-                if (!request.Preview)
+                // if the file already exists, we can just delete the source file instead
+                // this is safer than deleting and moving
+                try
                 {
-                    // if the file already exists, we can just delete the source file instead
-                    // this is safer than deleting and moving
-                    try
-                    {
-                        sourceFile.Delete();
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Warn($"Unable to DELETE file: \"{FullServerPath}\" error {e}");
-                        RemoveRecord(false);
+                    sourceFile.Delete();
+                }
+                catch (Exception e)
+                {
+                    logger.Warn($"Unable to DELETE file: \"{FullServerPath}\" error {e}");
+                    RemoveRecord(false);
 
-                        if (request.DeleteEmptyDirectories)
-                            RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
-                        return new()
-                        {
-                            Success = false,
-                            ShouldRetry = false,
-                            ErrorMessage = $"Unable to DELETE file: \"{FullServerPath}\" error {e}",
-                        };
-                    }
+                    if (request.DeleteEmptyDirectories)
+                        RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
+                    return new()
+                    {
+                        Success = false,
+                        ShouldRetry = false,
+                        ErrorMessage = $"Unable to DELETE file: \"{FullServerPath}\" error {e}",
+                    };
                 }
             }
 
@@ -389,40 +375,38 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 // This is a V2 replacing a V1 with the same name.
                 // Normally we'd let the Multiple Files Utility handle it, but let's just delete the V1
                 logger.Info("The existing file is a V1 from the same group. Replacing it.");
-                if (!request.Preview)
+
+                // Delete the destination
+                destVideoLocalPlace.RemoveRecordAndDeletePhysicalFile();
+
+                // Move
+                Utils.ShokoServer.AddFileWatcherExclusion(newFullPath);
+                logger.Info($"Moving file from \"{oldFullPath}\" to \"{newFullPath}\"");
+                try
                 {
-                    // Delete the destination
-                    destVideoLocalPlace.RemoveRecordAndDeletePhysicalFile();
-
-                    // Move
-                    Utils.ShokoServer.AddFileWatcherExclusion(newFullPath);
-                    logger.Info($"Moving file from \"{oldFullPath}\" to \"{newFullPath}\"");
-                    try
-                    {
-                        sourceFile.MoveTo(newFullPath);
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Error($"Unable to MOVE file: \"{oldFullPath}\" to \"{newFullPath}\" error {e}");
-                        Utils.ShokoServer.RemoveFileWatcherExclusion(newFullPath);
-                        return new()
-                        {
-                            Success = false,
-                            ShouldRetry = true,
-                            ErrorMessage = $"Unable to MOVE file: \"{oldFullPath}\" to \"{newFullPath}\" error {e}",
-                        };
-                    }
-
-                    ImportFolderID = request.ImportFolder.ImportFolderID;
-                    FilePath = newRelativePath;
-                    RepoFactory.VideoLocalPlace.Save(this);
-
-                    if (request.DeleteEmptyDirectories)
-                        RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
+                    sourceFile.MoveTo(newFullPath);
                 }
+                catch (Exception e)
+                {
+                    logger.Error($"Unable to MOVE file: \"{oldFullPath}\" to \"{newFullPath}\" error {e}");
+                    Utils.ShokoServer.RemoveFileWatcherExclusion(newFullPath);
+                    return new()
+                    {
+                        Success = false,
+                        ShouldRetry = true,
+                        ErrorMessage = $"Unable to MOVE file: \"{oldFullPath}\" to \"{newFullPath}\" error {e}",
+                    };
+                }
+
+                ImportFolderID = request.ImportFolder.ImportFolderID;
+                FilePath = newRelativePath;
+                RepoFactory.VideoLocalPlace.Save(this);
+
+                if (request.DeleteEmptyDirectories)
+                    RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
             }
         }
-        else if (!request.Preview)
+        else
         {
             Utils.ShokoServer.AddFileWatcherExclusion(newFullPath);
             logger.Info($"Moving file from \"{oldFullPath}\" to \"{newFullPath}\"");
@@ -432,8 +416,8 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             }
             catch (Exception e)
             {
-                logger.Error($"Unable to MOVE file: \"{oldFullPath}\" to \"{newFullPath}\" error {e}");
                 Utils.ShokoServer.RemoveFileWatcherExclusion(newFullPath);
+                logger.Error($"Unable to MOVE file: \"{oldFullPath}\" to \"{newFullPath}\" error {e}");
                 return new()
                 {
                     Success = false,
@@ -450,35 +434,32 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
         }
 
-        if (!request.Preview)
+        if (renamed)
         {
-            if (renamed)
+            // Add a new lookup entry.
+            var filenameHash = RepoFactory.FileNameHash.GetByHash(VideoLocal.Hash);
+            if (!filenameHash.Any(a => a.FileName.Equals(newFileName)))
             {
-                // Add a new lookup entry.
-                var filenameHash = RepoFactory.FileNameHash.GetByHash(VideoLocal.Hash);
-                if (!filenameHash.Any(a => a.FileName.Equals(newFileName)))
+                var file = VideoLocal;
+                var fnhash = new FileNameHash
                 {
-                    var file = VideoLocal;
-                    var fnhash = new FileNameHash
-                    {
-                        DateTimeUpdated = DateTime.Now,
-                        FileName = newFileName,
-                        FileSize = file.FileSize,
-                        Hash = file.Hash
-                    };
-                    RepoFactory.FileNameHash.Save(fnhash);
-                }
+                    DateTimeUpdated = DateTime.Now,
+                    FileName = newFileName,
+                    FileSize = file.FileSize,
+                    Hash = file.Hash
+                };
+                RepoFactory.FileNameHash.Save(fnhash);
             }
-
-            // Move the external subtitles.
-            MoveExternalSubtitles(newFullPath, oldFullPath);
-
-            // Fire off the moved/renamed event depending on what was done.
-            if (renamed && !moved)
-                ShokoEventHandler.Instance.OnFileRenamed(request.ImportFolder, Path.GetFileName(oldRelativePath), newFileName, this);
-            else
-                ShokoEventHandler.Instance.OnFileMoved(dropFolder, request.ImportFolder, oldRelativePath, newRelativePath, this);
         }
+
+        // Move the external subtitles.
+        MoveExternalSubtitles(newFullPath, oldFullPath);
+
+        // Fire off the moved/renamed event depending on what was done.
+        if (renamed && !moved)
+            ShokoEventHandler.Instance.OnFileRenamed(request.ImportFolder, Path.GetFileName(oldRelativePath), newFileName, this);
+        else
+            ShokoEventHandler.Instance.OnFileMoved(dropFolder, request.ImportFolder, oldRelativePath, newRelativePath, this);
 
         return new()
         {
@@ -643,15 +624,17 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             Utils.ShokoServer.RemoveFileWatcherExclusion(FullServerPath);
         }
 
-        var correctFileName = !string.IsNullOrEmpty(renameResult.RelativePath) ? Path.GetFileName(renameResult.RelativePath) : null;
-        var correctFolder = !string.IsNullOrEmpty(moveResult.RelativePath) ? Path.GetDirectoryName(moveResult.RelativePath) : null;
-        var combinedPath = !string.IsNullOrEmpty(correctFolder) && !string.IsNullOrEmpty(correctFileName) ? Path.Combine(correctFolder, correctFileName) : null;
+        var correctFileName = Path.GetFileName(renameResult.RelativePath);
+        var correctFolder = Path.GetDirectoryName(moveResult.RelativePath);
+        var correctRelativePath = !string.IsNullOrEmpty(correctFileName) ? Path.Combine(correctFolder, correctFileName) : correctFileName;
+        var correctFullPath = Path.Combine(moveResult.ImportFolder.ImportFolderLocation, correctRelativePath);
+        logger.Trace($"{(request.Preview ? "Resolved to move" : "Moved")} from \"{oldFullPath}\" to \"{correctFullPath}\".");
         return new()
         {
             Success = renameResult.Success && moveResult.Success,
             ShouldRetry = renameResult.ShouldRetry || moveResult.ShouldRetry,
             ImportFolder = moveResult.ImportFolder,
-            RelativePath = combinedPath,
+            RelativePath = correctRelativePath,
         };
     }
 
@@ -671,10 +654,30 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 Success = true,
                 ShouldRetry = false,
                 ImportFolder = ImportFolder,
-                RelativePath = FileName,
+                RelativePath = FilePath,
             };
 
-        var newFileName = RenameFileHelper.GetFilename(this, request.ScriptName);
+        string newFileName;
+        try {
+            newFileName = RenameFileHelper.GetFilename(this, request.ScriptName);
+        }
+        // The renamer may throw an error
+        catch (Exception ex)
+        {
+            var errorMessage = ex.Message;
+            if (ex.Message.StartsWith("*Error:"))
+                errorMessage = errorMessage.Substring(7).Trim();
+
+            logger.Error($"Error: The renamer returned an error on file: \"{FullServerPath}\"");
+            logger.Error(ex, errorMessage);
+            return new()
+            {
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = errorMessage,
+            };
+        }
+
         if (string.IsNullOrWhiteSpace(newFileName))
         {
             logger.Error($"Error: The renamer returned a null or empty name for: \"{FullServerPath}\"");
@@ -686,22 +689,33 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             };
         }
 
+        // Or it may return an error message.
         if (newFileName.StartsWith("*Error:"))
         {
-            logger.Error($"Error: The renamer returned an error on file: \"{FullServerPath}\"\n            {newFileName}");
+            var errorMessage = newFileName.Substring(7).Trim();
+            logger.Error($"Error: The renamer returned an error on file: \"{FullServerPath}\"\n{errorMessage}");
             return new()
             {
                 Success = false,
                 ShouldRetry = false,
-                ErrorMessage = newFileName.Substring(7).TrimStart(),
+                ErrorMessage = errorMessage,
             };
         }
 
+        // Return early if we're only previewing.
         var newFullPath = Path.Combine(Path.GetDirectoryName(FullServerPath), newFileName);
         var newRelativePath = Path.GetRelativePath(ImportFolder.ImportFolderLocation, newFullPath);
+        if (request.Preview)
+            return new()
+            {
+                Success = true,
+                ImportFolder = ImportFolder,
+                RelativePath = newRelativePath,
+            };
+
+        // Actually move it.
         return DirectlyRelocateFile(new()
         {
-            Preview = request.Preview,
             DeleteEmptyDirectories = false,
             ImportFolder = ImportFolder,
             RelativePath = newRelativePath,
@@ -724,11 +738,31 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 Success = true,
                 ShouldRetry = false,
                 ImportFolder = ImportFolder,
-                RelativePath = FileName,
+                RelativePath = FilePath,
             };
 
-        // Find the new destination.
-        var (destImpl, newFolderPath) = RenameFileHelper.GetDestination(this, request.ScriptName);
+        ImportFolder destImpl;
+        string newFolderPath;
+        try {
+            // Find the new destination.
+            (destImpl, newFolderPath) = RenameFileHelper.GetDestination(this, request.ScriptName);
+        }
+        // The renamer may throw an error
+        catch (Exception ex)
+        {
+            var errorMessage = ex.Message;
+            if (ex.Message.StartsWith("*Error:"))
+                errorMessage = errorMessage.Substring(7).Trim();
+
+            logger.Warn($"Could not find a valid destination: \"{FullServerPath}\"");
+            logger.Error(ex, errorMessage);
+            return new()
+            {
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = errorMessage,
+            };
+        }
 
         // Ensure the new folder path is not null.
         newFolderPath ??= "";
@@ -765,13 +799,22 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             };
         }
 
-        // Relocate the file to the new destination.
+        // Return early if we're only previewing.
+        var newRelativePath = Path.Combine(newFolderPath, FileName);
+        if (request.Preview)
+            return new()
+            {
+                Success = true,
+                ImportFolder = ImportFolder,
+                RelativePath = newRelativePath,
+            };
+
+        // Actually move it.
         return DirectlyRelocateFile(new()
         {
-            Preview = request.Preview,
             DeleteEmptyDirectories = request.DeleteEmptyDirectories,
             ImportFolder = importFolder,
-            RelativePath = Path.Combine(newFolderPath, FileName),
+            RelativePath = newRelativePath,
         });
     }
 

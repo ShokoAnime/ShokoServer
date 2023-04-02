@@ -369,68 +369,18 @@ public partial class ShokoServiceImplementation
 
     [HttpGet("File/Rename/Preview/{videoLocalID}")]
     public CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID)
-    {
-        var ret = new CL_VideoLocal_Renamed
-        {
-            VideoLocalID = videoLocalID,
-            Success = true
-        };
-        try
-        {
-            var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
-            {
-                ret.VideoLocal = null;
-                ret.NewFileName = "ERROR: Could not find file record";
-                ret.Success = false;
-            }
-            else
-            {
-                ret.VideoLocal = null;
-                if (string.IsNullOrEmpty(vid?.GetBestVideoLocalPlace(true)?.FullServerPath))
-                {
-                    ret.VideoLocal = null;
-                    ret.Success = false;
-                    ret.NewFileName = "ERROR: The file could not be found.";
-                    return ret;
-                }
-                ret.NewFileName = RenameFileHelper.GetFilename(vid?.GetBestVideoLocalPlace(), Shoko.Models.Constants.Renamer.TempFileName);
-
-                if (string.IsNullOrEmpty(ret.NewFileName))
-                {
-                    ret.VideoLocal = null;
-                    ret.Success = false;
-                    ret.NewFileName = "ERROR: The file renamer returned a null or empty value.";
-                    return ret;
-                }
-
-                if (ret.NewFileName.StartsWith("*Error: "))
-                {
-                    ret.VideoLocal = null;
-                    ret.Success = false;
-                    ret.NewFileName = "ERROR: " + ret.NewFileName.Substring(7);
-                    return ret;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-            ret.VideoLocal = null;
-            ret.NewFileName = $"ERROR: {ex.Message}";
-            ret.Success = false;
-        }
-        return ret;
-    }
+        => RenameAndMoveFile(videoLocalID, null, false, true);
 
     [HttpGet("File/Rename/{videoLocalID}/{scriptName}")]
     public CL_VideoLocal_Renamed RenameFile(int videoLocalID, string scriptName)
-    {
-        return RenameAndMoveFile(videoLocalID, scriptName, false);
-    }
+        => RenameAndMoveFile(videoLocalID, scriptName, move: false, preview: false);
 
     [HttpGet("File/Rename/{videoLocalID}/{scriptName}/{move}")]
     public CL_VideoLocal_Renamed RenameAndMoveFile(int videoLocalID, string scriptName, bool move)
+        => RenameAndMoveFile(videoLocalID, scriptName, move, preview: false);
+
+    [NonAction]
+    private CL_VideoLocal_Renamed RenameAndMoveFile(int videoLocalID, string scriptName, bool move, bool preview)
     {
         var ret = new CL_VideoLocal_Renamed
         {
@@ -438,7 +388,7 @@ public partial class ShokoServiceImplementation
             VideoLocal = null,
             Success = false,
         };
-        if (scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
+        if (scriptName != null && scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
         {
             ret.NewFileName = "ERROR: Do not attempt to use a temp file to rename.";
             return ret;
@@ -473,7 +423,7 @@ public partial class ShokoServiceImplementation
             var errorString = string.Empty;
             foreach (var place in allLocations)
             {
-                var result = place.AutoRelocateFile(new() { ScriptName = scriptName, SkipMove = !move });
+                var result = place.AutoRelocateFile(new() { Preview = preview, ScriptName = scriptName, SkipMove = !move });
                 if (result.Success)
                     fullPath = result.FullServerPath;
                 else
@@ -488,7 +438,7 @@ public partial class ShokoServiceImplementation
             // Return the full path if we moved, otherwise return the file name.
             ret.Success = true;
             ret.VideoLocal = new CL_VideoLocal { VideoLocalID = videoLocalID };
-            ret.NewFileName = move ? fullPath : Path.GetFileName(fullPath);
+            ret.NewFileName = fullPath;
         }
         catch (Exception ex)
         {
