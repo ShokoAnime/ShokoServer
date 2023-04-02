@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -981,7 +981,9 @@ public static class Importer
                     using var transaction = s.BeginTransaction();
                     foreach (var place in ps.Where(place => string.IsNullOrWhiteSpace(place?.FullServerPath)))
                     {
+#pragma warning disable 618
                         Logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
+#pragma warning restore 618
                         seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                             .DistinctBy(a => a.AnimeSeriesID));
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
@@ -1016,7 +1018,9 @@ public static class Importer
             if (v.Places?.Count > 0) continue;
 
             // delete video local record
+#pragma warning disable 618
             Logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
+#pragma warning restore 618
             seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                 .DistinctBy(a => a.AnimeSeriesID));
 

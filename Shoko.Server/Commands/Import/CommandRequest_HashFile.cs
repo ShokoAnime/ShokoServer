@@ -281,7 +281,9 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             {
                 DateTimeUpdated = DateTime.Now,
                 DateTimeCreated = DateTimeUpdated,
+#pragma warning disable 618
                 FileName = filename,
+#pragma warning restore 618
                 FileSize = filesize,
                 Hash = string.Empty,
                 CRC32 = string.Empty,

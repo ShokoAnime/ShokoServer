@@ -42,6 +42,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         return entity.VideoLocalID;
     }
 
+#pragma warning disable 618
     public override void PopulateIndexes()
     {
         //Fix null hashes
@@ -77,6 +78,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         _md5 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.MD5);
         _ignored = new PocoIndex<int, SVR_VideoLocal, bool>(Cache, a => a.IsIgnored);
     }
+#pragma warning restore 618
 
     public override void RegenerateDb()
     {
@@ -86,7 +88,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         var count = 0;
         int max;
 
-        var list = Cache.Values.Where(a => a is { MediaVersion: 4, MediaBlob: { Length: > 0 } }).ToList();
+        var list = Cache.Values.Where(a => a is { MediaVersion: 4, MediaBlob.Length: > 0 }).ToList();
         max = list.Count;
 
         foreach (var batch in list.Batch(50))
@@ -492,7 +494,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     {
         return ReadLock(
             () => Cache.Values
-                .Where( a =>
+                .Where(a =>
                 {
                     if (a.IsIgnored)
                         return false;
@@ -521,7 +523,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     {
         return ReadLock(
             () => Cache.Values
-                .Where( a =>
+                .Where(a =>
                 {
                     if (a.IsIgnored)
                         return false;

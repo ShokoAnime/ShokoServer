@@ -1,7 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
@@ -14,8 +13,6 @@ namespace Shoko.Server.Extensions;
 
 public static class ModelClients
 {
-    private static Logger logger = LogManager.GetCurrentClassLogger();
-
     public static CL_ServerSettings ToContract(this IServerSettings settings)
     {
         return new CL_ServerSettings
@@ -146,7 +143,9 @@ public static class ModelClients
             TempVoteCount = anime.TempVoteCount,
             AvgReviewRating = anime.AvgReviewRating,
             ReviewCount = anime.ReviewCount,
+#pragma warning disable 618
             DateTimeUpdated = anime.GetDateTimeUpdated(),
+#pragma warning restore 618
             DateTimeDescUpdated = anime.DateTimeDescUpdated,
             ImageEnabled = anime.ImageEnabled,
             Restricted = anime.Restricted,
@@ -257,7 +256,10 @@ public static class ModelClients
     {
         var c = new CL_IgnoreAnime
         {
-            IgnoreAnimeID = i.IgnoreAnimeID, JMMUserID = i.JMMUserID, AnimeID = i.AnimeID, IgnoreType = i.IgnoreType
+            IgnoreAnimeID = i.IgnoreAnimeID,
+            JMMUserID = i.JMMUserID,
+            AnimeID = i.AnimeID,
+            IgnoreType = i.IgnoreType,
         };
         c.Anime = RepoFactory.AniDB_Anime.GetByAnimeID(i.AnimeID).ToClient();
         return c;
