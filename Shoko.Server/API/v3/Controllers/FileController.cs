@@ -614,6 +614,7 @@ public class FileController : BaseController
     /// <param name="fileID">VideoLocal ID</param>
     /// <param name="value">Thew new ignore value.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPut("{fileID}/Ignore")]
     public ActionResult IgnoreFile([FromRoute] int fileID, [FromQuery] bool value = true)
     {
@@ -634,6 +635,7 @@ public class FileController : BaseController
     /// <param name="priority">Increase the priority to the max for the queued command.</param>
     /// <param name="immediate">Immediately run the AVDump, without adding the command to the queue.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("{fileID}/AVDump")]
     public ActionResult<AVDump.Result> AvDumpFile([FromRoute] int fileID, [FromQuery] bool priority = false,
         [FromQuery] bool immediate = true)
@@ -681,6 +683,7 @@ public class FileController : BaseController
     /// <param name="fileID">VideoLocal ID</param>
     /// <param name="priority">Increase the priority to the max for the queued command.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("{fileID}/Rescan")]
     public ActionResult RescanFile([FromRoute] int fileID, [FromQuery] bool priority = false)
     {
@@ -709,6 +712,7 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="fileID">VideoLocal ID</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("{fileID}/Rehash")]
     public ActionResult RehashFile([FromRoute] int fileID)
     {
@@ -757,6 +761,7 @@ public class FileController : BaseController
     /// <param name="fileID">File ID</param>
     /// <param name="body">New location.</param>
     /// <returns>Returns the newly created file location.</returns>
+    [Authorize("admin")]
     [HttpPost("{fileID}/Location")]
     public ActionResult<File.Location> AddFileLocation([FromRoute] int fileID, [FromBody] File.Location.NewLocationBody body)
     {
@@ -812,6 +817,7 @@ public class FileController : BaseController
     /// <param name="deleteFile">Whether to delete the physical file.</param>
     /// <returns>Returns a result indicating if the deletion was successful.
     /// </returns>
+    [Authorize("admin")]
     [HttpDelete("Location/{locationID}")]
     public ActionResult DeleteFileLocation([FromRoute] int locationID, [FromQuery] bool deleteFile = true)
     {
@@ -833,6 +839,7 @@ public class FileController : BaseController
     /// <param name="locationID">The ID of the file location to be relocated.</param>
     /// <param name="body">New location information.</param>
     /// <returns>A result object containing information about the relocation process.</returns>
+    [Authorize("admin")]
     [HttpPost("Location/{locationID}/DirectlyRelocate")]
     public ActionResult<File.Location.RelocateResult> DirectlyRelocateFileLocation([FromRoute] int locationID, [FromBody] File.Location.NewLocationBody body)
     {
@@ -884,6 +891,7 @@ public class FileController : BaseController
     /// <param name="locationID">The ID of the file location to be relocated.</param>
     /// <param name="body">Parameters for the automatic relocation process.</param>
     /// <returns>A result object containing information about the relocation process.</returns>
+    [Authorize("admin")]
     [HttpPost("Location/{locationID}/AutoRelocate")]
     public ActionResult<File.Location.RelocateResult> AutomaticallyRelocateFileLocation([FromRoute] int locationID, [FromBody] File.Location.AutoRelocateBody body)
     {
@@ -953,6 +961,7 @@ public class FileController : BaseController
     /// <param name="fileID">The file id.</param>
     /// <param name="body">The body.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("{fileID}/Link")]
     public ActionResult LinkSingleEpisodeToFile([FromRoute] int fileID, [FromBody] File.Input.LinkEpisodesBody body)
     {
@@ -1001,6 +1010,7 @@ public class FileController : BaseController
     /// <param name="fileID">The file id.</param>
     /// <param name="body">The body.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("{fileID}/LinkFromSeries")]
     public ActionResult LinkMultipleEpisodesToFile([FromRoute] int fileID, [FromBody] File.Input.LinkSeriesBody body)
     {
@@ -1096,6 +1106,7 @@ public class FileController : BaseController
     /// <param name="fileID">The file id.</param>
     /// <param name="body">Optional. The body.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpDelete("{fileID}/Link")]
     public ActionResult UnlinkMultipleEpisodesFromFile([FromRoute] int fileID, [FromBody] File.Input.UnlinkEpisodesBody body)
     {
@@ -1150,6 +1161,7 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="body">The body.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("LinkFromSeries")]
     public ActionResult LinkMultipleFiles([FromBody] File.Input.LinkSeriesMultipleBody body)
     {
@@ -1256,6 +1268,7 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="body">The body.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("Link")]
     public ActionResult LinkMultipleFiles([FromBody] File.Input.LinkMultipleFilesBody body)
     {
