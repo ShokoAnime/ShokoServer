@@ -12,6 +12,9 @@ namespace Shoko.Server.Settings;
 
 public class ServerSettings : IServerSettings
 {
+    // Increment this when a new migration is added
+    public int SettingsVersion { get; set; } = SettingsMigrations.Version;
+
     [Range(1, 65535, ErrorMessage = "PluginAutoWatchThreshold must be between 1 and 65535")]
     public ushort ServerPort { get; set; } = 8111;
 

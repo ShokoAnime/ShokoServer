@@ -255,10 +255,12 @@ public class SettingsProvider : ISettingsProvider
 
     public void LoadSettingsFromFile(string path, bool delete = false)
     {
-        FixNonEmittedDefaults(path);
+        var settings = File.ReadAllText(path);
+        settings = SettingsMigrations.MigrateSettings(settings);
+        settings = FixNonEmittedDefaults(path, settings);
         try
         {
-            Instance = Deserialize<ServerSettings>(File.ReadAllText(path));
+            Instance = Deserialize<ServerSettings>(settings);
         }
         catch (Exception e)
         {
@@ -275,13 +277,10 @@ public class SettingsProvider : ISettingsProvider
     /// Fix the behavior of missing members in pre-4.0
     /// </summary>
     /// <param name="path"></param>
-    private static void FixNonEmittedDefaults(string path)
+    /// <param name="settings"></param>
+    private static string FixNonEmittedDefaults(string path, string settings)
     {
-        var json = File.ReadAllText(path);
-        if (json.Contains("\"FirstRun\":"))
-        {
-            return;
-        }
+        if (settings.Contains("\"FirstRun\":")) return settings;
 
         var serializerSettings = new JsonSerializerSettings
         {
@@ -291,9 +290,10 @@ public class SettingsProvider : ISettingsProvider
             MissingMemberHandling = MissingMemberHandling.Ignore,
             DefaultValueHandling = DefaultValueHandling.Populate
         };
-        var result = JsonConvert.DeserializeObject<ServerSettings>(json, serializerSettings);
+        var result = JsonConvert.DeserializeObject<ServerSettings>(settings, serializerSettings);
         var inCode = Serialize(result, true);
         File.WriteAllText(path, inCode);
+        return inCode;
     }
 
     public void SaveSettings()
