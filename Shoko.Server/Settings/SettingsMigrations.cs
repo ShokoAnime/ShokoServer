@@ -38,7 +38,7 @@ public static class SettingsMigrations
 
     private static string MigrateTvDBLanguageEnum(string settings)
     {
-        var regex = new Regex("(\"EpisodeTitleSource\":\\s*\")(TheTvDB)(\")", RegexOptions.Compiled);
+        var regex = new Regex("(\"EpisodeTitleSource\"\\:\\s*\")(TheTvDB)(\")", RegexOptions.Compiled);
         return regex.Replace(settings, "$1TvDB$3");
     }
 }
