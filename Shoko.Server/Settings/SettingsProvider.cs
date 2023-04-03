@@ -298,6 +298,12 @@ public class SettingsProvider : ISettingsProvider
 
     public void SaveSettings()
     {
+        if (Instance == null)
+        {
+            _logger.LogWarning("Tried to save settings, but the settings were null");
+            return;
+        }
+
         var path = Path.Combine(Utils.ApplicationPath, SettingsFilename);
 
         var context = new ValidationContext(Instance, null, null);
