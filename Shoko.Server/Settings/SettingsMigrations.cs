@@ -16,8 +16,9 @@ public static class SettingsMigrations
     /// <returns>migrated still-unparsed settings</returns>
     public static string MigrateSettings(string settings)
     {
-        var versionRegex = new Regex("(\"Version\"\\:\\s*)(\\d+)(,)", RegexOptions.Compiled);
-        var versionString = versionRegex.Matches(settings).FirstOrDefault()?.Groups.Values.Skip(1).FirstOrDefault()?.Value;
+        var versionRegex = new Regex("(\"SettingsVersion\"\\:\\s*)(\\d+)(,)", RegexOptions.Compiled);
+        // first group is full match, second group is first group
+        var versionString = versionRegex.Matches(settings).FirstOrDefault()?.Groups.Values.Skip(2).FirstOrDefault()?.Value;
         if (!int.TryParse(versionString, out var version)) version = 0;
 
         var migrationsToApply = s_migrations.Where(a => a.Key > version).OrderBy(a => a.Key).Select(a => a.Value);
@@ -25,7 +26,7 @@ public static class SettingsMigrations
         var result = migrationsToApply.Aggregate(settings, (current, migration) => migration(current));
 
         // update version, if exists. If it doesn't, it'll be updated with the default value from above in the next step
-        result = versionRegex.Replace(result, $"$1{Version}$3");
+        result = versionRegex.Replace(result, $"${{1}}{Version}$3");
 
         return result;
     }
