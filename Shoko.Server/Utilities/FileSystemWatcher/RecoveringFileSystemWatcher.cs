@@ -366,16 +366,10 @@ public class RecoveringFileSystemWatcher : IDisposable
             try
             {
                 var info = new FileInfo(fileName);
-                if (info.IsReadOnly)
-                {
-                    info.IsReadOnly = false;
-                }
+                if (info.IsReadOnly) info.IsReadOnly = false;
 
                 // check to see if it stuck. On linux, we can't just WinAPI hack our way out, so don't recurse in that case, anyway
-                if (!new FileInfo(fileName).IsReadOnly && Utils.IsRunningOnLinuxOrMac())
-                {
-                    return CanAccessFile(fileName, ref e);
-                }
+                if (!new FileInfo(fileName).IsReadOnly && !Utils.IsRunningOnLinuxOrMac()) return CanAccessFile(fileName, ref e);
             }
             catch
             {

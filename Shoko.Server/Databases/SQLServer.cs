@@ -93,7 +93,7 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
                 // SQL Server batching on Mono is busted atm.
                 // Fixed in https://github.com/mono/corefx/commit/6e65509a17da898933705899677c22eae437d68a
                 // but waiting for release. This will negatively affect performance, but there's not much choice
-                if (!Utils.IsRunningOnLinuxOrMac()) return;
+                if (Utils.IsRunningOnLinuxOrMac()) return;
                 prop.Batcher<NonBatchingBatcherFactory>();
                 prop.BatchSize = 0;
                 // uncomment this for SQL output

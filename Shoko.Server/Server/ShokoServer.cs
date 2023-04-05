@@ -237,16 +237,7 @@ public class ShokoServer
 
     private bool CheckBlockedFiles()
     {
-        if (Utils.IsRunningOnLinuxOrMac())
-        {
-            return true;
-        }
-
-        if (Environment.OSVersion.Platform != PlatformID.Win32NT)
-        {
-            // do stuff on windows only
-            return true;
-        }
+        if (Utils.IsRunningOnLinuxOrMac()) return true;
 
         var programlocation =
             Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
