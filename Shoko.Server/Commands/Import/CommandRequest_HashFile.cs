@@ -514,6 +514,8 @@ public class CommandRequest_HashFile : CommandRequestImplementation
 
         if (dupPlace == null) return false;
 
+        if (!vlocalplace.AllowAutoDelete) return true;
+
         Logger.LogWarning("Found Duplicate File");
         Logger.LogWarning("---------------------------------------------");
         Logger.LogWarning("New File: {FullServerPath}", vlocalplace.FullServerPath);

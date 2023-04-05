@@ -925,6 +925,7 @@ public class FileController : BaseController
         // Rename and move the file, or preview where it would land if we did.
         var result = fileLocation.AutoRelocateFile(new()
             {
+                Force = true,
                 Preview = body.Preview,
                 DeleteEmptyDirectories = body.DeleteEmptyDirectories,
                 ScriptName = script.ScriptName,

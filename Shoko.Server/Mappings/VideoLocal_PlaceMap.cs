@@ -15,5 +15,7 @@ public class VideoLocal_PlaceMap : ClassMap<SVR_VideoLocal_Place>
         Map(x => x.FilePath).Not.Nullable();
         Map(x => x.ImportFolderID).Not.Nullable();
         Map(x => x.ImportFolderType).Not.Nullable();
+        Map(x => x.AllowAutoRelocation).Not.Nullable();
+        Map(x => x.AllowAutoDelete).Not.Nullable();
     }
 }

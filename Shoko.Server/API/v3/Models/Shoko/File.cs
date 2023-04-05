@@ -121,7 +121,8 @@ public class File
     public MediaInfo MediaInfo { get; set; }
 
     public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
-        this(file.GetUserRecord(context?.GetUser()?.JMMUserID ?? 0), file, withXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths) { }
+        this(file.GetUserRecord(context?.GetUser()?.JMMUserID ?? 0), file, withXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths)
+    { }
 
     public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
     {
@@ -191,10 +192,10 @@ public class File
         }
     }
 
+#nullable enable
     /// <summary>
     /// Represents a file location.
     /// </summary>
-    #nullable enable
     public class Location
     {
         /// <summary>
@@ -252,6 +253,22 @@ public class File
         [Required]
         public bool IsAccessible { get; set; }
 
+        /// <summary>
+        /// Indicates the file can be automatically relocated by the system.
+        /// This value does not hinder the user to manually trigger an automatic
+        /// relocation, but will prevent the file from being relocated by the
+        /// system.
+        /// </summary>
+        [Required]
+        public bool AllowAutoRelocation { get; set; }
+
+        /// <summary>
+        /// Indicates the file location can be automatically deleted by the
+        /// system.
+        /// </summary>
+        [Required]
+        public bool AllowAutoDelete { get; set; }
+
         public Location(SVR_VideoLocal_Place location, bool includeAbsolutePaths)
         {
             ID = location.VideoLocal_Place_ID;
@@ -261,6 +278,8 @@ public class File
             RelativePath = location.FilePath;
             AbsolutePath = includeAbsolutePaths ? location.FullServerPath : null;
             IsAccessible = location.GetFileInfo() != null;
+            AllowAutoRelocation = location.AllowAutoRelocation;
+            AllowAutoDelete = location.AllowAutoDelete;
         }
 
         /// <summary>
@@ -395,7 +414,7 @@ public class File
             public bool DeleteEmptyDirectories { get; set; } = true;
         }
     }
-    #nullable disable
+#nullable disable
 
     /// <summary>
     /// AniDB_File info

@@ -158,8 +158,11 @@ public static class FileSystemUtils
                 FilePath = relativePath,
                 ImportFolderID = nextImportFolder.ImportFolderID,
                 ImportFolderType = nextImportFolder.ImportFolderType,
+                AllowAutoDelete = false,
             };
             RepoFactory.VideoLocalPlace.Save(newLocation);
+            currentLocation.AllowAutoDelete = false;
+            RepoFactory.VideoLocalPlace.Save(currentLocation);
 
             return newLocation;
         }

@@ -23,6 +23,22 @@ namespace Shoko.Server.Models;
 
 public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 {
+    #region Database Fields
+
+    /// <summary>
+    /// Allow automatic relocation to be applied to this file location.
+    /// </summary>
+    public bool AllowAutoRelocation = true;
+
+    /// <summary>
+    /// Allow this file location to be automatically removed when spotted as a
+    /// duplicate of another location. Setting this to false will excempt it
+    /// from being automatically removed.
+    /// </summary>
+    public bool AllowAutoDelete = true;
+
+    #endregion
+
     internal SVR_ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
 
     public string FullServerPath
@@ -96,6 +112,11 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         /// </summary>
         public string ErrorMessage = null;
 
+
+        public bool Moved = false;
+
+        public bool Renamed = false;
+
         /// <summary>
         /// The destination import folder if the relocation result were
         /// successful.
@@ -126,7 +147,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         /// Indicates whether the result should be a preview of the
         /// relocation.
         /// </summary>
-        public bool Preview { get; set; } = false;
+        public bool Preview = false;
 
         /// <summary>
         /// The name of the renaming script to use. Leave blank to use the
@@ -150,7 +171,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         /// Indicates whether empty directories should be deleted after
         /// relocating the file.
         /// </summary>
-        public bool DeleteEmptyDirectories { get; set; } = true;
+        public bool DeleteEmptyDirectories = true;
 
         /// <summary>
         /// Skip the move operation.
@@ -161,7 +182,13 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
     /// <summary>
     /// Represents a request to automatically relocate (move and rename) a file.
     /// </summary>
-    public record AutoRelocateRequest : AutoMoveRequest { }
+    public record AutoRelocateRequest : AutoMoveRequest {
+        /// <summary>
+        /// Forcefully relocate the file even if automatic relocation has been
+        /// disabled.
+        /// </summary>
+        public bool Force = false;
+     }
 
     /// <summary>
     /// Represents a request to directly relocate a file.
@@ -183,7 +210,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         /// Indicates whether empty directories should be deleted after
         /// relocating the file.
         /// </summary>
-        public bool DeleteEmptyDirectories { get; set; } = true;
+        public bool DeleteEmptyDirectories = true;
     }
 
     #endregion Records & Enums
@@ -467,6 +494,8 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             ShouldRetry = false,
             ImportFolder = request.ImportFolder,
             RelativePath = newRelativePath,
+            Moved = moved,
+            Renamed = renamed,
         };
     }
 
@@ -482,6 +511,14 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
     {
         // Allows calling the method without any parameters.
         request ??= new();
+
+        if (!request.Force && !AllowAutoRelocation)
+            return new()
+            {
+                Success = false,
+                ShouldRetry = false,
+                ErrorMessage = "Unable to relocate a file with auto relocation disabled."
+            };
 
         if (!string.IsNullOrEmpty(request.ScriptName) && string.Equals(request.ScriptName, Shoko.Models.Constants.Renamer.TempFileName))
         {
@@ -635,6 +672,8 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             ShouldRetry = renameResult.ShouldRetry || moveResult.ShouldRetry,
             ImportFolder = moveResult.ImportFolder,
             RelativePath = correctRelativePath,
+            Moved = moveResult.Moved,
+            Renamed = renameResult.Renamed,
         };
     }
 
@@ -711,6 +750,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 Success = true,
                 ImportFolder = ImportFolder,
                 RelativePath = newRelativePath,
+                Renamed = !string.Equals(FileName, newFileName, StringComparison.InvariantCultureIgnoreCase),
             };
 
         // Actually move it.
@@ -800,6 +840,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         }
 
         // Return early if we're only previewing.
+        var oldFolderPath = Path.GetDirectoryName(FullServerPath);
         var newRelativePath = Path.Combine(newFolderPath, FileName);
         if (request.Preview)
             return new()
@@ -807,6 +848,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 Success = true,
                 ImportFolder = ImportFolder,
                 RelativePath = newRelativePath,
+                Moved = !string.Equals(oldFolderPath, newFolderPath, StringComparison.InvariantCultureIgnoreCase),
             };
 
         // Actually move it.
