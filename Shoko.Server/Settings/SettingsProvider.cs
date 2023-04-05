@@ -173,7 +173,7 @@ public class SettingsProvider : ISettingsProvider
             FileQualityFilterEnabled = legacy.FileQualityFilterEnabled,
             FileQualityPreferences = legacy.FileQualityFilterPreferences,
             LanguagePreference = legacy.LanguagePreference.Split(',').ToList(),
-            EpisodeLanguagePreference = legacy.EpisodeLanguagePreference,
+            EpisodeLanguagePreference = legacy.EpisodeLanguagePreference.Split(',').ToList(),
             LanguageUseSynonyms = legacy.LanguageUseSynonyms,
             CloudWatcherTime = legacy.CloudWatcherTime,
             EpisodeTitleSource = legacy.EpisodeTitleSource,

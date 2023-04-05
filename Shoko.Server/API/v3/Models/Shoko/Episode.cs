@@ -110,7 +110,7 @@ public class Episode : BaseModel
     internal static string GetEpisodeTitle(int anidbEpisodeID)
     {
         // Try finding one of the preferred languages.
-        foreach (var language in Languages.PreferredNamingLanguages)
+        foreach (var language in Languages.PreferredEpisodeNamingLanguages)
         {
             var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidbEpisodeID, language.Language)
                 .FirstOrDefault()?.Title;

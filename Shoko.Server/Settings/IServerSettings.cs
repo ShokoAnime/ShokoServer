@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Shoko.Models;
 using Shoko.Models.Enums;
 
@@ -30,8 +29,7 @@ public interface IServerSettings
     bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
     bool FileQualityFilterEnabled { get; set; }
     List<string> LanguagePreference { get; set; }
-    [Obsolete("Use LanguagePreference instead.")]
-    string EpisodeLanguagePreference { get; set; }
+    List<string> EpisodeLanguagePreference { get; set; }
     bool LanguageUseSynonyms { get; set; }
     int CloudWatcherTime { get; set; }
     DataSourceType EpisodeTitleSource { get; set; }

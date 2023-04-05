@@ -7,7 +7,7 @@ namespace Shoko.Server.Settings;
 
 public static class SettingsMigrations
 {
-    public const int Version = 1;
+    public const int Version = 2;
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
@@ -34,12 +34,25 @@ public static class SettingsMigrations
     // Settings in, settings out
     private static readonly Dictionary<int, Func<string, string>> s_migrations = new()
     {
-        { 1, MigrateTvDBLanguageEnum }
+        { 1, MigrateTvDBLanguageEnum },
+        { 2, MigrateEpisodeLanguagePreference },
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
     {
         var regex = new Regex("(\"EpisodeTitleSource\"\\:\\s*\")(TheTvDB)(\")", RegexOptions.Compiled);
         return regex.Replace(settings, "$1TvDB$3");
+    }
+
+    private static string MigrateEpisodeLanguagePreference(string settings)
+    {
+        var regex = new Regex(@"""(?<name>EpisodeLanguagePreference)"":(?<spacing>\s*)""(?<value>[^""]*)""", RegexOptions.Compiled);
+        return regex.Replace(settings, match =>
+        {
+            var name = match.Groups["name"].Value;
+            var spacing = match.Groups["spacing"].Value;
+            var value = match.Groups["value"].Value;
+            return $"\"{name}\":{spacing}[\"{string.Join($"\",{spacing}\"", value.Split(','))}\"]";
+        });
     }
 }

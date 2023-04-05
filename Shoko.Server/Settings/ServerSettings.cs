@@ -67,8 +67,10 @@ public class ServerSettings : IServerSettings
 
     private List<string> _languagePreference = new()
     {
-        "x-jat", "en"
+        "x-jat",
+        "en",
     };
+
     public List<string> LanguagePreference
     {
         get => _languagePreference;
@@ -79,8 +81,19 @@ public class ServerSettings : IServerSettings
         }
     }
 
-    [Obsolete("Use LanguagePreference instead.")]
-    public string EpisodeLanguagePreference { get; set; } = string.Empty;
+    private List<string> _episodeLanguagePreference = new()
+    {
+        "en",
+    };
+
+    public List<string> EpisodeLanguagePreference {
+        get => _episodeLanguagePreference;
+        set
+        {
+            _episodeLanguagePreference = value;
+            Languages.PreferredEpisodeNamingLanguages = null;
+        }
+    }
 
     public bool LanguageUseSynonyms { get; set; } = true;
 
