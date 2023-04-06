@@ -191,12 +191,25 @@ public class CommandRequest_DownloadImage : CommandRequestImplementation
             try
             {
                 // If this has any issues, it will throw an exception, so the catch below will handle it.
-                if (req.DownloadNow())
-                    Logger.LogInformation("Image downloaded: {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
-                else if (req.IsImageValid)
-                        Logger.LogTrace("Image already in cache: {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
-                else
-                    Logger.LogWarning("Image failed to download; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                var result = req.DownloadNow();
+                switch (result)
+                {
+                    case ImageDownloadResult.Success:
+                        Logger.LogInformation("Image downloaded; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                        break;
+                    case ImageDownloadResult.Cached:
+                        Logger.LogDebug("Image already in cache; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                        break;
+                    case ImageDownloadResult.Failure:
+                        Logger.LogError("Image failed to download; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                        break;
+                    case ImageDownloadResult.RemovedResource:
+                        Logger.LogWarning("Image failed to download and the local entry has been removed; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                        break;
+                    case ImageDownloadResult.InvalidResource:
+                        Logger.LogError("Image failed to download and the local entry could not be removed; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                        break;
+                }
             }
             catch (WebException e)
             {

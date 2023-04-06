@@ -12,6 +12,42 @@ using Shoko.Server.Providers.AniDB;
 #nullable enable
 namespace Shoko.Server.ImageDownload;
 
+/// <summary>
+/// Represents the result of an image download operation.
+/// </summary>
+public enum ImageDownloadResult
+{
+    /// <summary>
+    /// The image was successfully downloaded and saved.
+    /// </summary>
+    Success = 1,
+
+    /// <summary>
+    /// The image was not downloaded because it was already available in the cache.
+    /// </summary>
+    Cached = 2,
+
+    /// <summary>
+    /// The image could not be downloaded due to not being able to get the
+    /// source or destination.
+    /// </summary>
+    Failure = 3,
+
+    /// <summary>
+    /// The image was not downloaded because the resource has been removed or is
+    /// no longer available, but we could not remove the local entry because of
+    /// it's type.
+    /// </summary>
+    InvalidResource = 4,
+
+    /// <summary>
+    /// The image was not downloaded because the resource has been removed or is
+    /// no longer available, and thus have also been removed from the local
+    /// database.
+    /// </summary>
+    RemovedResource = 5,
+}
+
 public class ImageDownloadRequest
 {
 
@@ -74,18 +110,18 @@ public class ImageDownloadRequest
         ImageServerUrl = imageServerUrl ?? "";
     }
 
-    public bool DownloadNow(int maxRetries = 5)
+    public ImageDownloadResult DownloadNow(int maxRetries = 5)
         => RecursivelyRetryDownload(0, maxRetries);
 
-    private bool RecursivelyRetryDownload(int count, int maxRetries)
+    private ImageDownloadResult RecursivelyRetryDownload(int count, int maxRetries)
     {
         // Abort if the download url or final destination is not available.
         if (string.IsNullOrEmpty(DownloadUrl) || string.IsNullOrEmpty(FilePath))
-            return false;
+            return ImageDownloadResult.Failure;
 
         var imageValid = File.Exists(FilePath) && Misc.IsImageValid(FilePath);
         if (imageValid && !ForceDownload)
-            return false;
+            return ImageDownloadResult.Cached;
 
         var tempPath = Path.Combine(ImageUtils.GetImagesTempFolder(), Path.GetFileName(FilePath));
         try
@@ -138,8 +174,19 @@ public class ImageDownloadRequest
                 // Move the temp file to it's final destination.
                 File.Move(tempPath, FilePath);
 
-                return true;
+                return ImageDownloadResult.Success;
             }
+        }
+        catch (HttpRequestException ex)
+        {
+            // Mark the request as a failure if we received a 404 or 403.
+            if (ex.StatusCode.HasValue && (ex.StatusCode.Value == HttpStatusCode.Forbidden || ex.StatusCode.Value == HttpStatusCode.NotFound))
+            {
+                var removed = RemoveResource();
+                return removed ? ImageDownloadResult.RemovedResource : ImageDownloadResult.InvalidResource;
+            }
+
+            throw;
         }
         catch (WebException)
         {
@@ -149,5 +196,29 @@ public class ImageDownloadRequest
             Thread.Sleep(1000);
             return RecursivelyRetryDownload(count + 1, maxRetries);
         }
+    }
+
+    private bool RemoveResource()
+    {
+        switch (ImageData)
+        {
+            case MovieDB_Fanart movieFanart:
+                Repositories.RepoFactory.MovieDB_Fanart.Delete(movieFanart);
+                return true;
+            case MovieDB_Poster moviePoster:
+                Repositories.RepoFactory.MovieDB_Poster.Delete(moviePoster);
+                return true;
+            case TvDB_ImageFanart tvdbFanart:
+                Repositories.RepoFactory.TvDB_ImageFanart.Delete(tvdbFanart);
+                return true;
+            case TvDB_ImagePoster tvdbPoster:
+                Repositories.RepoFactory.TvDB_ImagePoster.Delete(tvdbPoster);
+                return true;
+            case TvDB_ImageWideBanner tvdbWideBanner:
+                Repositories.RepoFactory.TvDB_ImageWideBanner.Delete(tvdbWideBanner);
+                return true;
+        }
+
+        return false;
     }
 }
