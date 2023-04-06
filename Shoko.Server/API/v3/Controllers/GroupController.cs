@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
@@ -111,177 +112,38 @@ public class GroupController : BaseController
     #region Create new or update existing
 
     /// <summary>
-    /// Create a new or merge with an existing group.
-    /// Use <see cref="SeriesController.MoveSeries"/> to move series to the group.
+    /// Create a new group using the provided details.
     /// </summary>
-    /// <param name="body"></param>
-    /// <param name="merge">Merge with the first existing group of the same name.</param>
-    /// <returns></returns>
+    /// <remarks>
+    /// Use <see cref="SeriesController.MoveSeries"/> to move a single series to
+    /// the group, or use <see cref="GroupController.PutGroup"/> or
+    /// <see cref="GroupController.PatchGroup"/> to move multiple series and/or
+    /// child groups to the group.
+    /// </remarks>
+    /// <param name="body">The details for the group to be created.</param>
+    /// <returns>The new group.</returns>
     [HttpPost]
-    public ActionResult<Group> CreateOrUpdateGroup([FromBody] Group.Input.CreateGroupBody body,
-        [FromQuery] bool merge = false)
+    public ActionResult<Group> CreateGroup([FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
-        // Validate if the parent exists if a parent id is set.
-        var parentID = body.ParentID ?? 0;
-        if (parentID != 0)
+        var animeGroup = new SVR_AnimeGroup()
         {
-            var parent = RepoFactory.AnimeGroup.GetByID(parentID);
-            if (parent == null)
-            {
-                return BadRequest("Invalid parent group id supplied.");
-            }
+            GroupName = string.Empty,
+            SortName = string.Empty,
+            Description = string.Empty,
+            IsManuallyNamed = 0,
+            DateTimeCreated = DateTime.Now,
+            DateTimeUpdated = DateTime.Now,
+            MissingEpisodeCount = 0,
+            MissingEpisodeCountGroups = 0,
+            OverrideDescription = 0,
+        };
+        var group = body.MergeWithExisting(HttpContext, animeGroup, ModelState);
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
         }
 
-        // Try to find the group to merge with if we provided an id.
-        var isNew = false;
-        SVR_AnimeGroup group = null;
-        if (body.ID.HasValue && body.ID.Value != 0)
-        {
-            // Make sure merging is requested.
-            // A merge request without the 'merge' query parameter set is an
-            // error.
-            if (!merge)
-            {
-                return BadRequest("A group id have been supplied. Set the merge query parameter to continue.");
-            }
-
-            group = RepoFactory.AnimeGroup.GetByID(body.ID.Value);
-
-            // Make sure the group actually exists.
-            if (group == null)
-            {
-                return BadRequest("No Group entry for the given id.");
-            }
-        }
-        // Try to find an existing group exists for the given name or create a new one.
-        else
-        {
-            // Look for an existing group if force is not set.
-            group = RepoFactory.AnimeGroup.GetByParentID(parentID)
-                .FirstOrDefault(grp =>
-                    string.Equals(grp.GroupName, body.Name, StringComparison.InvariantCultureIgnoreCase));
-
-            // If no group was found (either because we forced it or because a group by the same name was not found) then
-            if (group == null)
-            {
-                // It's safe to use the group name.
-                isNew = true;
-                group = new SVR_AnimeGroup
-                {
-                    Description = string.Empty,
-                    IsManuallyNamed = 0,
-                    DateTimeCreated = DateTime.Now,
-                    DateTimeUpdated = DateTime.Now,
-                    MissingEpisodeCount = 0,
-                    MissingEpisodeCountGroups = 0,
-                    OverrideDescription = 0
-                };
-            }
-            // Else we need to provide the query parameter to either merge
-            // or forcefully create a new group.
-            else if (!merge)
-            {
-                return BadRequest(
-                    "A group with the given name already exists. Set the merge or force query parameter to continue.");
-            }
-        }
-
-        // Get the series and validate the series ids.
-        var seriesList =
-            body.SeriesIDs?.Select(id => RepoFactory.AnimeSeries.GetByID(id)).Where(s => s != null).ToList() ??
-            new List<SVR_AnimeSeries>();
-        if (seriesList.Count != (body.SeriesIDs?.Length ?? 0))
-        {
-            return BadRequest("One or more series ids are invalid.");
-        }
-
-        // Trying to merge 0 series with an existing group is an error.
-        // Trying to create an empty group is also an error.
-        if (seriesList.Count == 0)
-        {
-            return BadRequest("No series ids have been spesified.");
-        }
-
-        // Nor spesifying a group name is an error.
-        body.Name = body.Name?.Trim() ?? "";
-        if (string.IsNullOrEmpty(body.Name))
-        {
-            return BadRequest("A name must be present and contain at least one character.");
-        }
-
-        group.AnimeGroupParentID = parentID != 0 ? parentID : null;
-        group.GroupName = body.Name;
-        group.SortName = string.IsNullOrEmpty(body.SortName?.Trim()) ? body.Name : body.SortName;
-        group.Description = body.Description ?? null;
-        group.IsManuallyNamed = body.HasCustomName ? 1 : 0;
-        group.OverrideDescription = 0;
-
-        // Create a new or update an existing group entry.
-        RepoFactory.AnimeGroup.Save(group, true, false, false);
-
-        // Iterate over the series list to calculate the groups to update
-        // and to assign the series to the group.
-        var oldGroups = new Dictionary<int, int>();
-        foreach (var series in seriesList)
-        {
-            // Skip the series if it's already in the group.
-            if (series.AnimeGroupID == group.AnimeGroupID)
-            {
-                continue;
-            }
-
-            // Count the number of series in each group.
-            var oldGroupID = series.AnimeGroupID;
-            if (oldGroups.TryGetValue(oldGroupID, out var count))
-            {
-                oldGroups[oldGroupID] = count + 1;
-            }
-            else
-            {
-                oldGroups[oldGroupID] = 1;
-            }
-
-            // Assign the series to the new group and update the series
-            // entry.
-            series.AnimeGroupID = group.AnimeGroupID;
-            series.UpdateStats(true, true);
-        }
-
-        // We don't need to update the group twice, and we don't need to
-        // check if the group we're creating/updating needs to be
-        // removed.
-        if (oldGroups.Keys.Contains(group.AnimeGroupID))
-        {
-            oldGroups.Remove(group.AnimeGroupID);
-        }
-
-        // Remove or update groups stats for the old groups.
-        foreach (var (oldGroupID, seriesCount) in oldGroups)
-        {
-            var oldGroup = RepoFactory.AnimeGroup.GetByID(oldGroupID)?.TopLevelAnimeGroup;
-            // The old group may have already been removed, so silently skip it.
-            if (oldGroup == null)
-            {
-                continue;
-            }
-
-            // Delete the sub-groups if the old group doesn't contain any other series.
-            if (oldGroup.GetAllSeries().Count <= seriesCount)
-            {
-                oldGroup.DeleteGroup();
-            }
-            else
-            {
-                oldGroup.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
-            }
-        }
-
-        // Update the group stats for the new group.
-        group.UpdateStatsFromTopLevel(true, true);
-
-        // Return the info for the newly created or updated group.
-        var dto = new Group(HttpContext, group);
-        return isNew ? Created($"./{group.AnimeGroupID}", dto) : Ok(dto);
+        return Created($"/api/v3/Group/{animeGroup.AnimeGroupID}", group);
     }
 
     #endregion
@@ -308,6 +170,82 @@ public class GroupController : BaseController
         }
 
         return new Group(HttpContext, group);
+    }
+
+    /// <summary>
+    /// Update an existing group using the provided details.
+    /// </summary>
+    /// <remarks>
+    /// Use this method to update the details or merge more series/groups into
+    /// an existing group.
+    /// </remarks>
+    /// <param name="groupID">The ID of the group to be updated.</param>
+    /// <param name="body">The new details for the group.</param>
+    /// <returns>The updated group.</returns>
+    [HttpPut("{groupID}")]
+    public ActionResult<Group> PutGroup([FromRoute] int groupID, [FromBody] Group.Input.CreateOrUpdateGroupBody body)
+    {
+        var animeGroup = RepoFactory.AnimeGroup.GetByID(groupID);
+        if (animeGroup == null)
+        {
+            return NotFound(GroupNotFound);
+        }
+
+        if (!User.AllowedGroup(animeGroup))
+        {
+            return Forbid(GroupForbiddenForUser);
+        }
+
+        var group = body.MergeWithExisting(HttpContext, animeGroup, ModelState);
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        return group;
+    }
+
+    /// <summary>
+    /// Partially update an existing group using the provided JSON Patch document.
+    /// </summary>
+    /// <remarks>
+    /// Use this method to apply a set of changes to an existing group.
+    /// The changes are described in the JSON Patch document included in the request body.
+    /// If you need to completely replace the details of a group, use
+    /// <see cref="GroupController.PutGroup"/> instead.
+    /// </remarks>
+    /// <param name="groupID">The ID of the group to be updated.</param>
+    /// <param name="patchDocument">The JSON Patch document containing the changes to be applied to the group.</param>
+    /// <returns>The updated group.</returns>
+    [HttpPatch("{groupID}")]
+    public ActionResult<Group> PatchGroup([FromRoute] int groupID, [FromBody] JsonPatchDocument<Group.Input.CreateOrUpdateGroupBody> patchDocument)
+    {
+        var animeGroup = RepoFactory.AnimeGroup.GetByID(groupID);
+        if (animeGroup == null)
+        {
+            return NotFound(GroupNotFound);
+        }
+
+        if (!User.AllowedGroup(animeGroup))
+        {
+            return Forbid(GroupForbiddenForUser);
+        }
+
+        // Patch the body with the existing model.
+        var body = new Group.Input.CreateOrUpdateGroupBody(animeGroup);
+        patchDocument.ApplyTo(body, ModelState);
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var group = body.MergeWithExisting(HttpContext, animeGroup, ModelState);
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        return group;
     }
 
     #endregion

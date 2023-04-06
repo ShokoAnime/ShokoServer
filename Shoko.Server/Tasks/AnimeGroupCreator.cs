@@ -404,21 +404,32 @@ internal class AnimeGroupCreator
                 .FirstOrDefault(s => s != null);
 
             var mainAnimeId = grpCalculator.GetGroupAnimeId(series.AniDB_ID);
+            // No existing group was found, so create a new one.
             if (animeGroup == null)
             {
-                // No existing group was found, so create a new one
-                var mainSeries = _animeSeriesRepo.GetByAnimeID(mainAnimeId);
-
+                // Find the main series for the group.
+                var mainSeries = series.AniDB_ID == mainAnimeId ?
+                    series :
+                    _animeSeriesRepo.GetByAnimeID(mainAnimeId);
                 animeGroup = CreateAnimeGroup(mainSeries, mainAnimeId, DateTime.Now);
                 RepoFactory.AnimeGroup.Save(animeGroup, true, true);
             }
-            // Update the auto-refreshed details if the main series changed.
-            else if (!animeGroup.DefaultAnimeSeriesID.HasValue && animeGroup.IsManuallyNamed == 0 &&
-                     mainAnimeId == series.AniDB_ID)
+            // Update the group details if we have the main series for the group.
+            else if (mainAnimeId == series.AniDB_ID)
             {
-                animeGroup.GroupName = animeGroup.SortName = series.GetSeriesName();
-                animeGroup.Description = series.GetAnime().Description;
+                // Always update the automatic main id.
                 animeGroup.MainAniDBAnimeID = mainAnimeId;
+                // Update the auto-refreshed details if the main series changed
+                // and no default series is set.
+                if (!animeGroup.DefaultAnimeSeriesID.HasValue)
+                {
+                    // Override the group name if the group is not manually named.
+                    if (animeGroup.IsManuallyNamed == 0)
+                        animeGroup.GroupName = animeGroup.SortName = series.GetSeriesName();
+                    // Override the group desc. if the group doesn't have an override.
+                    if (animeGroup.OverrideDescription == 0)
+                        animeGroup.Description = series.GetAnime().Description;
+                }
                 animeGroup.DateTimeUpdated = DateTime.Now;
                 RepoFactory.AnimeGroup.Save(animeGroup, true, true);
             }

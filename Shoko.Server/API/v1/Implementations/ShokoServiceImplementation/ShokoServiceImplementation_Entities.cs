@@ -2518,13 +2518,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return;
             }
 
-            grp.DefaultAnimeSeriesID = animeSeriesID;
-            if (grp.IsManuallyNamed == 0)
-            {
-                grp.GroupName = grp.SortName = ser.GetSeriesName();
-                grp.Description = ser.GetAnime().Description;
-            }
-            RepoFactory.AnimeGroup.Save(grp, false, false);
+            grp.SetMainSeries(ser);
         }
         catch (Exception ex)
         {
@@ -2543,17 +2537,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return;
             }
 
-            grp.DefaultAnimeSeriesID = null;
-            if (grp.IsManuallyNamed == 0 && grp.MainAniDBAnimeID.HasValue && grp.MainAniDBAnimeID.Value != 0)
-            {
-                var mainAnime = RepoFactory.AniDB_Anime.GetByAnimeID(grp.MainAniDBAnimeID.Value);
-                if (mainAnime != null)
-                {
-                    grp.GroupName = grp.SortName = mainAnime.PreferredTitle;
-                    grp.Description = mainAnime.Description;
-                }
-            }
-            RepoFactory.AnimeGroup.Save(grp, false, false);
+            grp.SetMainSeries(null);
         }
         catch (Exception ex)
         {

@@ -384,6 +384,25 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
             .FirstOrDefault();
     }
 
+    public void SetMainSeries(SVR_AnimeSeries series)
+    {
+        // Set the id before potentially reseting the fields, so the getter uses
+        // the new id instead of the old.
+        DefaultAnimeSeriesID = series?.AnimeSeriesID;
+
+        // Reset the name/description if the group is not manually named.
+        if (series == null && (IsManuallyNamed == 0 || OverrideDescription == 0))
+            series = GetMainSeries();
+        if (IsManuallyNamed == 0)
+            GroupName = SortName = series.GetSeriesName();
+        if (OverrideDescription == 0)
+            Description = series.GetAnime().Description;
+
+        // Save the changes for this group only.
+        DateTimeUpdated = DateTime.Now;
+        RepoFactory.AnimeGroup.Save(this, false, false);
+    }
+
     public List<SVR_AnimeSeries> GetSeries()
     {
         var seriesList = RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID);
@@ -1489,6 +1508,27 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                 parent = next;
             }
         }
+    }
+
+    public bool IsDescendantOf(int groupID)
+        => IsDescendantOf(new int[] { groupID });
+
+    public bool IsDescendantOf(IEnumerable<int> groupIDs)
+    {
+        var idSet = groupIDs.ToHashSet();
+        if (idSet.Count == 0)
+            return false;
+
+        var parent = Parent;
+        while (parent != null)
+        {
+            if (idSet.Contains(parent.AnimeGroupID))
+                return true;
+
+            parent = parent.Parent;
+        }
+
+        return false;
     }
 
     string IGroup.Name => GroupName;
