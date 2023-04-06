@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -158,6 +159,31 @@ public class FileController : BaseController
             return NotFound(AnidbNotFoundForFileID);
 
         return new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo);
+    }
+
+    /// <summary>
+    /// Returns a file stream for the specified file ID.
+    /// </summary>
+    /// <param name="fileID">Shoko ID</param>
+    /// <returns>A file stream for the specified file.</returns>
+    [HttpGet("{fileID}/Stream")]
+    public ActionResult GetFileStream([FromRoute] int fileID)
+    {
+        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        var bestLocation = file.GetBestVideoLocalPlace();
+
+        var fileInfo = bestLocation.GetFile();
+        if (fileInfo == null)
+            return InternalError("Unable to find physical file for reading the stream data.");
+
+        var provider = new FileExtensionContentTypeProvider();
+        if (!provider.TryGetContentType(fileInfo.FullName, out var contentType))
+            contentType = "application/octet-stream";
+
+        return PhysicalFile(fileInfo.FullName, contentType, enableRangeProcessing: true);
     }
 
     /// <summary>
