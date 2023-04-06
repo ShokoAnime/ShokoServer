@@ -105,6 +105,7 @@ public class ServerSettings : IServerSettings
 
     [JsonIgnore] public string _ImagesPath;
 
+    /// <inheritdoc />
     public string ImagesPath
     {
         get => _ImagesPath;
@@ -114,6 +115,9 @@ public class ServerSettings : IServerSettings
             ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
         }
     }
+
+    /// <inheritdoc/> />
+    public bool LoadImageMetadata { get; set; } = false;
 
     public TraktSettings TraktTv { get; set; } = new();
 

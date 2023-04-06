@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
-// using ImageMagick;
+using ImageMagick;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
@@ -11,7 +11,9 @@ using Shoko.Models.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
 /// <summary>
@@ -41,7 +43,7 @@ public class Image
     /// The relative path from the base image directory. A client with access to the server's filesystem can map
     /// these for quick access and no need for caching
     /// </summary>
-    public string RelativeFilepath { get; set; }
+    public string? RelativeFilepath { get; set; }
 
     /// <summary>
     /// Is it marked as default. Only one default is possible for a given <see cref="Image.Type"/>.
@@ -71,24 +73,20 @@ public class Image
             throw new ArgumentException("Static Resources do not use an integer ID");
         }
 
-        RelativeFilepath = GetImagePath(type, id)?.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
-        /*
         var imagePath = GetImagePath(type, id);
-        if (string.IsNullOrEmpty(imagePath)) {
-            RelativeFilepath = null;
-            Width = null;
-            Height = null;
-        }
-        // This causes serious IO lag on some systems. Removing until we have better Image data structures
-        else
+        if (!string.IsNullOrEmpty(imagePath))
         {
-            var info = new MagickImageInfo(imagePath);
             RelativeFilepath = imagePath.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
             if (!RelativeFilepath.StartsWith("/"))
                 RelativeFilepath = "/" + RelativeFilepath;
-            Width = info.Width;
-            Height = info.Height;
-        }*/
+            // This causes serious IO lag on some systems. Enable at own risk.
+            if (Utils.SettingsProvider.GetSettings().LoadImageMetadata)
+            {
+                var info = new MagickImageInfo(imagePath);
+                Width = info.Width;
+                Height = info.Height;
+            }
+        }
     }
 
     public Image(string id, ImageEntityType type, bool preferred = false, bool disabled = false)
@@ -241,7 +239,7 @@ public class Image
         };
     }
 
-    public static string GetImagePath(ImageEntityType type, int id)
+    public static string? GetImagePath(ImageEntityType type, int id)
     {
         string path;
 
@@ -528,7 +526,7 @@ public class Image
                 .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
                 .SelectMany(a => RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
                 .Where(a => a.RoleType == (int)StaffRoleType.Seiyuu && a.RoleID.HasValue)
-                .Select(a => RepoFactory.AnimeCharacter.GetByID(a.RoleID.Value))
+                .Select(a => RepoFactory.AnimeCharacter.GetByID(a.RoleID!.Value))
                 .GetRandomElement()?.CharacterID,
             ImageEntityType.Staff => RepoFactory.AniDB_Anime.GetAll()
                 .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
@@ -620,8 +618,8 @@ public class Image
             /// from the API. Also see <seealso cref="Image.ID"/>.
             /// </summary>
             /// <value></value>
-            [Required]
-            public string ID { get; set; }
+            [Required, MinLength(1)]
+            public string ID { get; set; } = "";
 
             /// <summary>
             /// The image source.
