@@ -10,6 +10,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
@@ -64,6 +65,13 @@ public class Image
     /// Is it marked as disabled. You must explicitly ask for these, for obvious reasons.
     /// </summary>
     public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Series info for the image, currently only set when sending a random
+    /// image.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public ImageSeriesInfo? Series { get; set; } = null;
 
     public Image(int id, ImageEntityType type, bool preferred = false, bool disabled = false) : this(id.ToString(),
         type, preferred, disabled)
@@ -537,6 +545,97 @@ public class Image
         };
     }
 
+    internal static SVR_AnimeSeries? GetFirstSeriesForImage(ImageEntityType imageType, int imageID)
+    {
+        switch (imageType)
+        {
+            case ImageEntityType.AniDB_Cover:
+                return RepoFactory.AnimeSeries.GetByAnimeID(imageID);
+            case ImageEntityType.TvDB_Banner:
+            {
+                var tvdbWideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
+                if (tvdbWideBanner == null)
+                    return null;
+
+                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbWideBanner.SeriesID)
+                    .FirstOrDefault();
+                if (xref == null)
+                    return null;
+
+                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
+            }
+            case ImageEntityType.TvDB_Cover:
+            {
+                var tvdbPoster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
+                if (tvdbPoster == null)
+                    return null;
+
+                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbPoster.SeriesID)
+                    .FirstOrDefault();
+                if (xref == null)
+                    return null;
+
+                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
+            }
+            case ImageEntityType.TvDB_FanArt:
+            {
+                var tvdbFanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
+                if (tvdbFanart == null)
+                    return null;
+
+                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbFanart.SeriesID)
+                    .FirstOrDefault();
+                if (xref == null)
+                    return null;
+
+                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
+            }
+            case ImageEntityType.TvDB_Episode:
+            {
+                var tvdbEpisode = RepoFactory.TvDB_Episode.GetByID(imageID);
+                if (tvdbEpisode == null)
+                    return null;
+                
+                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbEpisode.SeriesID)
+                    .FirstOrDefault();
+                if (xref == null)
+                    return null;
+
+                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
+            }
+            case ImageEntityType.MovieDB_FanArt:
+            {
+                var tmdbFanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
+                if (tmdbFanart == null)
+                    return null;
+                
+                // This will be slow as HELL. Why don't we have a lookup?
+                var xref = RepoFactory.CrossRef_AniDB_Other.GetAll()
+                    .FirstOrDefault(xref => xref.CrossRefType == (int)CrossRefType.MovieDB && int.Parse(xref.CrossRefID) == tmdbFanart.MovieId);
+                if (xref == null)
+                    return null;
+
+                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+            }
+            case ImageEntityType.MovieDB_Poster:
+            {
+                var tmdbPoster = RepoFactory.MovieDB_Poster.GetByID(imageID);
+                if (tmdbPoster == null)
+                    return null;
+                
+                // This will be slow as HELL. Why don't we have a lookup?
+                var xref = RepoFactory.CrossRef_AniDB_Other.GetAll()
+                    .FirstOrDefault(xref => xref.CrossRefType == (int)CrossRefType.MovieDB && int.Parse(xref.CrossRefID) == tmdbPoster.MovieId);
+                if (xref == null)
+                    return null;
+
+                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+            }
+            default:
+                return null;
+        };
+    }
+
     /// <summary>
     /// Image source.
     /// </summary>
@@ -604,6 +703,25 @@ public class Image
         /// Static resources are only valid if the <see cref="Image.Source"/> is set to <see cref="ImageSource.Shoko"/>.
         /// </summary>
         Static = 100
+    }
+
+    public class ImageSeriesInfo
+    {
+        /// <summary>
+        /// The shoko series id.
+        /// </summary>
+        public int ID { get; set; }
+
+        /// <summary>
+        /// The preferred series name for the user.
+        /// </summary>
+        public string Name { get; set; }
+
+        public ImageSeriesInfo(int id, string name)
+        {
+            ID = id;
+            Name = name;
+        }
     }
 
     /// <summary>

@@ -113,6 +113,48 @@ public class ImageController : BaseController
         return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
     }
 
+    /// <summary>
+    /// Returns the metadata for a random image for the <paramref name="imageType"/>.
+    /// </summary>
+    /// <param name="imageType">Poster, Fanart, Banner, Thumb</param>
+    /// <returns>200 on found, 400 if the type or source are invalid</returns>
+    [HttpGet("Random/{imageType}/Metadata")]
+    [ProducesResponseType(typeof(Image), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(500)]
+    public ActionResult<Image> GetRandomImageMetadataForType([FromRoute] Image.ImageType imageType)
+    {
+        if (imageType == Image.ImageType.Static)
+            return BadRequest("Unsupported image type for random image.");
+
+        var source = Image.GetRandomImageSource(imageType);
+        var sourceType = Image.GetImageTypeFromSourceAndType(source, imageType) ?? ImageEntityType.None;
+        if (sourceType == ImageEntityType.None)
+            return InternalError("Could not generate a valid image type to fetch.");
+
+        // Try 5 times to get a valid image.
+        var tries = 0;
+        do 
+        {
+            var id = Image.GetRandomImageID(sourceType);
+            if (!id.HasValue)
+                break;
+
+            var path = Image.GetImagePath(sourceType, id.Value);
+            if (string.IsNullOrEmpty(path))
+                continue;
+
+            var image = new Image(id.Value, sourceType, false, false);
+            var series = Image.GetFirstSeriesForImage(sourceType, id.Value);
+            if (series != null)
+                image.Series = new(series.AnimeSeriesID, series.GetSeriesName());
+
+            return image;
+        } while (tries++ < 5);
+
+        return InternalError("Unable to find a random image to send.");
+    }
+
     public ImageController(ISettingsProvider settingsProvider) : base(settingsProvider)
     {
     }
