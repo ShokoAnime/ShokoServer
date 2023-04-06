@@ -1626,13 +1626,14 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public void MoveSeries(SVR_AnimeGroup newGroup)
     {
+        var oldGroupID = AnimeGroupID;
         // Update the stats for the series and group.
         AnimeGroupID = newGroup.AnimeGroupID;
         DateTimeUpdated = DateTime.Now;
         UpdateStats(true, true);
         newGroup.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
 
-        var oldGroup = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
+        var oldGroup = RepoFactory.AnimeGroup.GetByID(oldGroupID);
         if (oldGroup != null)
         {
             // This was the only one series in the group so delete the now orphan group.
