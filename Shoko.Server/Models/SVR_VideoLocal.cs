@@ -203,31 +203,9 @@ public class SVR_VideoLocal : VideoLocal, IHash
         }
     }
 
-    public static bool ResolveFile(string fullname)
-    {
-        if (string.IsNullOrEmpty(fullname)) return false;
-        var tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
-        if (tup.Item1 == null)
-            return false;
-        try
-        {
-            return File.Exists(fullname);
-        }
-        catch (Exception)
-        {
-            logger.Warn("File with Exception: " + fullname);
-            return false;
-        }
-    }
-
     public FileInfo GetBestFileLink()
     {
-        foreach (var p in Places.OrderBy(a => a.ImportFolderType))
-        {
-            if (ResolveFile(p.FullServerPath))
-                return new FileInfo(p.FullServerPath);
-        }
-        return null;
+        return Places.OrderBy(a => a.ImportFolderType).Select(p => p.GetFile()).FirstOrDefault(file => file != null);
     }
 
     public SVR_VideoLocal_Place GetBestVideoLocalPlace(bool resolve = false)
@@ -236,7 +214,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
             return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).MinBy(a => a.ImportFolderType);
 
         return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType)
-            .FirstOrDefault(p => ResolveFile(p.FullServerPath));
+            .FirstOrDefault(p => File.Exists(p.FullServerPath));
     }
 
     public void SetResumePosition(long resumeposition, int userID)
