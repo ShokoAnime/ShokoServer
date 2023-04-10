@@ -13,6 +13,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -29,70 +30,94 @@ public class DashboardController : BaseController
     [HttpGet("Stats")]
     public Dashboard.CollectionStats GetStats()
     {
-        var series = RepoFactory.AnimeSeries.GetAll().Where(a => User.AllowedSeries(a)).ToList();
-        var seriesCount = series.Count;
-
-        var groupCount = series.DistinctBy(a => a.AnimeGroupID).Count();
-
-        var episodes = series.SelectMany(a => a.GetAnimeEpisodes()).ToList();
-
-        var files = episodes.SelectMany(a => a?.GetVideoLocals()).Where(a => a != null)
-            .DistinctBy(a => a.VideoLocalID).ToList();
-        var fileCount = files.Count;
-        var size = files.Sum(a => a.FileSize);
-
-        var watchedEpisodes = episodes.Where(a => a?.GetUserRecord(User.JMMUserID)?.WatchedDate != null).ToList();
-
-        var watchedSeries = RepoFactory.AnimeSeries.GetAll().Count(a =>
+        var series = RepoFactory.AnimeSeries.GetAll()
+            .Where(a => User.AllowedSeries(a))
+            .ToList();
+        var groupCount = series
+            .DistinctBy(a => a.AnimeGroupID)
+            .Count();
+        var episodeDict = series
+            .ToDictionary(s => s, s => s.GetAnimeEpisodes());
+        var episodes = episodeDict.Values
+            .SelectMany(episodeList => episodeList)
+            .ToList();
+        var files = episodes
+            .SelectMany(a => a.GetVideoLocals())
+            .DistinctBy(a => a.VideoLocalID)
+            .ToList();
+        var totalFileSize = files
+            .Sum(a => a.FileSize);
+        var watchedEpisodes = episodes
+            .Where(a => a.GetUserRecord(User.JMMUserID)?.WatchedDate != null)
+            .ToList();
+        // Count local watched series in the user's collection.
+        var watchedSeries = series.Count(series =>
         {
-            var contract = a.GetUserContract(User.JMMUserID);
-            if (contract == null)
-            {
+            // If we don't have an anime entry then something is very wrong, but
+            // we don't care about that right now, so just skip it.
+            var anime = series.GetAnime();
+            if (anime == null)
                 return false;
-            }
 
-            return contract.WatchedEpisodeCount == a.GetAnimeEpisodesAndSpecialsCountWithVideoLocal();
+            // If the series doesn't have any episodes, then skip it.
+            if (anime.EpisodeCountNormal == 0)
+                return false;
+
+            // If all the normal episodes are still missing, then skip it.
+            var missingNormalEpisodesTotal = series.MissingEpisodeCount + series.HiddenMissingEpisodeCount;
+            if (anime.EpisodeCountNormal == missingNormalEpisodesTotal)
+                return false;
+
+            // If we don't have a user record for the series, then skip it.
+            var record = series.GetUserRecord(User.JMMUserID);
+            if (record == null)
+                return false;
+
+            // Check if we've watched more or equal to the number of watchable
+            // normal episodes.
+            var totalWatchableNormalEpisodes = anime.EpisodeCountNormal - missingNormalEpisodesTotal;
+            var watchedEpisodes = episodeDict[series]
+                .Where(episode => episode.AniDB_Episode.GetEpisodeTypeEnum() == EpisodeType.Episode &&
+                    episode.GetUserRecord(User.JMMUserID)?.WatchedDate != null)
+                .Count();
+            return watchedEpisodes >= totalWatchableNormalEpisodes;
         });
-
-        var hours = Math.Round((decimal)watchedEpisodes.Select(a => a.GetVideoLocals().FirstOrDefault())
-                .Where(a => a != null).Sum(a => a.Media?.GeneralStream?.Duration ?? 0) / 3600, 1,
-            MidpointRounding.AwayFromZero); // Duration in s => 60m*60s = 3600
-
-        var places = files.SelectMany(a => a.Places).ToList();
-        var duplicate = places.Where(a => a.VideoLocal.IsVariation == 0)
+        // Calculate watched hours for both local episodes and non-local episodes.
+        var hoursWatched = Math.Round(
+            (decimal)watchedEpisodes.Sum(a => a.GetVideoLocals().FirstOrDefault()?.DurationTimeSpan.TotalHours ?? new TimeSpan(0, 0, a.AniDB_Episode?.LengthSeconds ?? 0).TotalHours),
+            1, MidpointRounding.AwayFromZero);
+        var places = files
+            .SelectMany(a => a.Places)
+            .ToList();
+        var duplicates = places
+            .Where(a => a.VideoLocal.IsVariation == 0)
             .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.VideoLocal.Hash))
-            .GroupBy(a => a.EpisodeID).Count(a => a.Count() > 1);
-
-        var percentDupe = places.Count == 0
+            .GroupBy(a => a.EpisodeID)
+            .Count(a => a.Count() > 1);
+        var percentDuplicates = places.Count == 0
             ? 0
-            : Math.Round((decimal)duplicate * 100 / places.Count, 2, MidpointRounding.AwayFromZero);
-
-        var missing = series.Sum(a => a.MissingEpisodeCount);
-        var missingCollecting = series.Sum(a => a.MissingEpisodeCountGroups);
-
-        var unrecognized = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().Count;
-
-        var missingLinks = series.Count(MissingBothTvDBAndMovieDBLink);
-
-        var multipleEps = episodes.Count(a => a.GetVideoLocals().Count(b => b.IsVariation == 0) > 1);
-
+            : Math.Round((decimal)duplicates * 100 / places.Count, 2, MidpointRounding.AwayFromZero);
+        var missingEpisodes = series.Sum(a => a.MissingEpisodeCount);
+        var missingEpisodesCollecting = series.Sum(a => a.MissingEpisodeCountGroups);
+        var multipleEpisodes = episodes.Count(a => a.GetVideoLocals().Count(b => b.IsVariation == 0) > 1);
+        var unrecognizedFiles = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().Count;
         var duplicateFiles = places.GroupBy(a => a.VideoLocalID).Count(a => a.Count() > 1);
-
-        return new Dashboard.CollectionStats
+        var seriesWithMissingLinks = series.Count(MissingBothTvDBAndMovieDBLink);
+        return new()
         {
-            FileCount = fileCount,
-            FileSize = size,
-            SeriesCount = seriesCount,
+            FileCount = files.Count,
+            FileSize = totalFileSize,
+            SeriesCount = series.Count,
             GroupCount = groupCount,
             FinishedSeries = watchedSeries,
             WatchedEpisodes = watchedEpisodes.Count,
-            WatchedHours = hours,
-            PercentDuplicate = percentDupe,
-            MissingEpisodes = missing,
-            MissingEpisodesCollecting = missingCollecting,
-            UnrecognizedFiles = unrecognized,
-            SeriesWithMissingLinks = missingLinks,
-            EpisodesWithMultipleFiles = multipleEps,
+            WatchedHours = hoursWatched,
+            PercentDuplicate = percentDuplicates,
+            MissingEpisodes = missingEpisodes,
+            MissingEpisodesCollecting = missingEpisodesCollecting,
+            UnrecognizedFiles = unrecognizedFiles,
+            SeriesWithMissingLinks = seriesWithMissingLinks,
+            EpisodesWithMultipleFiles = multipleEpisodes,
             FilesWithDuplicateLocations = duplicateFiles
         };
     }
