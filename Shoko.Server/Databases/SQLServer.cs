@@ -82,18 +82,11 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
 
     public ISessionFactory CreateSessionFactory()
     {
-        // SQL Server batching on Mono is busted atm.
-        // Fixed in https://github.com/mono/corefx/commit/6e65509a17da898933705899677c22eae437d68a
-        // but waiting for release
         return Fluently.Configure()
             .Database(MsSqlConfiguration.MsSql2008.ConnectionString(GetConnectionString()))
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
-                // SQL Server batching on Mono is busted atm.
-                // Fixed in https://github.com/mono/corefx/commit/6e65509a17da898933705899677c22eae437d68a
-                // but waiting for release. This will negatively affect performance, but there's not much choice
-                if (Utils.IsRunningOnLinuxOrMac()) return;
                 prop.Batcher<NonBatchingBatcherFactory>();
                 prop.BatchSize = 0;
                 // uncomment this for SQL output
@@ -101,7 +94,6 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
             }))
             .BuildSessionFactory();
     }
-
 
     public bool DatabaseAlreadyExists()
     {
@@ -116,7 +108,6 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
 
         return false;
     }
-
 
     public void CreateDatabase()
     {
