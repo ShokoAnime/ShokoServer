@@ -1008,7 +1008,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var pl = vl.GetBestVideoLocalPlace(true);
             if (pl == null)
             {
-                logger.Error("Unable to hash videolocal with id = {videoLocalID}, it has no assigned place");
+                logger.Error("Unable to hash videolocal with id = {videoLocalID}, it has no assigned place", videoLocalID);
                 return;
             }
 
