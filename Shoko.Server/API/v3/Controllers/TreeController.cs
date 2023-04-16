@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
@@ -564,36 +565,33 @@ public class TreeController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        IEnumerable<SVR_AnimeEpisode> episodes = series.GetAnimeEpisodes(orderList: true, includeHidden: includeHidden != IncludeOnlyFilter.False);
-        if (!string.IsNullOrEmpty(search))
-        {
-            var languages = SettingsProvider.GetSettings()
-                .LanguagePreference
-                .Select(lang => lang.GetTitleLanguage())
-                .Concat(new TitleLanguage[] { TitleLanguage.English, TitleLanguage.Romaji })
-                .ToHashSet();
-            episodes = episodes.Search(
-                search,
-                ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB_EpisodeID)
-                    .Where(title => title != null && languages.Contains(title.Language))
-                    .Select(title => title.Title)
-                    .ToList(),
-                fuzzy
-            )
-            .Select(a => a.Result);
-        }
-
-        return episodes
-            .Where(a =>
+        var user = User;
+        var hasSearch = !string.IsNullOrWhiteSpace(search);
+        var episodeAnidbDict = new Dictionary<SVR_AnimeEpisode, AniDB_Episode>();
+        var episodes = series.GetAnimeEpisodes()
+            .AsParallel()
+            .Where(episode =>
             {
-                // Filter by hidden state, if spesified
-                if (includeHidden == IncludeOnlyFilter.Only && !a.IsHidden)
+                // Make sure we have an anidb entry for the episode, otherwise,
+                // just hide it.
+                var anidb = episode.AniDB_Episode;
+                if (anidb == null)
                     return false;
 
-                // Filter by episode type, if specified
-                if (type != null)
+                // Filter by hidden state, if spesified
+                if (includeHidden != IncludeOnlyFilter.True)
                 {
-                    var mappedType = Episode.MapAniDBEpisodeType((AniDBEpisodeType)a.AniDB_Episode.EpisodeType);
+                    // If we should hide hidden episodes and the episode is hidden, then hide it.
+                    // Or if we should only show hidden episodes and the episode is not hidden, then hide it.
+                    var shouldHideHidden = includeHidden == IncludeOnlyFilter.False;
+                    if (shouldHideHidden == episode.IsHidden)
+                        return false;
+                }
+
+                // Filter by episode type, if specified
+                if (type != null && type.Count > 0)
+                {
+                    var mappedType = Episode.MapAniDBEpisodeType((AniDBEpisodeType)anidb.EpisodeType);
                     if (!type.Contains(mappedType))
                         return false;
                 }
@@ -604,7 +602,7 @@ public class TreeController : BaseController
                     // If we should hide missing episodes and the episode has no files, then hide it.
                     // Or if we should only show missing episodes and the episode has files, the hide it.
                     var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
-                    var noFiles = a.GetVideoLocals().Count == 0;
+                    var noFiles = episode.GetVideoLocals().Count == 0;
                     if (shouldHideMissing == noFiles)
                         return false;
                 }
@@ -615,13 +613,46 @@ public class TreeController : BaseController
                     // If we should hide watched episodes and the episode is watched, then hide it.
                     // Or if we should only show watched episodes and the the episode is not watched, then hide it.
                     var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
-                    var isWatched = a.GetUserRecord(User.JMMUserID)?.WatchedDate != null;
+                    var isWatched = episode.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
                     if (shouldHideWatched == isWatched)
                         return false;
                 }
 
+                if (!hasSearch)
+                    episodeAnidbDict.Add(episode, anidb);
                 return true;
-            })
+            });
+        if (hasSearch)
+        {
+            var languages = SettingsProvider.GetSettings()
+                .LanguagePreference
+                .Select(lang => lang.GetTitleLanguage())
+                .Concat(new TitleLanguage[] { TitleLanguage.English, TitleLanguage.Romaji })
+                .ToHashSet();
+            return episodes
+                .Search(
+                    search,
+                    ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB_EpisodeID)
+                        .Where(title => title != null && languages.Contains(title.Language))
+                        .Select(title => title.Title)
+                        .Append(ep.Title)
+                        .Distinct()
+                        .ToList(),
+                    fuzzy
+                )
+                // Cast to list, so it runs the query, then convert to a list-
+                // result afterwards, so it will use the count from the list.
+                .ToList()
+                .ToListResult(a => new Episode(HttpContext, a.Result, includeDataFrom), page, pageSize);
+        }
+
+        return episodes
+            // Order the episodes since we're not using the search ordering.
+            .OrderBy(episode => episodeAnidbDict[episode].EpisodeType)
+            .ThenBy(episode => episodeAnidbDict[episode].EpisodeNumber)
+            // Cast to list, so it runs the query, then convert to a list-result
+            // afterwards, so it will use the count from the list.
+            .ToList()
             .ToListResult(a => new Episode(HttpContext, a, includeDataFrom), page, pageSize);
     }
 
