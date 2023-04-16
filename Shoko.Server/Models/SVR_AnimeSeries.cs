@@ -1984,7 +1984,7 @@ public class SVR_AnimeSeries : AnimeSeries
             {
                 if (fuzzy)
                 {
-                    if (!animeStaff.Item2.Name.FuzzyMatches(search))
+                    if (!animeStaff.Item2.Name.FuzzyMatch(search))
                     {
                         continue;
                     }

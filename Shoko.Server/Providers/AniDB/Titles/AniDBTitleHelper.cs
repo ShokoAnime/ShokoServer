@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -79,7 +79,7 @@ public class AniDBTitleHelper
         return null;
     }
 
-    public IEnumerable<ResponseAniDBTitles.Anime> SearchTitle(string query)
+    public IEnumerable<ResponseAniDBTitles.Anime> SearchTitle(string query, bool fuzzy = true)
     {
         try
         {
@@ -91,13 +91,15 @@ public class AniDBTitleHelper
             if (_cache != null)
             {
                 var languages = _settingsProvider.GetSettings().LanguagePreference;
-                return SeriesSearch.SearchCollection(
-                        query, _cache.Animes,
+                return _cache.Animes
+                    .Search(
+                        query,
                         anime => anime.Titles
-                            .Where(a => a.Language == TitleLanguage.English || a.Language == TitleLanguage.Romaji ||
+                            .Where(a => a.TitleType == TitleType.Main || a.Language == TitleLanguage.English || a.Language == TitleLanguage.Romaji ||
                                         languages.Contains(a.LanguageCode))
                             .Select(a => a.Title)
-                            .ToList()
+                            .ToList(),
+                        fuzzy
                     )
                     .Select(a => a.Result);
             }

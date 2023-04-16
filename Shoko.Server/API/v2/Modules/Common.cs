@@ -2480,7 +2480,7 @@ public class Common : BaseController
 
         var series_list = new List<Serie>();
 
-        var series = SeriesSearch.Search(uid, query, offset + limit + limit_tag, GetFlags(tagSearch, fuzzy), tagfilter);
+        var series = SeriesSearch.SearchSeries(user, query, offset + limit + limit_tag, GetFlags(tagSearch, fuzzy), tagfilter);
         foreach (var ser in series)
         {
             if (offset == 0)
@@ -3003,13 +3003,7 @@ public class Common : BaseController
             return;
         }
 
-        var k = Math.Max(Math.Min((int)(a.GroupName.Length / 6D), (int)(query.Length / 6D)), 1);
-        if (query.Length <= 4 || a.GroupName.Length <= 4)
-        {
-            k = 0;
-        }
-
-        var result = Misc.DiceFuzzySearch(a.GroupName, query, k, a);
+        var result = SeriesSearch.DiceFuzzySearch(a.GroupName, query, a);
         if (result.Index == -1)
         {
             return;

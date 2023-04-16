@@ -542,6 +542,7 @@ public class TreeController : BaseController
     /// <param name="includeWatched">Include watched episodes in the list.</param>
     /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
     /// <param name="search">An optional search query to filter episodes based on their titles.</param>
+    /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns>A list of episodes based on the specified filters.</returns>
     [HttpGet("Series/{seriesID}/Episode")]
     public ActionResult<ListResult<Episode>> GetEpisodes([FromRoute] int seriesID,
@@ -550,7 +551,7 @@ public class TreeController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
-        [FromQuery] string search = null)
+        [FromQuery] string search = null, [FromQuery] bool fuzzy = true)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -571,12 +572,13 @@ public class TreeController : BaseController
                 .Select(lang => lang.GetTitleLanguage())
                 .Concat(new TitleLanguage[] { TitleLanguage.English, TitleLanguage.Romaji })
                 .ToHashSet();
-            episodes = episodes.FuzzySearch(
-                "",
+            episodes = episodes.Search(
+                search,
                 ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB_EpisodeID)
                     .Where(title => title != null && languages.Contains(title.Language))
                     .Select(title => title.Title)
-                    .ToList()
+                    .ToList(),
+                fuzzy
             )
             .Select(a => a.Result);
         }

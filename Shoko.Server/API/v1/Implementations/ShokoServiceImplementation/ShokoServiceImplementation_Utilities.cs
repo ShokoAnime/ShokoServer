@@ -34,7 +34,11 @@ public partial class ShokoServiceImplementation
     [HttpPost("Series/SearchFilename/{uid}")]
     public List<CL_AnimeSeries_User> SearchSeriesWithFilename(int uid, [FromForm] string query)
     {
-        var series = SeriesSearch.Search(uid, query, int.MaxValue,
+        var user = RepoFactory.JMMUser.GetByID(uid);
+        if (user is null)
+            return new();
+
+        var series = SeriesSearch.SearchSeries(user, query, int.MaxValue,
             SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Fuzzy);
 
         return series.Select(a => a.Result).Select(ser => ser.GetUserContract(uid)).ToList();

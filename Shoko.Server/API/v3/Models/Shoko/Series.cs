@@ -1213,14 +1213,20 @@ public class SeriesSearchResult : Series
     public string Match { get; set; }
 
     /// <summary>
+    /// Indicates that the result was an exact match.
+    /// </summary>
+    public bool ExactMatch { get; set; }
+
+    /// <summary>
     /// The Sorensen-Dice Distance of the match
     /// </summary>
     public double Distance { get; set; }
 
-    public SeriesSearchResult(HttpContext ctx, SVR_AnimeSeries ser, string match, double dist) : base(ctx, ser)
+    public SeriesSearchResult(HttpContext ctx, SVR_AnimeSeries ser, string match, double dist, bool exactMatch) : base(ctx, ser)
     {
         Match = match;
         Distance = dist;
+        ExactMatch = exactMatch;
     }
 }
 

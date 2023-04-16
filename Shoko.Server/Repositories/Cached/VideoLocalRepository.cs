@@ -297,7 +297,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         return ReadLock(
             () => Cache.Values.Where(
                     p => p.Places.Any(
-                        a => a.FilePath.FuzzyMatches(fileName)
+                        a => a.FilePath.FuzzyMatch(fileName)
                     )
                 )
                 .ToList()

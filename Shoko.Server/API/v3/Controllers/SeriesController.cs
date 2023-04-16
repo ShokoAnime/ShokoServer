@@ -5,8 +5,6 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Web;
-using F23.StringSimilarity;
-using F23.StringSimilarity.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
@@ -1389,6 +1387,7 @@ public class SeriesController : BaseController
     /// <param name="fuzzy">whether or not to use fuzzy search</param>
     /// <param name="limit">number of return items</param>
     /// <returns>List<see cref="SeriesSearchResult"/></returns>
+    [Obsolete("Use the other endpoint instead.")]
     [HttpGet("Search/{query}")]
     public ActionResult<IEnumerable<SeriesSearchResult>> SearchPath([FromRoute] string query, [FromQuery] bool fuzzy = true,
         [FromQuery] int limit = int.MaxValue)
@@ -1397,116 +1396,56 @@ public class SeriesController : BaseController
     internal ActionResult<IEnumerable<SeriesSearchResult>> SearchInternal([FromRoute] string query, [FromQuery] bool fuzzy = true,
         [FromQuery] int limit = int.MaxValue)
     {
-        var user = User;
-        var search = new SorensenDice();
-        query = query.ToLowerInvariant();
-        query = query.Replace("+", " ");
-
-        var seriesList = new List<SeriesSearchResult>();
-        var allSeries = RepoFactory.AnimeSeries.GetAll()
-            .Where(series => user.AllowedSeries(series))
-            .AsParallel();
-
-        var languages = new HashSet<string> { "en", "x-jat" };
+        var flags = SeriesSearch.SearchFlags.Titles;
         var settings = SettingsProvider.GetSettings();
+        var languages = new HashSet<string> { "en", "x-jat" };
+
         languages.UnionWith(settings.LanguagePreference);
-        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<double, string>>();
 
         if (fuzzy)
-        {
-            allSeries.ForAll(a => CheckTitlesFuzzy(search, languages, a, query, ref distLevenshtein, limit));
-        }
-        else
-        {
-            allSeries.ForAll(a => CheckTitles(languages, a, query, ref distLevenshtein, limit));
-        }
+            flags |= SeriesSearch.SearchFlags.Fuzzy;
 
-        var tempListToSort = distLevenshtein.Keys.GroupBy(a => a.AnimeGroupID).Select(a =>
-        {
-            var tempSeries = a.ToList();
-            tempSeries.Sort((j, k) =>
-            {
-                var result1 = distLevenshtein[j];
-                var result2 = distLevenshtein[k];
-                var exactMatch = result1.Item1.CompareTo(result2.Item1);
-                if (exactMatch != 0)
-                {
-                    return exactMatch;
-                }
-
-                var title1 = j.GetSeriesName();
-                var title2 = k.GetSeriesName();
-                if (title1 == null && title2 == null)
-                {
-                    return 0;
-                }
-
-                if (title1 == null)
-                {
-                    return 1;
-                }
-
-                if (title2 == null)
-                {
-                    return -1;
-                }
-
-                return string.Compare(title1, title2, StringComparison.InvariantCultureIgnoreCase);
-            });
-            var result = new SearchGrouping
-            {
-                Series = a.OrderBy(b => b.AirDate).ToList(),
-                Distance = distLevenshtein[tempSeries[0]].Item1,
-                Match = distLevenshtein[tempSeries[0]].Item2
-            };
-            return result;
-        });
-
-        var series = tempListToSort.OrderBy(a => a.Distance)
-            .ThenBy(a => a.Match.Length).SelectMany(a => a.Series).ToDictionary(a => a, a => distLevenshtein[a]);
-        foreach (var ser in series)
-        {
-            seriesList.Add(new SeriesSearchResult(HttpContext, ser.Key, ser.Value.Item2, ser.Value.Item1));
-            if (seriesList.Count >= limit)
-            {
-                break;
-            }
-        }
-
-        return seriesList;
+        return SeriesSearch.SearchSeries(User, query, limit, flags)
+            .Select(result => new SeriesSearchResult(HttpContext, result.Result, result.Match, result.Distance, result.ExactMatch))
+            .ToList();
     }
 
     /// <summary>
     /// Search the title dump for the given query or directly using the anidb id.
     /// </summary>
     /// <param name="query">Query to search for</param>
+    /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
     /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
     /// <param name="includeTitles">Include titles in the results.</param>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [HttpGet("AniDB/Search")]
-    public ActionResult<ListResult<Series.AniDB>> AnidbSearchQuery([FromQuery] string query, [FromQuery] bool? local = null,
+    public ActionResult<ListResult<Series.AniDB>> AnidbSearchQuery([FromQuery] string query,
+        [FromQuery] bool fuzzy = true, [FromQuery] bool? local = null,
         [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50,
         [FromQuery] [Range(1, int.MaxValue)] int page = 1)
-        => AnidbSearchInternal(query, local, includeTitles, pageSize, page);
+        => AnidbSearchInternal(query, fuzzy, local, includeTitles, pageSize, page);
 
     /// <summary>
     /// Search the title dump for the given query or directly using the anidb id.
     /// </summary>
     /// <param name="query">Query to search for</param>
+    /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
     /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
     /// <param name="includeTitles">Include titles in the results.</param>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
+    [Obsolete("Use the other endpoint instead.")]
     [HttpGet("AniDB/Search/{query}")]
-    public ActionResult<ListResult<Series.AniDB>> AnidbSearchPath([FromRoute] string query, [FromQuery] bool? local = null,
+    public ActionResult<ListResult<Series.AniDB>> AnidbSearchPath([FromRoute] string query,
+        [FromQuery] bool fuzzy = true, [FromQuery] bool? local = null,
         [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50,
         [FromQuery] [Range(1, int.MaxValue)] int page = 1)
-        => AnidbSearchInternal(HttpUtility.UrlDecode(query), local, includeTitles, pageSize, page);
+        => AnidbSearchInternal(HttpUtility.UrlDecode(query), fuzzy, local, includeTitles, pageSize, page);
 
-    internal ListResult<Series.AniDB> AnidbSearchInternal(string query, bool? local = null,
+    internal ListResult<Series.AniDB> AnidbSearchInternal(string query, bool fuzzy = true, bool? local = null,
         bool includeTitles = true, int pageSize = 50, int page = 1)
     {
         // We're searching using the anime ID, so first check the local db then the title cache for a match.
@@ -1548,7 +1487,7 @@ public class SeriesController : BaseController
                 .ToListResult(page, pageSize);
 
         // Search the title cache for anime matching the query.
-        return Utils.AniDBTitleHelper.SearchTitle(query)
+        return Utils.AniDBTitleHelper.SearchTitle(query, fuzzy)
             .Select(result =>
             {
                 var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
@@ -1590,7 +1529,7 @@ public class SeriesController : BaseController
 
         foreach (var ser in series)
         {
-            seriesList.Add(new SeriesSearchResult(HttpContext, ser.Key, ser.Value, 0));
+            seriesList.Add(new SeriesSearchResult(HttpContext, ser.Key, ser.Value, 0, false));
             if (seriesList.Count >= limit)
             {
                 break;
@@ -1637,207 +1576,6 @@ public class SeriesController : BaseController
     }
 
     #region Helpers
-
-    /// <summary>
-    /// function used in fuzzy search
-    /// </summary>
-    /// <param name="search"></param>
-    /// <param name="languages"></param>
-    /// <param name="a"></param>
-    /// <param name="query"></param>
-    /// <param name="distLevenshtein"></param>
-    /// <param name="limit"></param>
-    [NonAction]
-    private static void CheckTitlesFuzzy(IStringDistance search, HashSet<string> languages, SVR_AnimeSeries a,
-        string query,
-        ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<double, string>> distLevenshtein, int limit)
-    {
-        if (distLevenshtein.Count >= limit)
-        {
-            return;
-        }
-
-        if (a?.Contract?.AniDBAnime?.AnimeTitles == null)
-        {
-            return;
-        }
-
-        var dist = double.MaxValue;
-        var match = string.Empty;
-
-        var seriesTitles = a.Contract.AniDBAnime.AnimeTitles
-            .Where(b => languages.Contains(b.Language.ToLower()) &&
-                        b.TitleType != Shoko.Models.Constants.AnimeTitleType.ShortName).Select(b => b.Title)
-            .ToList();
-        foreach (var title in seriesTitles)
-        {
-            if (string.IsNullOrWhiteSpace(title))
-            {
-                continue;
-            }
-
-            var result = 0.0;
-            // Check for exact match
-            if (!title.Equals(query, StringComparison.Ordinal))
-            {
-                result = search.Distance(title, query);
-            }
-
-            // For Dice, 1 is no reasonable match
-            if (result >= 1)
-            {
-                continue;
-            }
-
-            // Don't count an error as liberally when the title is short
-            if (title.Length < 5 && result > 0.8)
-            {
-                continue;
-            }
-
-            if (result < dist)
-            {
-                match = title;
-                dist = result;
-            }
-            else if (Math.Abs(result - dist) < 0.00001)
-            {
-                if (title.Length < match.Length)
-                {
-                    match = title;
-                }
-            }
-        }
-
-        // Keep the lowest distance, then by shortest title
-        if (dist < double.MaxValue)
-        {
-            distLevenshtein.AddOrUpdate(a, new Tuple<double, string>(dist, match),
-                (key, oldValue) =>
-                {
-                    if (oldValue.Item1 < dist)
-                    {
-                        return oldValue;
-                    }
-
-                    if (Math.Abs(oldValue.Item1 - dist) < 0.00001)
-                    {
-                        return oldValue.Item2.Length < match.Length
-                            ? oldValue
-                            : new Tuple<double, string>(dist, match);
-                    }
-
-                    return new Tuple<double, string>(dist, match);
-                });
-        }
-    }
-
-    /// <summary>
-    /// function used in search
-    /// </summary>
-    /// <param name="languages"></param>
-    /// <param name="a"></param>
-    /// <param name="query"></param>
-    /// <param name="distLevenshtein"></param>
-    /// <param name="limit"></param>
-    [NonAction]
-    private static void CheckTitles(HashSet<string> languages, SVR_AnimeSeries a, string query,
-        ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<double, string>> distLevenshtein, int limit)
-    {
-        if (distLevenshtein.Count >= limit)
-        {
-            return;
-        }
-
-        if (a?.Contract?.AniDBAnime?.AnimeTitles == null)
-        {
-            return;
-        }
-
-        var dist = double.MaxValue;
-        var match = string.Empty;
-
-        var seriesTitles = a.Contract.AniDBAnime.AnimeTitles
-            .Where(b => languages.Contains(b.Language.ToLower()) &&
-                        b.TitleType != Shoko.Models.Constants.AnimeTitleType.ShortName).Select(b => b.Title)
-            .ToList();
-        foreach (var title in seriesTitles)
-        {
-            if (string.IsNullOrWhiteSpace(title))
-            {
-                continue;
-            }
-
-            var result = 1.0;
-            // Check for exact match
-            if (title.Equals(query, StringComparison.Ordinal))
-            {
-                result = 0.0;
-            }
-            else
-            {
-                var index = title.IndexOf(query, StringComparison.InvariantCultureIgnoreCase);
-                if (index >= 0)
-                {
-                    result = ((double)title.Length - index) / title.Length * 0.8D; // ensure that 0.8 doesn't skip later
-                }
-            }
-
-            // For Dice, 1 is no reasonable match
-            if (result >= 1)
-            {
-                continue;
-            }
-
-            // Don't count an error as liberally when the title is short
-            if (title.Length < 5 && result > 0.8)
-            {
-                continue;
-            }
-
-            if (result < dist)
-            {
-                match = title;
-                dist = result;
-            }
-            else if (Math.Abs(result - dist) < 0.00001)
-            {
-                if (title.Length < match.Length)
-                {
-                    match = title;
-                }
-            }
-        }
-
-        // Keep the lowest distance, then by shortest title
-        if (dist < double.MaxValue)
-        {
-            distLevenshtein.AddOrUpdate(a, new Tuple<double, string>(dist, match),
-                (key, oldValue) =>
-                {
-                    if (oldValue.Item1 < dist)
-                    {
-                        return oldValue;
-                    }
-
-                    if (Math.Abs(oldValue.Item1 - dist) < 0.00001)
-                    {
-                        return oldValue.Item2.Length < match.Length
-                            ? oldValue
-                            : new Tuple<double, string>(dist, match);
-                    }
-
-                    return new Tuple<double, string>(dist, match);
-                });
-        }
-    }
-
-    private class SearchGrouping
-    {
-        public List<SVR_AnimeSeries> Series { get; set; }
-        public double Distance { get; set; }
-        public string Match { get; set; }
-    }
 
     [NonAction]
     private static void CheckTitlesStartsWith(SVR_AnimeSeries a, string query,

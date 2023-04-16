@@ -10,6 +10,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server;
 
@@ -734,7 +735,7 @@ public static class TvDBLinkingHelper
             }
 
             // fuzzy match
-            if (anistart.FuzzyMatches(tvstart))
+            if (anistart.FuzzyMatch(tvstart))
             {
                 temp.AddRange(epsInSeason);
                 continue;
@@ -747,7 +748,7 @@ public static class TvDBLinkingHelper
             }
 
             // fuzzy match
-            if (aniend.FuzzyMatches(tvend))
+            if (aniend.FuzzyMatch(tvend))
             {
                 temp.AddRange(epsInSeason);
             }
@@ -812,7 +813,7 @@ public static class TvDBLinkingHelper
                 // fuzzy match
                 if (fuzzy)
                 {
-                    if (!anititle.FuzzyMatches(tvtitle))
+                    if (!anititle.FuzzyMatch(tvtitle))
                     {
                         continue;
                     }
@@ -864,7 +865,7 @@ public static class TvDBLinkingHelper
             var aniTitle = match.Item1.GetEnglishTitle();
             var tvTitle = match.Item2.EpisodeName;
             // this method returns false if either is null
-            var titlesMatch = aniTitle.FuzzyMatches(tvTitle);
+            var titlesMatch = aniTitle.FuzzyMatch(tvTitle);
 
             matches[index] = titlesMatch
                 ? (match.Item1, match.Item2, MatchRating.Good)
