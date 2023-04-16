@@ -90,6 +90,7 @@ public class Episode : BaseModel
         IDs = new EpisodeIDs
         {
             ID = episode.AnimeEpisodeID,
+            ParentSeries = episode.AnimeSeriesID,
             AniDB = episode.AniDB_EpisodeID,
             TvDB = tvdbEpisodes.Select(a => a.Id).ToList()
         };
@@ -318,6 +319,15 @@ public class Episode : BaseModel
 
     public class EpisodeIDs : IDs
     {
+        #region Series
+
+        /// <summary>
+        /// The id of the parent <see cref="Series"/>.
+        /// </summary>
+        public int ParentSeries { get; set; }
+
+        #endregion
+
         #region XRefs
 
         // These are useful for many things, but for clients, it is mostly auxiliary
