@@ -115,9 +115,22 @@ public static class MediaInfo
 
     private static string GetMediaInfoPathForOS()
     {
+        var envVar = Environment.GetEnvironmentVariable("MEDIAINFO_PATH");
+        var path = string.Empty;
+        if (!string.IsNullOrEmpty(envVar))
+        {
+            // Allow spesifying an executable name other than "mediainfo"
+            if (!envVar.Contains(Path.DirectorySeparatorChar) && !envVar.Contains(Path.AltDirectorySeparatorChar))
+                return envVar;
+            // Resolve the path from the application's data directory if the
+            // path is not an absolute path.
+            path = Path.Combine(Utils.ApplicationPath, envVar);
+            if (File.Exists(path)) return path;
+        }
+
         var settings = Utils.SettingsProvider.GetSettings();
-        var path = settings.Import.MediaInfoPath;
-        if (path != null && File.Exists(path)) return path;
+        path = settings.Import.MediaInfoPath;
+        if (!string.IsNullOrEmpty(path) && File.Exists(path)) return path;
 
         if (Utils.IsRunningOnLinuxOrMac()) return "mediainfo";
 
