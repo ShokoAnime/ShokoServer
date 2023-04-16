@@ -31,7 +31,21 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
         File.Copy(GetDatabaseFilePath(), fullfilename);
     }
 
-    private static string DatabasePath => Utils.SettingsProvider.GetSettings().Database.MySqliteDirectory;
+    private static string _databasePath = null;
+    private static string DatabasePath
+    {
+        get
+        {
+            if (_databasePath != null)
+                return _databasePath;
+
+            var dirPath =  Utils.SettingsProvider.GetSettings().Database.MySqliteDirectory;
+            if (string.IsNullOrWhiteSpace(dirPath))
+                return _databasePath = Utils.ApplicationPath;
+
+            return _databasePath = Path.Combine(Utils.ApplicationPath, dirPath);
+        }
+    }
 
     private static string GetDatabaseFilePath()
     {

@@ -22,13 +22,28 @@ public abstract class BaseDatabase<T>
     // ReSharper disable once StaticMemberInGenericType
     protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+    private static string _databaseBackupDirectoryPath = null;
+    private static string DatabaseBackupDirectoryPath
+    {
+        get
+        {
+            if (_databaseBackupDirectoryPath != null)
+                return _databaseBackupDirectoryPath;
+
+            var dirPath =  Utils.SettingsProvider.GetSettings().Database.DatabaseBackupDirectory;
+            if (string.IsNullOrWhiteSpace(dirPath))
+                return _databaseBackupDirectoryPath = Utils.ApplicationPath;
+
+            return _databaseBackupDirectoryPath = Path.Combine(Utils.ApplicationPath, dirPath);
+        }
+    }
+
     public string GetDatabaseBackupName(int version)
     {
         var settings = Utils.SettingsProvider.GetSettings();
-        var backupath = settings.Database.DatabaseBackupDirectory;
         try
         {
-            Directory.CreateDirectory(backupath);
+            Directory.CreateDirectory(DatabaseBackupDirectoryPath);
         }
         catch
         {
@@ -39,7 +54,7 @@ public abstract class BaseDatabase<T>
                     DateTime.Now.Year.ToString("D4") + DateTime.Now.Month.ToString("D2") +
                     DateTime.Now.Day.ToString("D2") + DateTime.Now.Hour.ToString("D2") +
                     DateTime.Now.Minute.ToString("D2");
-        return Path.Combine(backupath, fname);
+        return Path.Combine(DatabaseBackupDirectoryPath, fname);
     }
 
 

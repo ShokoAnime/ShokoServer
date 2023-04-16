@@ -35,17 +35,23 @@ public static class Utils
     {
         get => s_aniDBTitleHelper ??= new AniDBTitleHelper(ServiceContainer.GetRequiredService<ISettingsProvider>());
     }
+    private static string _applicationPath { get; set; } = null;
     public static string ApplicationPath
     {
         get
         {
-            if (IsLinux)
-            {
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".shoko",
-                    DefaultInstance);
-            }
+            if (_applicationPath != null)
+                return _applicationPath;
 
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            var shokoHome = Environment.GetEnvironmentVariable("SHOKO_HOME");
+            if (!string.IsNullOrWhiteSpace(shokoHome))
+                return _applicationPath = Path.GetFullPath(shokoHome);
+
+            if (IsLinux)
+                return _applicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".shoko",
+                    DefaultInstance);
+
+            return _applicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 DefaultInstance);
         }
     }
