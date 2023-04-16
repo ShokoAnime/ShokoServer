@@ -17,7 +17,7 @@ public static class ModelHelper
 {
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable)
     {
-        var total = enumerable.Count();
+        var total = enumerable is IReadOnlyCollection<T> collection ? collection.Count : enumerable.Count();
         return new ListResult<T>
         {
             Total = total,
@@ -28,7 +28,7 @@ public static class ModelHelper
 
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable, int page, int pageSize)
     {
-        var total = enumerable.Count();
+        var total = enumerable is IReadOnlyCollection<T> collection ? collection.Count : enumerable.Count();
         if (pageSize <= 0)
         {
             return new ListResult<T>
@@ -52,7 +52,7 @@ public static class ModelHelper
     public static ListResult<U> ToListResult<T, U>(this IEnumerable<T> enumerable, Func<T, U> mapper, int page,
         int pageSize)
     {
-        var total = enumerable.Count();
+        var total = enumerable is IReadOnlyCollection<T> collection ? collection.Count : enumerable.Count();
         if (pageSize <= 0)
         {
             return new ListResult<U>
