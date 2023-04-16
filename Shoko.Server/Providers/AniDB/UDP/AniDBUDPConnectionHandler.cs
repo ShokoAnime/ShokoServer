@@ -11,15 +11,12 @@ using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using Shoko.Server.Settings.DI;
-using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Providers.AniDB.UDP;
 
 public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandler
 {
     private readonly IRequestFactory _requestFactory;
-    IServiceProvider IUDPConnectionHandler.ServiceProvider => ServiceProvider;
     private IAniDBSocketHandler _socketHandler;
 
     public event EventHandler LoginFailed;
@@ -86,7 +83,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         CloseConnections();
     }
 
-    public void ExtendBanTimer(int time, string message)
+    public new void ExtendBanTimer(int time, string message)
     {
         base.ExtendBanTimer(time, message);
     }

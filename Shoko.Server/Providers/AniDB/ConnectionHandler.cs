@@ -3,7 +3,6 @@ using System.Timers;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Generic;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB;
 
