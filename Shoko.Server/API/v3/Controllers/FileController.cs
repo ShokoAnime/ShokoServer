@@ -412,7 +412,7 @@ public class FileController : BaseController
 
         var bestLocation = file.GetBestVideoLocalPlace();
 
-        var fileInfo = bestLocation.GetFile();
+        var fileInfo = bestLocation.GetFileInfo();
         if (fileInfo == null)
             return InternalError("Unable to find physical file for reading the stream data.");
 
