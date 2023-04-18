@@ -302,7 +302,7 @@ public class SeriesController : BaseController
                 return user.AllowedAnime(anime);
             })
             .OrderBy(a => a.animeTitle)
-            .ToListResult(tuple => new Series.AniDBWithDate(HttpContext, tuple.anime), page, pageSize);
+            .ToListResult(tuple => new Series.AniDBWithDate(tuple.anime), page, pageSize);
     }
 
     /// <summary>
@@ -347,7 +347,7 @@ public class SeriesController : BaseController
             return InternalError(AnidbNotFoundForSeriesID);
         }
 
-        return new Series.AniDBWithDate(HttpContext, anidb, series);
+        return new Series.AniDBWithDate(anidb, series);
     }
 
     /// <summary>
@@ -509,7 +509,7 @@ public class SeriesController : BaseController
                 var similarToCount = similarTo.Count();
                 return new Series.AniDBRecommendedForYou()
                 {
-                    Anime = new Series.AniDBWithDate(HttpContext, anime, series), SimilarTo = similarToCount
+                    Anime = new Series.AniDBWithDate(anime, series), SimilarTo = similarToCount
                 };
             })
             .OrderByDescending(e => e.SimilarTo)
@@ -606,7 +606,7 @@ public class SeriesController : BaseController
             return Forbid(AnidbForbiddenForUser);
         }
 
-        return new Series.AniDBWithDate(HttpContext, anidb);
+        return new Series.AniDBWithDate(anidb);
     }
 
     /// <summary>

@@ -126,7 +126,7 @@ public class Series : BaseModel
         Updated = ser.DateTimeUpdated;
 
         if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
-            this._AniDB = new Series.AniDBWithDate(ctx, anime, ser);
+            this._AniDB = new Series.AniDBWithDate(anime, ser);
         if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
             this._TvDB = GetTvDBInfo(ctx, ser);
     }
@@ -969,7 +969,7 @@ public class Series : BaseModel
     /// </summary>
     public class AniDBWithDate : AniDB
     {
-        public AniDBWithDate(HttpContext ctx, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null) : base(anime,
+        public AniDBWithDate(SVR_AniDB_Anime anime, SVR_AnimeSeries series = null) : base(anime,
             series)
         {
             if (anime.AirDate != null)
