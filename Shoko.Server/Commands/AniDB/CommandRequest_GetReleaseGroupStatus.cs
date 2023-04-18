@@ -91,6 +91,7 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
             ).ToArray();
             RepoFactory.AniDB_GroupStatus.Save(toSave);
 
+            var settings = _settingsProvider.GetSettings();
             if (maxEpisode > 0)
             {
                 // update the anime with a record of the latest subbed episode
@@ -106,6 +107,7 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
                     {
                         c.AnimeID = AnimeID;
                         c.ForceRefresh = true;
+                        c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
                     });
                     crAnime.Save();
                 }
@@ -114,7 +116,6 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
                 series.QueueUpdateStats();
             }
 
-            var settings = _settingsProvider.GetSettings();
             if (settings.AniDb.DownloadReleaseGroups && response is { Response.Count: > 0 })
             {
                 // shouldn't need the where, but better safe than sorry.

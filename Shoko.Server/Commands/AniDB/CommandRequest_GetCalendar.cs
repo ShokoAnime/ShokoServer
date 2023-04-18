@@ -40,6 +40,7 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
 
         try
         {
+            var settings = _settingsProvider.GetSettings();
             // we will always assume that an anime was downloaded via http first
 
             var sched =
@@ -53,7 +54,6 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
             }
             else
             {
-                var settings = _settingsProvider.GetSettings();
                 var freqHours = Utils.GetScheduledHours(settings.AniDb.Calendar_UpdateFrequency);
 
                 // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -77,7 +77,7 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
             {
                 foreach (var cal in response.Response.Next25Anime)
                 {
-                    GetAnime(cal);
+                    GetAnime(cal, settings);
                 }
             }
 
@@ -88,7 +88,7 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
 
             foreach (var cal in response.Response.Previous25Anime)
             {
-                GetAnime(cal);
+                GetAnime(cal, settings);
             }
         }
         catch (Exception ex)
@@ -97,7 +97,7 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
         }
     }
 
-    private void GetAnime(ResponseCalendar.CalendarEntry cal)
+    private void GetAnime(ResponseCalendar.CalendarEntry cal, IServerSettings settings)
     {
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
         var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
@@ -112,6 +112,7 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
                     {
                         c.AnimeID = cal.AnimeID;
                         c.ForceRefresh = true;
+                        c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
                     }
                 );
                 cmdAnime.Save();
@@ -140,6 +141,7 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
                 {
                     c.AnimeID = cal.AnimeID;
                     c.ForceRefresh = true;
+                    c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
                 }
             );
             cmdAnime.Save();

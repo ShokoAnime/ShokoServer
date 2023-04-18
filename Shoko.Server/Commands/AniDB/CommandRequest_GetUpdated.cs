@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
@@ -117,6 +117,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
             return (response, countAnime, countSeries);
         }
 
+        var settings = _settingsProvider.GetSettings();
         foreach (var animeID in animeIDsToUpdate)
         {
             // update the anime from HTTP
@@ -139,6 +140,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
                     {
                         c.AnimeID = animeID;
                         c.ForceRefresh = true;
+                        c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
                     }
                 );
                 cmdAnime.Save();
