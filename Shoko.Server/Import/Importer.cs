@@ -81,10 +81,24 @@ public static class Importer
         }
 
         // files which have been hashed, but don't have an associated episode
-        foreach (var v in RepoFactory.VideoLocal.GetVideosWithoutEpisode()
-                     .Where(a => !string.IsNullOrEmpty(a.Hash)))
+        var settings = Utils.SettingsProvider.GetSettings();
+        var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+        foreach (var vl in filesWithoutEpisode)
         {
-            var cmd = commandFactory.Create<CommandRequest_ProcessFile>(c => c.VideoLocalID = v.VideoLocalID);
+            if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
+            {
+                var matchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vl.FileSize, vl.Hash).Count;
+                if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
+                    continue;
+            }
+
+            var cmd = commandFactory.Create<CommandRequest_ProcessFile>(
+                c =>
+                {
+                    c.VideoLocalID = vl.VideoLocalID;
+                    c.ForceAniDB = true;
+                }
+            );
             cmd.Save();
         }
 
@@ -1564,12 +1578,14 @@ public static class Importer
 
         // files which have been hashed, but don't have an associated episode
         var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
-
         foreach (var vl in filesWithoutEpisode)
         {
-            var matchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vl.FileSize, vl.Hash).Count;
-            if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
-                continue;
+            if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
+            {
+                var matchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vl.FileSize, vl.Hash).Count;
+                if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
+                    continue;
+            }
 
             var cmd = commandFactory.Create<CommandRequest_ProcessFile>(
                 c =>
