@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -165,145 +165,33 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         return RepoFactory.AnimeGroup_User.GetByUserAndGroupID(userID, AnimeGroupID);
     }
 
-    public bool HasCustomName()
-    {
-        using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
-        {
-            var groupingCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
-            return HasCustomName(groupingCalculator);
-        }
-    }
-
     /// <summary>
-    /// This checks all related anime by settings for the GroupName. It will likely be slow
-    /// </summary>
-    /// <returns></returns>
-    public bool HasCustomName(AutoAnimeGroupCalculator groupingCalculator)
-    {
-        var animeID = GetSeries().FirstOrDefault()?.GetAnime().AnimeID ?? 0;
-        if (animeID == 0)
-        {
-            return false;
-        }
-
-        var animes = groupingCalculator.GetIdsOfAnimeInSameGroup(animeID)
-            .Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a)).Where(a => a != null)
-            .SelectMany(a => a.GetAllTitles()).ToHashSet();
-        return !animes.Contains(GroupName);
-    }
-
-    /// <summary>
-    /// Renames all Anime groups based on the user's language preferences
+    /// Rename all groups without a manually set name according to the current
+    /// language preference.
     /// </summary>
     public static void RenameAllGroups()
     {
         logger.Info("Starting RenameAllGroups");
-        using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
+        foreach (var grp in RepoFactory.AnimeGroup.GetAll())
         {
-            var groupingCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
-            foreach (var grp in RepoFactory.AnimeGroup.GetAll().ToList())
+            // Skip renaming any groups that are fully manually managed.
+            if (grp.IsManuallyNamed == 1 && grp.OverrideDescription == 1)
+                continue;
+
+            var series = grp.GetMainSeries();
+            if (series != null)
             {
-                var list = grp.GetSeries();
+                // Reset the name/description as needed.
+                if (grp.IsManuallyNamed == 0)
+                    grp.GroupName = grp.SortName = series.GetSeriesName();
+                if (grp.OverrideDescription == 0)
+                    grp.Description = series.GetAnime().Description;
 
-                // rename the group if it only has one direct child Anime Series
-                if (list.Count == 1)
-                {
-                    var newTitle = list[0].GetSeriesName();
-                    grp.GroupName = newTitle;
-                    grp.SortName = newTitle;
-                    RepoFactory.AnimeGroup.Save(grp, true, true);
-                }
-                else if (list.Count > 1)
-                {
-                    #region Naming
-
-                    SVR_AnimeSeries series = null;
-                    var hasCustomName = grp.HasCustomName(groupingCalculator);
-                    if (grp.DefaultAnimeSeriesID.HasValue)
-                    {
-                        series = RepoFactory.AnimeSeries.GetByID(grp.DefaultAnimeSeriesID.Value);
-                        if (series == null)
-                        {
-                            grp.DefaultAnimeSeriesID = null;
-                        }
-                    }
-
-                    if (!grp.DefaultAnimeSeriesID.HasValue)
-                    {
-                        var seriesAirDate = series.AirDate;
-                        foreach (var ser in list)
-                        {
-                            if (ser == null)
-                            {
-                                continue;
-                            }
-
-                            // Check all titles for custom naming, in case user changed language preferences
-                            if (ser.SeriesNameOverride.Equals(grp.GroupName))
-                            {
-                                hasCustomName = false;
-                            }
-                            else
-                            {
-                                if (hasCustomName)
-                                {
-                                    #region tvdb names
-
-                                    var tvdbs = ser.GetTvDBSeries();
-                                    if (tvdbs != null && tvdbs.Count != 0)
-                                    {
-                                        if (tvdbs.Any(tvdbser => tvdbser.SeriesName.Equals(grp.GroupName)))
-                                        {
-                                            hasCustomName = false;
-                                        }
-                                    }
-
-                                    #endregion
-                                }
-
-                                if (series == null)
-                                {
-                                    series = ser;
-                                    continue;
-                                }
-
-                                var serAirDate = ser.AirDate;
-                                if (serAirDate.HasValue ? seriesAirDate.HasValue ? serAirDate.Value < seriesAirDate.Value : true : false)
-                                {
-                                    series = ser;
-                                }
-                            }
-                        }
-                    }
-
-                    if (series != null)
-                    {
-                        var newTitle = series.GetSeriesName();
-                        if (grp.DefaultAnimeSeriesID.HasValue &&
-                            grp.DefaultAnimeSeriesID.Value != series.AnimeSeriesID)
-                        {
-                            newTitle = RepoFactory.AnimeSeries.GetByID(grp.DefaultAnimeSeriesID.Value)
-                                .GetSeriesName();
-                        }
-
-                        if (hasCustomName)
-                        {
-                            newTitle = grp.GroupName;
-                        }
-
-                        // reset tags, description, etc to new series
-                        grp.Populate(series);
-                        grp.GroupName = newTitle;
-                        grp.SortName = newTitle;
-                        RepoFactory.AnimeGroup.Save(grp, true, true);
-                        grp.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, false);
-                    }
-
-                    #endregion
-                }
+                // Save the changes for this group only.
+                grp.DateTimeUpdated = DateTime.Now;
+                RepoFactory.AnimeGroup.Save(grp, true, false, false);
             }
         }
-
         logger.Info("Finished RenameAllGroups");
     }
 
