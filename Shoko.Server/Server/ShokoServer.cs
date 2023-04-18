@@ -437,8 +437,6 @@ public class ShokoServer
 
             StartWatchingFiles();
 
-            DownloadAllImages();
-
             var folders = RepoFactory.ImportFolder.GetAll();
 
             if (settings.Import.ScanDropFoldersOnStart)
@@ -446,7 +444,7 @@ public class ShokoServer
                 ScanDropFolders();
             }
 
-            if (settings.Import.RunOnStart && folders.Count > 0)
+            if (settings.Import.RunOnStart)
             {
                 RunImport();
             }
@@ -856,8 +854,8 @@ public class ShokoServer
             // MovieDB association checks
             Importer.RunImport_ScanMovieDB();
 
-            // Check for missing images
-            Importer.RunImport_GetImages();
+            // Check for missing images (in a separate thread)
+            DownloadAllImages();
 
             // Check for previously ignored files
             Importer.CheckForPreviouslyIgnored();
