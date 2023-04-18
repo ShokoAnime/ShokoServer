@@ -46,8 +46,17 @@ public static class SeriesSearch
     {
         if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(pattern))
             return new() { Index = -1, Distance = int.MaxValue };
-        string inputString = SanitizeFuzzy(text, true).ToLowerInvariant();
-        string query = SanitizeFuzzy(text, true).ToLowerInvariant();
+        // This forces ASCII, because it's faster to stop caring if ss and ß are the same
+        // No it's not perfect, but it works better for those who just want to do lazy searching
+        string inputString = text.FilterSearchCharacters();
+        string query = pattern.FilterSearchCharacters();
+        inputString = inputString.Replace('_', ' ').Replace('-', ' ');
+        query = query.Replace('_', ' ').Replace('-', ' ');
+        query = query.CompactWhitespaces();
+        inputString = inputString.CompactWhitespaces();
+        // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
+        query = query.ToLowerInvariant();
+        inputString = inputString.ToLowerInvariant();
 
         if (string.IsNullOrWhiteSpace(query) || string.IsNullOrWhiteSpace(inputString))
             return new() { Index = -1, Distance = int.MaxValue };
@@ -55,9 +64,7 @@ public static class SeriesSearch
         // Shortcut
         int index = inputString.IndexOf(query, StringComparison.Ordinal);
         if (index > -1)
-        {
             return new() { Index = index, Distance = 0, ExactMatch = true, Result = value };
-        }
 
         // always search the longer string for the shorter one
         if (query.Length > inputString.Length)
