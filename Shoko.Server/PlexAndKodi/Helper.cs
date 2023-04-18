@@ -658,7 +658,7 @@ public static class Helper
             }
 
             var v = GenerateFromSeries(cserie, ser, ser.GetAnime(), userid);
-            v.AirDate = ser.AirDate;
+            v.AirDate = ser.AirDate ?? DateTime.MinValue;
             v.UpdatedAt = ser.LatestEpisodeAirDate.HasValue
                 ? ser.LatestEpisodeAirDate.Value.ToUnixTime()
                 : null;
@@ -669,7 +669,7 @@ public static class Helper
         {
             var ser = grp.DefaultAnimeSeriesID.HasValue
                 ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value)
-                : allSeries.Find(a => a.AirDate != DateTime.MinValue);
+                : allSeries.Find(a => a.AirDate.HasValue);
             if (ser == null && allSeries.Count > 0)
             {
                 ser = allSeries[0];

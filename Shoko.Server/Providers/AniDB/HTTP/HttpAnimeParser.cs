@@ -128,16 +128,23 @@ public class HttpAnimeParser
             if (DateTime.TryParseExact(
                     dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal, out var date
-                ))
+                ) && date != DateTime.UnixEpoch)
             {
                 anime.AirDate = date;
             }
             else if (DateTime.TryParseExact(
                          dateString, "yyyy-MM", CultureInfo.InvariantCulture,
-                         DateTimeStyles.AssumeUniversal, out var date2
-                     ))
+                         DateTimeStyles.AssumeUniversal, out date
+                     ) && date != DateTime.UnixEpoch)
             {
-                anime.AirDate = date2;
+                anime.AirDate = date;
+            }
+            else if (DateTime.TryParseExact(
+                         dateString, "yyyy", CultureInfo.InvariantCulture,
+                         DateTimeStyles.AssumeUniversal, out date
+                     ) && date != DateTime.UnixEpoch)
+            {
+                anime.AirDate = date;
             }
         }
 
@@ -148,7 +155,7 @@ public class HttpAnimeParser
             if (DateTime.TryParseExact(
                     dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal, out var date
-                ))
+                ) && date != DateTime.UnixEpoch)
             {
                 anime.EndDate = date;
             }

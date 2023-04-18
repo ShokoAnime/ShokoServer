@@ -743,7 +743,7 @@ public class CommonImplementation
                 var v = ser.GetPlexContract(userid)?.Clone<Shoko.Models.PlexAndKodi.Directory>(prov);
                 if (v != null)
                 {
-                    v.AirDate = ser.AirDate;
+                    v.AirDate = ser.AirDate ?? DateTime.MinValue;
                     v.Group = basegrp;
                     v.Type = "show";
                     v.GenerateKey(prov, userid);

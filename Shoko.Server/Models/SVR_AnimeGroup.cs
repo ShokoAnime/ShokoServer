@@ -230,6 +230,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
 
                     if (!grp.DefaultAnimeSeriesID.HasValue)
                     {
+                        var seriesAirDate = series.AirDate;
                         foreach (var ser in list)
                         {
                             if (ser == null)
@@ -266,7 +267,8 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                                     continue;
                                 }
 
-                                if (ser.AirDate < series.AirDate)
+                                var serAirDate = ser.AirDate;
+                                if (serAirDate.HasValue ? seriesAirDate.HasValue ? serAirDate.Value < seriesAirDate.Value : true : false)
                                 {
                                     series = ser;
                                 }
@@ -434,8 +436,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         }
 
         return seriesList
-            .OrderBy(a => a.Contract?.AniDBAnime?.AniDBAnime?.BeginYear ?? int.Parse(a.Year.Split('-')[0]))
-            .ThenBy(a => a.AirDate)
+            .OrderBy(a => a.AirDate)
             .ToList();
     }
 
@@ -1144,16 +1145,16 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                     // Calculate Air Date
                     var seriesAirDate = series.AirDate;
 
-                    if (seriesAirDate != DateTime.MinValue)
+                    if (seriesAirDate.HasValue)
                     {
-                        if (airDateMin == null || seriesAirDate < airDateMin.Value)
+                        if (airDateMin == null || seriesAirDate.Value < airDateMin.Value)
                         {
-                            airDateMin = seriesAirDate;
+                            airDateMin = seriesAirDate.Value;
                         }
 
-                        if (airDateMax == null || seriesAirDate > airDateMax.Value)
+                        if (airDateMax == null || seriesAirDate.Value > airDateMax.Value)
                         {
-                            airDateMax = seriesAirDate;
+                            airDateMax = seriesAirDate.Value;
                         }
                     }
 

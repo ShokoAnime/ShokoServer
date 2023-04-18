@@ -972,22 +972,14 @@ public class Series : BaseModel
         public AniDBWithDate(SVR_AniDB_Anime anime, SVR_AnimeSeries series = null) : base(anime,
             series)
         {
-            if (anime.AirDate != null)
+            if (anime.AirDate.HasValue)
             {
-                var airdate = anime.AirDate.Value;
-                if (airdate != DateTime.MinValue)
-                {
-                    AirDate = airdate;
-                }
+                AirDate = anime.AirDate.Value;
             }
 
-            if (anime.EndDate != null)
+            if (anime.EndDate.HasValue)
             {
-                var enddate = anime.EndDate.Value;
-                if (enddate != DateTime.MinValue)
-                {
-                    EndDate = enddate;
-                }
+                EndDate = anime.EndDate.Value;
             }
         }
 

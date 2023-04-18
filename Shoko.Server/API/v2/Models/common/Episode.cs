@@ -174,7 +174,7 @@ public class Episode : BaseDirectory
 
         if (string.IsNullOrEmpty(ep.year))
         {
-            ep.year = aep.GetAnimeSeries().AirDate.Year.ToString(CultureInfo.InvariantCulture);
+            ep.year = aep.GetAnimeSeries().AirDate?.Year.ToString(CultureInfo.InvariantCulture) ?? "1";
         }
 
         if (level > 0)

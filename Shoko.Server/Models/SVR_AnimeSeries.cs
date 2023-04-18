@@ -722,7 +722,7 @@ public class SVR_AnimeSeries : AnimeSeries
         return RepoFactory.AniDB_Anime.GetByAnimeID(AniDB_ID);
     }
 
-    public DateTime AirDate
+    public DateTime? AirDate
     {
         get
         {
@@ -734,14 +734,16 @@ public class SVR_AnimeSeries : AnimeSeries
 
             // This will be slower, but hopefully more accurate
             var ep = GetAnimeEpisodes()
-                .Select(a => a.AniDB_Episode.GetAirDateAsDate()).Where(a => a != null).OrderBy(a => a)
+                .Select(a => a.AniDB_Episode.GetAirDateAsDate())
+                .Where(a => a != null)
+                .OrderBy(a => a)
                 .FirstOrDefault();
             if (ep != null)
             {
                 return ep.Value;
             }
 
-            return DateTime.MinValue;
+            return null;
         }
     }
 
@@ -749,9 +751,10 @@ public class SVR_AnimeSeries : AnimeSeries
     {
         get
         {
-            if (GetAnime() != null)
+            var anime = GetAnime();
+            if (anime?.EndDate != null)
             {
-                return GetAnime().EndDate;
+                return anime.EndDate.Value;
             }
 
             return null;
