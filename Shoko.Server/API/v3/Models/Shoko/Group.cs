@@ -66,8 +66,8 @@ public class Group : BaseModel
     {
         var subGroupCount = group.GetChildGroups().Count;
         var userID = ctx.GetUser()?.JMMUserID ?? 0;
-        var allSeries = group.GetAllSeries(true);
-        var mainSeries = group.GetMainSeries();
+        var allSeries = group.GetAllSeries();
+        var mainSeries = allSeries.FirstOrDefault();
         var episodes = allSeries.SelectMany(a => a.GetAnimeEpisodes()).ToList();
 
         IDs = new GroupIDs { ID = group.AnimeGroupID };
@@ -92,7 +92,7 @@ public class Group : BaseModel
         SortName = group.SortName;
         Description = group.Description;
         Sizes = ModelHelper.GenerateGroupSizes(allSeries, episodes, subGroupCount, userID);
-        Size = group.GetSeries().Count;
+        Size = allSeries.Where(series => series.AnimeGroupID == group.AnimeGroupID).Count();
         HasCustomName = group.IsManuallyNamed == 1;
         HasCustomDescription = group.OverrideDescription == 1;
 

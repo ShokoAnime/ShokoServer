@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -406,22 +406,28 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
 
     public List<SVR_AnimeSeries> GetSeries()
     {
-        var seriesList = RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID);
-        // Make everything that relies on GetSeries[0] have the proper result
-        seriesList = seriesList.OrderBy(a => a.Year).ThenBy(a => a.AirDate).ToList();
-        if (!DefaultAnimeSeriesID.HasValue)
+        var seriesList = RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID)
+            .OrderBy(a => a.AirDate)
+            .ToList();
+
+        // Make sure the default/main series is the first, if it's directly
+        // within the group.
+        if (DefaultAnimeSeriesID.HasValue || MainAniDBAnimeID.HasValue)
         {
-            return seriesList;
+            SVR_AnimeSeries mainSeries = null;
+            if (DefaultAnimeSeriesID.HasValue)
+                mainSeries = seriesList.FirstOrDefault(ser => ser.AnimeSeriesID == DefaultAnimeSeriesID.Value);
+            
+            if (mainSeries == null && MainAniDBAnimeID.HasValue)
+                mainSeries = seriesList.FirstOrDefault(ser => ser.AniDB_ID == MainAniDBAnimeID.Value);
+
+            if (mainSeries != null)
+            {
+                seriesList.Remove(mainSeries);
+                seriesList.Insert(0, mainSeries);
+            }
         }
 
-        var series = RepoFactory.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);
-        if (series == null)
-        {
-            return seriesList;
-        }
-
-        seriesList.Remove(series);
-        seriesList.Insert(0, series);
         return seriesList;
     }
 
@@ -430,13 +436,31 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         var seriesList = new List<SVR_AnimeSeries>();
         GetAnimeSeriesRecursive(AnimeGroupID, ref seriesList);
         if (skipSorting)
-        {
             return seriesList;
-        }
 
-        return seriesList
+        seriesList = seriesList
             .OrderBy(a => a.AirDate)
             .ToList();
+
+        // Make sure the default/main series is the first if it's somewhere
+        // within the group.
+        if (DefaultAnimeSeriesID.HasValue || MainAniDBAnimeID.HasValue)
+        {
+            SVR_AnimeSeries mainSeries = null;
+            if (DefaultAnimeSeriesID.HasValue)
+                mainSeries = seriesList.FirstOrDefault(ser => ser.AnimeSeriesID == DefaultAnimeSeriesID.Value);
+
+            if (mainSeries == null && MainAniDBAnimeID.HasValue)
+                mainSeries = seriesList.FirstOrDefault(ser => ser.AniDB_ID == MainAniDBAnimeID.Value);
+
+            if (mainSeries != null)
+            {
+                seriesList.Remove(mainSeries);
+                seriesList.Insert(0, mainSeries);
+            }
+        }
+
+        return seriesList;
     }
 
     public static Dictionary<int, GroupVotes> BatchGetVotes(IReadOnlyCollection<SVR_AnimeGroup> animeGroups)
