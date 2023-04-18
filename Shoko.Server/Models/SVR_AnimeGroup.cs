@@ -382,7 +382,6 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
 
         // Earliest airing series.
         return GetAllSeries()
-            .OrderBy(series => series.GetAnime()?.AirDate ?? DateTime.MaxValue)
             .FirstOrDefault();
     }
 
