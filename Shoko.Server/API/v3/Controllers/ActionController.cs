@@ -10,6 +10,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.Plex;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.MovieDB;
@@ -390,6 +391,22 @@ public class ActionController : BaseController
     public ActionResult RecreateAllGroups()
     {
         Task.Factory.StartNew(() => new AnimeGroupCreator().RecreateAllGroups()).ConfigureAwait(false);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Rename al <see cref="Group"/>s. This won't recreate the whole library,
+    /// only rename any groups without a custom name set based on the current
+    /// language preference.
+    /// </summary>
+    /// <remarks>
+    /// This action requires an admin account because it affects all groups.
+    /// </remarks>
+    [Authorize("admin")]
+    [HttpGet("RenameAllGroups")]
+    public ActionResult RenameAllGroups()
+    {
+        Task.Factory.StartNew(() => SVR_AnimeGroup.RenameAllGroups()).ConfigureAwait(false);
         return Ok();
     }
 
