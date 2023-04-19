@@ -188,7 +188,7 @@ public class EpisodeController : BaseController
                 {
                     // If this is an episode not tied to a missing anime, then
                     // just hide it.
-                    var anime = RepoFactory.AniDB_Anime.GetByID(episode.AnimeID);
+                    var anime = RepoFactory.AniDB_Anime.GetByAnimeID(episode.AnimeID);
                     isAllowed = anime == null ? false : user.AllowedAnime(anime);
 
                     allowedAnimeDict.TryAdd(episode.AnimeID, isAllowed);
