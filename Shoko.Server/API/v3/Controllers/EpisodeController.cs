@@ -68,7 +68,6 @@ public class EpisodeController : BaseController
         var user = User;
         var hasSearch = !string.IsNullOrWhiteSpace(search);
         var allowedSeriesDict = new ConcurrentDictionary<int, bool>();
-        var episodeAnidbDict = new Dictionary<SVR_AnimeEpisode, AniDB_Episode>();
         var episodes = RepoFactory.AnimeEpisode.GetAll()
             .AsParallel()
             .Where(episode =>
@@ -76,13 +75,16 @@ public class EpisodeController : BaseController
                 // Only show episodes the user is allowed to view.
                 if (!allowedSeriesDict.TryGetValue(episode.AnimeSeriesID, out var isAllowed))
                     allowedSeriesDict.TryAdd(episode.AnimeSeriesID, isAllowed = user.AllowedSeries(episode.GetAnimeSeries()));
-                if (!isAllowed)
-                    return false;
-
+                return isAllowed;
+            })
+            .Select(episode => new { Shoko = episode, AniDB = episode?.AniDB_Episode })
+            .Where(both =>
+            {
                 // Make sure we have an anidb entry for the episode, otherwise,
                 // just hide it.
-                var anidb = episode.AniDB_Episode;
-                if (anidb == null)
+                var shoko = both.Shoko;
+                var anidb = both.AniDB;
+                if (anidb == null || shoko == null)
                     return false;
 
                 // Filter by hidden state, if spesified
@@ -91,7 +93,7 @@ public class EpisodeController : BaseController
                     // If we should hide hidden episodes and the episode is hidden, then hide it.
                     // Or if we should only show hidden episodes and the episode is not hidden, then hide it.
                     var shouldHideHidden = includeHidden == IncludeOnlyFilter.False;
-                    if (shouldHideHidden == episode.IsHidden)
+                    if (shouldHideHidden == shoko.IsHidden)
                         return false;
                 }
 
@@ -109,7 +111,7 @@ public class EpisodeController : BaseController
                     // If we should hide missing episodes and the episode has no files, then hide it.
                     // Or if we should only show missing episodes and the episode has files, the hide it.
                     var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
-                    var noFiles = episode.GetVideoLocals().Count == 0;
+                    var noFiles = shoko.GetVideoLocals().Count == 0;
                     if (shouldHideMissing == noFiles)
                         return false;
                 }
@@ -120,13 +122,11 @@ public class EpisodeController : BaseController
                     // If we should hide watched episodes and the episode is watched, then hide it.
                     // Or if we should only show watched episodes and the the episode is not watched, then hide it.
                     var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
-                    var isWatched = episode.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
+                    var isWatched = shoko.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
                     if (shouldHideWatched == isWatched)
                         return false;
                 }
 
-                if (!hasSearch)
-                    episodeAnidbDict.Add(episode, anidb);
                 return true;
             });
         if (hasSearch)
@@ -139,10 +139,10 @@ public class EpisodeController : BaseController
             return episodes
                 .Search(
                     search,
-                    ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB_EpisodeID)
+                    ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB.EpisodeID)
                         .Where(title => title != null && languages.Contains(title.Language))
                         .Select(title => title.Title)
-                        .Append(ep.Title)
+                        .Append(ep.Shoko.Title)
                         .Distinct()
                         .ToList(),
                     fuzzy
@@ -150,18 +150,18 @@ public class EpisodeController : BaseController
                 // Cast to list, so it runs the query, then convert to a list-
                 // result afterwards, so it will use the count from the list.
                 .ToList()
-                .ToListResult(a => new Episode(HttpContext, a.Result, includeDataFrom), page, pageSize);
+                .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom), page, pageSize);
         }
 
         return episodes
             // Order the episodes since we're not using the search ordering.
-            .OrderBy(episode => episode.AnimeSeriesID)
-            .ThenBy(episode => episodeAnidbDict[episode].EpisodeType)
-            .ThenBy(episode => episodeAnidbDict[episode].EpisodeNumber)
+            .OrderBy(episode => episode.Shoko.AnimeSeriesID)
+            .ThenBy(episode => episode.AniDB.EpisodeType)
+            .ThenBy(episode => episode.AniDB.EpisodeNumber)
             // Cast to list, so it runs the query, then convert to a list-result
             // afterwards, so it will use the count from the list.
             .ToList()
-            .ToListResult(a => new Episode(HttpContext, a, includeDataFrom), page, pageSize);
+            .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom), page, pageSize);
     }
 
     /// <summary>
