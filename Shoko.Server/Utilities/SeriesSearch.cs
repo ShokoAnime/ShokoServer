@@ -125,14 +125,14 @@ public static class SeriesSearch
                     if (fuzzy)
                     {
                         var result = DiceFuzzySearch(title, search, t);
-                        if (result.Index == -1 || result.Distance < (current?.Distance ?? int.MaxValue))
+                        if (result.Index == -1 || result.Distance >= (current?.Distance ?? int.MaxValue))
                             return current;
 
                         return result;
                     }
 
                     var index = title.IndexOf(search, StringComparison.OrdinalIgnoreCase);
-                    if (index == -1 || index < (current?.Index ?? int.MaxValue))
+                   if (index == -1 || index >= (current?.Index ?? int.MaxValue))
                         return current;
 
                     return new()
