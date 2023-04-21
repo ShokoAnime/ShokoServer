@@ -204,7 +204,7 @@ public static class SeriesSearch
             {
                 var anime = series.GetAnime();
                 var tags = anime?.GetAllTags();
-                return anime != null && (tags.Count == 0 || tags.FindInEnumerable(forbiddenTags));
+                return anime != null && (tags.Count == 0 || !tags.FindInEnumerable(forbiddenTags));
             });
         var allTags = !flags.HasFlag(SearchFlags.Tags) ? null : RepoFactory.AniDB_Tag.GetAll()
             .AsParallel()
