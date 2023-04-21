@@ -418,7 +418,9 @@ public static class SeriesSearch
         languages.UnionWith(settings.LanguagePreference);
         return series => RepoFactory.AniDB_Anime_Title.GetByAnimeID(series.AniDB_ID)
             .Where(title => title.TitleType == TitleType.Main || languages.Contains(title.LanguageCode))
-            .Select(title => title.Title);
+            .Select(title => title.Title)
+            .Append(series.GetSeriesName())
+            .Distinct();
     }
 
     public class SearchResult<T>
