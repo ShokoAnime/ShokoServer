@@ -443,7 +443,7 @@ public static class SeriesSearch
 
         /// <summary>
         /// Represents the similarity measure between the sanitized query and the sanitized matched result.
-        /// This may be the Levenshtein distance or the tag weight when comparing tags for a series.
+        /// This may be the sorensen-dice distance or the tag weight when comparing tags for a series.
         /// A lower value indicates a more similar match.
         /// </summary>
         public double Distance { get; set; } = 0D;
