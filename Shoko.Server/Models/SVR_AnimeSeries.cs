@@ -734,7 +734,9 @@ public class SVR_AnimeSeries : AnimeSeries
 
             // This will be slower, but hopefully more accurate
             var ep = GetAnimeEpisodes()
-                .Select(a => a.AniDB_Episode.GetAirDateAsDate())
+                .Select(a => a.AniDB_Episode)
+                .Where(a => (a.EpisodeType == (int)EpisodeType.Episode) && a.LengthSeconds > 0)
+                .Select(a => a.GetAirDateAsDate())
                 .Where(a => a != null)
                 .OrderBy(a => a)
                 .FirstOrDefault();
