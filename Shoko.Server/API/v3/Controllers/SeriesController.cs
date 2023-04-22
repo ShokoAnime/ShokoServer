@@ -1401,7 +1401,7 @@ public class SeriesController : BaseController
             flags |= SeriesSearch.SearchFlags.Fuzzy;
 
         return SeriesSearch.SearchSeries(User, query, limit, flags)
-            .Select(result => new SeriesSearchResult(HttpContext, result.Result, result.Match, result.Distance, result.ExactMatch))
+            .Select(result => new SeriesSearchResult(HttpContext, result))
             .ToList();
     }
 
@@ -1522,9 +1522,9 @@ public class SeriesController : BaseController
         var series =
             tempSeries.OrderBy(a => a.Value).ToDictionary(a => a.Key, a => a.Value);
 
-        foreach (var ser in series)
+        foreach (var (ser, match) in series)
         {
-            seriesList.Add(new SeriesSearchResult(HttpContext, ser.Key, ser.Value, 0, false));
+            seriesList.Add(new SeriesSearchResult(HttpContext, new() { Result = ser, Match = match }));
             if (seriesList.Count >= limit)
             {
                 break;

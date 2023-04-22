@@ -1200,25 +1200,42 @@ public class SeriesIDs : IDs
 public class SeriesSearchResult : Series
 {
     /// <summary>
-    /// What is the string we matched on
-    /// </summary>
-    public string Match { get; set; }
-
-    /// <summary>
-    /// Indicates that the result was an exact match.
+    /// Indicates whether the search result is an exact match to the query.
     /// </summary>
     public bool ExactMatch { get; set; }
 
     /// <summary>
-    /// The Sorensen-Dice Distance of the match
+    /// Represents the position of the match within the sanitized string.
+    /// This property is only applicable when ExactMatch is set to true.
+    /// A lower value indicates a match that occurs earlier in the string.
+    /// </summary>
+    public int Index { get; set; }
+
+    /// <summary>
+    /// Represents the similarity measure between the sanitized query and the sanitized matched result.
+    /// This may be the sorensen-dice distance or the tag weight when comparing tags for a series.
+    /// A lower value indicates a more similar match.
     /// </summary>
     public double Distance { get; set; }
 
-    public SeriesSearchResult(HttpContext ctx, SVR_AnimeSeries ser, string match, double dist, bool exactMatch) : base(ctx, ser)
+    /// <summary>
+    /// Represents the absolute difference in length between the sanitized query and the sanitized matched result.
+    /// A lower value indicates a match with a more similar length to the query.
+    /// </summary>
+    public int LengthDifference { get; set; }
+
+    /// <summary>
+    /// Contains the original matched substring from the original string.
+    /// </summary>
+    public string Match { get; set; } = string.Empty;
+
+    public SeriesSearchResult(HttpContext ctx, SeriesSearch.SearchResult<SVR_AnimeSeries> result) : base(ctx, result.Result)
     {
-        Match = match;
-        Distance = dist;
-        ExactMatch = exactMatch;
+        ExactMatch = result.ExactMatch;
+        Index = result.Index;
+        Distance = result.Distance;
+        LengthDifference = result.LengthDifference;
+        Match = result.Match;
     }
 }
 
