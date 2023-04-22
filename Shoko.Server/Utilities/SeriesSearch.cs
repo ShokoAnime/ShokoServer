@@ -131,19 +131,11 @@ public static class SeriesSearch
 
     public static IOrderedEnumerable<SearchResult<T>> Search<T>(this IEnumerable<T> enumerable, string query, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
         => (SearchCollection(enumerable.AsParallel(), query, selector, fuzzy, take, skip) as IEnumerable<SearchResult<T>>)
-            .OrderByDescending(a => a.ExactMatch)
-            .ThenBy(a => a.Index)
-            .ThenBy(a => a.Distance)
-            .ThenBy(a => a.LengthDifference)
-            .ThenBy(a => a.Match);
+            .OrderBy(a => a);
 
     public static OrderedParallelQuery<SearchResult<T>> Search<T>(this ParallelQuery<T> enumerable, string query, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
         => SearchCollection(enumerable, query, selector, fuzzy, take, skip)
-            .OrderByDescending(a => a.ExactMatch)
-            .ThenBy(a => a.Index)
-            .ThenBy(a => a.Distance)
-            .ThenBy(a => a.LengthDifference)
-            .ThenBy(a => a.Match);
+            .OrderBy(a => a);
 
     private static ParallelQuery<SearchResult<T>> SearchCollection<T>(ParallelQuery<T> query, string search, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
     {
@@ -229,18 +221,10 @@ public static class SeriesSearch
         return flags switch
         {
             SearchFlags.Titles => SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), false, limit)
-                .OrderByDescending(a => a.ExactMatch)
-                .ThenBy(a => a.Index)
-                .ThenBy(a => a.Distance)
-                .ThenBy(a => a.LengthDifference)
-                .ThenBy(a => a.Match)
+                .OrderBy(a => a)
                 .ToList(),
             SearchFlags.Fuzzy | SearchFlags.Titles => SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), true, limit)
-                .OrderByDescending(a => a.ExactMatch)
-                .ThenBy(a => a.Index)
-                .ThenBy(a => a.Distance)
-                .ThenBy(a => a.LengthDifference)
-                .ThenBy(a => a.Match)
+                .OrderBy(a => a)
                 .ToList(),
             SearchFlags.Tags => SearchTagsExact(query, limit, forbiddenTags, allTags),
             SearchFlags.Fuzzy | SearchFlags.Tags => SearchTagsFuzzy(query, limit, forbiddenTags, allTags),
@@ -258,11 +242,7 @@ public static class SeriesSearch
         ParallelQuery<AniDB_Tag> allTags)
     {
         var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), false, limit)
-            .OrderByDescending(a => a.ExactMatch)
-            .ThenBy(a => a.Index)
-            .ThenBy(a => a.Distance)
-            .ThenBy(a => a.LengthDifference)
-            .ThenBy(a => a.Match)
+            .OrderBy(a => a)
             .ToList();
         var tagLimit = limit - titleResult.Count;
         if (tagLimit > 0)
@@ -278,11 +258,7 @@ public static class SeriesSearch
         ParallelQuery<AniDB_Tag> allTags)
     {
         var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), true, limit)
-            .OrderByDescending(a => a.ExactMatch)
-            .ThenBy(a => a.Index)
-            .ThenBy(a => a.Distance)
-            .ThenBy(a => a.LengthDifference)
-            .ThenBy(a => a.Match)
+            .OrderBy(a => a)
             .ToList();
         var tagLimit = limit - titleResult.Count;
         if (tagLimit > 0)
@@ -344,7 +320,7 @@ public static class SeriesSearch
                 })
                 .Where(a => a != null)
             )
-            .OrderBy(a => a.Distance)
+            .OrderBy(a => a)
             .ThenBy(a => a.Result.GetSeriesName())
             .Take(limit)
         );
@@ -394,7 +370,7 @@ public static class SeriesSearch
                 })
                 .Where(b => b != null)
             )
-            .OrderBy(b => b.Distance)
+            .OrderBy(a => a)
             .ThenBy(b => b.Result.GetSeriesName())
             .Take(limit));
 
@@ -432,7 +408,7 @@ public static class SeriesSearch
                 })
                 .Where(a => a != null)
             )
-            .OrderBy(a => a.Distance)
+            .OrderBy(a => a)
             .ThenBy(a => a.Result.GetSeriesName())
             .Take(limit)
         );
