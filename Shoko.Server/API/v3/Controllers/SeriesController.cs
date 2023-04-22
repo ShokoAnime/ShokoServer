@@ -1394,14 +1394,9 @@ public class SeriesController : BaseController
         => SearchInternal(HttpUtility.UrlDecode(query), fuzzy, limit);
 
     internal ActionResult<IEnumerable<SeriesSearchResult>> SearchInternal([FromRoute] string query, [FromQuery] bool fuzzy = true,
-        [FromQuery] int limit = int.MaxValue)
+        [FromQuery, Range(0, 1000)] int limit = 50)
     {
         var flags = SeriesSearch.SearchFlags.Titles;
-        var settings = SettingsProvider.GetSettings();
-        var languages = new HashSet<string> { "en", "x-jat" };
-
-        languages.UnionWith(settings.LanguagePreference);
-
         if (fuzzy)
             flags |= SeriesSearch.SearchFlags.Fuzzy;
 
