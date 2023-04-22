@@ -45,7 +45,7 @@ public static class SeriesSearch
     public static SearchResult<T> DiceFuzzySearch<T>(string text, string pattern, T value)
     {
         if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(pattern))
-            return new() { Index = -1, Distance = int.MaxValue };
+            return new();
         // This forces ASCII, because it's faster to stop caring if ss and ß are the same
         // No it's not perfect, but it works better for those who just want to do lazy searching
         string inputString = text.FilterSearchCharacters();
@@ -59,12 +59,20 @@ public static class SeriesSearch
         inputString = inputString.ToLowerInvariant();
 
         if (string.IsNullOrWhiteSpace(query) || string.IsNullOrWhiteSpace(inputString))
-            return new() { Index = -1, Distance = int.MaxValue };
+            return new();
 
         // Shortcut
+        var lengthDiff = Math.Abs(query.Length - inputString.Length);
         int index = inputString.IndexOf(query, StringComparison.Ordinal);
         if (index > -1)
-            return new() { Index = index, Distance = 0, ExactMatch = true, Result = value };
+            return new()
+            {
+                ExactMatch = true,
+                Index = index,
+                LengthDifference = lengthDiff,
+                Match = text,
+                Result = value,
+            };
 
         // always search the longer string for the shorter one
         if (query.Length > inputString.Length)
@@ -78,13 +86,35 @@ public static class SeriesSearch
 
         // Don't count an error as liberally when the title is short
         if (inputString.Length < 5 && result > 0.5)
-            return new() { Index = -1, Distance = int.MaxValue };
-
+            return new();
 
         if (result >= 0.8)
-            return new() { Index = -1, Distance = int.MaxValue };
+            return new();
 
-        return new() { Index = 0, Distance = result, Result = value };
+        return new()
+        {
+            Distance = result,
+            LengthDifference = lengthDiff,
+            Match = text,
+            Result = value,
+        };
+    }
+
+    private static SearchResult<T> IndexOfSearch<T>(string text, string pattern, T value)
+    {
+        var index = text.IndexOf(pattern, StringComparison.OrdinalIgnoreCase);
+        if (index == -1)
+            return new();
+
+        var lengthDiff = Math.Abs(pattern.Length - text.Length);
+        return new()
+        {
+            ExactMatch = true,
+            Index = index,
+            LengthDifference = lengthDiff,
+            Match = text,
+            Result = value,
+        };
     }
 
     public static bool FuzzyMatch(this string text, string query)
@@ -101,13 +131,19 @@ public static class SeriesSearch
 
     public static IOrderedEnumerable<SearchResult<T>> Search<T>(this IEnumerable<T> enumerable, string query, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
         => (SearchCollection(enumerable.AsParallel(), query, selector, fuzzy, take, skip) as IEnumerable<SearchResult<T>>)
-            .OrderBy(a => a.Index)
-            .ThenBy(a => a.Distance);
+            .OrderByDescending(a => a.ExactMatch)
+            .ThenBy(a => a.Index)
+            .ThenBy(a => a.Distance)
+            .ThenBy(a => a.LengthDifference)
+            .ThenBy(a => a.Match);
 
     public static OrderedParallelQuery<SearchResult<T>> Search<T>(this ParallelQuery<T> enumerable, string query, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
         => SearchCollection(enumerable, query, selector, fuzzy, take, skip)
-            .OrderBy(a => a.Index)
-            .ThenBy(a => a.Distance);
+            .OrderByDescending(a => a.ExactMatch)
+            .ThenBy(a => a.Index)
+            .ThenBy(a => a.Distance)
+            .ThenBy(a => a.LengthDifference)
+            .ThenBy(a => a.Match);
 
     private static ParallelQuery<SearchResult<T>> SearchCollection<T>(ParallelQuery<T> query, string search, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
     {
@@ -122,31 +158,14 @@ public static class SeriesSearch
                     if (string.IsNullOrWhiteSpace(title))
                         return current;
 
-                    if (fuzzy)
-                    {
-                        var result = DiceFuzzySearch(title, search, t);
-                        if (result.Index == -1 || result.Distance >= (current?.Distance ?? int.MaxValue))
-                            return current;
-
-                        return result;
-                    }
-
-                    var index = title.IndexOf(search, StringComparison.OrdinalIgnoreCase);
-                   if (index == -1 || index >= (current?.Index ?? int.MaxValue))
+                    var result = fuzzy ? DiceFuzzySearch(title, search, t) : IndexOfSearch(title, search, t);
+                    if (result.CompareTo(current) >= 0)
                         return current;
 
-                    return new()
-                    {
-                        Distance = 0,
-                        Index = index,
-                        ExactMatch = true,
-                        Match = title,
-                        Result = t,
-                    };
-
+                    return result;
                 })
             )
-            .Where(a => a != null && a.Index != -1);
+            .Where(a => !string.IsNullOrEmpty(a?.Match));
 
         if (skip.HasValue && skip.Value > 0)
             enumerable = enumerable.Skip(skip.Value);
@@ -172,7 +191,7 @@ public static class SeriesSearch
     public static List<SearchResult<SVR_AnimeSeries>> SearchSeries(SVR_JMMUser user, string query, int limit, SearchFlags flags,
             TagFilter.Filter tagFilter = TagFilter.Filter.None)
     {
-        if (string.IsNullOrWhiteSpace(query) || user == null)
+        if (string.IsNullOrWhiteSpace(query) || user == null || limit <= 0)
             return new List<SearchResult<SVR_AnimeSeries>>();
 
         query = query.ToLowerInvariant();
@@ -189,8 +208,6 @@ public static class SeriesSearch
                 {
                     new SearchResult<SVR_AnimeSeries>
                     {
-                        Distance = 0,
-                        Index = 0,
                         ExactMatch = true,
                         Match = series.AniDB_ID.ToString(),
                         Result = series,
@@ -212,12 +229,18 @@ public static class SeriesSearch
         return flags switch
         {
             SearchFlags.Titles => SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), false, limit)
-                .OrderBy(a => a.Index)
+                .OrderByDescending(a => a.ExactMatch)
+                .ThenBy(a => a.Index)
                 .ThenBy(a => a.Distance)
+                .ThenBy(a => a.LengthDifference)
+                .ThenBy(a => a.Match)
                 .ToList(),
             SearchFlags.Fuzzy | SearchFlags.Titles => SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), true, limit)
-                .OrderBy(a => a.Index)
+                .OrderByDescending(a => a.ExactMatch)
+                .ThenBy(a => a.Index)
                 .ThenBy(a => a.Distance)
+                .ThenBy(a => a.LengthDifference)
+                .ThenBy(a => a.Match)
                 .ToList(),
             SearchFlags.Tags => SearchTagsExact(query, limit, forbiddenTags, allTags),
             SearchFlags.Fuzzy | SearchFlags.Tags => SearchTagsFuzzy(query, limit, forbiddenTags, allTags),
@@ -235,8 +258,11 @@ public static class SeriesSearch
         ParallelQuery<AniDB_Tag> allTags)
     {
         var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), false, limit)
-            .OrderBy(a => a.Index)
+            .OrderByDescending(a => a.ExactMatch)
+            .ThenBy(a => a.Index)
             .ThenBy(a => a.Distance)
+            .ThenBy(a => a.LengthDifference)
+            .ThenBy(a => a.Match)
             .ToList();
         var tagLimit = limit - titleResult.Count;
         if (tagLimit > 0)
@@ -252,8 +278,11 @@ public static class SeriesSearch
         ParallelQuery<AniDB_Tag> allTags)
     {
         var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), true, limit)
-            .OrderBy(a => a.Index)
+            .OrderByDescending(a => a.ExactMatch)
+            .ThenBy(a => a.Index)
             .ThenBy(a => a.Distance)
+            .ThenBy(a => a.LengthDifference)
+            .ThenBy(a => a.Match)
             .ToList();
         var tagLimit = limit - titleResult.Count;
         if (tagLimit > 0)
@@ -281,11 +310,9 @@ public static class SeriesSearch
 
                     return new SearchResult<SVR_AnimeSeries>
                     {
-                        Distance = 0,
-                        Index = 0,
+                        ExactMatch = true,
                         Match = tag.TagName,
                         Result = series,
-                        ExactMatch = true
                     };
                 })
                 .Where(a => a != null)
@@ -309,11 +336,10 @@ public static class SeriesSearch
 
                     return new SearchResult<SVR_AnimeSeries>
                     {
+                        ExactMatch = true,
                         Distance = (600 - xref.Weight) / 600D,
-                        Index = 0,
                         Match = tag.TagName,
                         Result = series,
-                        ExactMatch = true
                     };
                 })
                 .Where(a => a != null)
@@ -358,11 +384,12 @@ public static class SeriesSearch
 
                     return new SearchResult<SVR_AnimeSeries>
                     {
-                        Distance = tag.Distance,
+                        ExactMatch = tag.ExactMatch,
                         Index = tag.Index,
+                        Distance = tag.Distance,
+                        LengthDifference = tag.LengthDifference,
                         Match = tag.Result.TagName,
                         Result = series,
-                        ExactMatch = tag.ExactMatch
                     };
                 })
                 .Where(b => b != null)
@@ -395,11 +422,12 @@ public static class SeriesSearch
 
                     return new SearchResult<SVR_AnimeSeries>
                     {
-                        Distance = (tag.Distance + (600 - xref.Weight) / 600D) / 2,
+                        ExactMatch = tag.ExactMatch,
                         Index = tag.Index,
+                        Distance = (tag.Distance + (600 - xref.Weight) / 600D) / 2,
+                        LengthDifference = tag.LengthDifference,
                         Match = tag.Result.TagName,
                         Result = series,
-                        ExactMatch = tag.ExactMatch
                     };
                 })
                 .Where(a => a != null)
@@ -423,13 +451,85 @@ public static class SeriesSearch
             .Distinct();
     }
 
-    public class SearchResult<T>
+    public class SearchResult<T> : IComparable<SearchResult<T>>
     {
-        public bool ExactMatch { get; set; }
-        public double Distance { get; set; }
-        public int Index { get; set; }
-        public string Match { get; set; }
+        /// <summary>
+        /// Indicates whether the search result is an exact match to the query.
+        /// </summary>
+        public bool ExactMatch { get; set; } = false;
 
+        /// <summary>
+        /// Represents the position of the match within the sanitized string.
+        /// This property is only applicable when ExactMatch is set to true.
+        /// A lower value indicates a match that occurs earlier in the string.
+        /// </summary>
+        public int Index { get; set; } = 0;
+
+        /// <summary>
+        /// Represents the similarity measure between the sanitized query and the sanitized matched result.
+        /// This may be the Levenshtein distance or the tag weight when comparing tags for a series.
+        /// A lower value indicates a more similar match.
+        /// </summary>
+        public double Distance { get; set; } = 0D;
+
+        /// <summary>
+        /// Represents the absolute difference in length between the sanitized query and the sanitized matched result.
+        /// A lower value indicates a match with a more similar length to the query.
+        /// </summary>
+        public int LengthDifference { get; set; } = 0;
+
+        /// <summary>
+        /// Contains the original matched substring from the original string.
+        /// </summary>
+        public string Match { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Represents the result object associated with the match.
+        /// </summary>
         public T Result { get; set; }
+
+        /// <summary>
+        /// Compares the current SearchResult instance with another SearchResult instance.
+        /// The comparison is performed in the following order:
+        /// 1. ExactMatch (descending): prioritize exact matches
+        /// 2. Index (ascending): prioritize matches that occur earlier in the string
+        /// 3. Distance (ascending): prioritize matches with smaller similarity distances
+        /// 4. LengthDifference (ascending): prioritize matches with a more similar length to the query
+        /// 5. Match (ascending): prioritize matches based on their lexicographic order
+        /// </summary>
+        /// <param name="other">The SearchResult instance to compare with the current instance.</param>
+        /// <returns>A negative, zero, or positive integer indicating the relative order of the objects being compared.</returns>
+        public int CompareTo(SearchResult<T> other)
+        {
+            if (other == null)
+                return -1;
+
+            var isEmpty = string.IsNullOrEmpty(Match);
+            var otherIsEmpty = string.IsNullOrEmpty(other.Match);
+            if (isEmpty && otherIsEmpty)
+                return 0;
+            if (isEmpty)
+                return 1;
+            if (otherIsEmpty)
+                return -1;
+
+            int exactMatchComparison = ExactMatch == other.ExactMatch ? 0 : ExactMatch ? -1 : 1;
+            if (exactMatchComparison != 0)
+                return exactMatchComparison;
+
+            int indexComparison = Index.CompareTo(other.Index);
+            if (indexComparison != 0)
+                return indexComparison;
+
+            int distanceComparison = Distance.CompareTo(other.Distance);
+            if (distanceComparison != 0)
+                return distanceComparison;
+
+            int lengthDifferenceComparison = LengthDifference.CompareTo(other.LengthDifference);
+            if (lengthDifferenceComparison != 0)
+                return lengthDifferenceComparison;
+
+            return string.Compare(Match, other.Match);
+        }
     }
 }
