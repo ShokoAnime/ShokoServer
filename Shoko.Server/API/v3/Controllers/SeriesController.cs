@@ -1377,7 +1377,7 @@ public class SeriesController : BaseController
     /// <returns>List<see cref="SeriesSearchResult"/></returns>
     [HttpGet("Search")]
     public ActionResult<IEnumerable<SeriesSearchResult>> SearchQuery([FromQuery] string query, [FromQuery] bool fuzzy = true,
-        [FromQuery] int limit = int.MaxValue)
+        [FromQuery, Range(0, 1000)] int limit = 50)
         => SearchInternal(query, fuzzy, limit);
 
     /// <summary>
@@ -1390,11 +1390,11 @@ public class SeriesController : BaseController
     [Obsolete("Use the other endpoint instead.")]
     [HttpGet("Search/{query}")]
     public ActionResult<IEnumerable<SeriesSearchResult>> SearchPath([FromRoute] string query, [FromQuery] bool fuzzy = true,
-        [FromQuery] int limit = int.MaxValue)
+        [FromQuery, Range(0, 1000)] int limit = 50)
         => SearchInternal(HttpUtility.UrlDecode(query), fuzzy, limit);
 
-    internal ActionResult<IEnumerable<SeriesSearchResult>> SearchInternal([FromRoute] string query, [FromQuery] bool fuzzy = true,
-        [FromQuery, Range(0, 1000)] int limit = 50)
+    [NonAction]
+    internal ActionResult<IEnumerable<SeriesSearchResult>> SearchInternal(string query, bool fuzzy = true, int limit = 50)
     {
         var flags = SeriesSearch.SearchFlags.Titles;
         if (fuzzy)
@@ -1440,6 +1440,7 @@ public class SeriesController : BaseController
         [FromQuery] [Range(1, int.MaxValue)] int page = 1)
         => AnidbSearchInternal(HttpUtility.UrlDecode(query), fuzzy, local, includeTitles, pageSize, page);
 
+    [NonAction]
     internal ListResult<Series.AniDB> AnidbSearchInternal(string query, bool fuzzy = true, bool? local = null,
         bool includeTitles = true, int pageSize = 50, int page = 1)
     {
