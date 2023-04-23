@@ -695,7 +695,7 @@ public partial class ShokoServiceImplementation
                     {
                         res.SeriesExists = true;
                         res.AnimeSeriesID = ser.AnimeSeriesID;
-                        res.AnimeSeriesName = anime.GetFormattedTitle();
+                        res.AnimeSeriesName = anime.PreferredTitle;
                     }
                     else
                         res.SeriesExists = false;
@@ -720,7 +720,7 @@ public partial class ShokoServiceImplementation
                     {
                         res.SeriesExists = true;
                         res.AnimeSeriesID = ser.AnimeSeriesID;
-                        res.AnimeSeriesName = ser.GetAnime().GetFormattedTitle();
+                        res.AnimeSeriesName = ser.GetAnime().PreferredTitle;
                     }
                     else
                         res.SeriesExists = false;

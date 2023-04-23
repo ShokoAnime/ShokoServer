@@ -185,34 +185,22 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public string GetSeriesName()
     {
-        string seriesName;
+        // Return the override if it's set.
         if (!string.IsNullOrEmpty(SeriesNameOverride))
-        {
-            seriesName = SeriesNameOverride;
-        }
-        else
-        {
-            if (Utils.SettingsProvider.GetSettings().SeriesNameSource == DataSourceType.AniDB)
-            {
-                seriesName = GetAnime().PreferredTitle;
-            }
-            else
-            {
-                var tvdbs = GetTvDBSeries();
+            return SeriesNameOverride;
 
-                if (tvdbs != null && tvdbs.Count > 0 && !string.IsNullOrEmpty(tvdbs[0].SeriesName) &&
-                    !tvdbs[0].SeriesName.ToUpper().Contains("**DUPLICATE"))
-                {
-                    seriesName = tvdbs[0].SeriesName;
-                }
-                else
-                {
-                    seriesName = GetAnime().PreferredTitle;
-                }
-            }
+        // Try to find the TvDB title if we prefer TvDB titles.
+        if (Utils.SettingsProvider.GetSettings().SeriesNameSource == DataSourceType.TvDB)
+        {
+            var tvdbShows = GetTvDBSeries();
+            var tvdbShowTitle = tvdbShows
+                .FirstOrDefault(show => show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.SeriesName;
+            if (!string.IsNullOrEmpty(tvdbShowTitle))
+                return tvdbShowTitle;
         }
 
-        return seriesName;
+        // Otherwise just return the anidb title.
+        return GetAnime().PreferredTitle;
     }
 
     public HashSet<string> GetAllTitles()

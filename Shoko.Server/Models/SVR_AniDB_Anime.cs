@@ -592,40 +592,32 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         return RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
     }
 
-    public string GetFormattedTitle(List<SVR_AniDB_Anime_Title> titles)
+    private string GetFormattedTitle(List<SVR_AniDB_Anime_Title> titles = null)
     {
+        // Get the titles now if they were not provided as an argument.
+        titles ??= GetTitles();
+
+        // Check each preferred language in order.
         foreach (var thisLanguage in Languages.PreferredNamingLanguages.Select(a => a.Language))
         {
-            SVR_AniDB_Anime_Title title = null;
+            // First check the main title.
+            var title = titles.FirstOrDefault(title => title.TitleType == TitleType.Main && title.Language == thisLanguage);
+            if (title != null) return title.Title;
 
-            // Romaji and English titles will be contained in MAIN and/or OFFICIAL
-            // we won't use synonyms for these two languages
-            if (thisLanguage == TitleLanguage.Romaji || thisLanguage == TitleLanguage.English)
-            {
-                title = titles.FirstOrDefault(title => title.TitleType == TitleType.Main && title.Language == thisLanguage);
-                if (title != null) return title.Title;
-            }
-
-            // now try the official title
+            // Then check for an official title.
             title = titles.FirstOrDefault(title => title.TitleType == TitleType.Official && title.Language == thisLanguage);
             if (title != null) return title.Title;
 
-            // try synonyms
+            // Then check for _any_ title at all, if there is no main or official title in the langugage.
             if (Utils.SettingsProvider.GetSettings().LanguageUseSynonyms)
             {
-                title = titles.FirstOrDefault(title => title.TitleType == TitleType.Synonym && title.Language == thisLanguage);
+                title = titles.FirstOrDefault(title => title.Language == thisLanguage);
                 if (title != null) return title.Title;
             }
         }
 
-        // otherwise just use the main title
+        // Otherwise just use the cached main title.
         return MainTitle;
-    }
-
-    public string GetFormattedTitle()
-    {
-        var thisTitles = GetTitles();
-        return GetFormattedTitle(thisTitles);
     }
 
     [XmlIgnore]
