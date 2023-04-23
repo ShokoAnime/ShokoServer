@@ -17,32 +17,30 @@ public static class ModelHelper
 {
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable)
     {
-        var total = enumerable is IReadOnlyCollection<T> collection ? collection.Count : enumerable.Count();
+        var list = enumerable is IReadOnlyList<T> l ? l : enumerable.ToList();
         return new ListResult<T>
         {
-            Total = total,
-            List = enumerable
-                .ToList()
+            Total = list.Count,
+            List = list
         };
     }
 
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable, int page, int pageSize)
     {
-        var total = enumerable is IReadOnlyCollection<T> collection ? collection.Count : enumerable.Count();
+        var list = enumerable is IReadOnlyList<T> l ? l : enumerable.ToList();
         if (pageSize <= 0)
         {
             return new ListResult<T>
             {
-                Total = total,
-                List = enumerable
-                    .ToList()
+                Total = list.Count,
+                List = list
             };
         }
 
         return new ListResult<T>
         {
-            Total = total,
-            List = enumerable
+            Total = list.Count,
+            List = list
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
                 .ToList()
@@ -52,13 +50,13 @@ public static class ModelHelper
     public static ListResult<U> ToListResult<T, U>(this IEnumerable<T> enumerable, Func<T, U> mapper, int page,
         int pageSize)
     {
-        var total = enumerable is IReadOnlyCollection<T> collection ? collection.Count : enumerable.Count();
+        var list = enumerable is IReadOnlyList<T> l ? l : enumerable.ToList();
         if (pageSize <= 0)
         {
             return new ListResult<U>
             {
-                Total = total,
-                List = enumerable
+                Total = list.Count,
+                List = list
                     .Select(mapper)
                     .ToList()
             };
@@ -66,8 +64,8 @@ public static class ModelHelper
 
         return new ListResult<U>
         {
-            Total = total,
-            List = enumerable
+            Total = list.Count,
+            List = list
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
                 .Select(mapper)

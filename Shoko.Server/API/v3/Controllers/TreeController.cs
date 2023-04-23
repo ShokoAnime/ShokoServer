@@ -639,9 +639,6 @@ public class TreeController : BaseController
                         .ToList(),
                     fuzzy
                 )
-                // Cast to list, so it runs the query, then convert to a list-
-                // result afterwards, so it will use the count from the list.
-                .ToList()
                 .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom), page, pageSize);
         }
 
@@ -649,9 +646,6 @@ public class TreeController : BaseController
             // Order the episodes since we're not using the search ordering.
             .OrderBy(episode => episode.AniDB.EpisodeType)
             .ThenBy(episode => episode.AniDB.EpisodeNumber)
-            // Cast to list, so it runs the query, then convert to a list-result
-            // afterwards, so it will use the count from the list.
-            .ToList()
             .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom), page, pageSize);
     }
 

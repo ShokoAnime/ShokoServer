@@ -147,9 +147,6 @@ public class EpisodeController : BaseController
                         .ToList(),
                     fuzzy
                 )
-                // Cast to list, so it runs the query, then convert to a list-
-                // result afterwards, so it will use the count from the list.
-                .ToList()
                 .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom), page, pageSize);
         }
 
@@ -158,9 +155,6 @@ public class EpisodeController : BaseController
             .OrderBy(episode => episode.Shoko.AnimeSeriesID)
             .ThenBy(episode => episode.AniDB.EpisodeType)
             .ThenBy(episode => episode.AniDB.EpisodeNumber)
-            // Cast to list, so it runs the query, then convert to a list-result
-            // afterwards, so it will use the count from the list.
-            .ToList()
             .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom), page, pageSize);
     }
 
@@ -210,9 +204,6 @@ public class EpisodeController : BaseController
             .OrderBy(episode => episode.AnimeID)
             .ThenBy(episode => episode.EpisodeType)
             .ThenBy(episode => episode.EpisodeNumber)
-            // Cast to list, so it runs the query, then convert to a list-result
-            // afterwards, so it will use the count from the list.
-            .ToList()
             .ToListResult(episode => new Episode.AniDB(episode), page, pageSize);
     }
 
@@ -273,9 +264,6 @@ public class EpisodeController : BaseController
             .OrderBy(episode => episode.SeriesID)
             .ThenBy(episode => episode.SeasonNumber)
             .ThenBy(episode => episode.EpisodeNumber)
-            // Cast to list, so it runs the query, then convert to a list-result
-            // afterwards, so it will use the count from the list.
-            .ToList()
             .ToListResult(episode => new Episode.TvDB(episode), page, pageSize);
     }
 
