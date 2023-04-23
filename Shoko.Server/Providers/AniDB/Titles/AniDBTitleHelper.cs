@@ -92,6 +92,7 @@ public class AniDBTitleHelper
             {
                 var languages = _settingsProvider.GetSettings().LanguagePreference;
                 return _cache.Animes
+                    .AsParallel()
                     .Search(
                         query,
                         anime => anime.Titles
