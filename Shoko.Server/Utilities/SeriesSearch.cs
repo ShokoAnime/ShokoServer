@@ -129,13 +129,11 @@ public static class SeriesSearch
         return result.Distance < 0.8D;
     }
 
-    public static IOrderedEnumerable<SearchResult<T>> Search<T>(this IEnumerable<T> enumerable, string query, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
-        => (SearchCollection(enumerable.AsParallel(), query, selector, fuzzy, take, skip) as IEnumerable<SearchResult<T>>)
-            .OrderBy(a => a);
+    public static IEnumerable<SearchResult<T>> Search<T>(this IEnumerable<T> enumerable, string query, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
+        => SearchCollection(enumerable is ParallelQuery<T> parallel ? parallel : enumerable.AsParallel(), query, selector, fuzzy, take, skip);
 
-    public static OrderedParallelQuery<SearchResult<T>> Search<T>(this ParallelQuery<T> enumerable, string query, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
-        => SearchCollection(enumerable, query, selector, fuzzy, take, skip)
-            .OrderBy(a => a);
+    public static ParallelQuery<SearchResult<T>> Search<T>(this ParallelQuery<T> enumerable, string query, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
+        => SearchCollection(enumerable, query, selector, fuzzy, take, skip);
 
     private static ParallelQuery<SearchResult<T>> SearchCollection<T>(ParallelQuery<T> query, string search, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
     {
@@ -143,7 +141,7 @@ public static class SeriesSearch
         if (take.HasValue && take.Value <= 0)
             return new List<SearchResult<T>>().AsParallel();
 
-        var enumerable = query
+        ParallelQuery<SearchResult<T>> enumerable = query
             .Select(t => selector(t)
                 .Aggregate<string, SearchResult<T>>(null, (current, title) =>
                 {
@@ -157,7 +155,8 @@ public static class SeriesSearch
                     return result;
                 })
             )
-            .Where(a => !string.IsNullOrEmpty(a?.Match));
+            .Where(a => !string.IsNullOrEmpty(a?.Match))
+            .OrderBy(a => a);
 
         if (skip.HasValue && skip.Value > 0)
             enumerable = enumerable.Skip(skip.Value);
@@ -221,10 +220,8 @@ public static class SeriesSearch
         return flags switch
         {
             SearchFlags.Titles => SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), false, limit)
-                .OrderBy(a => a)
                 .ToList(),
             SearchFlags.Fuzzy | SearchFlags.Titles => SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), true, limit)
-                .OrderBy(a => a)
                 .ToList(),
             SearchFlags.Tags => SearchTagsExact(query, limit, forbiddenTags, allTags),
             SearchFlags.Fuzzy | SearchFlags.Tags => SearchTagsFuzzy(query, limit, forbiddenTags, allTags),
@@ -242,7 +239,6 @@ public static class SeriesSearch
         ParallelQuery<AniDB_Tag> allTags)
     {
         var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), false, limit)
-            .OrderBy(a => a)
             .ToList();
         var tagLimit = limit - titleResult.Count;
         if (tagLimit > 0)
@@ -258,7 +254,6 @@ public static class SeriesSearch
         ParallelQuery<AniDB_Tag> allTags)
     {
         var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), true, limit)
-            .OrderBy(a => a)
             .ToList();
         var tagLimit = limit - titleResult.Count;
         if (tagLimit > 0)
