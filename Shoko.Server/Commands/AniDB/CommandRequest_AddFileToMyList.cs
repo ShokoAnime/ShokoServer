@@ -146,8 +146,11 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
                         r =>
                         {
                             r.State = state.GetMyList_State();
-                            r.IsWatched = originalWatchedDate.HasValue;
-                            r.WatchedDate = originalWatchedDate;
+                            if (originalWatchedDate.HasValue)
+                            {
+                                r.IsWatched = originalWatchedDate.HasValue;
+                                r.WatchedDate = originalWatchedDate;                                
+                            }
                             r.Hash = _videoLocal.Hash;
                             r.Size = _videoLocal.FileSize;
                         }

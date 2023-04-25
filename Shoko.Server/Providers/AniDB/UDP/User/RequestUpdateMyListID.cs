@@ -17,14 +17,15 @@ public class RequestUpdateMyListID : UDPRequest<Void>
         get
         {
             var command = $"MYLISTADD lid={MyListID}&state={(int)State}";
-            if (IsWatched)
+            switch (IsWatched)
             {
-                var date = WatchedDate ?? DateTime.Now;
-                command += $"&viewed=1&viewdate={Commons.Utils.AniDB.GetAniDBDateAsSeconds(date)}";
-            }
-            else
-            {
-                command += "&viewed=0";
+                case true:
+                    var date = WatchedDate ?? DateTime.Now;
+                    command += $"&viewed=1&viewdate={Commons.Utils.AniDB.GetAniDBDateAsSeconds(date)}";    
+                    break;
+                case false:
+                    command += "&viewed=0";    
+                    break;
             }
 
             command += "&edit=1";
@@ -37,7 +38,7 @@ public class RequestUpdateMyListID : UDPRequest<Void>
 
     public MyList_State State { get; set; }
 
-    public bool IsWatched { get; set; }
+    public bool? IsWatched { get; set; }
     public DateTime? WatchedDate { get; set; }
 
     protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)

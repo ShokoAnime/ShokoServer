@@ -17,25 +17,21 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info;
 /// Get File Info. Getting the file info will only return any data if the hashes match
 /// If there is MyList info, it will also return that
 /// </summary>
-public class RequestGetFile : UDPRequest<ResponseGetFile>
+public class RequestGetMissingFile : UDPRequest<ResponseGetFile>
 {
     // These are dependent on context
     protected override string BaseCommand
     {
         get
         {
-            var commandText = new StringBuilder("FILE size=");
-            commandText.Append(Size);
-            commandText.Append("&ed2k=");
-            commandText.Append(Hash);
+            var commandText = new StringBuilder($"FILE fid={FileID}");
             commandText.Append($"&fmask={_fByte1}{_fByte2}{_fByte3}{_fByte4}{_fByte5}");
             commandText.Append($"&amask={_aByte1}{_aByte2}{_aByte3}{_aByte4}");
             return commandText.ToString();
         }
     }
 
-    public string Hash { get; set; }
-    public long Size { get; set; }
+    public int FileID { get; set; }
 
     // https://wiki.anidb.net/UDP_API_Definition#FILE:_Retrieve_File_Data
     // these are all bitmasks, so byte literals make it easier to see what the values mean
@@ -65,7 +61,6 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
         {
             case UDPReturnCode.FILE:
                 {
-                    UpdateAccessTime(Size, Hash, true);
                     // The spaces here are added for readability. They aren't in the response
                     // fileid |anime|episode|group|MyListID |other eps|deprecated|state|quality|source|audio lang|sub lang|file description|filename                                                                                                    |mylist state|mylist filestate|viewcount|view date
                     // 2442444|14360|225455 |8482 |291278112|         |    0     |4097 |  high |  www | japanese | english|                |Magia Record: Mahou Shoujo Madoka Magica Gaiden - 03 - Sorry for Making You My Friend - [Doki](a076b874).mkv|   3        |         0      |     1   |1584060577
@@ -256,11 +251,9 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                     };
                 }
             case UDPReturnCode.NO_SUCH_FILE:
-                UpdateAccessTime(Size, Hash, false);
                 return new UDPResponse<ResponseGetFile> { Code = code, Response = null };
         }
 
-        UpdateAccessTime(Size, Hash, false);
         throw new UnexpectedUDPResponseException(code, receivedData);
     }
 
@@ -349,7 +342,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
         };
     }
 
-    public RequestGetFile(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestGetMissingFile(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
     {
     }
 }
