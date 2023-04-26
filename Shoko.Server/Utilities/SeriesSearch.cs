@@ -122,6 +122,8 @@ public static class SeriesSearch
         if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(query))
             return false;
         var result = DiceFuzzySearch(text, query, text);
+        if (string.IsNullOrWhiteSpace(result.Match))
+            return false;
         if (result.ExactMatch)
             return true;
         if (text.Length <= 5 && result.Distance > 0.5D)
