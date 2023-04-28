@@ -145,7 +145,7 @@ public class DebugController : BaseController
         /// <summary>
         /// Extra payload to use with the action.
         /// </summary>
-        public Dictionary<string, string> Payload = new();
+        public Dictionary<string, object?> Payload = new();
 
         /// <summary>
         /// The computed command for the action and payload.
@@ -217,7 +217,30 @@ public class DebugController : BaseController
 
                 var queryString = HttpUtility.ParseQueryString(string.Empty);
                 foreach (var (key, value) in Payload)
-                    queryString[key] = value;
+                {
+                    if (value == null)
+                        continue;
+
+                    switch (value)
+                    {
+                        case string text:
+                            if (string.IsNullOrWhiteSpace(text) || string.Equals(text, "null", StringComparison.InvariantCultureIgnoreCase))
+                                continue;
+                            if (string.Equals(text, "true", StringComparison.InvariantCultureIgnoreCase))
+                                queryString[key] = "1";
+                            else if (string.Equals(text, "false", StringComparison.InvariantCultureIgnoreCase))
+                                queryString[key] = "0";
+                            else
+                                queryString[key] = text;
+                            break;
+                        case bool boolean:
+                            queryString[key] = boolean ? "1" : "0";
+                            break;
+                        default:
+                            queryString[key] = value.ToString();
+                            break;
+                    }
+                }
 
                 return queryString.ToString()!;
             }
