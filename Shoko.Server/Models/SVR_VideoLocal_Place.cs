@@ -235,10 +235,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                         foreach (var xref in xrefs)
                         {
                             var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                            if (ep == null)
-                            {
-                                continue;
-                            }
+                            if (ep == null) continue;
 
                             var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
                                 c =>
@@ -273,7 +270,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     // ignore
                 }
 
-                lock (BaseRepository.GlobalDBLock)
+                BaseRepository.Lock(() =>
                 {
                     using var transaction = session.BeginTransaction();
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
@@ -284,7 +281,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
                     dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                     transaction.Commit();
-                }
+                });
             }
             else
             {
@@ -297,13 +294,13 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     // ignore
                 }
 
-                lock (BaseRepository.GlobalDBLock)
+                BaseRepository.Lock(() =>
                 {
                     using var transaction = session.BeginTransaction();
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
                     dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                     transaction.Commit();
-                }
+                });
             }
         }
 
@@ -376,7 +373,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 // ignore
             }
 
-            lock (BaseRepository.GlobalDBLock)
+            BaseRepository.Lock(() =>
             {
                 using var transaction = session.BeginTransaction();
                 RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
@@ -384,7 +381,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
 
                 transaction.Commit();
-            }
+            });
         }
         else
         {
@@ -397,13 +394,13 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 // ignore
             }
 
-            lock (BaseRepository.GlobalDBLock)
+            BaseRepository.Lock(() =>
             {
                 using var transaction = session.BeginTransaction();
                 RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
                 dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                 transaction.Commit();
-            }
+            });
         }
     }
 

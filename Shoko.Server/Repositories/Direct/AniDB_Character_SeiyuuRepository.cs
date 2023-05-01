@@ -10,7 +10,7 @@ public class AniDB_Character_SeiyuuRepository : BaseDirectRepository<AniDB_Chara
 {
     public AniDB_Character_Seiyuu GetByCharIDAndSeiyuuID(int animeid, int catid)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cr = session
@@ -19,21 +19,21 @@ public class AniDB_Character_SeiyuuRepository : BaseDirectRepository<AniDB_Chara
                 .Add(Restrictions.Eq("SeiyuuID", catid))
                 .UniqueResult<AniDB_Character_Seiyuu>();
             return cr;
-        }
+        });
     }
 
     public List<AniDB_Character_Seiyuu> GetByCharID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return GetByCharID(session, id);
-        }
+        });
     }
 
     public List<AniDB_Character_Seiyuu> GetByCharID(ISession session, int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var objs = session
                 .CreateCriteria(typeof(AniDB_Character_Seiyuu))
@@ -41,12 +41,12 @@ public class AniDB_Character_SeiyuuRepository : BaseDirectRepository<AniDB_Chara
                 .List<AniDB_Character_Seiyuu>();
 
             return new List<AniDB_Character_Seiyuu>(objs);
-        }
+        });
     }
 
     public List<AniDB_Character_Seiyuu> GetBySeiyuuID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var objs = session
@@ -55,6 +55,6 @@ public class AniDB_Character_SeiyuuRepository : BaseDirectRepository<AniDB_Chara
                 .List<AniDB_Character_Seiyuu>();
 
             return new List<AniDB_Character_Seiyuu>(objs);
-        }
+        });
     }
 }

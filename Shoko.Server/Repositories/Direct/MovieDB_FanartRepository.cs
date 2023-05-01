@@ -15,37 +15,37 @@ public class MovieDB_FanartRepository : BaseDirectRepository<MovieDB_Fanart, int
 {
     public MovieDB_Fanart GetByOnlineID(string url)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return GetByOnlineID(session, url);
-        }
+        });
     }
 
     public MovieDB_Fanart GetByOnlineID(ISession session, string url)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var cr = session
                 .CreateCriteria(typeof(MovieDB_Fanart))
                 .Add(Restrictions.Eq("URL", url))
                 .List<MovieDB_Fanart>().FirstOrDefault();
             return cr;
-        }
+        });
     }
 
     public List<MovieDB_Fanart> GetByMovieID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return GetByMovieID(session.Wrap(), id);
-        }
+        });
     }
 
     public List<MovieDB_Fanart> GetByMovieID(ISessionWrapper session, int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var objs = session
                 .CreateCriteria(typeof(MovieDB_Fanart))
@@ -53,7 +53,7 @@ public class MovieDB_FanartRepository : BaseDirectRepository<MovieDB_Fanart, int
                 .List<MovieDB_Fanart>();
 
             return new List<MovieDB_Fanart>(objs);
-        }
+        });
     }
 
     public ILookup<int, MovieDB_Fanart> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
@@ -73,7 +73,7 @@ public class MovieDB_FanartRepository : BaseDirectRepository<MovieDB_Fanart, int
             return EmptyLookup<int, MovieDB_Fanart>.Instance;
         }
 
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var fanartByAnime = session.CreateSQLQuery(
                     @"
@@ -91,12 +91,12 @@ public class MovieDB_FanartRepository : BaseDirectRepository<MovieDB_Fanart, int
                 .ToLookup(r => (int)r[0], r => (MovieDB_Fanart)r[1]);
 
             return fanartByAnime;
-        }
+        });
     }
 
     public List<MovieDB_Fanart> GetAllOriginal()
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var objs = session
@@ -105,6 +105,6 @@ public class MovieDB_FanartRepository : BaseDirectRepository<MovieDB_Fanart, int
                 .List<MovieDB_Fanart>();
 
             return new List<MovieDB_Fanart>(objs);
-        }
+        });
     }
 }

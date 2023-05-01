@@ -59,7 +59,7 @@ public class CrossRef_AniDB_TvDB_EpisodeRepository : BaseCachedRepository<CrossR
             DeleteFromCache(episode);
         }
 
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
@@ -103,7 +103,7 @@ WHERE AniDB_Episode.AnimeID = :animeid
             }
 
             transaction.Commit();
-        }
+        });
     }
 
     public void DeleteAllUnverifiedLinks()
@@ -114,7 +114,7 @@ WHERE AniDB_Episode.AnimeID = :animeid
             DeleteFromCache(episode);
         }
 
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
@@ -122,6 +122,6 @@ WHERE AniDB_Episode.AnimeID = :animeid
                 .SetInt32("rating", (int)MatchRating.UserVerified)
                 .ExecuteUpdate();
             transaction.Commit();
-        }
+        });
     }
 }

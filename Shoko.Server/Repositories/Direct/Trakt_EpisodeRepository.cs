@@ -9,7 +9,7 @@ public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode, int>
 {
     public List<Trakt_Episode> GetByShowID(int showID)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var objs = session
@@ -18,12 +18,12 @@ public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode, int>
                 .List<Trakt_Episode>();
 
             return new List<Trakt_Episode>(objs);
-        }
+        });
     }
 
     public List<Trakt_Episode> GetByShowIDAndSeason(int showID, int seasonNumber)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var objs = session
@@ -33,12 +33,12 @@ public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode, int>
                 .List<Trakt_Episode>();
 
             return new List<Trakt_Episode>(objs);
-        }
+        });
     }
 
     public Trakt_Episode GetByShowIDSeasonAndEpisode(int showID, int seasonNumber, int epnumber)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var obj = session
@@ -49,6 +49,6 @@ public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode, int>
                 .UniqueResult<Trakt_Episode>();
 
             return obj;
-        }
+        });
     }
 }

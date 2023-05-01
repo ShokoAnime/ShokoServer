@@ -120,10 +120,7 @@ public class AutoAnimeGroupCalculator
         MainAnimeSelectionStrategy mainAnimeSelectionStrategy = MainAnimeSelectionStrategy.MinAirDate)
     {
         using var session = DatabaseFactory.SessionFactory.OpenSession();
-        IList<object[]> relationshipList;
-        lock (BaseRepository.GlobalDBLock)
-        {
-            relationshipList = session.CreateSQLQuery(@"
+        var relationshipList = BaseRepository.Lock(session, s => s.CreateSQLQuery(@"
                 SELECT    fromAnime.AnimeID AS fromAnimeId
                         , toAnime.AnimeID AS toAnimeId
                         , fromAnime.AnimeType AS fromAnimeType
@@ -138,17 +135,17 @@ public class AutoAnimeGroupCalculator
                             ON fromAnime.AnimeID = rel.AnimeID
                         INNER JOIN AniDB_Anime toAnime
                             ON toAnime.AnimeID = rel.RelatedAnimeID")
-                .AddScalar("fromAnimeId", NHibernateUtil.Int32)
-                .AddScalar("toAnimeId", NHibernateUtil.Int32)
-                .AddScalar("fromAnimeType", NHibernateUtil.Int32)
-                .AddScalar("toAnimeType", NHibernateUtil.Int32)
-                .AddScalar("fromMainTitle", NHibernateUtil.String)
-                .AddScalar("toMainTitle", NHibernateUtil.String)
-                .AddScalar("fromAirDate", NHibernateUtil.DateTime)
-                .AddScalar("toAirDate", NHibernateUtil.DateTime)
-                .AddScalar("relationType", NHibernateUtil.String)
-                .List<object[]>();
-        }
+            .AddScalar("fromAnimeId", NHibernateUtil.Int32)
+            .AddScalar("toAnimeId", NHibernateUtil.Int32)
+            .AddScalar("fromAnimeType", NHibernateUtil.Int32)
+            .AddScalar("toAnimeType", NHibernateUtil.Int32)
+            .AddScalar("fromMainTitle", NHibernateUtil.String)
+            .AddScalar("toMainTitle", NHibernateUtil.String)
+            .AddScalar("fromAirDate", NHibernateUtil.DateTime)
+            .AddScalar("toAirDate", NHibernateUtil.DateTime)
+            .AddScalar("relationType", NHibernateUtil.String)
+            .List<object[]>());
+
         var relationshipMap = relationshipList.Select(r =>
             {
                 var relation = new AnimeRelation

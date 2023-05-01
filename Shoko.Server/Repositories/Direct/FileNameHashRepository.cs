@@ -9,7 +9,7 @@ public class FileNameHashRepository : BaseDirectRepository<FileNameHash, int>
 {
     public List<FileNameHash> GetByHash(string hash)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var xrefs = session
@@ -18,12 +18,12 @@ public class FileNameHashRepository : BaseDirectRepository<FileNameHash, int>
                 .List<FileNameHash>();
 
             return new List<FileNameHash>(xrefs);
-        }
+        });
     }
 
     public List<FileNameHash> GetByFileNameAndSize(string filename, long filesize)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var fnhashes = session
@@ -33,6 +33,6 @@ public class FileNameHashRepository : BaseDirectRepository<FileNameHash, int>
                 .List<FileNameHash>();
 
             return new List<FileNameHash>(fnhashes);
-        }
+        });
     }
 }

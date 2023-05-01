@@ -60,14 +60,14 @@ public class AniDB_Anime_TitleRepository : BaseCachedRepository<SVR_AniDB_Anime_
             return EmptyLookup<int, SVR_AniDB_Anime_Title>.Instance;
         }
 
-        lock (GlobalDBLock)
+        return Lock(session, s =>
         {
-            var titles = session.CreateCriteria<SVR_AniDB_Anime_Title>()
+            var titles = s.CreateCriteria<SVR_AniDB_Anime_Title>()
                 .Add(Restrictions.InG(nameof(SVR_AniDB_Anime_Title.AnimeID), ids))
                 .List<SVR_AniDB_Anime_Title>()
                 .ToLookup(t => t.AnimeID);
 
             return titles;
-        }
+        });
     }
 }

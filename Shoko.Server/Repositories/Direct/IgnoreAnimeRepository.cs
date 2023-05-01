@@ -9,7 +9,7 @@ public class IgnoreAnimeRepository : BaseDirectRepository<IgnoreAnime, int>
 {
     public IgnoreAnime GetByAnimeUserType(int animeID, int userID, int ignoreType)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var obj = session
@@ -20,12 +20,12 @@ public class IgnoreAnimeRepository : BaseDirectRepository<IgnoreAnime, int>
                 .UniqueResult<IgnoreAnime>();
 
             return obj;
-        }
+        });
     }
 
     public List<IgnoreAnime> GetByUserAndType(int userID, int ignoreType)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var objs = session
@@ -35,12 +35,12 @@ public class IgnoreAnimeRepository : BaseDirectRepository<IgnoreAnime, int>
                 .List<IgnoreAnime>();
 
             return new List<IgnoreAnime>(objs);
-        }
+        });
     }
 
     public List<IgnoreAnime> GetByUser(int userID)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var objs = session
@@ -49,6 +49,6 @@ public class IgnoreAnimeRepository : BaseDirectRepository<IgnoreAnime, int>
                 .List<IgnoreAnime>();
 
             return new List<IgnoreAnime>(objs);
-        }
+        });
     }
 }

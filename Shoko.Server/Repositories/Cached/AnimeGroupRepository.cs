@@ -96,27 +96,27 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
     {
         using var session = DatabaseFactory.SessionFactory.OpenSession();
         var sessionWrapper = session.Wrap();
-        lock (GlobalDBLock)
+        Lock(session, s =>
         {
             //We are creating one, and we need the AnimeGroupID before Update the contracts
             if (grp.AnimeGroupID == 0)
             {
                 grp.Contract = null;
-                using var transaction = session.BeginTransaction();
-                session.SaveOrUpdate(grp);
+                using var transaction = s.BeginTransaction();
+                s.SaveOrUpdate(grp);
                 transaction.Commit();
             }
-        }
+        });
 
         UpdateCache(grp);
         var types = grp.UpdateContract(sessionWrapper, updategrpcontractstats);
-        lock (GlobalDBLock)
+        Lock(session, s =>
         {
             //Types will contains the affected GroupFilterConditionTypes
-            using var transaction = session.BeginTransaction();
-            SaveWithOpenTransaction(session, grp);
+            using var transaction = s.BeginTransaction();
+            SaveWithOpenTransaction(s, grp);
             transaction.Commit();
-        }
+        });
 
         Changes.AddOrUpdate(grp.AnimeGroupID);
 
@@ -178,7 +178,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         using var trans = session.BeginTransaction();
         foreach (var group in groups)
         {
-            lock (GlobalDBLock) session.Update(group);
+            Lock(() => session.Update(group));
             UpdateCache(group);
         }
         trans.Commit();
@@ -205,7 +205,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         // First, get all of the current groups so that we can inform the change tracker that they have been removed later
         var allGrps = GetAll();
 
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             // Then, actually delete the AnimeGroups
             if (excludeGroupId != null)
@@ -219,7 +219,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
                 session.CreateQuery("delete SVR_AnimeGroup ag")
                     .ExecuteUpdate();
             }
-        }
+        });
 
         if (excludeGroupId != null)
         {

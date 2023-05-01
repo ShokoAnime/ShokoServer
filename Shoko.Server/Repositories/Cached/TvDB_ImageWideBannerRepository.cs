@@ -56,7 +56,7 @@ public class TvDB_ImageWideBannerRepository : BaseCachedRepository<TvDB_ImageWid
             return EmptyLookup<int, TvDB_ImageWideBanner>.Instance;
         }
 
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var bannersByAnime = session.CreateSQLQuery(@"
                 SELECT DISTINCT crAdbTvTb.AniDBID, {tvdbBanner.*}
@@ -71,6 +71,6 @@ public class TvDB_ImageWideBannerRepository : BaseCachedRepository<TvDB_ImageWid
                 .ToLookup(r => (int)r[0], r => (TvDB_ImageWideBanner)r[1]);
 
             return bannersByAnime;
-        }
+        });
     }
 }

@@ -9,7 +9,7 @@ public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
 {
     public RenameScript GetDefaultScript()
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cr = session
@@ -17,12 +17,12 @@ public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
                 .Add(Restrictions.Eq("IsEnabledOnImport", 1))
                 .UniqueResult<RenameScript>();
             return cr;
-        }
+        });
     }
 
     public RenameScript GetDefaultOrFirst()
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             // This should list the enabled one first, falling back if none are
             using var session = DatabaseFactory.SessionFactory.OpenSession();
@@ -32,12 +32,12 @@ public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
                 .AddOrder(Order.Asc("RenameScriptID"))
                 .List<RenameScript>().FirstOrDefault();
             return cr;
-        }
+        });
     }
 
     public RenameScript GetByName(string scriptName)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             if (string.IsNullOrEmpty(scriptName))
             {
@@ -50,6 +50,6 @@ public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
                 .Add(Restrictions.Eq("ScriptName", scriptName))
                 .List<RenameScript>().FirstOrDefault();
             return cr;
-        }
+        });
     }
 }

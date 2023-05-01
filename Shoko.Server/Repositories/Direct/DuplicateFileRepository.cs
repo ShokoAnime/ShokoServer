@@ -11,7 +11,7 @@ public class DuplicateFileRepository : BaseDirectRepository<DuplicateFile, int>
     public List<DuplicateFile> GetByFilePathsAndImportFolder(string filePath1, string filePath2, int folderID1,
         int folderID2)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var dfiles = session
@@ -22,12 +22,12 @@ public class DuplicateFileRepository : BaseDirectRepository<DuplicateFile, int>
                 .Add(Restrictions.Eq("ImportFolderIDFile2", folderID2))
                 .List<DuplicateFile>();
             return new List<DuplicateFile>(dfiles);
-        }
+        });
     }
 
     public List<DuplicateFile> GetByFilePathAndImportFolder(string filePath, int folderID)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var dfiles = session
@@ -46,12 +46,12 @@ public class DuplicateFileRepository : BaseDirectRepository<DuplicateFile, int>
                 )
                 .List<DuplicateFile>();
             return dfiles.ToList();
-        }
+        });
     }
 
     public List<DuplicateFile> GetByImportFolder1(int folderID)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var dfiles = session
@@ -59,12 +59,12 @@ public class DuplicateFileRepository : BaseDirectRepository<DuplicateFile, int>
                 .Add(Restrictions.Eq("ImportFolderIDFile1", folderID))
                 .List<DuplicateFile>();
             return new List<DuplicateFile>(dfiles);
-        }
+        });
     }
 
     public List<DuplicateFile> GetByImportFolder2(int folderID)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var dfiles = session
@@ -72,6 +72,6 @@ public class DuplicateFileRepository : BaseDirectRepository<DuplicateFile, int>
                 .Add(Restrictions.Eq("ImportFolderIDFile2", folderID))
                 .List<DuplicateFile>();
             return new List<DuplicateFile>(dfiles);
-        }
+        });
     }
 }

@@ -939,16 +939,16 @@ public static class Importer
 
             var videoLocalsAll = RepoFactory.VideoLocal.GetAll().ToList();
             // remove empty videolocals
-            lock (BaseRepository.GlobalDBLock)
+            BaseRepository.Lock(session, videoLocalsAll, (s, vls) =>
             {
-                using var transaction = session.BeginTransaction();
-                foreach (var remove in videoLocalsAll.Where(a => a.IsEmpty()).ToList())
+                using var transaction = s.BeginTransaction();
+                foreach (var remove in vls.Where(a => a.IsEmpty()).ToList())
                 {
-                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
+                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, remove);
                 }
 
                 transaction.Commit();
-            }
+            });
 
             // Remove duplicate videolocals
             var locals = videoLocalsAll
@@ -966,32 +966,32 @@ public static class Importer
                 var froms = values.Except(to).ToList();
                 foreach (var places in froms.Select(from => from.Places).Where(places => places != null && places.Count != 0))
                 {
-                    lock (BaseRepository.GlobalDBLock)
+                    BaseRepository.Lock(session, places, (s, ps) =>
                     {
-                        using var transaction = session.BeginTransaction();
-                        foreach (var place in places)
+                        using var transaction = s.BeginTransaction();
+                        foreach (var place in ps)
                         {
                             place.VideoLocalID = to.VideoLocalID;
-                            RepoFactory.VideoLocalPlace.SaveWithOpenTransaction(session, place);
+                            RepoFactory.VideoLocalPlace.SaveWithOpenTransaction(s, place);
                         }
 
                         transaction.Commit();
-                    }
+                    });
                 }
 
                 toRemove.AddRange(froms);
             }
 
-            lock (BaseRepository.GlobalDBLock)
+            BaseRepository.Lock(session, toRemove, (s, ps) =>
             {
-                using var transaction = session.BeginTransaction();
-                foreach (var remove in toRemove)
+                using var transaction = s.BeginTransaction();
+                foreach (var remove in ps)
                 {
-                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
+                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, remove);
                 }
 
                 transaction.Commit();
-            }
+            });
 
             // Remove files in invalid import folders
             foreach (var v in videoLocalsAll)
@@ -999,19 +999,19 @@ public static class Importer
                 var places = v.Places;
                 if (v.Places?.Count > 0)
                 {
-                    lock (BaseRepository.GlobalDBLock)
+                    BaseRepository.Lock(session, places, (s, ps) =>
                     {
-                        using var transaction = session.BeginTransaction();
-                        foreach (var place in places.Where(place => string.IsNullOrWhiteSpace(place?.FullServerPath)))
+                        using var transaction = s.BeginTransaction();
+                        foreach (var place in ps.Where(place => string.IsNullOrWhiteSpace(place?.FullServerPath)))
                         {
                             Logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
                             seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                                 .DistinctBy(a => a.AnimeSeriesID));
-                            RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
+                            RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
                         }
 
                         transaction.Commit();
-                    }
+                    });
                 }
 
                 // Remove duplicate places
@@ -1027,12 +1027,12 @@ public static class Importer
                     places = v.Places?.Except(places).ToList();
                     foreach (var place in places)
                     {
-                        lock (BaseRepository.GlobalDBLock)
+                        BaseRepository.Lock(session, place, (s, p) =>
                         {
-                            using var transaction = session.BeginTransaction();
-                            RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
+                            using var transaction = s.BeginTransaction();
+                            RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, p);
                             transaction.Commit();
-                        }
+                        });
                     }
                 }
 
@@ -1078,18 +1078,18 @@ public static class Importer
                     }
                 }
 
-                lock (BaseRepository.GlobalDBLock)
+                BaseRepository.Lock(session, v, (s, vl) =>
                 {
-                    using var transaction = session.BeginTransaction();
-                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+                    using var transaction = s.BeginTransaction();
+                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, vl);
                     transaction.Commit();
-                }
+                });
             }
 
             // Clean up failed imports
-            lock (BaseRepository.GlobalDBLock)
+            BaseRepository.Lock(session, s =>
             {
-                using var transaction = session.BeginTransaction();
+                using var transaction = s.BeginTransaction();
                 var list = RepoFactory.VideoLocal.GetAll()
                     .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
                     .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
@@ -1097,11 +1097,11 @@ public static class Importer
                 foreach (var xref in list)
                 {
                     // We don't need to update anything since they don't exist
-                    RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
+                    RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(s, xref);
                 }
 
                 transaction.Commit();
-            }
+            });
 
             // update everything we modified
             foreach (var ser in seriesToUpdate)

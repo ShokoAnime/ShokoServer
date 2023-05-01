@@ -10,7 +10,7 @@ public class Trakt_SeasonRepository : BaseDirectRepository<Trakt_Season, int>
 {
     public List<Trakt_Season> GetByShowID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var objs = session
@@ -19,21 +19,21 @@ public class Trakt_SeasonRepository : BaseDirectRepository<Trakt_Season, int>
                 .List<Trakt_Season>();
 
             return new List<Trakt_Season>(objs);
-        }
+        });
     }
 
     public Trakt_Season GetByShowIDAndSeason(int id, int season)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return GetByShowIDAndSeason(session, id, season);
-        }
+        });
     }
 
     public Trakt_Season GetByShowIDAndSeason(ISession session, int id, int season)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var obj = session
                 .CreateCriteria(typeof(Trakt_Season))
@@ -42,6 +42,6 @@ public class Trakt_SeasonRepository : BaseDirectRepository<Trakt_Season, int>
                 .UniqueResult<Trakt_Season>();
 
             return obj;
-        }
+        });
     }
 }

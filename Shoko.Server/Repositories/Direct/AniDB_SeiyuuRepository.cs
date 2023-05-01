@@ -9,7 +9,7 @@ public class AniDB_SeiyuuRepository : BaseDirectRepository<AniDB_Seiyuu, int>
 {
     public AniDB_Seiyuu GetBySeiyuuID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cr = session
@@ -17,18 +17,18 @@ public class AniDB_SeiyuuRepository : BaseDirectRepository<AniDB_Seiyuu, int>
                 .Add(Restrictions.Eq("SeiyuuID", id))
                 .UniqueResult<AniDB_Seiyuu>();
             return cr;
-        }
+        });
     }
 
     public AniDB_Seiyuu GetBySeiyuuID(ISession session, int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var cr = session
                 .CreateCriteria(typeof(AniDB_Seiyuu))
                 .Add(Restrictions.Eq("SeiyuuID", id))
                 .UniqueResult<AniDB_Seiyuu>();
             return cr;
-        }
+        });
     }
 }

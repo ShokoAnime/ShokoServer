@@ -22,7 +22,7 @@ public class DatabaseSettings
     /// </summary>
     public string Type { get; set; } = Constants.DatabaseType.Sqlite;
 
-
+    public bool UseDatabaseLock { get; set; } = true;
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public string Schema { get; set; } = string.Empty;

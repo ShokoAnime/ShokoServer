@@ -13,23 +13,23 @@ public class MovieDb_MovieRepository : BaseDirectRepository<MovieDB_Movie, int>
 {
     public MovieDB_Movie GetByOnlineID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return GetByOnlineID(session.Wrap(), id);
-        }
+        });
     }
 
     public MovieDB_Movie GetByOnlineID(ISessionWrapper session, int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var cr = session
                 .CreateCriteria(typeof(MovieDB_Movie))
                 .Add(Restrictions.Eq("MovieId", id))
                 .UniqueResult<MovieDB_Movie>();
             return cr;
-        }
+        });
     }
 
     public Dictionary<int, Tuple<CrossRef_AniDB_Other, MovieDB_Movie>> GetByAnimeIDs(ISessionWrapper session,
@@ -50,7 +50,7 @@ public class MovieDb_MovieRepository : BaseDirectRepository<MovieDB_Movie, int>
             return new Dictionary<int, Tuple<CrossRef_AniDB_Other, MovieDB_Movie>>();
         }
 
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var movieByAnime = session.CreateSQLQuery(
                     @"
@@ -75,6 +75,6 @@ public class MovieDb_MovieRepository : BaseDirectRepository<MovieDB_Movie, int>
                 );
 
             return movieByAnime;
-        }
+        });
     }
 }

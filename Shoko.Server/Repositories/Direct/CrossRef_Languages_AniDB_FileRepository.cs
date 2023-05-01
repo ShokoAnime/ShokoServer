@@ -12,7 +12,7 @@ public class CrossRef_Languages_AniDB_FileRepository : BaseDirectRepository<Cros
 {
     public List<CrossRef_Languages_AniDB_File> GetByFileID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var files = session
@@ -21,12 +21,12 @@ public class CrossRef_Languages_AniDB_FileRepository : BaseDirectRepository<Cros
                 .List<CrossRef_Languages_AniDB_File>();
 
             return new List<CrossRef_Languages_AniDB_File>(files);
-        }
+        });
     }
     
     public Dictionary<int, HashSet<string>> GetLanguagesByAnime(IEnumerable<int> animeIds)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return session.CreateSQLQuery(@"SELECT DISTINCT eps.AnimeID, lang.LanguageName
@@ -39,12 +39,12 @@ WHERE eps.AnimeID IN (:animeIds)")
                 .SetParameterList("animeIds", animeIds)
                 .List<object[]>().GroupBy(a => (int)a[0], a => (string)a[1])
                 .ToDictionary(a => a.Key, a => a.ToHashSet(StringComparer.InvariantCultureIgnoreCase));
-        }
+        });
     }
     
     public HashSet<string> GetLanguagesForAnime(int animeID)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return session.CreateSQLQuery(@"SELECT DISTINCT lang.LanguageName
@@ -54,6 +54,6 @@ INNER JOIN CrossRef_Languages_AniDB_File lang on lang.FileID = f.FileID
 WHERE eps.AnimeID = :animeId")
                 .SetParameter("animeId", animeID)
                 .List<string>().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-        }
+        });
     }
 }

@@ -89,16 +89,16 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
 
     public CommandRequest GetByCommandID(string cmdid)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return GetByCommandID(session, cmdid);
-        }
+        });
     }
 
     public CommandRequest GetByCommandID(ISession session, string cmdid)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var crs = session
                 .CreateCriteria(typeof(CommandRequest))
@@ -117,7 +117,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
             }
 
             return cr;
-        }
+        });
     }
 
 
@@ -126,7 +126,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
     {
         try
         {
-            lock (GlobalDBLock)
+            return Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var types = CommandTypesGeneral;
@@ -156,7 +156,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                     .SingleOrDefault<CommandRequest>();
 
                 return cr;
-            }
+            });
         }
         catch (Exception e)
         {
@@ -167,7 +167,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
 
     public List<CommandRequest> GetAllCommandRequestGeneral()
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             // This is used to clear the queue, we don't need order
@@ -176,14 +176,14 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                 .List<CommandRequest>().ToList();
 
             return crs;
-        }
+        });
     }
 
     public CommandRequest GetNextDBCommandRequestHasher()
     {
         try
         {
-            lock (GlobalDBLock)
+            return Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var crs = session.QueryOver<CommandRequest>()
@@ -196,9 +196,9 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                 {
                     return crs[0];
                 }
-            }
 
-            return null;
+                return null;
+            });
         }
         catch (Exception e)
         {
@@ -209,7 +209,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
 
     public List<CommandRequest> GetAllCommandRequestHasher()
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var crs = session.QueryOver<CommandRequest>()
@@ -219,14 +219,14 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                 .List<CommandRequest>().ToList();
 
             return crs;
-        }
+        });
     }
 
     public CommandRequest GetNextDBCommandRequestImages()
     {
         try
         {
-            lock (GlobalDBLock)
+            return Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
                 var crs = session.QueryOver<CommandRequest>()
@@ -239,9 +239,9 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                 {
                     return crs[0];
                 }
-            }
 
-            return null;
+                return null;
+            });
         }
         catch (Exception e)
         {
@@ -252,7 +252,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
 
     public List<CommandRequest> GetAllCommandRequestImages()
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var crs = session.QueryOver<CommandRequest>()
@@ -262,12 +262,12 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                 .List<CommandRequest>().ToList();
 
             return crs;
-        }
+        });
     }
 
     public int GetQueuedCommandCountGeneral()
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var crs = session.QueryOver<CommandRequest>()
@@ -276,12 +276,12 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                 .RowCount();
 
             return crs;
-        }
+        });
     }
 
     public int GetQueuedCommandCountHasher()
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var crs = session.QueryOver<CommandRequest>()
@@ -289,12 +289,12 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                 .RowCount();
 
             return crs;
-        }
+        });
     }
 
     public int GetQueuedCommandCountImages()
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var crs = session.QueryOver<CommandRequest>()
@@ -302,12 +302,12 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                 .RowCount();
 
             return crs;
-        }
+        });
     }
 
     public List<CommandRequest> GetByCommandTypes(int[] types)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var crs = session.QueryOver<CommandRequest>()
@@ -317,12 +317,12 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                 .List<CommandRequest>().ToList();
 
             return crs;
-        }
+        });
     }
 
     public void ClearGeneralQueue()
     {
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var currentCommand = ShokoService.CmdProcessorGeneral.CurrentCommand;
@@ -346,14 +346,14 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
             }
 
             transaction.Commit();
-        }
+        });
 
         ShokoService.CmdProcessorGeneral.QueueCount = GetQueuedCommandCountGeneral();
     }
 
     public void ClearHasherQueue()
     {
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var currentCommand = ShokoService.CmdProcessorHasher.CurrentCommand;
@@ -377,14 +377,14 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
             }
 
             transaction.Commit();
-        }
+        });
 
         ShokoService.CmdProcessorHasher.QueueCount = GetQueuedCommandCountHasher();
     }
 
     public void ClearImageQueue()
     {
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var currentCommand = ShokoService.CmdProcessorImages.CurrentCommand;
@@ -408,7 +408,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
             }
 
             transaction.Commit();
-        }
+        });
 
         ShokoService.CmdProcessorImages.QueueCount = GetQueuedCommandCountImages();
     }

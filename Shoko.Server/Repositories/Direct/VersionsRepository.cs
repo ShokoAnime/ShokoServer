@@ -10,7 +10,7 @@ public class VersionsRepository : BaseDirectRepository<Versions, int>
 {
     public Dictionary<string, Dictionary<string, Versions>> GetAllByType(string vertype)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return session.CreateCriteria(typeof(Versions))
@@ -22,6 +22,6 @@ public class VersionsRepository : BaseDirectRepository<Versions, int>
                     a => a.GroupBy(b => b.VersionRevision ?? string.Empty)
                         .ToDictionary(b => b.Key, b => b.FirstOrDefault())
                 );
-        }
+        });
     }
 }

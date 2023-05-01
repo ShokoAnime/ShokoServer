@@ -13,7 +13,7 @@ public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatu
 {
     public List<AniDB_GroupStatus> GetByAnimeID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var objs = session
@@ -22,13 +22,16 @@ public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatu
                 .List<AniDB_GroupStatus>();
 
             return new List<AniDB_GroupStatus>(objs);
-        }
+        });
     }
 
     public void DeleteForAnime(int animeid)
     {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
-        session.Query<AniDB_GroupStatus>().Where(a => a.AnimeID == animeid).Delete();
-        SVR_AniDB_Anime.UpdateStatsByAnimeID(animeid);
+        Lock(() =>
+        {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            session.Query<AniDB_GroupStatus>().Where(a => a.AnimeID == animeid).Delete();
+            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeid);
+        });
     }
 }

@@ -9,7 +9,7 @@ public class AniDB_FileUpdateRepository : BaseDirectRepository<AniDB_FileUpdate,
 {
     public IList<AniDB_FileUpdate> GetByFileSizeAndHash(long fileSize, string hash)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cats = session
@@ -20,12 +20,12 @@ public class AniDB_FileUpdateRepository : BaseDirectRepository<AniDB_FileUpdate,
                 .List<AniDB_FileUpdate>();
 
             return cats;
-        }
+        });
     }
 
     public AniDB_FileUpdate GetLastUpdateByFileSizeAndHash(long fileSize, string hash)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cat = session
@@ -37,6 +37,6 @@ public class AniDB_FileUpdateRepository : BaseDirectRepository<AniDB_FileUpdate,
                 .UniqueResult<AniDB_FileUpdate>();
 
             return cat;
-        }
+        });
     }
 }

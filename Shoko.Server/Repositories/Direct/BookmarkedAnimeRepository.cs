@@ -12,7 +12,7 @@ public class BookmarkedAnimeRepository : BaseDirectRepository<BookmarkedAnime, i
 {
     public BookmarkedAnime GetByAnimeID(int animeID)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cr = session
@@ -20,7 +20,7 @@ public class BookmarkedAnimeRepository : BaseDirectRepository<BookmarkedAnime, i
                 .Add(Restrictions.Eq("AnimeID", animeID))
                 .UniqueResult<BookmarkedAnime>();
             return cr;
-        }
+        });
     }
 
     public override IReadOnlyList<BookmarkedAnime> GetAll()

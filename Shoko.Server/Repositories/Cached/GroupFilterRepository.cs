@@ -691,13 +691,13 @@ public class GroupFilterRepository : BaseCachedRepository<SVR_GroupFilter, int>
     private void DropAllTagFilters(ISessionWrapper session)
     {
         ClearCache();
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             using var trans = session.BeginTransaction();
             session.CreateQuery($"DELETE FROM {nameof(SVR_GroupFilter)} WHERE FilterType = {(int)GroupFilterType.Tag};")
                 .ExecuteUpdate();
             trans.Commit();
-        }
+        });
     }
 
     private void CreateAllTagFilters(ISessionWrapper session, SVR_GroupFilter tagsdirec,
@@ -752,13 +752,13 @@ public class GroupFilterRepository : BaseCachedRepository<SVR_GroupFilter, int>
                     .Where(id => id != -1).ToHashSet();
             }
 
-            lock (GlobalDBLock)
+            Lock(() =>
             {
                 using var trans = session.BeginTransaction();
                 // get an ID
                 session.Insert(yf);
                 trans.Commit();
-            }
+            });
 
             var gfc = new GroupFilterCondition
             {
@@ -777,12 +777,12 @@ public class GroupFilterRepository : BaseCachedRepository<SVR_GroupFilter, int>
         Populate(session, false);
         foreach (var filters in toAdd.Batch(50))
         {
-            lock (GlobalDBLock)
+            Lock(() =>
             {
                 using var trans = session.BeginTransaction();
                 BatchUpdate(session, filters);
                 trans.Commit();
-            }
+            });
         }
     }
 

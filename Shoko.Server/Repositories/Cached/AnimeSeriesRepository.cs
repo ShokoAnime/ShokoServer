@@ -143,19 +143,19 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         else
         {
             // get the old version from the DB
-            SVR_AnimeSeries oldSeries;
             logger.Trace($"Saving Series {animeID} | Waiting for Database Lock");
-            lock (GlobalDBLock)
+            var oldSeries = Lock(() =>
             {
                 sw.Stop();
                 logger.Trace($"Saving Series {animeID} | Got Database Lock in {sw.Elapsed.TotalSeconds:0.00###}s");
                 sw.Restart();
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
-                oldSeries = session.Get<SVR_AnimeSeries>(obj.AnimeSeriesID);
+                var s = session.Get<SVR_AnimeSeries>(obj.AnimeSeriesID);
                 sw.Stop();
                 logger.Trace($"Saving Series {animeID} | Got Series from Database in {sw.Elapsed.TotalSeconds:0.00###}s");
                 sw.Restart();
-            }
+                return s;
+            });
 
             if (oldSeries != null)
             {
@@ -339,7 +339,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
 
         foreach (var series in seriesBatch)
         {
-            lock (GlobalDBLock) session.Update(series);
+            Lock(() => session.Update(series));
             UpdateCache(series);
             Changes.AddOrUpdate(series.AnimeSeriesID);
         }

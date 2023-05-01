@@ -180,14 +180,14 @@ public class CommandRequest_GetFile : CommandRequestImplementation
         var fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash);
 
         // Use a single session A. for efficiency and B. to prevent regenerating stats
-        
-        lock (BaseRepository.GlobalDBLock)
+
+        BaseRepository.Lock(fileEps, x =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             using var trans = session.BeginTransaction();
-            RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, fileEps);
+            RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, x);
             trans.Commit();
-        }
+        });
 
         fileEps = response.EpisodeIDs
             .Select(
@@ -246,14 +246,13 @@ public class CommandRequest_GetFile : CommandRequestImplementation
 
 
         // There is a chance that AniDB returned a dup, however unlikely
-        lock (BaseRepository.GlobalDBLock)
+        BaseRepository.Lock(fileEps, x =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             using var trans = session.BeginTransaction();
-            RepoFactory.CrossRef_File_Episode.SaveWithOpenTransaction(session,
-                fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}").ToList());
+            RepoFactory.CrossRef_File_Episode.SaveWithOpenTransaction(session, x.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}").ToList());
             trans.Commit();
-        }
+        });
     }
 
     /// <summary>

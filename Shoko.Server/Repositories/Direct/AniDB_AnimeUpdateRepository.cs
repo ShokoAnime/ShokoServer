@@ -10,7 +10,7 @@ public class AniDB_AnimeUpdateRepository : BaseDirectRepository<AniDB_AnimeUpdat
 {
     public AniDB_AnimeUpdate GetByAnimeID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cats = session
@@ -26,6 +26,6 @@ public class AniDB_AnimeUpdateRepository : BaseDirectRepository<AniDB_AnimeUpdat
             }
 
             return cat;
-        }
+        });
     }
 }

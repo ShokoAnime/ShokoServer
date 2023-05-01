@@ -20,52 +20,40 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
 
     public virtual T GetByID(S id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return session.Get<T>(id);
-        }
+        });
     }
 
     public virtual T GetByID(ISession session, S id)
     {
-        lock (GlobalDBLock)
-        {
-            return session.Get<T>(id);
-        }
+        return Lock(() => session.Get<T>(id));
     }
 
     public virtual T GetByID(ISessionWrapper session, S id)
     {
-        lock (GlobalDBLock)
-        {
-            return session.Get<T>(id);
-        }
+        return Lock(() => session.Get<T>(id));
     }
 
     public virtual IReadOnlyList<T> GetAll()
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return session.CreateCriteria(typeof(T)).List<T>().ToList();
-        }
+        });
     }
 
     public virtual IReadOnlyList<T> GetAll(ISession session)
     {
-        lock (GlobalDBLock)
-        {
-            return session.CreateCriteria(typeof(T)).List<T>().ToList();
-        }
+        return Lock(() => session.CreateCriteria(typeof(T)).List<T>().ToList());
     }
 
     public virtual IReadOnlyList<T> GetAll(ISessionWrapper session)
     {
-        lock (GlobalDBLock)
-        {
-            return session.CreateCriteria(typeof(T)).List<T>().ToList();
-        }
+        return Lock(() => session.CreateCriteria(typeof(T)).List<T>().ToList());
     }
 
 
@@ -78,7 +66,7 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
     {
         if (cr == null) return;
 
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             BeginDeleteCallback?.Invoke(cr);
             using var session = DatabaseFactory.SessionFactory.OpenSession();
@@ -87,14 +75,14 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
             session.Delete(cr);
             transaction.Commit();
             EndDeleteCallback?.Invoke(cr);
-        }
+        });
     }
 
     public void Delete(IReadOnlyCollection<T> objs)
     {
         if (objs.Count == 0) return;
 
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             foreach (var obj in objs)
             {
@@ -115,7 +103,7 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
             {
                 EndDeleteCallback?.Invoke(obj);
             }
-        }
+        });
     }
 
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
@@ -129,10 +117,10 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
     {
         if (cr == null) return;
 
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             session.Delete(cr);
-        }
+        });
     }
 
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
@@ -140,19 +128,19 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
     {
         if (objs.Count == 0) return;
 
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             foreach (var cr in objs)
             {
                 DeleteWithOpenTransactionCallback?.Invoke(session, cr);
                 session.Delete(cr);
             }
-        }
+        });
     }
 
     public virtual void Save(T obj)
     {
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             BeginSaveCallback?.Invoke(obj);
             using var session = DatabaseFactory.SessionFactory.OpenSession();
@@ -161,14 +149,14 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
             SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
             transaction.Commit();
             EndSaveCallback?.Invoke(obj);
-        }
+        });
     }
 
     public void Save(IReadOnlyCollection<T> objs)
     {
         if (objs.Count == 0) return;
 
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
@@ -181,7 +169,7 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
             }
 
             transaction.Commit();
-        }
+        });
     }
 
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
@@ -189,13 +177,13 @@ public class BaseDirectRepository<T, S> : BaseRepository, IRepository<T, S> wher
     {
         if (objs.Count == 0) return;
 
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             foreach (var obj in objs)
             {
                 session.SaveOrUpdate(obj);
                 SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
             }
-        }
+        });
     }
 }

@@ -146,11 +146,10 @@ public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
         }
 
         // treating cache as a global DB lock, as well
-        IList<object[]> results;
-        lock (GlobalDBLock)
+        var results = Lock(() =>
         {
             // TODO: Determine if joining on the correct columns
-            results = session.CreateSQLQuery(
+            return session.CreateSQLQuery(
                     @"SELECT {defImg.*}, {tvWide.*}, {tvPoster.*}, {tvFanart.*}, {movPoster.*}, {movFanart.*}
                     FROM AniDB_Anime_DefaultImage defImg
                         LEFT OUTER JOIN TvDB_ImageWideBanner AS tvWide
@@ -178,7 +177,7 @@ public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
                 .SetInt32("movdbPosterType", (int)ImageEntityType.MovieDB_Poster)
                 .SetInt32("movdbFanartType", (int)ImageEntityType.MovieDB_FanArt)
                 .List<object[]>();
-        }
+        });
 
         foreach (var result in results)
         {

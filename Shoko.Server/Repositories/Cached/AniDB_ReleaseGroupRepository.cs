@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -25,12 +24,11 @@ INNER JOIN CrossRef_File_Episode xref1 ON xref1.Hash = a.Hash
 GROUP BY g.GroupName
 ORDER BY count(DISTINCT xref1.AnimeID) DESC, g.GroupName ASC";
 
-        IList<string> result;
-        lock (GlobalDBLock)
+        var result = Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            result = session.CreateSQLQuery(query).List<string>();
-        }
+            return session.CreateSQLQuery(query).List<string>();
+        });
 
         if (result.Contains("raw/unknown"))
         {

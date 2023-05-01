@@ -60,7 +60,7 @@ public class AniDB_VoteRepository : BaseCachedRepository<AniDB_Vote, int>
             return cr.FirstOrDefault();
         }
 
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             foreach (var dbVote in cr.Skip(1))
@@ -71,7 +71,7 @@ public class AniDB_VoteRepository : BaseCachedRepository<AniDB_Vote, int>
             }
 
             return cr.FirstOrDefault();
-        }
+        });
     }
 
     public List<AniDB_Vote> GetByEntity(int entID)

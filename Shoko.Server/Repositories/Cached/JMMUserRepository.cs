@@ -44,11 +44,11 @@ public class JMMUserRepository : BaseCachedRepository<SVR_JMMUser, int>
             SVR_JMMUser old = null;
             if (!isNew)
             {
-                lock (GlobalDBLock)
+                old = Lock(() =>
                 {
                     using var session = DatabaseFactory.SessionFactory.OpenSession();
-                    old = session.Get<SVR_JMMUser>(obj.JMMUserID);
-                }
+                    return session.Get<SVR_JMMUser>(obj.JMMUserID);
+                });
             }
 
             updateGroupFilters = SVR_JMMUser.CompareUser(old, obj);

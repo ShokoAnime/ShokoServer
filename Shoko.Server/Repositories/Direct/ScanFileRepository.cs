@@ -11,7 +11,7 @@ public class ScanFileRepository : BaseDirectRepository<ScanFile, int>
 {
     public List<ScanFile> GetWaiting(int scanid)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return session.CreateCriteria(typeof(ScanFile))
@@ -20,24 +20,24 @@ public class ScanFileRepository : BaseDirectRepository<ScanFile, int>
                 .AddOrder(Order.Asc("CheckDate"))
                 .List<ScanFile>()
                 .ToList();
-        }
+        });
     }
 
     public List<ScanFile> GetByScanID(int scanid)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return session.CreateCriteria(typeof(ScanFile))
                 .Add(Restrictions.Eq("ScanID", scanid))
                 .List<ScanFile>()
                 .ToList();
-        }
+        });
     }
 
     public List<ScanFile> GetWithError(int scanid)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return session.CreateCriteria(typeof(ScanFile))
@@ -46,12 +46,12 @@ public class ScanFileRepository : BaseDirectRepository<ScanFile, int>
                 .AddOrder(Order.Asc("CheckDate"))
                 .List<ScanFile>()
                 .ToList();
-        }
+        });
     }
 
     public int GetWaitingCount(int scanid)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return (int)session.CreateCriteria(typeof(ScanFile))
@@ -59,6 +59,6 @@ public class ScanFileRepository : BaseDirectRepository<ScanFile, int>
                 .Add(Restrictions.Eq("Status", (int)ScanFileStatus.Waiting))
                 .SetProjection(Projections.Count("ScanFileID"))
                 .UniqueResult();
-        }
+        });
     }
 }

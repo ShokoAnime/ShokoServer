@@ -10,7 +10,7 @@ public class AniDB_Anime_SimilarRepository : BaseDirectRepository<AniDB_Anime_Si
 {
     public AniDB_Anime_Similar GetByAnimeIDAndSimilarID(int animeid, int similaranimeid)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cr = session
@@ -19,21 +19,21 @@ public class AniDB_Anime_SimilarRepository : BaseDirectRepository<AniDB_Anime_Si
                 .Add(Restrictions.Eq("SimilarAnimeID", similaranimeid))
                 .UniqueResult<AniDB_Anime_Similar>();
             return cr;
-        }
+        });
     }
 
     public List<AniDB_Anime_Similar> GetByAnimeID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return GetByAnimeID(session, id);
-        }
+        });
     }
 
     public List<AniDB_Anime_Similar> GetByAnimeID(ISession session, int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var cats = session
                 .CreateCriteria(typeof(AniDB_Anime_Similar))
@@ -42,6 +42,6 @@ public class AniDB_Anime_SimilarRepository : BaseDirectRepository<AniDB_Anime_Si
                 .List<AniDB_Anime_Similar>();
 
             return new List<AniDB_Anime_Similar>(cats);
-        }
+        });
     }
 }

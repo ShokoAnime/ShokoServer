@@ -10,7 +10,7 @@ public class AniDB_Anime_StaffRepository : BaseDirectRepository<AniDB_Anime_Staf
 {
     public List<AniDB_Anime_Staff> GetByAnimeID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cats = session
@@ -19,12 +19,12 @@ public class AniDB_Anime_StaffRepository : BaseDirectRepository<AniDB_Anime_Staf
                 .List<AniDB_Anime_Staff>();
 
             return new List<AniDB_Anime_Staff>(cats);
-        }
+        });
     }
 
     public AniDB_Anime_Staff GetByAnimeIDAndCreatorID(int animeid, int creatorid)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cr = session
@@ -34,6 +34,6 @@ public class AniDB_Anime_StaffRepository : BaseDirectRepository<AniDB_Anime_Staf
                 .UniqueResult<AniDB_Anime_Staff>();
 
             return cr;
-        }
+        });
     }
 }

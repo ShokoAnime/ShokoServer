@@ -9,23 +9,23 @@ public class Trakt_ShowRepository : BaseDirectRepository<Trakt_Show, int>
 {
     public Trakt_Show GetByTraktSlug(string slug)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return GetByTraktSlug(session, slug);
-        }
+        });
     }
 
 
     public Trakt_Show GetByTraktSlug(ISession session, string slug)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var cr = session
                 .CreateCriteria(typeof(Trakt_Show))
                 .Add(Restrictions.Eq("TraktID", slug))
                 .UniqueResult<Trakt_Show>();
             return cr;
-        }
+        });
     }
 }

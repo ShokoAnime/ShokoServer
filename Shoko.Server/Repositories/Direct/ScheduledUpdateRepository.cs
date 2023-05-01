@@ -8,7 +8,7 @@ public class ScheduledUpdateRepository : BaseDirectRepository<ScheduledUpdate, i
 {
     public ScheduledUpdate GetByUpdateType(int uptype)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cr = session
@@ -16,6 +16,6 @@ public class ScheduledUpdateRepository : BaseDirectRepository<ScheduledUpdate, i
                 .Add(Restrictions.Eq("UpdateType", uptype))
                 .UniqueResult<ScheduledUpdate>();
             return cr;
-        }
+        });
     }
 }

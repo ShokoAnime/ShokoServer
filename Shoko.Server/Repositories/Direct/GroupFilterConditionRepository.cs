@@ -9,7 +9,7 @@ public class GroupFilterConditionRepository : BaseDirectRepository<GroupFilterCo
 {
     public List<GroupFilterCondition> GetByGroupFilterID(int gfid)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var gfcs = session
@@ -18,6 +18,6 @@ public class GroupFilterConditionRepository : BaseDirectRepository<GroupFilterCo
                 .List<GroupFilterCondition>();
 
             return new List<GroupFilterCondition>(gfcs);
-        }
+        });
     }
 }

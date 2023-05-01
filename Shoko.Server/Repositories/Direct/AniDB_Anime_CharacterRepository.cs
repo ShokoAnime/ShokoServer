@@ -10,7 +10,7 @@ public class AniDB_Anime_CharacterRepository : BaseDirectRepository<AniDB_Anime_
 {
     public List<AniDB_Anime_Character> GetByAnimeID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cats = session
@@ -19,12 +19,12 @@ public class AniDB_Anime_CharacterRepository : BaseDirectRepository<AniDB_Anime_
                 .List<AniDB_Anime_Character>();
 
             return new List<AniDB_Anime_Character>(cats);
-        }
+        });
     }
 
     public List<AniDB_Anime_Character> GetByAnimeID(ISessionWrapper session, int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var cats = session
                 .CreateCriteria(typeof(AniDB_Anime_Character))
@@ -32,12 +32,12 @@ public class AniDB_Anime_CharacterRepository : BaseDirectRepository<AniDB_Anime_
                 .List<AniDB_Anime_Character>();
 
             return new List<AniDB_Anime_Character>(cats);
-        }
+        });
     }
 
     public List<AniDB_Anime_Character> GetByCharID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var cats = session
@@ -46,6 +46,6 @@ public class AniDB_Anime_CharacterRepository : BaseDirectRepository<AniDB_Anime_
                 .List<AniDB_Anime_Character>();
 
             return new List<AniDB_Anime_Character>(cats);
-        }
+        });
     }
 }
