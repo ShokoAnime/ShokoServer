@@ -463,6 +463,19 @@ public class SVR_VideoLocal : VideoLocal, IHash
         return true;
     }
 
+    /// <summary>
+    /// Checks if any of the hashes are empty
+    /// </summary>
+    /// <returns></returns>
+    public bool HasAnyEmptyHashes()
+    {
+        if (string.IsNullOrEmpty(Hash)) return true;
+        if (string.IsNullOrEmpty(MD5)) return true;
+        if (string.IsNullOrEmpty(SHA1)) return true;
+        if (string.IsNullOrEmpty(CRC32)) return true;
+        return false;
+    }
+
     public CL_VideoDetailed ToClientDetailed(int userID)
     {
         // get the cross ref episode
@@ -524,64 +537,6 @@ public class SVR_VideoLocal : VideoLocal, IHash
             Media = Media == null ? null : new Media(VideoLocalID, Media),
         };
         return cl;
-    }
-
-    public CL_VideoLocal_ManualLink ToContractManualLink(int userID)
-    {
-        var cl = new CL_VideoLocal_ManualLink
-        {
-            CRC32 = CRC32,
-            DateTimeUpdated = DateTimeUpdated,
-            FileName = FileName,
-            FileSize = FileSize,
-            Hash = Hash,
-            HashSource = HashSource,
-            IsIgnored = IsIgnored,
-            IsVariation = IsVariation,
-            MD5 = MD5,
-            SHA1 = SHA1,
-            VideoLocalID = VideoLocalID,
-            Places = Places.Select(a => a.ToClient()).ToList()
-        };
-        var userRecord = GetUserRecord(userID);
-        if (userRecord?.WatchedDate == null)
-        {
-            cl.IsWatched = 0;
-            cl.WatchedDate = null;
-        }
-        else
-        {
-            cl.IsWatched = 1;
-            cl.WatchedDate = userRecord.WatchedDate;
-        }
-        cl.ResumePosition = userRecord?.ResumePosition ?? 0;
-        return cl;
-    }
-
-    public bool MergeInfoFrom(VideoLocal vl)
-    {
-        var changed = false;
-        if (string.IsNullOrEmpty(Hash) && !string.IsNullOrEmpty(vl.Hash))
-        {
-            Hash = vl.Hash;
-            changed = true;
-        }
-        if (string.IsNullOrEmpty(CRC32) && !string.IsNullOrEmpty(vl.CRC32))
-        {
-            CRC32 = vl.CRC32;
-            changed = true;
-        }
-        if (string.IsNullOrEmpty(MD5) && !string.IsNullOrEmpty(vl.MD5))
-        {
-            MD5 = vl.MD5;
-            changed = true;
-        }
-        if (string.IsNullOrEmpty(SHA1) && !string.IsNullOrEmpty(vl.SHA1))
-        {
-            SHA1 = vl.SHA1;
-            changed = true;
-        }
-        return changed;
     }
 }
 
