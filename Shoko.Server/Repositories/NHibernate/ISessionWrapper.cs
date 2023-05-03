@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Linq;
 using NHibernate;
 
 namespace Shoko.Server.Repositories.NHibernate;
@@ -15,6 +16,7 @@ public interface ISessionWrapper : IDisposable
     ISQLQuery CreateSQLQuery(string query);
 
     IQueryOver<T, T> QueryOver<T>() where T : class;
+    IQueryable<T> Query<T>() where T : class;
 
     TObj Get<TObj>(object id);
 

@@ -51,7 +51,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
 
         try
         {
-            var (vlocal, vlocalplace, folder) = GetVideoLocal();
+            var (existing, vlocal, vlocalplace, folder) = GetVideoLocal();
             if (vlocal == null || vlocalplace == null) return;
             var filename = vlocalplace.FileName;
 
@@ -67,10 +67,10 @@ public class CommandRequest_HashFile : CommandRequestImplementation
                     FillHashesAgainstVideoLocalRepo(vlocal);
             }
 
-            if (!FillMissingHashes(vlocal, ForceHash)) return;
+            if (existing && !FillMissingHashes(vlocal, ForceHash)) return;
             // We should have a hash by now
             // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
-            var tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
+            var tlocal = RepoFactory.VideoLocal.GetByHashAndSize(vlocal.Hash, vlocal.FileSize);
             var changed = false;
 
             if (tlocal != null)
@@ -177,7 +177,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         }
     }
 
-    private (SVR_VideoLocal, SVR_VideoLocal_Place, SVR_ImportFolder) GetVideoLocal()
+    private (bool existing, SVR_VideoLocal, SVR_VideoLocal_Place, SVR_ImportFolder) GetVideoLocal()
     {
         // hash and read media info for file
         var tup = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
@@ -191,6 +191,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         var filePath = tup.Item2;
         long filesize = 0;
         Exception e = null;
+        var existing = false;
 
         if (!File.Exists(FileName))
         {
@@ -248,6 +249,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             vlocal = vlocalplace.VideoLocal;
             if (vlocal != null)
             {
+                existing = true;
                 Logger.LogTrace("VideoLocal record found in database: {Filename}", FileName);
 
                 // This will only happen with DB corruption, so just clean up the mess.
@@ -300,7 +302,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             RepoFactory.VideoLocalPlace.Save(vlocalplace);
         }
         
-        return (vlocal, vlocalplace, folder);
+        return (existing, vlocal, vlocalplace, folder);
     }
 
     private bool TrySetHashFromXrefs(string filename, SVR_VideoLocal vlocal)
@@ -371,7 +373,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         Logger.LogTrace("Hashed file in {TotalSeconds:#0.0} seconds --- {Filename} ({Size})", ts.TotalSeconds,
             FileName, Utils.FormatByteSize(vlocal.FileSize));
 
-        if (string.IsNullOrEmpty(vlocal.Hash)) vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
+        if (string.IsNullOrEmpty(vlocal.Hash) || force) vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
         if (needSHA1) vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();
         if (needMD5) vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
         if (needCRC32) vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();

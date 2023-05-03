@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
-using NHibernate;
-using NHibernate.Criterion;
+using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
@@ -12,13 +11,11 @@ public class AniDB_Anime_SimilarRepository : BaseDirectRepository<AniDB_Anime_Si
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var cr = session
-                .CreateCriteria(typeof(AniDB_Anime_Similar))
-                .Add(Restrictions.Eq("AnimeID", animeid))
-                .Add(Restrictions.Eq("SimilarAnimeID", similaranimeid))
-                .UniqueResult<AniDB_Anime_Similar>();
-            return cr;
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            return session.Query<AniDB_Anime_Similar>()
+                .Where(a => a.AnimeID == animeid && a.SimilarAnimeID == similaranimeid)
+                .Take(1)
+                .SingleOrDefault();
         });
     }
 
@@ -26,22 +23,11 @@ public class AniDB_Anime_SimilarRepository : BaseDirectRepository<AniDB_Anime_Si
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return GetByAnimeID(session, id);
-        });
-    }
-
-    public List<AniDB_Anime_Similar> GetByAnimeID(ISession session, int id)
-    {
-        return Lock(() =>
-        {
-            var cats = session
-                .CreateCriteria(typeof(AniDB_Anime_Similar))
-                .Add(Restrictions.Eq("AnimeID", id))
-                .AddOrder(Order.Desc("Approval"))
-                .List<AniDB_Anime_Similar>();
-
-            return new List<AniDB_Anime_Similar>(cats);
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            return session.Query<AniDB_Anime_Similar>()
+                .Where(a => a.AnimeID == id)
+                .OrderByDescending(a => a.Approval)
+                .ToList();
         });
     }
 }

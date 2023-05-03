@@ -1,7 +1,7 @@
-﻿using NHibernate;
-using NHibernate.Criterion;
+﻿using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct;
 
@@ -12,23 +12,18 @@ public class AniDB_SeiyuuRepository : BaseDirectRepository<AniDB_Seiyuu, int>
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var cr = session
-                .CreateCriteria(typeof(AniDB_Seiyuu))
-                .Add(Restrictions.Eq("SeiyuuID", id))
-                .UniqueResult<AniDB_Seiyuu>();
-            return cr;
+            return session.Query<AniDB_Seiyuu>()
+                .Where(a => a.SeiyuuID == id)
+                .Take(1)
+                .SingleOrDefault();
         });
     }
 
-    public AniDB_Seiyuu GetBySeiyuuID(ISession session, int id)
+    public AniDB_Seiyuu GetBySeiyuuID(ISessionWrapper session, int id)
     {
-        return Lock(() =>
-        {
-            var cr = session
-                .CreateCriteria(typeof(AniDB_Seiyuu))
-                .Add(Restrictions.Eq("SeiyuuID", id))
-                .UniqueResult<AniDB_Seiyuu>();
-            return cr;
-        });
+        return Lock(() => session.Query<AniDB_Seiyuu>()
+            .Where(a => a.SeiyuuID == id)
+            .Take(1)
+            .SingleOrDefault());
     }
 }

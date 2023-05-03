@@ -1,22 +1,21 @@
 ﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories;
 
 public class BaseRepository
 {
-    private static readonly SemaphoreSlim s_globalDBLock = new(1, 1);
+    private static readonly object s_lock = new();
 
     public static void Lock(Action action)
     {
         var useLock = Utils.SettingsProvider.GetSettings().Database.UseDatabaseLock;
         if (useLock)
         {
-            s_globalDBLock.Wait();
-            action.Invoke();
-            s_globalDBLock.Release();
+            lock (s_lock)
+            {
+                action.Invoke();
+            }
         }
         else
         {
@@ -29,9 +28,10 @@ public class BaseRepository
         var useLock = Utils.SettingsProvider.GetSettings().Database.UseDatabaseLock;
         if (useLock)
         {
-            s_globalDBLock.Wait();
-            action.Invoke(arg);
-            s_globalDBLock.Release();
+            lock (s_lock)
+            {
+                action.Invoke(arg);
+            }
         }
         else
         {
@@ -44,9 +44,10 @@ public class BaseRepository
         var useLock = Utils.SettingsProvider.GetSettings().Database.UseDatabaseLock;
         if (useLock)
         {
-            s_globalDBLock.Wait();
-            action.Invoke(arg, arg2);
-            s_globalDBLock.Release();
+            lock (s_lock)
+            {
+                action.Invoke(arg, arg2);
+            }
         }
         else
         {
@@ -59,9 +60,10 @@ public class BaseRepository
         var useLock = Utils.SettingsProvider.GetSettings().Database.UseDatabaseLock;
         if (useLock)
         {
-            s_globalDBLock.Wait();
-            action.Invoke(arg, arg2, arg3);
-            s_globalDBLock.Release();
+            lock (s_lock)
+            {
+                action.Invoke(arg, arg2, arg3);
+            }
         }
         else
         {
@@ -75,9 +77,10 @@ public class BaseRepository
         T result;
         if (useLock)
         {
-            s_globalDBLock.WaitAsync();
-            result = action();
-            s_globalDBLock.Release();
+            lock (s_lock)
+            {
+                result = action();
+            }
         }
         else
         {
@@ -93,9 +96,10 @@ public class BaseRepository
         T result;
         if (useLock)
         {
-            s_globalDBLock.WaitAsync();
-            result = action(arg);
-            s_globalDBLock.Release();
+            lock (s_lock)
+            {
+                result = action(arg);
+            }
         }
         else
         {
@@ -111,9 +115,10 @@ public class BaseRepository
         T result;
         if (useLock)
         {
-            s_globalDBLock.WaitAsync();
-            result = action(arg, arg2);
-            s_globalDBLock.Release();
+            lock (s_lock)
+            {
+                result = action(arg, arg2);
+            }
         }
         else
         {
@@ -129,31 +134,14 @@ public class BaseRepository
         T result;
         if (useLock)
         {
-            s_globalDBLock.WaitAsync();
-            result = action(arg, arg2, arg3);
-            s_globalDBLock.Release();
+            lock (s_lock)
+            {
+                result = action(arg, arg2, arg3);
+            }
         }
         else
         {
             result = action(arg, arg2, arg3);
-        }
-
-        return result;
-    }
-
-    public static async Task<T> LockAsync<T>(Func<Task<T>> action)
-    {
-        var useLock = Utils.SettingsProvider.GetSettings().Database.UseDatabaseLock;
-        T result;
-        if (useLock)
-        {
-            await s_globalDBLock.WaitAsync();
-            result = await action();
-            s_globalDBLock.Release();
-        }
-        else
-        {
-            result = await action();
         }
 
         return result;

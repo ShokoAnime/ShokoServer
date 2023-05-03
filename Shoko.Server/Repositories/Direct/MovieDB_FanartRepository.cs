@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
-using NHibernate.Criterion;
 using Shoko.Commons.Collections;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -18,19 +17,7 @@ public class MovieDB_FanartRepository : BaseDirectRepository<MovieDB_Fanart, int
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return GetByOnlineID(session, url);
-        });
-    }
-
-    public MovieDB_Fanart GetByOnlineID(ISession session, string url)
-    {
-        return Lock(() =>
-        {
-            var cr = session
-                .CreateCriteria(typeof(MovieDB_Fanart))
-                .Add(Restrictions.Eq("URL", url))
-                .List<MovieDB_Fanart>().FirstOrDefault();
-            return cr;
+            return session.Query<MovieDB_Fanart>().Where(a => a.URL == url).Take(1).SingleOrDefault();
         });
     }
 
@@ -39,20 +26,7 @@ public class MovieDB_FanartRepository : BaseDirectRepository<MovieDB_Fanart, int
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return GetByMovieID(session.Wrap(), id);
-        });
-    }
-
-    public List<MovieDB_Fanart> GetByMovieID(ISessionWrapper session, int id)
-    {
-        return Lock(() =>
-        {
-            var objs = session
-                .CreateCriteria(typeof(MovieDB_Fanart))
-                .Add(Restrictions.Eq("MovieId", id))
-                .List<MovieDB_Fanart>();
-
-            return new List<MovieDB_Fanart>(objs);
+            return session.Query<MovieDB_Fanart>().Where(a => a.MovieId == id).ToList();
         });
     }
 
@@ -99,12 +73,10 @@ public class MovieDB_FanartRepository : BaseDirectRepository<MovieDB_Fanart, int
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var objs = session
-                .CreateCriteria(typeof(MovieDB_Fanart))
-                .Add(Restrictions.Eq("ImageSize", Shoko.Models.Constants.MovieDBImageSize.Original))
-                .List<MovieDB_Fanart>();
-
-            return new List<MovieDB_Fanart>(objs);
+            return session
+                .Query<MovieDB_Fanart>()
+                .Where(a => a.ImageSize == Shoko.Models.Constants.MovieDBImageSize.Original)
+                .ToList();
         });
     }
 }

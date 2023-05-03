@@ -21,14 +21,11 @@ public class MovieDB_PosterRepository : BaseDirectRepository<MovieDB_Poster, int
 
     public MovieDB_Poster GetByOnlineID(ISession session, string url)
     {
-        return Lock(() =>
-        {
-            var cr = session
-                .CreateCriteria(typeof(MovieDB_Poster))
-                .Add(Restrictions.Eq("URL", url))
-                .List<MovieDB_Poster>().FirstOrDefault();
-            return cr;
-        });
+        var cr = session
+            .CreateCriteria(typeof(MovieDB_Poster))
+            .Add(Restrictions.Eq("URL", url))
+            .List<MovieDB_Poster>().FirstOrDefault();
+        return cr;
     }
 
     public List<MovieDB_Poster> GetByMovieID(int id)
@@ -42,15 +39,12 @@ public class MovieDB_PosterRepository : BaseDirectRepository<MovieDB_Poster, int
 
     public List<MovieDB_Poster> GetByMovieID(ISessionWrapper session, int id)
     {
-        return Lock(() =>
-        {
-            var objs = session
-                .CreateCriteria(typeof(MovieDB_Poster))
-                .Add(Restrictions.Eq("MovieId", id))
-                .List<MovieDB_Poster>();
+        var objs = session
+            .CreateCriteria(typeof(MovieDB_Poster))
+            .Add(Restrictions.Eq("MovieId", id))
+            .List<MovieDB_Poster>();
 
-            return new List<MovieDB_Poster>(objs);
-        });
+        return new List<MovieDB_Poster>(objs);
     }
 
     public List<MovieDB_Poster> GetAllOriginal()

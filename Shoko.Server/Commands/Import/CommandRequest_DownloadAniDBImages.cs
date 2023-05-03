@@ -126,6 +126,7 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
                 try
                 {
                     // If this has any issues, it will throw an exception, so the catch below will handle it.
+                    Logger.LogInformation("Image downloading to {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
                     var result = req.DownloadNow();
                     switch (result)
                     {

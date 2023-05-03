@@ -270,16 +270,16 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     // ignore
                 }
 
-                BaseRepository.Lock(() =>
+                BaseRepository.Lock(session, s =>
                 {
-                    using var transaction = session.BeginTransaction();
-                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+                    using var transaction = s.BeginTransaction();
+                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, this);
 
                     seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
                         .Select(a => a.GetAnimeSeries()));
-                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, v);
 
-                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(s, a));
                     transaction.Commit();
                 });
             }
@@ -294,11 +294,11 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     // ignore
                 }
 
-                BaseRepository.Lock(() =>
+                BaseRepository.Lock(session, s =>
                 {
-                    using var transaction = session.BeginTransaction();
-                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                    using var transaction = s.BeginTransaction();
+                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, this);
+                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(s, a));
                     transaction.Commit();
                 });
             }

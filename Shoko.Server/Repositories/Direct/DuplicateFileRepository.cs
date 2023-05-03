@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using NHibernate.Criterion;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
@@ -14,14 +13,9 @@ public class DuplicateFileRepository : BaseDirectRepository<DuplicateFile, int>
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var dfiles = session
-                .CreateCriteria(typeof(DuplicateFile))
-                .Add(Restrictions.Eq("FilePathFile1", filePath1))
-                .Add(Restrictions.Eq("FilePathFile2", filePath2))
-                .Add(Restrictions.Eq("ImportFolderIDFile1", folderID1))
-                .Add(Restrictions.Eq("ImportFolderIDFile2", folderID2))
-                .List<DuplicateFile>();
-            return new List<DuplicateFile>(dfiles);
+            return session.Query<DuplicateFile>()
+                .Where(a => a.FilePathFile1 == filePath1 && a.FilePathFile2 == filePath2 && a.ImportFolderIDFile1 == folderID1 &&
+                            a.ImportFolderIDFile2 == folderID2).ToList();
         });
     }
 
@@ -30,22 +24,10 @@ public class DuplicateFileRepository : BaseDirectRepository<DuplicateFile, int>
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var dfiles = session
-                .CreateCriteria(typeof(DuplicateFile))
-                .Add(
-                    Restrictions.Or(
-                        Restrictions.And(
-                            Restrictions.Eq("FilePathFile1", filePath),
-                            Restrictions.Eq("ImportFolderIDFile1", folderID)
-                        ),
-                        Restrictions.And(
-                            Restrictions.Eq("FilePathFile2", filePath),
-                            Restrictions.Eq("ImportFolderIDFile2", folderID)
-                        )
-                    )
-                )
-                .List<DuplicateFile>();
-            return dfiles.ToList();
+            return session.Query<DuplicateFile>()
+                .Where(a => a.FilePathFile1 == filePath && a.ImportFolderIDFile1 == folderID ||
+                            a.FilePathFile2 == filePath && a.ImportFolderIDFile2 == folderID)
+                .ToList();
         });
     }
 
@@ -54,11 +36,8 @@ public class DuplicateFileRepository : BaseDirectRepository<DuplicateFile, int>
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var dfiles = session
-                .CreateCriteria(typeof(DuplicateFile))
-                .Add(Restrictions.Eq("ImportFolderIDFile1", folderID))
-                .List<DuplicateFile>();
-            return new List<DuplicateFile>(dfiles);
+            return session.Query<DuplicateFile>()
+                .Where(a => a.ImportFolderIDFile1 == folderID).ToList();
         });
     }
 
@@ -67,11 +46,9 @@ public class DuplicateFileRepository : BaseDirectRepository<DuplicateFile, int>
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var dfiles = session
-                .CreateCriteria(typeof(DuplicateFile))
-                .Add(Restrictions.Eq("ImportFolderIDFile2", folderID))
-                .List<DuplicateFile>();
-            return new List<DuplicateFile>(dfiles);
+            return session.Query<DuplicateFile>()
+                .Where(a => a.ImportFolderIDFile2 == folderID)
+                .ToList();
         });
     }
 }

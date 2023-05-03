@@ -55,7 +55,7 @@ public static class ModelDatabase
         if (charSeiyuus.Count > 0)
         {
             // just use the first creator
-            return RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(session, charSeiyuus[0].SeiyuuID);
+            return RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(session.Wrap(), charSeiyuus[0].SeiyuuID);
         }
 
         return null;

@@ -16,20 +16,22 @@ public class MovieDb_MovieRepository : BaseDirectRepository<MovieDB_Movie, int>
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return GetByOnlineID(session.Wrap(), id);
+            return GetByOnlineIDUnsafe(session.Wrap(), id);
         });
     }
 
     public MovieDB_Movie GetByOnlineID(ISessionWrapper session, int id)
     {
-        return Lock(() =>
-        {
-            var cr = session
-                .CreateCriteria(typeof(MovieDB_Movie))
-                .Add(Restrictions.Eq("MovieId", id))
-                .UniqueResult<MovieDB_Movie>();
-            return cr;
-        });
+        return Lock(() => GetByOnlineIDUnsafe(session, id));
+    }
+
+    private static MovieDB_Movie GetByOnlineIDUnsafe(ISessionWrapper session, int id)
+    {
+        var cr = session
+            .CreateCriteria(typeof(MovieDB_Movie))
+            .Add(Restrictions.Eq("MovieId", id))
+            .UniqueResult<MovieDB_Movie>();
+        return cr;
     }
 
     public Dictionary<int, Tuple<CrossRef_AniDB_Other, MovieDB_Movie>> GetByAnimeIDs(ISessionWrapper session,

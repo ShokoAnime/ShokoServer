@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using NHibernate.Criterion;
+using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
@@ -12,12 +12,10 @@ public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode, int>
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var objs = session
-                .CreateCriteria(typeof(Trakt_Episode))
-                .Add(Restrictions.Eq("Trakt_ShowID", showID))
-                .List<Trakt_Episode>();
-
-            return new List<Trakt_Episode>(objs);
+            return session
+                .Query<Trakt_Episode>()
+                .Where(a => a.Trakt_ShowID == showID)
+                .ToList();
         });
     }
 
@@ -26,13 +24,10 @@ public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode, int>
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var objs = session
-                .CreateCriteria(typeof(Trakt_Episode))
-                .Add(Restrictions.Eq("Trakt_ShowID", showID))
-                .Add(Restrictions.Eq("Season", seasonNumber))
-                .List<Trakt_Episode>();
-
-            return new List<Trakt_Episode>(objs);
+            return session
+                .Query<Trakt_Episode>()
+                .Where(a => a.Trakt_ShowID == showID && a.Season == seasonNumber)
+                .ToList();
         });
     }
 
@@ -41,14 +36,11 @@ public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode, int>
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var obj = session
-                .CreateCriteria(typeof(Trakt_Episode))
-                .Add(Restrictions.Eq("Trakt_ShowID", showID))
-                .Add(Restrictions.Eq("Season", seasonNumber))
-                .Add(Restrictions.Eq("EpisodeNumber", epnumber))
-                .UniqueResult<Trakt_Episode>();
-
-            return obj;
+            return session
+                .Query<Trakt_Episode>()
+                .Where(a => a.Trakt_ShowID == showID && a.Season == seasonNumber && a.EpisodeNumber == epnumber)
+                .Take(1)
+                .SingleOrDefault();
         });
     }
 }

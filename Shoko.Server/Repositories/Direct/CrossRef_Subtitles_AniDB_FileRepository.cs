@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
-using NHibernate.Criterion;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
@@ -15,12 +14,10 @@ public class CrossRef_Subtitles_AniDB_FileRepository : BaseDirectRepository<Cros
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var files = session
-                .CreateCriteria(typeof(CrossRef_Subtitles_AniDB_File))
-                .Add(Restrictions.Eq("FileID", id))
-                .List<CrossRef_Subtitles_AniDB_File>();
-
-            return new List<CrossRef_Subtitles_AniDB_File>(files);
+            return session
+                .Query<CrossRef_Subtitles_AniDB_File>()
+                .Where(a => a.FileID == id)
+                .ToList();
         });
     }
 

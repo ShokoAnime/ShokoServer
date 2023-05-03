@@ -1,6 +1,4 @@
 ﻿using System.Linq;
-using NHibernate.Criterion;
-using Shoko.Commons.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
@@ -13,10 +11,9 @@ public class AniDB_AnimeUpdateRepository : BaseDirectRepository<AniDB_AnimeUpdat
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var cats = session
-                .CreateCriteria(typeof(AniDB_AnimeUpdate))
-                .Add(Restrictions.Eq("AnimeID", id))
-                .List<AniDB_AnimeUpdate>();
+            var cats = session.Query<AniDB_AnimeUpdate>()
+                .Where(a => a.AnimeID == id)
+                .OrderByDescending(a => a.UpdatedAt).ToList();
 
             var cat = cats.FirstOrDefault();
             cats.Remove(cat);

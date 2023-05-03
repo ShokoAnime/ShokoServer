@@ -1,24 +1,22 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using NHibernate;
-using NHibernate.Criterion;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct;
 
 public class AniDB_Character_SeiyuuRepository : BaseDirectRepository<AniDB_Character_Seiyuu, int>
 {
-    public AniDB_Character_Seiyuu GetByCharIDAndSeiyuuID(int animeid, int catid)
+    public AniDB_Character_Seiyuu GetByCharIDAndSeiyuuID(int charID, int seiyuuID)
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var cr = session
-                .CreateCriteria(typeof(AniDB_Character_Seiyuu))
-                .Add(Restrictions.Eq("CharID", animeid))
-                .Add(Restrictions.Eq("SeiyuuID", catid))
-                .UniqueResult<AniDB_Character_Seiyuu>();
-            return cr;
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            return session.Query<AniDB_Character_Seiyuu>()
+                .Where(a => a.CharID == charID && a.SeiyuuID == seiyuuID)
+                .SingleOrDefault();
         });
     }
 
@@ -26,22 +24,21 @@ public class AniDB_Character_SeiyuuRepository : BaseDirectRepository<AniDB_Chara
     {
         return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return GetByCharID(session, id);
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            return GetByCharIDUnsafe(session.Wrap(), id);
         });
     }
 
     public List<AniDB_Character_Seiyuu> GetByCharID(ISession session, int id)
     {
-        return Lock(() =>
-        {
-            var objs = session
-                .CreateCriteria(typeof(AniDB_Character_Seiyuu))
-                .Add(Restrictions.Eq("CharID", id))
-                .List<AniDB_Character_Seiyuu>();
+        return Lock(() => GetByCharIDUnsafe(session.Wrap(), id));
+    }
 
-            return new List<AniDB_Character_Seiyuu>(objs);
-        });
+    private static List<AniDB_Character_Seiyuu> GetByCharIDUnsafe(ISessionWrapper session, int id)
+    {
+        return session.Query<AniDB_Character_Seiyuu>()
+            .Where(a => a.CharID == id)
+            .ToList();
     }
 
     public List<AniDB_Character_Seiyuu> GetBySeiyuuID(int id)
@@ -49,12 +46,9 @@ public class AniDB_Character_SeiyuuRepository : BaseDirectRepository<AniDB_Chara
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var objs = session
-                .CreateCriteria(typeof(AniDB_Character_Seiyuu))
-                .Add(Restrictions.Eq("SeiyuuID", id))
-                .List<AniDB_Character_Seiyuu>();
-
-            return new List<AniDB_Character_Seiyuu>(objs);
+            return session.Query<AniDB_Character_Seiyuu>()
+                .Where(a => a.SeiyuuID == id)
+                .ToList();
         });
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using NHibernate;
-using NHibernate.Criterion;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
@@ -13,12 +13,10 @@ public class Trakt_SeasonRepository : BaseDirectRepository<Trakt_Season, int>
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var objs = session
-                .CreateCriteria(typeof(Trakt_Season))
-                .Add(Restrictions.Eq("Trakt_ShowID", id))
-                .List<Trakt_Season>();
-
-            return new List<Trakt_Season>(objs);
+            return session
+                .Query<Trakt_Season>()
+                .Where(a => a.Trakt_ShowID == id)
+                .ToList();
         });
     }
 
@@ -27,21 +25,20 @@ public class Trakt_SeasonRepository : BaseDirectRepository<Trakt_Season, int>
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return GetByShowIDAndSeason(session, id, season);
+            return GetByShowIDAndSeasonUnsafe(session, id, season);
         });
     }
 
     public Trakt_Season GetByShowIDAndSeason(ISession session, int id, int season)
     {
-        return Lock(() =>
-        {
-            var obj = session
-                .CreateCriteria(typeof(Trakt_Season))
-                .Add(Restrictions.Eq("Trakt_ShowID", id))
-                .Add(Restrictions.Eq("Season", season))
-                .UniqueResult<Trakt_Season>();
+        return Lock(() => GetByShowIDAndSeasonUnsafe(session, id, season));
+    }
 
-            return obj;
-        });
+    private static Trakt_Season GetByShowIDAndSeasonUnsafe(ISession session, int id, int season)
+    {
+        return session
+            .Query<Trakt_Season>()
+            .Where(a => a.Trakt_ShowID == id && a.Season == season)
+            .Take(1).SingleOrDefault();
     }
 }

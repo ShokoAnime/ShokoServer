@@ -17,11 +17,9 @@ public class CrossRef_AniDB_OtherRepository : BaseDirectRepository<CrossRef_AniD
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var cr = session
-                .CreateCriteria(typeof(CrossRef_AniDB_Other))
-                .Add(Restrictions.Eq("AnimeID", animeID))
-                .Add(Restrictions.Eq("CrossRefType", (int)xrefType))
-                .UniqueResult<CrossRef_AniDB_Other>();
+            var cr = session.Query<CrossRef_AniDB_Other>()
+                .Where(a => a.AnimeID == animeID && a.CrossRefType == (int)xrefType)
+                .SingleOrDefault();
             return cr;
         });
     }

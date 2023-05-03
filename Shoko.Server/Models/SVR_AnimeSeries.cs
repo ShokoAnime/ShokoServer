@@ -373,14 +373,6 @@ public class SVR_AnimeSeries : AnimeSeries
 
     #region Trakt
 
-    public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2()
-    {
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-        {
-            return GetCrossRefTraktV2(session);
-        }
-    }
-
     public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2(ISession session)
     {
         return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, AniDB_ID);
@@ -388,10 +380,8 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public List<Trakt_Show> GetTraktShow()
     {
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-        {
-            return GetTraktShow(session);
-        }
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        return GetTraktShow(session);
     }
 
     public List<Trakt_Show> GetTraktShow(ISession session)

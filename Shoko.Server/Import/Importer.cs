@@ -915,199 +915,194 @@ public static class Importer
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         Logger.Info("Remove Missing Files: Start");
         var seriesToUpdate = new HashSet<SVR_AnimeSeries>();
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
+
+        // remove missing files in valid import folders
+        var filesAll = RepoFactory.VideoLocalPlace.GetAll()
+            .Where(a => a.ImportFolder != null)
+            .GroupBy(a => a.ImportFolder)
+            .ToDictionary(a => a.Key, a => a.ToList());
+        foreach (var folder in filesAll.Keys)
         {
-            // remove missing files in valid import folders
-            var filesAll = RepoFactory.VideoLocalPlace.GetAll()
-                .Where(a => a.ImportFolder != null)
-                .GroupBy(a => a.ImportFolder)
-                .ToDictionary(a => a.Key, a => a.ToList());
-            foreach (var folder in filesAll.Keys)
+            foreach (var vl in filesAll[folder])
             {
-                foreach (var vl in filesAll[folder])
-                {
-                    if (File.Exists(vl.FullServerPath))
-                    {
-                        continue;
-                    }
-
-                    // delete video local record
-                    Logger.Info("Removing Missing File: {0}", vl.VideoLocalID);
-                    vl.RemoveRecordWithOpenTransaction(session, seriesToUpdate);
-                }
-            }
-
-            var videoLocalsAll = RepoFactory.VideoLocal.GetAll().ToList();
-            // remove empty videolocals
-            BaseRepository.Lock(session, videoLocalsAll, (s, vls) =>
-            {
-                using var transaction = s.BeginTransaction();
-                foreach (var remove in vls.Where(a => a.IsEmpty()).ToList())
-                {
-                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, remove);
-                }
-
-                transaction.Commit();
-            });
-
-            // Remove duplicate videolocals
-            var locals = videoLocalsAll
-                .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
-                .GroupBy(a => a.Hash)
-                .ToDictionary(g => g.Key, g => g.ToList());
-            var toRemove = new List<SVR_VideoLocal>();
-            var comparer = new VideoLocalComparer();
-
-            foreach (var hash in locals.Keys)
-            {
-                var values = locals[hash];
-                values.Sort(comparer);
-                var to = values.First();
-                var froms = values.Except(to).ToList();
-                foreach (var places in froms.Select(from => from.Places).Where(places => places != null && places.Count != 0))
-                {
-                    BaseRepository.Lock(session, places, (s, ps) =>
-                    {
-                        using var transaction = s.BeginTransaction();
-                        foreach (var place in ps)
-                        {
-                            place.VideoLocalID = to.VideoLocalID;
-                            RepoFactory.VideoLocalPlace.SaveWithOpenTransaction(s, place);
-                        }
-
-                        transaction.Commit();
-                    });
-                }
-
-                toRemove.AddRange(froms);
-            }
-
-            BaseRepository.Lock(session, toRemove, (s, ps) =>
-            {
-                using var transaction = s.BeginTransaction();
-                foreach (var remove in ps)
-                {
-                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, remove);
-                }
-
-                transaction.Commit();
-            });
-
-            // Remove files in invalid import folders
-            foreach (var v in videoLocalsAll)
-            {
-                var places = v.Places;
-                if (v.Places?.Count > 0)
-                {
-                    BaseRepository.Lock(session, places, (s, ps) =>
-                    {
-                        using var transaction = s.BeginTransaction();
-                        foreach (var place in ps.Where(place => string.IsNullOrWhiteSpace(place?.FullServerPath)))
-                        {
-                            Logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
-                            seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
-                                .DistinctBy(a => a.AnimeSeriesID));
-                            RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
-                        }
-
-                        transaction.Commit();
-                    });
-                }
-
-                // Remove duplicate places
-                places = v.Places;
-                if (places?.Count == 1)
+                if (File.Exists(vl.FullServerPath))
                 {
                     continue;
                 }
 
-                if (places?.Count > 0)
-                {
-                    places = places.DistinctBy(a => a.FullServerPath).ToList();
-                    places = v.Places?.Except(places).ToList();
-                    foreach (var place in places)
-                    {
-                        BaseRepository.Lock(session, place, (s, p) =>
-                        {
-                            using var transaction = s.BeginTransaction();
-                            RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, p);
-                            transaction.Commit();
-                        });
-                    }
-                }
-
-                if (v.Places?.Count > 0) continue;
-
                 // delete video local record
-                Logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
-                seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
-                    .DistinctBy(a => a.AnimeSeriesID));
+                Logger.Info("Removing Missing File: {0}", vl.VideoLocalID);
+                vl.RemoveRecordWithOpenTransaction(session, seriesToUpdate);
+            }
+        }
 
-                if (removeMyList)
-                {
-                    if (RepoFactory.AniDB_File.GetByHash(v.Hash) == null)
-                    {
-                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
-                        foreach (var xref in xrefs)
-                        {
-                            var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                            if (ep == null)
-                            {
-                                continue;
-                            }
+        var videoLocalsAll = RepoFactory.VideoLocal.GetAll().ToList();
+        // remove empty videolocals
+        BaseRepository.Lock(session, videoLocalsAll, (s, vls) =>
+        {
+            using var transaction = s.BeginTransaction();
+            RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, vls.Where(a => a.IsEmpty()).ToList());
+            transaction.Commit();
+        });
 
-                            var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(c =>
-                            {
-                                c.AnimeID = xref.AnimeID;
-                                c.EpisodeType = ep.GetEpisodeTypeEnum();
-                                c.EpisodeNumber = ep.EpisodeNumber;
-                            });
-                            cmdDel.Save();
-                        }
-                    }
-                    else
-                    {
-                        var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
-                            c =>
-                            {
-                                c.Hash = v.Hash;
-                                c.FileSize = v.FileSize;
-                            }
-                        );
-                        cmdDel.Save();
-                    }
-                }
+        // Remove duplicate videolocals
+        var locals = videoLocalsAll
+            .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
+            .GroupBy(a => a.Hash)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        var toRemove = new List<SVR_VideoLocal>();
+        var comparer = new VideoLocalComparer();
 
-                BaseRepository.Lock(session, v, (s, vl) =>
+        foreach (var hash in locals.Keys)
+        {
+            var values = locals[hash];
+            values.Sort(comparer);
+            var to = values.First();
+            var froms = values.Except(to).ToList();
+            foreach (var places in froms.Select(from => from.Places).Where(places => places != null && places.Count != 0))
+            {
+                BaseRepository.Lock(session, places, (s, ps) =>
                 {
                     using var transaction = s.BeginTransaction();
-                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, vl);
+                    foreach (var place in ps)
+                    {
+                        place.VideoLocalID = to.VideoLocalID;
+                        RepoFactory.VideoLocalPlace.SaveWithOpenTransaction(s, place);
+                    }
+
                     transaction.Commit();
                 });
             }
 
-            // Clean up failed imports
-            BaseRepository.Lock(session, s =>
+            toRemove.AddRange(froms);
+        }
+
+        BaseRepository.Lock(session, toRemove, (s, ps) =>
+        {
+            using var transaction = s.BeginTransaction();
+            foreach (var remove in ps)
+            {
+                RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, remove);
+            }
+
+            transaction.Commit();
+        });
+
+        // Remove files in invalid import folders
+        foreach (var v in videoLocalsAll)
+        {
+            var places = v.Places;
+            if (v.Places?.Count > 0)
+            {
+                BaseRepository.Lock(session, places, (s, ps) =>
+                {
+                    using var transaction = s.BeginTransaction();
+                    foreach (var place in ps.Where(place => string.IsNullOrWhiteSpace(place?.FullServerPath)))
+                    {
+                        Logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
+                        seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
+                            .DistinctBy(a => a.AnimeSeriesID));
+                        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
+                    }
+
+                    transaction.Commit();
+                });
+            }
+
+            // Remove duplicate places
+            places = v.Places;
+            if (places?.Count == 1)
+            {
+                continue;
+            }
+
+            if (places?.Count > 0)
+            {
+                places = places.DistinctBy(a => a.FullServerPath).ToList();
+                places = v.Places?.Except(places).ToList();
+                foreach (var place in places)
+                {
+                    BaseRepository.Lock(session, place, (s, p) =>
+                    {
+                        using var transaction = s.BeginTransaction();
+                        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, p);
+                        transaction.Commit();
+                    });
+                }
+            }
+
+            if (v.Places?.Count > 0) continue;
+
+            // delete video local record
+            Logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
+            seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
+                .DistinctBy(a => a.AnimeSeriesID));
+
+            if (removeMyList)
+            {
+                if (RepoFactory.AniDB_File.GetByHash(v.Hash) == null)
+                {
+                    var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
+                    foreach (var xref in xrefs)
+                    {
+                        var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                        if (ep == null)
+                        {
+                            continue;
+                        }
+
+                        var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(c =>
+                        {
+                            c.AnimeID = xref.AnimeID;
+                            c.EpisodeType = ep.GetEpisodeTypeEnum();
+                            c.EpisodeNumber = ep.EpisodeNumber;
+                        });
+                        cmdDel.Save();
+                    }
+                }
+                else
+                {
+                    var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+                        c =>
+                        {
+                            c.Hash = v.Hash;
+                            c.FileSize = v.FileSize;
+                        }
+                    );
+                    cmdDel.Save();
+                }
+            }
+
+            BaseRepository.Lock(session, v, (s, vl) =>
             {
                 using var transaction = s.BeginTransaction();
-                var list = RepoFactory.VideoLocal.GetAll()
-                    .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
-                    .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
-                                a.GetEpisode() == null).ToArray();
-                foreach (var xref in list)
-                {
-                    // We don't need to update anything since they don't exist
-                    RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(s, xref);
-                }
-
+                RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, vl);
                 transaction.Commit();
             });
+        }
 
-            // update everything we modified
-            foreach (var ser in seriesToUpdate)
+        // Clean up failed imports
+        var list = RepoFactory.VideoLocal.GetAll()
+            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
+            .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
+                        a.GetEpisode() == null).ToArray();
+        BaseRepository.Lock(session, s =>
+        {
+            using var transaction = s.BeginTransaction();
+            foreach (var xref in list)
             {
-                ser.QueueUpdateStats();
+                // We don't need to update anything since they don't exist
+                RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(s, xref);
             }
+
+            transaction.Commit();
+        });
+
+        // update everything we modified
+        foreach (var ser in seriesToUpdate)
+        {
+            ser.QueueUpdateStats();
         }
 
         Logger.Info("Remove Missing Files: Finished");

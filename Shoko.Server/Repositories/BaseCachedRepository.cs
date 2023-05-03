@@ -8,7 +8,6 @@ using Shoko.Commons.Properties;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories;
@@ -107,10 +106,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         }
 
         BeginDeleteCallback?.Invoke(cr);
-        lock (GlobalDBLock)
-        {
-            DeleteFromDatabaseUnsafe(cr);
-        }
+        Lock(() => DeleteFromDatabaseUnsafe(cr));
 
         DeleteFromCache(cr);
         EndDeleteCallback?.Invoke(cr);
@@ -138,10 +134,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             BeginDeleteCallback?.Invoke(cr);
         }
 
-        lock (GlobalDBLock)
-        {
-            DeleteFromDatabaseUnsafe(objs);
-        }
+        Lock(() => DeleteFromDatabaseUnsafe(objs));
 
         WriteLock(
             () =>
@@ -160,12 +153,6 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     }
 
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
-    public void DeleteWithOpenTransaction(ISession session, S id)
-    {
-        DeleteWithOpenTransaction(session, GetByID(id));
-    }
-
-    //This function do not run the BeginDeleteCallback and the EndDeleteCallback
     public virtual void DeleteWithOpenTransaction(ISession session, T cr)
     {
         if (cr == null)
@@ -173,11 +160,8 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             return;
         }
 
-        lock (GlobalDBLock)
-        {
-            DeleteWithOpenTransactionCallback?.Invoke(session, cr);
-            session.Delete(cr);
-        }
+        DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+        Lock(() => session.Delete(cr));
 
         WriteLock(() => DeleteFromCacheUnsafe(cr));
     }
@@ -190,37 +174,28 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             return;
         }
 
-        lock (GlobalDBLock)
+        foreach (var cr in objs)
         {
-            foreach (var cr in objs)
-            {
-                DeleteWithOpenTransactionCallback?.Invoke(session, cr);
-                session.Delete(cr);
-            }
+            DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+            Lock(() => session.Delete(cr));
         }
 
-        WriteLock(
-            () =>
-            {
-                foreach (var cr in objs)
-                {
-                    DeleteFromCacheUnsafe(cr);
-                }
-            }
-        );
+        WriteLock(() => objs.ForEach(DeleteFromCacheUnsafe));
     }
 
     public virtual void Save(T obj)
     {
         BeginSaveCallback?.Invoke(obj);
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
-            SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
             session.SaveOrUpdate(obj);
             transaction.Commit();
-        }
+        });
+
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
 
         WriteLock(() => UpdateCacheUnsafe(obj));
 
@@ -239,17 +214,23 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             BeginSaveCallback?.Invoke(obj);
         }
 
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
             foreach (var obj in objs)
             {
                 session.SaveOrUpdate(obj);
+            }
+            transaction.Commit();
+        });
+
+        using (var session = DatabaseFactory.SessionFactory.OpenSession())
+        {
+            foreach (var obj in objs)
+            {
                 SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
             }
-
-            transaction.Commit();
         }
 
         WriteLock(
@@ -271,7 +252,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
     public virtual void SaveWithOpenTransaction(ISessionWrapper session, T obj)
     {
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             if (Equals(SelectKey(obj), default(S)))
             {
@@ -281,7 +262,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             {
                 session.Update(obj);
             }
-        }
+        });
 
         SaveWithOpenTransactionCallback?.Invoke(session, obj);
         WriteLock(() => UpdateCacheUnsafe(obj));
@@ -290,10 +271,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
     public virtual void SaveWithOpenTransaction(ISession session, T obj)
     {
-        lock (GlobalDBLock)
-        {
-            session.SaveOrUpdate(obj);
-        }
+        Lock(() => session.SaveOrUpdate(obj));
 
         SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
 
@@ -308,13 +286,13 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             return;
         }
 
-        lock (GlobalDBLock)
+        Lock(() =>
         {
             foreach (var obj in objs)
             {
                 session.SaveOrUpdate(obj);
             }
-        }
+        });
 
         foreach (var obj in objs)
         {

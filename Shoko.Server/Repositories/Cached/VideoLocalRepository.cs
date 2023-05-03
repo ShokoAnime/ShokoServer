@@ -8,13 +8,11 @@ using Newtonsoft.Json;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
-using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
-using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
@@ -35,10 +33,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         DeleteWithOpenTransactionCallback = (ses, obj) =>
         {
             RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(ses, obj.Places.ToList());
-            RepoFactory.VideoLocalUser.DeleteWithOpenTransaction(
-                ses,
-                RepoFactory.VideoLocalUser.GetByVideoLocalID(obj.VideoLocalID)
-            );
+            RepoFactory.VideoLocalUser.DeleteWithOpenTransaction(ses, RepoFactory.VideoLocalUser.GetByVideoLocalID(obj.VideoLocalID));
         };
     }
 

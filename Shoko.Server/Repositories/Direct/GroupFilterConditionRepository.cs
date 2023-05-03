@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using NHibernate.Criterion;
+using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
@@ -12,12 +12,10 @@ public class GroupFilterConditionRepository : BaseDirectRepository<GroupFilterCo
         return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var gfcs = session
-                .CreateCriteria(typeof(GroupFilterCondition))
-                .Add(Restrictions.Eq("GroupFilterID", gfid))
-                .List<GroupFilterCondition>();
-
-            return new List<GroupFilterCondition>(gfcs);
+            return session
+                .Query<GroupFilterCondition>()
+                .Where(a => a.GroupFilterID == gfid)
+                .ToList();
         });
     }
 }

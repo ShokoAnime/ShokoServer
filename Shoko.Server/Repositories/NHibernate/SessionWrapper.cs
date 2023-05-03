@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Diagnostics;
+using System.Linq;
 using NHibernate;
 
 namespace Shoko.Server.Repositories.NHibernate;
@@ -38,6 +39,11 @@ internal class SessionWrapper : ISessionWrapper
     public IQueryOver<T, T> QueryOver<T>() where T : class
     {
         return _session.QueryOver<T>();
+    }
+
+    public IQueryable<T> Query<T>() where T : class
+    {
+        return _session.Query<T>();
     }
 
     public TObj Get<TObj>(object id)
