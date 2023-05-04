@@ -52,7 +52,11 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         try
         {
             var (existing, vlocal, vlocalplace, folder) = GetVideoLocal();
-            if (vlocal == null || vlocalplace == null) return;
+            if (vlocal == null || vlocalplace == null)
+            {
+                Logger.LogTrace("Could not get or create VideoLocal. exiting");
+                return;
+            }
             var filename = vlocalplace.FileName;
 
             Logger.LogTrace("No existing hash in VideoLocal (or forced), checking XRefs");
@@ -67,7 +71,11 @@ public class CommandRequest_HashFile : CommandRequestImplementation
                     FillHashesAgainstVideoLocalRepo(vlocal);
             }
 
-            if (!FillMissingHashes(vlocal, ForceHash) && existing) return;
+            if (!FillMissingHashes(vlocal, ForceHash) && existing)
+            {
+                Logger.LogTrace("Hashes were not necessary for file, so exiting: {File}, Hash: {Hash}", FileName, vlocal.Hash);
+                return;
+            }
             // We should have a hash by now
             // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
             var tlocal = RepoFactory.VideoLocal.GetByHashAndSize(vlocal.Hash, vlocal.FileSize);
@@ -87,6 +95,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
 
             if (!duplicate.Value || changed)
             {
+                Logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FileName, vlocal.Hash);
                 RepoFactory.VideoLocal.Save(vlocal, true);
             }
 
