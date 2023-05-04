@@ -67,7 +67,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
                     FillHashesAgainstVideoLocalRepo(vlocal);
             }
 
-            if (existing && !FillMissingHashes(vlocal, ForceHash)) return;
+            if (!FillMissingHashes(vlocal, ForceHash) && existing) return;
             // We should have a hash by now
             // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
             var tlocal = RepoFactory.VideoLocal.GetByHashAndSize(vlocal.Hash, vlocal.FileSize);
