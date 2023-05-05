@@ -491,6 +491,8 @@ public class CommandRequest_HashFile : CommandRequestImplementation
     private bool? ProcessDuplicates(SVR_VideoLocal vlocal, SVR_VideoLocal_Place vlocalplace)
     {
         if (vlocal == null) return null;
+        // If the VideoLocalID == 0, then it's a new file that wasn't merged after hashing, so it can't be a dupe
+        if (vlocal.VideoLocalID == 0) return false;
 
         var preps = vlocal.Places.Where(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath)).ToList();
         foreach (var prep in preps)

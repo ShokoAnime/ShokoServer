@@ -46,7 +46,7 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
     public override void RegenerateDb()
     {
         ServerState.Instance.ServerStartingStatus = string.Format(
-            Resources.Database_Validating, nameof(VideoLocal_Place), "Removing orphaned VideoLocal_Places");
+            Resources.Database_Validating, nameof(VideoLocal_Place), " Removing orphaned VideoLocal_Places");
         var count = 0;
         int max;
 
