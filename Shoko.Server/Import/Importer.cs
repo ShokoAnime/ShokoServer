@@ -1098,6 +1098,20 @@ public static class Importer
 
             transaction.Commit();
         });
+        
+        // clean up orphaned video local places
+        var placesToRemove = RepoFactory.VideoLocalPlace.GetAll().Where(a => a.VideoLocal == null).ToList();
+        BaseRepository.Lock(session, s =>
+        {
+            using var transaction = s.BeginTransaction();
+            foreach (var place in placesToRemove)
+            {
+                // We don't need to update anything since they don't exist
+                RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
+            }
+
+            transaction.Commit();
+        });
 
         // update everything we modified
         foreach (var ser in seriesToUpdate)
