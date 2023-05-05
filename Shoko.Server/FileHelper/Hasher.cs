@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -7,6 +8,7 @@ using System.Text;
 using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Utilities;
+using Exception = System.Exception;
 
 namespace Shoko.Server.FileHelper;
 
@@ -116,47 +118,60 @@ public class Hasher
 
     #endregion
 
-    public static Hashes CalculateHashes(string strPath, OnHashProgress onHashProgress)
+    public static string GetVersion()
     {
-        return CalculateHashes(strPath, onHashProgress, true, true, true);
+        try
+        {
+            var fullHasherexepath = Assembly.GetEntryAssembly().Location;
+            var fi = new FileInfo(fullHasherexepath);
+            fullHasherexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86", "librhash.dll");
+
+            if (!File.Exists(fullHasherexepath)) return null;
+
+            var fvi = FileVersionInfo.GetVersionInfo(fullHasherexepath);
+            return $"RHash {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({fullHasherexepath})";
+        }
+        catch
+        {
+            return null;
+        }
     }
 
-    public static Hashes CalculateHashes(string strPath, OnHashProgress onHashProgress, bool getCRC32, bool getMD5,
-        bool getSHA1)
+    public static Hashes CalculateHashes(string strPath, OnHashProgress onHashProgress, bool getCRC32, bool getMD5, bool getSHA1)
     {
         var rhash = new Hashes();
-        if (Finalise.ModuleHandle != IntPtr.Zero || Utils.IsLinux)
+        if (Finalise.ModuleHandle == IntPtr.Zero && !Utils.IsLinux)
+            return CalculateHashes_here(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
+
+        var hash = new byte[56];
+        var gotHash = false;
+        var rval = -1;
+        try
         {
-            var hash = new byte[56];
-            var gotHash = false;
-            var rval = -1;
-            try
+            var filename = strPath;
+            if (!Utils.IsLinux)
             {
-                var filename = strPath;
-                if (!Utils.IsLinux)
-                {
-                    filename = strPath.StartsWith(@"\\")
-                        ? strPath
-                        : @"\\?\" + strPath; //only prepend non-UNC paths (or paths that have this already)
-                }
-
-                var (e2Dk, crc32, md5, sha1) = NativeHasher.GetHash(filename, getCRC32, getMD5, getSHA1);
-                rhash.ED2K = e2Dk;
-                if (!string.IsNullOrEmpty(rhash.ED2K)) gotHash = true;
-                if (getCRC32) rhash.CRC32 = crc32;
-                if (getMD5) rhash.MD5 = md5;
-                if (getSHA1) rhash.SHA1 = sha1;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
+                filename = strPath.StartsWith(@"\\")
+                    ? strPath
+                    : @"\\?\" + strPath; //only prepend non-UNC paths (or paths that have this already)
             }
 
-            if (gotHash) return rhash;
-
-            logger.Error("Error using DLL to get hash (Functon returned {0}), trying C# code instead: {0}", rval,
-                strPath);
+            var (e2Dk, crc32, md5, sha1) = NativeHasher.GetHash(filename, getCRC32, getMD5, getSHA1);
+            rhash.ED2K = e2Dk;
+            if (!string.IsNullOrEmpty(rhash.ED2K)) gotHash = true;
+            if (getCRC32) rhash.CRC32 = crc32;
+            if (getMD5) rhash.MD5 = md5;
+            if (getSHA1) rhash.SHA1 = sha1;
         }
+        catch (Exception ex)
+        {
+            logger.Error(ex, ex.ToString());
+        }
+
+        if (gotHash) return rhash;
+
+        logger.Error("Error using DLL to get hash (Functon returned {0}), trying C# code instead: {0}", rval,
+            strPath);
 
         return CalculateHashes_here(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
     }

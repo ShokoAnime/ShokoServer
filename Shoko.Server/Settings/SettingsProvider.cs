@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -10,8 +9,11 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Utils;
+using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.FileHelper;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
+using Shoko.Server.Utilities.MediaInfoLib;
 using Constants = Shoko.Server.Server.Constants;
 using Formatting = Newtonsoft.Json.Formatting;
 using Legacy = Shoko.Server.Settings.Migration.ServerSettings_Legacy;
@@ -398,10 +400,22 @@ public class SettingsProvider : ISettingsProvider
         var a = Assembly.GetEntryAssembly();
         try
         {
-            if (Utils.GetApplicationVersion(a) != null)
-            {
-                _logger.LogInformation("Shoko Server Version: v{ApplicationVersion}", Utils.GetApplicationVersion(a));
-            }
+            var serverVersion = new ComponentVersion { Version = Utils.GetApplicationVersion() };
+            var extraVersionDict = Utils.GetApplicationExtraVersion();
+            if (extraVersionDict.TryGetValue("tag", out var tag))
+                serverVersion.Tag = tag;
+            if (extraVersionDict.TryGetValue("commit", out var commit))
+                serverVersion.Commit = commit;
+            if (extraVersionDict.TryGetValue("channel", out var rawChannel))
+                if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var channel))
+                    serverVersion.ReleaseChannel = channel;
+                else
+                    serverVersion.ReleaseChannel = ReleaseChannel.Debug;
+            if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
+                serverVersion.ReleaseDate = releaseDate;
+
+            _logger.LogInformation("Shoko Server Version: v{ApplicationVersion}, Channel: {Channel}, Tag: {Tag}, Commit: {Commit}", serverVersion.Version,
+                serverVersion.ReleaseChannel, serverVersion.Tag, serverVersion.Commit);
         }
         catch (Exception ex)
         {
@@ -426,33 +440,14 @@ public class SettingsProvider : ISettingsProvider
         {
             var mediaInfoVersion = "**** MediaInfo Not found *****";
 
-            var mediaInfoPath = Assembly.GetEntryAssembly().Location;
-            var fi = new FileInfo(mediaInfoPath);
-            mediaInfoPath = Path.Combine(fi.Directory.FullName, "MediaInfo", "MediaInfo.exe");
-
-            if (File.Exists(mediaInfoPath))
-            {
-                var fvi = FileVersionInfo.GetVersionInfo(mediaInfoPath);
-                mediaInfoVersion =
-                    $"MediaInfo {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({mediaInfoPath})";
-            }
-
+            var tempVersion = MediaInfo.GetVersion();
+            if (tempVersion != null) mediaInfoVersion = $"MediaInfo: {tempVersion}";
             _logger.LogInformation(mediaInfoVersion);
 
             var hasherInfoVersion = "**** Hasher - DLL NOT found *****";
 
-            var fullHasherexepath = Assembly.GetEntryAssembly().Location;
-            fi = new FileInfo(fullHasherexepath);
-            fullHasherexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
-                "librhash.dll");
-
-            if (File.Exists(fullHasherexepath))
-            {
-                var fvi = FileVersionInfo.GetVersionInfo(fullHasherexepath);
-                hasherInfoVersion =
-                    $"RHash {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({fullHasherexepath})";
-            }
-
+            tempVersion = Hasher.GetVersion();
+            if (tempVersion != null) hasherInfoVersion = $"RHash: {tempVersion}";
             _logger.LogInformation(hasherInfoVersion);
         }
         catch (Exception ex)

@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -170,5 +171,40 @@ public static class MediaInfo
         }
 
         return m;
+    }
+
+    public static string GetVersion()
+    {
+        try
+        {
+            var exe = GetMediaInfoPathForOS();
+            var pProcess = new Process
+            {
+                StartInfo =
+                {
+                    FileName = exe,
+                    ArgumentList = { "--version" },
+                    UseShellExecute = false,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                }
+            };
+            pProcess.Start();
+            var output = pProcess.StandardOutput.ReadToEnd().Trim();
+            //Wait for process to finish
+            pProcess.WaitForExit();
+
+            var index = output.IndexOf("v", StringComparison.InvariantCultureIgnoreCase);
+            var version = index > 0 ? output[index..] : output.Split('\n').Skip(1).FirstOrDefault();
+            return version;
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "Unable to get MediaInfo verion");
+        }
+
+        return null;
     }
 }
