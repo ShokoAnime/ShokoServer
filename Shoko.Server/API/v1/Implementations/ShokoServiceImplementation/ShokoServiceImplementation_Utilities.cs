@@ -1319,8 +1319,8 @@ public partial class ShokoServiceImplementation
         string resolution,
         string videoSource, int videoBitDepth, int userID)
     {
-        relGroupName = WebUtility.UrlDecode(relGroupName);
-        videoSource = WebUtility.UrlDecode(videoSource);
+        relGroupName = Uri.UnescapeDataString(relGroupName.Replace("+", " "));
+        videoSource = Uri.UnescapeDataString(videoSource.Replace("+", " "));
 
         var vids = new List<CL_VideoDetailed>();
 
@@ -1380,6 +1380,7 @@ public partial class ShokoServiceImplementation
     [HttpGet("File/ByGroup/{animeID}/{relGroupName}/{userID}")]
     public List<CL_VideoDetailed> GetFilesByGroup(int animeID, string relGroupName, int userID)
     {
+        var grpName = Uri.UnescapeDataString(relGroupName.Replace("+", " "));
         var vids = new List<CL_VideoDetailed>();
 
         try
@@ -1396,12 +1397,12 @@ public partial class ShokoServiceImplementation
                 if (aniFile != null)
                 {
                     var groupMatches =
-                        relGroupName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupName) ||
-                        relGroupName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupNameShort);
+                        grpName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupName) ||
+                        grpName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupNameShort);
                     if (aniFile.Anime_GroupName.EqualsInvariantIgnoreCase("unknown") ||
                         aniFile.Anime_GroupNameShort.EqualsInvariantIgnoreCase("unknown"))
-                        groupMatches = relGroupName.EqualsInvariantIgnoreCase(Constants.NO_GROUP_INFO) ||
-                                       relGroupName.EqualsInvariantIgnoreCase("unknown");
+                        groupMatches = grpName.EqualsInvariantIgnoreCase(Constants.NO_GROUP_INFO) ||
+                                       grpName.EqualsInvariantIgnoreCase("unknown");
                     // match based on group / video source / video res
                     if (groupMatches)
                     {
@@ -1410,8 +1411,8 @@ public partial class ShokoServiceImplementation
                 }
                 else
                 {
-                    if (relGroupName.EqualsInvariantIgnoreCase(Constants.NO_GROUP_INFO) ||
-                        relGroupName.EqualsInvariantIgnoreCase("unknown"))
+                    if (grpName.EqualsInvariantIgnoreCase(Constants.NO_GROUP_INFO) ||
+                        grpName.EqualsInvariantIgnoreCase("unknown"))
                     {
                         vids.Add(vid.ToClientDetailed(userID));
                     }
