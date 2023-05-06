@@ -1192,22 +1192,13 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
     {
         try
         {
-            if (string.IsNullOrEmpty(dir))
-            {
-                return;
-            }
-
-            if (!Directory.Exists(dir))
-            {
-                return;
-            }
+            if (string.IsNullOrEmpty(dir)) return;
+            if (!Directory.Exists(dir)) return;
+            if (Utils.SettingsProvider.GetSettings().Import.Exclude.Any(s => Regex.IsMatch(dir, s))) return;
 
             if (IsDirectoryEmpty(dir))
             {
-                if (importfolder)
-                {
-                    return;
-                }
+                if (importfolder) return;
 
                 try
                 {
@@ -1215,13 +1206,9 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 }
                 catch (Exception ex)
                 {
-                    if (ex is DirectoryNotFoundException || ex is FileNotFoundException)
-                    {
-                        return;
-                    }
+                    if (ex is DirectoryNotFoundException || ex is FileNotFoundException) return;
 
-                    logger.Warn("Unable to DELETE directory: {0} Error: {1}", dir,
-                        ex);
+                    logger.Warn("Unable to DELETE directory: {0} Error: {1}", dir, ex);
                 }
 
                 return;
@@ -1236,11 +1223,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         }
         catch (Exception e)
         {
-            if (e is FileNotFoundException || e is DirectoryNotFoundException)
-            {
-                return;
-            }
-
+            if (e is FileNotFoundException || e is DirectoryNotFoundException || e is UnauthorizedAccessException) return;
             logger.Error($"There was an error removing the empty directory: {dir}\r\n{e}");
         }
     }
