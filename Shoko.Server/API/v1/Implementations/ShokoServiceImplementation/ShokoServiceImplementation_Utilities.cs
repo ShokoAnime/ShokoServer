@@ -1321,6 +1321,8 @@ public partial class ShokoServiceImplementation
     {
         relGroupName = relGroupName == null ? null : Uri.UnescapeDataString(relGroupName.Replace("+", " "));
         videoSource = videoSource == null ? null : Uri.UnescapeDataString(videoSource.Replace("+", " "));
+        logger.Trace($"GetFilesByGroupAndResolution -- relGroupName: {relGroupName}");
+        logger.Trace($"GetFilesByGroupAndResolution -- videoSource: {videoSource}");
 
         var vids = new List<CL_VideoDetailed>();
 
@@ -1334,6 +1336,15 @@ public partial class ShokoServiceImplementation
                 var thisBitDepth = 8;
 
                 if (vid.Media?.VideoStream?.BitDepth != null) thisBitDepth = vid.Media.VideoStream.BitDepth;
+                
+                // Sometimes, especially with older files, the info doesn't quite match for resolution
+                var vidResInfo = vid.VideoResolution;
+                
+                logger.Trace($"GetFilesByGroupAndResolution -- thisBitDepth: {thisBitDepth}");
+                logger.Trace($"GetFilesByGroupAndResolution -- videoBitDepth: {videoBitDepth}");
+
+                logger.Trace($"GetFilesByGroupAndResolution -- vidResInfo: {vidResInfo}");
+                logger.Trace($"GetFilesByGroupAndResolution -- resolution: {resolution}");
 
                 var eps = vid.GetAnimeEpisodes();
                 if (eps.Count == 0) continue;
@@ -1342,10 +1353,17 @@ public partial class ShokoServiceImplementation
                     "Manual Link".EqualsInvariantIgnoreCase(videoSource) ||
                     "unknown".EqualsInvariantIgnoreCase(videoSource);
                 var groupMatches = Constants.NO_GROUP_INFO.EqualsInvariantIgnoreCase(relGroupName);
+                logger.Trace($"GetFilesByGroupAndResolution -- sourceMatches (manual/unkown): {sourceMatches}");
+                logger.Trace($"GetFilesByGroupAndResolution -- groupMatches (NO GROUP INFO): {groupMatches}");
+                
                 // get the anidb file info
                 var aniFile = vid.GetAniDBFile();
                 if (aniFile != null)
                 {
+                    logger.Trace($"GetFilesByGroupAndResolution -- aniFile is not null");
+                    logger.Trace($"GetFilesByGroupAndResolution -- aniFile.File_Source: {aniFile.File_Source}");
+                    logger.Trace($"GetFilesByGroupAndResolution -- aniFile.Anime_GroupName: {aniFile.Anime_GroupName}");
+                    logger.Trace($"GetFilesByGroupAndResolution -- aniFile.Anime_GroupNameShort: {aniFile.Anime_GroupNameShort}");
                     sourceMatches = string.Equals(videoSource, aniFile.File_Source, StringComparison.InvariantCultureIgnoreCase) || !sourceMatches &&
                         (aniFile.File_Source?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false) &&
                         string.Equals("unknown", videoSource, StringComparison.InvariantCultureIgnoreCase);
@@ -1355,14 +1373,16 @@ public partial class ShokoServiceImplementation
                         ((aniFile.Anime_GroupName?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false) ||
                          (aniFile.Anime_GroupNameShort?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false)))
                         groupMatches = Constants.NO_GROUP_INFO.EqualsInvariantIgnoreCase(relGroupName);
+                    
+                    logger.Trace($"GetFilesByGroupAndResolution -- sourceMatches (aniFile): {sourceMatches}");
+                    logger.Trace($"GetFilesByGroupAndResolution -- groupMatches (aniFile): {groupMatches}");
                 }
-                // Sometimes, especially with older files, the info doesn't quite match for resolution
-                var vidResInfo = vid.VideoResolution;
 
                 // match based on group / video source / video res
                 if (groupMatches && sourceMatches && thisBitDepth == videoBitDepth &&
-                    resolution.EqualsInvariantIgnoreCase(vidResInfo))
+                    string.Equals(resolution, vidResInfo, StringComparison.InvariantCultureIgnoreCase))
                 {
+                    logger.Trace($"GetFilesByGroupAndResolution -- File Matched: {vid.FileName}");
                     vids.Add(vid.ToClientDetailed(userID));
                 }
             }
