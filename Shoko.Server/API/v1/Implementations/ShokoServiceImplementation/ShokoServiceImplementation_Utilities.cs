@@ -1339,23 +1339,20 @@ public partial class ShokoServiceImplementation
                 if (eps.Count == 0) continue;
 
                 var sourceMatches =
-                    videoSource.EqualsInvariantIgnoreCase(string.Intern("Manual Link")) ||
-                    videoSource.EqualsInvariantIgnoreCase(string.Intern("unknown"));
+                    "Manual Link".EqualsInvariantIgnoreCase(videoSource) ||
+                    "unknown".EqualsInvariantIgnoreCase(videoSource);
                 var groupMatches = relGroupName.EqualsInvariantIgnoreCase(Constants.NO_GROUP_INFO);
                 // get the anidb file info
                 var aniFile = vid.GetAniDBFile();
                 if (aniFile != null)
                 {
                     sourceMatches = videoSource.EqualsInvariantIgnoreCase(aniFile.File_Source) || !sourceMatches &&
-                        aniFile.File_Source.Contains(string.Intern("unknown"),
-                            StringComparison.InvariantCultureIgnoreCase) &&
-                        videoSource.EqualsInvariantIgnoreCase(string.Intern("unknown"));
-                    groupMatches =
-                        relGroupName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupName) ||
-                        relGroupName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupNameShort);
-                    if (!aniFile.Anime_GroupNameShort.Equals("raw") &&
-                        (aniFile.Anime_GroupName.Contains("unknown") ||
-                         aniFile.Anime_GroupNameShort.Contains("unknown")))
+                        aniFile.File_Source.Contains("unknown", StringComparison.InvariantCultureIgnoreCase) &&
+                        videoSource.EqualsInvariantIgnoreCase("unknown");
+                    groupMatches = relGroupName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupName) ||
+                                   relGroupName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupNameShort);
+                    if (!"raw".Equals(aniFile.Anime_GroupNameShort) && ("unknown".Contains(aniFile.Anime_GroupName) ||
+                                                                        "unknown".Contains(aniFile.Anime_GroupNameShort)))
                         groupMatches = relGroupName.EqualsInvariantIgnoreCase(Constants.NO_GROUP_INFO);
                 }
                 // Sometimes, especially with older files, the info doesn't quite match for resolution
@@ -1396,13 +1393,10 @@ public partial class ShokoServiceImplementation
                 var aniFile = vid.GetAniDBFile();
                 if (aniFile != null)
                 {
-                    var groupMatches =
-                        grpName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupName) ||
-                        grpName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupNameShort);
-                    if (aniFile.Anime_GroupName.EqualsInvariantIgnoreCase("unknown") ||
-                        aniFile.Anime_GroupNameShort.EqualsInvariantIgnoreCase("unknown"))
-                        groupMatches = grpName.EqualsInvariantIgnoreCase(Constants.NO_GROUP_INFO) ||
-                                       grpName.EqualsInvariantIgnoreCase("unknown");
+                    var groupMatches = grpName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupName) ||
+                                       grpName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupNameShort);
+                    if ("unknown".EqualsInvariantIgnoreCase(aniFile.Anime_GroupName) || "unknown".EqualsInvariantIgnoreCase(aniFile.Anime_GroupNameShort))
+                        groupMatches = grpName.EqualsInvariantIgnoreCase(Constants.NO_GROUP_INFO) || "unknown".EqualsInvariantIgnoreCase(grpName);
                     // match based on group / video source / video res
                     if (groupMatches)
                     {
