@@ -78,7 +78,8 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             }
             // We should have a hash by now
             // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
-            var tlocal = RepoFactory.VideoLocal.GetByHashAndSize(vlocal.Hash, vlocal.FileSize);
+            // TODO change this back to lookup by hash and filesize, but it'll need database migration and changes to other lookups
+            var tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
             var changed = false;
 
             if (tlocal != null)
