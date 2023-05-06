@@ -100,6 +100,14 @@ public class CommandRequest_GetFile : CommandRequestImplementation
                 return;
             }
 
+            // remap if the hash brought up the wrong file
+            var tempAniDBFile = RepoFactory.AniDB_File.GetByFileID(response.Response.FileID);
+            if (aniFile != null && tempAniDBFile != null && aniFile != tempAniDBFile)
+            {
+                RepoFactory.AniDB_File.Delete(aniFile);
+                aniFile = tempAniDBFile;
+            }
+
             // save to the database
             aniFile ??= new SVR_AniDB_File();
             aniFile.Hash = vlocal.Hash;
