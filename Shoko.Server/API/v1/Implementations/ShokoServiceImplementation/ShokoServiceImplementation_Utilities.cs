@@ -1419,7 +1419,8 @@ public partial class ShokoServiceImplementation
                 {
                     var groupMatches = string.Equals(grpName, aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) ||
                                        string.Equals(grpName, aniFile.Anime_GroupNameShort, StringComparison.InvariantCultureIgnoreCase);
-                    if ("unknown".EqualsInvariantIgnoreCase(aniFile.Anime_GroupName) || "unknown".EqualsInvariantIgnoreCase(aniFile.Anime_GroupNameShort))
+                    if ("unknown".EqualsInvariantIgnoreCase(aniFile.Anime_GroupName) || "unknown".EqualsInvariantIgnoreCase(aniFile.Anime_GroupNameShort) ||
+                        string.IsNullOrEmpty(aniFile.Anime_GroupName) && string.IsNullOrEmpty(aniFile.Anime_GroupNameShort))
                         groupMatches = string.Equals(grpName, Constants.NO_GROUP_INFO) || "unknown".EqualsInvariantIgnoreCase(grpName);
                     // match based on group / video source / video res
                     if (groupMatches)
