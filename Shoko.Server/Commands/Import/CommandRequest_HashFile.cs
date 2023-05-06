@@ -132,7 +132,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             var crProcFile = _commandFactory.Create<CommandRequest_ProcessFile>(c =>
             {
                 c.VideoLocalID = vlocal.VideoLocalID;
-                c.ForceAniDB = false;
+                c.ForceAniDB = ForceHash;
                 c.SkipMyList = SkipMyList;
             });
             crProcFile.Save();
