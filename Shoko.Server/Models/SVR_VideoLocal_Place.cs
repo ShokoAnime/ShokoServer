@@ -1230,7 +1230,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             // If it has folder, recurse
             foreach (var d in Directory.EnumerateDirectories(dir))
             {
-                if (Utils.SettingsProvider.GetSettings().Import.Exclude.Any(s => Regex.IsMatch(Path.GetDirectoryName(d) ?? string.Empty, s))) continue;
+                if (Utils.SettingsProvider.GetSettings().Import.Exclude.Any(s => Regex.IsMatch(d, s))) continue;
                 RecursiveDeleteEmptyDirectories(d, false);
             }
         }
