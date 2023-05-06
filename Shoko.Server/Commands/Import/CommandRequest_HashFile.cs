@@ -63,8 +63,9 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             if (vlocal.HasAnyEmptyHashes() && !ForceHash)
             {
                 // try getting the hash from the CrossRef
-                if (!TrySetHashFromXrefs(filename, vlocal))
-                    TrySetHashFromFileNameHash(filename, vlocal);
+                if (TrySetHashFromXrefs(filename, vlocal))
+                    Logger.LogTrace("Found Hash in CrossRef_File_Episode: {Hash}", vlocal.Hash);
+                else if (TrySetHashFromFileNameHash(filename, vlocal)) Logger.LogTrace("Found Hash in FileNameHash: {Hash}", vlocal.Hash);
 
                 if (string.IsNullOrEmpty(vlocal.Hash) || string.IsNullOrEmpty(vlocal.CRC32) || string.IsNullOrEmpty(vlocal.MD5) ||
                     string.IsNullOrEmpty(vlocal.SHA1))
@@ -387,6 +388,9 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         if (needSHA1) vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();
         if (needMD5) vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
         if (needCRC32) vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
+        Logger.LogTrace("Hashed file {Filename} ({Size}): Hash: {Hash}, CRC: {CRC}, SHA1: {SHA1}, MD5: {MD5}", FileName, Utils.FormatByteSize(vlocal.FileSize),
+            vlocal.Hash, vlocal.CRC32, vlocal.SHA1, vlocal.MD5);
+
         return true;
     }
 
