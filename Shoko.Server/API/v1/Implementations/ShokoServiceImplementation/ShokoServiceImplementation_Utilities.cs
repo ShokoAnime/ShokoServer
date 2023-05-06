@@ -1367,13 +1367,16 @@ public partial class ShokoServiceImplementation
                     sourceMatches = string.Equals(videoSource, aniFile.File_Source, StringComparison.InvariantCultureIgnoreCase) || !sourceMatches &&
                         (aniFile.File_Source?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false) &&
                         string.Equals("unknown", videoSource, StringComparison.InvariantCultureIgnoreCase);
-                    groupMatches = string.Equals(relGroupName, aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) ||
-                                   string.Equals(relGroupName, aniFile.Anime_GroupNameShort, StringComparison.InvariantCultureIgnoreCase);
+
+                    if (!string.IsNullOrEmpty(aniFile.Anime_GroupName) || !string.IsNullOrEmpty(aniFile.Anime_GroupNameShort))
+                        groupMatches = string.Equals(relGroupName, aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) ||
+                                       string.Equals(relGroupName, aniFile.Anime_GroupNameShort, StringComparison.InvariantCultureIgnoreCase);
+
                     if (!"raw".Equals(aniFile.Anime_GroupNameShort) &&
                         ((aniFile.Anime_GroupName?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false) ||
                          (aniFile.Anime_GroupNameShort?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false)))
                         groupMatches = Constants.NO_GROUP_INFO.EqualsInvariantIgnoreCase(relGroupName);
-                    
+
                     logger.Trace($"GetFilesByGroupAndResolution -- sourceMatches (aniFile): {sourceMatches}");
                     logger.Trace($"GetFilesByGroupAndResolution -- groupMatches (aniFile): {groupMatches}");
                 }
