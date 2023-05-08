@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB.UDP;
 
@@ -83,6 +84,8 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         }
 
         Array.Resize(ref result, received);
+
+        EmptyBuffer();
         return result;
     }
 
@@ -93,6 +96,12 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         try
         {
             _aniDBSocket.Receive(result);
+            var decodedString = Utils.GetEncoding(result).GetString(result, 0, result.Length);
+            if (decodedString[0] == 0xFEFF) // remove BOM
+            {
+                decodedString = decodedString[1..];
+            }
+            _logger.LogWarning("Unexpected data in the UDP stream: {Result}", decodedString);
         }
         catch
         {
