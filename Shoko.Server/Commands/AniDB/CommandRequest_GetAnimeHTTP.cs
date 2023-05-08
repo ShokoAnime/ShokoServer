@@ -115,7 +115,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                     // forced online refresh.
                     if (anime != null)
                     {
-                        Logger.LogDebug("We're HTTP banned and requested a forced online update for anime with ID {AnimeID}.", AnimeID);
+                        Logger.LogTrace("We're HTTP banned and requested a forced online update for anime with ID {AnimeID}.", AnimeID);
                         throw;
                     }
 
@@ -125,7 +125,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                     var xml = _xmlUtils.LoadAnimeHTTPFromFile(AnimeID);
                     if (xml == null)
                     {
-                        Logger.LogDebug("We're HTTP Banned and unable to find a cached AnimeDoc_{AnimeID}.xml file.", AnimeID);
+                        Logger.LogTrace("We're HTTP Banned and unable to find a cached AnimeDoc_{AnimeID}.xml file.", AnimeID);
                         // Queue the command to get the data when we're no longer banned if there is no anime record.
                         var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
                             c =>
@@ -148,7 +148,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                     }
                     catch
                     {
-                        Logger.LogDebug("Failed to parse the cached AnimeDoc_{AnimeID}.xml file.", AnimeID);
+                        Logger.LogTrace("Failed to parse the cached AnimeDoc_{AnimeID}.xml file.", AnimeID);
                         // Queue the command to get the data when we're no longer banned if there is no anime record.
                         var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
                             c =>
@@ -165,7 +165,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                         throw;
                     }
 
-                    Logger.LogDebug("We're HTTP banned but were able to load the cached AnimeDoc_{AnimeID}.xml file from the cache.", AnimeID);
+                    Logger.LogTrace("We're HTTP banned but were able to load the cached AnimeDoc_{AnimeID}.xml file from the cache.", AnimeID);
                 }
             }
             // Else, try to load a cached xml file.
@@ -175,7 +175,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                 if (xml == null)
                 {
                     var sayWeAreBanned = !CacheOnly && _handler.IsBanned;
-                    Logger.LogDebug(
+                    Logger.LogTrace(
                         sayWeAreBanned ?
                             "We're HTTP Banned and unable to find a cached AnimeDoc_{AnimeID}.xml file." :
                             "Unable to find a cached AnimeDoc_{AnimeID}.xml file.",

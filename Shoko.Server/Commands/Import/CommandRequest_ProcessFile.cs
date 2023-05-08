@@ -66,53 +66,46 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
     {
         Logger.LogTrace("Processing File: {VideoLocalID}", VideoLocalID);
 
-        try
+        // Check if the video local (file) is available.
+        if (vlocal == null)
         {
-            // Check if the video local (file) is available.
+            vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
             if (vlocal == null)
-            {
-                vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
-                if (vlocal == null)
-                    return;
-            }
-
-            // Store a hash-set of the old cross-references for comparison later.
-            var oldXRefs = vlocal.EpisodeCrossRefs
-                .Select(xref => xref.EpisodeID)
-                .ToHashSet();
-
-            // Process and get the AniDB file entry.
-            var aniFile = ProcessFile_AniDB(vlocal);
-
-            // Rename and/or move the physical file(s) if needed.
-            vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
-
-            // Check if an AniDB file is now available and if the cross-references changed.
-            var newXRefs = vlocal.EpisodeCrossRefs
-                .Select(xref => xref.EpisodeID)
-                .ToHashSet();
-            var xRefsMatch = newXRefs.SetEquals(oldXRefs);
-            if (aniFile != null && newXRefs.Count > 0 && !xRefsMatch)
-            {
-                // Set/update the import date
-                vlocal.DateTimeImported = DateTime.Now;
-                RepoFactory.VideoLocal.Save(vlocal);
-
-                // Dispatch the on file matched event.
-                ShokoEventHandler.Instance.OnFileMatched(vlocal.GetBestVideoLocalPlace(), vlocal);
-            }
-            // Fire the file not matched event if we didn't update the cross-references.
-            else
-            {
-                var autoMatchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vlocal.FileSize, vlocal.Hash).Count;
-                var hasXRefs = newXRefs.Count > 0 && xRefsMatch;
-                var isUDPBanned = _udpConnectionHandler.IsBanned;
-                ShokoEventHandler.Instance.OnFileNotMatched(vlocal.GetBestVideoLocalPlace(), vlocal, autoMatchAttempts, hasXRefs, isUDPBanned);
-            }
+                return;
         }
-        catch (Exception ex)
+
+        // Store a hash-set of the old cross-references for comparison later.
+        var oldXRefs = vlocal.EpisodeCrossRefs
+            .Select(xref => xref.EpisodeID)
+            .ToHashSet();
+
+        // Process and get the AniDB file entry.
+        var aniFile = ProcessFile_AniDB(vlocal);
+
+        // Rename and/or move the physical file(s) if needed.
+        vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
+
+        // Check if an AniDB file is now available and if the cross-references changed.
+        var newXRefs = vlocal.EpisodeCrossRefs
+            .Select(xref => xref.EpisodeID)
+            .ToHashSet();
+        var xRefsMatch = newXRefs.SetEquals(oldXRefs);
+        if (aniFile != null && newXRefs.Count > 0 && !xRefsMatch)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_ProcessFile: {VideoLocalID}", VideoLocalID);
+            // Set/update the import date
+            vlocal.DateTimeImported = DateTime.Now;
+            RepoFactory.VideoLocal.Save(vlocal);
+
+            // Dispatch the on file matched event.
+            ShokoEventHandler.Instance.OnFileMatched(vlocal.GetBestVideoLocalPlace(), vlocal);
+        }
+        // Fire the file not matched event if we didn't update the cross-references.
+        else
+        {
+            var autoMatchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vlocal.FileSize, vlocal.Hash).Count;
+            var hasXRefs = newXRefs.Count > 0 && xRefsMatch;
+            var isUDPBanned = _udpConnectionHandler.IsBanned;
+            ShokoEventHandler.Instance.OnFileNotMatched(vlocal.GetBestVideoLocalPlace(), vlocal, autoMatchAttempts, hasXRefs, isUDPBanned);
         }
     }
 

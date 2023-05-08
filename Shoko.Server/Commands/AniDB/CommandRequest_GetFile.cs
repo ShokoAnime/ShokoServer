@@ -76,71 +76,68 @@ public class CommandRequest_GetFile : CommandRequestImplementation
             return;
         }
 
-        lock (vlocal)
+        var aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
+
+        UDPResponse<ResponseGetFile> response = null;
+        if (aniFile == null || ForceAniDB)
         {
-            var aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
-
-            UDPResponse<ResponseGetFile> response = null;
-            if (aniFile == null || ForceAniDB)
-            {
-                var request = _requestFactory.Create<RequestGetFile>(
-                    r =>
-                    {
-                        r.Hash = vlocal.Hash;
-                        r.Size = vlocal.FileSize;
-                    }
-                );
-                response = request.Execute();
-            }
-
-            if (response?.Response == null)
-            {
-                Logger.LogInformation("File {VideoLocalID} ({Ed2kHash} | {FileName}) could not be found on AniDB",
-                    vlocal.VideoLocalID, vlocal.ED2KHash, vlocal.GetBestVideoLocalPlace()?.FileName);
-                return;
-            }
-
-            // remap if the hash brought up the wrong file
-            var tempAniDBFile = RepoFactory.AniDB_File.GetByFileID(response.Response.FileID);
-            if (aniFile != null && tempAniDBFile != null && aniFile != tempAniDBFile)
-            {
-                RepoFactory.AniDB_File.Delete(aniFile);
-                aniFile = tempAniDBFile;
-            }
-
-            // save to the database
-            aniFile ??= new SVR_AniDB_File();
-            aniFile.Hash = vlocal.Hash;
-            aniFile.FileSize = vlocal.FileSize;
-
-            aniFile.DateTimeUpdated = DateTime.Now;
-            aniFile.File_Description = response.Response.Description;
-            aniFile.File_Source = response.Response.Source.ToString();
-            aniFile.FileID = response.Response.FileID;
-            aniFile.FileName = response.Response.Filename;
-            aniFile.GroupID = response.Response.GroupID ?? 0;
-
-            aniFile.FileVersion = response.Response.Version;
-            aniFile.IsCensored = response.Response.Censored;
-            aniFile.IsDeprecated = response.Response.Deprecated;
-            aniFile.IsChaptered = response.Response.Chaptered;
-            aniFile.InternalVersion = 3;
-
-            RepoFactory.AniDB_File.Save(aniFile, false);
-            CreateLanguages(response.Response);
-            CreateEpisodes(vlocal.FileName, response.Response);
-
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Response.AnimeID);
-            if (anime != null)
-            {
-                RepoFactory.AniDB_Anime.Save(anime, false);
-            }
-
-            var series = RepoFactory.AnimeSeries.GetByAnimeID(response.Response.AnimeID);
-            series?.UpdateStats(true, true);
-            series?.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
-            Result = RepoFactory.AniDB_File.GetByFileID(aniFile.FileID);
+            var request = _requestFactory.Create<RequestGetFile>(
+                r =>
+                {
+                    r.Hash = vlocal.Hash;
+                    r.Size = vlocal.FileSize;
+                }
+            );
+            response = request.Execute();
         }
+
+        if (response?.Response == null)
+        {
+            Logger.LogInformation("File {VideoLocalID} ({Ed2kHash} | {FileName}) could not be found on AniDB",
+                vlocal.VideoLocalID, vlocal.ED2KHash, vlocal.GetBestVideoLocalPlace()?.FileName);
+            return;
+        }
+
+        // remap if the hash brought up the wrong file
+        var tempAniDBFile = RepoFactory.AniDB_File.GetByFileID(response.Response.FileID);
+        if (aniFile != null && tempAniDBFile != null && aniFile != tempAniDBFile)
+        {
+            RepoFactory.AniDB_File.Delete(aniFile);
+            aniFile = tempAniDBFile;
+        }
+
+        // save to the database
+        aniFile ??= new SVR_AniDB_File();
+        aniFile.Hash = vlocal.Hash;
+        aniFile.FileSize = vlocal.FileSize;
+
+        aniFile.DateTimeUpdated = DateTime.Now;
+        aniFile.File_Description = response.Response.Description;
+        aniFile.File_Source = response.Response.Source.ToString();
+        aniFile.FileID = response.Response.FileID;
+        aniFile.FileName = response.Response.Filename;
+        aniFile.GroupID = response.Response.GroupID ?? 0;
+
+        aniFile.FileVersion = response.Response.Version;
+        aniFile.IsCensored = response.Response.Censored;
+        aniFile.IsDeprecated = response.Response.Deprecated;
+        aniFile.IsChaptered = response.Response.Chaptered;
+        aniFile.InternalVersion = 3;
+
+        RepoFactory.AniDB_File.Save(aniFile, false);
+        CreateLanguages(response.Response);
+        CreateEpisodes(vlocal.FileName, response.Response);
+
+        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Response.AnimeID);
+        if (anime != null)
+        {
+            RepoFactory.AniDB_Anime.Save(anime, false);
+        }
+
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(response.Response.AnimeID);
+        series?.UpdateStats(true, true);
+        series?.AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
+        Result = RepoFactory.AniDB_File.GetByFileID(aniFile.FileID);
     }
 
     public void CreateLanguages(ResponseGetFile response)
