@@ -64,6 +64,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
 
     private byte[] SendUnsafe(byte[] payload, byte[] result)
     {
+        EmptyBuffer();
         _aniDBSocket.SendTo(payload, _remoteIpEndPoint);
         EndPoint temp = _remoteIpEndPoint;
         var received = _aniDBSocket.ReceiveFrom(result, ref temp);
@@ -83,6 +84,20 @@ public class AniDBSocketHandler : IAniDBSocketHandler
 
         Array.Resize(ref result, received);
         return result;
+    }
+
+    private void EmptyBuffer()
+    {
+        if (_aniDBSocket.Available == 0) return;
+        var result = new byte[1600];
+        try
+        {
+            _aniDBSocket.Receive(result);
+        }
+        catch
+        {
+            // ignore
+        }
     }
 
     public bool TryConnection()
