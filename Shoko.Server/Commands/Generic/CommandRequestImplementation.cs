@@ -22,7 +22,7 @@ namespace Shoko.Server.Commands.Generic;
 
 public abstract class CommandRequestImplementation : ICommandRequest
 {
-    protected readonly ILogger Logger;
+    [XmlIgnore][JsonIgnore]protected readonly ILogger Logger;
 
     // ignoring the base properties so that when we serialize we only get the properties
     // defined in the concrete class
@@ -78,8 +78,8 @@ public abstract class CommandRequestImplementation : ICommandRequest
 
     public abstract bool LoadFromDBCommand(CommandRequest cq);
     public abstract CommandRequestPriority DefaultPriority { get; }
-    public abstract QueueStateStruct PrettyDescription { get; }
-    public virtual CommandConflict ConflictBehavior { get; } = CommandConflict.Ignore;
+    [XmlIgnore] public abstract QueueStateStruct PrettyDescription { get; }
+    [XmlIgnore][JsonIgnore] public virtual CommandConflict ConflictBehavior { get; } = CommandConflict.Ignore;
 
     public abstract CommandRequest ToDatabaseObject();
 
@@ -102,9 +102,9 @@ public abstract class CommandRequestImplementation : ICommandRequest
 
     public string ToJson()
     {
-        return JsonSerializer.Serialize(this, new JsonSerializerOptions
+        return JsonSerializer.Serialize(this, GetType(), new JsonSerializerOptions
         {
-            WriteIndented = false, MaxDepth = 1
+            WriteIndented = false, MaxDepth = 5, IgnoreReadOnlyProperties = true, IncludeFields = false
         });
     }
 
