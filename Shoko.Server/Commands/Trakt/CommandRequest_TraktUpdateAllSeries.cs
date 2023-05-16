@@ -36,46 +36,33 @@ public class CommandRequest_TraktUpdateAllSeries : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_TraktUpdateAllSeries");
 
-        try
+        var settings = _settingsProvider.GetSettings();
+        var sched =
+            RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate);
+        if (sched == null)
         {
-            var settings = _settingsProvider.GetSettings();
-            var sched =
-                RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate);
-            if (sched == null)
+            sched = new ScheduledUpdate
             {
-                sched = new ScheduledUpdate
-                {
-                    UpdateType = (int)ScheduledUpdateType.TraktUpdate, UpdateDetails = string.Empty
-                };
-            }
-            else
-            {
-                var freqHours = Utils.GetScheduledHours(settings.TraktTv.UpdateFrequency);
-
-                // if we have run this in the last xxx hours then exit
-                var tsLastRun = DateTime.Now - sched.LastUpdate;
-                if (tsLastRun.TotalHours < freqHours)
-                {
-                    if (!ForceRefresh)
-                    {
-                        return;
-                    }
-                }
-            }
-
-            sched.LastUpdate = DateTime.Now;
-            RepoFactory.ScheduledUpdate.Save(sched);
-
-            // update all info
-            _helper.UpdateAllInfo();
-
-            // scan for new matches
-            _helper.ScanForMatches();
+                UpdateType = (int)ScheduledUpdateType.TraktUpdate, UpdateDetails = string.Empty
+            };
         }
-        catch (Exception ex)
+        else
         {
-            Logger.LogError(ex, "Error processing CommandRequest_TraktUpdateAllSeries");
+            var freqHours = Utils.GetScheduledHours(settings.TraktTv.UpdateFrequency);
+
+            // if we have run this in the last xxx hours then exit
+            var tsLastRun = DateTime.Now - sched.LastUpdate;
+            if (tsLastRun.TotalHours < freqHours && !ForceRefresh) return;
         }
+
+        sched.LastUpdate = DateTime.Now;
+        RepoFactory.ScheduledUpdate.Save(sched);
+
+        // update all info
+        _helper.UpdateAllInfo();
+
+        // scan for new matches
+        _helper.ScanForMatches();
     }
 
     /// <summary>

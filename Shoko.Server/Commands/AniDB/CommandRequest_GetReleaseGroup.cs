@@ -34,42 +34,33 @@ public class CommandRequest_GetReleaseGroup : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_GetReleaseGroup: {GroupID}", GroupID);
 
-        try
+
+        var relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID);
+
+        if (!ForceRefresh && relGroup != null) return;
+
+        // redownload anime details from http ap so we can get an update character list
+        var request = _requestFactory.Create<RequestReleaseGroup>(r => r.ReleaseGroupID = GroupID);
+        var response = request.Execute();
+
+        if (response?.Response == null)
         {
-            var relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID);
-
-            if (!ForceRefresh && relGroup != null)
-            {
-                return;
-            }
-
-            // redownload anime details from http ap so we can get an update character list
-            var request = _requestFactory.Create<RequestReleaseGroup>(r => r.ReleaseGroupID = GroupID);
-            var response = request.Execute();
-
-            if (response?.Response == null)
-            {
-                return;
-            }
-
-            relGroup ??= new AniDB_ReleaseGroup();
-            relGroup.GroupID = response.Response.ID;
-            relGroup.Rating = (int)(response.Response.Rating * 100);
-            relGroup.Votes = response.Response.Votes;
-            relGroup.AnimeCount = response.Response.AnimeCount;
-            relGroup.FileCount = response.Response.FileCount;
-            relGroup.GroupName = response.Response.Name;
-            relGroup.GroupNameShort = response.Response.ShortName;
-            relGroup.IRCChannel = response.Response.IrcChannel;
-            relGroup.IRCServer = response.Response.IrcServer;
-            relGroup.URL = response.Response.URL;
-            relGroup.Picname = response.Response.Picture;
-            RepoFactory.AniDB_ReleaseGroup.Save(relGroup);
+            return;
         }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error processing CommandRequest_GetReleaseGroup: {GroupID}", GroupID);
-        }
+
+        relGroup ??= new AniDB_ReleaseGroup();
+        relGroup.GroupID = response.Response.ID;
+        relGroup.Rating = (int)(response.Response.Rating * 100);
+        relGroup.Votes = response.Response.Votes;
+        relGroup.AnimeCount = response.Response.AnimeCount;
+        relGroup.FileCount = response.Response.FileCount;
+        relGroup.GroupName = response.Response.Name;
+        relGroup.GroupNameShort = response.Response.ShortName;
+        relGroup.IRCChannel = response.Response.IrcChannel;
+        relGroup.IRCServer = response.Response.IrcServer;
+        relGroup.URL = response.Response.URL;
+        relGroup.Picname = response.Response.Picture;
+        RepoFactory.AniDB_ReleaseGroup.Save(relGroup);
     }
 
     public override void GenerateCommandID()

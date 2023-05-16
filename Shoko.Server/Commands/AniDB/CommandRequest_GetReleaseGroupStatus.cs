@@ -40,93 +40,77 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_GetReleaseGroupStatus: {AnimeID}", AnimeID);
 
-        try
+        // only get group status if we have an associated series
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+        if (series == null) return;
+
+        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+        if (anime == null) return;
+
+        // don't get group status if the anime has already ended more than 50 days ago
+        if (ShouldSkip(anime))
         {
-            // only get group status if we have an associated series
-            var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
-            if (series == null)
-            {
-                return;
-            }
-
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
-            if (anime == null)
-            {
-                return;
-            }
-
-            // don't get group status if the anime has already ended more than 50 days ago
-            if (ShouldSkip(anime))
-            {
-                Logger.LogInformation("Skipping group status command because anime has already ended: {AnimeID}",
-                    AnimeID);
-                return;
-            }
-
-            var request = _requestFactory.Create<RequestReleaseGroupStatus>(r => r.AnimeID = AnimeID);
-            var response = request.Execute();
-            if (response.Response == null)
-            {
-                return;
-            }
-
-            var maxEpisode = response.Response.Max(a => a.LastEpisodeNumber);
-
-            // delete existing records
-            RepoFactory.AniDB_GroupStatus.DeleteForAnime(AnimeID);
-
-            // save the records
-            var toSave = response.Response.Select(
-                raw => new AniDB_GroupStatus
-                {
-                    AnimeID = raw.AnimeID,
-                    GroupID = raw.GroupID,
-                    GroupName = raw.GroupName,
-                    CompletionState = (int)raw.CompletionState,
-                    LastEpisodeNumber = raw.LastEpisodeNumber,
-                    Rating = raw.Rating,
-                    Votes = raw.Votes,
-                    EpisodeRange = string.Join(',', raw.ReleasedEpisodes)
-                }
-            ).ToArray();
-            RepoFactory.AniDB_GroupStatus.Save(toSave);
-
-            var settings = _settingsProvider.GetSettings();
-            if (maxEpisode > 0)
-            {
-                // update the anime with a record of the latest subbed episode
-                anime.LatestEpisodeNumber = maxEpisode;
-                RepoFactory.AniDB_Anime.Save(anime, false);
-
-                // check if we have this episode in the database
-                // if not get it now by updating the anime record
-                var eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(AnimeID, maxEpisode);
-                if (eps.Count == 0)
-                {
-                    var crAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
-                    {
-                        c.AnimeID = AnimeID;
-                        c.ForceRefresh = true;
-                        c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
-                    });
-                    crAnime.Save();
-                }
-
-                // update the missing episode stats on groups and children
-                series.QueueUpdateStats();
-            }
-
-            if (settings.AniDb.DownloadReleaseGroups && response is { Response.Count: > 0 })
-            {
-                // shouldn't need the where, but better safe than sorry.
-                response.Response.DistinctBy(a => a.GroupID).Where(a => a.GroupID != 0).Select(a =>
-                        _commandFactory.Create<CommandRequest_GetReleaseGroup>(c => c.GroupID = a.GroupID))
-                    .ForEach(a => a.Save());
-            }
+            Logger.LogInformation("Skipping group status command because anime has already ended: {AnimeID}",
+                AnimeID);
+            return;
         }
-        catch (Exception ex)
+
+        var request = _requestFactory.Create<RequestReleaseGroupStatus>(r => r.AnimeID = AnimeID);
+        var response = request.Execute();
+        if (response.Response == null) return;
+
+        var maxEpisode = response.Response.Max(a => a.LastEpisodeNumber);
+
+        // delete existing records
+        RepoFactory.AniDB_GroupStatus.DeleteForAnime(AnimeID);
+
+        // save the records
+        var toSave = response.Response.Select(
+            raw => new AniDB_GroupStatus
+            {
+                AnimeID = raw.AnimeID,
+                GroupID = raw.GroupID,
+                GroupName = raw.GroupName,
+                CompletionState = (int)raw.CompletionState,
+                LastEpisodeNumber = raw.LastEpisodeNumber,
+                Rating = raw.Rating,
+                Votes = raw.Votes,
+                EpisodeRange = string.Join(',', raw.ReleasedEpisodes)
+            }
+        ).ToArray();
+        RepoFactory.AniDB_GroupStatus.Save(toSave);
+
+        var settings = _settingsProvider.GetSettings();
+        if (maxEpisode > 0)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_GetReleaseGroupStatus: {AnimeID}", AnimeID);
+            // update the anime with a record of the latest subbed episode
+            anime.LatestEpisodeNumber = maxEpisode;
+            RepoFactory.AniDB_Anime.Save(anime, false);
+
+            // check if we have this episode in the database
+            // if not get it now by updating the anime record
+            var eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(AnimeID, maxEpisode);
+            if (eps.Count == 0)
+            {
+                var crAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+                {
+                    c.AnimeID = AnimeID;
+                    c.ForceRefresh = true;
+                    c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
+                });
+                crAnime.Save();
+            }
+
+            // update the missing episode stats on groups and children
+            series.QueueUpdateStats();
+        }
+
+        if (settings.AniDb.DownloadReleaseGroups && response is { Response.Count: > 0 })
+        {
+            // shouldn't need the where, but better safe than sorry.
+            response.Response.DistinctBy(a => a.GroupID).Where(a => a.GroupID != 0).Select(a =>
+                    _commandFactory.Create<CommandRequest_GetReleaseGroup>(c => c.GroupID = a.GroupID))
+                .ForEach(a => a.Save());
         }
     }
 

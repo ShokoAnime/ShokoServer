@@ -49,99 +49,94 @@ public class CommandRequest_HashFile : CommandRequestImplementation
     {
         Logger.LogTrace("Checking File For Hashes: {Filename}", FileName);
 
-        try
+        var (existing, vlocal, vlocalplace, folder) = GetVideoLocal();
+        if (vlocal == null || vlocalplace == null)
         {
-            var (existing, vlocal, vlocalplace, folder) = GetVideoLocal();
-            if (vlocal == null || vlocalplace == null)
-            {
-                Logger.LogTrace("Could not get or create VideoLocal. exiting");
-                return;
-            }
-            var filename = vlocalplace.FileName;
+            Logger.LogTrace("Could not get or create VideoLocal. exiting");
+            return;
+        }
 
-            Logger.LogTrace("No existing hash in VideoLocal (or forced), checking XRefs");
-            if (vlocal.HasAnyEmptyHashes() && !ForceHash)
-            {
-                // try getting the hash from the CrossRef
-                if (TrySetHashFromXrefs(filename, vlocal))
-                    Logger.LogTrace("Found Hash in CrossRef_File_Episode: {Hash}", vlocal.Hash);
-                else if (TrySetHashFromFileNameHash(filename, vlocal)) Logger.LogTrace("Found Hash in FileNameHash: {Hash}", vlocal.Hash);
+        var filename = vlocalplace.FileName;
 
-                if (string.IsNullOrEmpty(vlocal.Hash) || string.IsNullOrEmpty(vlocal.CRC32) || string.IsNullOrEmpty(vlocal.MD5) ||
-                    string.IsNullOrEmpty(vlocal.SHA1))
-                    FillHashesAgainstVideoLocalRepo(vlocal);
-            }
+        Logger.LogTrace("No existing hash in VideoLocal (or forced), checking XRefs");
+        if (vlocal.HasAnyEmptyHashes() && !ForceHash)
+        {
+            // try getting the hash from the CrossRef
+            if (TrySetHashFromXrefs(filename, vlocal))
+                Logger.LogTrace("Found Hash in CrossRef_File_Episode: {Hash}", vlocal.Hash);
+            else if (TrySetHashFromFileNameHash(filename, vlocal)) Logger.LogTrace("Found Hash in FileNameHash: {Hash}", vlocal.Hash);
 
-            if (!FillMissingHashes(vlocal, ForceHash) && existing)
-            {
-                Logger.LogTrace("Hashes were not necessary for file, so exiting: {File}, Hash: {Hash}", FileName, vlocal.Hash);
-                return;
-            }
-            // We should have a hash by now
-            // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
-            // TODO change this back to lookup by hash and filesize, but it'll need database migration and changes to other lookups
-            var tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
-            var changed = false;
+            if (string.IsNullOrEmpty(vlocal.Hash) || string.IsNullOrEmpty(vlocal.CRC32) || string.IsNullOrEmpty(vlocal.MD5) ||
+                string.IsNullOrEmpty(vlocal.SHA1))
+                FillHashesAgainstVideoLocalRepo(vlocal);
+        }
 
-            if (tlocal != null)
-            {
-                Logger.LogTrace("Found existing VideoLocal with hash, merging info from it");
-                // Merge hashes and save, regardless of duplicate file
-                changed = MergeInfoFrom(tlocal, vlocal);
-                vlocal = tlocal;
-            }
+        if (!FillMissingHashes(vlocal, ForceHash) && existing)
+        {
+            Logger.LogTrace("Hashes were not necessary for file, so exiting: {File}, Hash: {Hash}", FileName, vlocal.Hash);
+            return;
+        }
 
-            // returns trinary state. null is return. true or false is duplicate
-            var duplicate = ProcessDuplicates(vlocal, vlocalplace);
-            if (duplicate == null) return;
+        // We should have a hash by now
+        // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
+        // TODO change this back to lookup by hash and filesize, but it'll need database migration and changes to other lookups
+        var tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
+        var changed = false;
 
-            if (!duplicate.Value || changed)
-            {
-                Logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FileName, vlocal.Hash);
-                RepoFactory.VideoLocal.Save(vlocal, true);
-            }
+        if (tlocal != null)
+        {
+            Logger.LogTrace("Found existing VideoLocal with hash, merging info from it");
+            // Merge hashes and save, regardless of duplicate file
+            changed = MergeInfoFrom(tlocal, vlocal);
+            vlocal = tlocal;
+        }
 
-            vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-            RepoFactory.VideoLocalPlace.Save(vlocalplace);
+        // returns trinary state. null is return. true or false is duplicate
+        var duplicate = ProcessDuplicates(vlocal, vlocalplace);
+        if (duplicate == null) return;
 
-            if (duplicate.Value)
-            {
-                var crProcfile3 = _commandFactory.Create<CommandRequest_ProcessFile>(
-                    c =>
-                    {
-                        c.VideoLocalID = vlocal.VideoLocalID;
-                        c.ForceAniDB = false;
-                    }
-                );
-                crProcfile3.Save();
-                return;
-            }
+        if (!duplicate.Value || changed)
+        {
+            Logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FileName, vlocal.Hash);
+            RepoFactory.VideoLocal.Save(vlocal, true);
+        }
 
-            SaveFileNameHash(filename, vlocal);
+        vlocalplace.VideoLocalID = vlocal.VideoLocalID;
+        RepoFactory.VideoLocalPlace.Save(vlocalplace);
 
-            if ((vlocal.Media?.GeneralStream?.Duration ?? 0) == 0 || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
-            {
-                if (vlocalplace.RefreshMediaInfo())
+        if (duplicate.Value)
+        {
+            var crProcfile3 = _commandFactory.Create<CommandRequest_ProcessFile>(
+                c =>
                 {
-                    RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
+                    c.VideoLocalID = vlocal.VideoLocalID;
+                    c.ForceAniDB = false;
                 }
-            }
-
-            ShokoEventHandler.Instance.OnFileHashed(folder, vlocalplace);
-
-            // now add a command to process the file
-            var crProcFile = _commandFactory.Create<CommandRequest_ProcessFile>(c =>
-            {
-                c.VideoLocalID = vlocal.VideoLocalID;
-                c.ForceAniDB = ForceHash;
-                c.SkipMyList = SkipMyList;
-            });
-            crProcFile.Save();
+            );
+            crProcfile3.Save();
+            return;
         }
-        catch (Exception ex)
+
+        SaveFileNameHash(filename, vlocal);
+
+        if ((vlocal.Media?.GeneralStream?.Duration ?? 0) == 0 || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
         {
-            Logger.LogError(ex, "Error processing file: {Filename}", FileName);
+            if (vlocalplace.RefreshMediaInfo())
+            {
+                RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
+            }
         }
+
+        ShokoEventHandler.Instance.OnFileHashed(folder, vlocalplace);
+
+        // now add a command to process the file
+        var crProcFile = _commandFactory.Create<CommandRequest_ProcessFile>(c =>
+        {
+            c.VideoLocalID = vlocal.VideoLocalID;
+            c.ForceAniDB = ForceHash;
+            c.SkipMyList = SkipMyList;
+        });
+        crProcFile.Save();
     }
 
     //Added size return, since symbolic links return 0, we use this function also to return the size of the file.

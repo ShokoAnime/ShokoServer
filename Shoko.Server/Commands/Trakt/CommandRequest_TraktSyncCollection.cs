@@ -33,48 +33,31 @@ public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_TraktSyncCollection");
 
-        try
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return;
+
+        var sched =
+            RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync);
+        if (sched == null)
         {
-            var settings = _settingsProvider.GetSettings();
-            if (!settings.TraktTv.Enabled ||
-                string.IsNullOrEmpty(settings.TraktTv.AuthToken))
+            sched = new ScheduledUpdate
             {
-                return;
-            }
-
-            var sched =
-                RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync);
-            if (sched == null)
-            {
-                sched = new ScheduledUpdate
-                {
-                    UpdateType = (int)ScheduledUpdateType.TraktSync, UpdateDetails = string.Empty
-                };
-            }
-            else
-            {
-                var freqHours = Utils.GetScheduledHours(settings.TraktTv.SyncFrequency);
-
-                // if we have run this in the last xxx hours then exit
-                var tsLastRun = DateTime.Now - sched.LastUpdate;
-                if (tsLastRun.TotalHours < freqHours)
-                {
-                    if (!ForceRefresh)
-                    {
-                        return;
-                    }
-                }
-            }
-
-            sched.LastUpdate = DateTime.Now;
-            RepoFactory.ScheduledUpdate.Save(sched);
-
-            _helper.SyncCollectionToTrakt();
+                UpdateType = (int)ScheduledUpdateType.TraktSync, UpdateDetails = string.Empty
+            };
         }
-        catch (Exception ex)
+        else
         {
-            Logger.LogError(ex, "Error processing CommandRequest_TraktSyncCollection");
+            var freqHours = Utils.GetScheduledHours(settings.TraktTv.SyncFrequency);
+
+            // if we have run this in the last xxx hours then exit
+            var tsLastRun = DateTime.Now - sched.LastUpdate;
+            if (tsLastRun.TotalHours < freqHours && !ForceRefresh) return;
         }
+
+        sched.LastUpdate = DateTime.Now;
+        RepoFactory.ScheduledUpdate.Save(sched);
+
+        _helper.SyncCollectionToTrakt();
     }
 
     /// <summary>

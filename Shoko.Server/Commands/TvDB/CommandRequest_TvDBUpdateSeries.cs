@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
@@ -22,7 +23,7 @@ public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation
     public bool ForceRefresh { get; set; }
     public string SeriesTitle { get; set; }
 
-    [XmlIgnore] public TvDB_Series Result { get; set; }
+    [XmlIgnore][JsonIgnore] public TvDB_Series Result { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -42,15 +43,7 @@ public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation
     protected override void Process()
     {
         Logger.LogInformation("Processing CommandRequest_TvDBUpdateSeries: {0}", TvDBSeriesID);
-
-        try
-        {
-            Result = _helper.UpdateSeriesInfoAndImages(TvDBSeriesID, ForceRefresh, true);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error processing CommandRequest_TvDBUpdateSeries: {SeriesID}", TvDBSeriesID);
-        }
+        Result = _helper.UpdateSeriesInfoAndImages(TvDBSeriesID, ForceRefresh, true);
     }
 
     public override void GenerateCommandID()

@@ -42,90 +42,52 @@ public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_TvDBSearchAnime: {0}", AnimeID);
 
-        try
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TvDB.AutoLink) return;
+
+        // try to pull a link from a prequel/sequel
+        var relations = RepoFactory.AniDB_Anime_Relation.GetFullLinearRelationTree(AnimeID);
+        var tvDBID = relations.SelectMany(a => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(a))
+            .FirstOrDefault(a => a != null)?.TvDBID;
+
+        if (tvDBID != null)
         {
-            var settings = _settingsProvider.GetSettings();
-            if (!settings.TvDB.AutoLink)
-            {
-                return;
-            }
-
-            // try to pull a link from a prequel/sequel
-            var relations = RepoFactory.AniDB_Anime_Relation.GetFullLinearRelationTree(AnimeID);
-            var tvDBID = relations.SelectMany(a => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(a))
-                .FirstOrDefault(a => a != null)?.TvDBID;
-
-            if (tvDBID != null)
-            {
-                _helper.LinkAniDBTvDB(AnimeID, tvDBID.Value, true, true);
-                return;
-            }
-
-            // search TvDB
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
-            if (anime == null)
-            {
-                return;
-            }
-
-            var searchCriteria = CleanTitle(anime.MainTitle);
-
-            // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-            var results = _helper.SearchSeries(searchCriteria);
-            Logger.LogTrace("Found {0} tvdb results for {1} on TheTvDB", results.Count, searchCriteria);
-            if (ProcessSearchResults(results, searchCriteria))
-            {
-                return;
-            }
-
-
-            if (results.Count != 0)
-            {
-                return;
-            }
-
-            var foundResult = false;
-            foreach (var title in anime.GetTitles())
-            {
-                if (title.TitleType != TitleType.Official)
-                {
-                    continue;
-                }
-
-                if (title.Language != TitleLanguage.English && title.Language != TitleLanguage.Romaji)
-                {
-                    continue;
-                }
-
-                var cleanTitle = CleanTitle(title.Title);
-
-                if (searchCriteria.Equals(cleanTitle, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    continue;
-                }
-
-                searchCriteria = cleanTitle;
-                results = _helper.SearchSeries(searchCriteria);
-                if (results.Count > 0)
-                {
-                    foundResult = true;
-                }
-
-                Logger.LogTrace("Found {0} tvdb results for search on {1}", results.Count, searchCriteria);
-                if (ProcessSearchResults(results, searchCriteria))
-                {
-                    return;
-                }
-            }
-
-            if (!foundResult)
-            {
-                Logger.LogWarning("Unable to find a matching TvDB series for {0}", anime.MainTitle);
-            }
+            _helper.LinkAniDBTvDB(AnimeID, tvDBID.Value, true, true);
+            return;
         }
-        catch (Exception ex)
+
+        // search TvDB
+        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+        if (anime == null) return;
+
+        var searchCriteria = CleanTitle(anime.MainTitle);
+
+        // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
+        var results = _helper.SearchSeries(searchCriteria);
+        Logger.LogTrace("Found {0} tvdb results for {1} on TheTvDB", results.Count, searchCriteria);
+        if (ProcessSearchResults(results, searchCriteria)) return;
+        if (results.Count != 0) return;
+
+        var foundResult = false;
+        foreach (var title in anime.GetTitles())
         {
-            Logger.LogError(ex, "Error processing CommandRequest_TvDBSearchAnime: {AnimeID}", AnimeID);
+            if (title.TitleType != TitleType.Official) continue;
+            if (title.Language != TitleLanguage.English && title.Language != TitleLanguage.Romaji) continue;
+
+            var cleanTitle = CleanTitle(title.Title);
+            if (searchCriteria.Equals(cleanTitle, StringComparison.InvariantCultureIgnoreCase)) continue;
+
+            searchCriteria = cleanTitle;
+            results = _helper.SearchSeries(searchCriteria);
+            if (results.Count > 0) foundResult = true;
+
+            Logger.LogTrace("Found {0} tvdb results for search on {1}", results.Count, searchCriteria);
+            if (ProcessSearchResults(results, searchCriteria)) return;
+        }
+
+        if (!foundResult)
+        {
+            Logger.LogWarning("Unable to find a matching TvDB series for {0}", anime.MainTitle);
         }
     }
 

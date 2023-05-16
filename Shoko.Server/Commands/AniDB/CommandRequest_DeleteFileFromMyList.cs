@@ -54,35 +54,28 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
         Logger.LogInformation("Processing CommandRequest_DeleteFileFromMyList: Hash: {Hash} FileSize: {Size} MyListID: {MyListID} FileID: {FileID} AnimeID: {AnimeID} Episode: {EpisodeType} {EpisodeNumber}",
             Hash, FileSize, MyListID, FileID, AnimeID, EpisodeType, EpisodeNumber);
 
-        try
+        var settings = _settingsProvider.GetSettings();
+        switch (settings.AniDb.MyList_DeleteType)
         {
-            var settings = _settingsProvider.GetSettings();
-            switch (settings.AniDb.MyList_DeleteType)
-            {
-                case AniDBFileDeleteType.Delete:
-                    SendDeleteCommand();
-                    break;
-                case AniDBFileDeleteType.MarkDeleted:
-                    SendUpdateCommand(MyList_State.Deleted);
-                    break;
-                case AniDBFileDeleteType.MarkUnknown:
-                    SendUpdateCommand(MyList_State.Unknown);
-                    break;
-                case AniDBFileDeleteType.MarkExternalStorage:
-                    SendUpdateCommand(MyList_State.Remote);
-                    break;
-                case AniDBFileDeleteType.MarkDisk:
-                    SendUpdateCommand(MyList_State.Disk);
-                    break;
-                case AniDBFileDeleteType.DeleteLocalOnly:
-                    Logger.LogInformation(
-                        "Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", Hash);
-                    break;
-            }
-        }
-        catch (AniDBBannedException ex)
-        {
-            Logger.LogError(ex, "Error processing {Type}: Hash: {Hash}", GetType().Name, Hash);
+            case AniDBFileDeleteType.Delete:
+                SendDeleteCommand();
+                break;
+            case AniDBFileDeleteType.MarkDeleted:
+                SendUpdateCommand(MyList_State.Deleted);
+                break;
+            case AniDBFileDeleteType.MarkUnknown:
+                SendUpdateCommand(MyList_State.Unknown);
+                break;
+            case AniDBFileDeleteType.MarkExternalStorage:
+                SendUpdateCommand(MyList_State.Remote);
+                break;
+            case AniDBFileDeleteType.MarkDisk:
+                SendUpdateCommand(MyList_State.Disk);
+                break;
+            case AniDBFileDeleteType.DeleteLocalOnly:
+                Logger.LogInformation(
+                    "Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", Hash);
+                break;
         }
     }
 

@@ -39,29 +39,18 @@ public class CommandRequest_TraktHistoryEpisode : CommandRequestImplementation
 
         var settings = _settingsProvider.GetSettings();
 
-        try
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return;
+
+        var ep = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
+        if (ep != null)
         {
-            if (!settings.TraktTv.Enabled ||
-                string.IsNullOrEmpty(settings.TraktTv.AuthToken))
+            var syncType = TraktSyncType.HistoryAdd;
+            if (ActionEnum == TraktSyncAction.Remove)
             {
-                return;
+                syncType = TraktSyncType.HistoryRemove;
             }
 
-            var ep = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
-            if (ep != null)
-            {
-                var syncType = TraktSyncType.HistoryAdd;
-                if (ActionEnum == TraktSyncAction.Remove)
-                {
-                    syncType = TraktSyncType.HistoryRemove;
-                }
-
-                _helper.SyncEpisodeToTrakt(ep, syncType);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error processing CommandRequest_TraktHistoryEpisode: {EpID}", AnimeEpisodeID);
+            _helper.SyncEpisodeToTrakt(ep, syncType);
         }
     }
 

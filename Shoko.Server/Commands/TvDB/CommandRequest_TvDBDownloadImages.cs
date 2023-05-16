@@ -31,15 +31,7 @@ public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation
     protected override void Process()
     {
         Logger.LogInformation("Processing CommandRequest_TvDBDownloadImages: {0}", TvDBSeriesID);
-
-        try
-        {
-            _helper.DownloadAutomaticImages(TvDBSeriesID, ForceRefresh);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error processing CommandRequest_TvDBDownloadImages: {SeriesID}", TvDBSeriesID);
-        }
+        _helper.DownloadAutomaticImages(TvDBSeriesID, ForceRefresh);
     }
 
     public override void GenerateCommandID()

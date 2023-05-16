@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
@@ -31,7 +32,7 @@ public class CommandRequest_GetFile : CommandRequestImplementation
     public bool ForceAniDB { get; set; }
 
     private SVR_VideoLocal vlocal;
-    [XmlIgnore] public SVR_AniDB_File Result;
+    [XmlIgnore][JsonIgnore] public SVR_AniDB_File Result;
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
 

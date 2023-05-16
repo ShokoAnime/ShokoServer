@@ -30,24 +30,17 @@ public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
     {
         Logger.LogInformation("Reading Media Info for File: {VideoLocalID}", VideoLocalID);
 
-        try
+        var vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        var place = vlocal?.GetBestVideoLocalPlace(true);
+        if (place == null)
         {
-            var vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
-            var place = vlocal?.GetBestVideoLocalPlace(true);
-            if (place == null)
-            {
-                Logger.LogError("Could not find Video: {VideoLocalID}", VideoLocalID);
-                return;
-            }
-
-            if (place.RefreshMediaInfo())
-            {
-                RepoFactory.VideoLocal.Save(place.VideoLocal, true);
-            }
+            Logger.LogError("Could not find Video: {VideoLocalID}", VideoLocalID);
+            return;
         }
-        catch (Exception ex)
+
+        if (place.RefreshMediaInfo())
         {
-            Logger.LogError(ex, "Error processing CommandRequest_ReadMediaInfo: {VideoLocalID}", VideoLocalID);
+            RepoFactory.VideoLocal.Save(place.VideoLocal, true);
         }
     }
 

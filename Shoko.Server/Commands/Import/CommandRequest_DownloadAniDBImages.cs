@@ -60,114 +60,109 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_DownloadAniDBImages: {AnimeID}", AnimeID);
 
-        try
+        var settings = _settingsProvider.GetSettings();
+        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+        if (anime == null)
         {
-            var settings = _settingsProvider.GetSettings();
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
-            if (anime == null)
-            {
-                Logger.LogWarning(FailedToDownloadNoID, "anime", AnimeID);
-                return;
-            }
-
-            var requests = new List<ImageDownloadRequest>
-            {
-                new(anime, ForceDownload, _handler.ImageServerUrl)
-            };
-
-            var characterOffset = requests.Count;
-            if (settings.AniDb.DownloadCharacters)
-            {
-                var characters = RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
-                    .Select(xref => RepoFactory.AniDB_Character.GetByCharID(xref.CharID))
-                    .Where(a => !string.IsNullOrEmpty(a?.PicName))
-                    .DistinctBy(a => a.CharID)
-                    .ToList();
-                if (characters.Any())
-                    requests.AddRange(characters.Select(character => new ImageDownloadRequest(character, ForceDownload, _handler.ImageServerUrl)));
-                else
-                    Logger.LogWarning(FailedToDownloadNoID, "characters for anime", AnimeID);
-            }
-
-            var creatorOffset = requests.Count;
-            if (settings.AniDb.DownloadCreators)
-            {
-                // Get all voice-actors working on this anime.
-                var voiceActors =  RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
-                    .SelectMany(xref => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(xref.CharID))
-                    .Select(xref => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(xref.SeiyuuID))
-                    .Where(va => !string.IsNullOrEmpty(va?.PicName));
-                // Get all staff members working on this anime.
-                var staffMembers = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(AnimeID)
-                    .Select(xref => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(xref.CreatorID))
-                    .Where(staff => !string.IsNullOrEmpty(staff?.PicName));
-                // Concatenate the streams into a single list.
-                var creators = voiceActors
-                    .Concat(staffMembers)
-                    .DistinctBy(creator => creator.SeiyuuID)
-                    .ToList();
-
-                if (creators.Any())
-                    requests.AddRange(creators.Select(va => new ImageDownloadRequest(va, ForceDownload, _handler.ImageServerUrl)));
-                else
-                    Logger.LogWarning(FailedToDownloadNoID, "creators for anime", AnimeID);
-            }
-
-            for (var index = 0; index < requests.Count; index++)
-            {
-                // Update the queue state.
-                if (index == characterOffset)
-                    ShokoService.CmdProcessorImages.QueueState = PrettyDescriptionCharacters;
-                else if (index == creatorOffset)
-                    ShokoService.CmdProcessorImages.QueueState = PrettyDescriptionCreators;
-
-                // Process the
-                var req = requests[index];
-                try
-                {
-                    // If this has any issues, it will throw an exception, so the catch below will handle it.
-                    Logger.LogInformation("Image downloading to {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
-                    var result = req.DownloadNow();
-                    switch (result)
-                    {
-                        case ImageDownloadResult.Success:
-                            Logger.LogInformation("Image downloaded; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
-                            break;
-                        case ImageDownloadResult.Cached:
-                            Logger.LogDebug("Image already in cache; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
-                            break;
-                        case ImageDownloadResult.Failure:
-                            Logger.LogError("Image failed to download; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
-                            break;
-                        case ImageDownloadResult.RemovedResource:
-                            Logger.LogWarning("Image failed to download and the local entry has been removed; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
-                            break;
-                        case ImageDownloadResult.InvalidResource:
-                            Logger.LogError("Image failed to download and the local entry could not be removed; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
-                            break;
-                    }
-                }
-                catch (WebException e)
-                {
-                    Logger.LogWarning(
-                        "Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
-                        req.DownloadUrl,
-                        AnimeID,
-                        e.Message);
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e,
-                        "Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
-                        req.DownloadUrl,
-                        AnimeID,
-                        e);
-                }
-            }
+            Logger.LogWarning(FailedToDownloadNoID, "anime", AnimeID);
+            return;
         }
-        catch (Exception ex)
+
+        var requests = new List<ImageDownloadRequest>
         {
-            Logger.LogError(ex, "Error processing CommandRequest_DownloadAniDBImages: {AnimeID}", AnimeID);
+            new(anime, ForceDownload, _handler.ImageServerUrl)
+        };
+
+        var characterOffset = requests.Count;
+        if (settings.AniDb.DownloadCharacters)
+        {
+            var characters = RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
+                .Select(xref => RepoFactory.AniDB_Character.GetByCharID(xref.CharID))
+                .Where(a => !string.IsNullOrEmpty(a?.PicName))
+                .DistinctBy(a => a.CharID)
+                .ToList();
+            if (characters.Any())
+                requests.AddRange(characters.Select(character => new ImageDownloadRequest(character, ForceDownload, _handler.ImageServerUrl)));
+            else
+                Logger.LogWarning(FailedToDownloadNoID, "characters for anime", AnimeID);
+        }
+
+        var creatorOffset = requests.Count;
+        if (settings.AniDb.DownloadCreators)
+        {
+            // Get all voice-actors working on this anime.
+            var voiceActors = RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
+                .SelectMany(xref => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(xref.CharID))
+                .Select(xref => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(xref.SeiyuuID))
+                .Where(va => !string.IsNullOrEmpty(va?.PicName));
+            // Get all staff members working on this anime.
+            var staffMembers = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(AnimeID)
+                .Select(xref => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(xref.CreatorID))
+                .Where(staff => !string.IsNullOrEmpty(staff?.PicName));
+            // Concatenate the streams into a single list.
+            var creators = voiceActors
+                .Concat(staffMembers)
+                .DistinctBy(creator => creator.SeiyuuID)
+                .ToList();
+
+            if (creators.Any())
+                requests.AddRange(creators.Select(va => new ImageDownloadRequest(va, ForceDownload, _handler.ImageServerUrl)));
+            else
+                Logger.LogWarning(FailedToDownloadNoID, "creators for anime", AnimeID);
+        }
+
+        for (var index = 0; index < requests.Count; index++)
+        {
+            // Update the queue state.
+            if (index == characterOffset)
+                ShokoService.CmdProcessorImages.QueueState = PrettyDescriptionCharacters;
+            else if (index == creatorOffset)
+                ShokoService.CmdProcessorImages.QueueState = PrettyDescriptionCreators;
+
+            // Process the
+            var req = requests[index];
+            try
+            {
+                // If this has any issues, it will throw an exception, so the catch below will handle it.
+                Logger.LogInformation("Image downloading to {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                var result = req.DownloadNow();
+                switch (result)
+                {
+                    case ImageDownloadResult.Success:
+                        Logger.LogInformation("Image downloaded; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                        break;
+                    case ImageDownloadResult.Cached:
+                        Logger.LogDebug("Image already in cache; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                        break;
+                    case ImageDownloadResult.Failure:
+                        Logger.LogError("Image failed to download; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                        break;
+                    case ImageDownloadResult.RemovedResource:
+                        Logger.LogWarning("Image failed to download and the local entry has been removed; {FilePath} from {DownloadUrl}", req.FilePath,
+                            req.DownloadUrl);
+                        break;
+                    case ImageDownloadResult.InvalidResource:
+                        Logger.LogError("Image failed to download and the local entry could not be removed; {FilePath} from {DownloadUrl}", req.FilePath,
+                            req.DownloadUrl);
+                        break;
+                }
+            }
+            catch (WebException e)
+            {
+                Logger.LogWarning(
+                    "Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
+                    req.DownloadUrl,
+                    AnimeID,
+                    e.Message);
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e,
+                    "Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
+                    req.DownloadUrl,
+                    AnimeID,
+                    e);
+            }
         }
     }
 

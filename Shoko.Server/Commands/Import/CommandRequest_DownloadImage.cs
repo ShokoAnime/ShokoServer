@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Text.Json.Serialization;
 using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
@@ -24,7 +25,7 @@ public class CommandRequest_DownloadImage : CommandRequestImplementation
 
     private const string FailedToDownloadNoImpl = "Image failed to download: No implementation found for {EntityType}";
 
-    [XmlIgnore]
+    [XmlIgnore][JsonIgnore]
     private readonly IUDPConnectionHandler _handler;
 
     public int EntityID { get; set; }
@@ -33,7 +34,7 @@ public class CommandRequest_DownloadImage : CommandRequestImplementation
 
     public bool ForceDownload { get; set; }
 
-    [XmlIgnore]
+    [XmlIgnore][JsonIgnore]
     public ImageEntityType EntityTypeEnum
     {
         get => (ImageEntityType)EntityType;
@@ -73,158 +74,153 @@ public class CommandRequest_DownloadImage : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_DownloadImage: {EntityID}", EntityID);
         ImageDownloadRequest req = null;
+
+        switch (EntityTypeEnum)
+        {
+            case ImageEntityType.TvDB_Episode:
+                var ep = RepoFactory.TvDB_Episode.GetByID(EntityID);
+                if (string.IsNullOrEmpty(ep?.Filename))
+                {
+                    Logger.LogWarning(FailedToDownloadNoID, "TvDB episode", EntityID);
+                    return;
+                }
+
+                req = new ImageDownloadRequest(ep, ForceDownload);
+                break;
+
+            case ImageEntityType.TvDB_FanArt:
+                var fanart = RepoFactory.TvDB_ImageFanart.GetByID(EntityID);
+                if (string.IsNullOrEmpty(fanart?.BannerPath))
+                {
+                    Logger.LogWarning(FailedToDownloadNoID, "TvDB fanart", EntityID);
+                    RemoveImageRecord();
+                    return;
+                }
+
+                req = new ImageDownloadRequest(fanart, ForceDownload);
+                break;
+
+            case ImageEntityType.TvDB_Cover:
+                var poster = RepoFactory.TvDB_ImagePoster.GetByID(EntityID);
+                if (string.IsNullOrEmpty(poster?.BannerPath))
+                {
+                    Logger.LogWarning(FailedToDownloadNoID, "TvDB poster", EntityID);
+                    RemoveImageRecord();
+                    return;
+                }
+
+                req = new ImageDownloadRequest(poster, ForceDownload);
+                break;
+
+            case ImageEntityType.TvDB_Banner:
+                var wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(EntityID);
+                if (string.IsNullOrEmpty(wideBanner?.BannerPath))
+                {
+                    Logger.LogWarning(FailedToDownloadNoID, "TvDB banner", EntityID);
+                    RemoveImageRecord();
+                    return;
+                }
+
+                req = new ImageDownloadRequest(wideBanner, ForceDownload);
+                break;
+
+            case ImageEntityType.MovieDB_Poster:
+                var moviePoster = RepoFactory.MovieDB_Poster.GetByID(EntityID);
+                if (string.IsNullOrEmpty(moviePoster?.URL))
+                {
+                    Logger.LogWarning(FailedToDownloadNoID, "TMDB poster", EntityID);
+                    RemoveImageRecord();
+                    return;
+                }
+
+                req = new ImageDownloadRequest(moviePoster, ForceDownload);
+                break;
+
+            case ImageEntityType.MovieDB_FanArt:
+                var movieFanart = RepoFactory.MovieDB_Fanart.GetByID(EntityID);
+                if (string.IsNullOrEmpty(movieFanart?.URL))
+                {
+                    Logger.LogWarning(FailedToDownloadNoID, "TMDB fanart", EntityID);
+                    RemoveImageRecord();
+                    return;
+                }
+
+                req = new ImageDownloadRequest(movieFanart, ForceDownload);
+                break;
+
+            case ImageEntityType.AniDB_Cover:
+                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(EntityID);
+                if (anime == null)
+                {
+                    Logger.LogWarning(FailedToDownloadNoID, "AniDB anime poster", EntityID);
+                    return;
+                }
+
+                req = new ImageDownloadRequest(anime, ForceDownload, _handler.ImageServerUrl);
+                break;
+
+            case ImageEntityType.AniDB_Character:
+                var chr = RepoFactory.AniDB_Character.GetByCharID(EntityID);
+                if (chr == null)
+                {
+                    Logger.LogWarning(FailedToDownloadNoID, "AniDB character", EntityID);
+                    return;
+                }
+
+                req = new ImageDownloadRequest(chr, ForceDownload, _handler.ImageServerUrl);
+                break;
+
+            case ImageEntityType.AniDB_Creator:
+                var va = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(EntityID);
+                if (va == null)
+                {
+                    Logger.LogWarning(FailedToDownloadNoID, "AniDB Seiyuu", EntityID);
+                    return;
+                }
+
+                req = new ImageDownloadRequest(va, ForceDownload, _handler.ImageServerUrl);
+                break;
+        }
+
+        if (req == null)
+        {
+            Logger.LogWarning(FailedToDownloadNoImpl, EntityTypeEnum.ToString());
+            return;
+        }
+
         try
         {
-            switch (EntityTypeEnum)
+            // If this has any issues, it will throw an exception, so the catch below will handle it.
+            var result = req.DownloadNow();
+            switch (result)
             {
-                case ImageEntityType.TvDB_Episode:
-                    var ep = RepoFactory.TvDB_Episode.GetByID(EntityID);
-                    if (string.IsNullOrEmpty(ep?.Filename))
-                    {
-                        Logger.LogWarning(FailedToDownloadNoID, "TvDB episode", EntityID);
-                        return;
-                    }
-
-                    req = new ImageDownloadRequest(ep, ForceDownload);
+                case ImageDownloadResult.Success:
+                    Logger.LogInformation("Image downloaded; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
                     break;
-
-                case ImageEntityType.TvDB_FanArt:
-                    var fanart = RepoFactory.TvDB_ImageFanart.GetByID(EntityID);
-                    if (string.IsNullOrEmpty(fanart?.BannerPath))
-                    {
-                        Logger.LogWarning(FailedToDownloadNoID, "TvDB fanart", EntityID);
-                        RemoveImageRecord();
-                        return;
-                    }
-
-                    req = new ImageDownloadRequest(fanart, ForceDownload);
+                case ImageDownloadResult.Cached:
+                    Logger.LogDebug("Image already in cache; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
                     break;
-
-                case ImageEntityType.TvDB_Cover:
-                    var poster = RepoFactory.TvDB_ImagePoster.GetByID(EntityID);
-                    if (string.IsNullOrEmpty(poster?.BannerPath))
-                    {
-                        Logger.LogWarning(FailedToDownloadNoID, "TvDB poster", EntityID);
-                        RemoveImageRecord();
-                        return;
-                    }
-
-                    req = new ImageDownloadRequest(poster, ForceDownload);
+                case ImageDownloadResult.Failure:
+                    Logger.LogError("Image failed to download; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
                     break;
-
-                case ImageEntityType.TvDB_Banner:
-                    var wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(EntityID);
-                    if (string.IsNullOrEmpty(wideBanner?.BannerPath))
-                    {
-                        Logger.LogWarning(FailedToDownloadNoID, "TvDB banner", EntityID);
-                        RemoveImageRecord();
-                        return;
-                    }
-
-                    req = new ImageDownloadRequest(wideBanner, ForceDownload);
+                case ImageDownloadResult.RemovedResource:
+                    Logger.LogWarning("Image failed to download and the local entry has been removed; {FilePath} from {DownloadUrl}", req.FilePath,
+                        req.DownloadUrl);
                     break;
-
-                case ImageEntityType.MovieDB_Poster:
-                    var moviePoster = RepoFactory.MovieDB_Poster.GetByID(EntityID);
-                    if (string.IsNullOrEmpty(moviePoster?.URL))
-                    {
-                        Logger.LogWarning(FailedToDownloadNoID, "TMDB poster", EntityID);
-                        RemoveImageRecord();
-                        return;
-                    }
-
-                    req = new ImageDownloadRequest(moviePoster, ForceDownload);
+                case ImageDownloadResult.InvalidResource:
+                    Logger.LogError("Image failed to download and the local entry could not be removed; {FilePath} from {DownloadUrl}", req.FilePath,
+                        req.DownloadUrl);
                     break;
-
-                case ImageEntityType.MovieDB_FanArt:
-                    var movieFanart = RepoFactory.MovieDB_Fanart.GetByID(EntityID);
-                    if (string.IsNullOrEmpty(movieFanart?.URL))
-                    {
-                        Logger.LogWarning(FailedToDownloadNoID, "TMDB fanart", EntityID);
-                        RemoveImageRecord();
-                        return;
-                    }
-
-                    req = new ImageDownloadRequest(movieFanart, ForceDownload);
-                    break;
-
-                case ImageEntityType.AniDB_Cover:
-                    var anime = RepoFactory.AniDB_Anime.GetByAnimeID(EntityID);
-                    if (anime == null)
-                    {
-                        Logger.LogWarning(FailedToDownloadNoID, "AniDB anime poster", EntityID);
-                        return;
-                    }
-
-                    req = new ImageDownloadRequest(anime, ForceDownload, _handler.ImageServerUrl);
-                    break;
-
-                case ImageEntityType.AniDB_Character:
-                    var chr = RepoFactory.AniDB_Character.GetByCharID(EntityID);
-                    if (chr == null)
-                    {
-                        Logger.LogWarning(FailedToDownloadNoID, "AniDB character", EntityID);
-                        return;
-                    }
-
-                    req = new ImageDownloadRequest(chr, ForceDownload, _handler.ImageServerUrl);
-                    break;
-
-                case ImageEntityType.AniDB_Creator:
-                    var va = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(EntityID);
-                    if (va == null)
-                    {
-                        Logger.LogWarning(FailedToDownloadNoID, "AniDB Seiyuu", EntityID);
-                        return;
-                    }
-
-                    req = new ImageDownloadRequest(va, ForceDownload, _handler.ImageServerUrl);
-                    break;
-            }
-
-            if (req == null)
-            {
-                Logger.LogWarning(FailedToDownloadNoImpl, EntityTypeEnum.ToString());
-                return;
-            }
-
-            try
-            {
-                // If this has any issues, it will throw an exception, so the catch below will handle it.
-                var result = req.DownloadNow();
-                switch (result)
-                {
-                    case ImageDownloadResult.Success:
-                        Logger.LogInformation("Image downloaded; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
-                        break;
-                    case ImageDownloadResult.Cached:
-                        Logger.LogDebug("Image already in cache; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
-                        break;
-                    case ImageDownloadResult.Failure:
-                        Logger.LogError("Image failed to download; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
-                        break;
-                    case ImageDownloadResult.RemovedResource:
-                        Logger.LogWarning("Image failed to download and the local entry has been removed; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
-                        break;
-                    case ImageDownloadResult.InvalidResource:
-                        Logger.LogError("Image failed to download and the local entry could not be removed; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
-                        break;
-                }
-            }
-            catch (WebException e)
-            {
-                Logger.LogWarning("Error processing CommandRequest_DownloadImage: {Url} ({EntityID}) - {Message}",
-                    req.DownloadUrl,
-                    EntityID,
-                    e.Message);
-                // Remove the record if the image doesn't exist or can't download
-                RemoveImageRecord();
             }
         }
-        catch (Exception ex)
+        catch (WebException e)
         {
-            Logger.LogWarning("Error processing CommandRequest_DownloadImage: {Url} ({EntityID}) - {Ex}", req?.DownloadUrl,
-                EntityID, ex);
+            Logger.LogWarning("Error processing CommandRequest_DownloadImage: {Url} ({EntityID}) - {Message}",
+                req.DownloadUrl,
+                EntityID,
+                e.Message);
+            // Remove the record if the image doesn't exist or can't download
+            RemoveImageRecord();
         }
     }
 

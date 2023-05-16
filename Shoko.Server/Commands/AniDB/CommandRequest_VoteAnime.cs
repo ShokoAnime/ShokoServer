@@ -36,22 +36,15 @@ public class CommandRequest_VoteAnime : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_Vote: {CommandID}", CommandID);
 
-        try
-        {
-            var vote = _requestFactory.Create<RequestVoteAnime>(
-                r =>
-                {
-                    r.Temporary = VoteType == (int)AniDBVoteType.AnimeTemp;
-                    r.Value = Convert.ToDouble(VoteValue);
-                    r.AnimeID = AnimeID;
-                }
-            );
-            vote.Execute();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error processing CommandRequest_Vote: {CommandID}", CommandID);
-        }
+        var vote = _requestFactory.Create<RequestVoteAnime>(
+            r =>
+            {
+                r.Temporary = VoteType == (int)AniDBVoteType.AnimeTemp;
+                r.Value = Convert.ToDouble(VoteValue);
+                r.AnimeID = AnimeID;
+            }
+        );
+        vote.Execute();
     }
 
     /// <summary>

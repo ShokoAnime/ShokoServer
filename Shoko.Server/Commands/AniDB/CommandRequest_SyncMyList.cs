@@ -46,104 +46,97 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_SyncMyList");
 
-        try
+        if (!ShouldRun()) return;
+
+        // Get the list from AniDB
+        var request = _requestFactory.Create<RequestMyList>(
+            r =>
+            {
+                r.Username = _settings.AniDb.Username;
+                r.Password = _settings.AniDb.Password;
+            }
+        );
+        var response = request.Execute();
+
+        if (response.Response == null)
         {
-            if (!ShouldRun()) return;
-
-            // Get the list from AniDB
-            var request = _requestFactory.Create<RequestMyList>(
-                r =>
-                {
-                    r.Username = _settings.AniDb.Username;
-                    r.Password = _settings.AniDb.Password;
-                }
-            );
-            var response = request.Execute();
-
-            if (response.Response == null)
-            {
-                Logger.LogWarning("AniDB did not return a successful code: {Code}", response.Code);
-                return;
-            }
-
-            var serialized = JsonConvert.SerializeObject(response.Response, Formatting.Indented);
-            Directory.CreateDirectory(Utils.MyListDirectory);
-            File.WriteAllText(Path.Join(Utils.MyListDirectory, "mylist.json"), serialized);
-
-            var totalItems = 0;
-            var watchedItems = 0;
-            var modifiedItems = 0;
-
-            // Add missing files on AniDB
-            // these patterns have been tested
-            var onlineFiles = response.Response.Where(a => a.FileID is not null or 0).ToLookup(a => a.FileID.Value);
-            var localFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
-
-            var missingFiles = AddMissingFiles(localFiles, onlineFiles);
-
-            var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
-            var modifiedSeries = new LinkedHashSet<SVR_AnimeSeries>();
-
-            // Remove Missing Files and update watched states (single loop)
-            var filesToRemove = new HashSet<int>();
-
-            foreach (var myItem in onlineFiles.SelectMany(a => a))
-            {
-                try
-                {
-                    totalItems++;
-                    if (myItem.ViewedAt.HasValue) watchedItems++;
-
-                    // the null is checked in the collection
-                    var aniFile = RepoFactory.AniDB_File.GetByFileID(myItem!.FileID!.Value);
-
-                    // the AniDB_File should never have a null hash, but just in case
-                    var vl = aniFile?.Hash == null ? null : RepoFactory.VideoLocal.GetByHash(aniFile.Hash);
-
-                    if (vl != null)
-                    {
-                        // We have it, so process watched states and update storage states if needed
-                        modifiedItems = ProcessStates(aniDBUsers, vl, myItem, modifiedItems, modifiedSeries);
-                        continue;
-                    }
-
-                    // We don't have the file
-                    // If it's local only, then we don't update. The rest update in one way or another
-                    if (_settings.AniDb.MyList_DeleteType == AniDBFileDeleteType.DeleteLocalOnly)
-                        continue;
-                    filesToRemove.Add(myItem.FileID.Value);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "A MyList Item threw an error while syncing");
-                }
-            }
-
-            // Actually remove the files
-            if (filesToRemove.Count > 0)
-            {
-                foreach (var id in filesToRemove)
-                {
-                    var deleteCommand =
-                        _commandFactory.Create<CommandRequest_DeleteFileFromMyList>(a => a.FileID = id);
-                    deleteCommand.Save();
-                }
-            }
-
-            if (filesToRemove.Count > 0)
-                Logger.LogInformation("MYLIST Missing Files: {Count} added to queue for deletion",
-                    filesToRemove.Count);
-
-            modifiedSeries.ForEach(a => a.QueueUpdateStats());
-
-            Logger.LogInformation(
-                "Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {WatchedItems} Watched, {ModifiedItems} Modified",
-                totalItems, missingFiles, filesToRemove.Count, watchedItems, modifiedItems);
+            Logger.LogWarning("AniDB did not return a successful code: {Code}", response.Code);
+            return;
         }
-        catch (Exception ex)
+
+        var serialized = JsonConvert.SerializeObject(response.Response, Formatting.Indented);
+        Directory.CreateDirectory(Utils.MyListDirectory);
+        File.WriteAllText(Path.Join(Utils.MyListDirectory, "mylist.json"), serialized);
+
+        var totalItems = 0;
+        var watchedItems = 0;
+        var modifiedItems = 0;
+
+        // Add missing files on AniDB
+        // these patterns have been tested
+        var onlineFiles = response.Response.Where(a => a.FileID is not null and not 0).ToLookup(a => a.FileID.Value);
+        var localFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
+
+        var missingFiles = AddMissingFiles(localFiles, onlineFiles);
+
+        var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+        var modifiedSeries = new LinkedHashSet<SVR_AnimeSeries>();
+
+        // Remove Missing Files and update watched states (single loop)
+        var filesToRemove = new HashSet<int>();
+
+        foreach (var myItem in onlineFiles.SelectMany(a => a))
         {
-            Logger.LogError(ex, "Error processing CommandRequest_SyncMyList");
+            try
+            {
+                totalItems++;
+                if (myItem.ViewedAt.HasValue) watchedItems++;
+
+                // the null is checked in the collection
+                var aniFile = RepoFactory.AniDB_File.GetByFileID(myItem!.FileID!.Value);
+
+                // the AniDB_File should never have a null hash, but just in case
+                var vl = aniFile?.Hash == null ? null : RepoFactory.VideoLocal.GetByHash(aniFile.Hash);
+
+                if (vl != null)
+                {
+                    // We have it, so process watched states and update storage states if needed
+                    modifiedItems = ProcessStates(aniDBUsers, vl, myItem, modifiedItems, modifiedSeries);
+                    continue;
+                }
+
+                // We don't have the file
+                // If it's local only, then we don't update. The rest update in one way or another
+                if (_settings.AniDb.MyList_DeleteType == AniDBFileDeleteType.DeleteLocalOnly)
+                    continue;
+                filesToRemove.Add(myItem.FileID.Value);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "A MyList Item threw an error while syncing");
+            }
         }
+
+        // Actually remove the files
+        if (filesToRemove.Count > 0)
+        {
+            foreach (var id in filesToRemove)
+            {
+                var deleteCommand =
+                    _commandFactory.Create<CommandRequest_DeleteFileFromMyList>(a => a.FileID = id);
+                deleteCommand.Save();
+            }
+        }
+
+        if (filesToRemove.Count > 0)
+            Logger.LogInformation("MYLIST Missing Files: {Count} added to queue for deletion",
+                filesToRemove.Count);
+
+        modifiedSeries.ForEach(a => a.QueueUpdateStats());
+
+        Logger.LogInformation(
+            "Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {WatchedItems} Watched, {ModifiedItems} Modified",
+            totalItems, missingFiles, filesToRemove.Count, watchedItems, modifiedItems);
     }
 
     private int ProcessStates(List<SVR_JMMUser> aniDBUsers, SVR_VideoLocal vl, ResponseMyList myitem,

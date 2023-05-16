@@ -38,62 +38,49 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_GetCalendar");
 
-        try
+        var settings = _settingsProvider.GetSettings();
+        // we will always assume that an anime was downloaded via http first
+
+        var sched =
+            RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
+        if (sched == null)
         {
-            var settings = _settingsProvider.GetSettings();
-            // we will always assume that an anime was downloaded via http first
-
-            var sched =
-                RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
-            if (sched == null)
+            sched = new ScheduledUpdate
             {
-                sched = new ScheduledUpdate
-                {
-                    UpdateType = (int)ScheduledUpdateType.AniDBCalendar, UpdateDetails = string.Empty
-                };
-            }
-            else
+                UpdateType = (int)ScheduledUpdateType.AniDBCalendar, UpdateDetails = string.Empty
+            };
+        }
+        else
+        {
+            var freqHours = Utils.GetScheduledHours(settings.AniDb.Calendar_UpdateFrequency);
+
+            // if we have run this in the last 12 hours and are not forcing it, then exit
+            var tsLastRun = DateTime.Now - sched.LastUpdate;
+            if (tsLastRun.TotalHours < freqHours)
             {
-                var freqHours = Utils.GetScheduledHours(settings.AniDb.Calendar_UpdateFrequency);
-
-                // if we have run this in the last 12 hours and are not forcing it, then exit
-                var tsLastRun = DateTime.Now - sched.LastUpdate;
-                if (tsLastRun.TotalHours < freqHours)
-                {
-                    if (!ForceRefresh)
-                    {
-                        return;
-                    }
-                }
+                if (!ForceRefresh) return;
             }
+        }
 
-            sched.LastUpdate = DateTime.Now;
+        sched.LastUpdate = DateTime.Now;
 
-            var request = _requestFactory.Create<RequestCalendar>();
-            var response = request.Execute();
-            RepoFactory.ScheduledUpdate.Save(sched);
+        var request = _requestFactory.Create<RequestCalendar>();
+        var response = request.Execute();
+        RepoFactory.ScheduledUpdate.Save(sched);
 
-            if (response.Response?.Next25Anime != null)
-            {
-                foreach (var cal in response.Response.Next25Anime)
-                {
-                    GetAnime(cal, settings);
-                }
-            }
-
-            if (response.Response?.Previous25Anime == null)
-            {
-                return;
-            }
-
-            foreach (var cal in response.Response.Previous25Anime)
+        if (response.Response?.Next25Anime != null)
+        {
+            foreach (var cal in response.Response.Next25Anime)
             {
                 GetAnime(cal, settings);
             }
         }
-        catch (Exception ex)
+
+        if (response.Response?.Previous25Anime == null) return;
+
+        foreach (var cal in response.Response.Previous25Anime)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_GetCalendar");
+            GetAnime(cal, settings);
         }
     }
 
