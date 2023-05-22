@@ -38,7 +38,7 @@ public partial class ShokoServiceImplementation
         if (user is null)
             return new();
 
-        var series = SeriesSearch.SearchSeries(user, query, int.MaxValue,
+        var series = SeriesSearch.SearchSeries(user, query, 200,
             SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Fuzzy);
 
         return series.Select(a => a.Result).Select(ser => ser.GetUserContract(uid)).ToList();
