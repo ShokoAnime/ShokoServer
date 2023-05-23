@@ -80,6 +80,7 @@ public static class TraktStatusCodes
     public const int Success = 200;
     public const int Success_Post = 201;
     public const int Success_Delete = 204;
+    public const int Awaiting_Auth = 400;
 
     public const int Bad_Request = 400;
     public const int Unauthorized = 401;

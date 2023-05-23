@@ -140,6 +140,105 @@ public class TraktTVHelper
 
         return ret;
     }
+    
+    // We need SendDataAuth separately to catch HTTP 400 because it's "pending auth", not an actual error
+     private int SendDataAuth(string uri, string json, string verb, Dictionary<string, string> headers,
+        ref string webResponse)
+    {
+        var ret = 400;
+
+        try
+        {
+            var data = new UTF8Encoding().GetBytes(json);
+            _logger.LogTrace("Trakt SEND AUTH Data\\nVerb: {Verb}\\nuri: {Uri}\\njson: {Json}", verb, uri, json);
+
+            var request = (HttpWebRequest)WebRequest.Create(uri);
+            request.KeepAlive = true;
+
+            request.Method = verb;
+            request.ContentLength = data.Length;
+            request.Timeout = 120000;
+            request.ContentType = "application/json";
+            request.UserAgent = "JMM";
+            foreach (var header in headers)
+            {
+                request.Headers.Add(header.Key, header.Value);
+            }
+
+            // post to trakt
+            var postStream = request.GetRequestStream();
+            postStream.Write(data, 0, data.Length);
+
+            // get the response
+            var response = (HttpWebResponse)request.GetResponse();
+
+            var responseStream = response.GetResponseStream();
+            if (responseStream == null)
+            {
+                return ret;
+            }
+
+            var reader = new StreamReader(responseStream);
+            var strResponse = reader.ReadToEnd();
+
+            var statusCode = (int)response.StatusCode;
+
+            // cleanup
+            postStream.Close();
+            responseStream.Close();
+            reader.Close();
+            response.Close();
+
+            webResponse = strResponse;
+            _logger.LogTrace("Trakt SEND AUTH Data - Response\nStatus Code:{ StatusCode}\nResponse: {Response}", statusCode,
+                strResponse);
+
+            return statusCode;
+        }
+        catch (WebException webEx)
+        {
+            if (webEx.Status == WebExceptionStatus.ProtocolError)
+            {
+                if (webEx.Response is HttpWebResponse response && response.StatusCode != HttpStatusCode.BadRequest)
+                {
+                    _logger.LogError(webEx, "Error in SendDataAuth: {StatusCode}", (int)response.StatusCode);
+                    ret = (int)response.StatusCode;
+
+                    try
+                    {
+                        var responseStream2 = response.GetResponseStream();
+                        if (responseStream2 == null)
+                        {
+                            return ret;
+                        }
+
+                        var reader2 = new StreamReader(responseStream2);
+                        webResponse = reader2.ReadToEnd();
+                        _logger.LogError("Error in SendDataAuth: {Response}", webResponse);
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+            }
+            
+            if (!webEx.Message.Contains("400"))
+            {
+                _logger.LogError(webEx, "{Ex}", webEx.ToString());
+            }
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message.Contains("400"))
+            {
+                _logger.LogInformation(ex, "Authorization for Shoko still pending, please enter the code displayed by clicking the link");
+            }
+            _logger.LogError(ex, "Error in SendDataAuth");
+        }
+
+        return ret;
+    }
 
     private string GetFromTrakt(string uri)
     {
@@ -245,8 +344,8 @@ public class TraktTVHelper
 
             var retData = string.Empty;
             TraktTVRateLimiter.Instance.EnsureRate();
-            var response = SendData(TraktURIs.Oauth, json, "POST", headers, ref retData);
-            if (response is TraktStatusCodes.Success or TraktStatusCodes.Success_Post)
+            var response = SendDataAuth(TraktURIs.Oauth, json, "POST", headers, ref retData);
+            if (response is TraktStatusCodes.Success or TraktStatusCodes.Success_Post or TraktStatusCodes.Awaiting_Auth)
             {
                 var loginResponse = retData.FromJSON<TraktAuthToken>();
 
@@ -319,8 +418,9 @@ public class TraktTVHelper
 
             var retData = string.Empty;
             TraktTVRateLimiter.Instance.EnsureRate();
-            var response = SendData(TraktURIs.OAuthDeviceCode, json, "POST", headers, ref retData);
-            if (response != TraktStatusCodes.Success && response != TraktStatusCodes.Success_Post)
+            var response = SendDataAuth(TraktURIs.OAuthDeviceCode, json, "POST", headers, ref retData);
+            // We need to catch HTTP "400" here, as it's not "bad request" but "awaiting authorization" from the API definition
+            if (response != TraktStatusCodes.Success && response != TraktStatusCodes.Success_Post && response != TraktStatusCodes.Awaiting_Auth)
             {
                 throw new Exception($"Error returned from Trakt: {response}");
             }
@@ -333,8 +433,13 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
+            if (ex.Message.Contains("400"))
+            {
+                // Signaling the user that auth is still pending
+                _logger.LogInformation(ex, "Authorization for Shoko pending, please enter the code displayed by clicking the link");
+            }
             _logger.LogError(ex, "Error in TraktTVHelper.GetTraktDeviceCode");
-            throw;
+                throw;
         }
     }
 
@@ -368,7 +473,7 @@ public class TraktTVHelper
 
                 var retData = string.Empty;
                 TraktTVRateLimiter.Instance.EnsureRate();
-                var response = SendData(TraktURIs.OAuthDeviceToken, json, "POST", headers, ref retData);
+                var response = SendDataAuth(TraktURIs.OAuthDeviceToken, json, "POST", headers, ref retData);
                 if (response == TraktStatusCodes.Success)
                 {
                     var settings = _settingsProvider.GetSettings();
@@ -391,7 +496,13 @@ public class TraktTVHelper
                     Thread.Sleep(TimeSpan.FromSeconds(1));
                 }
 
-                if (response != TraktStatusCodes.Bad_Request && response != TraktStatusCodes.Rate_Limit_Exceeded)
+                if (response == TraktStatusCodes.Awaiting_Auth)
+                {
+                    // Signaling the user that auth is still pending
+                    _logger.LogInformation (response, "Authorization for Shoko pending, please enter the code displayed by clicking the link");
+                }
+
+                if (response != TraktStatusCodes.Awaiting_Auth && response != TraktStatusCodes.Rate_Limit_Exceeded)
                 {
                     throw new Exception($"Error returned from Trakt: {response}");
                 }
