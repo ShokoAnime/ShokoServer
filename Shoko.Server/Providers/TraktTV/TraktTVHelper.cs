@@ -342,6 +342,13 @@ public class TraktTVHelper
                 // Signaling the user that auth is still pending
                 _logger.LogInformation(ex, "Authorization for Shoko pending, please enter the code displayed by clicking the link");
             }
+
+            if (ex.Message.Contains("Expired"))
+            {
+                // Signaling the user that Token has expired and he needs to restart
+                _logger.LogInformation(ex, "Trakt token has expired, please restart the pairing process");
+            }
+            
             _logger.LogError(ex, "Error in TraktTVHelper.GetTraktDeviceCode");
                 throw;
         }
