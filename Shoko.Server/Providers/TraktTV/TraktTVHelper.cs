@@ -7,7 +7,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using NHibernate;
 using Sentry;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
@@ -21,6 +20,7 @@ using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+using ISession = NHibernate.ISession;
 
 namespace Shoko.Server.Providers.TraktTV;
 
