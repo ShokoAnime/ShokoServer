@@ -1,0 +1,18 @@
+{
+  "author": "The Shoko Team",
+  "version": "1",
+  "values": {
+    "color-background": "40 46 56",
+    "color-background-alt": "44 51 62",
+    "color-background-nav": "53 61 74",
+    "color-background-border": "33 36 43",
+    "color-highlight-1": "68 163 255",
+    "color-highlight-2": "16 196 105",
+    "color-highlight-3": "255 108 108",
+    "color-highlight-4": "249 200 81",
+    "color-highlight-5": "185 129 255",
+    "color-font-main": "207 216 227",
+    "color-font-alt": "1 15 28",
+    "color-image-overlay": "22 27 39"
+  }
+}

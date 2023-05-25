@@ -224,22 +224,37 @@ public static class APIExtensions
 #if DEBUG
         app.UseDeveloperExceptionPage();
 #endif
-        var dir = new DirectoryInfo(Path.Combine(Utils.ApplicationPath, "webui"));
-        if (!dir.Exists)
+        // Create web ui directory and add the bootstrapper.
+        var webUIDir = new DirectoryInfo(Path.Combine(Utils.ApplicationPath, "webui"));
+        if (!webUIDir.Exists)
         {
-            dir.Create();
+            webUIDir.Create();
 
-            var backup = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
+            var backupDir = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
                 "webui"));
-            if (backup.Exists)
+            if (backupDir.Exists)
             {
-                CopyFilesRecursively(backup, dir);
+                CopyFilesRecursively(backupDir, webUIDir);
+            }
+        }
+
+        // Create themes directory and add the default theme.
+        var themesDir = new DirectoryInfo(Path.Combine(Utils.ApplicationPath, "themes"));
+        if (!themesDir.Exists)
+        {
+            themesDir.Create();
+
+            var backupDir = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
+                "themes"));
+            if (backupDir.Exists)
+            {
+                CopyFilesRecursively(backupDir, themesDir);
             }
         }
 
         app.UseStaticFiles(new StaticFileOptions
         {
-            FileProvider = new WebUiFileProvider(dir.FullName), RequestPath = "/webui", ServeUnknownFileTypes = true,
+            FileProvider = new WebUiFileProvider(webUIDir.FullName), RequestPath = "/webui", ServeUnknownFileTypes = true,
             OnPrepareResponse = ctx =>
             {
                 ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
