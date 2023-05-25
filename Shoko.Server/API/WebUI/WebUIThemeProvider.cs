@@ -120,7 +120,11 @@ public static class WebUIThemeProvider
             // Save the updated theme file if we're not pre-viewing.
             if (!preview)
             {
-                var filePath = Path.Combine(Utils.ApplicationPath, "themes", theme.FileName);
+                var dirPath = Path.Combine(Utils.ApplicationPath, "themes");
+                if (!Directory.Exists(dirPath))
+                    Directory.CreateDirectory(dirPath);
+
+                var filePath = Path.Combine(dirPath, theme.FileName);
                 await File.WriteAllTextAsync(filePath, content);
 
                 if (ThemeDict != null && !ThemeDict.TryAdd(theme.ID, updatedTheme))
@@ -190,7 +194,11 @@ public static class WebUIThemeProvider
             // Save the new theme file if we're not pre-viewing.
             if (!preview)
             {
-                var filePath = Path.Combine(Utils.ApplicationPath, "themes", fileName + extName);
+                var dirPath = Path.Combine(Utils.ApplicationPath, "themes");
+                if (!Directory.Exists(dirPath))
+                    Directory.CreateDirectory(dirPath);
+
+                var filePath = Path.Combine(dirPath, fileName + extName);
                 await File.WriteAllTextAsync(filePath, content);
 
                 if (ThemeDict != null && !ThemeDict.TryAdd(id, theme))
