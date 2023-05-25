@@ -345,7 +345,7 @@ public class TraktTVHelper
 
             if (ex.Message.Contains("Expired"))
             {
-                // Signaling the user that Token has expired and he needs to restart
+                // Signaling the user that Token has expired and restart is needed
                 _logger.LogInformation(ex, "Trakt token has expired, please restart the pairing process");
             }
             
@@ -401,19 +401,23 @@ public class TraktTVHelper
                     break;
                 }
 
-                if (response == TraktStatusCodes.Rate_Limit_Exceeded)
+                switch (response)
                 {
-                    //Temporarily increase poll interval
-                    Thread.Sleep(TimeSpan.FromSeconds(1));
+                    case TraktStatusCodes.Rate_Limit_Exceeded:
+                        //Temporarily increase poll interval
+                        Thread.Sleep(TimeSpan.FromSeconds(1));
+                        break;
+                    case TraktStatusCodes.Awaiting_Auth:
+                        // Signaling the user that auth is still pending
+                        _logger.LogInformation (response, "Authorization for Shoko pending, please enter the code displayed by clicking the link");
+                        break;
+                    case TraktStatusCodes.Token_Expired:
+                        // Signaling the user that Token has expired and restart is needed
+                        _logger.LogInformation(response, "Trakt token has expired, please restart the pairing process");
+                        break;
                 }
 
-                if (response == TraktStatusCodes.Awaiting_Auth)
-                {
-                    // Signaling the user that auth is still pending
-                    _logger.LogInformation (response, "Authorization for Shoko pending, please enter the code displayed by clicking the link");
-                }
-
-                if (response != TraktStatusCodes.Awaiting_Auth && response != TraktStatusCodes.Rate_Limit_Exceeded)
+                if (response != TraktStatusCodes.Awaiting_Auth && response != TraktStatusCodes.Rate_Limit_Exceeded && response != TraktStatusCodes.Token_Expired)
                 {
                     throw new Exception($"Error returned from Trakt: {response}");
                 }
