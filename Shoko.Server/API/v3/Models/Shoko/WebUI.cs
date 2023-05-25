@@ -10,6 +10,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.WebUI;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -19,6 +20,78 @@ namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class WebUI
 {
+    public class WebUITheme
+    {
+        /// <summary>
+        /// The theme id is inferred from the filename of the theme definition file.
+        /// </summary>
+        /// <remarks>
+        /// Only JSON-files with an alphanumerical filename will be checked if they're themes. All other files will be skipped outright.
+        /// </remarks>
+        public readonly string ID;
+
+        /// <summary>
+        /// The display name of the theme.
+        /// </summary>
+        public readonly string Name;
+
+        /// <summary>
+        /// A short description about the theme, if available.
+        /// </summary>
+        public readonly string Description;
+
+        /// <summary>
+        /// The name of the author of the theme definition.
+        /// </summary>
+        public readonly string Author;
+
+        /// <summary>
+        /// Indicates this is only a preview of the theme metadata and the theme
+        /// might not actaully be installed yet.
+        /// </summary>
+        public readonly bool IsPreview;
+
+        /// <summary>
+        /// Indicates the theme is installed locally.
+        /// </summary>
+        public readonly bool IsInstalled;
+
+        /// <summary>
+        /// The theme version.
+        /// </summary>
+        public readonly Version Version;
+
+        /// <summary>
+        /// Author-defined tags assosiated with the theme.
+        /// </summary>
+        public readonly IReadOnlyList<string> Tags;
+
+        /// <summary>
+        /// The URL for where the theme definition lives. Used for updates.
+        /// </summary>
+        public readonly string URL;
+        
+        /// <summary>
+        /// The CSS representation of the theme.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public readonly string CSS;
+
+        public WebUITheme(WebUIThemeProvider.ThemeDefinition definition, bool withCSS = false)
+        {
+            ID = definition.ID;
+            Name = definition.Name;
+            Description = definition.Description;
+            Tags = definition.Tags;
+            Author = definition.Author;
+            Version = definition.Version;
+            URL = definition.URL;
+            IsPreview = definition.IsPreview;
+            IsInstalled = definition.IsInstalled;
+            CSS = withCSS ? definition.ToCSS() : null;
+        }
+    }
+
     public class WebUIGroupExtra
     {
         public WebUIGroupExtra(SVR_AnimeGroup group, SVR_AnimeSeries series, SVR_AniDB_Anime anime,
@@ -518,6 +591,26 @@ public class WebUI
             /// </summary>
             /// <value></value>
             public bool OrderByName { get; set; } = false;
+        }
+
+        /// <summary>
+        /// Represents the request body for adding or previewing a theme in the Web UI.
+        /// </summary>
+        public class WebUIAddThemeBody
+        {
+            /// <summary>
+            /// Gets or sets the URL from where to retrieve the theme.
+            /// </summary>
+            [Required]
+            [Url]
+            public string URL { get; set; }
+
+            /// <summary>
+            /// Gets or sets a flag indicating whether to enable preview mode for the theme.
+            /// If true, the theme will be previewed without being added permanently.
+            /// If false, the theme will be added as a permanent option in the Web UI.
+            /// </summary>
+            public bool Preview { get; set; } = false;
         }
     }
 }

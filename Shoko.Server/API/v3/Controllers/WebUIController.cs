@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -12,10 +13,13 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+using WebUITheme = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUITheme;
 using WebUIGroupExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIGroupExtra;
 using WebUISeriesExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesExtra;
 using WebUISeriesFileSummary = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary;
 using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
+using System.ComponentModel.DataAnnotations;
+using System.Net.Http;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -34,6 +38,145 @@ public class WebUIController : BaseController
     });
 
     private static readonly TimeSpan CacheTTL = TimeSpan.FromHours(1);
+
+    /// <summary>
+    /// Retrieves the list of available themes.
+    /// </summary>
+    /// <param name="forceRefresh">Flag indicating whether to force a refresh of the themes.</param>
+    /// <returns>The list of available themes.</returns>
+    [AllowAnonymous]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("Theme")]
+    public ActionResult<List<WebUITheme>> GetThemes([FromQuery] bool forceRefresh = false)
+    {
+        return WebUIThemeProvider.GetThemes(forceRefresh).Select(definition => new WebUITheme(definition)).ToList();
+    }
+
+    /// <summary>
+    /// Retrieves the CSS representation of the available themes.
+    /// </summary>
+    /// <param name="forceRefresh">Flag indicating whether to force a refresh of the themes.</param>
+    /// <returns>The CSS representation of the themes.</returns>
+    [AllowAnonymous]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [Produces("text/css")]
+    [HttpGet("Theme.css")]
+    public ActionResult<string> GetThemesCSS([FromQuery] bool forceRefresh = false)
+    {
+        return Content(WebUIThemeProvider.GetThemes(forceRefresh).ToCSS(), "text/css");
+    }
+
+    /// <summary>
+    /// Adds a new theme to the application.
+    /// </summary>
+    /// <param name="body">The body of the request containing the theme URL and preview flag.</param>
+    /// <returns>The added theme.</returns>
+    [Authorize("admin")]
+    [HttpPost("Theme")]
+    public async Task<ActionResult<WebUITheme>> AddTheme([FromBody] Input.WebUIAddThemeBody body)
+    {
+        try
+        {
+            var theme = await WebUIThemeProvider.InstallTheme(body.URL, body.Preview);
+            return new WebUITheme(theme);
+        }
+        catch (ValidationException valEx)
+        {
+            return BadRequest(valEx.Message);
+        }
+        catch (HttpRequestException httpEx)
+        {
+            return InternalError(httpEx.Message);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves a specific theme by its ID.
+    /// </summary>
+    /// <param name="themeID">The ID of the theme to retrieve.</param>
+    /// <param name="forceRefresh">Flag indicating whether to force a refresh of the themes before retriving the specific theme.</param>
+    /// <returns>The retrieved theme.</returns>
+    [AllowAnonymous]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("Theme/{themeID}")]
+    public ActionResult<WebUITheme> GetTheme([FromRoute] string themeID, [FromQuery] bool forceRefresh = false)
+    {
+        var theme = WebUIThemeProvider.GetTheme(themeID, forceRefresh);
+        if (theme == null)
+            return NotFound("A theme with the given id was not found.");
+
+        return new WebUITheme(theme);
+    }
+
+    /// <summary>
+    /// Retrieves the CSS representation of a specific theme by its ID.
+    /// </summary>
+    /// <param name="themeID">The ID of the theme to retrieve.</param>
+    /// <param name="forceRefresh">Flag indicating whether to force a refresh of the themes before retriving the specific theme.</param>
+    /// <returns>The retrieved theme.</returns>
+    [AllowAnonymous]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [Produces("text/css")]
+    [HttpGet("Theme/{themeID}.css")]
+    public ActionResult<string> GetThemeCSS([FromRoute] string themeID, [FromQuery] bool forceRefresh = false)
+    {
+        var theme = WebUIThemeProvider.GetTheme(themeID, forceRefresh);
+        if (theme == null)
+            return NotFound("A theme with the given id was not found.");
+
+        return Content(theme.ToCSS(), "text/css");
+    }
+
+    /// <summary>
+    /// Removes a theme from the application.
+    /// </summary>
+    /// <param name="themeID">The ID of the theme to remove.</param>
+    /// <returns>The result of the removal operation.</returns>
+    [Authorize("admin")]
+    [HttpDelete("Theme/{themeID}")]
+    public ActionResult RemoveTheme([FromRoute] string themeID)
+    {
+        var theme = WebUIThemeProvider.GetTheme(themeID, true);
+        if (theme == null)
+            return NotFound("A theme with the given id was not found.");
+
+        WebUIThemeProvider.RemoveTheme(theme);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Updates a theme by its ID.
+    /// </summary>
+    /// <param name="themeID">The ID of the theme to update.</param>
+    /// <param name="preview">Flag indicating whether to enable preview mode.</param>
+    /// <returns>The updated theme.</returns>
+    [Authorize("admin")]
+    [HttpPost("Theme/{themeID}/Update")]
+    public async Task<ActionResult<WebUITheme>> UpdateTheme([FromRoute] string themeID, [FromQuery] bool preview = false)
+    {
+        var theme = WebUIThemeProvider.GetTheme(themeID, true);
+        if (theme == null)
+            return NotFound("A theme with the given id was not found.");
+
+        try
+        {
+            theme = await WebUIThemeProvider.UpdateTheme(theme, preview);
+            return new WebUITheme(theme);
+        }
+        catch (ValidationException valEx)
+        {
+            return BadRequest(valEx.Message);
+        }
+        catch (HttpRequestException httpEx)
+        {
+            return InternalError(httpEx.Message);
+        }
+    }
 
     /// <summary>
     /// Returns a list of extra information for each group ID in the given body.
