@@ -453,23 +453,23 @@ namespace Shoko.Commons.Utils
                     break;
             }
             int dest = 0;
-            bool previousIsWhitespace = false;
+            var prevChar = ' ';
 
             for (int i = start; i <= end; i++)
             {
                 if (charSet.Contains(sb[i]))
                 {
-                    if (previousIsWhitespace) continue;
-                    previousIsWhitespace = true;
-                    sb[dest] = ' ';
+                    if (prevChar == sb[i]) continue;
+                    sb[dest] = sb[i];
                     dest++;
                 }
                 else
                 {
-                    previousIsWhitespace = false;
                     sb[dest] = sb[i];
                     dest++;
                 }
+
+                prevChar = sb[i];
             }
 
             sb.Length = dest;
