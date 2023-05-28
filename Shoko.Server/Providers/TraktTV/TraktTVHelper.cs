@@ -323,8 +323,7 @@ public class TraktTVHelper
             var retData = string.Empty;
             TraktTVRateLimiter.Instance.EnsureRate();
             var response = SendData(TraktURIs.OAuthDeviceCode, json, "POST", headers, ref retData);
-            // We need to catch HTTP "400" here, as it's not "bad request" but "awaiting authorization" from the API definition
-            if (response != TraktStatusCodes.Success && response != TraktStatusCodes.Success_Post && response != TraktStatusCodes.Awaiting_Auth)
+            if (response != TraktStatusCodes.Success && response != TraktStatusCodes.Success_Post)
             {
                 throw new Exception($"Error returned from Trakt: {response}");
             }
@@ -337,18 +336,6 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            if (ex.Message.Contains("Pending"))
-            {
-                // Signaling the user that auth is still pending
-                _logger.LogInformation(ex, "Authorization for Shoko pending, please enter the code displayed by clicking the link");
-            }
-
-            if (ex.Message.Contains("Expired"))
-            {
-                // Signaling the user that Token has expired and restart is needed
-                _logger.LogInformation(ex, "Trakt token has expired, please restart the pairing process");
-            }
-            
             _logger.LogError(ex, "Error in TraktTVHelper.GetTraktDeviceCode");
                 throw;
         }
@@ -415,11 +402,8 @@ public class TraktTVHelper
                         // Signaling the user that Token has expired and restart is needed
                         _logger.LogInformation(response, "Trakt token has expired, please restart the pairing process");
                         break;
-                }
-
-                if (response != TraktStatusCodes.Awaiting_Auth && response != TraktStatusCodes.Rate_Limit_Exceeded && response != TraktStatusCodes.Token_Expired)
-                {
-                    throw new Exception($"Error returned from Trakt: {response}");
+                    default:
+                        throw new Exception($"Error returned from Trakt: {response}");
                 }
             }
         }
