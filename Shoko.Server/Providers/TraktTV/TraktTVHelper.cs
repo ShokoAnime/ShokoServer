@@ -108,7 +108,7 @@ public class TraktTVHelper
             if (webEx.Status == WebExceptionStatus.ProtocolError)
             {
                 if (webEx.Response is HttpWebResponse response)
-                    if (!response.ResponseUri.AbsoluteUri.Contains("device/token") && response.StatusCode == HttpStatusCode.BadRequest) {
+                    if (response.ResponseUri.AbsoluteUri != TraktURIs.OAuthDeviceToken && response.StatusCode == HttpStatusCode.BadRequest) {
                         {
                             _logger.LogError(webEx, "Error in SendData: {StatusCode}", (int)response.StatusCode);
                             ret = (int)response.StatusCode;
@@ -131,7 +131,7 @@ public class TraktTVHelper
                         }
                     }
             }
-            if (webEx.Response != null && !webEx.Response.ResponseUri.AbsoluteUri.Contains("device/token"))
+            if (webEx.Response != null && webEx.Response.ResponseUri.AbsoluteUri != TraktURIs.OAuthDeviceToken)
             {
                 _logger.LogError(webEx, "{Ex}", webEx.ToString());
             }
@@ -337,7 +337,7 @@ public class TraktTVHelper
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in TraktTVHelper.GetTraktDeviceCode");
-                throw;
+            throw;
         }
     }
 
