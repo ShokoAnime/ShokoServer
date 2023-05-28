@@ -584,12 +584,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.MovieDb.AutoPostersAmount = contractIn.MovieDB_AutoPostersAmount;
 
             // Import settings
-            settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',').ToList();
+            settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
             settings.Import.UseExistingFileWatchedStatus =
                 contractIn.Import_UseExistingFileWatchedStatus;
             settings.AutoGroupSeries = contractIn.AutoGroupSeries;
             settings.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
-            settings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
+            settings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
             settings.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
             if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
             {

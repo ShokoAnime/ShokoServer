@@ -156,7 +156,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
 
     public static bool IsRelationTypeInExclusions(string type)
     {
-        var list = Utils.SettingsProvider.GetSettings().AutoGroupSeriesRelationExclusions.Split('|');
+        var list = Utils.SettingsProvider.GetSettings().AutoGroupSeriesRelationExclusions;
         return list.Any(a => a.Equals(type, StringComparison.InvariantCultureIgnoreCase));
     }
 

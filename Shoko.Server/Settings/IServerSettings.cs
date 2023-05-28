@@ -25,7 +25,7 @@ public interface IServerSettings
     LinuxSettings Linux { get; set; }
     FileQualityPreferences FileQualityPreferences { get; set; }
     bool AutoGroupSeries { get; set; }
-    string AutoGroupSeriesRelationExclusions { get; set; }
+    List<string> AutoGroupSeriesRelationExclusions { get; set; }
     bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
     bool FileQualityFilterEnabled { get; set; }
     List<string> LanguagePreference { get; set; }

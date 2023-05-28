@@ -151,7 +151,7 @@ public class SettingsProvider : ISettingsProvider
             Import =
                 new ImportSettings
                 {
-                    VideoExtensions = legacy.VideoExtensions.Split(',').ToList(),
+                    VideoExtensions = legacy.VideoExtensions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
                     DefaultSeriesLanguage = legacy.DefaultSeriesLanguage,
                     DefaultEpisodeLanguage = legacy.DefaultEpisodeLanguage,
                     RunOnStart = legacy.RunImportOnStart,
@@ -170,7 +170,7 @@ public class SettingsProvider : ISettingsProvider
                     Server = legacy.Plex_Server
                 },
             AutoGroupSeries = legacy.AutoGroupSeries,
-            AutoGroupSeriesRelationExclusions = legacy.AutoGroupSeriesRelationExclusions,
+            AutoGroupSeriesRelationExclusions = legacy.AutoGroupSeriesRelationExclusions.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
             AutoGroupSeriesUseScoreAlgorithm = legacy.AutoGroupSeriesUseScoreAlgorithm,
             FileQualityFilterEnabled = legacy.FileQualityFilterEnabled,
             FileQualityPreferences = legacy.FileQualityFilterPreferences,

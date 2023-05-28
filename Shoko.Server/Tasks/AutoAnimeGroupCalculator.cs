@@ -65,40 +65,23 @@ public class AutoAnimeGroupCalculator
     /// Creates a new <see cref="AutoAnimeGroupCalculator"/> using relationships stored in the database.
     /// </summary>
     /// <returns>The created <see cref="AutoAnimeGroupCalculator"/>.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
     public static AutoAnimeGroupCalculator CreateFromServerSettings()
     {
         var settings = Utils.SettingsProvider.GetSettings();
-        var exclusionsSetting = settings.AutoGroupSeriesRelationExclusions;
-        var exclusions = AutoGroupExclude.None;
-        var relationsToFuzzyTitleTest = AnimeRelationType.None;
         var mainAnimeSelectionStrategy = settings.AutoGroupSeriesUseScoreAlgorithm
             ? MainAnimeSelectionStrategy.Weighted
             : MainAnimeSelectionStrategy.MinAirDate;
-
-        if (!string.IsNullOrEmpty(exclusionsSetting))
-        {
-            var exclusionTokens = exclusionsSetting
-                .Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim())
-                .Where(s => s.Length > 0)
-                .ToList();
-
-            exclusions = exclusionTokens
-                .Select(s =>
-                {
-                    s = s.Replace(" ", string.Empty);
-                    Enum.TryParse(s, true, out AutoGroupExclude exclude);
-
-                    return exclude;
-                })
-                .Aggregate(AutoGroupExclude.None, (exclude, allExcludes) => allExcludes | exclude);
-
-            if (exclusionTokens.Contains("AllowDissimilarTitleExclusion", StringComparer.OrdinalIgnoreCase))
+        var exclusions = settings.AutoGroupSeriesRelationExclusions
+            .Select(setting =>
             {
-                relationsToFuzzyTitleTest = AnimeRelationType.SecondaryRelations;
-            }
-        }
+                if (string.IsNullOrWhiteSpace(setting))
+                    return AutoGroupExclude.None;
+                Enum.TryParse(setting.Replace(" ", string.Empty), true, out AutoGroupExclude exclude);
+                return exclude;
+            })
+            .Aggregate(AutoGroupExclude.None, (allExcludes, exclude) => allExcludes | exclude);
+        var relationsToFuzzyTitleTest = settings.AutoGroupSeriesRelationExclusions.Contains("AllowDissimilarTitleExclusion", StringComparer.OrdinalIgnoreCase) ?
+            AnimeRelationType.SecondaryRelations : AnimeRelationType.None;
 
         return Create(exclusions, relationsToFuzzyTitleTest, mainAnimeSelectionStrategy);
     }
@@ -106,14 +89,12 @@ public class AutoAnimeGroupCalculator
     /// <summary>
     /// Creates a new <see cref="AutoAnimeGroupCalculator"/> using relationships stored in the database.
     /// </summary>
-    /// <param name="session">The NHibernate session.</param>
     /// <param name="exclusions">The relation/anime types to ignore when building relation graphs.</param>
     /// <param name="relationsToFuzzyTitleTest">The relationships for which we'll perform title similarity checks for
     /// (If the titles aren't similar enough then the anime will end up in different groups).</param>
     /// <param name="mainAnimeSelectionStrategy">The strategy to use for selecting the "main" anime that will be used
     /// for representing the group.</param>
     /// <returns>The created <see cref="AutoAnimeGroupCalculator"/>.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
     public static AutoAnimeGroupCalculator Create(
         AutoGroupExclude exclusions = AutoGroupExclude.SameSetting | AutoGroupExclude.Character,
         AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.SecondaryRelations,

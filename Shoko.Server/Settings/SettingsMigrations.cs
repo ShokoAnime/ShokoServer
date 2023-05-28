@@ -7,7 +7,7 @@ namespace Shoko.Server.Settings;
 
 public static class SettingsMigrations
 {
-    public const int Version = 2;
+    public const int Version = 3;
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
@@ -30,12 +30,13 @@ public static class SettingsMigrations
 
         return result;
     }
-    
+
     // Settings in, settings out
     private static readonly Dictionary<int, Func<string, string>> s_migrations = new()
     {
         { 1, MigrateTvDBLanguageEnum },
         { 2, MigrateEpisodeLanguagePreference },
+        { 3, MigrateAutoGroupRelations },
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -53,6 +54,18 @@ public static class SettingsMigrations
             var spacing = match.Groups["spacing"].Value;
             var value = match.Groups["value"].Value;
             return $"\"{name}\":{spacing}[\"{string.Join($"\",{spacing}\"", value.Split(','))}\"]";
+        });
+    }
+
+    private static string MigrateAutoGroupRelations(string settings)
+    {
+        var regex = new Regex(@"""(?<name>AutoGroupSeriesRelationExclusions)""\s*:(?<spacing>\s*)""(?<value>[^""]+)""", RegexOptions.Compiled);
+        return regex.Replace(settings, match =>
+        {
+            var name = match.Groups["name"].Value;
+            var spacing = match.Groups["spacing"].Value;
+            var value = match.Groups["value"].Value;
+            return $"\"{name}\":{spacing}[\"{string.Join($"\", \"", value.Split('|'))}\"]";
         });
     }
 }
