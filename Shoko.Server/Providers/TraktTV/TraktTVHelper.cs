@@ -98,7 +98,7 @@ public class TraktTVHelper
             response.Close();
 
             webResponse = strResponse;
-            _logger.LogTrace("Trakt SEND Data - Response\nStatus Code:{ StatusCode}\nResponse: {Response}", statusCode,
+            _logger.LogTrace("Trakt SEND Data - Response\nStatus Code: {StatusCode}\nResponse: {Response}", statusCode,
                 strResponse);
 
             return statusCode;
@@ -108,30 +108,33 @@ public class TraktTVHelper
             if (webEx.Status == WebExceptionStatus.ProtocolError)
             {
                 if (webEx.Response is HttpWebResponse response)
-                {
-                    _logger.LogError(webEx, "Error in SendData: {StatusCode}", (int)response.StatusCode);
-                    ret = (int)response.StatusCode;
-
-                    try
-                    {
-                        var responseStream2 = response.GetResponseStream();
-                        if (responseStream2 == null)
+                    if (response.ResponseUri.AbsoluteUri != TraktURIs.OAuthDeviceToken && response.StatusCode == HttpStatusCode.BadRequest) {
                         {
-                            return ret;
+                            _logger.LogError(webEx, "Error in SendData: {StatusCode}", (int)response.StatusCode);
+                            ret = (int)response.StatusCode;
                         }
+                        try
+                        {
+                            var responseStream2 = response.GetResponseStream();
+                            if (responseStream2 == null)
+                            {
+                                return ret;
+                            }
 
-                        var reader2 = new StreamReader(responseStream2);
-                        webResponse = reader2.ReadToEnd();
-                        _logger.LogError("Error in SendData: {Response}", webResponse);
+                            var reader2 = new StreamReader(responseStream2);
+                            webResponse = reader2.ReadToEnd();
+                            _logger.LogError("Error in SendData: {Response}", webResponse);
+                        }
+                        catch
+                        {
+                            // ignore
+                        }
                     }
-                    catch
-                    {
-                        // ignore
-                    }
-                }
             }
-
-            _logger.LogError(webEx, "{Ex}", webEx.ToString());
+            if (webEx.Response != null && webEx.Response.ResponseUri.AbsoluteUri != TraktURIs.OAuthDeviceToken)
+            {
+                _logger.LogError(webEx, "{Ex}", webEx.ToString());
+            }
         }
         catch (Exception ex)
         {
@@ -385,15 +388,22 @@ public class TraktTVHelper
                     break;
                 }
 
-                if (response == TraktStatusCodes.Rate_Limit_Exceeded)
+                switch (response)
                 {
-                    //Temporarily increase poll interval
-                    Thread.Sleep(TimeSpan.FromSeconds(1));
-                }
-
-                if (response != TraktStatusCodes.Bad_Request && response != TraktStatusCodes.Rate_Limit_Exceeded)
-                {
-                    throw new Exception($"Error returned from Trakt: {response}");
+                    case TraktStatusCodes.Rate_Limit_Exceeded:
+                        //Temporarily increase poll interval
+                        Thread.Sleep(TimeSpan.FromSeconds(1));
+                        break;
+                    case TraktStatusCodes.Awaiting_Auth:
+                        // Signaling the user that auth is still pending
+                        _logger.LogInformation (response, "Authorization for Shoko pending, please enter the code displayed by clicking the link");
+                        break;
+                    case TraktStatusCodes.Token_Expired:
+                        // Signaling the user that Token has expired and restart is needed
+                        _logger.LogInformation(response, "Trakt token has expired, please restart the pairing process");
+                        break;
+                    default:
+                        throw new Exception($"Error returned from Trakt: {response}");
                 }
             }
         }
