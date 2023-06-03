@@ -33,7 +33,6 @@
     <Content Include="nlog.config" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="plugins\*.md" CopyToOutputDirectory="Always" />
     <Content Include="webui\**\*" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="themes\**\*" CopyToOutputDirectory="PreserveNewest" />
     <Resource Remove="bin\**\*" />
     <Resource Remove="obj\**\*" />
     <Content Remove="bin\**\*" />

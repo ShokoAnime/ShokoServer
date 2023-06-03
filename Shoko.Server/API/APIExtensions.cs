@@ -238,20 +238,6 @@ public static class APIExtensions
             }
         }
 
-        // Create themes directory and add the default theme.
-        var themesDir = new DirectoryInfo(Path.Combine(Utils.ApplicationPath, "themes"));
-        if (!themesDir.Exists)
-        {
-            themesDir.Create();
-
-            var backupDir = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
-                "themes"));
-            if (backupDir.Exists)
-            {
-                CopyFilesRecursively(backupDir, themesDir);
-            }
-        }
-
         app.UseStaticFiles(new StaticFileOptions
         {
             FileProvider = new WebUiFileProvider(webUIDir.FullName), RequestPath = "/webui", ServeUnknownFileTypes = true,
