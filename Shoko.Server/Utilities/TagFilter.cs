@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -624,7 +625,7 @@ public class TagFilter<T> where T : class
 
     private void ProcessModifications(TagFilter.Filter flags, List<T> tags)
     {
-        var toRemove = new List<T>((int)Math.Ceiling(tags.Count / 2D));
+        var toRemove = new ConcurrentBag<T>();
         switch (tags.Count)
         {
             case 1:
@@ -648,7 +649,7 @@ public class TagFilter<T> where T : class
         if (addOriginal) tags.Add(GetTag("original work"));
     }
 
-    private void MarkTagsForRemoval(T sourceTag, TagFilter.Filter flags, IList<T> toRemove)
+    private void MarkTagsForRemoval(T sourceTag, TagFilter.Filter flags, ConcurrentBag<T> toRemove)
     {
         var sourceName = GetTagName(sourceTag);
         if (!TagFilter.IsTagBlackListed(sourceName, flags)) return;
