@@ -909,8 +909,10 @@ public class SeriesController : BaseController
 
         var seriesList = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbID)
             .Select(xref => RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID))
+            .Where(series => series != null)
             .ToList();
 
+        if (!seriesList.Any()) return NotFound(SeriesNotFoundWithSeriesID);
         var user = User;
         if (seriesList.Any(series => !user.AllowedSeries(series)))
         {
