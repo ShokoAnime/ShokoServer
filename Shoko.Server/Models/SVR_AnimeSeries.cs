@@ -536,8 +536,8 @@ public class SVR_AnimeSeries : AnimeSeries
         // Filter the episodes to only normal or special episodes and order them in rising order.
         var episodes = GetAnimeEpisodes()
             .Select(episode => (episode, episode.AniDB_Episode))
-            .Where(tuple => tuple.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode ||
-                            (includeSpecials && tuple.AniDB_Episode.EpisodeType == (int)EpisodeType.Special))
+            .Where(tuple => !tuple.episode.IsHidden && (tuple.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode ||
+                            (includeSpecials && tuple.AniDB_Episode.EpisodeType == (int)EpisodeType.Special)))
             .OrderBy(tuple => tuple.AniDB_Episode.EpisodeType)
             .ThenBy(tuple => tuple.AniDB_Episode.EpisodeNumber)
             .Select(tuple => tuple.episode)
@@ -609,6 +609,11 @@ public class SVR_AnimeSeries : AnimeSeries
             .Select(episode => (episode, episode.AniDB_Episode))
             .Where(tuple =>
             {
+                if (tuple.episode.IsHidden)
+                {
+                    return false;
+                }
+
                 if (tuple.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode)
                 {
                     episodesCount++;
