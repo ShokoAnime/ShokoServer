@@ -912,7 +912,6 @@ public class SeriesController : BaseController
             .Where(series => series != null)
             .ToList();
 
-        if (!seriesList.Any()) return NotFound(SeriesNotFoundWithSeriesID);
         var user = User;
         if (seriesList.Any(series => !user.AllowedSeries(series)))
         {
