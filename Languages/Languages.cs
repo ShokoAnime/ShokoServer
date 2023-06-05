@@ -12,7 +12,7 @@ namespace Shoko.Commons.Languages
                 string[] lans = new string[] { "EN", "X-JAT", "JA", "AR", "BD", "BG", "CA", "CS", "CZ"
                 , "DA", "DK", "DE", "EL", "ES", "ET", "FI", "FR", "GL", "GR", "HE", "HU", "IL", "IT"
                 , "KO", "LT", "LV", "MN", "MS", "MY", "NL", "NO", "PL", "PT", "PT-BR", "RO", "RU", "SK", "SL"
-                , "SR", "SV", "SE", "TH", "TR", "UK", "UA", "VI", "ZH", "ZH-HANS", "ZH-HANT"};
+                , "SR", "SV", "SE", "TH", "TR", "UK", "UA", "VI", "X-ZHT", "ZH", "ZH-HANS", "ZH-HANT"};
                 return lans;
             }
         }
@@ -83,6 +83,7 @@ namespace Shoko.Commons.Languages
                 case "UK": return @"/Images/Flags/ua.gif"; // Ukrainian
                 case "UA": return @"/Images/Flags/ua.gif"; // Ukrainian
                 case "VI": return @"/Images/Flags/vi.gif"; // Vietnamese
+                case "X-ZHT": return @"/Images/Flags/cn.gif"; // Chinese (Transcription) - Pinyin
                 case "ZH": return @"/Images/Flags/cn.gif"; // Chinese
                 case "ZH-HANS": return @"/Images/Flags/cn.gif"; // Chinese (Simplified)
                 case "ZH-HANT": return @"/Images/Flags/cn.gif"; // Chinese (Traditional)
@@ -141,6 +142,7 @@ namespace Shoko.Commons.Languages
                 case "UK": return "Ukrainian (uk)";
                 case "UA": return "Ukrainian (ua)";
                 case "VI": return "Vietnamese (vi)";
+                case "X-ZHT": return "Pinyin (x-zht)";
                 case "ZH": return "Chinese";
                 case "ZH-HANS": return "Chinese (zh-hans)";
                 case "ZH-HANT": return "Chinese (zh-hant)";
