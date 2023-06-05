@@ -98,7 +98,7 @@ namespace Shoko.Commons.Languages
             {
                 case "EN": return "English (en)";
                 case "X-JAT": return "Romaji (x-jat)";
-                case "JA": return "Kanji";
+                case "JA": return "Japanese (ja)";
                 case "AR": return "Arabic (ar)";
                 case "BD": return "Bangladesh (bd)";
                 case "BG": return "Bulgarian (bd)";
