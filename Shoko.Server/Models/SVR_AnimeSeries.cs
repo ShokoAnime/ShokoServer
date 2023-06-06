@@ -689,7 +689,7 @@ public class SVR_AnimeSeries : AnimeSeries
                     return true;
                 }
 
-                return episodeUserRecord.WatchedCount == 0;
+                return !episodeUserRecord.WatchedDate.HasValue;
             })
             .FirstOrDefault(options.IncludeMissing ? _ => true : tuple => tuple.episode.GetVideoLocals().Count > 0);
 
