@@ -33,10 +33,10 @@ public class Filters : BaseDirectory
         var _ = new List<string>();
         var gfs = RepoFactory.GroupFilter.GetByParentID(f.id).AsParallel()
             // Not invisible in clients
-            .Where(a => a.InvisibleInClients == 0 &&
+            .Where(a => !a.IsHidden &&
                         // and Has groups or is a directory
                         ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
-                         (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory) &&
+                         a.IsDirectory) &&
                         // and is not a blacklisted tag
                         !((a.FilterType & (int)GroupFilterType.Tag) != 0 &&
                           TagFilter.IsTagBlackListed(a.GroupFilterName, tagfilter)));

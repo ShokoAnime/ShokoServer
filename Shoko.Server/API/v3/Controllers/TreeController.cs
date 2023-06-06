@@ -70,7 +70,7 @@ public class TreeController : BaseController
     /// Get a list of all the sub-<see cref="Filter"/> for the <see cref="Filter"/> with the given <paramref name="filterID"/>.
     /// </summary>
     /// <remarks>
-    /// The <see cref="Filter"/> must have <see cref="Filter.Directory"/> set to true to use
+    /// The <see cref="Filter"/> must have <see cref="Filter.IsDirectory"/> set to true to use
     /// this endpoint.
     /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
@@ -85,17 +85,13 @@ public class TreeController : BaseController
     {
         var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
         if (groupFilter == null)
-        {
             return NotFound(FilterController.FilterNotFound);
-        }
 
-        if (!((GroupFilterType)groupFilter.FilterType).HasFlag(GroupFilterType.Directory))
-        {
-            return BadRequest("Filter contains no sub-filters.");
-        }
+        if (!groupFilter.IsDirectory)
+            return new ListResult<Filter>();
 
         return RepoFactory.GroupFilter.GetByParentID(filterID)
-            .Where(filter => showHidden || filter.InvisibleInClients != 1)
+            .Where(filter => showHidden || !filter.IsHidden)
             .OrderBy(filter => filter.GroupFilterName)
             .ToListResult(filter => new Filter(HttpContext, filter), page, pageSize);
     }
@@ -103,6 +99,10 @@ public class TreeController : BaseController
     /// <summary>
     /// Get a paginated list of all the top-level <see cref="Group"/>s for the <see cref="Filter"/> with the given <paramref name="filterID"/>.
     /// </summary>
+    /// <remarks>
+    /// The <see cref="Filter"/> must have <see cref="Filter.IsDirectory"/> set to false to use
+    /// this endpoint.
+    /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
@@ -128,24 +128,22 @@ public class TreeController : BaseController
         {
             var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
             if (groupFilter == null)
-            {
                 return NotFound(FilterController.FilterNotFound);
-            }
+
+            // Directories should only contain sub-filters, not groups and series.
+            if (groupFilter.IsDirectory)
+                return new ListResult<Group>();
 
             // Fast path when user is not in the filter
             if (!groupFilter.GroupsIds.TryGetValue(User.JMMUserID, out var groupIds))
-            {
                 return new ListResult<Group>();
-            }
 
             groups = groupIds
                 .Select(group => RepoFactory.AnimeGroup.GetByID(group))
                 .Where(group =>
                 {
                     if (group == null || group.AnimeGroupParentID.HasValue)
-                    {
                         return false;
-                    }
 
                     return includeEmpty || group.GetAllSeries()
                         .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
@@ -163,6 +161,10 @@ public class TreeController : BaseController
     /// the top-level group's name with the filter for the given
     /// <paramref name="filterID"/> applied.
     /// </summary>
+    /// <remarks>
+    /// The <see cref="Filter"/> must have <see cref="Filter.IsDirectory"/> set to false to use
+    /// this endpoint.
+    /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing
     /// <see cref="Episode"/>s in the count.</param>
@@ -177,11 +179,15 @@ public class TreeController : BaseController
             if (groupFilter == null)
                 return NotFound(FilterController.FilterNotFound);
 
+            // Directories should only contain sub-filters, not groups and series.
+            if (groupFilter.IsDirectory)
+                return new Dictionary<char, int>();
+
             // Fast path when user is not in the filter
             if (!groupFilter.GroupsIds.TryGetValue(user.JMMUserID, out var groupIds))
                 return new Dictionary<char, int>();
 
-            var groups = groupIds
+            return groupIds
                 .Select(group => RepoFactory.AnimeGroup.GetByID(group))
                 .Where(group =>
                 {
@@ -218,50 +224,52 @@ public class TreeController : BaseController
     /// </summary>
     /// <remarks>
     ///  Pass a <paramref name="filterID"/> of <code>0</code> to disable filter.
+    /// <br/>
+    /// The <see cref="Filter"/> must have <see cref="Filter.IsDirectory"/> set to false to use
+    /// this endpoint.
     /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
     /// <param name="randomImages">Randomise images shown for each <see cref="Series"/>.</param>
+    /// <param name="includeMissing">Include <see cref="Series"/> with missing
+    /// <see cref="Episode"/>s in the count.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Series")]
     public ActionResult<ListResult<Series>> GetSeriesInFilteredGroup([FromRoute] int filterID,
         [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool randomImages = false)
+        [FromQuery] bool randomImages = false, [FromQuery] bool includeMissing = false)
     {
         // Return the series with no group filter applied.
+        var user = User;
         if (filterID == 0)
-        {
             return RepoFactory.AnimeSeries.GetAll()
-                .Where(series => User.AllowedSeries(series))
+                .Where(series => user.AllowedSeries(series) && (includeMissing || series.GetVideoLocals().Count > 0))
                 .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
                 .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
-        }
 
         // Check if the group filter exists.
         var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
         if (groupFilter == null)
-        {
             return NotFound(FilterController.FilterNotFound);
-        }
+
+        // Directories should only contain sub-filters, not groups and series.
+        if (groupFilter.IsDirectory)
+            return new ListResult<Series>();
 
         // Return all series if group filter is not applied to series.
         if (groupFilter.ApplyToSeries != 1)
-        {
             return RepoFactory.AnimeSeries.GetAll()
-                .Where(series => User.AllowedSeries(series))
+                .Where(series => user.AllowedSeries(series) && (includeMissing || series.GetVideoLocals().Count > 0))
                 .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
                 .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
-        }
 
         // Return early if every series will be filtered out.
-        if (!groupFilter.SeriesIds.TryGetValue(User.JMMUserID, out var seriesIDs))
-        {
+        if (!groupFilter.SeriesIds.TryGetValue(user.JMMUserID, out var seriesIDs))
             return new ListResult<Series>();
-        }
 
         return seriesIDs.Select(id => RepoFactory.AnimeSeries.GetByID(id))
-            .Where(series => series != null && User.AllowedSeries(series))
+            .Where(series => series != null && user.AllowedSeries(series) && (includeMissing || series.GetVideoLocals().Count > 0))
             .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
             .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
     }
@@ -269,6 +277,10 @@ public class TreeController : BaseController
     /// <summary>
     /// Get a list of all the sub-<see cref="Group"/>s belonging to the <see cref="Group"/> with the given <paramref name="groupID"/> and which are present within the <see cref="Filter"/> with the given <paramref name="filterID"/>.
     /// </summary>
+    /// <remarks>
+    /// The <see cref="Filter"/> must have <see cref="Filter.IsDirectory"/> set to false to use
+    /// this endpoint.
+    /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="groupID"><see cref="Group"/> ID</param>
     /// <param name="randomImages">Randomise images shown for the <see cref="Group"/>.</param>
@@ -280,58 +292,44 @@ public class TreeController : BaseController
     {
         // Return sub-groups with no group filter applied.
         if (filterID == 0)
-        {
             return GetSubGroups(groupID, randomImages, includeEmpty);
-        }
 
         var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
         if (groupFilter == null)
-        {
             return NotFound(FilterController.FilterNotFound);
-        }
 
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
-        {
             return NotFound(GroupController.GroupNotFound);
-        }
 
         var user = User;
         if (!user.AllowedGroup(group))
-        {
             return Forbid(GroupController.GroupForbiddenForUser);
-        }
+
+        // Directories should only contain sub-filters, not groups and series.
+        if (groupFilter.IsDirectory)
+            return new List<Group>();
 
         // Just return early because the every group will be filtered out.
         if (!groupFilter.SeriesIds.TryGetValue(user.JMMUserID, out var seriesIDs))
-        {
             return new List<Group>();
-        }
 
         return group.GetChildGroups()
             .Where(subGroup =>
             {
                 if (subGroup == null)
-                {
                     return false;
-                }
 
                 if (!user.AllowedGroup(subGroup))
-                {
                     return false;
-                }
 
                 if (!includeEmpty && !subGroup.GetAllSeries()
                         .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0)))
-                {
                     return false;
-                }
 
                 if (groupFilter.ApplyToSeries != 1)
-                {
                     return true;
-                }
 
                 return subGroup.GetAllSeries().Any(series => seriesIDs.Contains(series.AnimeSeriesID));
             })
@@ -344,7 +342,10 @@ public class TreeController : BaseController
     /// Get a list of all the <see cref="Series"/> for the <see cref="Group"/> within the <see cref="Filter"/>.
     /// </summary>
     /// <remarks>
-    ///  Pass a <paramref name="filterID"/> of <code>0</code> to disable filter or .
+    ///  Pass a <paramref name="filterID"/> of <code>0</code> to disable filter.
+    /// <br/>
+    /// The <see cref="Filter"/> must have <see cref="Filter.IsDirectory"/> set to false to use
+    /// this endpoint.
     /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="groupID"><see cref="Group"/> ID</param>
@@ -360,40 +361,32 @@ public class TreeController : BaseController
     {
         // Return the groups with no group filter applied.
         if (filterID == 0)
-        {
             return GetSeriesInGroup(groupID, recursive, includeMissing, randomImages, includeDataFrom);
-        }
 
         // Check if the group filter exists.
         var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
         if (groupFilter == null)
-        {
             return NotFound(FilterController.FilterNotFound);
-        }
 
         if (groupFilter.ApplyToSeries != 1)
-        {
             return GetSeriesInGroup(groupID, recursive, includeMissing, randomImages);
-        }
 
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
-        {
             return NotFound(GroupController.GroupNotFound);
-        }
 
         var user = User;
         if (!user.AllowedGroup(group))
-        {
             return Forbid(GroupController.GroupForbiddenForUser);
-        }
+
+        // Directories should only contain sub-filters, not groups and series.
+        if (groupFilter.IsDirectory)
+            return new List<Series>();
 
         // Just return early because the every series will be filtered out.
         if (!groupFilter.SeriesIds.TryGetValue(user.JMMUserID, out var seriesIDs))
-        {
             return new List<Series>();
-        }
 
         return (recursive ? group.GetAllSeries() : group.GetSeries())
             .Where(series => seriesIDs.Contains(series.AnimeSeriesID))

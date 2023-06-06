@@ -211,8 +211,7 @@ internal class AnimeGroupCreator
         ServerState.Instance.DatabaseBlocked =
             new ServerState.DatabaseBlockedInfo { Blocked = true, Status = "Calculating Non-Tag Filters" };
         IEnumerable<SVR_GroupFilter> grpFilters = _groupFilterRepo.GetAll(session).Where(a =>
-            a.FilterType != (int)GroupFilterType.Tag &&
-            ((GroupFilterType)a.FilterType & GroupFilterType.Directory) == 0).ToList();
+            a.FilterType != (int)GroupFilterType.Tag && !a.IsDirectory).ToList();
 
         // The main reason for doing this in parallel is because UpdateEntityReferenceStrings does JSON encoding
         // and is enough work that it can benefit from running in parallel

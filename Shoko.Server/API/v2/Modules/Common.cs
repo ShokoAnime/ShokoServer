@@ -2735,16 +2735,16 @@ public class Common : BaseController
             id = 0, name = "Filters", viewed = 0, url = APIV2Helper.ConstructFilterUrl(HttpContext)
         };
         var allGfs = RepoFactory.GroupFilter.GetTopLevel()
-            .Where(a => a.InvisibleInClients == 0 &&
+            .Where(a => !a.IsHidden &&
                         ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
-                         (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory))
+                         a.IsDirectory))
             .ToList();
         var _filters = new List<Filters>();
 
         foreach (var gf in allGfs)
         {
             Filters filter;
-            if ((gf.FilterType & (int)GroupFilterType.Directory) == 0)
+            if (!gf.IsDirectory)
             {
                 filter = Filter.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
                     tagfilter);
@@ -2796,7 +2796,7 @@ public class Common : BaseController
     {
         var gf = RepoFactory.GroupFilter.GetByID(id);
 
-        if ((gf.FilterType & (int)GroupFilterType.Directory) != 0)
+        if (gf.IsDirectory)
         {
             // if it's a directory, it IS a filter-inception;
             var fgs = Filters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
