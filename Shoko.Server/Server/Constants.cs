@@ -46,7 +46,7 @@ public static class Constants
     // http://wiki.anidb.net/w/WebAOM#Move.2Frename_system
     public struct FileRenameTag
     {
-        public static readonly string AnimeNameRomaji = "%ann";
+        public static readonly string AnimeNameMain = "%ann";
         public static readonly string AnimeNameKanji = "%kan";
         public static readonly string AnimeNameEnglish = "%eng";
         public static readonly string EpisodeNameRomaji = "%epn";
