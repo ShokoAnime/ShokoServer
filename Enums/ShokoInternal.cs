@@ -255,6 +255,7 @@ namespace Shoko.Models.Enums
         Character = 14,
         Staff = 15,
         Static = 16, // This is for things that are served directly from Shoko, such as the 404, error, etc images
+        UserAvatar = 17,
     }
 
     public enum ImageFormatEnum
