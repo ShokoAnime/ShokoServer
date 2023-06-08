@@ -377,6 +377,15 @@ public class WebUIController : BaseController
         }
     }
 
+    private static ReleaseChannel GetDefaultServerReleaseChannel()
+    {
+        var extraVersionDict = Utils.GetApplicationExtraVersion();
+        if (extraVersionDict.TryGetValue("channel", out var rawChannel))
+            if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var parsedChannel))
+                return parsedChannel;
+        return ReleaseChannel.Stable;
+    }
+
     /// <summary>
     /// Check for latest version for the selected <paramref name="channel"/> and
     /// return a <see cref="ComponentVersion"/> containing the version
@@ -388,12 +397,14 @@ public class WebUIController : BaseController
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("LatestServerVersion")]
-    public ActionResult<ComponentVersion> LatestServerWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable, [FromQuery] bool force = false)
+    public ActionResult<ComponentVersion> LatestServerWebUIVersion([FromQuery] ReleaseChannel? channel = null, [FromQuery] bool force = false)
     {
+        if (!channel.HasValue)
+            channel = GetDefaultServerReleaseChannel();
         var key = $"server:{channel}";
         if (!force && Cache.TryGetValue<ComponentVersion>(key, out var componentVersion))
             return componentVersion;
-        switch (channel)
+        switch (channel.Value)
         {
             // Check for dev channel updates.
             case ReleaseChannel.Dev:
@@ -432,6 +443,27 @@ public class WebUIController : BaseController
                     Description = description,
                 }, CacheTTL);
             }
+
+#if DEBUG
+            // Spoof update if debugging and requesting the latest debug version.
+            case ReleaseChannel.Debug:
+            {
+                componentVersion = new ComponentVersion() { Version = Utils.GetApplicationVersion(), Description = "Local debug version." };
+                var extraVersionDict = Utils.GetApplicationExtraVersion();
+                if (extraVersionDict.TryGetValue("tag", out var tag))
+                    componentVersion.Tag = tag;
+                if (extraVersionDict.TryGetValue("commit", out var commit))
+                    componentVersion.Commit = commit;
+                if (extraVersionDict.TryGetValue("channel", out var rawChannel))
+                    if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var parsedChannel))
+                        componentVersion.ReleaseChannel = parsedChannel;
+                    else
+                        componentVersion.ReleaseChannel = ReleaseChannel.Debug;
+                if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
+                    componentVersion.ReleaseDate = releaseDate;
+                return Cache.Set<ComponentVersion>(key, componentVersion, CacheTTL);
+            }
+#endif
 
             // Check for stable channel updates.
             default:
