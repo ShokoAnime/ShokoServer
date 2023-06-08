@@ -1073,15 +1073,15 @@ public class LegacyRenamer : IRenamer
 
             #endregion
 
-            #region Test if Romaji title exists
+            #region Test if anime main or romaji title exists
 
-            var tagAnimeNameRomaji = Constants.FileRenameTag.AnimeNameRomaji.Substring(1,
-                Constants.FileRenameTag.AnimeNameRomaji.Length - 1); // remove % at the front
+            var tagAnimeNameRomaji = Constants.FileRenameTag.AnimeNameMain.Substring(1,
+                Constants.FileRenameTag.AnimeNameMain.Length - 1); // remove % at the front
             if (test.Trim().Equals(tagAnimeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
             {
                 if (anime.GetTitles().Any(ti =>
-                        ti.Language == TitleLanguage.Romaji &&
-                        (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official)))
+                        ti.TitleType == TitleType.Main ||
+                        (ti.Language == TitleLanguage.Romaji && ti.TitleType == TitleType.Official)))
                 {
                     return !notCondition;
                 }
@@ -1571,16 +1571,16 @@ public class LegacyRenamer : IRenamer
 
         #endregion
 
-        #region Romaji title
+        #region Anime main title
 
-        if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameRomaji.ToLower()))
+        if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameMain.ToLower()))
         {
             newFileName = anime.GetTitles()
                 .Where(ti =>
-                    ti.Language == TitleLanguage.Romaji &&
-                    (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official))
+                    ti.TitleType == TitleType.Main ||
+                    (ti.Language == TitleLanguage.Romaji && ti.TitleType == TitleType.Official))
                 .Aggregate(newFileName,
-                    (current, ti) => current.Replace(Constants.FileRenameTag.AnimeNameRomaji, ti.Title));
+                    (current, ti) => current.Replace(Constants.FileRenameTag.AnimeNameMain, ti.Title));
         }
 
         #endregion
