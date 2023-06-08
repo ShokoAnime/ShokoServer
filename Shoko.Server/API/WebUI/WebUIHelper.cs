@@ -218,7 +218,7 @@ public static class WebUIHelper
     internal static dynamic DownloadApiResponse(string endpoint, string repoName = null)
     {
         if (string.IsNullOrEmpty(repoName))
-            repoName = "shokoanime/shokoserver-webui";
+            repoName = "shokoanime/shoko-webui";
         var client = new WebClient();
         client.Headers.Add("Accept: application/vnd.github.v3+json");
         client.Headers.Add("User-Agent", $"ShokoServer/{Utils.GetApplicationVersion()}");
