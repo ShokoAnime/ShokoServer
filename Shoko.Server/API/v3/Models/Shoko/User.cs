@@ -2,10 +2,12 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -39,6 +41,12 @@ public class User
     /// rendered inaccessible to the user.
     /// </summary>
     public List<int> RestrictedTags { get; set; }
+
+    /// <summary>
+    /// The user's avatar.
+    /// </summary>
+    /// <value></value>
+    public Image Avatar { get; set; }
 
     public class FullUser : User
     {
@@ -96,6 +104,8 @@ public class User
             .Where(tag => tag != null)
             .Select(tag => tag.TagID)
             .ToList();
+
+        Avatar = new Image(user.JMMUserID, ImageEntityType.UserAvatar, true);
     }
 
     public SVR_JMMUser MergeServerModel(SVR_JMMUser existing)
@@ -163,6 +173,12 @@ public class User
             /// <value></value>
             [DefaultValue(true)]
             public bool RevokeAPIKeys { get; set; }
+        }
+
+        public class ChangeAvatarBody
+        {
+            [Required]
+            public IFormFile? Image { get; set; }
         }
     }
 }

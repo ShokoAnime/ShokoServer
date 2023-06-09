@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
@@ -158,6 +160,26 @@ public class UserController : BaseController
     }
 
     /// <summary>
+    /// Change the user avatar for the current user.
+    /// </summary>
+    /// <param name="image">The body containing the new user avatar.</param>
+    /// <returns>Ok.</returns>
+    [HttpPost("Current/ChangeAvatar")]
+    public ActionResult ChangeAvatarForCurrentUser([Required] IFormFile image)
+    {
+        return ChangeAvatar(User, image);
+    }
+
+    /// <summary>
+    /// Remove the user avatar for a user.
+    /// </summary>
+    /// <returns>Ok.</returns>
+    [HttpDelete("Current/ChangeAvatar")]
+    public ActionResult RemoveAvatarForCurrentUser()
+    {
+        return RemoveAvatar(User);
+    }
+    /// <summary>
     /// Get a user by id.
     /// </summary>
     /// <param name="userID"></param>
@@ -208,6 +230,69 @@ public class UserController : BaseController
         {
             RepoFactory.AuthTokens.DeleteAllWithUserID(user.JMMUserID);
         }
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Change the user avatar for a user. Can only be called by admins or the user the password belongs to.
+    /// </summary>
+    /// <param name="userID">User ID</param>
+    /// <param name="image">The body containing the new user avatar.</param>
+    /// <returns>Ok.</returns>
+    [Authorize("admin")]
+    [HttpPost("{userID}/ChangeAvatar")]
+    public ActionResult ChangeAvatarForUserByUserID([FromRoute] int userID,
+        [Required] IFormFile image)
+    {
+        return ChangeAvatar(RepoFactory.JMMUser.GetByID(userID), image);
+    }
+
+    private const long MaxFileSize = 8 * 1024 * 1024; // 8MB in bytes
+
+    [NonAction]
+    private ActionResult ChangeAvatar(SVR_JMMUser user, IFormFile image)
+    {
+        if (user == null)
+            return NotFound("User not found.");
+
+        if (user.JMMUserID != User.JMMUserID && !User.IsAdminUser())
+            return Forbid("User must be admin to change other's avatar.");
+
+        if (image.Length > MaxFileSize)
+        {
+            ModelState.AddModelError("Image", "File size cannot exceed 8MiB.");
+            return BadRequest(ModelState);
+        }
+
+        user.SetAvatarImage(image.OpenReadStream(), image.ContentType, "Image", ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Remove the user avatar for a user. Can only be called by admins or the user the password belongs to.
+    /// </summary>
+    /// <param name="userID">User ID</param>
+    /// <returns>Ok.</returns>
+    [HttpDelete("{userID}/ChangeAvatar")]
+    public ActionResult RemoveAvatarForUserByUserID([FromRoute] int userID)
+    {
+        return RemoveAvatar(RepoFactory.JMMUser.GetByID(userID));
+    }
+
+    [NonAction]
+    private ActionResult RemoveAvatar(SVR_JMMUser user)
+    {
+        if (user == null)
+            return NotFound("User not found.");
+
+        if (user.JMMUserID != User.JMMUserID && !User.IsAdminUser())
+            return Forbid("User must be admin to change other's avatar.");
+
+        user.RemoveAvatarImage();
 
         return Ok();
     }

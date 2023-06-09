@@ -76,23 +76,44 @@ public class Image
     public Image(int id, ImageEntityType type, bool preferred = false, bool disabled = false) : this(id.ToString(),
         type, preferred, disabled)
     {
-        if (type == ImageEntityType.Static)
+        switch (type)
         {
-            throw new ArgumentException("Static Resources do not use an integer ID");
-        }
+            case ImageEntityType.Static:
+                throw new ArgumentException("Static Resources do not use an integer ID");
 
-        var imagePath = GetImagePath(type, id);
-        if (!string.IsNullOrEmpty(imagePath))
-        {
-            RelativeFilepath = imagePath.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
-            if (!RelativeFilepath.StartsWith("/"))
-                RelativeFilepath = "/" + RelativeFilepath;
-            // This causes serious IO lag on some systems. Enable at own risk.
-            if (Utils.SettingsProvider.GetSettings().LoadImageMetadata)
+            case ImageEntityType.UserAvatar:
             {
-                var info = new MagickImageInfo(imagePath);
-                Width = info.Width;
-                Height = info.Height;
+                var user = RepoFactory.JMMUser.GetByID(id);
+                if (user != null && user.HasAvatarImage)
+                {
+                    var imageMetadata = user.AvatarImageMetadata;
+                    // we need to set _something_ for the clients that determine
+                    // if an image exists by checking if a relative path is set,
+                    // so we set the id.
+                    RelativeFilepath = $"/{id}";
+                    Width = imageMetadata.Width;
+                    Height = imageMetadata.Height;
+                }
+                break;
+            }
+
+            default:
+            {
+                var imagePath = GetImagePath(type, id);
+                if (!string.IsNullOrEmpty(imagePath))
+                {
+                    RelativeFilepath = imagePath.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
+                    if (!RelativeFilepath.StartsWith("/"))
+                        RelativeFilepath = "/" + RelativeFilepath;
+                    // This causes serious IO lag on some systems. Enable at own risk.
+                    if (Utils.SettingsProvider.GetSettings().LoadImageMetadata)
+                    {
+                        var info = new MagickImageInfo(imagePath);
+                        Width = info.Width;
+                        Height = info.Height;
+                    }
+                }
+                break;
             }
         }
     }
@@ -130,6 +151,8 @@ public class Image
                 return ImageType.Staff;
             case ImageEntityType.Static:
                 return ImageType.Static;
+            case ImageEntityType.UserAvatar:
+                return ImageType.Avatar;
             default:
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
@@ -155,6 +178,8 @@ public class Image
             case ImageEntityType.Staff:
             case ImageEntityType.Static:
                 return ImageSource.Shoko;
+            case ImageEntityType.UserAvatar:
+                return ImageSource.User;
             default:
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
@@ -196,6 +221,11 @@ public class Image
                 ImageType.Static => ImageEntityType.Static,
                 ImageType.Character => ImageEntityType.Character,
                 ImageType.Staff => ImageEntityType.Staff,
+                _ => null
+            },
+            ImageSource.User => imageType switch
+            {
+                ImageType.Avatar => ImageEntityType.UserAvatar,
                 _ => null
             },
             _ => null
@@ -658,6 +688,11 @@ public class Image
         TMDB = 3,
 
         /// <summary>
+        /// User provided data.
+        /// </summary>
+        User = 99,
+
+        /// <summary>
         ///
         /// </summary>
         Shoko = 100
@@ -698,6 +733,11 @@ public class Image
         ///
         /// </summary>
         Staff = 6,
+
+        /// <summary>
+        /// User avatar.
+        /// </summary>
+        Avatar = 99,
 
         /// <summary>
         /// Static resources are only valid if the <see cref="Image.Source"/> is set to <see cref="ImageSource.Shoko"/>.
