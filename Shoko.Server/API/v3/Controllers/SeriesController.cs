@@ -184,7 +184,7 @@ public class SeriesController : BaseController
         var autoMatchSettings = new Series.AutoMatchSettings(series);
         patchDocument.ApplyTo(autoMatchSettings, ModelState);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         return autoMatchSettings.MergeWithExisting(series);
     }
@@ -463,27 +463,22 @@ public class SeriesController : BaseController
     )
     {
         if (startDate.HasValue && !endDate.HasValue)
-        {
             endDate = DateTime.Now;
-        }
 
         if (endDate.HasValue && !startDate.HasValue)
-        {
-            return BadRequest("Missing start date.");
-        }
+            ModelState.AddModelError(nameof(startDate), "Missing start date.");
 
         if (startDate.HasValue && endDate.HasValue)
         {
             if (endDate.Value > DateTime.Now)
-            {
-                return BadRequest("End date cannot be set into the future.");
-            }
+                ModelState.AddModelError(nameof(endDate), "End date cannot be set into the future.");
 
             if (startDate.Value > endDate.Value)
-            {
-                return BadRequest("Start date cannot be newer than the end date.");
-            }
+                ModelState.AddModelError(nameof(startDate), "Start date cannot be newer than the end date.");
         }
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
         var user = User;
         var watchedAnimeList = GetWatchedAnimeForPeriod(user, startDate, endDate);
@@ -940,29 +935,13 @@ public class SeriesController : BaseController
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-        {
             return NotFound(SeriesNotFoundWithSeriesID);
-        }
 
         if (!User.AllowedSeries(series))
-        {
             return Forbid(SeriesForbiddenForUser);
-        }
-
-        if (vote.Value < 0)
-        {
-            return BadRequest("Value must be greater than or equal to 0.");
-        }
 
         if (vote.Value > vote.MaxValue)
-        {
-            return BadRequest($"Value must be less than or equal to the set max value ({vote.MaxValue}).");
-        }
-
-        if (vote.MaxValue <= 0)
-        {
-            return BadRequest("Max value must be an integer above 0.");
-        }
+            return ValidationProblem($"Value must be less than or equal to the set max value ({vote.MaxValue}).", nameof(vote.Value));
 
         Series.AddSeriesVote(_commandFactory, series, User.JMMUserID, vote);
 
@@ -1021,21 +1000,15 @@ public class SeriesController : BaseController
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute] int seriesID,
         [FromRoute] Image.ImageType imageType)
     {
+        if (!AllowedImageTypes.Contains(imageType))
+            return NotFound();
+
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-        {
             return NotFound(SeriesNotFoundWithSeriesID);
-        }
 
         if (!User.AllowedSeries(series))
-        {
             return Forbid(SeriesForbiddenForUser);
-        }
-
-        if (!AllowedImageTypes.Contains(imageType))
-        {
-            return BadRequest(InvalidImageTypeForSeries);
-        }
 
         var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
         var defaultBanner = Series.GetDefaultImage(series.AniDB_ID, imageSizeType);
@@ -1066,33 +1039,23 @@ public class SeriesController : BaseController
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute] int seriesID,
         [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
+        if (!AllowedImageTypes.Contains(imageType))
+            return NotFound();
+
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-        {
             return NotFound(SeriesNotFoundWithSeriesID);
-        }
 
         if (!User.AllowedSeries(series))
-        {
             return Forbid(SeriesForbiddenForUser);
-        }
-
-        if (!AllowedImageTypes.Contains(imageType))
-        {
-            return BadRequest(InvalidImageTypeForSeries);
-        }
 
         var imageEntityType = Image.GetImageTypeFromSourceAndType(body.Source, imageType);
         if (!imageEntityType.HasValue)
-        {
-            return BadRequest("Invalid body source");
-        }
+            return ValidationProblem("Invalid body source");
 
         // All dynamic ids are stringified ints, so extract the image id from the body.
         if (!int.TryParse(body.ID, out var imageID))
-        {
-            return BadRequest("Invalid body id. Id must be a stringified int.");
-        }
+            return ValidationProblem("Invalid body id. Id must be a stringified int.");
 
         // Check if the id is valid for the given type and source.
 
@@ -1102,7 +1065,7 @@ public class SeriesController : BaseController
             case ImageEntityType.AniDB_Cover:
                 if (imageID != series.AniDB_ID)
                 {
-                    return BadRequest(InvalidIDForSource);
+                    return ValidationProblem(InvalidIDForSource);
                 }
 
                 break;
@@ -1111,12 +1074,12 @@ public class SeriesController : BaseController
                     var tvdbPoster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
                     if (tvdbPoster == null)
                     {
-                        return BadRequest(InvalidIDForSource);
+                        return ValidationProblem(InvalidIDForSource);
                     }
 
                     if (tvdbPoster.Enabled != 1)
                     {
-                        return BadRequest(InvalidImageIsDisabled);
+                        return ValidationProblem(InvalidImageIsDisabled);
                     }
 
                     break;
@@ -1125,12 +1088,12 @@ public class SeriesController : BaseController
                 var tmdbPoster = RepoFactory.MovieDB_Poster.GetByID(imageID);
                 if (tmdbPoster == null)
                 {
-                    return BadRequest(InvalidIDForSource);
+                    return ValidationProblem(InvalidIDForSource);
                 }
 
                 if (tmdbPoster.Enabled != 1)
                 {
-                    return BadRequest(InvalidImageIsDisabled);
+                    return ValidationProblem(InvalidImageIsDisabled);
                 }
 
                 break;
@@ -1140,12 +1103,12 @@ public class SeriesController : BaseController
                 var tvdbBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
                 if (tvdbBanner == null)
                 {
-                    return BadRequest(InvalidIDForSource);
+                    return ValidationProblem(InvalidIDForSource);
                 }
 
                 if (tvdbBanner.Enabled != 1)
                 {
-                    return BadRequest(InvalidImageIsDisabled);
+                    return ValidationProblem(InvalidImageIsDisabled);
                 }
 
                 break;
@@ -1155,12 +1118,12 @@ public class SeriesController : BaseController
                 var tvdbFanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
                 if (tvdbFanart == null)
                 {
-                    return BadRequest(InvalidIDForSource);
+                    return ValidationProblem(InvalidIDForSource);
                 }
 
                 if (tvdbFanart.Enabled != 1)
                 {
-                    return BadRequest(InvalidImageIsDisabled);
+                    return ValidationProblem(InvalidImageIsDisabled);
                 }
 
                 break;
@@ -1168,19 +1131,19 @@ public class SeriesController : BaseController
                 var tmdbFanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
                 if (tmdbFanart == null)
                 {
-                    return BadRequest(InvalidIDForSource);
+                    return ValidationProblem(InvalidIDForSource);
                 }
 
                 if (tmdbFanart.Enabled != 1)
                 {
-                    return BadRequest(InvalidImageIsDisabled);
+                    return ValidationProblem(InvalidImageIsDisabled);
                 }
 
                 break;
 
             // Not allowed.
             default:
-                return BadRequest("Invalid source and/or type");
+                return ValidationProblem("Invalid source and/or type.");
         }
 
         var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
@@ -1208,32 +1171,23 @@ public class SeriesController : BaseController
     [HttpDelete("{seriesID}/Images/{imageType}")]
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute] int seriesID, [FromRoute] Image.ImageType imageType)
     {
+        if (!AllowedImageTypes.Contains(imageType))
+            return NotFound();
+
         // Check if the series exists and if the user can access the series.
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-        {
             return NotFound(SeriesNotFoundWithSeriesID);
-        }
 
         if (!User.AllowedSeries(series))
-        {
             return Forbid(SeriesForbiddenForUser);
-        }
-
-        // Check if
-        if (!AllowedImageTypes.Contains(imageType))
-        {
-            return BadRequest(InvalidImageTypeForSeries);
-        }
 
         // Check if a default image is set.
         var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
         var defaultImage =
             RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, imageSizeType);
         if (defaultImage == null)
-        {
-            return BadRequest("No default banner.");
-        }
+            return ValidationProblem("No default banner.");
 
         // Delete the entry.
         RepoFactory.AniDB_Anime_DefaultImage.Delete(defaultImage);
@@ -1356,9 +1310,7 @@ public class SeriesController : BaseController
 
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
-        {
-            return BadRequest("No Group entry for the given groupID");
-        }
+            return ValidationProblem("No Group entry for the given groupID", "groupID");
 
         series.MoveSeries(group);
 

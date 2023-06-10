@@ -45,7 +45,7 @@ public class ReverseTreeController : BaseController
 
         if (!filter.ParentGroupFilterID.HasValue || filter.ParentGroupFilterID.Value == 0)
         {
-            return BadRequest("Unable to get parent Filter for a top-level Filter");
+            return ValidationProblem("Unable to get parent Filter for a top-level Filter", "filterID");
         }
 
         var parentGroup = topLevel ? filter.TopLevelGroupFilter : filter.Parent;
@@ -86,7 +86,7 @@ public class ReverseTreeController : BaseController
 
         if (!group.AnimeGroupParentID.HasValue || group.AnimeGroupParentID.Value == 0)
         {
-            return BadRequest("Unable to get parent Group for a top-level Group");
+            return ValidationProblem("Unable to get parent Group for a top-level Group", "groupID");
         }
 
         var parentGroup = topLevel ? group.TopLevelAnimeGroup : group.Parent;

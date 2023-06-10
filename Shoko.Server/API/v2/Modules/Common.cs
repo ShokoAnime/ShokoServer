@@ -142,10 +142,14 @@ public class Common : BaseController
     {
         if (folderId == 0)
         {
-            return new APIMessage(400, "ImportFolderID missing");
+            return new APIMessage(400, "folderId missing");
         }
 
-        var res = Importer.DeleteImportFolder(folderId);
+        var importFolder = RepoFactory.ImportFolder.GetByID(folderId);
+        if (importFolder == null)
+            return new APIMessage(404, "ImportFolder missing");
+
+        var res = Importer.DeleteImportFolder(importFolder);
         return string.IsNullOrEmpty(res) ? Ok() : InternalError(res);
     }
 

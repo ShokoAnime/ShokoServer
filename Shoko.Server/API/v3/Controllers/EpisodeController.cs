@@ -391,24 +391,10 @@ public class EpisodeController : BaseController
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
-        {
             return NotFound(EpisodeNotFoundWithEpisodeID);
-        }
-
-        if (vote.Value < 0)
-        {
-            return BadRequest("Value must be greater than or equal to 0.");
-        }
 
         if (vote.Value > vote.MaxValue)
-        {
-            return BadRequest($"Value must be less than or equal to the set max value ({vote.MaxValue}).");
-        }
-
-        if (vote.MaxValue <= 0)
-        {
-            return BadRequest("Max value must be an integer above 0.");
-        }
+            return ValidationProblem($"Value must be less than or equal to the set max value ({vote.MaxValue}).", nameof(vote.Value));
 
         Episode.AddEpisodeVote(HttpContext, episode, User.JMMUserID, vote);
 

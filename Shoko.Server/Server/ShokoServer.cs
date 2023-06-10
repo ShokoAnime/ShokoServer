@@ -803,7 +803,10 @@ public class ShokoServer
         try
         {
             var importFolderID = int.Parse(e.Argument.ToString());
-            Importer.DeleteImportFolder(importFolderID);
+            var importFolder = RepoFactory.ImportFolder.GetByID(importFolderID);
+            if (importFolder == null)
+                return;
+            Importer.DeleteImportFolder(importFolder);
         }
         catch (Exception ex)
         {

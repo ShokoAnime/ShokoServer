@@ -82,7 +82,7 @@ public class FilterController : BaseController
         var groupFilter = new SVR_GroupFilter { FilterType = (int)GroupFilterType.UserDefined };
         var filter = body.MergeWithExisting(HttpContext, groupFilter, ModelState);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         return filter;
     }
@@ -121,11 +121,11 @@ public class FilterController : BaseController
         var body = new Filter.Input.CreateOrUpdateFilterBody(groupFilter);
         document.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         var filter = body.MergeWithExisting(HttpContext, groupFilter, ModelState);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         return filter;
     }
@@ -146,7 +146,7 @@ public class FilterController : BaseController
 
         var filter = body.MergeWithExisting(HttpContext, groupFilter, ModelState);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         return filter;
     }
@@ -243,11 +243,11 @@ public class FilterController : BaseController
         var body = new Filter.Input.CreateOrUpdateFilterBody(groupFilter);
         document.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         var filter = body.MergeWithExisting(HttpContext, groupFilter, ModelState, true);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         return new Filter.Input.CreateOrUpdateFilterBody(groupFilter);
     }
@@ -263,7 +263,7 @@ public class FilterController : BaseController
         var groupFilter = GetPreviewFilterForUser(User);
         var filter = body.MergeWithExisting(HttpContext, groupFilter, ModelState, true);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         return new Filter.Input.CreateOrUpdateFilterBody(groupFilter);
     }

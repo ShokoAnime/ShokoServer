@@ -47,7 +47,7 @@ public class UserController : BaseController
     {
         var user = body.Save(ModelState);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         return user;
     }
@@ -73,11 +73,11 @@ public class UserController : BaseController
         var body = new User.Input.CreateOrUpdateUserBody();
         document.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         var result = body.MergeWithExisting(user, ModelState, user.IsAdmin == 1);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         return result;
     }
@@ -94,7 +94,7 @@ public class UserController : BaseController
         var user = User;
         var result = body.MergeWithExisting(user, ModelState, user.IsAdmin == 1);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         return result;
     }
@@ -147,11 +147,11 @@ public class UserController : BaseController
         var body = new User.Input.CreateOrUpdateUserBody();
         document.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         var result = body.MergeWithExisting(user, ModelState, true);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         return result;
     }
@@ -176,7 +176,7 @@ public class UserController : BaseController
 
         var result = body.MergeWithExisting(user, ModelState, true);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         return result;
     }
@@ -200,7 +200,7 @@ public class UserController : BaseController
         var allAdmins = RepoFactory.JMMUser.GetAll().Where(a => a.IsAdminUser()).ToList();
         allAdmins.Remove(user);
         if (allAdmins.Count < 1)
-            return BadRequest("There must be at least one admin user.");
+            return ValidationProblem("There must be at least one admin user.");
 
         RepoFactory.JMMUser.RemoveUser(userID, true);
         return Ok();

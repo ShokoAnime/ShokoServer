@@ -433,7 +433,7 @@ public class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] episodeIDs { get; set; }
+            public int[] EpisodeIDs { get; set; }
         }
 
         /// <summary>
@@ -446,14 +446,14 @@ public class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] fileIDs { get; set; }
+            public int[] FileIDs { get; set; }
 
             /// <summary>
             /// The episode identifier.
             /// </summary>
             /// <value></value>
             [Required]
-            public int episodeID { get; set; }
+            public int EpisodeID { get; set; }
         }
 
         /// <summary>
@@ -466,21 +466,21 @@ public class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int seriesID { get; set; }
+            public int SeriesID { get; set; }
 
             /// <summary>
             /// The start of the range of episodes to link to the file. Append a type prefix to use another episode type.
             /// </summary>
             /// <value></value>
             [Required]
-            public string rangeStart { get; set; }
+            public string RangeStart { get; set; }
 
             /// <summary>
-            /// The end of the range of episodes to link to the file. The prefix used should be the same as in <see cref="rangeStart"/>.
+            /// The end of the range of episodes to link to the file. The prefix used should be the same as in <see cref="RangeStart"/>.
             /// </summary>
             /// <value></value>
             [Required]
-            public string rangeEnd { get; set; }
+            public string RangeEnd { get; set; }
         }
 
         /// <summary>
@@ -493,28 +493,28 @@ public class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] fileIDs { get; set; }
+            public int[] FileIDs { get; set; }
 
             /// <summary>
             /// The series identifier.
             /// </summary>
             /// <value></value>
             [Required]
-            public int seriesID { get; set; }
+            public int SeriesID { get; set; }
 
             /// <summary>
             /// The start of the range of episodes to link to the file. Append a type prefix to use another episode type.
             /// </summary>
             /// <value></value>
             [Required]
-            public string rangeStart { get; set; }
+            public string RangeStart { get; set; }
 
             /// <summary>
             /// If true then files will be linked to a single episode instead of a range spanning the amount of files to add.
             /// </summary>
             /// <value></value>
             [DefaultValue(false)]
-            public bool singleEpisode { get; set; }
+            public bool SingleEpisode { get; set; }
         }
 
         /// <summary>
@@ -527,7 +527,7 @@ public class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] episodeIDs { get; set; }
+            public int[] EpisodeIDs { get; set; }
         }
 
         /// <summary>

@@ -92,7 +92,7 @@ public class ImageController : BaseController
     public ActionResult GetRandomImageForType([FromRoute] Image.ImageType imageType)
     {
         if (imageType == Image.ImageType.Static || imageType == Image.ImageType.Avatar)
-            return BadRequest("Unsupported image type for random image.");
+            return ValidationProblem("Unsupported image type for random image.", "imageType");
 
         var source = Image.GetRandomImageSource(imageType);
         var sourceType = Image.GetImageTypeFromSourceAndType(source, imageType) ?? ImageEntityType.None;
@@ -122,7 +122,7 @@ public class ImageController : BaseController
     public ActionResult<Image> GetRandomImageMetadataForType([FromRoute] Image.ImageType imageType)
     {
         if (imageType == Image.ImageType.Static)
-            return BadRequest("Unsupported image type for random image.");
+            return ValidationProblem("Unsupported image type for random image.", "imageType");
 
         var source = Image.GetRandomImageSource(imageType);
         var sourceType = Image.GetImageTypeFromSourceAndType(source, imageType) ?? ImageEntityType.None;

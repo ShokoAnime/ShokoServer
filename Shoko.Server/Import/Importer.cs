@@ -1122,22 +1122,16 @@ public static class Importer
         Logger.Info("Remove Missing Files: Finished");
     }
 
-    public static string DeleteImportFolder(int importFolderID, bool removeFromMyList = true)
+    public static string DeleteImportFolder(SVR_ImportFolder ns, bool removeFromMyList = true)
     {
         try
         {
-            var ns = RepoFactory.ImportFolder.GetByID(importFolderID);
-            if (ns == null)
-            {
-                return "Could not find Import Folder ID: " + importFolderID;
-            }
-
+            var importFolderID = ns.ImportFolderID;
             var affectedSeries = new HashSet<SVR_AnimeSeries>();
             var vids = RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID);
             Logger.Info($"Deleting {vids.Count} video local records");
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            vids.ForEach(vid =>
-                vid.RemoveRecordWithOpenTransaction(session, affectedSeries, removeFromMyList, false));
+            vids.ForEach(vid => vid.RemoveRecordWithOpenTransaction(session, affectedSeries, removeFromMyList, false));
 
             // delete any duplicate file records which reference this folder
             RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder1(importFolderID));
@@ -1147,9 +1141,7 @@ public static class Importer
             RepoFactory.ImportFolder.Delete(importFolderID);
 
             foreach (var ser in affectedSeries)
-            {
                 ser.QueueUpdateStats();
-            }
 
             return string.Empty;
         }

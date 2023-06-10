@@ -37,4 +37,10 @@ public class BaseController : Controller
 
         return StatusCode(StatusCodes.Status500InternalServerError, message);
     }
+
+    public ActionResult ValidationProblem(string message, string fieldName = "Body")
+    {
+        ModelState.AddModelError(fieldName, message);
+        return ValidationProblem(ModelState);
+    }
 }

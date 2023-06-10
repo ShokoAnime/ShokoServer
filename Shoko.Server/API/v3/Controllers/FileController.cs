@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.StaticFiles;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
@@ -31,7 +32,7 @@ public class FileController : BaseController
 {
     private const string FileUserStatsNotFoundWithFileID = "No FileUserStats entry for the given fileID for the current user";
 
-    private const string FileNoPath = "Unable to get file path";
+    private const string FileNoPath = "Unable to resolve file location.";
 
     private const string AnidbNotFoundForFileID = "No File.Anidb entry for the given fileID";
 
@@ -291,7 +292,7 @@ public class FileController : BaseController
 
         var episode = episodeID.HasValue ? RepoFactory.AnimeEpisode.GetByID(episodeID.Value) : file.GetAnimeEpisodes()?.FirstOrDefault();
         if (episode == null)
-            return BadRequest("Could not get Episode with ID: " + episodeID);
+            return ValidationProblem($"Could not get Episode with ID: {episodeID}", nameof(episodeID));
 
         var playbackPositionTicks = resumePosition ?? 0;
         if (playbackPositionTicks >= file.Duration)
@@ -404,11 +405,14 @@ public class FileController : BaseController
 
         var settings = SettingsProvider.GetSettings();
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
-            return BadRequest("Missing AVDump API key");
+            ModelState.AddModelError("Settings", "Missing AVDump API key");
 
         var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
-            return BadRequest(FileNoPath);
+            ModelState.AddModelError("File", FileNoPath);
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
         var result = AVDumpHelper.DumpFile(filePath).Replace("\r", "");
 
@@ -434,7 +438,7 @@ public class FileController : BaseController
 
         var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
-            return BadRequest(FileNoPath);
+            return ValidationProblem(FileNoPath, "File");
 
         var command = _commandFactory.Create<CommandRequest_ProcessFile>(
             c =>
@@ -462,7 +466,7 @@ public class FileController : BaseController
 
         var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
         if (string.IsNullOrEmpty(filePath))
-            return BadRequest(FileNoPath);
+            return ValidationProblem(FileNoPath, "File");
 
         var command = _commandFactory.Create<CommandRequest_HashFile>(
             c =>
@@ -489,15 +493,29 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        if (RemoveXRefsForFile(file))
-            return BadRequest($"Cannot remove associations created from AniDB data for file '{file.VideoLocalID}'");
+        // Validate that we can manually link this file.
+        CheckXRefsForFile(file, ModelState);
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
-        foreach (var episodeID in body.episodeIDs)
+        // Validate the episodes.
+        var episodeList = body.EpisodeIDs
+            .Select(episodeID =>
+            {
+                var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+                if (episode == null)
+                    ModelState.AddModelError(nameof(body.EpisodeIDs), $"Unable to find shoko episode with id {episodeID}");
+                return episode;
+            })
+            .Where(episode => episode != null)
+            .ToList();
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Remove any old links and schedule the linking commands.
+        RemoveXRefsForFile(file);
+        foreach (var episode in episodeList)
         {
-            var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
-            if (episode == null)
-                return BadRequest("Could not find episode entry");
-
             var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
                 c =>
                 {
@@ -524,49 +542,76 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var series = RepoFactory.AnimeSeries.GetByID(body.seriesID);
+        // Validate that we can manually link this file.
+        CheckXRefsForFile(file, ModelState);
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Validate that the ranges are in a valid syntax and that the series exists.
+        var series = RepoFactory.AnimeSeries.GetByID(body.SeriesID);
         if (series == null)
-            return BadRequest("Unable to find series entry");
+            ModelState.AddModelError(nameof(body.SeriesID), $"Unable to find series with id {body.SeriesID}.");
 
-        var episodeType = EpisodeType.Episode;
-        var (rangeStart, startType, startErrorMessage) = Helpers.ModelHelper.GetEpisodeNumberAndTypeFromInput(body.rangeStart);
+        var (rangeStart, startType, startErrorMessage) = Helpers.ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeStart);
         if (!string.IsNullOrEmpty(startErrorMessage))
-            return BadRequest(string.Format(startErrorMessage, "rangeStart"));
+            ModelState.AddModelError(nameof(body.RangeStart), string.Format(startErrorMessage, nameof(body.RangeStart)));
 
-        var (rangeEnd, endType, endErrorMessage) = Helpers.ModelHelper.GetEpisodeNumberAndTypeFromInput(body.rangeEnd);
+        var (rangeEnd, endType, endErrorMessage) = Helpers.ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeEnd);
         if (!string.IsNullOrEmpty(endErrorMessage))
-            return BadRequest(string.Format(endErrorMessage, "rangeEnd"));
+            ModelState.AddModelError(nameof(body.RangeEnd), string.Format(endErrorMessage, nameof(body.RangeEnd)));
 
         if (startType != endType)
-            return BadRequest("Unable to use different episode types in the `rangeStart` and `rangeEnd`.");
+            ModelState.AddModelError(nameof(body.RangeEnd), "Unable to use different episode types in the `RangeStart` and `RangeEnd`.");
 
-        // Set the episode type if it was included in the input.
-        if (startType.HasValue) episodeType = startType.Value;
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
-        // Validate the range.
+        // Validate that the ranges are valid for the series.
+        var episodeType = startType ?? EpisodeType.Episode;
         var totalEpisodes = Helpers.ModelHelper.GetTotalEpisodesForType(series.GetAnimeEpisodes(), episodeType);
         if (rangeStart < 1)
-            return BadRequest("`rangeStart` cannot be lower than 1");
+            ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be lower then 1.");
+
         if (rangeStart > totalEpisodes)
-            return BadRequest("`rangeStart` cannot be higher than the total number of episodes for the selected type.");
+            ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be higher then the total number of episodes for the selected type.");
+
         if (rangeEnd < rangeStart)
-            return BadRequest("`rangeEnd`cannot be lower than `rangeStart`.");
+            ModelState.AddModelError(nameof(body.RangeEnd), "`RangeEnd`cannot be lower then `RangeStart`.");
+
         if (rangeEnd > totalEpisodes)
-            return BadRequest("`rangeEnd` cannot be higher than the total number of episodes for the selected type.");
+            ModelState.AddModelError(nameof(body.RangeEnd), "`RangeEnd` cannot be higher than the total number of episodes for the selected type.");
 
-        if (RemoveXRefsForFile(file))
-            return BadRequest($"Cannot remove associations created from AniDB data for file '{file.VideoLocalID}'");
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
+        // Validate the episodes.
+        var episodeList = new List<SVR_AnimeEpisode>();
         for (int episodeNumber = rangeStart; episodeNumber <= rangeEnd; episodeNumber++)
         {
             var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
             if (anidbEpisode == null)
-                return InternalError("Could not find the AniDB entry for episode");
+            {
+                ModelState.AddModelError("Episodes", $"Could not find the AniDB entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
+                continue;
+            }
 
             var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
             if (episode == null)
-                return InternalError("Could not find episode entry");
+            {
+                ModelState.AddModelError("Episodes", $"Could not find the Shoko entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
+                continue;
+            }
 
+            episodeList.Add(episode);
+        }
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Remove any old links and schedule the linking commands.
+        RemoveXRefsForFile(file);
+        foreach (var episode in episodeList)
+        {
             var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
                 c =>
                 {
@@ -593,31 +638,38 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
+        // Validate that the cross-references are allowed to be removed.
         var all = body == null;
-        var episodeIdSet = body?.episodeIDs?.ToHashSet() ?? new();
+        var episodeIdSet = body?.EpisodeIDs?.ToHashSet() ?? new();
         var seriesIDs = new HashSet<int>();
-        foreach (var episode in file.GetAnimeEpisodes())
+        var episodeList = file.GetAnimeEpisodes()
+            .Where(episode => all || episodeIdSet.Contains(episode.AniDB_EpisodeID))
+            .Select(episode => (Episode: episode, XRef: RepoFactory.CrossRef_File_Episode.GetByHashAndEpisodeID(file.Hash, episode.AniDB_EpisodeID)))
+            .Where(obj => obj.XRef != null)
+            .ToList();
+        foreach (var (episode, xref) in episodeList)
+            if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
+                ModelState.AddModelError("CrossReferences", $"Unable to remove AniDB cross-reference to anidb episode with id {xref.EpisodeID} for file with id {file.VideoLocalID}.");
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Remove the cross-references, and take note of the series ids that
+        // needs to be updated later.
+        foreach (var (episode, xref) in episodeList)
         {
-            if (!all && !episodeIdSet.Contains(episode.AnimeEpisodeID)) continue;
-
             seriesIDs.Add(episode.AnimeSeriesID);
-            var xref = RepoFactory.CrossRef_File_Episode.GetByHashAndEpisodeID(file.Hash, episode.AniDB_EpisodeID);
-            if (xref != null)
-            {
-                if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                    return BadRequest($"Cannot remove associations created from AniDB data for file '{file.VideoLocalID}'");
-
-                RepoFactory.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
-            }
+            RepoFactory.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
         }
 
+        // Reset the import date.
         if (file.DateTimeImported.HasValue)
         {
-            // Reset the import date.
             file.DateTimeImported = null;
             RepoFactory.VideoLocal.Save(file);
         }
 
+        // Update any series affected by this unlinking.
         foreach (var seriesID in seriesIDs)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -636,68 +688,84 @@ public class FileController : BaseController
     [HttpPost("LinkFromSeries")]
     public ActionResult LinkMultipleFiles([FromBody] File.Input.LinkSeriesMultipleBody body)
     {
-        if (body.fileIDs.Length == 0)
-            return BadRequest("`fileIDs` must contain at least one element.");
+        // Validate the file ids, series ids, and the range syntax.
+        var files = body.FileIDs
+            .Select(fileID =>
+            {
+                var file = RepoFactory.VideoLocal.GetByID(fileID);
+                if (file == null)
+                    ModelState.AddModelError(nameof(body.FileIDs), $"Unable to find a file with id {fileID}.");
+                else
+                    CheckXRefsForFile(file, ModelState);
 
-        // Validate all the file ids.
-        var files = new List<SVR_VideoLocal>(body.fileIDs.Length);
-        for (int index = 0, fileID = body.fileIDs[0]; index < body.fileIDs.Length; fileID = body.fileIDs[++index])
-        {
-            var file = RepoFactory.VideoLocal.GetByID(fileID);
-            if (file == null)
-                return BadRequest($"Unable to find file entry for `fileIDs[{index}]`.");
+                return file;
+            })
+            .Where(file => file != null)
+            .ToList();
+        if (body.FileIDs.Length == 0)
+            ModelState.AddModelError(nameof(body.FileIDs), "`FileIDs` must contain at least one element.");
 
-            files[index] = file;
-        }
+        var series = RepoFactory.AnimeSeries.GetByID(body.SeriesID);
+        if (series == null)
+            ModelState.AddModelError(nameof(body.SeriesID), $"Unable to find series with id {body.SeriesID}.");
 
-        var series = RepoFactory.AnimeSeries.GetByID(body.seriesID);
-        if (series == null) return BadRequest("Unable to find series entry");
-
-        var episodeType = EpisodeType.Episode;
-        var (rangeStart, startType, startErrorMessage) = Helpers.ModelHelper.GetEpisodeNumberAndTypeFromInput(body.rangeStart);
+        var (rangeStart, startType, startErrorMessage) = Helpers.ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeStart);
         if (!string.IsNullOrEmpty(startErrorMessage))
-        {
-            return BadRequest(string.Format(startErrorMessage, "rangeStart"));
-        }
+            ModelState.AddModelError(nameof(body.RangeStart), string.Format(startErrorMessage, nameof(body.RangeStart)));
 
-        // Set the episode type if it was included in the input.
-        if (startType.HasValue) episodeType = startType.Value;
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
         // Validate the range.
+        var episodeType = startType ?? EpisodeType.Episode;
         var rangeEnd = rangeStart + files.Count - 1;
         var totalEpisodes = Helpers.ModelHelper.GetTotalEpisodesForType(series.GetAnimeEpisodes(), episodeType);
         if (rangeStart < 1)
-        {
-            return BadRequest("`rangeStart` cannot be lower than 1");
-        }
-        if (rangeStart > totalEpisodes)
-        {
-            return BadRequest("`rangeStart` cannot be higher than the total number of episodes for the selected type.");
-        }
-        if (rangeEnd < rangeStart)
-        {
-            return BadRequest("`rangeEnd`cannot be lower than `rangeStart`.");
-        }
-        if (rangeEnd > totalEpisodes)
-        {
-            return BadRequest("`rangeEnd` cannot be higher than the total number of episodes for the selected type.");
-        }
+            ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be lower then 1.");
 
+        if (rangeStart > totalEpisodes)
+            ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be higher then the total number of episodes for the selected type.");
+
+        if (rangeEnd < rangeStart)
+            ModelState.AddModelError("RangeEnd", "`RangeEnd`cannot be lower then `RangeStart`.");
+
+        if (rangeEnd > totalEpisodes)
+            ModelState.AddModelError("RangeEnd", "`RangeEnd` cannot be higher than the total number of episodes for the selected type.");
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Validate the episodes.
         var fileCount = 1;
-        var singleEpisode = body.singleEpisode;
+        var singleEpisode = body.SingleEpisode;
         var episodeNumber = rangeStart;
+        var episodeList = new List<(SVR_VideoLocal, SVR_AnimeEpisode)>();
         foreach (var file in files)
         {
             var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
             if (anidbEpisode == null)
-                return InternalError("Could not find the AniDB entry for episode");
+            {
+                ModelState.AddModelError("Episodes", $"Could not find the AniDB entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
+                continue;
+            }
 
             var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
             if (episode == null)
-                return InternalError("Could not find episode entry");
+            {
+                ModelState.AddModelError("Episodes", $"Could not find the Shoko entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
+                continue;
+            }
 
-            if (RemoveXRefsForFile(file))
-                return BadRequest($"Cannot remove associations created from AniDB data for file '{file.VideoLocalID}'");
+            episodeList.Add((file, episode));
+        }
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Remove any old links and schedule the linking commands.
+        foreach (var (file, episode) in episodeList)
+        {
+            RemoveXRefsForFile(file);
 
             var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
                 c =>
@@ -726,31 +794,39 @@ public class FileController : BaseController
     [HttpPost("Link")]
     public ActionResult LinkMultipleFiles([FromBody] File.Input.LinkMultipleFilesBody body)
     {
-        if (body.fileIDs.Length == 0)
-            return BadRequest("`fileIDs` must contain at least one element.");
+        // Validate the file ids and episode id.
+        var files = body.FileIDs
+            .Select(fileID =>
+            {
+                var file = RepoFactory.VideoLocal.GetByID(fileID);
+                if (file == null)
+                    ModelState.AddModelError(nameof(body.FileIDs), $"Unable to find a file with id {fileID}.");
+                else
+                    CheckXRefsForFile(file, ModelState);
 
-        // Validate all the file ids.
-        var files = new List<SVR_VideoLocal>();
-        foreach (var fileID in body.fileIDs)
-        {
-            var file = RepoFactory.VideoLocal.GetByID(fileID);
-            if (file == null)
-                return BadRequest($"Unable to find file entry for File ID {fileID}.");
+                return file;
+            })
+            .Where(file => file != null)
+            .ToList();
+        if (body.FileIDs.Length == 0)
+            ModelState.AddModelError(nameof(body.FileIDs), "`FileIDs` must contain at least one element.");
 
-            files.Add(file);
-        }
+        var episode = RepoFactory.AnimeEpisode.GetByID(body.EpisodeID);
+        if (episode == null)
+            ModelState.AddModelError(nameof(body.EpisodeID), $"Unable to find episode with id {body.EpisodeID}.");
 
-        var episode = RepoFactory.AnimeEpisode.GetByID(body.episodeID);
-        if (episode == null) return BadRequest("Unable to find episode entry");
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
         var anidbEpisode = episode.AniDB_Episode;
         if (anidbEpisode == null)
             return InternalError("Could not find the AniDB entry for episode");
 
+        // Remove any old links and schedule the linking commands.
         var fileCount = 1;
         foreach (var file in files)
         {
-            if (RemoveXRefsForFile(file))
-                return BadRequest($"Cannot remove associations created from AniDB data for file '{file.VideoLocalID}'");
+            RemoveXRefsForFile(file);
 
             var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
                 c =>
@@ -769,24 +845,30 @@ public class FileController : BaseController
     }
 
     [NonAction]
-    private bool RemoveXRefsForFile(SVR_VideoLocal file)
+    private void RemoveXRefsForFile(SVR_VideoLocal file)
     {
         foreach (var xref in RepoFactory.CrossRef_File_Episode.GetByHash(file.Hash))
         {
             if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                return true;
+                return;
 
             RepoFactory.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
         }
 
+        // Reset the import date.
         if (file.DateTimeImported.HasValue)
         {
-            // Reset the import date.
             file.DateTimeImported = null;
             RepoFactory.VideoLocal.Save(file);
         }
+    }
 
-        return false;
+    [NonAction]
+    private void CheckXRefsForFile(SVR_VideoLocal file, ModelStateDictionary modelState)
+    {
+        foreach (var xref in RepoFactory.CrossRef_File_Episode.GetByHash(file.Hash))
+            if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
+                modelState.AddModelError("CrossReferences", $"Unable to remove AniDB cross-reference to anidb episode with id {xref.EpisodeID} for file with id {file.VideoLocalID}.");
     }
 
     /// <summary>
@@ -886,7 +968,7 @@ public class FileController : BaseController
         }
         catch (RegexParseException e)
         {
-            return BadRequest(e.Message);
+            return ValidationProblem(e.Message, "path");
         }
 
         var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
@@ -920,7 +1002,7 @@ public class FileController : BaseController
         }
         catch (RegexParseException e)
         {
-            return BadRequest(e.Message);
+            return ValidationProblem(e.Message, "path");
         }
 
         var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()

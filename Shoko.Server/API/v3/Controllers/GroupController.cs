@@ -140,7 +140,7 @@ public class GroupController : BaseController
         var group = body.MergeWithExisting(HttpContext, animeGroup, ModelState);
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
         }
 
         return Created($"/api/v3/Group/{animeGroup.AnimeGroupID}", group);
@@ -199,7 +199,7 @@ public class GroupController : BaseController
         var group = body.MergeWithExisting(HttpContext, animeGroup, ModelState);
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
         }
 
         return group;
@@ -236,13 +236,13 @@ public class GroupController : BaseController
         patchDocument.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
         }
 
         var group = body.MergeWithExisting(HttpContext, animeGroup, ModelState);
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
         }
 
         return group;

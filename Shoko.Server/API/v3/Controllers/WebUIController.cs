@@ -84,7 +84,7 @@ public class WebUIController : BaseController
         }
         catch (ValidationException valEx)
         {
-            return BadRequest(valEx.Message);
+            return ValidationProblem(valEx.Message, nameof(body.URL));
         }
         catch (HttpRequestException httpEx)
         {
