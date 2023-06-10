@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
@@ -110,6 +111,52 @@ public static class ModelHelper
             .Select(episode => episode.AniDB_Episode)
             .Where(anidbEpisode => anidbEpisode != null && (EpisodeType)anidbEpisode.EpisodeType == episodeType)
             .Count();
+    }
+
+    public static string ToDataURL(byte[] byteArray, string contentType, string fieldName = "ByteArrayToDataUrl", ModelStateDictionary modelState = null)
+    {
+        if (byteArray == null || string.IsNullOrEmpty(contentType))
+        {
+            modelState?.AddModelError(fieldName, $"Invalid byte array or content type for field '{fieldName}'.");
+            return null;
+        }
+
+        try
+        {
+            string base64 = Convert.ToBase64String(byteArray);
+            return $"data:{contentType};base64,{base64}";
+        }
+        catch (Exception)
+        {
+            modelState?.AddModelError(fieldName, $"Unexpected error when converting byte array to data URL for field '{fieldName}'.");
+            return null;
+        }
+    }
+
+    public static (byte[] byteArray, string contentType) FromDataURL(string dataUrl, string fieldName = "DataUrlToByteArray", ModelStateDictionary modelState = null)
+    {
+        var parts = dataUrl.Split(new[] { ":", ";", "," }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 4 || parts[0] != "data")
+        {
+            modelState?.AddModelError(fieldName, $"Invalid data URL format for field '{fieldName}'.");
+            return (null, null);
+        }
+
+        try
+        {
+            var byteArray = Convert.FromBase64String(parts[3]);
+            return (byteArray, parts[1]);
+        }
+        catch (FormatException)
+        {
+            modelState?.AddModelError(fieldName, $"Base64 data is not in a correct format for field '{fieldName}'.");
+            return (null, null);
+        }
+        catch (Exception)
+        {
+            modelState?.AddModelError(fieldName, $"Unexpected error when converting data URL to byte array for field '{fieldName}'.");
+            return (null, null);
+        }
     }
 
     public static SeriesSizes GenerateSeriesSizes(List<SVR_AnimeEpisode> episodeList, int userID)

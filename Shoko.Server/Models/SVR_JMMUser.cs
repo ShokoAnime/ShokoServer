@@ -47,7 +47,7 @@ public class SVR_JMMUser : JMMUser, IIdentity
         set => RawAvatarImageMetadata = value == null ? null : JsonConvert.SerializeObject(value);
     }
 
-    public bool SetAvatarImage(Stream stream, string contentType, string fieldName = "Image", ModelStateDictionary modelState = null)
+    public bool SetAvatarImage(byte[] byteArray, string contentType, string fieldName = "Image", ModelStateDictionary modelState = null, bool skipSave = false)
     {
         // Check if the content-type is allowed.
         if (!AllowedMimeTypes.Contains(contentType))
@@ -59,7 +59,7 @@ public class SVR_JMMUser : JMMUser, IIdentity
         try
         {
             // Check if content-type matches the actual image format.
-            using var image = new MagickImage(stream);
+            var image = new MagickImageInfo(byteArray);
             var expectedContentType = "image/" + image.Format.ToString().ToLower();
             if (expectedContentType != contentType)
             {
@@ -67,24 +67,19 @@ public class SVR_JMMUser : JMMUser, IIdentity
                 return false;
             }
 
-            // Resize the image if it's larger than 512x512.
+            // Reject the image if it's larger than 512x512.
             if (image.Width > 512 || image.Height > 512)
             {
-                var geometry = new MagickGeometry(512, 512) { IgnoreAspectRatio = false };
-                image.Resize(geometry);
+                modelState?.AddModelError(fieldName, "The provided image cannot be larger than 512x512.");
+                return false;
             }
 
-            // Convert the image to WebP if it's not already WebP and set the
-            // quality to 90%.
-            image.Format = MagickFormat.WebP;
-            image.Quality = 90;
-
-            AvatarImageBlob = image.ToByteArray();
+            AvatarImageBlob = byteArray;
             AvatarImageMetadata = new UserImageMetadata()
             {
                 Height = image.Height,
                 Width = image.Width,
-                ContentType = "image/webp",
+                ContentType = contentType,
             };
         }
         catch (Exception ex)
@@ -93,15 +88,19 @@ public class SVR_JMMUser : JMMUser, IIdentity
             return false;
         }
 
-        RepoFactory.JMMUser.Save(this, false);
+        if (!skipSave)
+            RepoFactory.JMMUser.Save(this, false);
+
         return true;
     }
 
-    public void RemoveAvatarImage()
+    public void RemoveAvatarImage(bool skipSave = false)
     {
         AvatarImageBlob = null;
         AvatarImageMetadata = null;
-        RepoFactory.JMMUser.Save(this, false);
+
+        if (!skipSave)
+            RepoFactory.JMMUser.Save(this, false);
     }
 
     #endregion

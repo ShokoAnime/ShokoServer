@@ -20,307 +20,220 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class UserController : BaseController
 {
-    /// <summary>
-    /// List all Users. Admin only
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet]
-    public ActionResult<List<User>> GetUsers()
-    {
-        return RepoFactory.JMMUser.GetAll().Select(a => new User(a)).ToList();
-    }
+    private const string UserByIdNotFound = "An user by the given `userID` doesn't exist.";
 
     /// <summary>
-    /// Add a User. Admin only
+    /// List all available users.
     /// </summary>
+    /// <remarks>
+    /// Only for administrators.
+    /// </remarks>
+    /// <returns>The users.</returns>
+    [Authorize("admin")]
+    [HttpGet]
+    public ActionResult<List<User>> GetUsers() =>
+        RepoFactory.JMMUser.GetAll().Select(user => new User(user)).ToList();
+
+    /// <summary>
+    /// Add a new user.
+    /// </summary>
+    /// <remarks>
+    /// Only for administrators.
+    /// </remarks>
     /// <returns>User with generated values like ID</returns>
     [Authorize("admin")]
     [HttpPost]
-    public ActionResult<User> AddUser(User.FullUser user)
+    public ActionResult<User> AddNewUser(User.Input.CreateUserBody body)
     {
+        var user = body.Save(ModelState);
         if (!ModelState.IsValid)
-        {
             return BadRequest(ModelState);
-        }
 
-        if (user.ID != 0)
-        {
-            return BadRequest("User ID must be 0 when adding a new user.");
-        }
-
-        var jmmUser = user.GetServerModel();
-
-        RepoFactory.JMMUser.Save(jmmUser);
-
-        return new User(jmmUser);
+        return user;
     }
 
     /// <summary>
-    /// Patch a User with JSON Patch.
-    /// </summary>
-    /// <param name="userID">User ID</param>
-    /// <param name="patch">JSON Patch document</param>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpPatch("{userID}")]
-    public ActionResult PatchUser([FromRoute] int userID, [FromBody] JsonPatchDocument<User> patch)
-    {
-        if (patch == null)
-        {
-            return BadRequest("object is invalid.");
-        }
-
-        var user = RepoFactory.JMMUser.GetByID(userID);
-        if (user == null)
-        {
-            return NotFound("User not found.");
-        }
-
-        var patchModel = new User(user);
-        patch.ApplyTo(patchModel, ModelState);
-        TryValidateModel(patchModel);
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
-        var changedAdmin = user.IsAdminUser() != patchModel.IsAdmin;
-        if (changedAdmin)
-        {
-            var allAdmins = RepoFactory.JMMUser.GetAll().Where(a => a.IsAdminUser()).ToList();
-            allAdmins.Remove(user);
-            if (allAdmins.Count < 1)
-            {
-                return BadRequest("There must be at least one admin user.");
-            }
-        }
-
-        var serverModel = patchModel.MergeServerModel(user);
-        RepoFactory.JMMUser.Save(serverModel);
-
-        return Ok();
-    }
-
-    /// <summary>
-    /// Edit User. This replaces all values, except Plex and Password. 
-    /// </summary>
-    /// <returns>APIStatus</returns>
-    [Authorize("admin")]
-    [HttpPut]
-    public ActionResult EditUser([FromBody] User user)
-    {
-        if (user.ID == 0)
-        {
-            return BadRequest("User ID is missing. If this is a new user then use POST.");
-        }
-
-        var existing = RepoFactory.JMMUser.GetByID(user.ID);
-        if (existing == null)
-        {
-            return NotFound("User not found.");
-        }
-
-        var changedAdmin = existing.IsAdminUser() != user.IsAdmin;
-        if (changedAdmin)
-        {
-            var allAdmins = RepoFactory.JMMUser.GetAll().Where(a => a.IsAdminUser()).ToList();
-            allAdmins.Remove(existing);
-            if (allAdmins.Count < 1)
-            {
-                return BadRequest("There must be at least one admin user.");
-            }
-        }
-
-        var newUser = user.MergeServerModel(existing);
-        RepoFactory.JMMUser.Save(newUser);
-
-        return Ok();
-    }
-
-    /// <summary>
-    /// Get the current <see cref="User"/>.
+    /// Get the current user.
     /// </summary>
     /// <returns>The user.</returns>
     [HttpGet("Current")]
-    public ActionResult<User> GetCurrentUser()
+    public ActionResult<User> GetCurrentUser() =>
+        new User(User);
+
+    /// <summary>
+    /// Edit the current user using a JSON patch document to do a partial
+    /// update.
+    /// </summary>
+    /// <param name="document">JSON patch document for the partial update.</param>
+    /// <returns>The updated current user.</returns>
+    [HttpPatch("Current")]
+    public ActionResult<User> PatchCurrentUser([FromBody] JsonPatchDocument<User.Input.CreateOrUpdateUserBody> document)
     {
-        return new User(User);
+        var user = User;
+        var body = new User.Input.CreateOrUpdateUserBody();
+        document.ApplyTo(body, ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var result = body.MergeWithExisting(user, ModelState, user.IsAdmin == 1);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        return result;
     }
 
     /// <summary>
-    /// Change the password for the current <see cref="User"/>.
+    /// Edit the current user using a raw object to do a partial update.
     /// </summary>
-    /// <param name="body"></param>
+    /// <param name="body">The partial document for the changes to be made to
+    /// the user.</param>
+    /// <returns>The updated current user.</returns>
+    [HttpPut("Current")]
+    public ActionResult<User> PutCurrentUser([FromBody] User.Input.CreateOrUpdateUserBody body)
+    {
+        var user = User;
+        var result = body.MergeWithExisting(user, ModelState, user.IsAdmin == 1);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        return result;
+    }
+
+    /// <summary>
+    /// Change the password for the current user.
+    /// </summary>
+    /// <param name="body">The body with the new password.</param>
     /// <returns></returns>
     [HttpPost("Current/ChangePassword")]
-    public ActionResult ChangePasswordForCurrentUser([FromBody] User.Input.ChangePasswordBody body)
-    {
-        return ChangePassword(User, body);
-    }
+    public ActionResult ChangePasswordForCurrentUser([FromBody] User.Input.ChangePasswordBody body) =>
+        ChangePassword(User, body);
 
-    /// <summary>
-    /// Change the user avatar for the current user.
-    /// </summary>
-    /// <param name="image">The body containing the new user avatar.</param>
-    /// <returns>Ok.</returns>
-    [HttpPost("Current/ChangeAvatar")]
-    public ActionResult ChangeAvatarForCurrentUser([Required] IFormFile image)
-    {
-        return ChangeAvatar(User, image);
-    }
-
-    /// <summary>
-    /// Remove the user avatar for a user.
-    /// </summary>
-    /// <returns>Ok.</returns>
-    [HttpDelete("Current/ChangeAvatar")]
-    public ActionResult RemoveAvatarForCurrentUser()
-    {
-        return RemoveAvatar(User);
-    }
     /// <summary>
     /// Get a user by id.
     /// </summary>
-    /// <param name="userID"></param>
-    /// <returns></returns>
+    /// <remarks>
+    /// Only for administrators.
+    /// </remarks>
+    /// <param name="userID">User ID</param>
+    /// <returns>The user.</returns>
     [Authorize("admin")]
     [HttpGet("{userID}")]
     public ActionResult<User> GetUserByUserID([FromRoute] int userID)
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
         if (user == null)
-        {
-            return NotFound("User not found.");
-        }
+            return NotFound(UserByIdNotFound);
 
         return new User(user);
     }
 
     /// <summary>
-    /// Change the password for a user. Can only be called by admins or the user the password belongs to.
+    /// Edit an user by id using a JSON patch document to do a partial update.
     /// </summary>
+    /// <remarks>
+    /// Only for administrators.
+    /// </remarks>
     /// <param name="userID">User ID</param>
-    /// <param name="body">The change password request body.</param>
-    /// <returns></returns>
+    /// <param name="document">JSON patch document for the partial update.</param>
+    /// <returns>The updated user.</returns>
     [Authorize("admin")]
-    [HttpPost("{userID}/ChangePassword")]
-    public ActionResult ChangePasswordForUserByUserID([FromRoute] int userID,
-        [FromBody] User.Input.ChangePasswordBody body)
+    [HttpPatch("{userID}")]
+    public ActionResult<User> PatchUserByUserID([FromRoute] int userID, [FromBody] JsonPatchDocument<User.Input.CreateOrUpdateUserBody> document)
     {
-        return ChangePassword(RepoFactory.JMMUser.GetByID(userID), body);
-    }
-
-    [NonAction]
-    private ActionResult ChangePassword(SVR_JMMUser user, User.Input.ChangePasswordBody body)
-    {
+        var user = RepoFactory.JMMUser.GetByID(userID);
         if (user == null)
-        {
-            return NotFound("User not found.");
-        }
+            return NotFound(UserByIdNotFound);
 
-        if (user.JMMUserID != User.JMMUserID && !User.IsAdminUser())
-        {
-            return Forbid("User must be admin to change other's password.");
-        }
-
-        user.Password = Digest.Hash(body.Password);
-        RepoFactory.JMMUser.Save(user, false);
-        if (body.RevokeAPIKeys)
-        {
-            RepoFactory.AuthTokens.DeleteAllWithUserID(user.JMMUserID);
-        }
-
-        return Ok();
-    }
-
-    /// <summary>
-    /// Change the user avatar for a user. Can only be called by admins or the user the password belongs to.
-    /// </summary>
-    /// <param name="userID">User ID</param>
-    /// <param name="image">The body containing the new user avatar.</param>
-    /// <returns>Ok.</returns>
-    [Authorize("admin")]
-    [HttpPost("{userID}/ChangeAvatar")]
-    public ActionResult ChangeAvatarForUserByUserID([FromRoute] int userID,
-        [Required] IFormFile image)
-    {
-        return ChangeAvatar(RepoFactory.JMMUser.GetByID(userID), image);
-    }
-
-    private const long MaxFileSize = 8 * 1024 * 1024; // 8MB in bytes
-
-    [NonAction]
-    private ActionResult ChangeAvatar(SVR_JMMUser user, IFormFile image)
-    {
-        if (user == null)
-            return NotFound("User not found.");
-
-        if (user.JMMUserID != User.JMMUserID && !User.IsAdminUser())
-            return Forbid("User must be admin to change other's avatar.");
-
-        if (image.Length > MaxFileSize)
-        {
-            ModelState.AddModelError("Image", "File size cannot exceed 8MiB.");
-            return BadRequest(ModelState);
-        }
-
-        user.SetAvatarImage(image.OpenReadStream(), image.ContentType, "Image", ModelState);
+        var body = new User.Input.CreateOrUpdateUserBody();
+        document.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        return Ok();
+        var result = body.MergeWithExisting(user, ModelState, true);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        return result;
     }
 
     /// <summary>
-    /// Remove the user avatar for a user. Can only be called by admins or the user the password belongs to.
+    /// Edit an user by id using a raw object to do a partial update.
     /// </summary>
+    /// <remarks>
+    /// Only for administrators.
+    /// </remarks>
     /// <param name="userID">User ID</param>
-    /// <returns>Ok.</returns>
-    [HttpDelete("{userID}/ChangeAvatar")]
-    public ActionResult RemoveAvatarForUserByUserID([FromRoute] int userID)
+    /// <param name="body">The partial document for the changes to be made to
+    /// the user.</param>
+    /// <returns>The updated user.</returns>
+    [Authorize("admin")]
+    [HttpPut("{userID}")]
+    public ActionResult<User> PutUserByUserID([FromRoute] int userID, [FromBody] User.Input.CreateOrUpdateUserBody body)
     {
-        return RemoveAvatar(RepoFactory.JMMUser.GetByID(userID));
-    }
-
-    [NonAction]
-    private ActionResult RemoveAvatar(SVR_JMMUser user)
-    {
+        var user = RepoFactory.JMMUser.GetByID(userID);
         if (user == null)
-            return NotFound("User not found.");
+            return NotFound(UserByIdNotFound);
 
-        if (user.JMMUserID != User.JMMUserID && !User.IsAdminUser())
-            return Forbid("User must be admin to change other's avatar.");
+        var result = body.MergeWithExisting(user, ModelState, true);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-        user.RemoveAvatarImage();
-
-        return Ok();
+        return result;
     }
 
     /// <summary>
-    /// Delete a User. This updates group filters and wipes internal watched states, so be careful.
+    /// Delete a user by id. This updates group filters and wipes internal watched states, so be careful.
     /// </summary>
+    /// <remarks>
+    /// Only for administrators.
+    /// </remarks>
     /// <param name="userID">User ID</param>
-    /// <returns></returns>
+    /// <returns>Void.</returns>
     [Authorize("admin")]
     [HttpDelete("{userID}")]
     public ActionResult DeleteUser([FromRoute] int userID)
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
-
         if (user == null)
-        {
-            return NotFound("User not found.");
-        }
+            return NotFound(UserByIdNotFound);
 
         var allAdmins = RepoFactory.JMMUser.GetAll().Where(a => a.IsAdminUser()).ToList();
         allAdmins.Remove(user);
         if (allAdmins.Count < 1)
-        {
             return BadRequest("There must be at least one admin user.");
-        }
 
         RepoFactory.JMMUser.RemoveUser(userID, true);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Change the password for a user.
+    /// </summary>
+    /// <remarks>
+    /// Can only be called by admins or the user the password belongs to.
+    /// </remarks>
+    /// <param name="userID">User ID</param>
+    /// <param name="body">The change password request body.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("{userID}/ChangePassword")]
+    public ActionResult ChangePasswordForUserByUserID([FromRoute] int userID, [FromBody] User.Input.ChangePasswordBody body) =>
+        ChangePassword(RepoFactory.JMMUser.GetByID(userID), body);
+
+    [NonAction]
+    private ActionResult ChangePassword(SVR_JMMUser user, User.Input.ChangePasswordBody body)
+    {
+        if (user == null)
+            return NotFound(UserByIdNotFound);
+
+        if (user.JMMUserID != User.JMMUserID && !User.IsAdminUser())
+            return Forbid("User must be admin to change other's password.");
+
+        user.Password = string.IsNullOrEmpty(body.Password) ? "" : Digest.Hash(body.Password);
+        RepoFactory.JMMUser.Save(user, false);
+        if (body.RevokeAPIKeys)
+            RepoFactory.AuthTokens.DeleteAllWithUserID(user.JMMUserID);
+
         return Ok();
     }
 

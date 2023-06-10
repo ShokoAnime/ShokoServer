@@ -62,6 +62,14 @@ public class JMMUserRepository : BaseCachedRepository<SVR_JMMUser, int>
         }
     }
 
+    public SVR_JMMUser GetByUsername(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            return null;
+
+        return ReadLock(() => Cache.Values.FirstOrDefault(user => string.Equals(user.Username, username, StringComparison.InvariantCultureIgnoreCase)));
+    }
+
     public List<SVR_JMMUser> GetAniDBUsers()
     {
         return ReadLock(() => Cache.Values.Where(a => a.IsAniDBUser == 1).ToList());
