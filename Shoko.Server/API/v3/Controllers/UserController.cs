@@ -200,7 +200,7 @@ public class UserController : BaseController
         var allAdmins = RepoFactory.JMMUser.GetAll().Where(a => a.IsAdminUser()).ToList();
         allAdmins.Remove(user);
         if (allAdmins.Count < 1)
-            return ValidationProblem("There must be at least one admin user.");
+            return ValidationProblem("There must be at least one admin user.", "IsAdmin");
 
         RepoFactory.JMMUser.RemoveUser(userID, true);
         return Ok();
