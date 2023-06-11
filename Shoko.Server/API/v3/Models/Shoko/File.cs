@@ -110,7 +110,7 @@ public class File
         var userRecord = file.GetUserRecord(userID);
         ID = file.VideoLocalID;
         Size = file.FileSize;
-        IsVariation = file.IsVariation == 1;
+        IsVariation = file.IsVariation;
         Hashes = new Hashes { ED2K = file.Hash, MD5 = file.MD5, CRC32 = file.CRC32, SHA1 = file.SHA1 };
         Resolution = FileQualityFilter.GetResolution(file);
         Locations = file.Places.Select(a => new Location

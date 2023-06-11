@@ -26,7 +26,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     private PocoIndex<int, SVR_VideoLocal, string> _hashes;
     private PocoIndex<int, SVR_VideoLocal, string> _sha1;
     private PocoIndex<int, SVR_VideoLocal, string> _md5;
-    private PocoIndex<int, SVR_VideoLocal, int> _ignored;
+    private PocoIndex<int, SVR_VideoLocal, bool> _ignored;
 
     public VideoLocalRepository()
     {
@@ -75,7 +75,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         _hashes = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.Hash);
         _sha1 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.SHA1);
         _md5 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.MD5);
-        _ignored = new PocoIndex<int, SVR_VideoLocal, int>(Cache, a => a.IsIgnored);
+        _ignored = new PocoIndex<int, SVR_VideoLocal, bool>(Cache, a => a.IsIgnored);
     }
 
     public override void RegenerateDb()
@@ -496,7 +496,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             () => Cache.Values
                 .Where( a =>
                 {
-                    if (a.IsIgnored != 0)
+                    if (a.IsIgnored)
                         return false;
 
                     var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
@@ -525,7 +525,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             () => Cache.Values
                 .Where( a =>
                 {
-                    if (a.IsIgnored != 0)
+                    if (a.IsIgnored)
                         return false;
 
                     var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
@@ -556,7 +556,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     public List<SVR_VideoLocal> GetVideosWithoutEpisodeUnsorted()
     {
         return ReadLock(() =>
-            Cache.Values.Where(a => a.IsIgnored == 0 && !RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash).Any())
+            Cache.Values.Where(a => !a.IsIgnored && !RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash).Any())
                 .ToList());
     }
 
@@ -584,7 +584,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     public List<SVR_VideoLocal> GetIgnoredVideos()
     {
-        return ReadLock(() => _ignored.GetMultiple(1));
+        return ReadLock(() => _ignored.GetMultiple(true));
     }
 
     public SVR_VideoLocal GetByMyListID(int myListID)

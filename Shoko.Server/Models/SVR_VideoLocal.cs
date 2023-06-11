@@ -30,6 +30,10 @@ public class SVR_VideoLocal : VideoLocal, IHash
 
     #region DB columns
 
+    public new bool IsIgnored { get; set; }
+
+    public new bool IsVariation { get; set; }
+
     public int MediaVersion { get; set; }
     public byte[] MediaBlob { get; set; }
     public int MediaSize { get; set; }
@@ -417,8 +421,8 @@ public class SVR_VideoLocal : VideoLocal, IHash
             FileSize = FileSize,
             Hash = Hash,
             HashSource = HashSource,
-            IsIgnored = IsIgnored,
-            IsVariation = IsVariation,
+            IsIgnored = IsIgnored ? 1 : 0,
+            IsVariation = IsVariation ? 1 : 0,
             Duration = (long) (Media?.GeneralStream.Duration ?? 0),
             MD5 = MD5,
             SHA1 = SHA1,
@@ -490,8 +494,8 @@ public class SVR_VideoLocal : VideoLocal, IHash
             VideoLocal_Hash = Hash,
             VideoLocal_FileSize = FileSize,
             VideoLocalID = VideoLocalID,
-            VideoLocal_IsIgnored = IsIgnored,
-            VideoLocal_IsVariation = IsVariation,
+            VideoLocal_IsIgnored = IsIgnored ? 1 : 0,
+            VideoLocal_IsVariation = IsVariation ? 1 : 0,
             Places = Places.Select(a => a.ToClient()).ToList(),
             VideoLocal_MD5 = MD5,
             VideoLocal_SHA1 = SHA1,

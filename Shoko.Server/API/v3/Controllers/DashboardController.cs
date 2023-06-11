@@ -90,7 +90,7 @@ public class DashboardController : BaseController
             .SelectMany(a => a.Places)
             .ToList();
         var duplicates = places
-            .Where(a => a.VideoLocal.IsVariation == 0)
+            .Where(a => !a.VideoLocal.IsVariation)
             .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.VideoLocal.Hash))
             .GroupBy(a => a.EpisodeID)
             .Count(a => a.Count() > 1);
@@ -99,7 +99,7 @@ public class DashboardController : BaseController
             : Math.Round((decimal)duplicates * 100 / places.Count, 2, MidpointRounding.AwayFromZero);
         var missingEpisodes = series.Sum(a => a.MissingEpisodeCount);
         var missingEpisodesCollecting = series.Sum(a => a.MissingEpisodeCountGroups);
-        var multipleEpisodes = episodes.Count(a => a.GetVideoLocals().Count(b => b.IsVariation == 0) > 1);
+        var multipleEpisodes = episodes.Count(a => a.GetVideoLocals().Count(b => !b.IsVariation) > 1);
         var unrecognizedFiles = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().Count;
         var duplicateFiles = places.GroupBy(a => a.VideoLocalID).Count(a => a.Count() > 1);
         var seriesWithMissingLinks = series.Count(MissingBothTvDBAndMovieDBLink);

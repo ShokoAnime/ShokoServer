@@ -385,7 +385,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        file.IsIgnored = value ? 1 : 0;
+        file.IsIgnored = value;
         RepoFactory.VideoLocal.Save(file, false);
 
         return Ok();

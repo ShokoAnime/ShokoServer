@@ -1622,7 +1622,7 @@ public static class Importer
 
             foreach (var vl in filesAll)
             {
-                if (vl.IsIgnored == 0)
+                if (!vl.IsIgnored)
                 {
                     // Check if we have this file marked as previously ignored, matches only if it has the same hash
                     var resultVideoLocalsIgnored =
@@ -1630,7 +1630,7 @@ public static class Importer
 
                     if (resultVideoLocalsIgnored.Any())
                     {
-                        vl.IsIgnored = 1;
+                        vl.IsIgnored = true;
                         RepoFactory.VideoLocal.Save(vl, false);
                     }
                 }

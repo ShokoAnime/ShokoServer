@@ -142,7 +142,7 @@ public class RawFile : BaseDirectory
         hash = vl.Hash;
         hash_source = vl.HashSource;
 
-        is_ignored = vl.IsIgnored;
+        is_ignored = vl.IsIgnored ? 1 : 0;
         var vl_user = vl.GetUserRecord(uid);
         offset = vl_user?.ResumePosition ?? 0;
 

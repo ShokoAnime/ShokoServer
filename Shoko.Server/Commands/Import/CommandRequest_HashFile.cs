@@ -292,8 +292,8 @@ public class CommandRequest_HashFile : CommandRequestImplementation
                 CRC32 = string.Empty,
                 MD5 = string.Empty,
                 SHA1 = string.Empty,
-                IsIgnored = 0,
-                IsVariation = 0
+                IsIgnored = false,
+                IsVariation = false
             };
         }
 

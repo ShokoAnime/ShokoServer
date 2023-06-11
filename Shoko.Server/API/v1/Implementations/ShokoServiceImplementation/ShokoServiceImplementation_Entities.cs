@@ -665,7 +665,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not find video record";
             }
 
-            vid.IsIgnored = isIgnored ? 1 : 0;
+            vid.IsIgnored = isIgnored;
             RepoFactory.VideoLocal.Save(vid, false);
             return string.Empty;
         }
@@ -687,7 +687,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not find video record";
             }
 
-            vid.IsVariation = isVariation ? 1 : 0;
+            vid.IsVariation = isVariation;
             RepoFactory.VideoLocal.Save(vid, false);
             return string.Empty;
         }
