@@ -22,12 +22,14 @@ public class BaseController : Controller
         SettingsProvider = settingsProvider;
     }
 
+    [NonAction]
     public override void OnActionExecuting(ActionExecutingContext context)
     {
         context.HttpContext.Items.Add("Random", new Random());
         base.OnActionExecuting(context);
     }
 
+    [NonAction]
     protected ActionResult InternalError(string message = null)
     {
         if (message == null)
@@ -38,7 +40,8 @@ public class BaseController : Controller
         return StatusCode(StatusCodes.Status500InternalServerError, message);
     }
 
-    public ActionResult ValidationProblem(string message, string fieldName = "Body")
+    [NonAction]
+    protected ActionResult ValidationProblem(string message, string fieldName = "Body")
     {
         ModelState.AddModelError(fieldName, message);
         return ValidationProblem(ModelState);
