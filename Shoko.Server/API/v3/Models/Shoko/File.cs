@@ -66,7 +66,16 @@ public class File
     public TimeSpan? ResumePosition { get; set; }
 
     /// <summary>
-    /// The last watched date for the current user. Is null if unwatched
+    /// The last time the current user viewed the file. Will be null if the user
+    /// have not viewed the file yet.
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime? Viewed { get; set; }
+
+    /// <summary>
+    /// The last time the current user watched the file until completion, or
+    /// otherwise marked the file was watched. Will be null if the user have not
+    /// watched the file yet.
     /// </summary>
     [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime? Watched { get; set; }
@@ -75,6 +84,7 @@ public class File
     /// When the file was last imported. Usually is a file only imported once,
     /// but there may be exceptions.
     /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime? Imported { get; set; }
 
     /// <summary>
@@ -104,10 +114,11 @@ public class File
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public MediaInfo MediaInfo { get; set; }
 
-    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false)
+    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false) :
+        this(file.GetUserRecord(context?.GetUser()?.JMMUserID ?? 0), file, withXRefs, includeDataFrom, includeMediaInfo) {}
+
+    public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false)
     {
-        var userID = context?.GetUser()?.JMMUserID ?? 0;
-        var userRecord = file.GetUserRecord(userID);
         ID = file.VideoLocalID;
         Size = file.FileSize;
         IsVariation = file.IsVariation;
@@ -542,6 +553,84 @@ public class File
             [Required]
             public int[] fileIDs { get; set; }
         }
+    }
+
+    public enum FileSortCriteria
+    {
+        None = 0,
+        ImportFolderName = 1,
+        ImportFolderID = 2,
+        AbsolutePath = 3,
+        RelativePath = 4,
+        FileSize = 5,
+        DuplicateCount = 6,
+        CreatedAt = 7,
+        ImportedAt = 8,
+        ViewedAt = 9,
+        WatchedAt = 10,
+        ED2K = 11,
+        MD5 = 12,
+        SHA1 = 13,
+        CRC32 = 14,
+    }
+
+    private static Func<(SVR_VideoLocal Video, SVR_VideoLocal_Place Location, List<SVR_VideoLocal_Place> Locations, SVR_VideoLocal_User UserRecord), object> GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
+        criteria switch
+        {
+            FileSortCriteria.ImportFolderName => (tuple) => tuple.Location?.ImportFolder?.ImportFolderName ?? string.Empty,
+            FileSortCriteria.ImportFolderID => (tuple) => tuple.Location?.ImportFolderID,
+            FileSortCriteria.AbsolutePath => (tuple) => tuple.Location?.FullServerPath,
+            FileSortCriteria.RelativePath => (tuple) => tuple.Location?.FilePath,
+            FileSortCriteria.FileSize => (tuple) => tuple.Video.FileSize,
+            FileSortCriteria.DuplicateCount => (tuple) => tuple.Locations.Count,
+            FileSortCriteria.CreatedAt => (tuple) => tuple.Video.DateTimeCreated,
+            FileSortCriteria.ImportedAt => isInverted ? (tuple) => tuple.Video.DateTimeImported ?? DateTime.MinValue : (tuple) => tuple.Video.DateTimeImported ?? DateTime.MaxValue,
+            FileSortCriteria.ViewedAt => isInverted ? (tuple) => tuple.UserRecord?.LastUpdated ?? DateTime.MinValue : (tuple) => tuple.UserRecord?.LastUpdated ?? DateTime.MaxValue,
+            FileSortCriteria.WatchedAt => isInverted ? (tuple) => tuple.UserRecord?.WatchedDate ?? DateTime.MinValue : (tuple) => tuple.UserRecord?.WatchedDate ?? DateTime.MaxValue,
+            FileSortCriteria.ED2K => (tuple) => tuple.Video.Hash,
+            FileSortCriteria.MD5 => (tuple) => tuple.Video.MD5,
+            FileSortCriteria.SHA1 => (tuple) => tuple.Video.SHA1,
+            FileSortCriteria.CRC32 => (tuple) => tuple.Video.CRC32,
+            _ => null,
+        };
+
+    public static IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, List<SVR_VideoLocal_Place>, SVR_VideoLocal_User)> OrderBy(IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, List<SVR_VideoLocal_Place>, SVR_VideoLocal_User)> enumerable, List<string> sortCriterias)
+    {
+        bool first = true;
+        return sortCriterias.Aggregate(enumerable, (current, rawSortCriteria) =>
+        {
+            // Any unrecognised criterias are ignored.
+            var (sortCriteria, isInverted) = ParseSortCriteria(rawSortCriteria);
+            var orderFunc = GetOrderFunction(sortCriteria, isInverted);
+            if (orderFunc == null)
+                return current;
+
+            // First criteria in the list.
+            if (first)
+            {
+                first = false;
+                return isInverted ? enumerable.OrderByDescending(orderFunc) : enumerable.OrderBy(orderFunc);
+            }
+
+            // All other criterias in the list.
+            var ordered = enumerable as IOrderedEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, List<SVR_VideoLocal_Place>, SVR_VideoLocal_User)>;
+            return isInverted ? ordered.ThenByDescending(orderFunc) : ordered.ThenBy(orderFunc);
+        });
+    }
+
+    private static (FileSortCriteria criteria, bool isInverted) ParseSortCriteria(string input)
+    {
+        var isInverted = false;
+        if (input[0] == '-')
+        {
+            isInverted = true;
+            input = input[1..];
+        }
+
+        if (!Enum.TryParse<FileSortCriteria>(input, ignoreCase: true, out var sortCriteria))
+            sortCriteria = FileSortCriteria.None;
+
+        return (sortCriteria, isInverted);
     }
 
     public static FileSource ParseFileSource(string source)

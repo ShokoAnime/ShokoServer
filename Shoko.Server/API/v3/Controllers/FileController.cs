@@ -23,6 +23,7 @@ using File = Shoko.Server.API.v3.Models.Shoko.File;
 using Path = System.IO.Path;
 using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -49,6 +50,149 @@ public class FileController : BaseController
     }
 
     internal const string FileForbiddenForUser = "Accessing File is not allowed for the current user";
+
+    /// <summary>
+    /// Get or search through the files accessible to the current user.
+    /// </summary>
+    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+    /// <param name="page">Page number.</param>
+    /// <param name="isMissing">Include missing files among the results.</param>
+    /// <param name="isIgnored">Include ignored files among the results.</param>
+    /// <param name="isVariation">Include files marked as a variation among the results.</param>
+    /// <param name="isDuplicate">Include files with multiple locations (and thus have duplicates) among the results.</param>
+    /// <param name="isUnrecognized">Include unrecognized files among the results.</param>
+    /// <param name="isLinked">Include manually linked files among the results.</param>
+    /// <param name="isViewed">Include previously viewed files among the results.</param>
+    /// <param name="isWatched">Include previously watched files among the results</param>
+    /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
+    /// <param name="includeXRefs">Include series and episode cross-references.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="search">An optional search query to filter files based on their absolute paths.</param>
+    /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
+    /// <returns>A sliced part of the results for the current query.</returns>
+    [HttpGet]
+    public ActionResult<ListResult<File>> GetFiles(
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] IncludeOnlyFilter isMissing = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter isIgnored = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter isVariation = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter isDuplicate = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter isUnrecognized = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter isLinked = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter isViewed = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter isWatched = IncludeOnlyFilter.True,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string> sortOrder = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery] bool includeMediaInfo = false,
+        [FromQuery] bool includeXRefs = false,
+        [FromQuery] string search = null,
+        [FromQuery] bool fuzzy = true)
+    {
+        // Filtering.
+        var user = User;
+        var enumerable = RepoFactory.VideoLocal.GetAll()
+            .Select(video => (
+                Video: video,
+                BestLocation: video.GetBestVideoLocalPlace(isMissing != IncludeOnlyFilter.True),
+                Locations: isDuplicate != IncludeOnlyFilter.True || !string.IsNullOrEmpty(search) ? video.Places : null,
+                UserRecord: video.GetUserRecord(user.JMMUserID)
+            ))
+            .Where(tuple =>
+            {
+                var (video, bestLocation, locations, userRecord) = tuple;
+                var xrefs = video.EpisodeCrossRefs;
+                var isAnimeAllowed = xrefs
+                    .Select(xref => xref.AnimeID)
+                    .Distinct()
+                    .Select(anidbID => RepoFactory.AniDB_Anime.GetByAnimeID(anidbID))
+                    .Where(anime => anime != null)
+                    .All(user.AllowedAnime);
+                if (!isAnimeAllowed)
+                    return false;
+
+                if (isMissing != IncludeOnlyFilter.True)
+                {
+                    var shouldHideMissing = isMissing == IncludeOnlyFilter.False;
+                    var fileIsMissing = bestLocation == null;
+                    if (shouldHideMissing == fileIsMissing)
+                        return false;
+                }
+
+                if (isIgnored != IncludeOnlyFilter.True)
+                {
+                    var shouldHideIgnored = isIgnored == IncludeOnlyFilter.False;
+                    if (shouldHideIgnored == video.IsIgnored)
+                        return false;
+                }
+
+                if (isVariation != IncludeOnlyFilter.True)
+                {
+                    var shouldHideVariation = isVariation == IncludeOnlyFilter.False;
+                    if (shouldHideVariation == video.IsVariation)
+                        return false;
+                }
+
+                if (isDuplicate != IncludeOnlyFilter.True)
+                {
+                    var shouldHideDuplicate = isDuplicate == IncludeOnlyFilter.False;
+                    var hasDuplicates = video.Places.Count > 1;
+                    if (shouldHideDuplicate == hasDuplicates)
+                        return false;
+                }
+
+                if (isUnrecognized != IncludeOnlyFilter.True)
+                {
+                    var shouldHideUnrecognized = isUnrecognized == IncludeOnlyFilter.False;
+                    var fileIsUnrecognized = xrefs.Count == 0;
+                    if (shouldHideUnrecognized == fileIsUnrecognized)
+                        return false;
+                }
+
+                if (isLinked != IncludeOnlyFilter.True)
+                {
+                    var shouldHideLinked = isLinked == IncludeOnlyFilter.False;
+                    var fileIsLinked = xrefs.Count > 0 && xrefs.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB);
+                    if (shouldHideLinked == fileIsLinked)
+                        return false;
+                }
+
+                if (isViewed != IncludeOnlyFilter.True)
+                {
+                    var shouldHideViewed = isViewed == IncludeOnlyFilter.False;
+                    var fileIsViewed = userRecord != null;
+                    if (shouldHideViewed == fileIsViewed)
+                        return false;
+                }
+
+                if (isWatched != IncludeOnlyFilter.True)
+                {
+                    var shouldHideWatched = isWatched == IncludeOnlyFilter.False;
+                    var fileIsWatched = userRecord?.WatchedDate != null;
+                    if (shouldHideWatched == fileIsWatched)
+                        return false;
+                }
+
+                return true;
+            });
+
+        // Search.
+        if (!string.IsNullOrEmpty(search))
+            enumerable = enumerable
+                .Search(search, tuple => tuple.Locations.Select(place => place.FullServerPath).Where(path => path != null), fuzzy)
+                .Select(result => result.Result);
+
+        // Sorting.
+        if (sortOrder != null && sortOrder.Count > 0)
+            enumerable = Models.Shoko.File.OrderBy(enumerable, sortOrder);
+        else if (string.IsNullOrEmpty(search))
+            enumerable = Models.Shoko.File.OrderBy(enumerable, new() { "ImportFolderName", "RelativePath", "ED2K" });
+
+        // Skip and limit.
+        return enumerable
+            .ToListResult(tuple => new File(tuple.UserRecord, tuple.Video, includeXRefs, includeDataFrom, includeMediaInfo), page, pageSize);
+    }
 
     /// <summary>
     /// Get File Details
@@ -1021,7 +1165,7 @@ public class FileController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("Recent/{limit:int?}")]
-    [Obsolete]
+    [Obsolete("Use the universal file endpoint instead.")]
     public ActionResult<ListResult<File>> GetRecentFilesObselete([FromRoute] [Range(0, 1000)] int limit = 100)
         => GetRecentFiles(limit);
 
@@ -1032,6 +1176,7 @@ public class FileController : BaseController
     /// <param name="page">Page number.</param>
     /// <param name="includeXRefs">Set to false to exclude series and episode cross-references.</param>
     /// <returns></returns>
+    [Obsolete("Use the universal file endpoint instead.")]
     [HttpGet("Recent")]
     public ActionResult<ListResult<File>> GetRecentFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
     {
@@ -1045,6 +1190,7 @@ public class FileController : BaseController
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <returns></returns>
+    [Obsolete("Use the universal file endpoint instead.")]
     [HttpGet("Ignored")]
     public ActionResult<ListResult<File>> GetIgnoredFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
     {
@@ -1059,6 +1205,7 @@ public class FileController : BaseController
     /// <param name="page">Page number.</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
     /// <returns></returns>
+    [Obsolete("Use the universal file endpoint instead.")]
     [HttpGet("Duplicates")]
     public ActionResult<ListResult<File>> GetExactDuplicateFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = false)
     {
@@ -1073,6 +1220,7 @@ public class FileController : BaseController
     /// <param name="page">Page number.</param>
     /// <param name="includeXRefs">Set to false to exclude series and episode cross-references.</param>
     /// <returns></returns>
+    [Obsolete("Use the universal file endpoint instead.")]
     [HttpGet("Linked")]
     public ActionResult<ListResult<File>> GetManuellyLinkedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
     {
@@ -1111,6 +1259,7 @@ public class FileController : BaseController
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <returns></returns>
+    [Obsolete("Use the universal file endpoint instead.")]
     [HttpGet("Unrecognized")]
     public ActionResult<ListResult<File>> GetUnrecognizedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
     {
