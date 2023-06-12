@@ -20,6 +20,7 @@ using Shoko.Server.Settings;
 
 using CommandRequestPriority = Shoko.Server.Server.CommandRequestPriority;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
+using FileSortCriteria = Shoko.Server.API.v3.Models.Shoko.File.FileSortCriteria;
 using Path = System.IO.Path;
 using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
@@ -58,8 +59,8 @@ public class FileController : BaseController
     /// <param name="page">Page number.</param>
     /// <param name="includeMissing">Include missing files among the results.</param>
     /// <param name="includeIgnored">Include ignored files among the results.</param>
-    /// <param name="includeVariants">Include files marked as a variation among the results.</param>
-    /// <param name="includeDuplicate">Include files with multiple locations (and thus have duplicates) among the results.</param>
+    /// <param name="includeVariations">Include files marked as a variation among the results.</param>
+    /// <param name="includeDuplicates">Include files with multiple locations (and thus have duplicates) among the results.</param>
     /// <param name="includeUnrecognized">Include unrecognized files among the results.</param>
     /// <param name="includeLinked">Include manually linked files among the results.</param>
     /// <param name="includeViewed">Include previously viewed files among the results.</param>
@@ -77,8 +78,8 @@ public class FileController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeIgnored = IncludeOnlyFilter.False,
-        [FromQuery] IncludeOnlyFilter includeVariants = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter includeDuplicate = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeVariations = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeDuplicates = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeUnrecognized = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeLinked = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeViewed = IncludeOnlyFilter.True,
@@ -92,12 +93,18 @@ public class FileController : BaseController
     {
         // Filtering.
         var user = User;
+        var includeLocations = includeDuplicates != IncludeOnlyFilter.True ||
+            !string.IsNullOrEmpty(search) ||
+            (sortOrder?.Any(criteria => criteria.Contains(FileSortCriteria.DuplicateCount.ToString())) ?? false);
+        var includeUserRecord = includeViewed != IncludeOnlyFilter.True ||
+            includeWatched != IncludeOnlyFilter.True ||
+            (sortOrder?.Any(criteria => criteria.Contains(FileSortCriteria.ViewedAt.ToString()) || criteria.Contains(FileSortCriteria.WatchedAt.ToString())) ?? false);
         var enumerable = RepoFactory.VideoLocal.GetAll()
             .Select(video => (
                 Video: video,
                 BestLocation: video.GetBestVideoLocalPlace(includeMissing != IncludeOnlyFilter.True),
-                Locations: includeDuplicate != IncludeOnlyFilter.True || !string.IsNullOrEmpty(search) ? video.Places : null,
-                UserRecord: video.GetUserRecord(user.JMMUserID)
+                Locations: includeLocations ? video.Places : null,
+                UserRecord: includeUserRecord ? video.GetUserRecord(user.JMMUserID) : null
             ))
             .Where(tuple =>
             {
@@ -127,16 +134,16 @@ public class FileController : BaseController
                         return false;
                 }
 
-                if (includeVariants != IncludeOnlyFilter.True)
+                if (includeVariations != IncludeOnlyFilter.True)
                 {
-                    var shouldHideVariation = includeVariants == IncludeOnlyFilter.False;
+                    var shouldHideVariation = includeVariations == IncludeOnlyFilter.False;
                     if (shouldHideVariation == video.IsVariation)
                         return false;
                 }
 
-                if (includeDuplicate != IncludeOnlyFilter.True)
+                if (includeDuplicates != IncludeOnlyFilter.True)
                 {
-                    var shouldHideDuplicate = includeDuplicate == IncludeOnlyFilter.False;
+                    var shouldHideDuplicate = includeDuplicates == IncludeOnlyFilter.False;
                     var hasDuplicates = video.Places.Count > 1;
                     if (shouldHideDuplicate == hasDuplicates)
                         return false;
@@ -187,7 +194,13 @@ public class FileController : BaseController
         if (sortOrder != null && sortOrder.Count > 0)
             enumerable = Models.Shoko.File.OrderBy(enumerable, sortOrder);
         else if (string.IsNullOrEmpty(search))
-            enumerable = Models.Shoko.File.OrderBy(enumerable, new() { "ImportFolderName", "RelativePath", "ED2K" });
+            enumerable = Models.Shoko.File.OrderBy(enumerable, new()
+            {
+                // First sort by import folder from A-Z.
+                FileSortCriteria.ImportFolderName.ToString(),
+                // Then by the relative path inside the import folder, from A-Z.
+                FileSortCriteria.RelativePath.ToString(),
+            });
 
         // Skip and limit.
         return enumerable
