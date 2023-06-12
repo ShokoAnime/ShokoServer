@@ -121,7 +121,17 @@ public class TreeController : BaseController
         {
             var user = User;
             groups = RepoFactory.AnimeGroup.GetAll()
-                .Where(group => !group.AnimeGroupParentID.HasValue && user.AllowedGroup(group))
+                .Where(group =>
+                {
+                    if (group.AnimeGroupParentID.HasValue)
+                        return false;
+
+                    if (!user.AllowedGroup(group))
+                        return false;
+
+                    return includeEmpty || group.GetAllSeries()
+                        .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+                })
                 .OrderBy(group => group.GetSortName());
         }
         else
