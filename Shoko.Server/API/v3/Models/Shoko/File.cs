@@ -613,7 +613,7 @@ public class File
             }
 
             // All other criterias in the list.
-            var ordered = enumerable as IOrderedEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, List<SVR_VideoLocal_Place>, SVR_VideoLocal_User)>;
+            var ordered = current as IOrderedEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, List<SVR_VideoLocal_Place>, SVR_VideoLocal_User)>;
             return isInverted ? ordered.ThenByDescending(orderFunc) : ordered.ThenBy(orderFunc);
         });
     }
