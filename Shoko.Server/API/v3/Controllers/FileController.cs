@@ -56,14 +56,14 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
-    /// <param name="isMissing">Include missing files among the results.</param>
-    /// <param name="isIgnored">Include ignored files among the results.</param>
-    /// <param name="isVariation">Include files marked as a variation among the results.</param>
-    /// <param name="isDuplicate">Include files with multiple locations (and thus have duplicates) among the results.</param>
-    /// <param name="isUnrecognized">Include unrecognized files among the results.</param>
-    /// <param name="isLinked">Include manually linked files among the results.</param>
-    /// <param name="isViewed">Include previously viewed files among the results.</param>
-    /// <param name="isWatched">Include previously watched files among the results</param>
+    /// <param name="includeMissing">Include missing files among the results.</param>
+    /// <param name="includeIgnored">Include ignored files among the results.</param>
+    /// <param name="includeVariants">Include files marked as a variation among the results.</param>
+    /// <param name="includeDuplicate">Include files with multiple locations (and thus have duplicates) among the results.</param>
+    /// <param name="includeUnrecognized">Include unrecognized files among the results.</param>
+    /// <param name="includeLinked">Include manually linked files among the results.</param>
+    /// <param name="includeViewed">Include previously viewed files among the results.</param>
+    /// <param name="includeWatched">Include previously watched files among the results</param>
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
     /// <param name="includeXRefs">Include series and episode cross-references.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
@@ -75,14 +75,14 @@ public class FileController : BaseController
     public ActionResult<ListResult<File>> GetFiles(
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] IncludeOnlyFilter isMissing = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter isIgnored = IncludeOnlyFilter.False,
-        [FromQuery] IncludeOnlyFilter isVariation = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter isDuplicate = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter isUnrecognized = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter isLinked = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter isViewed = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter isWatched = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeIgnored = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeVariants = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeDuplicate = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeUnrecognized = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeLinked = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeViewed = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string> sortOrder = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool includeMediaInfo = false,
@@ -95,8 +95,8 @@ public class FileController : BaseController
         var enumerable = RepoFactory.VideoLocal.GetAll()
             .Select(video => (
                 Video: video,
-                BestLocation: video.GetBestVideoLocalPlace(isMissing != IncludeOnlyFilter.True),
-                Locations: isDuplicate != IncludeOnlyFilter.True || !string.IsNullOrEmpty(search) ? video.Places : null,
+                BestLocation: video.GetBestVideoLocalPlace(includeMissing != IncludeOnlyFilter.True),
+                Locations: includeDuplicate != IncludeOnlyFilter.True || !string.IsNullOrEmpty(search) ? video.Places : null,
                 UserRecord: video.GetUserRecord(user.JMMUserID)
             ))
             .Where(tuple =>
@@ -112,63 +112,63 @@ public class FileController : BaseController
                 if (!isAnimeAllowed)
                     return false;
 
-                if (isMissing != IncludeOnlyFilter.True)
+                if (includeMissing != IncludeOnlyFilter.True)
                 {
-                    var shouldHideMissing = isMissing == IncludeOnlyFilter.False;
+                    var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
                     var fileIsMissing = bestLocation == null;
                     if (shouldHideMissing == fileIsMissing)
                         return false;
                 }
 
-                if (isIgnored != IncludeOnlyFilter.True)
+                if (includeIgnored != IncludeOnlyFilter.True)
                 {
-                    var shouldHideIgnored = isIgnored == IncludeOnlyFilter.False;
+                    var shouldHideIgnored = includeIgnored == IncludeOnlyFilter.False;
                     if (shouldHideIgnored == video.IsIgnored)
                         return false;
                 }
 
-                if (isVariation != IncludeOnlyFilter.True)
+                if (includeVariants != IncludeOnlyFilter.True)
                 {
-                    var shouldHideVariation = isVariation == IncludeOnlyFilter.False;
+                    var shouldHideVariation = includeVariants == IncludeOnlyFilter.False;
                     if (shouldHideVariation == video.IsVariation)
                         return false;
                 }
 
-                if (isDuplicate != IncludeOnlyFilter.True)
+                if (includeDuplicate != IncludeOnlyFilter.True)
                 {
-                    var shouldHideDuplicate = isDuplicate == IncludeOnlyFilter.False;
+                    var shouldHideDuplicate = includeDuplicate == IncludeOnlyFilter.False;
                     var hasDuplicates = video.Places.Count > 1;
                     if (shouldHideDuplicate == hasDuplicates)
                         return false;
                 }
 
-                if (isUnrecognized != IncludeOnlyFilter.True)
+                if (includeUnrecognized != IncludeOnlyFilter.True)
                 {
-                    var shouldHideUnrecognized = isUnrecognized == IncludeOnlyFilter.False;
+                    var shouldHideUnrecognized = includeUnrecognized == IncludeOnlyFilter.False;
                     var fileIsUnrecognized = xrefs.Count == 0;
                     if (shouldHideUnrecognized == fileIsUnrecognized)
                         return false;
                 }
 
-                if (isLinked != IncludeOnlyFilter.True)
+                if (includeLinked != IncludeOnlyFilter.True)
                 {
-                    var shouldHideLinked = isLinked == IncludeOnlyFilter.False;
+                    var shouldHideLinked = includeLinked == IncludeOnlyFilter.False;
                     var fileIsLinked = xrefs.Count > 0 && xrefs.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB);
                     if (shouldHideLinked == fileIsLinked)
                         return false;
                 }
 
-                if (isViewed != IncludeOnlyFilter.True)
+                if (includeViewed != IncludeOnlyFilter.True)
                 {
-                    var shouldHideViewed = isViewed == IncludeOnlyFilter.False;
+                    var shouldHideViewed = includeViewed == IncludeOnlyFilter.False;
                     var fileIsViewed = userRecord != null;
                     if (shouldHideViewed == fileIsViewed)
                         return false;
                 }
 
-                if (isWatched != IncludeOnlyFilter.True)
+                if (includeWatched != IncludeOnlyFilter.True)
                 {
-                    var shouldHideWatched = isWatched == IncludeOnlyFilter.False;
+                    var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
                     var fileIsWatched = userRecord?.WatchedDate != null;
                     if (shouldHideWatched == fileIsWatched)
                         return false;
