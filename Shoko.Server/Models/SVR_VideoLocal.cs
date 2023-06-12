@@ -181,7 +181,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
         }
     }
 
-    private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
+    private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate, DateTime? lastUpdated = null)
     {
         var vidUserRecord = GetUserRecord(userID);
         if (watched)
@@ -194,7 +194,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
             if (watchedDate.HasValue && updateWatchedDate)
                 vidUserRecord.WatchedDate = watchedDate.Value;
 
-            vidUserRecord.LastUpdated = DateTime.Now;
+            vidUserRecord.LastUpdated = lastUpdated ?? DateTime.Now;
             RepoFactory.VideoLocalUser.Save(vidUserRecord);
         }
         else
@@ -235,7 +235,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
     }
 
     public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, int userID,
-        bool syncTrakt, bool updateWatchedDate)
+        bool syncTrakt, bool updateWatchedDate, DateTime? lastUpdated = null)
     {
         var settings = Utils.SettingsProvider.GetSettings();
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
@@ -245,12 +245,11 @@ public class SVR_VideoLocal : VideoLocal, IHash
         var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
 
         if (user.IsAniDBUser == 0)
-            SaveWatchedStatus(watched, userID, watchedDate, updateWatchedDate);
+            SaveWatchedStatus(watched, userID, watchedDate, updateWatchedDate, lastUpdated);
         else
             foreach (var juser in aniDBUsers)
                 if (juser.IsAniDBUser == 1)
-                    SaveWatchedStatus(watched, juser.JMMUserID, watchedDate, updateWatchedDate);
-
+                    SaveWatchedStatus(watched, juser.JMMUserID, watchedDate, updateWatchedDate, lastUpdated);
 
         // now lets find all the associated AniDB_File record if there is one
         if (user.IsAniDBUser == 1)

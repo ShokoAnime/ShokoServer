@@ -389,12 +389,8 @@ public class File
                 file = existing.GetVideoLocal();
             }
 
-            // Update the last updated field. It's needed for calculating the correct series user stats after setting the watch state.
-            existing.LastUpdated = LastUpdatedAt;
-            RepoFactory.VideoLocalUser.Save(existing);
-
             // Sync the watch date and aggregate the data up to the episode if needed.
-            file.ToggleWatchedStatus(LastWatchedAt.HasValue, true, LastWatchedAt, true, existing.JMMUserID, true, true);
+            file.ToggleWatchedStatus(LastWatchedAt.HasValue, true, LastWatchedAt, true, existing.JMMUserID, true, true, LastUpdatedAt);
 
             // Update the rest of the data. The watch count have been bumped when toggling the watch state, so set it to it's intended value.
             existing.WatchedCount = WatchedCount;
