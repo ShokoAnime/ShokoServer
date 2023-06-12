@@ -207,8 +207,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
             userRecord.WatchedDate = watchedRecord.WatchedDate;
             userRecord.WatchedCount = watchedRecord.WatchedCount;
             userRecord.ResumePosition = watchedRecord.ResumePosition;
-
-            userRecord.LastUpdated = DateTime.Now;
+            userRecord.LastUpdated = watchedRecord.LastUpdated;
             RepoFactory.VideoLocalUser.Save(userRecord);
         }
     }
