@@ -569,6 +569,7 @@ public class File
         SHA1 = 13,
         CRC32 = 14,
         FileName = 15,
+        FileID = 16,
     }
 
     private static Func<(SVR_VideoLocal Video, SVR_VideoLocal_Place Location, List<SVR_VideoLocal_Place> Locations, SVR_VideoLocal_User UserRecord), object> GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
@@ -580,6 +581,7 @@ public class File
             FileSortCriteria.RelativePath => (tuple) => tuple.Location?.FilePath,
             FileSortCriteria.FileSize => (tuple) => tuple.Video.FileSize,
             FileSortCriteria.FileName => (tuple) => tuple.Location?.FileName,
+            FileSortCriteria.FileID => (tuple) => tuple.Video.VideoLocalID,
             FileSortCriteria.DuplicateCount => (tuple) => tuple.Locations.Count,
             FileSortCriteria.CreatedAt => (tuple) => tuple.Video.DateTimeCreated,
             FileSortCriteria.ImportedAt => isInverted ? (tuple) => tuple.Video.DateTimeImported ?? DateTime.MinValue : (tuple) => tuple.Video.DateTimeImported ?? DateTime.MaxValue,
