@@ -126,10 +126,11 @@ public class SeriesController : BaseController
     /// </summary>
     /// <param name="seriesID">The ID of the Series</param>
     /// <param name="deleteFiles">Whether to delete all of the files in the series from the disk.</param>
+    /// <param name="completelyRemove">Removes all records relating to the series. Use with caution, as you may get banned if it's abused.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{seriesID}")]
-    public ActionResult DeleteSeries([FromRoute] int seriesID, [FromQuery] bool deleteFiles = false)
+    public ActionResult DeleteSeries([FromRoute] int seriesID, [FromQuery] bool deleteFiles = false, [FromQuery] bool completelyRemove = false)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -137,7 +138,7 @@ public class SeriesController : BaseController
             return NotFound(SeriesNotFoundWithSeriesID);
         }
 
-        series.DeleteSeries(deleteFiles, true);
+        series.DeleteSeries(deleteFiles, true, completelyRemove);
 
         return Ok();
     }

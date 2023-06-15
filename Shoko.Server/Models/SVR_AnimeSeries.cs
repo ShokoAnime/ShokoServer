@@ -2018,7 +2018,7 @@ public class SVR_AnimeSeries : AnimeSeries
         return results;
     }
 
-    public void DeleteSeries(bool deleteFiles, bool updateGroups)
+    public void DeleteSeries(bool deleteFiles, bool updateGroups, bool completelyRemove = false)
     {
         GetAnimeEpisodes().ForEach(ep =>
         {
@@ -2057,6 +2057,37 @@ public class SVR_AnimeSeries : AnimeSeries
             {
                 grp.UpdateStatsFromTopLevel(true, true);
             }
+        }
+
+        if (completelyRemove)
+        {
+            // episodes, anime, characters, images, staff relations, tag relations, titles
+            var images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(AniDB_ID);
+            RepoFactory.AniDB_Anime_DefaultImage.Delete(images);
+
+            var characterXrefs = RepoFactory.AniDB_Anime_Character.GetByAnimeID(AniDB_ID);
+            var characters = characterXrefs.Select(a => RepoFactory.AniDB_Character.GetByCharID(a.CharID)).ToList();
+            var seiyuuXrefs = characters.SelectMany(a => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(a.CharID)).ToList();
+            RepoFactory.AniDB_Character_Seiyuu.Delete(seiyuuXrefs);
+            RepoFactory.AniDB_Character.Delete(characters);
+            RepoFactory.AniDB_Anime_Character.Delete(characterXrefs);
+
+            var staffXrefs = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(AniDB_ID);
+            RepoFactory.AniDB_Anime_Staff.Delete(staffXrefs);
+
+            var tagXrefs = RepoFactory.AniDB_Anime_Tag.GetByAnimeID(AniDB_ID);
+            RepoFactory.AniDB_Anime_Tag.Delete(tagXrefs);
+
+            var titles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(AniDB_ID);
+            RepoFactory.AniDB_Anime_Title.Delete(titles);
+
+            var aniDBEpisodes = RepoFactory.AniDB_Episode.GetByAnimeID(AniDB_ID);
+            var episodeTitles = aniDBEpisodes.SelectMany(a => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.EpisodeID)).ToList();
+            RepoFactory.AniDB_Episode_Title.Delete(episodeTitles);
+            RepoFactory.AniDB_Episode.Delete(aniDBEpisodes);
+
+            var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(AniDB_ID);
+            RepoFactory.AniDB_AnimeUpdate.Delete(update);
         }
     }
 }
