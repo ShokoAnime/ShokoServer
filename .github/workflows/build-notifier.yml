@@ -1,0 +1,50 @@
+name: Build Notification (Daily)
+
+on:
+  workflow_run:
+    workflows: ["Build (Daily)", "Publish to Docker Hub (Daily)"]
+    types:
+      - completed
+
+jobs:
+  discord-notify:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    name: Notify about new daily build
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.ref }}"
+          submodules: recursive
+          fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Get current version
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          branch: true
+          prefix: v
+          prefixRegex: "[vV]?"
+
+      - id: commit_info
+        name: Shorten Commit Hash for Sentry Release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const sha = context.sha.substring(0, 7);
+            core.setOutput("sha", sha);
+            
+      - name: Notify discord
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          nodetail: true
+          title: New Daily Build!
+          description: |
+            **Version**: `${{ steps.release_info.outputs.version }}-dev-${{ steps.commit_info.outputs.sha }}`
+            
+            Latest Commit:
+            ${{ github.event.workflow_run.head_commit.message }}
