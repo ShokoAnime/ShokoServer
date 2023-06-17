@@ -30,7 +30,7 @@ jobs:
           prefixRegex: "[vV]?"
 
       - id: commit_info
-        name: Shorten Commit Hash for Sentry Release
+        name: Shorten Commit Hash
         uses: actions/github-script@v6
         with:
           script: |
