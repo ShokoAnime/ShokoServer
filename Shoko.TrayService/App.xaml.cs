@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
@@ -36,6 +37,19 @@ public partial class App
         catch (Exception ex)
         {
             Console.WriteLine(ex.ToString());
+        }
+
+        Mutex mutex;
+        try
+        {
+            mutex = Mutex.OpenExisting(Utils.DefaultInstance + "Mutex");
+            Shutdown();
+        }
+        catch (Exception ex)
+        {
+            // since we didn't find a mutex with that name, create one
+            Debug.WriteLine("Exception thrown:" + ex.Message + " Creating a new mutex...");
+            mutex = new Mutex(true, Utils.DefaultInstance + "Mutex");
         }
 
         Utils.SetInstance();

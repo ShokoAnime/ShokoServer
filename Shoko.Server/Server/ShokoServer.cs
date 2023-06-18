@@ -73,8 +73,6 @@ public class ShokoServer
 
     public static List<UserCulture> userLanguages = new();
 
-    private Mutex mutex;
-
     public string[] GetSupportedDatabases()
     {
         return new[] { "SQLite", "Microsoft SQL Server 2014", "MySQL/MariaDB" };
@@ -163,25 +161,6 @@ public class ShokoServer
 
         //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
         CommandHelper.LoadCommands(Utils.ServiceContainer);
-
-        if (!Utils.IsLinux)
-        {
-            try
-            {
-                mutex = Mutex.OpenExisting(Utils.DefaultInstance + "Mutex");
-                //since it hasn't thrown an exception, then we already have one copy of the app open.
-                return false;
-                //MessageBox.Show(Shoko.Commons.Properties.Resources.Server_Running,
-                //    Shoko.Commons.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
-                //Environment.Exit(0);
-            }
-            catch (Exception ex)
-            {
-                //since we didn't find a mutex with that name, create one
-                Debug.WriteLine("Exception thrown:" + ex.Message + " Creating a new mutex...");
-                mutex = new Mutex(true, Utils.DefaultInstance + "Mutex");
-            }
-        }
 
         Loader.InitPlugins(Utils.ServiceContainer);
 
