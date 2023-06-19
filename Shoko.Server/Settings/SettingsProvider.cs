@@ -30,7 +30,6 @@ public class SettingsProvider : ISettingsProvider
     public SettingsProvider(ILogger<SettingsProvider> logger)
     {
         _logger = logger;
-        LoadSettings();
     }
 
     public IServerSettings GetSettings()
@@ -45,7 +44,7 @@ public class SettingsProvider : ISettingsProvider
         SaveSettings();
     }
 
-    private void LoadSettings()
+    public void LoadSettings()
     {
         var appPath = Utils.ApplicationPath;
         if (!Directory.Exists(appPath))

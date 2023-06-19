@@ -30,6 +30,8 @@ public partial class App
         s_instance = this;
         Console.CancelKeyPress += OnConsoleOnCancelKeyPress;
         InitialiseTaskbarIcon();
+        
+        
         try
         {
             UnhandledExceptionManager.AddHandler();
@@ -56,11 +58,21 @@ public partial class App
         Utils.InitLogger();
         var logFactory = new LoggerFactory().AddNLog();
         _logger = logFactory.CreateLogger("App.xaml");
-        var settingsProvider = new SettingsProvider(logFactory.CreateLogger<SettingsProvider>());
-        Utils.SettingsProvider = settingsProvider;
-        var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
-        startup.Start();
-        AddEventHandlers();
+
+        try
+        {
+            var settingsProvider = new SettingsProvider(logFactory.CreateLogger<SettingsProvider>());
+            settingsProvider.LoadSettings();
+            Utils.SettingsProvider = settingsProvider;
+            var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
+            startup.Start();
+            AddEventHandlers();
+        }
+        catch (Exception exception)
+        {
+            _logger.LogCritical(exception, "The server has failed to start");
+            s_instance.Shutdown();
+        }
     }
 
     private void AddEventHandlers()
@@ -74,7 +86,6 @@ public partial class App
 
     private void InitialiseTaskbarIcon()
     {
-#pragma warning disable CA1416
         _icon = new TaskbarIcon{
                                    ToolTipText = "Shoko Server",
                                    ContextMenu = CreateContextMenu(),
@@ -84,7 +95,6 @@ public partial class App
         using var iconStream = GetResourceStream(new Uri("pack://application:,,,/ShokoServer;component/db.ico"))?.Stream;
         if (iconStream is not null)
             _icon.Icon = new Icon(iconStream);
-#pragma warning restore CA1416
     }
     
     private ContextMenu CreateContextMenu()
