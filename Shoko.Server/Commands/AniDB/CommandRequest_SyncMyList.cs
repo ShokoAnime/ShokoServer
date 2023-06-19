@@ -14,6 +14,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
@@ -103,6 +104,14 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
                     // We have it, so process watched states and update storage states if needed
                     modifiedItems = ProcessStates(aniDBUsers, vl, myItem, modifiedItems, modifiedSeries);
                     continue;
+                }
+                else
+                {
+                    // we don't have it by hash. It could be generic. We can try to sync by episode
+                    // For now, we're just skipping them
+                    // TODO actually handle the generic files where possible
+                    // if it has a FileState other than Normal, it's a generic file.
+                    if (myItem.FileState != MyList_FileState.Normal) continue;
                 }
 
                 // We don't have the file

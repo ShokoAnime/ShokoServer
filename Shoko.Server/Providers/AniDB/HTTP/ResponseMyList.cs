@@ -11,4 +11,5 @@ public class ResponseMyList
     public DateTime? UpdatedAt { get; set; }
     public DateTime? ViewedAt { get; set; }
     public MyList_State State { get; set; }
+    public MyList_FileState FileState { get; set; }
 }

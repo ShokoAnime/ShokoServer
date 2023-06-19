@@ -52,6 +52,13 @@ public class RequestMyList : HttpRequest<List<ResponseMyList>>
 
                     var stateI = (int?)item.Element("state");
                     var state = stateI.HasValue ? (MyList_State)stateI.Value : MyList_State.Unknown;
+                    var fileStateElement = item.Descendants("filestate").FirstOrDefault()?.Value;
+                    var fileState = MyList_FileState.Normal;
+                    if (!string.IsNullOrWhiteSpace(fileStateElement) && int.TryParse(fileStateElement, out var fileStateParsed))
+                    {
+                        fileState = (MyList_FileState)fileStateParsed;
+                    }
+
                     return new ResponseMyList
                     {
                         MyListID = id,
@@ -60,7 +67,8 @@ public class RequestMyList : HttpRequest<List<ResponseMyList>>
                         FileID = fid,
                         UpdatedAt = updated,
                         ViewedAt = viewed,
-                        State = state
+                        State = state,
+                        FileState = fileState
                     };
                 }
             ).ToList();
