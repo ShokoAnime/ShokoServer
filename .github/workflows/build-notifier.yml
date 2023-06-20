@@ -2,7 +2,9 @@ name: Build Notification (Daily)
 
 on:
   workflow_run:
-    workflows: ["Build (Daily)", "Publish to Docker Hub (Daily)"]
+    # Disable for now as it cannot wait for both to finish. This is creating duplicate notifications
+    #workflows: ["Build (Daily)", "Publish to Docker Hub (Daily)"]
+    workflows: ["Build (Daily)"]
     types:
       - completed
 
@@ -42,7 +44,7 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           nodetail: true
-          title: New Daily Build!
+          title: New Server Daily Build!
           description: |
             **Version**: `${{ steps.release_info.outputs.version }}-dev-${{ steps.commit_info.outputs.sha }}`
             
