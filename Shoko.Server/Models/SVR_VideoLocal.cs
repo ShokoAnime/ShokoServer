@@ -299,7 +299,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
                 {
                     var vidUser = filexref.GetVideoLocalUserRecord(userID);
                     if (vidUser?.WatchedDate != null)
-                        epPercentWatched += filexref.Percentage;
+                        epPercentWatched += filexref.Percentage <= 0 ? 100 : filexref.Percentage;
 
                     if (epPercentWatched > 95) break;
                 }
@@ -349,7 +349,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
                 {
                     var vidUser = filexref.GetVideoLocalUserRecord(userID);
                     if (vidUser?.WatchedDate != null)
-                        epPercentWatched += filexref.Percentage;
+                        epPercentWatched += filexref.Percentage <= 0 ? 100 : filexref.Percentage;
 
                     if (epPercentWatched > 95) break;
                 }
