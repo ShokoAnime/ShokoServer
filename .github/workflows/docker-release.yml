@@ -38,7 +38,7 @@ jobs:
           prefix: v
           prefixRegex: "[vV]?"
 
-      - uses: docker/setup-qemu-action@v1
+      - uses: docker/setup-qemu-action@v2
         name: Set up QEMU
         with:
           platforms: arm64

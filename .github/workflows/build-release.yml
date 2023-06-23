@@ -86,7 +86,7 @@ jobs:
           prefixRegex: "[vV]?"
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
         with:
           platforms: arm64
         if: ${{ matrix.rid == 'linux-arm64' }}
