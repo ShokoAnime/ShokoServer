@@ -4,10 +4,12 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
@@ -22,11 +24,13 @@ public class AnimeCreator
 {
     private readonly ILogger<AnimeCreator> _logger;
     private readonly ISettingsProvider _settingsProvider;
+    private readonly ICommandRequestFactory _commandFactory;
 
-    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings)
+    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings, ICommandRequestFactory commandFactory)
     {
         _logger = logger;
         _settingsProvider = settings;
+        _commandFactory = commandFactory;
     }
 
 
@@ -275,10 +279,121 @@ public class AnimeCreator
             }
         }
 
-        RepoFactory.AniDB_Episode.Delete(epsToRemove);
+        // Validate existing shoko episodes.
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+        var shokoEpisodesToRemove = new List<SVR_AnimeEpisode>();
+        var shokoEpisodesToSave = new List<SVR_AnimeEpisode>();
+        var shokoSeriesDict = new Dictionary<int, SVR_AnimeSeries>();
+        var anidbFilesToRemove = new List<SVR_AniDB_File>();
+        var xrefsToRemove = new List<CrossRef_File_Episode>();
+        var videosToRefetch = new List<SVR_VideoLocal>();
+        var tvdbXRefsToRemove = new List<CrossRef_AniDB_TvDB_Episode>();
+        var tvdbXRefOverridesToRemove = new List<CrossRef_AniDB_TvDB_Episode_Override>();
+        foreach (var episode in epsToSave)
+        {
+            // No shoko episode, continue.
+            var shokoEpisode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
+            if (shokoEpisode == null)
+                continue;
+
+            // Retrive the shoko series from the dictionary or fetch it from the database.
+            if (!shokoSeriesDict.TryGetValue(shokoEpisode.AnimeSeriesID, out var shokoSeries))
+                shokoSeriesDict.Add(shokoEpisode.AnimeSeriesID, RepoFactory.AnimeSeries.GetByID(shokoEpisode.AnimeSeriesID));
+
+            // The series does not exist anymore. Schedule the episode to be removed.
+            if (shokoSeries == null)
+            {
+                shokoEpisodesToRemove.Add(shokoEpisode);
+                continue;
+            }
+
+            // The episode is linked to the correct series, continue.
+            if (shokoSeries.AniDB_ID == episode.AnimeID)
+                continue;
+
+            // The series was incorrectly linked to the wrong series. Correct it
+            // if it's possible, or delete the episode.
+            if (series != null)
+            {
+                shokoEpisode.AnimeSeriesID = series.AnimeSeriesID;
+                shokoEpisodesToSave.Add(shokoEpisode);
+                continue;
+            }
+
+            // Delete the episode and clean up any remaining traces of the shoko
+            // episode.
+            shokoEpisodesToRemove.Add(shokoEpisode);
+            var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID);
+            var videos = xrefs
+                .Select(xref => RepoFactory.VideoLocal.GetByHashAndSize(xref.Hash, xref.FileSize))
+                .Where(video => video != null)
+                .ToList();
+            var anidbFiles = xrefs
+                .Where(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)
+                .Select(xref => RepoFactory.AniDB_File.GetByHashAndFileSize(xref.Hash, xref.FileSize))
+                .Where(anidbFile => anidbFile != null)
+                .ToList();
+            var tvdbXRefs = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(episode.EpisodeID);
+            var tvdbXRefOverrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(episode.EpisodeID);
+            xrefsToRemove.AddRange(xrefs);
+            videosToRefetch.AddRange(videos);
+            anidbFilesToRemove.AddRange(anidbFiles);
+            tvdbXRefsToRemove.AddRange(tvdbXRefs);
+            tvdbXRefOverridesToRemove.AddRange(tvdbXRefOverrides);
+        }
+        shokoSeriesDict.Clear();
+
+        // Remove any existing links to the episodes that will be removed.
+        foreach (var episode in epsToRemove)
+        {
+            if (currentAniDBEpisodeTitles.TryGetValue(episode.EpisodeID, out var currentTitles))
+                titlesToRemove.AddRange(currentTitles);
+            var shokoEpisode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
+            if (shokoEpisode != null)
+                shokoEpisodesToRemove.Add(shokoEpisode);
+            var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID);
+            var videos = xrefs
+                .Select(xref => RepoFactory.VideoLocal.GetByHashAndSize(xref.Hash, xref.FileSize))
+                .Where(video => video != null)
+                .ToList();
+            var anidbFiles = xrefs
+                .Where(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)
+                .Select(xref => RepoFactory.AniDB_File.GetByHashAndFileSize(xref.Hash, xref.FileSize))
+                .Where(anidbFile => anidbFile != null)
+                .ToList();
+            var tvdbXRefs = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(episode.EpisodeID);
+            var tvdbXRefOverrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(episode.EpisodeID);
+            xrefsToRemove.AddRange(xrefs);
+            videosToRefetch.AddRange(videos);
+            anidbFilesToRemove.AddRange(anidbFiles);
+            tvdbXRefsToRemove.AddRange(tvdbXRefs);
+            tvdbXRefOverridesToRemove.AddRange(tvdbXRefOverrides);
+        }
+
+        RepoFactory.AniDB_File.Delete(anidbFilesToRemove);
         RepoFactory.AniDB_Episode.Save(epsToSave);
-        RepoFactory.AniDB_Episode_Title.Delete(titlesToRemove);
+        RepoFactory.AniDB_Episode.Delete(epsToRemove);
         RepoFactory.AniDB_Episode_Title.Save(titlesToSave);
+        RepoFactory.AniDB_Episode_Title.Delete(titlesToRemove);
+        RepoFactory.AnimeEpisode.Save(shokoEpisodesToSave);
+        RepoFactory.AnimeEpisode.Delete(shokoEpisodesToRemove);
+        RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
+        RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(tvdbXRefsToRemove);
+        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(tvdbXRefOverridesToRemove);
+
+        // Schedule a refetch of any video files affected by the removal of the
+        // episodes. They were likely moved to another episode entry so let's
+        // try and fetch that.
+        foreach (var video in videosToRefetch)
+        {
+            var command = _commandFactory.Create<CommandRequest_ProcessFile>(c =>
+            {
+                c.VideoLocalID = video.VideoLocalID;
+                c.SkipMyList = true;
+                c.ForceAniDB = true;
+            });
+            command.Save();
+        }
 
         var episodeCount = episodeCountSpecial + episodeCountNormal;
         anime.EpisodeCountNormal = episodeCountNormal;

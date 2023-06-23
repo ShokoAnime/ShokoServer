@@ -736,6 +736,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(117, 1, "ALTER TABLE VideoLocal ADD LastAVDumped datetime;"),
         new(117, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion nvarchar(128);"),
         new(118, 1, DatabaseFixes.FixAnimeSourceLinks),
+        new(118, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

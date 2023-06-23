@@ -671,6 +671,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(103, 1, "ALTER TABLE VideoLocal ADD LastAVDumped timestamp;"),
         new(103, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion text;"),
         new(104, 1, DatabaseFixes.FixAnimeSourceLinks),
+        new(104, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

@@ -679,6 +679,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(110, 1, "ALTER TABLE VideoLocal ADD LastAVDumped datetime;"),
         new DatabaseCommand(110, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion nvarchar(128);"),
         new DatabaseCommand(111, 1, DatabaseFixes.FixAnimeSourceLinks),
+        new DatabaseCommand(111, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
