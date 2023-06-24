@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 using NHibernate;
+using NHibernate.Driver.MySqlConnector;
 using Shoko.Commons.Properties;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -998,11 +999,12 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         var settings = Utils.SettingsProvider.GetSettings();
         return Fluently.Configure()
-            .Database(MySQLConfiguration.Standard.ConnectionString(
-                x => x.Database(settings.Database.Schema + ";CharSet=utf8mb4")
+            .Database(MySQLConfiguration.Standard
+                .ConnectionString(x => x.Database(settings.Database.Schema)
                     .Server(settings.Database.Hostname)
                     .Username(settings.Database.Username)
-                    .Password(settings.Database.Password)))
+                    .Password(settings.Database.Password))
+                .Driver<MySqlConnectorDriver>())
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
