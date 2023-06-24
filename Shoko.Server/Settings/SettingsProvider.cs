@@ -210,13 +210,13 @@ public class SettingsProvider : ISettingsProvider
                 settings.Database.Username = legacy.MySQL_Username;
                 settings.Database.Password = legacy.MySQL_Password;
                 settings.Database.Schema = legacy.MySQL_SchemaName;
-                settings.Database.Hostname = legacy.MySQL_Hostname;
+                settings.Database.Host = legacy.MySQL_Hostname;
                 break;
             case Constants.DatabaseType.SqlServer:
                 settings.Database.Username = legacy.DatabaseUsername;
                 settings.Database.Password = legacy.DatabasePassword;
                 settings.Database.Schema = legacy.DatabaseName;
-                settings.Database.Hostname = legacy.DatabaseServer;
+                settings.Database.Host = legacy.DatabaseServer;
                 break;
         }
 

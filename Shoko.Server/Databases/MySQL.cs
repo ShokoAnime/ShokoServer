@@ -973,14 +973,14 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         var settings = Utils.SettingsProvider.GetSettings();
         return
-            $"Server={settings.Database.Hostname};Database={settings.Database.Schema};User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
+            $"Server={settings.Database.Hostname};Port={settings.Database.Port};Database={settings.Database.Schema};User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
     }
 
     public override string GetTestConnectionString()
     {
         var settings = Utils.SettingsProvider.GetSettings();
         return
-            $"Server={settings.Database.Hostname};Database=mysql;User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
+            $"Server={settings.Database.Hostname};Port={settings.Database.Port};Database=mysql;User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
     }
 
     public override bool HasVersionsTable()
@@ -1002,6 +1002,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
             .Database(MySQLConfiguration.Standard
                 .ConnectionString(x => x.Database(settings.Database.Schema)
                     .Server(settings.Database.Hostname)
+                    .Port(settings.Database.Port)
                     .Username(settings.Database.Username)
                     .Password(settings.Database.Password))
                 .Driver<MySqlConnectorDriver>())
@@ -1055,7 +1056,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
             }
 
             var connStr =
-                $"Server={settings.Database.Hostname};User ID={settings.Database.Username};Password={settings.Database.Password}";
+                $"Server={settings.Database.Hostname};Port={settings.Database.Port};User ID={settings.Database.Username};Password={settings.Database.Password}";
             Logger.Trace(connStr);
             var sql =
                 $"CREATE DATABASE {settings.Database.Schema} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
@@ -1139,7 +1140,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
             "AND collation_name != 'utf8mb4_unicode_ci'";
 
         using (var conn = new MySqlConnection(
-                   $"Server={settings.Database.Hostname};User ID={settings.Database.Username};Password={settings.Database.Password};database={settings.Database.Schema}"))
+                   $"Server={settings.Database.Hostname};Port={settings.Database.Port};User ID={settings.Database.Username};Password={settings.Database.Password};database={settings.Database.Schema}"))
         {
             var mySQL = (MySQL)DatabaseFactory.Instance;
             conn.Open();
