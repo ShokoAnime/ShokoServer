@@ -26,7 +26,34 @@ public class DatabaseSettings
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public string Schema { get; set; } = string.Empty;
-    public string Hostname { get; set; } = string.Empty;
+    public string Host { get; set; } = string.Empty;
+
+    [JsonIgnore]
+    public int Port
+    {
+        get
+        {
+            var array = Host.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (array.Length >= 2 && int.TryParse(array.Last(), out var val))
+                return val;
+
+            return Type switch
+            {
+                Constants.DatabaseType.MySQL => 3306,
+                Constants.DatabaseType.SqlServer => 1433,
+                _ => 0,
+            };
+        }
+    }
+
+    [JsonIgnore]
+    public string Hostname
+    {
+        get
+        {
+            return Host.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+        }
+    }
 
     public string SQLite_DatabaseFile
     {

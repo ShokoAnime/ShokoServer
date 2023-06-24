@@ -7,7 +7,7 @@ namespace Shoko.Server.Settings;
 
 public static class SettingsMigrations
 {
-    public const int Version = 3;
+    public const int Version = 4;
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
@@ -37,6 +37,7 @@ public static class SettingsMigrations
         { 1, MigrateTvDBLanguageEnum },
         { 2, MigrateEpisodeLanguagePreference },
         { 3, MigrateAutoGroupRelations },
+        { 4, MigrateHostnameToHost },
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -66,6 +67,17 @@ public static class SettingsMigrations
             var spacing = match.Groups["spacing"].Value;
             var value = match.Groups["value"].Value;
             return $"\"{name}\":{spacing}[\"{string.Join($"\", \"", value.Split('|'))}\"]";
+        });
+    }
+
+    private static string MigrateHostnameToHost(string settings)
+    {
+        var regex = new Regex(@"""[Hh]ost[Nn]ame""\s*:(?<spacing>\s*)""(?<value>[^""]+)""", RegexOptions.Compiled);
+        return regex.Replace(settings, match =>
+        {
+            var spacing = match.Groups["spacing"].Value;
+            var value = match.Groups["value"].Value;
+            return $"\"Host\":{spacing}\"{value}\"";
         });
     }
 }
