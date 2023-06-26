@@ -170,7 +170,8 @@ jobs:
       - current_info
 
     steps:
-      - uses: actions/checkout@master
+      - name: Checkout master
+        uses: actions/checkout@master
         with:
           ref: "${{ github.sha }}"
           submodules: recursive
@@ -227,6 +228,12 @@ jobs:
     name: Upload version info to Sentry.io
 
     steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+
       # Only add the release to sentry if the build is successful.
       - name: Push Sentry Release "${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}"
         uses: getsentry/action-release@v1.2.1
