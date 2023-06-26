@@ -6,8 +6,43 @@ on:
       - master
 
 jobs:
+  current_info:
+    runs-on: ubuntu-latest
+
+    name: Current Information
+
+    outputs:
+      version: ${{ steps.release_info.outputs.version }}
+      date: ${{ steps.release_date.outputs.date }}
+      sha: ${{ github.sha }}
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+          fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Get current version
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          branch: true
+          prefix: v
+          prefixRegex: "[vV]?"
+
+      - name: Get release date
+        id: release_date
+        shell: bash
+        run: |
+          echo "date=$(git --no-pager show -s --format=%aI ${{ github.sha }})\n" >> "$GITHUB_OUTPUT"
+
   cli-daily:
     runs-on: ubuntu-latest
+
+    needs:
+      - current_info
 
     strategy:
       matrix:
@@ -29,19 +64,10 @@ jobs:
         with:
           ref: "${{ github.sha }}"
           submodules: recursive
-          fetch-depth: 0 # This is set to download the full git history for the repo
 
       - name: Replace Sentry DSN key
         shell: pwsh
         run: ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
-
-      - name: Get current version
-        id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
-        with:
-          branch: true
-          prefix: v
-          prefixRegex: "[vV]?"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -54,7 +80,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r ${{ matrix.rid }} ${{ matrix.build_props }} Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=dev,commit=${{ github.sha }},date=${{ steps.release_info.outputs.date }}\""
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} ${{ matrix.build_props }} Shoko.CLI "/p:Version=\"${{ needs.current_info.outputs.version }}\",InformationalVersion=\"channel=dev,commit=${{ needs.current_info.outputs.sha }},date=${{ needs.current_info.outputs.date }}\""
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
@@ -64,6 +90,9 @@ jobs:
 
   tray-service-daily:
     runs-on: windows-latest
+
+    needs:
+      - current_info
 
     strategy:
       matrix:
@@ -87,26 +116,17 @@ jobs:
         with:
           ref: "${{ github.sha }}"
           submodules: recursive
-          fetch-depth: 0 # This is set to download the full git history for the repo
 
       - name: Replace Sentry DSN key
         shell: pwsh
         run: .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
-
-      - name: Get current version
-        id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
-        with:
-          branch: true
-          prefix: v
-          prefixRegex: "[vV]?"
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService "/p:Version=\`"${{ steps.release_info.outputs.version }}\`",InformationalVersion=\`"channel=dev,commit=${{ github.sha }},date=${{ steps.release_info.outputs.date }}\`""
+      - run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService "/p:Version=\`"${{ needs.current_info.outputs.version }}\`",InformationalVersion=\`"channel=dev,commit=${{ needs.current_info.outputs.sha }},date=${{ needs.current_info.outputs.date }}\`""
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
@@ -127,6 +147,7 @@ jobs:
     runs-on: ubuntu-latest
 
     needs:
+      - current_info
       - cli-daily
       - tray-service-daily
 
@@ -138,22 +159,13 @@ jobs:
         with:
           ref: "${{ github.ref }}"
           submodules: recursive
-          fetch-depth: 0 # This is set to download the full git history for the repo
-
-      - name: Get current version
-        id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
-        with:
-          branch: true
-          prefix: v
-          prefixRegex: "[vV]?"
 
       - id: commit_info
         name: Shorten Commit Hash for Sentry Release
         uses: actions/github-script@v6
         with:
           script: |
-            const sha = context.sha.substring(0, 7);
+            const sha = "${{ needs.current_info.outputs.sha }}".substring(0, 7);
             core.setOutput("sha", sha);
 
       # Only add the release to sentry if the build is successful.

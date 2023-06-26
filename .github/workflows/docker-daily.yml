@@ -5,8 +5,41 @@ on:
     branches: [ master ]
 
 jobs:
+  current_info:
+    runs-on: ubuntu-latest
+
+    name: Current Information
+
+    outputs:
+      version: ${{ steps.release_info.outputs.version }}
+      date: ${{ steps.release_date.outputs.date }}
+      sha: ${{ github.sha }}
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+          fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Get current version
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          branch: true
+          prefix: v
+          prefixRegex: "[vV]?"
+
+      - name: Get release date
+        id: release_date
+        shell: bash
+        run: |
+          echo "date=$(git --no-pager show -s --format=%aI ${{ github.sha }})\n" >> "$GITHUB_OUTPUT"
+
   docker-daily-build:
-    name: Build docker image
+    runs-on: ubuntu-latest
+
     strategy:
       matrix:
         include:
@@ -15,26 +48,21 @@ jobs:
 
           - arch: 'arm64'
             dockerfile: 'Dockerfile.aarch64'
-    runs-on: ubuntu-latest
+
+    name: Build docker image
+
+    needs:
+      - current_info
 
     steps:
       - uses: actions/checkout@master
         with:
           ref: "${{ github.sha }}"
           submodules: recursive
-          fetch-depth: 0 # This is set to download the full git history for the repo
 
       - name: Replace Sentry DSN key
         shell: pwsh
         run: ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
-
-      - name: Get release info
-        id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
-        with:
-          branch: true
-          prefix: v
-          prefixRegex: "[vV]?"
 
       - uses: docker/setup-qemu-action@v2
         name: Set up QEMU
@@ -52,12 +80,15 @@ jobs:
         # The manifest list produced by the new feature is incompatible with the
         # expected format used in the docker manifest create command.
       - name: Build and Push the Docker image
-        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:daily-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ steps.release_info.outputs.version }} --build-arg channel=dev --build-arg commit=${{ github.sha }} --build-arg date=${{ steps.release_info.outputs.date }} --push --provenance=false
+        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:daily-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ needs.current_info.outputs.version }} --build-arg channel=dev --build-arg commit=${{ needs.current_info.outputs.sha }} --build-arg date=${{ needs.current_info.outputs.date }} --push --provenance=false
 
   docker-daily-push_manifest:
-    needs: docker-daily-build
-    name: Push combined tag for both images
     runs-on: ubuntu-latest
+
+    name: Push combined tag for both images
+
+    needs:
+      - docker-daily-build
 
     steps:
       - name: Log into docker hub
