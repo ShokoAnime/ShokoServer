@@ -141,8 +141,9 @@ public class Episode : BaseModel
                 return EpisodeType.ThemeSong;
             case AniDBEpisodeType.Trailer:
                 return EpisodeType.Trailer;
-            default:
             case AniDBEpisodeType.Other:
+                return EpisodeType.Other;
+            default:
                 return EpisodeType.Unknown;
         }
     }
