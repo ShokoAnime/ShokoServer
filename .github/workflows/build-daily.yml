@@ -13,8 +13,9 @@ jobs:
 
     outputs:
       version: ${{ steps.release_info.outputs.version }}
-      date: ${{ steps.release_date.outputs.date }}
+      date: ${{ steps.commit_date.outputs.date }}
       sha: ${{ github.sha }}
+      sha_short: ${{ steps.commit_info.outputs.sha }}
 
     steps:
       - name: Checkout master
@@ -24,7 +25,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
-      - name: Get current version
+      - name: Get Current Version
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
@@ -32,11 +33,19 @@ jobs:
           prefix: v
           prefixRegex: "[vV]?"
 
-      - name: Get release date
-        id: release_date
+      - name: Get Commit Date
+        id: commit_date
         shell: bash
         run: |
           echo "date=$(git --no-pager show -s --format=%aI ${{ github.sha }})\n" >> "$GITHUB_OUTPUT"
+
+      - id: commit_info
+        name: Shorten Commit Hash
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const sha = context.sha.substring(0, 7);
+            core.setOutput("sha", sha);
 
   cli-daily:
     runs-on: ubuntu-latest
@@ -143,6 +152,69 @@ jobs:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
         run : Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\ShokoServer.zip && .\\.github\\workflows\\UploadArchive.ps1
 
+  docker-daily-build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - arch: 'amd64'
+            dockerfile: 'Dockerfile'
+
+          - arch: 'arm64'
+            dockerfile: 'Dockerfile.aarch64'
+
+    name: Build Docker Image - ${{ matrix.arch }} (Daily)
+
+    needs:
+      - current_info
+
+    steps:
+      - uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+
+      - name: Replace Sentry DSN key
+        shell: pwsh
+        run: ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+
+      - uses: docker/setup-qemu-action@v2
+        name: Set up QEMU
+        with:
+          platforms: arm64
+        if: ${{ matrix.arch == 'arm64' }}
+
+      - uses: docker/setup-buildx-action@v2
+        name: Set up Docker Buildx
+
+      - name: Log into docker hub
+        run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+
+        # Disabled provenance for now, until it works with docker manifest create.
+        # The manifest list produced by the new feature is incompatible with the
+        # expected format used in the docker manifest create command.
+      - name: Build and Push the Docker image
+        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:daily-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ needs.current_info.outputs.version }} --build-arg channel=dev --build-arg commit=${{ needs.current_info.outputs.sha }} --build-arg date=${{ needs.current_info.outputs.date }} --push --provenance=false
+
+  docker-daily-push_manifest:
+    runs-on: ubuntu-latest
+
+    name: Push combined tag for both docker images
+
+    needs:
+      - docker-daily-build
+
+    steps:
+      - name: Log into Docker Hub
+        run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Create manifest
+        run: docker manifest create ${{ secrets.DOCKER_REPO }}:daily --amend ${{ secrets.DOCKER_REPO }}:daily-amd64 --amend ${{ secrets.DOCKER_REPO }}:daily-arm64
+
+      - name: Push manifest
+        run: docker manifest push ${{ secrets.DOCKER_REPO }}:daily
+
   sentry-upload:
     runs-on: ubuntu-latest
 
@@ -150,26 +222,13 @@ jobs:
       - current_info
       - cli-daily
       - tray-service-daily
+      - docker-daily-push_manifest
 
     name: Upload version info to Sentry.io
 
     steps:
-      - name: Checkout master
-        uses: actions/checkout@master
-        with:
-          ref: "${{ github.ref }}"
-          submodules: recursive
-
-      - id: commit_info
-        name: Shorten Commit Hash for Sentry Release
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const sha = "${{ needs.current_info.outputs.sha }}".substring(0, 7);
-            core.setOutput("sha", sha);
-
       # Only add the release to sentry if the build is successful.
-      - name: Push Sentry Release "${{ steps.release_info.outputs.version }}-dev-${{ steps.commit_info.outputs.sha }}"
+      - name: Push Sentry Release "${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}"
         uses: getsentry/action-release@v1.2.1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -178,4 +237,28 @@ jobs:
           # SENTRY_URL: https://sentry.io/
         with:
           environment: 'dev'
-          version: ${{ steps.release_info.outputs.version }}-dev-${{ steps.commit_info.outputs.sha }}
+          version: ${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}
+
+  discord-notify:
+    runs-on: ubuntu-latest
+
+    name: Send notifications about the new daily build
+
+    needs:
+      - current_info
+      - sentry-upload
+
+    steps:
+      - name: Notify discord users
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          nodetail: true
+          title: New Daily Server Build!
+          description: |
+            **Version**: `${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}`
+
+            **Commit Date**: `${{ needs.current_info.outputs.date }}`
+
+            **Latest Commit**:
+            ${{ github.event.workflow_run.head_commit.message }}
