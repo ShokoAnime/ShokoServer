@@ -271,10 +271,11 @@ jobs:
       - name: Debug Get Sentry Release Commits
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           RELEASE_VERSION: ${{ needs.current_info.outputs.version }}
         run: |
-          curl --verbose "https://sentry.io/api/0/projects/$SENTRY_PROJECT/releases/$RELEASE_VERSION/commits/" \
+          curl --verbose "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/releases/$RELEASE_VERSION/commits/" \
             -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
             -H "Content-Type: application/json"
 
@@ -282,10 +283,11 @@ jobs:
         id: sentry_commits
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           RELEASE_VERSION: ${{ needs.current_info.outputs.version }}
         run: |
-          commits=$(curl -s "https://sentry.io/api/0/projects/$SENTRY_PROJECT/releases/$RELEASE_VERSION/commits/" \
+          commits=$(curl -s "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/releases/$RELEASE_VERSION/commits/" \
             -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
             -H "Content-Type: application/json" \
             | jq -r '.[].message + "\n"')
