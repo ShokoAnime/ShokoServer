@@ -268,11 +268,21 @@ jobs:
         run: |
           echo "date_seconds=$(git --no-pager show -s --format=%at ${{ github.sha }})" >> "$GITHUB_OUTPUT"
 
+      - name: Debug Get Sentry Release Commits
+        id: sentry_commits
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          RELEASE_VERSION: ${{ needs.current_info.outputs.version }}
+        run: |
+          curl --verbose "https://sentry.io/api/0/projects/$SENTRY_PROJECT/releases/$RELEASE_VERSION/commits/" \
+            -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
+            -H "Content-Type: application/json"
+
       - name: Get Sentry Release Commits
         id: sentry_commits
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           RELEASE_VERSION: ${{ needs.current_info.outputs.version }}
         run: |
@@ -280,7 +290,7 @@ jobs:
             -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
             -H "Content-Type: application/json" \
             | jq -r '.[].message + "\n"')
-          echo "::set-output name=commits::$commits"
+          echo "commits=$commits" >> "$GITHUB_OUTPUT"
 
       - name: Notify discord users
         uses: sarisia/actions-status-discord@v1
