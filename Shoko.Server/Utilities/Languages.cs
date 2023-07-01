@@ -21,6 +21,7 @@ public static class Languages
 
             var preference = Utils.SettingsProvider.GetSettings().LanguagePreference ?? new();
             return _preferredNamingLanguages = preference
+                .Where(l => !string.IsNullOrEmpty(l))
                 .Select(l => new NamingLanguage(l))
                 .Where(l => l.Language != TitleLanguage.Unknown)
                 .ToList();
@@ -39,6 +40,7 @@ public static class Languages
 
             var preference = Utils.SettingsProvider.GetSettings().EpisodeLanguagePreference ?? new();
             return _preferredEpisodeNamingLanguages = preference
+                .Where(l => !string.IsNullOrEmpty(l))
                 .Select(l => new NamingLanguage(l))
                 .Where(l => l.Language != TitleLanguage.Unknown)
                 .ToList();
