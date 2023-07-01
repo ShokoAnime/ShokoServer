@@ -14,7 +14,6 @@ jobs:
     outputs:
       version: ${{ steps.release_info.outputs.version }}
       date: ${{ steps.commit_date_iso8601.outputs.date }}
-      date_seconds: ${{ steps.commit_date_seconds.outputs.date_seconds }}
       sha: ${{ github.sha }}
       sha_short: ${{ steps.commit_info.outputs.sha }}
 
@@ -39,13 +38,6 @@ jobs:
         shell: bash
         run: |
           echo "date=$(git --no-pager show -s --format=%aI ${{ github.sha }})" >> "$GITHUB_OUTPUT"
-
-      - name: Get Commit Date (in seconds)
-        id: commit_date_seconds
-        shell: bash
-        run: |
-          echo "date_seconds=$(git --no-pager show -s --format=%at ${{ github.sha }})" >> "$GITHUB_OUTPUT"
-
       - id: commit_info
         name: Shorten Commit Hash
         uses: actions/github-script@v6
@@ -269,16 +261,22 @@ jobs:
           ref: "${{ github.sha }}"
           submodules: recursive
 
+      - name: Get Commit Date (in seconds)
+        id: commit_date_seconds
+        shell: bash
+        run: |
+          echo "date_seconds=$(git --no-pager show -s --format=%at ${{ github.sha }})" >> "$GITHUB_OUTPUT"
+
       - name: Get Sentry Release Commits
         id: sentry_commits
         env:
-          SENTRY_API_TOKEN: ${{ secrets.SENTRY_API_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           RELEASE_VERSION: ${{ needs.current_info.outputs.version }}
         run: |
           commits=$(curl -s "https://sentry.io/api/0/projects/$SENTRY_PROJECT/releases/$RELEASE_VERSION/commits/" \
-            -H "Authorization: Bearer $SENTRY_API_TOKEN" \
+            -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
             -H "Content-Type: application/json" \
             | jq -r '.[].message + "\n"')
           echo "::set-output name=commits::$commits"
@@ -292,7 +290,7 @@ jobs:
           description: |
             **Version**: `${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}`
 
-            **Commit Date**: <t:${{ needs.current_info.outputs.date_seconds }}:f>
+            **Commit Date**: <t:${{ steps.current_info.outputs.date_seconds }}:f>
 
             **Changes since last build**:
             ${{ steps.sentry_commits.outputs.commits }}
