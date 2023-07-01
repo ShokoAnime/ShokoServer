@@ -268,8 +268,8 @@ jobs:
         run: |
           echo "date_seconds=$(git --no-pager show -s --format=%at ${{ github.sha }})" >> "$GITHUB_OUTPUT"
 
-      - name: Get Sentry Release Commits
-        id: sentry_commits
+      - name: Generate Changelog for Sentry Release
+        id: generate_changelog
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
@@ -277,14 +277,14 @@ jobs:
           RELEASE_VERSION: ${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}
         run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "commits>>$EOF" >> "$GITHUB_OUTPUT"
+          echo "CHANGELOG>>$EOF" >> "$GITHUB_OUTPUT"
           curl -s "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/releases/$RELEASE_VERSION/commits/" \
             -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
             -H "Content-Type: application/json" \
             | jq -r '.[].message + "\n"' >> "$GITHUB_OUTPUT"
           echo "$EOF" >> "$GITHUB_OUTPUT"
 
-      - name: Notify discord users
+      - name: Notify Discord Users
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
@@ -296,4 +296,4 @@ jobs:
             **Author Date**: <t:${{ steps.commit_date_seconds.outputs.date_seconds }}:f>
 
             **Changes since last build**:
-            ${{ steps.sentry_commits.outputs.commits }}
+            ${{ steps.generate_changelog.outputs.CHANGELOG }}
