@@ -14,6 +14,7 @@ jobs:
     outputs:
       version: ${{ steps.release_info.outputs.version }}
       date: ${{ steps.commit_date.outputs.date }}
+      date_seconds: ${{ steps.commit_date.outputs.date_seconds }}
       sha: ${{ github.sha }}
       sha_short: ${{ steps.commit_info.outputs.sha }}
 
@@ -33,11 +34,17 @@ jobs:
           prefix: v
           prefixRegex: "[vV]?"
 
-      - name: Get Commit Date
+      - name: Get Commit Date (as ISO8601)
         id: commit_date
         shell: bash
         run: |
-          echo "date=$(git --no-pager show -s --format=%at ${{ github.sha }})" >> "$GITHUB_OUTPUT"
+          echo "date=$(git --no-pager show -s --format=%aI ${{ github.sha }})" >> "$GITHUB_OUTPUT"
+
+      - name: Get Commit Date (in seconds)
+        id: commit_date
+        shell: bash
+        run: |
+          echo "date_seconds=$(git --no-pager show -s --format=%at ${{ github.sha }})" >> "$GITHUB_OUTPUT"
 
       - id: commit_info
         name: Shorten Commit Hash
@@ -271,7 +278,7 @@ jobs:
           description: |
             **Version**: `${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}`
 
-            **Commit Date**: <t:${{ needs.current_info.outputs.date }}:f>
+            **Commit Date**: <t:${{ needs.current_info.outputs.date_seconds }}:f>
 
             **Latest Commit**:
             ${{ github.event.workflow_run.head_commit.message }}
