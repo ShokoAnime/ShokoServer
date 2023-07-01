@@ -269,6 +269,20 @@ jobs:
           ref: "${{ github.sha }}"
           submodules: recursive
 
+      - name: Get Sentry Release Commits
+        id: sentry_commits
+        env:
+          SENTRY_API_TOKEN: ${{ secrets.SENTRY_API_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          RELEASE_VERSION: ${{ needs.current_info.outputs.version }}
+        run: |
+          commits=$(curl -s "https://sentry.io/api/0/projects/$SENTRY_PROJECT/releases/$RELEASE_VERSION/commits/" \
+            -H "Authorization: Bearer $SENTRY_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            | jq -r '.[].message + "\n"')
+          echo "::set-output name=commits::$commits"
+
       - name: Notify discord users
         uses: sarisia/actions-status-discord@v1
         with:
@@ -280,5 +294,5 @@ jobs:
 
             **Commit Date**: <t:${{ needs.current_info.outputs.date_seconds }}:f>
 
-            **Latest Commit**:
-            ${{ github.event.workflow_run.head_commit.message }}
+            **Changes since last build**:
+            ${{ steps.sentry_commits.outputs.commits }}
