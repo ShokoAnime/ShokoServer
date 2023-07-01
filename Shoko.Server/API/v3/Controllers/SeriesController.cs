@@ -544,6 +544,7 @@ public class SeriesController : BaseController
             .Where(file => file != null)
             .Select(file => file.EpisodeCrossRefs.OrderBy(xref => xref.EpisodeOrder).ThenBy(xref => xref.Percentage)
                 .FirstOrDefault())
+            .Where(xref => xref != null)
             .Select(xref => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID))
             .Where(episode => episode != null)
             .DistinctBy(episode => episode.AnimeSeriesID)
