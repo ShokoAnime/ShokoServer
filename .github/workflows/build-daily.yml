@@ -269,7 +269,6 @@ jobs:
           echo "date_seconds=$(git --no-pager show -s --format=%at ${{ github.sha }})" >> "$GITHUB_OUTPUT"
 
       - name: Debug Get Sentry Release Commits
-        id: sentry_commits
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
