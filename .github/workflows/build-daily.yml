@@ -277,7 +277,7 @@ jobs:
           RELEASE_VERSION: ${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}
         run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "CHANGELOG>>$EOF" >> "$GITHUB_OUTPUT"
+          echo "CHANGELOG<<$EOF" >> "$GITHUB_OUTPUT"
           curl -s "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/releases/$RELEASE_VERSION/commits/" \
             -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
             -H "Content-Type: application/json" \
