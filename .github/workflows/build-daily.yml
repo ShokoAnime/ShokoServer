@@ -13,8 +13,8 @@ jobs:
 
     outputs:
       version: ${{ steps.release_info.outputs.version }}
-      date: ${{ steps.commit_date.outputs.date }}
-      date_seconds: ${{ steps.commit_date.outputs.date_seconds }}
+      date: ${{ steps.commit_date_iso8601.outputs.date }}
+      date_seconds: ${{ steps.commit_date_seconds.outputs.date_seconds }}
       sha: ${{ github.sha }}
       sha_short: ${{ steps.commit_info.outputs.sha }}
 
@@ -35,13 +35,13 @@ jobs:
           prefixRegex: "[vV]?"
 
       - name: Get Commit Date (as ISO8601)
-        id: commit_date
+        id: commit_date_iso8601
         shell: bash
         run: |
           echo "date=$(git --no-pager show -s --format=%aI ${{ github.sha }})" >> "$GITHUB_OUTPUT"
 
       - name: Get Commit Date (in seconds)
-        id: commit_date
+        id: commit_date_seconds
         shell: bash
         run: |
           echo "date_seconds=$(git --no-pager show -s --format=%at ${{ github.sha }})" >> "$GITHUB_OUTPUT"
