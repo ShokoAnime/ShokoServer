@@ -302,7 +302,7 @@ jobs:
           description: |
             **Version**: `${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}`
 
-            **Author Date**: <t:${{ steps.current_info_seconds.outputs.date_seconds }}:f>
+            **Author Date**: <t:${{ steps.commit_date_seconds.outputs.date_seconds }}:f>
 
             **Changes since last build**:
             ${{ steps.sentry_commits.outputs.commits }}
