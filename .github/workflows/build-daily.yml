@@ -37,7 +37,7 @@ jobs:
         id: commit_date
         shell: bash
         run: |
-          echo "date=$(git --no-pager show -s --format=%aI ${{ github.sha }})\n" >> "$GITHUB_OUTPUT"
+          echo "date=$(git --no-pager show -s --format=%at ${{ github.sha }})" >> "$GITHUB_OUTPUT"
 
       - id: commit_info
         name: Shorten Commit Hash
@@ -256,6 +256,12 @@ jobs:
       - sentry-upload
 
     steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+
       - name: Notify discord users
         uses: sarisia/actions-status-discord@v1
         with:
@@ -265,7 +271,7 @@ jobs:
           description: |
             **Version**: `${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}`
 
-            **Commit Date**: `${{ needs.current_info.outputs.date }}`
+            **Commit Date**: <t:${{ needs.current_info.outputs.date }}:f>
 
             **Latest Commit**:
             ${{ github.event.workflow_run.head_commit.message }}
