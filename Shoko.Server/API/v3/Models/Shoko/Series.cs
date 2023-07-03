@@ -122,8 +122,8 @@ public class Series : BaseModel
         Size = Sizes.Local.Credits + Sizes.Local.Episodes + Sizes.Local.Others + Sizes.Local.Parodies +
                Sizes.Local.Specials + Sizes.Local.Trailers;
 
-        Created = ser.DateTimeCreated;
-        Updated = ser.DateTimeUpdated;
+        Created = ser.DateTimeCreated.ToUniversalTime();
+        Updated = ser.DateTimeUpdated.ToUniversalTime();
 
         if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
             this._AniDB = new Series.AniDBWithDate(anime, ser);

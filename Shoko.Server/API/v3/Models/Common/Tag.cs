@@ -35,7 +35,7 @@ public class Tag
         Source = "AniDB";
         IsVerified = tag.Verified;
         IsSpoiler = tag.GlobalSpoiler;
-        LastUpdated = tag.LastUpdated;
+        LastUpdated = tag.LastUpdated.ToUniversalTime();
     }
 
     /// <summary>

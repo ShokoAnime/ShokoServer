@@ -96,7 +96,7 @@ public class Episode : BaseModel
         };
         Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, anidbEpisode.LengthSeconds);
         ResumePosition = fileUserRecord?.ResumePositionTimeSpan;
-        Watched = fileUserRecord?.WatchedDate;
+        Watched = fileUserRecord?.WatchedDate?.ToUniversalTime();
         WatchCount = episodeUserRecord?.WatchedCount ?? 0;
         IsHidden = episode.IsHidden;
         Name = GetEpisodeTitle(episode.AniDB_EpisodeID);

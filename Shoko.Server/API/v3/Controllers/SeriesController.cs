@@ -463,6 +463,8 @@ public class SeriesController : BaseController
         [FromQuery] [Range(0, 1)] double? approval = null
     )
     {
+        startDate = startDate?.ToLocalTime();
+        endDate = endDate?.ToLocalTime();
         if (startDate.HasValue && !endDate.HasValue)
             endDate = DateTime.Now;
 
@@ -525,6 +527,8 @@ public class SeriesController : BaseController
     private List<SVR_AniDB_Anime> GetWatchedAnimeForPeriod(SVR_JMMUser user, DateTime? startDate = null,
         DateTime? endDate = null)
     {
+        startDate = startDate?.ToLocalTime();
+        endDate = endDate?.ToLocalTime();
         IEnumerable<SVR_VideoLocal_User> userDataQuery = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID);
         if (startDate.HasValue && endDate.HasValue)
         {

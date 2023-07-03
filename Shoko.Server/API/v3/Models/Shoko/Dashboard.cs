@@ -148,7 +148,7 @@ public static class Dashboard
             AirDate = episode.GetAirDateAsDate();
             Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, episode.LengthSeconds);
             ResumePosition = userRecord?.ResumePositionTimeSpan;
-            Watched = userRecord?.WatchedDate;
+            Watched = userRecord?.WatchedDate?.ToUniversalTime();
             SeriesTitle = series?.GetSeriesName() ?? anime.PreferredTitle;
             SeriesPoster = Series.GetDefaultImage(anime.AnimeID, ImageSizeType.Poster) ??
                            Series.GetAniDBPoster(anime.AnimeID);

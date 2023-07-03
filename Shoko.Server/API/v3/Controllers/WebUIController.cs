@@ -336,6 +336,7 @@ public class WebUIController : BaseController
                             var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}");
                             string commit = tag["object"].sha;
                             DateTime releaseDate = release.published_at;
+                            releaseDate = releaseDate.ToUniversalTime();
                             string description = release.body;
                             return Cache.Set<ComponentVersion>(key, new ComponentVersion
                             {
@@ -363,6 +364,7 @@ public class WebUIController : BaseController
                 var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{version}");
                 string commit = tag["object"].sha;
                 DateTime releaseDate = latestRelease.published_at;
+                releaseDate = releaseDate.ToUniversalTime();
                 string description = latestRelease.body;
                 return Cache.Set<ComponentVersion>(key, new ComponentVersion
                 {
@@ -416,6 +418,7 @@ public class WebUIController : BaseController
                 string tagName = latestRelease.tag_name;
                 string version = tagName[1..] + ".0";
                 DateTime releaseDate = latestCommit.commit.author.date;
+                releaseDate = releaseDate.ToUniversalTime();
                 string description;
                 // We're on a local build.
                 if (!Utils.GetApplicationExtraVersion().TryGetValue("commit", out var currentCommit))
@@ -460,7 +463,7 @@ public class WebUIController : BaseController
                     else
                         componentVersion.ReleaseChannel = ReleaseChannel.Debug;
                 if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
-                    componentVersion.ReleaseDate = releaseDate;
+                    componentVersion.ReleaseDate = releaseDate.ToUniversalTime();
                 return Cache.Set<ComponentVersion>(key, componentVersion, CacheTTL);
             }
 #endif
@@ -474,6 +477,7 @@ public class WebUIController : BaseController
                 string version = tagName[1..] + ".0";
                 string commit = tagResponse["object"].sha;
                 DateTime releaseDate = latestRelease.published_at;
+                releaseDate = releaseDate.ToUniversalTime();
                 string description = latestRelease.body;
                 return Cache.Set<ComponentVersion>(key, new ComponentVersion
                 {

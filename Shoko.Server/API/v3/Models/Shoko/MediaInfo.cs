@@ -90,7 +90,7 @@ public class MediaInfo
         Duration = file.DurationTimeSpan;
         BitRate = general.OverallBitRate;
         FrameRate = general.FrameRate;
-        Encoded = general.Encoded_Date;
+        Encoded = general.Encoded_Date?.ToUniversalTime();
         Audio = mediaContainer.AudioStreams
             .Select(audio => new AudioStreamInfo(audio))
             .ToList();

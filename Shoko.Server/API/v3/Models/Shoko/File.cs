@@ -130,10 +130,11 @@ public class File
         }).ToList();
         Duration = file.DurationTimeSpan;
         ResumePosition = userRecord?.ResumePositionTimeSpan;
-        Watched = userRecord?.WatchedDate;
-        Imported = file.DateTimeImported;
-        Created = file.DateTimeCreated;
-        Updated = file.DateTimeUpdated;
+        Viewed = userRecord?.LastUpdated.ToUniversalTime();
+        Watched = userRecord?.WatchedDate?.ToUniversalTime();
+        Imported = file.DateTimeImported?.ToUniversalTime();
+        Created = file.DateTimeCreated.ToUniversalTime();
+        Updated = file.DateTimeUpdated.ToUniversalTime();
         if (withXRefs)
         {
             var episodes = file.GetAnimeEpisodes();
@@ -228,7 +229,7 @@ public class File
             OriginalFileName = anidb.FileName;
             FileSize = anidb.FileSize;
             Description = anidb.File_Description;
-            Updated = anidb.DateTimeUpdated;
+            Updated = anidb.DateTimeUpdated.ToUniversalTime();
             AudioLanguages = anidb.Languages.Select(a => a.LanguageName).ToList();
             SubLanguages = anidb.Subtitles.Select(a => a.LanguageName).ToList();
         }
@@ -370,15 +371,15 @@ public class File
             ResumePosition = TimeSpan.Zero;
             WatchedCount = 0;
             LastWatchedAt = null;
-            LastUpdatedAt = DateTime.Now;
+            LastUpdatedAt = DateTime.UtcNow;
         }
 
         public FileUserStats(SVR_VideoLocal_User userStats)
         {
             ResumePosition = userStats.ResumePositionTimeSpan;
             WatchedCount = userStats.WatchedCount;
-            LastWatchedAt = userStats.WatchedDate;
-            LastUpdatedAt = userStats.LastUpdated;
+            LastWatchedAt = userStats.WatchedDate?.ToUniversalTime();
+            LastUpdatedAt = userStats.LastUpdated.ToUniversalTime();
         }
 
         public FileUserStats MergeWithExisting(SVR_VideoLocal_User existing, SVR_VideoLocal file = null)
@@ -390,7 +391,7 @@ public class File
             }
 
             // Sync the watch date and aggregate the data up to the episode if needed.
-            file.ToggleWatchedStatus(LastWatchedAt.HasValue, true, LastWatchedAt, true, existing.JMMUserID, true, true, LastUpdatedAt);
+            file.ToggleWatchedStatus(LastWatchedAt.HasValue, true, LastWatchedAt?.ToLocalTime(), true, existing.JMMUserID, true, true, LastUpdatedAt.ToLocalTime());
 
             // Update the rest of the data. The watch count have been bumped when toggling the watch state, so set it to it's intended value.
             existing.WatchedCount = WatchedCount;
