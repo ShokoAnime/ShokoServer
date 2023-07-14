@@ -144,17 +144,17 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         {
             // get the old version from the DB
             logger.Trace($"Saving Series {animeID} | Waiting for Database Lock");
-            var oldSeries = Lock(() =>
+            var oldSeries = Lock(obj.AnimeSeriesID, animeID, sw, (animeSeriesID, id, s) =>
             {
-                sw.Stop();
-                logger.Trace($"Saving Series {animeID} | Got Database Lock in {sw.Elapsed.TotalSeconds:0.00###}s");
-                sw.Restart();
+                s.Stop();
+                logger.Trace($"Saving Series {id} | Got Database Lock in {s.Elapsed.TotalSeconds:0.00###}s");
+                s.Restart();
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var s = session.Get<SVR_AnimeSeries>(obj.AnimeSeriesID);
-                sw.Stop();
-                logger.Trace($"Saving Series {animeID} | Got Series from Database in {sw.Elapsed.TotalSeconds:0.00###}s");
-                sw.Restart();
-                return s;
+                var series = session.Get<SVR_AnimeSeries>(animeSeriesID);
+                s.Stop();
+                logger.Trace($"Saving Series {id} | Got Series from Database in {s.Elapsed.TotalSeconds:0.00###}s");
+                s.Restart();
+                return series;
             });
 
             if (oldSeries != null)
