@@ -268,14 +268,15 @@ public static class APIExtensions
         app.UseSwagger(c =>
         {
             c.PreSerializeFilters.Add((swaggerDoc, _) => {
-                var version = swaggerDoc.Info.Version;
-                swaggerDoc.Servers.Add(new OpenApiServer{Url = $"/api/v{version}/"});
+                var version = double.Parse(swaggerDoc.Info.Version);
+                swaggerDoc.Servers.Add(new OpenApiServer{Url = $"/api/v{version:0}/"});
 
-                var basepath = $"/api/v{version}/";
+                var basepathInt = $"/api/v{version:0}/";
+                var basepathDecimal = $"/api/v{version:0.0}/";
                 var paths = new OpenApiPaths();
                 foreach (var path in swaggerDoc.Paths)
                 {
-                    if (!path.Key.Contains(basepath))
+                    if (!path.Key.Contains(basepathInt) && !path.Key.Contains(basepathDecimal))
                     {
                         path.Value.Servers.Clear();
                         path.Value.Servers.Add(new OpenApiServer
@@ -284,7 +285,7 @@ public static class APIExtensions
                         });
                     }
 
-                    paths.Add(path.Key.Replace(basepath, "/"), path.Value);
+                    paths.Add(path.Key.Replace(basepathInt, "/").Replace(basepathDecimal, "/"), path.Value);
                 }
                 swaggerDoc.Paths = paths;
             });
