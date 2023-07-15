@@ -166,7 +166,6 @@ public static class APIExtensions
         {
             o.ReportApiVersions = true;
             o.AssumeDefaultVersionWhenUnspecified = true;
-            o.DefaultApiVersion = ApiVersion.Parse("3");
             o.ApiVersionReader = ApiVersionReader.Combine(
                 new QueryStringApiVersionReader(),
                 new HeaderApiVersionReader("api-version"),
@@ -175,7 +174,6 @@ public static class APIExtensions
         });
         services.AddVersionedApiExplorer(options =>
         {
-            options.DefaultApiVersion = ApiVersion.Parse("3");
             options.GroupNameFormat = "'v'VVV";
             options.SubstituteApiVersionInUrl = true;
         });
@@ -271,16 +269,24 @@ public static class APIExtensions
         {
             c.PreSerializeFilters.Add((swaggerDoc, _) => {
                 var version = swaggerDoc.Info.Version;
-                if (version.FirstOrDefault() != '3') return;
+                swaggerDoc.Servers.Add(new OpenApiServer{Url = $"/api/v{version}/"});
+
                 var basepath = $"/api/v{version}/";
                 var paths = new OpenApiPaths();
                 foreach (var path in swaggerDoc.Paths)
                 {
+                    if (!path.Key.Contains(basepath))
+                    {
+                        path.Value.Servers.Clear();
+                        path.Value.Servers.Add(new OpenApiServer
+                        {
+                            Url = "/"
+                        });
+                    }
+
                     paths.Add(path.Key.Replace(basepath, "/"), path.Value);
                 }
                 swaggerDoc.Paths = paths;
-
-                swaggerDoc.Servers.Add(new OpenApiServer{Url = $"/api/v{version}/"});
             });
         });
         app.UseSwaggerUI(
