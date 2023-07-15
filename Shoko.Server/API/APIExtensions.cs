@@ -117,7 +117,7 @@ public static class APIExtensions
                 options.MapType<SeriesType>(() => new OpenApiSchema { Type = "string" });
                 options.MapType<EpisodeType>(() => new OpenApiSchema { Type = "string" });
 
-                options.CustomSchemaIds(x => x.ToString().Replace("+", "."));
+                options.CustomSchemaIds(GetTypeName);
             });
         services.AddSwaggerGenNewtonsoftSupport();
         services.AddSignalR(o => { o.EnableDetailedErrors = true; });
@@ -186,6 +186,19 @@ public static class APIExtensions
             options.AllowSynchronousIO = true;
         });
         return services;
+    }
+
+    private static string GetTypeName(Type type)
+    {
+        if (type.IsGenericType)
+            return GetGenericTypeName(type);
+
+        return string.Join(".", type.FullName.Replace("+", ".").Replace("`1", "").Split(".").TakeLast(2));
+    }
+
+    private static string GetGenericTypeName(Type genericType)
+    {
+        return genericType.Name.Replace("+", ".").Replace("`1", "") + "[" + string.Join(",", genericType.GetGenericArguments().Select(GetTypeName)) + "]";
     }
     
     private static OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)
@@ -258,6 +271,7 @@ public static class APIExtensions
         {
             c.PreSerializeFilters.Add((swaggerDoc, _) => {
                 var version = swaggerDoc.Info.Version;
+                if (version.FirstOrDefault() != '3') return;
                 var basepath = $"/api/v{version}/";
                 var paths = new OpenApiPaths();
                 foreach (var path in swaggerDoc.Paths)
@@ -266,7 +280,7 @@ public static class APIExtensions
                 }
                 swaggerDoc.Paths = paths;
 
-                if (version.FirstOrDefault() != '2') swaggerDoc.Servers.Add(new OpenApiServer{Url = $"/api/v{version}/"});
+                swaggerDoc.Servers.Add(new OpenApiServer{Url = $"/api/v{version}/"});
             });
         });
         app.UseSwaggerUI(
