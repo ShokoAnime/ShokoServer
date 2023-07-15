@@ -289,7 +289,7 @@ public class MediaInfo
 
         public StreamFormatInfo(Stream stream)
         {
-            Name = stream.Format.ToLowerInvariant();
+            Name = stream.Format?.ToLowerInvariant() ?? "unknown";
             Profile = stream.Format_Profile?.ToLowerInvariant();
             Level = stream.Format_Level?.ToLowerInvariant();
             Settings = stream.Format_Settings;
