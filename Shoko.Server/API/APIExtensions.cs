@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -24,6 +26,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.WebUI;
 using Shoko.Server.Plugin;
 using Shoko.Server.Utilities;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
 using File = System.IO.File;
 using LegacyAniDBEmitter = Shoko.Server.API.SignalR.Legacy.AniDBEmitter;
@@ -165,14 +168,19 @@ public static class APIExtensions
         {
             o.ReportApiVersions = true;
             o.AssumeDefaultVersionWhenUnspecified = true;
-            o.DefaultApiVersion = ApiVersion.Default;
+            o.DefaultApiVersion = ApiVersion.Parse("3");
             o.ApiVersionReader = ApiVersionReader.Combine(
                 new QueryStringApiVersionReader(),
                 new HeaderApiVersionReader("api-version"),
                 new ShokoApiReader()
             );
         });
-        services.AddVersionedApiExplorer();
+        services.AddVersionedApiExplorer(options =>
+        {
+            options.DefaultApiVersion = ApiVersion.Parse("3");
+            options.GroupNameFormat = "'v'VVV";
+            options.SubstituteApiVersionInUrl = true;
+        });
         services.AddResponseCaching();
 
         services.Configure<KestrelServerOptions>(options =>
@@ -248,7 +256,21 @@ public static class APIExtensions
             }
         });
 
-        app.UseSwagger();
+        app.UseSwagger(c =>
+        {
+            c.PreSerializeFilters.Add((swaggerDoc, httpReq) => {
+                var version = swaggerDoc.Info.Version;
+                var basepath = $"/api/v{version}/";
+                var paths = new OpenApiPaths();
+                foreach (var path in swaggerDoc.Paths)
+                {
+                    paths.Add(path.Key.Replace(basepath, "/"), path.Value);
+                }
+                swaggerDoc.Paths = paths;
+
+                if (version.FirstOrDefault() != '2') swaggerDoc.Servers.Add(new OpenApiServer{Url = $"/api/v{version}/"});
+            });
+        });
         app.UseSwaggerUI(
             options =>
             {
