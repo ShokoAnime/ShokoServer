@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -26,7 +25,6 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.WebUI;
 using Shoko.Server.Plugin;
 using Shoko.Server.Utilities;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
 using File = System.IO.File;
 using LegacyAniDBEmitter = Shoko.Server.API.SignalR.Legacy.AniDBEmitter;
@@ -258,7 +256,7 @@ public static class APIExtensions
 
         app.UseSwagger(c =>
         {
-            c.PreSerializeFilters.Add((swaggerDoc, httpReq) => {
+            c.PreSerializeFilters.Add((swaggerDoc, _) => {
                 var version = swaggerDoc.Info.Version;
                 var basepath = $"/api/v{version}/";
                 var paths = new OpenApiPaths();
