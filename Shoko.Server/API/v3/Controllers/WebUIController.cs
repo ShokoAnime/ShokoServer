@@ -7,7 +7,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.WebUI;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -237,9 +239,13 @@ public class WebUIController : BaseController
     /// Returns a summary of file information for the series with the given ID.
     /// </summary>
     /// <param name="seriesID">The ID of the series to retrieve file information for.</param>
+    /// <param name="type">Filter the view to only the spesified <see cref="EpisodeType"/>s.</param>
+    /// <param name="includeEpisodeDetails">Include episode details for each range.</param>
     /// <returns>A <c>WebUISeriesFileSummary</c> object containing a summary of file information for the series.</returns>
     [HttpGet("Series/{seriesID}/FileSummary")]
-    public ActionResult<WebUISeriesFileSummary> GetSeriesFileSummary([FromRoute] int seriesID)
+    public ActionResult<WebUISeriesFileSummary> GetSeriesFileSummary([FromRoute] int seriesID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
+        [FromQuery] bool includeEpisodeDetails = false)
     {
         // Retrieve a summary of file information for the specified series if it exists and the user has permissions.
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -253,7 +259,7 @@ public class WebUIController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        return new WebUISeriesFileSummary(series);
+        return new WebUISeriesFileSummary(series, type, includeEpisodeDetails);
     }
 
     /// <summary>

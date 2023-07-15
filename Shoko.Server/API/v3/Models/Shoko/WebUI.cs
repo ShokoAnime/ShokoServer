@@ -227,8 +227,11 @@ public class WebUI
 
     public class WebUISeriesFileSummary
     {
-        public WebUISeriesFileSummary(SVR_AnimeSeries series)
+        public WebUISeriesFileSummary(SVR_AnimeSeries series, HashSet<EpisodeType> episodeTypes = null, bool withEpisodeDetails = false)
         {
+            // By default only show 'normal', 'special' or 'other' episodes.
+            if (episodeTypes == null)
+                episodeTypes = new() { EpisodeType.Normal, EpisodeType.Special, EpisodeType.Other };
             var crossRefs = RepoFactory.CrossRef_File_Episode
                 .GetByAnimeID(series.AniDB_ID);
             // The episodes we want to look at. We filter it down to only normal and speical episodes.
@@ -249,7 +252,8 @@ public class WebUI
                         AniDB = anidb,
                     };
                 })
-                .Where(episode => episode.Type == EpisodeType.Normal || episode.Type == EpisodeType.Special)
+                // Show everything if no types are provided, otherwise filter to the given types.
+                .Where(episode => episodeTypes.Count > 0 ? episodeTypes.Contains(episode.Type) : true)
                 .ToDictionary(episode => episode.ID);
             var anidbFiles = crossRefs
                 // We only check for the file if the source is anidb.
@@ -337,10 +341,13 @@ public class WebUI
                             SubtitleCount = media.Subtitles.Count,
                             Location = dirPath,
                         },
-                        Value = new {
+                        Value = new EpisodeDetails {
+                            FileID = anidbFile?.FileID,
+                            EpisodeID = episode.AniDB.EpisodeID,
                             Type = episode.Type,
                             Number = episode.Number,
                             Size = file.FileSize,
+                            ED2K = file.Hash,
                         },
                     };
                 })
@@ -395,6 +402,11 @@ public class WebUI
                         SubtitleCount = data.SubtitleCount,
                         Location = data.Location,
                         RangeByType = episodeData,
+                        Episodes = withEpisodeDetails ? list
+                            .OrderBy(ep => ep.Type)
+                            .ThenBy(ep => ep.Number)
+                            .ThenBy(ep => ep.ED2K)
+                            .ToList() : null,
                     };
                 })
                 .ToList();
@@ -496,6 +508,12 @@ public class WebUI
             /// Dictionary of episode ranges and sizes by type (e.g., normal episode, special episode).
             /// </summary>
             public Dictionary<EpisodeType, EpisodeRangeByType> RangeByType;
+
+            /// <summary>
+            /// Episodes in the group.
+            /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public IEnumerable<EpisodeDetails> Episodes;
         }
 
         /// <summary>
@@ -520,6 +538,40 @@ public class WebUI
             /// The accumulated file size in bytes across all files in this range.
             /// </summary>
             public long FileSize;
+        }
+
+        public class EpisodeDetails
+        {
+            /// <summary>
+            /// AniDB Episode ID.
+            /// /// </summary>
+            public int EpisodeID;
+
+            /// <summary>
+            /// AniDB File ID, if auto-linked.
+            /// </summary>
+            public int? FileID;
+
+            /// <summary>
+            /// Episode Type.
+            /// </summary>
+            [JsonConverter(typeof(StringEnumConverter))]
+            public EpisodeType Type;
+
+            /// <summary>
+            /// Episode Number.
+            /// </summary>
+            public int Number;
+
+            /// <summary>
+            /// File Size.
+            /// </summary>
+            public long Size;
+
+            /// <summary>
+            /// ED2K File Hash.
+            /// </summary>
+            public string ED2K;
         }
 
         /// <summary>
