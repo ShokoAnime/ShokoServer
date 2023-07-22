@@ -102,12 +102,7 @@ public class CommandProcessorGeneral : CommandProcessor
         }
     }
 
-    protected override void UpdateQueueCount()
-    {
-        QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountGeneral();
-    }
-
-    protected override string QueueType { get; } = "General";
+    public override string QueueType { get; } = "General";
 
     protected override void UpdatePause(bool pauseState)
     {

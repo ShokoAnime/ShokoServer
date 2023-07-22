@@ -11,12 +11,7 @@ namespace Shoko.Server.Commands;
 
 public class CommandProcessorHasher : CommandProcessor
 {
-    protected override void UpdateQueueCount()
-    {
-        QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountHasher();
-    }
-
-    protected override string QueueType { get; } = "Hasher";
+    public override string QueueType { get; } = "Hasher";
 
     protected override void UpdatePause(bool pauseState)
     {

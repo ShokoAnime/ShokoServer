@@ -754,10 +754,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            ShokoService.CmdProcessorHasher.Stop();
-
-            RepoFactory.CommandRequest.ClearHasherQueue();
-            ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
+            ShokoService.CmdProcessorHasher.Clear();
         }
         catch (Exception ex)
         {
@@ -770,10 +767,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            ShokoService.CmdProcessorImages.Stop();
-
-            RepoFactory.CommandRequest.ClearImageQueue();
-            ShokoService.CmdProcessorImages.NotifyOfNewCommand();
+            ShokoService.CmdProcessorImages.Clear();
         }
         catch (Exception ex)
         {
@@ -786,10 +780,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            ShokoService.CmdProcessorGeneral.Stop();
-
-            RepoFactory.CommandRequest.ClearGeneralQueue();
-            ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
+            ShokoService.CmdProcessorGeneral.Clear();
         }
         catch (Exception ex)
         {

@@ -7,8 +7,11 @@ public class QueueStateEventArgs : EventArgs
 {
     public readonly QueueStateStruct QueueState;
 
-    public QueueStateEventArgs(QueueStateStruct queueState)
+    public readonly int? CommandRequestID;
+
+    public QueueStateEventArgs(QueueStateStruct queueState, int? commandRequestID)
     {
         QueueState = queueState;
+        CommandRequestID = commandRequestID;
     }
 }

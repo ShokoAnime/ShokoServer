@@ -100,6 +100,53 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         return cr;
     }
 
+    public bool CheckIfCommandRequestIsDisabled(CommandRequestType type, bool httpBanned, bool udpBanned, bool udpUnavailable)
+    {
+        if (!CommandTypesGeneral.Contains((int)type))
+            return false;
+
+        if (httpBanned && udpBanned)
+            return !CommandTypesGeneralFullBan.Contains((int)type);
+
+        if (udpBanned)
+            return !CommandTypesGeneralUDPBan.Contains((int)type);
+
+        if (httpBanned)
+            return !CommandTypesGeneralHTTPBan.Contains((int)type);
+
+        return false;
+    }
+
+    public List<CommandRequest> GetNextGeneralCommandRequests(IUDPConnectionHandler udpHandler, IHttpConnectionHandler httpHandler, bool showAll = false)
+    {
+        try
+        {
+            var types = CommandTypesGeneralArray;
+            if (!showAll) {
+                var noUDP = udpHandler.IsBanned || !udpHandler.IsNetworkAvailable;
+                if (httpHandler.IsBanned && noUDP) types = CommandTypesGeneralFullBanArray;
+                else if (noUDP) types = CommandTypesGeneralUDPBanArray;
+                else if (httpHandler.IsBanned) types = CommandTypesGeneralHTTPBanArray;
+            }
+            var cr = Lock(() =>
+            {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                return session.Query<CommandRequest>()
+                    .Where(a => types.Contains(a.CommandType))
+                    .OrderBy(r => r.Priority)
+                    .ThenBy(r => r.DateTimeUpdated)
+                    .ToList();
+            });
+
+            return cr;
+        }
+        catch (Exception e)
+        {
+            _logger.Error($"There was an error retrieving the next commands for the General Queue: {e}");
+            return null;
+        }
+    }
+
     public CommandRequest GetNextDBCommandRequestGeneral(IUDPConnectionHandler udpHandler, IHttpConnectionHandler httpHandler)
     {
         try
@@ -118,7 +165,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                     .OrderBy(r => r.Priority)
                     .ThenBy(r => r.DateTimeUpdated)
                     .Take(1)
-                    .SingleOrDefault<CommandRequest>();
+                    .SingleOrDefault();
             });
 
             return cr;
@@ -126,6 +173,30 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         catch (Exception e)
         {
             _logger.Error($"There was an error retrieving the next command for the General Queue: {e}");
+            return null;
+        }
+    }
+
+    public List<CommandRequest> GetNextHasherCommandRequests()
+    {
+        try
+        {
+            var types = CommandTypesHasherArray;
+            var cr = Lock(() =>
+            {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                return session.Query<CommandRequest>()
+                    .Where(a => types.Contains(a.CommandType))
+                    .OrderBy(r => r.Priority)
+                    .ThenBy(r => r.DateTimeUpdated)
+                    .ToList();
+            });
+
+            return cr;
+        }
+        catch (Exception e)
+        {
+            _logger.Error($"There was an error retrieving the next commands for the Hasher Queue: {e}");
             return null;
         }
     }
@@ -153,6 +224,31 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         }
     }
 
+
+    public List<CommandRequest> GetNextImagesCommandRequests()
+    {
+        try
+        {
+            var types = CommandTypesImagesArray;
+            var cr = Lock(() =>
+            {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                return session.Query<CommandRequest>()
+                    .Where(a => types.Contains(a.CommandType))
+                    .OrderBy(r => r.Priority)
+                    .ThenBy(r => r.DateTimeUpdated)
+                    .ToList();
+            });
+
+            return cr;
+        }
+        catch (Exception e)
+        {
+            _logger.Error($"There was an error retrieving the next commands for the Image Queue: {e}");
+            return null;
+        }
+    }
+
     public CommandRequest GetNextDBCommandRequestImages()
     {
         try
@@ -174,6 +270,16 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
             _logger.Error($"There was an error retrieving the next command for the Image Queue: {e}");
             return null;
         }
+    }
+
+    public int GetQueuedCommandCountByType(string queueType)
+    {
+        return queueType.ToLowerInvariant() switch {
+            "general" => GetQueuedCommandCountGeneral(),
+            "hasher" => GetQueuedCommandCountHasher(),
+            "image" => GetQueuedCommandCountImages(),
+            _ => 0,
+        };
     }
 
     public int GetQueuedCommandCountGeneral()
@@ -210,6 +316,21 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
 
             return crs;
         });
+    }
+
+    public void ClearByQueueType(string queueType)
+    {
+        switch (queueType.ToLowerInvariant()) {
+            case "general":
+                ClearGeneralQueue();
+                break;
+            case "hasher":
+                ClearHasherQueue();
+                break;
+            case "image":
+                ClearImageQueue();
+                break;
+        };
     }
 
     public void ClearGeneralQueue()

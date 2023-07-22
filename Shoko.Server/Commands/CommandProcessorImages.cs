@@ -11,12 +11,7 @@ namespace Shoko.Server.Commands;
 
 public class CommandProcessorImages : CommandProcessor
 {
-    protected override void UpdateQueueCount()
-    {
-        QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountImages();
-    }
-
-    protected override string QueueType { get; } = "Image";
+    public override string QueueType { get; } = "Image";
 
     protected override void UpdatePause(bool pauseState)
     {

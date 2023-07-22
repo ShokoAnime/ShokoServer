@@ -47,12 +47,36 @@ public class QueueEmitter : IDisposable
             await caller.SendAsync(
                 "CommandProcessingStatus", new Dictionary<string, object>
                 {
-                    {"GeneralQueueState", new QueueStateSignalRModel {State = ShokoService.CmdProcessorGeneral.QueueState.queueState, Description = ShokoService.CmdProcessorGeneral.QueueState.formatMessage()}},
-                    {"HasherQueueState", new QueueStateSignalRModel {State = ShokoService.CmdProcessorHasher.QueueState.queueState, Description = ShokoService.CmdProcessorHasher.QueueState.formatMessage()}},
-                    {"ImageQueueState", new QueueStateSignalRModel {State = ShokoService.CmdProcessorImages.QueueState.queueState, Description = ShokoService.CmdProcessorImages.QueueState.formatMessage()}},
-                    {"GeneralQueueCount", ShokoService.CmdProcessorGeneral.QueueCount},
-                    {"HasherQueueCount", ShokoService.CmdProcessorHasher.QueueCount},
-                    {"ImageQueueCount", ShokoService.CmdProcessorImages.QueueCount},
+                    {
+                        "GeneralQueueState",
+                        new QueueStateSignalRModel
+                        {
+                            State = ShokoService.CmdProcessorGeneral.QueueState.queueState,
+                            Description = ShokoService.CmdProcessorGeneral.QueueState.formatMessage(),
+                            CurrentCommandID = ShokoService.CmdProcessorGeneral.CurrentCommand?.CommandRequestID
+                        }
+                    },
+                    {
+                        "HasherQueueState",
+                        new QueueStateSignalRModel
+                        {
+                            State = ShokoService.CmdProcessorHasher.QueueState.queueState,
+                            Description = ShokoService.CmdProcessorHasher.QueueState.formatMessage(),
+                            CurrentCommandID = ShokoService.CmdProcessorHasher.CurrentCommand?.CommandRequestID
+                        }
+                    },
+                    {
+                        "ImageQueueState",
+                        new QueueStateSignalRModel
+                        {
+                            State = ShokoService.CmdProcessorImages.QueueState.queueState,
+                            Description = ShokoService.CmdProcessorImages.QueueState.formatMessage(),
+                            CurrentCommandID = ShokoService.CmdProcessorImages.CurrentCommand?.CommandRequestID
+                        }
+                    },
+                    { "GeneralQueueCount", ShokoService.CmdProcessorGeneral.QueueCount },
+                    { "HasherQueueCount", ShokoService.CmdProcessorHasher.QueueCount },
+                    { "ImageQueueCount", ShokoService.CmdProcessorImages.QueueCount },
                 }
             );
     }
@@ -71,19 +95,19 @@ public class QueueEmitter : IDisposable
     {
         await StateChangedAsync("QueueStateChanged", "GeneralQueueState",
             new QueueStateSignalRModel
-                {State = e.QueueState.queueState, Description = e.QueueState.formatMessage()});
+                {State = e.QueueState.queueState, Description = e.QueueState.formatMessage(), CurrentCommandID = e.CommandRequestID});
     }
 
     private async void OnHasherQueueStateChangedEvent(QueueStateEventArgs e)
     {
         await StateChangedAsync("QueueStateChanged", "HasherQueueState", new QueueStateSignalRModel
-            {State = e.QueueState.queueState, Description = e.QueueState.formatMessage()});
+            {State = e.QueueState.queueState, Description = e.QueueState.formatMessage(), CurrentCommandID = e.CommandRequestID});
     }
 
     private async void OnImageQueueStateChangedEvent(QueueStateEventArgs e)
     {
         await StateChangedAsync("QueueStateChanged", "ImageQueueState", new QueueStateSignalRModel
-            {State = e.QueueState.queueState, Description = e.QueueState.formatMessage()});
+            {State = e.QueueState.queueState, Description = e.QueueState.formatMessage(), CurrentCommandID = e.CommandRequestID});
     }
 
     private async void OnGeneralQueueCountChangedEvent(QueueCountEventArgs ev)

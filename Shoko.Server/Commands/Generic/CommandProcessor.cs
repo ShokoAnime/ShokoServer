@@ -21,7 +21,7 @@ public abstract class CommandProcessor : IDisposable
     private bool _processingCommands;
     private bool _cancelled = false;
 
-    protected abstract string QueueType { get; }
+    public abstract string QueueType { get; }
 
     private readonly object _lockQueueState = new();
 
@@ -96,7 +96,7 @@ public abstract class CommandProcessor : IDisposable
         {
             lock (_lockQueueState) _queueState = value.DeepClone();
 
-            Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value)));
+            Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value, CurrentCommand?.CommandRequestID)));
         }
     }
 
@@ -169,6 +169,15 @@ public abstract class CommandProcessor : IDisposable
         StartWorker();
     }
 
+    public void Clear()
+    {
+        Stop();
+
+        Repositories.RepoFactory.CommandRequest.ClearByQueueType(QueueType);
+
+        NotifyOfNewCommand();
+    }
+
     protected void StartWorker()
     {
         // if the worker is busy, it will pick up the next command from the DB
@@ -179,9 +188,12 @@ public abstract class CommandProcessor : IDisposable
         if (!WorkerCommands.IsBusy) WorkerCommands.RunWorkerAsync();
     }
 
-    protected abstract void WorkerCommands_DoWork(object sender, DoWorkEventArgs e);
+    protected void UpdateQueueCount()
+    {
+        QueueCount = Repositories.RepoFactory.CommandRequest.GetQueuedCommandCountByType(QueueType);
+    }
 
-    protected abstract void UpdateQueueCount();
+    protected abstract void WorkerCommands_DoWork(object sender, DoWorkEventArgs e);
 
     protected virtual void Dispose(bool disposing)
     {

@@ -755,10 +755,7 @@ public class Common : BaseController
     {
         try
         {
-            ShokoService.CmdProcessorHasher.Stop();
-
-            RepoFactory.CommandRequest.ClearHasherQueue();
-            ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
+            ShokoService.CmdProcessorHasher.Clear();
 
             return Ok();
         }
@@ -777,10 +774,7 @@ public class Common : BaseController
     {
         try
         {
-            ShokoService.CmdProcessorGeneral.Stop();
-
-            RepoFactory.CommandRequest.ClearGeneralQueue();
-            ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
+            ShokoService.CmdProcessorGeneral.Clear();
 
             return Ok();
         }
@@ -799,10 +793,7 @@ public class Common : BaseController
     {
         try
         {
-            ShokoService.CmdProcessorImages.Stop();
-
-            RepoFactory.CommandRequest.ClearImageQueue();
-            ShokoService.CmdProcessorImages.NotifyOfNewCommand();
+            ShokoService.CmdProcessorImages.Clear();
 
             return Ok();
         }
