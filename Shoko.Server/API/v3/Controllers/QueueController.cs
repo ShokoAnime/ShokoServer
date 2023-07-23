@@ -210,13 +210,13 @@ public class QueueController : BaseController
         return queueName.ToLowerInvariant() switch
         {
             "general" => RepoFactory.CommandRequest.GetNextGeneralCommandRequests(_udpHandler, _httpHandler, showAll)
-                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, httpBanned, udpBanned, udpUnavailable), pageSize, page),
+                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, httpBanned, udpBanned, udpUnavailable), page, pageSize),
 
             "hasher" => RepoFactory.CommandRequest.GetNextHasherCommandRequests()
-                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, httpBanned, udpBanned, udpUnavailable), pageSize, page),
+                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, httpBanned, udpBanned, udpUnavailable), page, pageSize),
 
             "image" => RepoFactory.CommandRequest.GetNextImagesCommandRequests()
-                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, httpBanned, udpBanned, udpUnavailable), pageSize, page),
+                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, httpBanned, udpBanned, udpUnavailable), page, pageSize),
 
             _ => NotFound(NoQueueWithName),
         };
