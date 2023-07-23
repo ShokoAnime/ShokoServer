@@ -41,23 +41,17 @@ public abstract class CommandProcessor : IDisposable
         {
             var unpausing = !value && _paused;
             _paused = value;
-            lock (_lockQueueState)
-            {
-                if (_paused)
+            QueueState = _paused ? (
+                new()
                 {
-                    QueueState = new QueueStateStruct
-                    {
-                        message = "Paused", queueState = QueueStateEnum.Paused, extraParams = new string[0]
-                    };
+                    message = "Paused", queueState = QueueStateEnum.Paused, extraParams = new string[0]
                 }
-                else
+            ) : (
+                new()
                 {
-                    QueueState = new QueueStateStruct
-                    {
-                        message = "Unpaused", queueState = QueueStateEnum.Idle, extraParams = new string[0]
-                    };
+                    message = "Unpaused", queueState = QueueStateEnum.Idle, extraParams = new string[0]
                 }
-            }
+            );
 
             UpdatePause(_paused);
             if (unpausing)
