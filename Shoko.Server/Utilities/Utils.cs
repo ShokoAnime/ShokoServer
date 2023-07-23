@@ -100,10 +100,10 @@ public static class Utils
 
         var signalrTarget =
             new AsyncTargetWrapper(
-                new SignalRTarget { Name = "signalr", MaxLogsCount = 1000, Layout = "${message}${onexception:\\: ${exception:format=tostring}}" }, 50,
+                new SignalRTarget { Name = "signalr", MaxLogsCount = 5000, Layout = "${message}${onexception:\\: ${exception:format=tostring}}" }, 50,
                 AsyncTargetWrapperOverflowAction.Discard);
         LogManager.Configuration.AddTarget("signalr", signalrTarget);
-        LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Info, signalrTarget));
+        LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Trace, signalrTarget));
         var consoleTarget = (ColoredConsoleTarget)LogManager.Configuration.FindTargetByName("console");
         if (consoleTarget != null)
         {

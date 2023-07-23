@@ -16,6 +16,7 @@ using NLog;
 using NLog.Targets;
 using Sentry;
 using Shoko.Commons.Properties;
+using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Commands.Plex;
@@ -101,19 +102,17 @@ public class ShokoServer
 
     public static void SetTraceLogging(bool enabled)
     {
-        var rule = LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Any(b => b is FileTarget));
-        if (rule == null)
-        {
-            return;
-        }
-
+        var fileRule = LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Any(b => b is FileTarget));
+        var signalrRule = LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Any(b => b is SignalRTarget));
         if (enabled)
         {
-            rule.EnableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
+            fileRule?.EnableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
+            signalrRule?.EnableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
         }
         else
         {
-            rule.DisableLoggingForLevel(LogLevel.Trace);
+            fileRule?.DisableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
+            signalrRule?.DisableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
         }
 
         LogManager.ReconfigExistingLoggers();
