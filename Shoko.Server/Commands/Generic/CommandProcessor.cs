@@ -93,7 +93,7 @@ public abstract class CommandProcessor : IDisposable
         {
             lock (_lockQueueState) _queueState = value.DeepClone();
 
-            Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value, CurrentCommand?.CommandRequestID)));
+            Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value, CurrentCommand?.CommandRequestID, _queueCount, _paused, _processingCommands)));
         }
     }
 
