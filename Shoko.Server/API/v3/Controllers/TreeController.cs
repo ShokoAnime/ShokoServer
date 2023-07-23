@@ -679,7 +679,7 @@ public class TreeController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
         [FromQuery] string search = null, [FromQuery] bool fuzzy = true)
     {
-        var anidbSeries = RepoFactory.AniDB_Anime.GetByID(anidbID);
+        var anidbSeries = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
         if (anidbSeries == null)
         {
             return NotFound(SeriesController.AnidbNotFoundForAnidbID);
@@ -711,7 +711,7 @@ public class TreeController : BaseController
                     // Or if we should only show hidden episodes and the episode is not hidden, then hide it.
                     var shouldHideHidden = includeHidden == IncludeOnlyFilter.False;
                     var isHidden = shoko?.IsHidden ?? false;
-                    if (shouldHideHidden == shoko.IsHidden)
+                    if (shouldHideHidden == isHidden)
                         return false;
                 }
 
