@@ -448,7 +448,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var user = HttpContext.GetUser(); 
+        var user = HttpContext.GetUser();
         var userStats = file.GetUserRecord(user.JMMUserID);
 
         if (userStats == null)
@@ -472,7 +472,7 @@ public class FileController : BaseController
             return NotFound(FileNotFoundWithFileID);
 
         // Get the user data.
-        var user = HttpContext.GetUser(); 
+        var user = HttpContext.GetUser();
         var userStats = file.GetOrCreateUserRecord(user.JMMUserID);
 
         // Merge with the existing entry and return an updated version of the stats.
