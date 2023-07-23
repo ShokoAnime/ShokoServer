@@ -184,12 +184,37 @@ public class Episode : BaseModel
 
             var titles = RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
 
+            // This logic will be moved into the anidb episode model after the
+            // refactor… in fact… it's already in there. But the refactor is not
+            // done yet, so this will do for now.
+            var mainTitle = string.Empty;
+            // Try finding one of the preferred languages.
+            foreach (var language in Languages.PreferredEpisodeNamingLanguages)
+            {
+                var title = titles
+                    .Where(a => a.Language == language.Language).ToList()
+                    .FirstOrDefault()
+                    ?.Title;
+                if (!string.IsNullOrEmpty(title))
+                {
+                    mainTitle = title;
+                    break;
+                }
+            }
+            // Fallback to English if available.
+            if (string.IsNullOrEmpty(mainTitle)) {
+                mainTitle = titles.Where(a => a.Language == TitleLanguage.English)
+                    .FirstOrDefault()
+                    ?.Title;
+            }
+
             ID = ep.EpisodeID;
             Type = MapAniDBEpisodeType(ep.GetEpisodeTypeEnum());
             EpisodeNumber = ep.EpisodeNumber;
             AirDate = ep.GetAirDateAsDate();
             Description = ep.Description;
             Rating = new Rating { MaxValue = 10, Value = rating, Votes = votes, Source = "AniDB" };
+            Title = mainTitle;
             Titles = titles.Select(a => new Title
                 {
                     Name = a.Title, Language = a.LanguageCode, Default = false, Source = "AniDB"
@@ -220,7 +245,12 @@ public class Episode : BaseModel
         public DateTime? AirDate { get; set; }
 
         /// <summary>
-        /// Titles for the Episode
+        /// Preferred title for the episode.
+        /// </summary>
+        public string Title { get; set; }
+
+        /// <summary>
+        /// All titles for the episode.
         /// </summary>
         public List<Title> Titles { get; set; }
 
