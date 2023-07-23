@@ -65,7 +65,7 @@ public class QueueController : BaseController
     /// </summary>
     /// <returns>A dictionary of all the queued and active command types across all queues, and the count for each type.</returns>
     [HttpGet("Types")]
-    public ActionResult<Dictionary<CommandRequestType, int>> GetTypesForItemsInAllQueues([FromRoute] string queueName)
+    public ActionResult<Dictionary<CommandRequestType, int>> GetTypesForItemsInAllQueues()
     {
         return RepoFactory.CommandRequest.GetAll()
             .GroupBy(a => (CommandRequestType)a.CommandType)
