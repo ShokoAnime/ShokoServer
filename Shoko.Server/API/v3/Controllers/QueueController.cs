@@ -97,7 +97,7 @@ public class QueueController : BaseController
     {
         foreach (var processor in GetAllCommandProcessors())
         {
-            processor.Stop();
+            processor.Paused = true;
         }
         return Ok();
     }
@@ -162,7 +162,7 @@ public class QueueController : BaseController
         if (processor == null)
             return NotFound(NoQueueWithName);
 
-        processor.Stop();
+        processor.Paused = true;
         return Ok();
     }
     /// <summary>
