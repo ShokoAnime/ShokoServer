@@ -123,11 +123,8 @@ public abstract class CommandProcessor : IDisposable
                 QueueCount);
         }
 
-        QueueState = new QueueStateStruct
-        {
-            message = "Idle", queueState = QueueStateEnum.Idle, extraParams = new string[0]
-        };
-
+        // Update the count before updating the queue state so the new queue
+        // state event uses the updated queue count.
         try
         {
             UpdateQueueCount();
@@ -136,6 +133,11 @@ public abstract class CommandProcessor : IDisposable
         {
             // ignore
         }
+
+        QueueState = new QueueStateStruct
+        {
+            message = "Idle", queueState = QueueStateEnum.Idle, extraParams = new string[0]
+        };
     }
 
     public virtual void Init(IServiceProvider provider)
