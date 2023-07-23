@@ -654,6 +654,132 @@ public class TreeController : BaseController
     }
 
     /// <summary>
+    /// Get the <see cref="Episode.AniDB"/>s for the <see cref="Series.AniDB"/> with <paramref name="anidbID"/>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Filter"/> or <see cref="Group"/> is irrelevant at this level.
+    /// </remarks>
+    /// <param name="anidbID">AniDB series ID</param>
+    /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
+    /// <param name="page">The page index.</param>
+    /// <param name="includeMissing">Include missing episodes in the list.</param>
+    /// <param name="includeHidden">Include hidden episodes in the list.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeWatched">Include watched episodes in the list.</param>
+    /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
+    /// <param name="search">An optional search query to filter episodes based on their titles.</param>
+    /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
+    /// <returns>A list of episodes based on the specified filters.</returns>
+    [HttpGet("Series/AniDB/{anidbID}/Episode")]
+    public ActionResult<ListResult<Episode.AniDB>> GetAniDBEpisodes([FromRoute] int anidbID,
+        [FromQuery] [Range(0, 1000)] int pageSize = 20,
+        [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
+        [FromQuery] string search = null, [FromQuery] bool fuzzy = true)
+    {
+        var anidbSeries = RepoFactory.AniDB_Anime.GetByID(anidbID);
+        if (anidbSeries == null)
+        {
+            return NotFound(SeriesController.AnidbNotFoundForAnidbID);
+        }
+
+        if (!User.AllowedAnime(anidbSeries))
+        {
+            return Forbid(SeriesController.AnidbForbiddenForUser);
+        }
+
+        var user = User;
+        var hasSearch = !string.IsNullOrWhiteSpace(search);
+        var episodes = anidbSeries.GetAniDBEpisodes()
+            .AsParallel()
+            .Select(episode => new { Shoko = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID), AniDB = episode })
+            .Where(both =>
+            {
+                // Make sure we have an anidb entry for the episode, otherwise,
+                // just hide it.
+                var shoko = both.Shoko;
+                var anidb = both.AniDB;
+                if (anidb == null)
+                    return false;
+
+                // Filter by hidden state, if spesified
+                if (includeHidden != IncludeOnlyFilter.True)
+                {
+                    // If we should hide hidden episodes and the episode is hidden, then hide it.
+                    // Or if we should only show hidden episodes and the episode is not hidden, then hide it.
+                    var shouldHideHidden = includeHidden == IncludeOnlyFilter.False;
+                    var isHidden = shoko?.IsHidden ?? false;
+                    if (shouldHideHidden == shoko.IsHidden)
+                        return false;
+                }
+
+                // Filter by episode type, if specified
+                if (type != null && type.Count > 0)
+                {
+                    var mappedType = Episode.MapAniDBEpisodeType((AniDBEpisodeType)anidb.EpisodeType);
+                    if (!type.Contains(mappedType))
+                        return false;
+                }
+
+                // Filter by availability, if specified
+                if (includeMissing != IncludeOnlyFilter.True)
+                {
+                    // If we should hide missing episodes and the episode has no files, then hide it.
+                    // Or if we should only show missing episodes and the episode has files, the hide it.
+                    var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
+                    var files = shoko?.GetVideoLocals().Count ?? 0;
+                    var noFiles = files == 0;
+                    if (shouldHideMissing == noFiles)
+                        return false;
+                }
+
+                // Filter by user watched status, if specified
+                if (includeWatched != IncludeOnlyFilter.True)
+                {
+                    // If we should hide watched episodes and the episode is watched, then hide it.
+                    // Or if we should only show watched episodes and the the episode is not watched, then hide it.
+                    var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
+                    var isWatched = shoko?.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
+                    if (shouldHideWatched == isWatched)
+                        return false;
+                }
+
+                return true;
+            });
+        if (hasSearch)
+        {
+            var languages = SettingsProvider.GetSettings()
+                .LanguagePreference
+                .Select(lang => lang.GetTitleLanguage())
+                .Concat(new TitleLanguage[] { TitleLanguage.English, TitleLanguage.Romaji })
+                .ToHashSet();
+            return episodes
+                .Search(
+                    search,
+                    ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB.EpisodeID)
+                        .Where(title => title != null && languages.Contains(title.Language))
+                        .Select(title => title.Title)
+                        .Append(ep.Shoko.Title)
+                        .Distinct()
+                        .ToList(),
+                    fuzzy
+                )
+                .ToListResult(a => new Episode.AniDB(a.Result.AniDB), page, pageSize);
+        }
+
+        return episodes
+            // Order the episodes since we're not using the search ordering.
+            .OrderBy(episode => episode.AniDB.EpisodeType)
+            .ThenBy(episode => episode.AniDB.EpisodeNumber)
+            .ToListResult(a => new Episode.AniDB(a.AniDB), page, pageSize);
+    }
+    
+
+    /// <summary>
     /// Get the next <see cref="Episode"/> for the <see cref="Series"/> with <paramref name="seriesID"/>.
     /// </summary>
     /// <remarks>
