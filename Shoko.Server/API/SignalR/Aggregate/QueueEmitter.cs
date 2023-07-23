@@ -72,9 +72,6 @@ public class QueueEmitter : BaseEmitter, IDisposable
             { "GeneralQueueState", new QueueStateSignalRModel(ShokoService.CmdProcessorGeneral) },
             { "HasherQueueState",  new QueueStateSignalRModel(ShokoService.CmdProcessorHasher) },
             { "ImageQueueState", new QueueStateSignalRModel(ShokoService.CmdProcessorImages) },
-            { "GeneralQueueCount", ShokoService.CmdProcessorGeneral.QueueCount },
-            { "HasherQueueCount", ShokoService.CmdProcessorHasher.QueueCount },
-            { "ImageQueueCount", ShokoService.CmdProcessorImages.QueueCount },
         };
     }
 }
