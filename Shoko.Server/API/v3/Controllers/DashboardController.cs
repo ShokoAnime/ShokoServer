@@ -87,7 +87,8 @@ public class DashboardController : BaseController
             (decimal)watchedEpisodes.Sum(a => a.GetVideoLocals().FirstOrDefault()?.DurationTimeSpan.TotalHours ?? new TimeSpan(0, 0, a.AniDB_Episode?.LengthSeconds ?? 0).TotalHours),
             1, MidpointRounding.AwayFromZero);
         var places = files
-            .SelectMany(a => a.Places)
+            // We cache the video local here since it may be gone later if the files are actively being removed.
+            .SelectMany(a => a.Places.Select(b => new { VideoLocalID = a.VideoLocalID, VideoLocal = a, Place = b }))
             .ToList();
         var duplicates = places
             .Where(a => !a.VideoLocal.IsVariation)
