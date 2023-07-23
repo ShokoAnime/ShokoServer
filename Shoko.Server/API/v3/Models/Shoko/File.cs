@@ -114,10 +114,10 @@ public class File
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public MediaInfo MediaInfo { get; set; }
 
-    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false) :
-        this(file.GetUserRecord(context?.GetUser()?.JMMUserID ?? 0), file, withXRefs, includeDataFrom, includeMediaInfo) {}
+    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
+        this(file.GetUserRecord(context?.GetUser()?.JMMUserID ?? 0), file, withXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths) {}
 
-    public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false)
+    public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
     {
         ID = file.VideoLocalID;
         Size = file.FileSize;
@@ -126,7 +126,10 @@ public class File
         Resolution = FileQualityFilter.GetResolution(file);
         Locations = file.Places.Select(a => new Location
         {
-            ImportFolderID = a.ImportFolderID, RelativePath = a.FilePath, IsAccessible = a.GetFile() != null
+            ImportFolderID = a.ImportFolderID,
+            RelativePath = a.FilePath,
+            AbsolutePath = includeAbsolutePaths ? a.FullServerPath : null,
+            IsAccessible = a.GetFile() != null,
         }).ToList();
         Duration = file.DurationTimeSpan;
         ResumePosition = userRecord?.ResumePositionTimeSpan;
@@ -198,6 +201,12 @@ public class File
         /// The relative path from the import folder's path on the server. The Filename can be easily extracted from this. Using the ImportFolder, you can get the full server path of the file or map it if the client has remote access to the filesystem. 
         /// </summary>
         public string RelativePath { get; set; }
+
+        /// <summary>
+        /// The absolute path for the file on the server.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string AbsolutePath { get; set; }
 
         /// <summary>
         /// Can the server access the file right now

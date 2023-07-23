@@ -43,12 +43,13 @@ public class TreeController : BaseController
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <returns></returns>
     [HttpGet("ImportFolder/{folderID}/File")]
     public ActionResult<ListResult<File>> GetFilesInImportFolder([FromRoute] int folderID,
         [FromQuery] [Range(0, 100)] int pageSize = 50,
         [FromQuery] [Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool includeXRefs = false)
+        [FromQuery] bool includeXRefs = false, [FromQuery] bool includeAbsolutePaths = false)
     {
         var importFolder = RepoFactory.ImportFolder.GetByID(folderID);
         if (importFolder == null)
@@ -60,7 +61,7 @@ public class TreeController : BaseController
             .GroupBy(place => place.VideoLocalID)
             .Select(places => RepoFactory.VideoLocal.GetByID(places.Key))
             .OrderBy(file => file.DateTimeCreated)
-            .ToListResult(file => new File(HttpContext, file, includeXRefs), page, pageSize);
+            .ToListResult(file => new File(HttpContext, file, includeXRefs, includeAbsolutePaths: includeAbsolutePaths), page, pageSize);
     }
 
     #endregion
@@ -710,11 +711,13 @@ public class TreeController : BaseController
     /// <param name="isManuallyLinked">Omit to select all files. Set to true to only select manually
     /// linked files, or set to false to only select automatically linked files.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/File")]
     public ActionResult<List<File>> GetFilesForSeries([FromRoute] int seriesID, [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery] bool? isManuallyLinked = null, [FromQuery] bool includeMediaInfo = false)
+        [FromQuery] bool? isManuallyLinked = null, [FromQuery] bool includeMediaInfo = false,
+        [FromQuery] bool includeAbsolutePaths = false)
     {
         var user = User;
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -729,7 +732,7 @@ public class TreeController : BaseController
         }
 
         return series.GetVideoLocals(isManuallyLinked.HasValue ? isManuallyLinked.Value ? CrossRefSource.User : CrossRefSource.AniDB : null)        
-            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo))
+            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths))
             .ToList();
     }
 
@@ -746,11 +749,13 @@ public class TreeController : BaseController
     /// <param name="isManuallyLinked">Omit to select all files. Set to true to only select manually
     /// linked files, or set to false to only select automatically linked files.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/File")]
     public ActionResult<List<File>> GetFilesForEpisode([FromRoute] int episodeID, [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery] bool? isManuallyLinked = null, [FromQuery] bool includeMediaInfo = false)
+        [FromQuery] bool? isManuallyLinked = null, [FromQuery] bool includeMediaInfo = false,
+        [FromQuery] bool includeAbsolutePaths = false)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -770,7 +775,7 @@ public class TreeController : BaseController
         }
 
         return episode.GetVideoLocals(isManuallyLinked.HasValue ? isManuallyLinked.Value ? CrossRefSource.User : CrossRefSource.AniDB : null)
-            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo))
+            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths))
             .ToList();
     }
 

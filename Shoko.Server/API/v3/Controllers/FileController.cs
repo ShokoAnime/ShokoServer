@@ -69,6 +69,7 @@ public class FileController : BaseController
     /// <param name="includeXRefs">Include series and episode cross-references.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="search">An optional search query to filter files based on their absolute paths.</param>
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns>A sliced part of the results for the current query.</returns>
@@ -87,6 +88,7 @@ public class FileController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string> sortOrder = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool includeMediaInfo = false,
+        [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] string search = null,
         [FromQuery] bool fuzzy = true)
@@ -204,7 +206,7 @@ public class FileController : BaseController
 
         // Skip and limit.
         return enumerable
-            .ToListResult(tuple => new File(tuple.UserRecord, tuple.Video, includeXRefs, includeDataFrom, includeMediaInfo), page, pageSize);
+            .ToListResult(tuple => new File(tuple.UserRecord, tuple.Video, includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths), page, pageSize);
     }
 
     /// <summary>
@@ -214,17 +216,18 @@ public class FileController : BaseController
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <returns></returns>
     [HttpGet("{fileID}")]
     public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery] bool includeMediaInfo = false)
+        [FromQuery] bool includeMediaInfo = false, [FromQuery] bool includeAbsolutePaths = false)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        return new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo);
+        return new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths);
     }
 
     /// <summary>
@@ -302,11 +305,12 @@ public class FileController : BaseController
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbFileID}/File")]
     public ActionResult<File> GetFileByAnidbFileID([FromRoute] int anidbFileID, [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery] bool includeMediaInfo = false)
+        [FromQuery] bool includeMediaInfo = false, [FromQuery] bool includeAbsolutePaths = false)
     {
         var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
         if (anidb == null)
@@ -316,7 +320,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(AnidbNotFoundForFileID);
 
-        return new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo);
+        return new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths);
     }
 
     /// <summary>
