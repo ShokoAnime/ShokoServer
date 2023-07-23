@@ -352,8 +352,6 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
 
             transaction.Commit();
         });
-
-        ShokoService.CmdProcessorGeneral.QueueCount = GetQueuedCommandCountGeneral();
     }
 
     public void ClearHasherQueue()
@@ -375,8 +373,6 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
 
             transaction.Commit();
         });
-
-        ShokoService.CmdProcessorHasher.QueueCount = GetQueuedCommandCountHasher();
     }
 
     public void ClearImageQueue()
@@ -398,7 +394,5 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
 
             transaction.Commit();
         });
-
-        ShokoService.CmdProcessorImages.QueueCount = GetQueuedCommandCountImages();
     }
 }
