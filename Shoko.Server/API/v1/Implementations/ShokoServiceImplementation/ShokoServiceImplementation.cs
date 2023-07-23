@@ -287,26 +287,53 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
         try
         {
+            var hasherQueueState = !ShokoService.CmdProcessorHasher.Paused ? (
+                ShokoService.CmdProcessorHasher.QueueState
+            ) : (
+                new()
+                {
+                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
+                    message = "Paused",
+                    extraParams = new string[0],
+                }
+            );
             contract.HashQueueCount = ShokoService.CmdProcessorHasher.QueueCount;
-            contract.HashQueueMessage = ShokoService.CmdProcessorHasher.QueueState.formatMessage();
-            contract.HashQueueState =
-                ShokoService.CmdProcessorHasher.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-            contract.HashQueueStateId = (int)ShokoService.CmdProcessorHasher.QueueState.queueState;
-            contract.HashQueueStateParams = ShokoService.CmdProcessorHasher.QueueState.extraParams;
+            contract.HashQueueMessage = hasherQueueState.formatMessage();
+            contract.HashQueueState = hasherQueueState.formatMessage(); // Deprecated since 3.6.0.0
+            contract.HashQueueStateId = (int)hasherQueueState.queueState;
+            contract.HashQueueStateParams = hasherQueueState.extraParams;
 
+            var generalQueueState = !ShokoService.CmdProcessorGeneral.Paused ? (
+                ShokoService.CmdProcessorGeneral.QueueState
+            ) : (
+                new()
+                {
+                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
+                    message = "Paused",
+                    extraParams = new string[0],
+                }
+            );
             contract.GeneralQueueCount = ShokoService.CmdProcessorGeneral.QueueCount;
-            contract.GeneralQueueMessage = ShokoService.CmdProcessorGeneral.QueueState.formatMessage();
-            contract.GeneralQueueState =
-                ShokoService.CmdProcessorGeneral.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-            contract.GeneralQueueStateId = (int)ShokoService.CmdProcessorGeneral.QueueState.queueState;
-            contract.GeneralQueueStateParams = ShokoService.CmdProcessorGeneral.QueueState.extraParams;
+            contract.GeneralQueueMessage = generalQueueState.formatMessage();
+            contract.GeneralQueueState = generalQueueState.formatMessage(); // Deprecated since 3.6.0.0
+            contract.GeneralQueueStateId = (int)generalQueueState.queueState;
+            contract.GeneralQueueStateParams = generalQueueState.extraParams;
 
+            var imagesQueueState = !ShokoService.CmdProcessorImages.Paused ? (
+                ShokoService.CmdProcessorImages.QueueState
+            ) : (
+                new()
+                {
+                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
+                    message = "Paused",
+                    extraParams = new string[0],
+                }
+            );
             contract.ImagesQueueCount = ShokoService.CmdProcessorImages.QueueCount;
-            contract.ImagesQueueMessage = ShokoService.CmdProcessorImages.QueueState.formatMessage();
-            contract.ImagesQueueState =
-                ShokoService.CmdProcessorImages.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-            contract.ImagesQueueStateId = (int)ShokoService.CmdProcessorImages.QueueState.queueState;
-            contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
+            contract.ImagesQueueMessage = imagesQueueState.formatMessage();
+            contract.ImagesQueueState = imagesQueueState.formatMessage(); // Deprecated since 3.6.0.0
+            contract.ImagesQueueStateId = (int)imagesQueueState.queueState;
+            contract.ImagesQueueStateParams = imagesQueueState.extraParams;
 
             var udp = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
             var http = HttpContext.RequestServices.GetRequiredService<IHttpConnectionHandler>();

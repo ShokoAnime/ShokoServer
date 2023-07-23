@@ -9,18 +9,15 @@ public class QueueStateEventArgs : EventArgs
 
     public readonly int? CommandRequestID;
 
-    public readonly int CurrentCount;
+    public readonly int QueueCount;
 
     public readonly bool IsPaused;
 
-    public readonly bool IsRunning;
-
-    public QueueStateEventArgs(QueueStateStruct queueState, int? commandRequestID, int currentCount, bool isPaused, bool isRunning)
+    public QueueStateEventArgs(QueueStateStruct queueState, int? commandRequestID, int currentCount, bool isPaused)
     {
         QueueState = queueState;
         CommandRequestID = commandRequestID;
-        CurrentCount = currentCount;
+        QueueCount = currentCount;
         IsPaused = isPaused;
-        IsRunning = isRunning;
     }
 }

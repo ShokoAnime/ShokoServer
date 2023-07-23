@@ -40,20 +40,23 @@ public class Queue
 
     public Queue(CommandProcessor processor)
     {
+        // only create a deep-copy of the queue state once, then re-use it.
+        var queueState = processor.QueueState;
+
         Name = processor.QueueType;
+        CurrentItemID = processor.CurrentCommand?.CommandRequestID;
         Status = processor.Paused ? (
             // Check if it's still running even though it should be stopped.
-            processor.ProcessingCommands ? QueueStatus.Stopping : QueueStatus.Stopped
-        ) : processor.QueueState.queueState == QueueStateEnum.Idle ? (
+            CurrentItemID != null ? QueueStatus.Pausing : QueueStatus.Paused
+        ) : queueState.queueState == QueueStateEnum.Idle ? (
             // Check if it's actually idle, or if it's waiting to resume work.
             processor.QueueCount > 0 ? QueueStatus.Waiting : QueueStatus.Idle
         ) : (
             // It's currently running a command.
             QueueStatus.Running
         );
-        CurrentItemID = processor.CurrentCommand?.CommandRequestID;
         // Show the current message if it's running or stopping.
-        CurrentMessage = Status == QueueStatus.Running || Status == QueueStatus.Stopping ? processor.QueueState.formatMessage() ?? null : null;
+        CurrentMessage = Status == QueueStatus.Running || Status == QueueStatus.Pausing ? queueState.formatMessage() ?? null : null;
         Size = processor.QueueCount;
     }
 
@@ -103,10 +106,10 @@ public class Queue
     [JsonConverter(typeof(StringEnumConverter))]
     public enum QueueStatus
     {
-        Stopped = 0,
+        Paused = 0,
         Idle = 1,
         Waiting = 2,
         Running = 3,
-        Stopping = 4,
+        Pausing = 4,
     }
 }

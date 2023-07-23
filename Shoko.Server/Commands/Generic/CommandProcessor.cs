@@ -24,10 +24,6 @@ public abstract class CommandProcessor : IDisposable
 
     private readonly object _lockQueueState = new();
 
-    public delegate void QueueCountChangedHandler(QueueCountEventArgs ev);
-
-    public event QueueCountChangedHandler OnQueueCountChangedEvent;
-
     public delegate void QueueStateChangedHandler(QueueStateEventArgs ev);
 
     public event QueueStateChangedHandler OnQueueStateChangedEvent;
@@ -41,19 +37,10 @@ public abstract class CommandProcessor : IDisposable
         {
             var unpausing = !value && _paused;
             _paused = value;
-            QueueState = _paused ? (
-                new()
-                {
-                    message = "Paused", queueState = QueueStateEnum.Paused, extraParams = new string[0]
-                }
-            ) : (
-                new()
-                {
-                    message = "Unpaused", queueState = QueueStateEnum.Idle, extraParams = new string[0]
-                }
-            );
 
             UpdatePause(_paused);
+            UpdateQueueCount(force: true);
+
             if (unpausing)
             {
                 _cancelled = false;
@@ -64,15 +51,7 @@ public abstract class CommandProcessor : IDisposable
 
     private int _queueCount;
 
-    public int QueueCount
-    {
-        get => _queueCount;
-        set
-        {
-            _queueCount = value;
-            Task.Factory.StartNew(() => OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(value)));
-        }
-    }
+    public int QueueCount => _queueCount;
 
     private QueueStateStruct _queueState = new() { queueState = QueueStateEnum.Idle, extraParams = new string[0] };
 
@@ -87,7 +66,7 @@ public abstract class CommandProcessor : IDisposable
         {
             lock (_lockQueueState) _queueState = value.DeepClone();
 
-            Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value, CurrentCommand?.CommandRequestID, _queueCount, _paused, _processingCommands)));
+            Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value, CurrentCommand?.CommandRequestID, _queueCount, _paused)));
         }
     }
 
@@ -112,25 +91,14 @@ public abstract class CommandProcessor : IDisposable
 
         if (e.Cancelled)
         {
-            Logger.LogWarning("The {QueueType} Queue was cancelled with {QueueCount} commands left", QueueType,
-                QueueCount);
+            Logger.LogWarning("The {QueueType} Queue was cancelled with {QueueCount} commands left", QueueType, QueueCount);
         }
 
-        // Update the count before updating the queue state so the new queue
-        // state event uses the updated queue count.
-        try
-        {
-            UpdateQueueCount();
-        }
-        catch
-        {
-            // ignore
-        }
-
-        QueueState = new QueueStateStruct
-        {
-            message = "Idle", queueState = QueueStateEnum.Idle, extraParams = new string[0]
-        };
+        UpdateQueueCount(_paused ? (
+            new() { message = "Paused", queueState = QueueStateEnum.Paused, extraParams = new string[0] }
+        ) : (
+            new() { message = "Idle", queueState = QueueStateEnum.Idle, extraParams = new string[0] }
+        ));
     }
 
     public virtual void Init(IServiceProvider provider)
@@ -182,9 +150,19 @@ public abstract class CommandProcessor : IDisposable
 
     protected abstract void UpdatePause(bool pauseState);
 
-    protected void UpdateQueueCount()
+    protected void UpdateQueueCount(QueueStateStruct? queueState = null, bool force = false)
     {
-        QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountByType(QueueType);
+        var currentCount = _queueCount;
+        _queueCount = RepoFactory.CommandRequest.GetQueuedCommandCountByType(QueueType);
+
+        // If the count changed, we provided a new state, or if we want to force
+        // update the state for other reasons, then update the state.
+        if (_queueCount != currentCount || queueState.HasValue || force)
+        {
+            if (queueState.HasValue)
+                _queueState = queueState.Value;
+            Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(_queueState, CurrentCommand?.CommandRequestID, _queueCount, _paused)));
+        }
     }
 
     protected abstract CommandRequest GetNextCommandRequest();
@@ -198,10 +176,13 @@ public abstract class CommandProcessor : IDisposable
                 if (WorkerCommands.CancellationPending) return;
 
                 // if paused we will sleep for 200 milliseconds, and the try again
-                if (Paused)
+                if (_paused)
                 {
                     try
                     {
+                        if (QueueState.queueState != QueueStateEnum.Paused)
+                            QueueState = new() { message = "Paused", queueState = QueueStateEnum.Paused, extraParams = new string[0] };
+
                         if (WorkerCommands.CancellationPending) return;
                     }
                     catch
@@ -219,8 +200,7 @@ public abstract class CommandProcessor : IDisposable
                 if (crdb == null)
                 {
                     if (QueueCount > 0)
-                        Logger.LogWarning("No command returned from repo, but there are {QueueCount} commands left",
-                            QueueCount);
+                        Logger.LogWarning("No command returned from repo, but there are {QueueCount} commands left", QueueCount);
 
                     return;
                 }
@@ -239,6 +219,7 @@ public abstract class CommandProcessor : IDisposable
                     try
                     {
                         CurrentCommand = crdb;
+
                         QueueState = icr.PrettyDescription;
 
                         icr.ProcessCommand();

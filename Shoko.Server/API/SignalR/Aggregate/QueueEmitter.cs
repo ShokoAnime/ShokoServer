@@ -16,10 +16,6 @@ public class QueueEmitter : BaseEmitter, IDisposable
 
     public QueueEmitter(IHubContext<AggregateHub> hub) : base(hub)
     {
-        ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += OnGeneralQueueCountChangedEvent;
-        ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent += OnHasherQueueCountChangedEvent;
-        ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += OnImageQueueCountChangedEvent;
-
         ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnGeneralQueueStateChangedEvent;
         ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += OnHasherQueueStateChangedEvent;
         ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += OnImageQueueStateChangedEvent;
@@ -28,10 +24,6 @@ public class QueueEmitter : BaseEmitter, IDisposable
 
     public void Dispose()
     {
-        ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent -= OnGeneralQueueCountChangedEvent;
-        ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent -= OnHasherQueueCountChangedEvent;
-        ShokoService.CmdProcessorImages.OnQueueCountChangedEvent -= OnImageQueueCountChangedEvent;
-
         ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent -= OnGeneralQueueStateChangedEvent;
         ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent -= OnHasherQueueStateChangedEvent;
         ShokoService.CmdProcessorImages.OnQueueStateChangedEvent -= OnImageQueueStateChangedEvent;
@@ -62,21 +54,6 @@ public class QueueEmitter : BaseEmitter, IDisposable
     private async void OnImageQueueStateChangedEvent(QueueStateEventArgs e)
     {
         await StateChangedAsync("QueueStateChanged", "ImageQueueState", new QueueStateSignalRModel(e));
-    }
-
-    private async void OnGeneralQueueCountChangedEvent(QueueCountEventArgs ev)
-    {
-        await StateChangedAsync("QueueCountChanged", "GeneralQueueCount", ev.QueueCount);
-    }
-        
-    private async void OnHasherQueueCountChangedEvent(QueueCountEventArgs ev)
-    {
-        await StateChangedAsync("QueueCountChanged", "HasherQueueCount", ev.QueueCount);
-    }
-        
-    private async void OnImageQueueCountChangedEvent(QueueCountEventArgs ev)
-    {
-        await StateChangedAsync("QueueCountChanged", "ImageQueueCount", ev.QueueCount);
     }
 
     private async Task StateChangedAsync(string method, string property, object currentState)
