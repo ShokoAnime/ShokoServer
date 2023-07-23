@@ -109,7 +109,6 @@ public abstract class CommandProcessor : IDisposable
     {
         CurrentCommand = null;
         _processingCommands = false;
-        _paused = false;
 
         if (e.Cancelled)
         {
