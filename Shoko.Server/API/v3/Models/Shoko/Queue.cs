@@ -46,7 +46,7 @@ public class Queue
             processor.ProcessingCommands ? QueueStatus.Stopping : QueueStatus.Stopped
         ) : processor.QueueState.queueState == QueueStateEnum.Idle ? (
             // Check if it's actually idle, or if it's waiting to resume work.
-            processor.QueueState.message == "Idle" ? QueueStatus.Idle : QueueStatus.Waiting
+            processor.QueueCount > 0 ? QueueStatus.Waiting : QueueStatus.Idle
         ) : (
             // It's currently running a command.
             QueueStatus.Running
