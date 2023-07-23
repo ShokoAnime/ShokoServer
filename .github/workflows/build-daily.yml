@@ -262,12 +262,6 @@ jobs:
           ref: "${{ github.sha }}"
           submodules: recursive
 
-      - name: Get Commit Date (in seconds)
-        id: commit_date_seconds
-        shell: bash
-        run: |
-          echo "date_seconds=$(git --no-pager show -s --format=%at ${{ github.sha }})" >> "$GITHUB_OUTPUT"
-
       - name: Generate Changelog for Sentry Release
         id: generate_changelog
         env:
@@ -293,7 +287,7 @@ jobs:
           description: |
             **Version**: `${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}`
 
-            **Author Date**: <t:${{ steps.commit_date_seconds.outputs.date_seconds }}:f>
+            To update by by grabbing the latest daily from [out site](https://shokoanime.com/downloads/shoko-server) or through Docker!
 
             **Changes since last build**:
             ${{ steps.generate_changelog.outputs.CHANGELOG }}
