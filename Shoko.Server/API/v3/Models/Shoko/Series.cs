@@ -788,7 +788,7 @@ public class Series : BaseModel
             if (result != null)
             {
                 Type = SeriesType.Unknown;
-                Title = result.MainTitle;
+                Title = result.PreferredTitle;
                 Titles = includeTitles
                     ? result.Titles.Select(
                         title => new Title
@@ -863,7 +863,7 @@ public class Series : BaseModel
             if (result != null)
             {
                 Type = SeriesType.Unknown;
-                Title = result.MainTitle;
+                Title = result.PreferredTitle;
                 Titles = includeTitles
                     ? result.Titles.Select(
                         title => new Title
