@@ -66,10 +66,14 @@ public class FileController : BaseController
     /// <param name="includeViewed">Include previously viewed files among the results.</param>
     /// <param name="includeWatched">Include previously watched files among the results</param>
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
-    /// <param name="includeXRefs">Include series and episode cross-references.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
+    /// <param name="includeXRefs">Include series and episode cross-references.</param>
+    /// <param name="seriesID">Filter the search to only files for a given shoko series.</param>
+    /// <param name="episodeID">Filter the search to only files for a given shoko episode.</param>
+    /// <param name="anidbSeriesID">Filter the search to only files for a given anidb series.</param>
+    /// <param name="anidbEpisodeID">Filter the search to only files for a given anidb episode.</param>
     /// <param name="search">An optional search query to filter files based on their absolute paths.</param>
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns>A sliced part of the results for the current query.</returns>
@@ -90,9 +94,57 @@ public class FileController : BaseController
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
+        [FromQuery] int? seriesID = null,
+        [FromQuery] int? episodeID = null,
+        [FromQuery] int? anidbSeriesID = null,
+        [FromQuery] int? anidbEpisodeID = null,
         [FromQuery] string search = null,
         [FromQuery] bool fuzzy = true)
     {
+        // Map shoko series id to anidb series id and check if the series
+        // exists.
+        if (seriesID.HasValue)
+        {
+            if (seriesID.Value <= 0)
+                return new ListResult<File>();
+
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID.Value);
+            if (series == null)
+                return new ListResult<File>();
+
+            anidbSeriesID = series.AniDB_ID;
+        }
+        // Map shoko episode id to anidb episode id and check if the episode
+        // exists.
+        if (episodeID.HasValue)
+        {
+            if (episodeID.Value <= 0)
+                return new ListResult<File>();
+
+            var episode = RepoFactory.AnimeEpisode.GetByID(episodeID.Value);
+            if (episode == null)
+                return new ListResult<File>();
+
+            anidbEpisodeID = episode.AniDB_EpisodeID;
+        }
+        // Check if the anidb episode exists locally, and if it is part of the
+        // same anidb series if both are provided.
+        if (anidbEpisodeID.HasValue)
+        {
+            var anidbEpisode = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID.Value);
+            if (anidbEpisode == null)
+                return new ListResult<File>();
+
+            if (anidbSeriesID.HasValue && anidbEpisode.AnimeID != anidbSeriesID.Value)
+                return new ListResult<File>();
+        }
+        // Check if the anidb anime exists locally.
+        else if (anidbSeriesID.HasValue)
+        {
+            var anidbSeries = RepoFactory.AniDB_Anime.GetByAnimeID(anidbSeriesID.Value);
+            if (anidbSeries == null)
+                return new ListResult<File>();
+        }
         // Filtering.
         var user = User;
         var includeLocations = includeDuplicates != IncludeOnlyFilter.True ||
@@ -120,6 +172,23 @@ public class FileController : BaseController
                     .All(user.AllowedAnime);
                 if (!isAnimeAllowed)
                     return false;
+
+                if (anidbSeriesID.HasValue || anidbEpisodeID.HasValue)
+                {
+                    var isLinkedToAnimeOrEpisode = xrefs
+                        .Where(
+                            anidbSeriesID.HasValue && anidbEpisodeID.HasValue ? (
+                                xref => xref.AnimeID == anidbSeriesID.Value && xref.EpisodeID == anidbEpisodeID.Value
+                            ) : anidbSeriesID.HasValue ? (
+                                xref => xref.AnimeID == anidbSeriesID.Value
+                            ) : (
+                                xref => xref.EpisodeID == anidbEpisodeID.Value
+                            )
+                         )
+                         .Any();
+                    if (!isLinkedToAnimeOrEpisode)
+                        return false;
+                }
 
                 if (includeMissing != IncludeOnlyFilter.True)
                 {
