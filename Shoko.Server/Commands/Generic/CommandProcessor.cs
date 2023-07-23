@@ -1,6 +1,5 @@
 using System;
 using System.ComponentModel;
-using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Force.DeepCloner;
@@ -9,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Settings;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands.Generic;
 
@@ -68,8 +67,6 @@ public abstract class CommandProcessor : IDisposable
             }
         }
     }
-
-    protected abstract void UpdatePause(bool pauseState);
 
     private int _queueCount;
 
@@ -173,7 +170,7 @@ public abstract class CommandProcessor : IDisposable
     {
         Stop();
 
-        Repositories.RepoFactory.CommandRequest.ClearByQueueType(QueueType);
+        RepoFactory.CommandRequest.ClearByQueueType(QueueType);
 
         NotifyOfNewCommand();
     }
@@ -188,12 +185,89 @@ public abstract class CommandProcessor : IDisposable
         if (!WorkerCommands.IsBusy) WorkerCommands.RunWorkerAsync();
     }
 
+    protected abstract void UpdatePause(bool pauseState);
+
     protected void UpdateQueueCount()
     {
-        QueueCount = Repositories.RepoFactory.CommandRequest.GetQueuedCommandCountByType(QueueType);
+        QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountByType(QueueType);
     }
 
-    protected abstract void WorkerCommands_DoWork(object sender, DoWorkEventArgs e);
+    protected abstract CommandRequest GetNextCommandRequest();
+
+    protected virtual void WorkerCommands_DoWork(object sender, DoWorkEventArgs e)
+    {
+        while (true)
+        {
+            try
+            {
+                if (WorkerCommands.CancellationPending) return;
+
+                // if paused we will sleep for 200 milliseconds, and the try again
+                if (Paused)
+                {
+                    try
+                    {
+                        if (WorkerCommands.CancellationPending) return;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    Thread.Sleep(200);
+                    continue;
+                }
+
+                if (WorkerCommands.CancellationPending) return;
+
+                var crdb = GetNextCommandRequest();
+                if (crdb == null)
+                {
+                    if (QueueCount > 0)
+                        Logger.LogWarning("No command returned from repo, but there are {QueueCount} commands left",
+                            QueueCount);
+
+                    return;
+                }
+
+                var icr = CommandHelper.GetCommand(ServiceProvider, crdb);
+                if (icr == null)
+                {
+                    Logger.LogWarning("No implementation found for command: {CommandType}-{CommandID}", crdb.CommandType,
+                        crdb.CommandID);
+                }
+                // Only continue with running the command if a cancellation is
+                // not pending.
+                else if (!WorkerCommands.CancellationPending)
+                {
+                    Logger.LogTrace("Processing command request: {CommandID}", crdb.CommandID);
+                    try
+                    {
+                        CurrentCommand = crdb;
+                        QueueState = icr.PrettyDescription;
+
+                        icr.ProcessCommand();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "ProcessCommand exception: {CommandID}", crdb.CommandID);
+                    }
+                    finally
+                    {
+                        CurrentCommand = null;
+                    }
+                }
+
+                Logger.LogTrace("Deleting command request: {Command}", crdb.CommandID);
+                RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
+                UpdateQueueCount();
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, "Error Processing Commands");
+            }
+        }
+    }
 
     protected virtual void Dispose(bool disposing)
     {
