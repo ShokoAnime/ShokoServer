@@ -123,7 +123,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
         using var trans = session.BeginTransaction();
         foreach (var groupUser in groupUsers)
         {
-            Lock(() => session.Insert(groupUser));
+            session.Insert(groupUser);
 
             UpdateCache(groupUser);
             if (!Changes.TryGetValue(groupUser.JMMUserID, out var changeTracker))
@@ -162,7 +162,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
         using var trans = session.BeginTransaction();
         foreach (var groupUser in groupUsers)
         {
-            Lock(() => session.Update(groupUser));
+            session.Update(groupUser);
             UpdateCache(groupUser);
 
             if (!Changes.TryGetValue(groupUser.JMMUserID, out var changeTracker))

@@ -144,36 +144,46 @@ public class CommandRequest_GetFile : CommandRequestImplementation
     public void CreateLanguages(ResponseGetFile response)
     {
         using var session = DatabaseFactory.SessionFactory.OpenSession();
-        using var trans = session.BeginTransaction();
-        // Only update languages if we got a response
-        if (response?.AudioLanguages is not null)
+        BaseRepository.Lock(session, s =>
         {
-            // Delete old
-            var toDelete = RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(response.FileID);
-            RepoFactory.CrossRef_Languages_AniDB_File.DeleteWithOpenTransaction(session, toDelete);
+            using var trans = s.BeginTransaction();
+            // Only update languages if we got a response
+            if (response?.AudioLanguages is not null)
+            {
+                // Delete old
+                var toDelete = RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(response.FileID);
+                RepoFactory.CrossRef_Languages_AniDB_File.DeleteWithOpenTransaction(s, toDelete);
 
-            // Save new
-            var toSave = response.AudioLanguages.Select(language => language.Trim().ToLower())
-                .Where(lang => lang.Length > 0)
-                .Select(lang => new CrossRef_Languages_AniDB_File { LanguageName = lang, FileID = response.FileID })
-                .ToList();
-            RepoFactory.CrossRef_Languages_AniDB_File.SaveWithOpenTransaction(session, toSave);
-        }
+                // Save new
+                var toSave = response.AudioLanguages.Select(language => language.Trim().ToLower())
+                    .Where(lang => lang.Length > 0)
+                    .Select(lang => new CrossRef_Languages_AniDB_File
+                    {
+                        LanguageName = lang, FileID = response.FileID
+                    })
+                    .ToList();
+                RepoFactory.CrossRef_Languages_AniDB_File.SaveWithOpenTransaction(s, toSave);
+            }
 
-        if (response?.SubtitleLanguages is not null)
-        {
-            // Delete old
-            var toDelete = RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(response.FileID);
-            RepoFactory.CrossRef_Subtitles_AniDB_File.DeleteWithOpenTransaction(session, toDelete);
+            if (response?.SubtitleLanguages is not null)
+            {
+                // Delete old
+                var toDelete = RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(response.FileID);
+                RepoFactory.CrossRef_Subtitles_AniDB_File.DeleteWithOpenTransaction(s, toDelete);
 
-            // Save new
-            var toSave = response.SubtitleLanguages.Select(language => language.Trim().ToLower())
-                .Where(lang => lang.Length > 0)
-                .Select(lang => new CrossRef_Subtitles_AniDB_File { LanguageName = lang, FileID = response.FileID })
-                .ToList();
-            RepoFactory.CrossRef_Subtitles_AniDB_File.SaveWithOpenTransaction(session, toSave);
-        }
-        trans.Commit();
+                // Save new
+                var toSave = response.SubtitleLanguages.Select(language => language.Trim().ToLower())
+                    .Where(lang => lang.Length > 0)
+                    .Select(lang => new CrossRef_Subtitles_AniDB_File
+                    {
+                        LanguageName = lang, FileID = response.FileID
+                    })
+                    .ToList();
+                RepoFactory.CrossRef_Subtitles_AniDB_File.SaveWithOpenTransaction(s, toSave);
+            }
+
+            trans.Commit();
+        });
     }
 
     public void CreateEpisodes(string filename, ResponseGetFile response)

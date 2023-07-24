@@ -178,7 +178,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         using var trans = session.BeginTransaction();
         foreach (var group in groups)
         {
-            Lock(() => session.Update(group));
+            session.Update(group);
             UpdateCache(group);
         }
         trans.Commit();

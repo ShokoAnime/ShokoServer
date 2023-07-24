@@ -164,7 +164,7 @@ internal class AnimeGroupCreator
             localSession => { localSession.Dispose(); });
 
         using var session = DatabaseFactory.SessionFactory.OpenSession().Wrap();
-        _animeGroupRepo.UpdateBatch(session, groups);
+        BaseRepository.Lock(session, groups, (s, g) => _animeGroupRepo.UpdateBatch(s, g));
         _log.Info("AnimeGroup statistics and contracts have been updated");
 
         ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo
@@ -177,7 +177,7 @@ internal class AnimeGroupCreator
             .ToList();
 
         // Insert the AnimeGroup_Users so that they get assigned a primary key before we update plex/kodi contracts
-        _animeGroupUserRepo.InsertBatch(session, animeGroupUsers);
+        BaseRepository.Lock(session, animeGroupUsers, (s, u) => _animeGroupUserRepo.InsertBatch(s, u));
         // We need to repopulate caches for AnimeGroup_User and AnimeGroup because we've updated/inserted them
         // and they need to be up to date for the plex/kodi contract updating to work correctly
         _animeGroupUserRepo.Populate(session, false);
@@ -190,7 +190,7 @@ internal class AnimeGroupCreator
             groupUser.UpdatePlexKodiContracts();
         }
 
-        _animeGroupUserRepo.UpdateBatch(session, animeGroupUsers);
+        BaseRepository.Lock(session, animeGroupUsers, (s, u) => _animeGroupUserRepo.UpdateBatch(s, u));
         _log.Info("AnimeGroup_Users have been created");
     }
 
