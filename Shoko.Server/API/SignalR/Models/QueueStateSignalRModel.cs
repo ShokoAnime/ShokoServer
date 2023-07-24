@@ -39,44 +39,53 @@ public class QueueStateSignalRModel
 
     public QueueStateSignalRModel(QueueStateEventArgs eventArgs, bool legacy = false)
     {
-        State = eventArgs.QueueState.queueState;
-        Description = eventArgs.QueueState.formatMessage();
-        CurrentCommandID = eventArgs.CommandRequestID;
-        QueueCount = legacy ? null : eventArgs.QueueCount;
-        Status = legacy ? (
-            null
-        ) : eventArgs.IsPaused ? (
-            // Check if it's still running even though it should be stopped.
-            CurrentCommandID != null ? "Pausing" : "Paused"
-        ) : eventArgs.QueueState.queueState == QueueStateEnum.Idle ? (
-            // Check if it's actually idle, or if it's waiting to resume work.
-            eventArgs.QueueCount > 0 ? "Waiting" : "Idle"
-        ) : (
-            // It's currently running a command.
-            "Running"
-        );
+        if (legacy)
+        {
+            State = eventArgs.IsPaused ? QueueStateEnum.Paused : eventArgs.QueueState.queueState;
+            Description = eventArgs.IsPaused ? "Paused" : eventArgs.QueueState.formatMessage();
+        }
+        else {
+            State = eventArgs.QueueState.queueState;
+            Description = eventArgs.QueueState.formatMessage();
+            CurrentCommandID = eventArgs.CommandRequestID;
+            QueueCount = eventArgs.QueueCount;
+            Status = eventArgs.IsPaused ? (
+                // Check if it's still running even though it should be stopped.
+                CurrentCommandID != null ? "Pausing" : "Paused"
+            ) : eventArgs.QueueState.queueState == QueueStateEnum.Idle ? (
+                // Check if it's actually idle, or if it's waiting to resume work.
+                eventArgs.QueueCount > 0 ? "Waiting" : "Idle"
+            ) : (
+                // It's currently running a command.
+                "Running"
+            );
+        }
     }
 
     public QueueStateSignalRModel(CommandProcessor processor, bool legacy = false)
     {
         // only create a deep-copy of the queue state once, then re-use it.
         var queueState = processor.QueueState;
-
-        State = queueState.queueState;
-        Description = queueState.formatMessage();
-        CurrentCommandID = processor.CurrentCommand?.CommandRequestID;
-        QueueCount = legacy ? null : processor.QueueCount;
-        Status = legacy ? (
-            null
-        ) : processor.Paused ? (
-            // Check if it's still running even though it should be stopped.
-            CurrentCommandID != null ? "Pausing" : "Paused"
-        ) : queueState.queueState == QueueStateEnum.Idle ? (
-            // Check if it's actually idle, or if it's waiting to resume work.
-            processor.QueueCount > 0 ? "Waiting" : "Idle"
-        ) : (
-            // It's currently running a command.
-            "Running"
-        );
+        if (legacy)
+        {
+            State = processor.Paused ? QueueStateEnum.Paused : queueState.queueState;
+            Description = processor.Paused ? "Paused" : queueState.formatMessage();
+        }
+        else {
+            State = queueState.queueState;
+            Description = queueState.formatMessage();
+            CurrentCommandID = processor.CurrentCommand?.CommandRequestID;
+            QueueCount = processor.QueueCount;
+            Status = processor.Paused ? (
+                // Check if it's still running even though it should be stopped.
+                CurrentCommandID != null ? "Pausing" : "Paused"
+            ) : queueState.queueState == QueueStateEnum.Idle ? (
+                // Check if it's actually idle, or if it's waiting to resume work.
+                processor.QueueCount > 0 ? "Waiting" : "Idle"
+            ) : (
+                // It's currently running a command.
+                "Running"
+            );
+        }
     }
 }
