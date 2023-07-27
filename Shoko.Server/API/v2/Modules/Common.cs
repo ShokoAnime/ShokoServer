@@ -151,7 +151,7 @@ public class Common : BaseController
         if (importFolder == null)
             return new APIMessage(404, "ImportFolder missing");
 
-        var res = Importer.DeleteImportFolder(importFolder);
+        var res = Importer.DeleteImportFolder(importFolder.ImportFolderID);
         return string.IsNullOrEmpty(res) ? Ok() : InternalError(res);
     }
 

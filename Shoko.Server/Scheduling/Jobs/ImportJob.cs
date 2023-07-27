@@ -17,7 +17,6 @@ internal class ImportJob : IJob
     public async Task Execute(IJobExecutionContext context)
     {
         // TODO: Make everything asynchronous
-        Analytics.PostEvent("Importer", "Run");
         try
         {
             Importer.RunImport_NewFiles();

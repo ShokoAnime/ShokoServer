@@ -16,7 +16,6 @@ internal class RemoveMissingFilesJob : IJob
     
     public async Task Execute(IJobExecutionContext context)
     {
-        Analytics.PostEvent("Importer", "RemoveMissing");
         try
         {
             Importer.RemoveRecordsWithoutPhysicalFiles(RemoveMyList);

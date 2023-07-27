@@ -77,7 +77,6 @@ public class ShokoServer
     {
         this.logger = logger;
         _settingsProvider = settingsProvider;
-        _serviceProvider = serviceProvider;
         _schedulerFactory = schedulerFactory;
         var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);
         CultureInfo.DefaultThreadCurrentCulture = culture;
