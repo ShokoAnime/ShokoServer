@@ -115,7 +115,7 @@ public class Startup
 
         var settings = _settingsProvider?.GetSettings();
         if (settings?.FirstRun is false)
-            Utils.ShokoServer.RunWorkSetupDB();
+            ShokoServer.RunWorkSetupDB();
         else
             _logger.LogWarning("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
     }

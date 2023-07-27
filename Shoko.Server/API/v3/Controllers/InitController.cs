@@ -180,7 +180,7 @@ public class InitController : BaseController
         if (ServerState.Instance.ServerStarting) return BadRequest("Already Starting");
         try
         {
-            Utils.ShokoServer.RunWorkSetupDB();
+            ShokoServer.RunWorkSetupDB();
         }
         catch (Exception e)
         {

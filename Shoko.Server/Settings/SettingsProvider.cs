@@ -365,6 +365,11 @@ public class SettingsProvider : ISettingsProvider
                 value = Serialize(value);
             }
 
+            if (prop.Name.ToLower().EndsWith("password"))
+            {
+                value = "***HIDDEN***";
+            }
+
             _logger.LogInformation("{Path}.{PropName}: {Value}", path, prop.Name, value);
         }
     }

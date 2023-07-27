@@ -228,7 +228,7 @@ public class Init : BaseController
         if (ServerState.Instance.ServerStarting) return APIStatus.BadRequest("Already Starting");
         try
         {
-            Utils.ShokoServer.RunWorkSetupDB();
+            ShokoServer.RunWorkSetupDB();
         }
         catch (Exception e)
         {

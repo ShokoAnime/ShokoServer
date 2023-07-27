@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -16,7 +15,6 @@ using Quartz;
 using QuartzJobFactory;
 using Sentry;
 using Shoko.Commons.Properties;
-using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Commands.Plex;
@@ -30,7 +28,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Settings;
-using Shoko.Server.UI;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.FileSystemWatcher;
 using Trinet.Core.IO.Ntfs;
@@ -44,8 +41,6 @@ public class ShokoServer
     private readonly ILogger<ShokoServer> logger;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
-    private static DateTime lastTraktInfoUpdate = DateTime.Now;
-    private static DateTime lastVersionCheck = DateTime.Now;
 
     public static DateTime? StartTime;
 
@@ -66,14 +61,8 @@ public class ShokoServer
 
     private BackgroundWorker downloadImagesWorker = new();
 
-    public static List<UserCulture> userLanguages = new();
 
-    public string[] GetSupportedDatabases()
-    {
-        return new[] { "SQLite", "Microsoft SQL Server 2014", "MySQL/MariaDB" };
-    }
-
-    public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider, IServiceProvider serviceProvider, ISchedulerFactory schedulerFactory)
+    public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory)
     {
         this.logger = logger;
         _settingsProvider = settingsProvider;
@@ -153,7 +142,7 @@ public class ShokoServer
         downloadImagesWorker.WorkerSupportsCancellation = true;
         
         workerSetupDB.WorkerReportsProgress = true;
-        workerSetupDB.ProgressChanged += (sender, args) => WorkerSetupDB_ReportProgress();
+        workerSetupDB.ProgressChanged += (_, _) => WorkerSetupDB_ReportProgress();
         workerSetupDB.DoWork += WorkerSetupDB_DoWork;
         workerSetupDB.RunWorkerCompleted += WorkerSetupDB_RunWorkerCompleted;
 
@@ -706,7 +695,7 @@ public class ShokoServer
         handler.Init(settings.Username, settings.Password, settings.ServerAddress, settings.ServerPort, settings.ClientPort);
     }
 
-    private void AniDBDispose()
+    private static void AniDBDispose()
     {
         var handler = Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
         handler.ForceLogout();
@@ -743,7 +732,7 @@ public class ShokoServer
         return flag;
     }
 
-    public void RunWorkSetupDB()
+    public static void RunWorkSetupDB()
     {
         workerSetupDB.RunWorkerAsync();
     }
