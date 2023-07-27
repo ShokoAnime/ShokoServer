@@ -1122,11 +1122,10 @@ public static class Importer
         Logger.Info("Remove Missing Files: Finished");
     }
 
-    public static string DeleteImportFolder(SVR_ImportFolder ns, bool removeFromMyList = true)
+    public static string DeleteImportFolder(int importFolderID, bool removeFromMyList = true)
     {
         try
         {
-            var importFolderID = ns.ImportFolderID;
             var affectedSeries = new HashSet<SVR_AnimeSeries>();
             var vids = RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID);
             Logger.Info($"Deleting {vids.Count} video local records");

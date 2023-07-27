@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Quartz;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
@@ -17,6 +18,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
@@ -35,15 +37,17 @@ public class ActionController : BaseController
     private readonly TraktTVHelper _traktHelper;
     private readonly MovieDBHelper _movieDBHelper;
     private readonly IHttpConnectionHandler _httpHandler;
+    private readonly ISchedulerFactory _schedulerFactory;
 
     public ActionController(ILogger<ActionController> logger, ICommandRequestFactory commandFactory,
-        TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, IHttpConnectionHandler httpHandler, ISettingsProvider settingsProvider) : base(settingsProvider)
+        TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, IHttpConnectionHandler httpHandler, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _logger = logger;
         _commandFactory = commandFactory;
         _traktHelper = traktHelper;
         _movieDBHelper = movieDBHelper;
         _httpHandler = httpHandler;
+        _schedulerFactory = schedulerFactory;
     }
 
     #region Common Actions
@@ -53,9 +57,10 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("RunImport")]
-    public ActionResult RunImport()
+    public async Task<ActionResult> RunImport()
     {
-        ShokoServer.RunImport();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.TriggerJob(ImportJob.Key);
         return Ok();
     }
 
@@ -117,7 +122,7 @@ public class ActionController : BaseController
     [HttpGet("RemoveMissingFiles/{removeFromMyList:bool?}")]
     public ActionResult RemoveMissingFiles(bool removeFromMyList = true)
     {
-        ShokoServer.RemoveMissingFiles(removeFromMyList);
+        Utils.ShokoServer.RemoveMissingFiles(removeFromMyList);
         return Ok();
     }
 
@@ -335,7 +340,7 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllMediaInfo")]
     public ActionResult UpdateAllMediaInfo()
     {
-        ShokoServer.RefreshAllMediaInfo();
+        Utils.ShokoServer.RefreshAllMediaInfo();
         return Ok();
     }
 

@@ -25,13 +25,13 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.WebUI;
 using Shoko.Server.Plugin;
 using Shoko.Server.Utilities;
-using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
 using File = System.IO.File;
+using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
+using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
+using QueueEmitter = Shoko.Server.API.SignalR.Aggregate.QueueEmitter;
 using LegacyAniDBEmitter = Shoko.Server.API.SignalR.Legacy.AniDBEmitter;
 using LegacyQueueEmitter = Shoko.Server.API.SignalR.Legacy.QueueEmitter;
 using LegacyShokoEventEmitter = Shoko.Server.API.SignalR.Legacy.ShokoEventEmitter;
-using QueueEmitter = Shoko.Server.API.SignalR.Aggregate.QueueEmitter;
-using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
 
 namespace Shoko.Server.API;
 

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -12,11 +11,10 @@ using System.Threading;
 using System.Timers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NLog;
-using NLog.Targets;
+using Quartz;
+using QuartzJobFactory;
 using Sentry;
 using Shoko.Commons.Properties;
-using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Commands.Plex;
@@ -28,12 +26,11 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Settings;
-using Shoko.Server.UI;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.FileSystemWatcher;
 using Trinet.Core.IO.Ntfs;
-using LogLevel = NLog.LogLevel;
 using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Server;
@@ -43,8 +40,7 @@ public class ShokoServer
     //private static bool doneFirstTrakTinfo = false;
     private readonly ILogger<ShokoServer> logger;
     private readonly ISettingsProvider _settingsProvider;
-    private static DateTime lastTraktInfoUpdate = DateTime.Now;
-    private static DateTime lastVersionCheck = DateTime.Now;
+    private readonly ISchedulerFactory _schedulerFactory;
 
     public static DateTime? StartTime;
 
@@ -54,13 +50,6 @@ public class ShokoServer
     public static string PathAddressREST = "api/Image";
     public static string PathAddressPlex = "api/Plex";
     public static string PathAddressKodi = "Kodi";
-
-    private static BackgroundWorker workerImport = new();
-    private static BackgroundWorker workerScanFolder = new();
-    private static BackgroundWorker workerScanDropFolders = new();
-    private static BackgroundWorker workerRemoveMissing = new();
-    private static BackgroundWorker workerDeleteImportFolder = new();
-    private static BackgroundWorker workerMediaInfo = new();
 
     internal static BackgroundWorker workerSetupDB = new();
 
@@ -72,17 +61,12 @@ public class ShokoServer
 
     private BackgroundWorker downloadImagesWorker = new();
 
-    public static List<UserCulture> userLanguages = new();
 
-    public string[] GetSupportedDatabases()
-    {
-        return new[] { "SQLite", "Microsoft SQL Server 2014", "MySQL/MariaDB" };
-    }
-
-    public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider)
+    public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory)
     {
         this.logger = logger;
         _settingsProvider = settingsProvider;
+        _schedulerFactory = schedulerFactory;
         var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
@@ -98,24 +82,6 @@ public class ShokoServer
     {
         _sentry?.Dispose();
         ShokoEventHandler.Instance.Shutdown -= ShutDown;
-    }
-
-    public static void SetTraceLogging(bool enabled)
-    {
-        var fileRule = LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Any(b => b is FileTarget));
-        var signalrRule = LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Any(b => b is SignalRTarget));
-        if (enabled)
-        {
-            fileRule?.EnableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
-            signalrRule?.EnableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
-        }
-        else
-        {
-            fileRule?.DisableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
-            signalrRule?.DisableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
-        }
-
-        LogManager.ReconfigExistingLoggers();
     }
 
     public bool StartUpServer()
@@ -174,32 +140,9 @@ public class ShokoServer
 
         downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
         downloadImagesWorker.WorkerSupportsCancellation = true;
-
-        workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
-
-        workerImport.WorkerReportsProgress = true;
-        workerImport.WorkerSupportsCancellation = true;
-        workerImport.DoWork += WorkerImport_DoWork;
-
-        workerScanFolder.WorkerReportsProgress = true;
-        workerScanFolder.WorkerSupportsCancellation = true;
-        workerScanFolder.DoWork += WorkerScanFolder_DoWork;
-
-
-        workerScanDropFolders.WorkerReportsProgress = true;
-        workerScanDropFolders.WorkerSupportsCancellation = true;
-        workerScanDropFolders.DoWork += WorkerScanDropFolders_DoWork;
-
-        workerRemoveMissing.WorkerReportsProgress = true;
-        workerRemoveMissing.WorkerSupportsCancellation = true;
-        workerRemoveMissing.DoWork += WorkerRemoveMissing_DoWork;
-
-        workerDeleteImportFolder.WorkerReportsProgress = false;
-        workerDeleteImportFolder.WorkerSupportsCancellation = true;
-        workerDeleteImportFolder.DoWork += WorkerDeleteImportFolder_DoWork;
-
+        
         workerSetupDB.WorkerReportsProgress = true;
-        workerSetupDB.ProgressChanged += (sender, args) => WorkerSetupDB_ReportProgress();
+        workerSetupDB.ProgressChanged += (_, _) => WorkerSetupDB_ReportProgress();
         workerSetupDB.DoWork += WorkerSetupDB_DoWork;
         workerSetupDB.RunWorkerCompleted += WorkerSetupDB_RunWorkerCompleted;
 
@@ -333,7 +276,7 @@ public class ShokoServer
 
 
             // wait until the queue count is 0
-            // ie the cancel has actuall worked
+            // ie the cancel has actually worked
             while (true)
             {
                 if (ShokoService.CmdProcessorGeneral.QueueCount == 0 &&
@@ -424,7 +367,8 @@ public class ShokoServer
 
             if (settings.Import.RunOnStart)
             {
-                RunImport();
+                var scheduler = _schedulerFactory.GetScheduler().Result;
+                scheduler.TriggerJob(ImportJob.Key);
             }
 
             ServerState.Instance.ServerOnline = true;
@@ -447,27 +391,11 @@ public class ShokoServer
     #endregion
 
     #region Update all media info
-
-    private void WorkerMediaInfo_DoWork(object sender, DoWorkEventArgs e)
+    
+    public void RefreshAllMediaInfo()
     {
-        // first build a list of files that we already know about, as we don't want to process them again
-        var filesAll = RepoFactory.VideoLocal.GetAll();
-        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        foreach (var vl in filesAll)
-        {
-            var cr = commandFactory.Create<CommandRequest_ReadMediaInfo>(c => c.VideoLocalID = vl.VideoLocalID);
-            cr.Save();
-        }
-    }
-
-    public static void RefreshAllMediaInfo()
-    {
-        if (workerMediaInfo.IsBusy)
-        {
-            return;
-        }
-
-        workerMediaInfo.RunWorkerAsync();
+        var scheduler = _schedulerFactory.GetScheduler().Result;
+        scheduler.TriggerJob(MediaInfoJob.Key);
     }
 
     #endregion
@@ -718,37 +646,30 @@ public class ShokoServer
         _fileWatchers.Clear();
     }
 
-    public static void ScanDropFolders()
+    public void ScanDropFolders()
     {
-        if (!workerScanDropFolders.IsBusy)
-        {
-            workerScanDropFolders.RunWorkerAsync();
-        }
+        var scheduler = _schedulerFactory.GetScheduler().Result;
+        scheduler.TriggerJob(ScanDropFoldersJob.Key);
     }
 
-    public static void ScanFolder(int importFolderID)
+    public void ScanFolder(int importFolderID)
     {
-        if (!workerScanFolder.IsBusy)
-        {
-            workerScanFolder.RunWorkerAsync(importFolderID);
-        }
+        var scheduler = _schedulerFactory.GetScheduler().Result;
+        scheduler.StartJob(JobBuilder<ScanFolderJob>.Create()
+                .StoreDurably()
+                .UsingJobData(a => a.ImportFolderID = importFolderID)
+                .WithGeneratedIdentity()
+                .Build());
     }
 
-    public static void RunImport()
+    public void RemoveMissingFiles(bool removeMyList = true)
     {
-
-        if (!workerImport.IsBusy)
-        {
-            workerImport.RunWorkerAsync();
-        }
-    }
-
-    public static void RemoveMissingFiles(bool removeMyList = true)
-    {
-        if (!workerRemoveMissing.IsBusy)
-        {
-            workerRemoveMissing.RunWorkerAsync(removeMyList);
-        }
+        var scheduler = _schedulerFactory.GetScheduler().Result;
+        scheduler.StartJob(JobBuilder<RemoveMissingFilesJob>.Create()
+            .StoreDurably()
+            .UsingJobData(a => a.RemoveMyList = removeMyList)
+            .WithIdentity(RemoveMissingFilesJob.Key)
+            .Build());
     }
 
     public static void SyncMyList()
@@ -756,98 +677,18 @@ public class ShokoServer
         Importer.CheckForMyListSyncUpdate(true);
     }
 
-    public static void DeleteImportFolder(int importFolderID)
+    public void DeleteImportFolder(int importFolderID)
     {
-        if (!workerDeleteImportFolder.IsBusy)
-        {
-            workerDeleteImportFolder.RunWorkerAsync(importFolderID);
-        }
+        var scheduler = _schedulerFactory.GetScheduler().Result;
+        scheduler.ScheduleJob(JobBuilder<DeleteImportFolderJob>.Create()
+                .StoreDurably()
+                .UsingJobData(a => a.ImportFolderID = importFolderID)
+                .WithGeneratedIdentity()
+                .Build(),
+            TriggerBuilder.Create().StartNow().Build());
     }
 
-    private void WorkerRemoveMissing_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            Importer.RemoveRecordsWithoutPhysicalFiles(e.Argument as bool? ?? true);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, ex.ToString());
-        }
-    }
-
-    private void WorkerDeleteImportFolder_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            var importFolderID = int.Parse(e.Argument.ToString());
-            var importFolder = RepoFactory.ImportFolder.GetByID(importFolderID);
-            if (importFolder == null)
-                return;
-            Importer.DeleteImportFolder(importFolder);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, ex.ToString());
-        }
-    }
-
-    private void WorkerScanFolder_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            Importer.RunImport_ScanFolder(int.Parse(e.Argument.ToString()));
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, ex.ToString());
-        }
-    }
-
-    private void WorkerScanDropFolders_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            Importer.RunImport_DropFolders();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, ex.ToString());
-        }
-    }
-
-    private void WorkerImport_DoWork(object sender, DoWorkEventArgs e)
-    {
-        try
-        {
-            Importer.RunImport_NewFiles();
-            Importer.RunImport_IntegrityCheck();
-
-            // drop folder
-            Importer.RunImport_DropFolders();
-
-            // TvDB association checks
-            Importer.RunImport_ScanTvDB();
-
-            // Trakt association checks
-            Importer.RunImport_ScanTrakt();
-
-            // MovieDB association checks
-            Importer.RunImport_ScanMovieDB();
-
-            // Check for missing images (in a separate thread)
-            DownloadAllImages();
-
-            // Check for previously ignored files
-            Importer.CheckForPreviouslyIgnored();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, ex.ToString());
-        }
-    }
-
-    private static void SetupAniDBProcessor()
+    private void SetupAniDBProcessor()
     {
         var handler = Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
         var settings = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>().GetSettings().AniDb;

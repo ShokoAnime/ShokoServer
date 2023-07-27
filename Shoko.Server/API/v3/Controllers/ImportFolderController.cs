@@ -166,7 +166,7 @@ public class ImportFolderController : BaseController
         if (importFolder == null)
             return NotFound("Folder not found.");
 
-        var errorMessage = Importer.DeleteImportFolder(importFolder, updateMyList);
+        var errorMessage = Importer.DeleteImportFolder(importFolder.ImportFolderID, updateMyList);
         if (!string.IsNullOrEmpty(errorMessage))
             return InternalError(errorMessage);
 

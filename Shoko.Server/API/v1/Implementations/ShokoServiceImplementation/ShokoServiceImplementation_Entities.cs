@@ -12,9 +12,8 @@ using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server;
 
@@ -3904,7 +3903,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpDelete("Folder/{importFolderID}")]
     public string DeleteImportFolder(int importFolderID)
     {
-        ShokoServer.DeleteImportFolder(importFolderID);
+        Utils.ShokoServer.DeleteImportFolder(importFolderID);
         return string.Empty;
     }
 

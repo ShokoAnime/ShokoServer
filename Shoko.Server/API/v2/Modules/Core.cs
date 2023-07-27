@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using NLog;
+using Quartz;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
@@ -36,16 +34,14 @@ public class Core : BaseController
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
     private readonly ICommandRequestFactory _commandFactory;
-    private readonly TraktTVHelper _traktHelper;
     private readonly ShokoServiceImplementation _service;
     private readonly IServerSettings _settings;
 
-    public Core(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public Core(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _commandFactory = commandFactory;
-        _traktHelper = traktHelper;
         _settings = settingsProvider.GetSettings();
-        _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory, settingsProvider);
+        _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory, schedulerFactory, settingsProvider);
     }
 
     #region 01.Settings
@@ -209,8 +205,6 @@ public class Core : BaseController
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
         handler.ForceLogout();
         handler.CloseConnections();
-
-        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(_settings.Culture);
 
         handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
             _settings.AniDb.ServerAddress,
@@ -620,8 +614,8 @@ public class Core : BaseController
     [HttpGet("user/list")]
     public ActionResult<Dictionary<int, string>> GetUsers()
     {
-        var iLogger = HttpContext.RequestServices.GetRequiredService<ILogger<CommonImplementation>>();
-        return new CommonImplementation(iLogger, SettingsProvider).GetUsers();
+        var common = HttpContext.RequestServices.GetRequiredService<CommonImplementation>();
+        return common.GetUsers();
     }
 
     /// <summary>

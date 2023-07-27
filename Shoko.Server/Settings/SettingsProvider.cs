@@ -11,7 +11,6 @@ using Newtonsoft.Json.Converters;
 using Shoko.Commons.Utils;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.FileHelper;
-using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.MediaInfoLib;
 using Constants = Shoko.Server.Server.Constants;
@@ -65,7 +64,7 @@ public class SettingsProvider : ISettingsProvider
         LoadSettingsFromFile(path);
         SaveSettings();
 
-        ShokoServer.SetTraceLogging(Instance.TraceLog);
+        Utils.SetTraceLogging(Instance.TraceLog);
     }
 
     private static ServerSettings LoadLegacySettings()
@@ -364,6 +363,11 @@ public class SettingsProvider : ISettingsProvider
             if (!IsPrimitive(type))
             {
                 value = Serialize(value);
+            }
+
+            if (prop.Name.ToLower().EndsWith("password"))
+            {
+                value = "***HIDDEN***";
             }
 
             _logger.LogInformation("{Path}.{PropName}: {Value}", path, prop.Name, value);

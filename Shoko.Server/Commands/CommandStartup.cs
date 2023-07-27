@@ -9,8 +9,6 @@ public static class CommandStartup
 {
     public static IServiceCollection AddCommands(this IServiceCollection services)
     {
-        services.AddSingleton<ICommandRequestFactory, CommandRequestFactory>();
-
         // Register Requests
         var requestType = typeof(ICommandRequest);
         var types = AppDomain.CurrentDomain.GetAssemblies()

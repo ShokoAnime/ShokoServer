@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models;
@@ -39,12 +40,12 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
 
     private static Logger logger = LogManager.GetCurrentClassLogger();
 
-    public ShokoServiceImplementationMetro(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper, ISettingsProvider settingsProvider)
+    public ShokoServiceImplementationMetro(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
     {
         _commandFactory = commandFactory;
         _traktHelper = traktHelper;
         _settingsProvider = settingsProvider;
-        _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory, settingsProvider);
+        _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory, schedulerFactory, settingsProvider);
     }
 
     [HttpGet("Server/Status")]

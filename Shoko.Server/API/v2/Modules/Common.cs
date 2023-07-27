@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using NLog;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
@@ -23,6 +24,7 @@ using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -38,13 +40,13 @@ public class Common : BaseController
 {
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ShokoServiceImplementation _service;
-    private readonly ISettingsProvider _settingsProvider;
+    private readonly ISchedulerFactory _schedulerFactory;
 
-    public Common(ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public Common(ICommandRequestFactory commandFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _commandFactory = commandFactory;
-        _settingsProvider = settingsProvider;
-        _service = new ShokoServiceImplementation(null, null, null, commandFactory, settingsProvider);
+        _schedulerFactory = schedulerFactory;
+        _service = new ShokoServiceImplementation(null, null, null, commandFactory, schedulerFactory, settingsProvider);
     }
     //class will be found automagically thanks to inherits also class need to be public (or it will 404)
 
@@ -149,7 +151,7 @@ public class Common : BaseController
         if (importFolder == null)
             return new APIMessage(404, "ImportFolder missing");
 
-        var res = Importer.DeleteImportFolder(importFolder);
+        var res = Importer.DeleteImportFolder(importFolder.ImportFolderID);
         return string.IsNullOrEmpty(res) ? Ok() : InternalError(res);
     }
 
@@ -159,9 +161,10 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("folder/import")]
-    public ActionResult RunImport()
+    public async Task<ActionResult> RunImport()
     {
-        ShokoServer.RunImport();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.TriggerJob(ImportJob.Key);
         return Ok();
     }
 
@@ -189,7 +192,7 @@ public class Common : BaseController
     [HttpGet("remove_missing_files")]
     public ActionResult RemoveMissingFiles()
     {
-        ShokoServer.RemoveMissingFiles();
+        Utils.ShokoServer.RemoveMissingFiles();
         return Ok();
     }
 
@@ -213,7 +216,7 @@ public class Common : BaseController
     [HttpGet("medainfo_update")]
     public ActionResult UpdateMediaInfo()
     {
-        ShokoServer.RefreshAllMediaInfo();
+        Utils.ShokoServer.RefreshAllMediaInfo();
         return Ok();
     }
 
@@ -2682,9 +2685,10 @@ public class Common : BaseController
     }
 
     [HttpGet("cloud/import")]
-    public ActionResult RunCloudImport()
+    public async Task<ActionResult> RunCloudImport()
     {
-        ShokoServer.RunImport();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.TriggerJob(ImportJob.Key);
         return Ok();
     }
 
