@@ -1,8 +1,7 @@
 using System.Collections.Generic;
-using NHibernate.Criterion;
+using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct;
 
@@ -10,30 +9,23 @@ public class AniDB_Anime_StaffRepository : BaseDirectRepository<AniDB_Anime_Staf
 {
     public List<AniDB_Anime_Staff> GetByAnimeID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var cats = session
-                .CreateCriteria(typeof(AniDB_Anime_Staff))
-                .Add(Restrictions.Eq("AnimeID", id))
-                .List<AniDB_Anime_Staff>();
-
-            return new List<AniDB_Anime_Staff>(cats);
-        }
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            return session.Query<AniDB_Anime_Staff>()
+                .Where(a => a.AnimeID == id)
+                .ToList();
+        });
     }
 
     public AniDB_Anime_Staff GetByAnimeIDAndCreatorID(int animeid, int creatorid)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var cr = session
-                .CreateCriteria(typeof(AniDB_Anime_Staff))
-                .Add(Restrictions.Eq("AnimeID", animeid))
-                .Add(Restrictions.Eq("CreatorID", creatorid))
-                .UniqueResult<AniDB_Anime_Staff>();
-
-            return cr;
-        }
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            return session.Query<AniDB_Anime_Staff>()
+                .Where(a => a.AnimeID == animeid && a.CreatorID == creatorid)
+                .SingleOrDefault();
+        });
     }
 }

@@ -140,15 +140,9 @@ public static class CommandHelper
     {
         var logFactory = provider.GetRequiredService<ILoggerFactory>();
         var logger = logFactory.CreateLogger(typeof(CommandHelper));
-        if (crdb == null)
-        {
-            return null;
-        }
+        if (crdb == null) return null;
 
-        if (!_commandRequestImpls.TryGetValue((CommandRequestType)crdb.CommandType, out var type))
-        {
-            return null;
-        }
+        if (!_commandRequestImpls.TryGetValue((CommandRequestType)crdb.CommandType, out var type)) return null;
 
         try
         {
@@ -159,9 +153,8 @@ public static class CommandHelper
         }
         catch (Exception e)
         {
-            logger.LogError("There was an error loading {CommandType}: The XML was {CommandDetails}",
+            logger.LogError(e, "There was an error loading {CommandType}: The XML was {CommandDetails}\n",
                 (CommandRequestType)crdb.CommandType, crdb.CommandDetails);
-            logger.LogError("There was an error loading {CommandType}: {E}", (CommandRequestType)crdb.CommandType, e);
         }
 
         return null;

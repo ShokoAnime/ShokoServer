@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.WebUI;
 using Shoko.Server.Databases;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -34,21 +35,6 @@ public class InitController : BaseController
         _shokoServer = shokoServer;
     }
 
-    private record WebUIVersion {
-        /// <summary>
-        /// Package version.
-        /// </summary>
-        public string package = "1.0.0";
-        /// <summary>
-        /// Short-form git commit sha digest.
-        /// </summary>
-        public string git = "0000000";
-        /// <summary>
-        /// True if this is a debug package.
-        /// </summary>
-        public bool debug = false;
-    }
-
     /// <summary>
     /// Return current version of ShokoServer and several modules
     /// This will work after init
@@ -65,26 +51,18 @@ public class InitController : BaseController
             MediaInfo = new()
         };
 
-        foreach (var raw in Utils.GetApplicationExtraVersion().Split(","))
-        {
-            var pair = raw.Split("=");
-            if (pair.Length != 2 || string.IsNullOrEmpty(pair[1])) continue;
-            switch (pair[0])
-            {
-                case "tag":
-                    versionSet.Server.Tag = pair[1];
-                    break;
-                case "commit":
-                    versionSet.Server.Commit = pair[1];
-                    break;
-                case "channel":
-                    if (Enum.TryParse<ReleaseChannel>(pair[1], true, out var channel))
-                        versionSet.Server.ReleaseChannel = channel;
-                    else
-                        versionSet.Server.ReleaseChannel = ReleaseChannel.Debug;
-                    break;
-            }
-        }
+        var extraVersionDict = Utils.GetApplicationExtraVersion();
+        if (extraVersionDict.TryGetValue("tag", out var tag))
+            versionSet.Server.Tag = tag;
+        if (extraVersionDict.TryGetValue("commit", out var commit))
+            versionSet.Server.Commit = commit;
+        if (extraVersionDict.TryGetValue("channel", out var rawChannel))
+            if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var channel))
+                versionSet.Server.ReleaseChannel = channel;
+            else
+                versionSet.Server.ReleaseChannel = ReleaseChannel.Debug;
+        if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
+            versionSet.Server.ReleaseDate = releaseDate.ToUniversalTime();
 
         var mediaInfoFileInfo = new FileInfo(Path.Combine(Assembly.GetEntryAssembly().Location, "../MediaInfo", "MediaInfo.exe"));
         versionSet.MediaInfo = new()
@@ -92,15 +70,15 @@ public class InitController : BaseController
             Version = mediaInfoFileInfo.Exists ? FileVersionInfo.GetVersionInfo(mediaInfoFileInfo.FullName).FileVersion : null,
         };
 
-        var webUIFileInfo = new FileInfo(Path.Combine(Utils.ApplicationPath, "webui/version.json"));
-        if (webUIFileInfo.Exists)
+        var webuiVersion = WebUIHelper.LoadWebUIVersionInfo();
+        if (webuiVersion != null)
         {
-            var webuiVersion = Newtonsoft.Json.JsonConvert.DeserializeObject<WebUIVersion>(System.IO.File.ReadAllText(webUIFileInfo.FullName));
             versionSet.WebUI = new()
             {
                 Version = webuiVersion.package,
                 ReleaseChannel = webuiVersion.debug ? ReleaseChannel.Debug : webuiVersion.package.Contains("-dev") ? ReleaseChannel.Dev : ReleaseChannel.Stable,
                 Commit = webuiVersion.git,
+                ReleaseDate = webuiVersion.date,
             };
         }
 
@@ -206,7 +184,7 @@ public class InitController : BaseController
         }
         catch (Exception e)
         {
-            _logger.LogError(e, $"There was an error starting the server: {e}");
+            _logger.LogError(e, "There was an error starting the server");
             return InternalError($"There was an error starting the server: {e}");
         }
         return Ok();

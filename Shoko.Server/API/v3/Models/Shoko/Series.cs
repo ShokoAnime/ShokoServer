@@ -18,13 +18,11 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
-using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
-using AnimeType = Shoko.Models.Enums.AnimeType;
-using RelationType = Shoko.Plugin.Abstractions.DataModels.RelationType;
 
-// ReSharper disable UnusedMember.Local
-// ReSharper disable UnusedAutoPropertyAccessor.Global
-using SSS = Shoko.Server.Server;
+using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
+using AniDBAnimeType = Shoko.Models.Enums.AnimeType;
+using RelationType = Shoko.Plugin.Abstractions.DataModels.RelationType;
+using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -48,6 +46,17 @@ public class Series : BaseModel
     /// the user's rating
     /// </summary>
     public Rating UserRating { get; set; }
+
+    /// <summary>
+    /// The inferred days of the week this series airs on.
+    /// </summary>
+    /// <remarks>
+    /// Will only be set for series of type <see cref="SeriesType.TV"/> and
+    /// <see cref="SeriesType.Web"/>.
+    /// </remarks>
+    /// <value>Each weekday</value>
+    [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
+    public List<DayOfWeek> AirsOn { get; set; }
 
     /// <summary>
     /// links to series pages on various sites
@@ -92,8 +101,10 @@ public class Series : BaseModel
     public Series(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false, HashSet<DataSource> includeDataFrom = null)
     {
         var uid = ctx.GetUser()?.JMMUserID ?? 0;
+        var anime = ser.GetAnime();
+        var animeType = (AniDBAnimeType)anime.AnimeType;
 
-        AddBasicAniDBInfo(ctx, ser);
+        AddBasicAniDBInfo(ctx, ser, anime);
 
         var ael = ser.GetAnimeEpisodes();
         var contract = ser.Contract;
@@ -104,28 +115,73 @@ public class Series : BaseModel
 
         IDs = GetIDs(ser);
         Images = GetDefaultImages(ctx, ser, randomiseImages);
+        AirsOn = animeType == AniDBAnimeType.TVSeries || animeType == AniDBAnimeType.Web ? ser.GetAirsOnDaysOfWeek(ael) : new();
 
         Name = ser.GetSeriesName();
         Sizes = ModelHelper.GenerateSeriesSizes(ael, uid);
         Size = Sizes.Local.Credits + Sizes.Local.Episodes + Sizes.Local.Others + Sizes.Local.Parodies +
                Sizes.Local.Specials + Sizes.Local.Trailers;
 
-        Created = ser.DateTimeCreated;
-        Updated = ser.DateTimeUpdated;
+        Created = ser.DateTimeCreated.ToUniversalTime();
+        Updated = ser.DateTimeUpdated.ToUniversalTime();
 
         if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
-            this._AniDB = new Series.AniDBWithDate(ctx, ser.GetAnime(), ser);
+            this._AniDB = new Series.AniDBWithDate(anime, ser);
         if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
             this._TvDB = GetTvDBInfo(ctx, ser);
     }
 
-    private void AddBasicAniDBInfo(HttpContext ctx, SVR_AnimeSeries ser)
+    private void AddBasicAniDBInfo(HttpContext ctx, SVR_AnimeSeries series, SVR_AniDB_Anime anime)
     {
-        var anime = ser.GetAnime();
         if (anime == null)
         {
             return;
         }
+
+        Links = new();
+        if (!string.IsNullOrEmpty(anime.Site_EN))
+            foreach (var site in anime.Site_EN.Split('|'))
+                Links.Add(new() { Type = "source", Name = "Official Site (EN)", URL = site });
+
+        if (!string.IsNullOrEmpty(anime.Site_JP))
+            foreach (var site in anime.Site_JP.Split('|'))
+                Links.Add(new() { Type = "source", Name = "Official Site (JP)", URL = site });
+
+        if (!string.IsNullOrEmpty(anime.Wikipedia_ID))
+            Links.Add(new() { Type = "wiki", Name = "Wikipedia (EN)", URL = $"https://en.wikipedia.org/{anime.Wikipedia_ID}" });
+
+        if (!string.IsNullOrEmpty(anime.WikipediaJP_ID))
+            Links.Add(new() { Type = "wiki", Name = "Wikipedia (JP)", URL = $"https://en.wikipedia.org/{anime.WikipediaJP_ID}" });
+
+        if (!string.IsNullOrEmpty(anime.CrunchyrollID))
+            Links.Add(new() { Type = "streaming", Name = "Crunchyroll", URL = $"https://crunchyroll.com/anime/{anime.CrunchyrollID}" });
+
+        if (!string.IsNullOrEmpty(anime.FunimationID))
+            Links.Add(new() { Type = "streaming", Name = "Funimation", URL = anime.FunimationID });
+
+        if (!string.IsNullOrEmpty(anime.HiDiveID))
+            Links.Add(new() { Type = "streaming", Name = "HiDive", URL = $"https://www.hidive.com/{anime.HiDiveID}" });
+
+        if (anime.AllCinemaID.HasValue && anime.AllCinemaID.Value > 0)
+            Links.Add(new() { Type = "foreign-metadata", Name = "allcinema", URL = $"https://allcinema.net/cinema/{anime.AllCinemaID.Value}" });
+
+        if (anime.AnisonID.HasValue && anime.AnisonID.Value > 0)
+            Links.Add(new() { Type = "foreign-metadata", Name = "Anison", URL = $"https://anison.info/data/program/{anime.AnisonID.Value}.html" });
+
+        if (anime.SyoboiID.HasValue && anime.SyoboiID.Value > 0)
+            Links.Add(new() { Type = "foreign-metadata", Name = "syoboi", URL = $"https://cal.syoboi.jp/tid/{anime.SyoboiID.Value}/time" });
+
+        if (anime.BangumiID.HasValue && anime.BangumiID.Value > 0)
+            Links.Add(new() { Type = "foreign-metadata", Name = "bangumi", URL = $"https://bgm.tv/subject/{anime.BangumiID.Value}" });
+
+        if (anime.LainID.HasValue && anime.LainID.Value > 0)
+            Links.Add(new() { Type = "foreign-metadata", Name = ".lain", URL = $"http://lain.gr.jp/mediadb/media/{anime.LainID.Value}" });
+
+        if (anime.ANNID.HasValue && anime.ANNID.Value > 0)
+            Links.Add(new() { Type = "english-metadata", Name = "AnimeNewsNetwork", URL = $"https://www.animenewsnetwork.com/encyclopedia/anime.php?id={anime.ANNID.Value}" });
+
+        if (anime.VNDBID.HasValue && anime.VNDBID.Value > 0)
+            Links.Add(new() { Type = "english-metadata", Name = "VNDB", URL = $"https://vndb.org/v{anime.VNDBID.Value}" });
 
         var vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime) ??
                    RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp);
@@ -155,7 +211,7 @@ public class Series : BaseModel
             c.CreateSeriesEntry = createSeriesEntry;
             c.BubbleExceptions = immediate;
         });
-        if (immediate && !handler.IsBanned)
+        if (immediate && (command.CacheOnly || !handler.IsBanned))
         {
             try
             {
@@ -298,25 +354,23 @@ public class Series : BaseModel
     /// <summary>
     /// Cast is aggregated, and therefore not in each provider
     /// </summary>
-    /// <param name="ctx"></param>
     /// <param name="animeID"></param>
-    /// <param name="roleType"></param>
+    /// <param name="roleTypes"></param>
     /// <returns></returns>
-    public static List<Role> GetCast(HttpContext ctx, int animeID, Role.CreatorRoleType? roleType = null)
+    public static List<Role> GetCast(int animeID, HashSet<Role.CreatorRoleType> roleTypes = null)
     {
         var roles = new List<Role>();
-        var xrefAnimeStaff = roleType.HasValue
-            ? RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(animeID,
-                (StaffRoleType)roleType.Value)
-            : RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(animeID);
+        var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(animeID);
         foreach (var xref in xrefAnimeStaff)
         {
+            // Filter out any roles that are not of the desired type.
+            if (roleTypes != null && !roleTypes.Contains((Role.CreatorRoleType)xref.RoleType))
+                continue;
+
             var character = xref.RoleID.HasValue ? RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value) : null;
             var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
             if (staff == null)
-            {
                 continue;
-            }
 
             var role = new Role
             {
@@ -346,7 +400,7 @@ public class Series : BaseModel
         return roles;
     }
 
-    public static List<Tag> GetTags(HttpContext ctx, SVR_AniDB_Anime anime, TagFilter.Filter filter,
+    public static List<Tag> GetTags(SVR_AniDB_Anime anime, TagFilter.Filter filter,
         bool excludeDescriptions = false, bool orderByName = false, bool onlyVerified = true)
     {
         // Only get the user tags if we don't exclude it (false == false), or if we invert the logic and want to include it (true == true).
@@ -358,7 +412,8 @@ public class Series : BaseModel
         var selectedTags = anime.GetAniDBTags(onlyVerified)
             .DistinctBy(a => a.TagName)
             .ToList();
-        var tagFilter = new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName);
+        var tagFilter = new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName, 
+            name => new AniDB_Tag { TagNameSource = name });
         var anidbTags = tagFilter
             .ProcessTags(filter, selectedTags)
             .Select(tag => 
@@ -382,27 +437,27 @@ public class Series : BaseModel
 
     public static SeriesType GetAniDBSeriesType(int? animeType)
     {
-        return animeType.HasValue ? GetAniDBSeriesType((AnimeType)animeType.Value) : SeriesType.Unknown;
+        return animeType.HasValue ? GetAniDBSeriesType((AniDBAnimeType)animeType.Value) : SeriesType.Unknown;
     }
 
-    public static SeriesType GetAniDBSeriesType(AnimeType animeType)
+    public static SeriesType GetAniDBSeriesType(AniDBAnimeType animeType)
     {
         switch (animeType)
         {
             default:
-            case AnimeType.None:
+            case AniDBAnimeType.None:
                 return SeriesType.Unknown;
-            case AnimeType.TVSeries:
+            case AniDBAnimeType.TVSeries:
                 return SeriesType.TV;
-            case AnimeType.Movie:
+            case AniDBAnimeType.Movie:
                 return SeriesType.Movie;
-            case AnimeType.OVA:
+            case AniDBAnimeType.OVA:
                 return SeriesType.OVA;
-            case AnimeType.TVSpecial:
+            case AniDBAnimeType.TVSpecial:
                 return SeriesType.TVSpecial;
-            case AnimeType.Web:
+            case AniDBAnimeType.Web:
                 return SeriesType.Web;
-            case AnimeType.Other:
+            case AniDBAnimeType.Other:
                 return SeriesType.Other;
         }
     }
@@ -538,6 +593,91 @@ public class Series : BaseModel
     #endregion
 
     /// <summary>
+    /// Auto-matching settings for the series.
+    /// </summary>
+    public class AutoMatchSettings
+    {
+        public AutoMatchSettings()
+        {
+            TvDB = false;
+            TMDB = false;
+            Trakt = false;
+            // MAL = false;
+            // AniList = false;
+            // Animeshon = false;
+            // Kitsu = false;
+        }
+
+        public AutoMatchSettings(SVR_AnimeSeries series)
+        {
+            TvDB = !series.IsTvDBAutoMatchingDisabled;
+            TMDB = !series.IsTMDBAutoMatchingDisabled;
+            Trakt = !series.IsTraktAutoMatchingDisabled;
+            // MAL = !series.IsMALAutoMatchingDisabled;
+            // AniList = !series.IsAniListAutoMatchingDisabled;
+            // Animeshon = !series.IsAnimeshonAutoMatchingDisabled;
+            // Kitsu = !series.IsKitsuAutoMatchingDisabled;
+        }
+
+        public AutoMatchSettings MergeWithExisting(SVR_AnimeSeries series)
+        {
+            series.IsTvDBAutoMatchingDisabled = !TvDB;
+            series.IsTMDBAutoMatchingDisabled = !TMDB;
+            series.IsTraktAutoMatchingDisabled = !Trakt;
+            // series.IsMALAutoMatchingDisabled = !MAL;
+            // series.IsAniListAutoMatchingDisabled = !AniList;
+            // series.IsAnimeshonAutoMatchingDisabled = !Animeshon;
+            // series.IsKitsuAutoMatchingDisabled = !Kitsu;
+
+            RepoFactory.AnimeSeries.Save(series, false, true, true);
+
+            return new AutoMatchSettings(series);
+        }
+
+        /// <summary>
+        /// Auto-match against TvDB.
+        /// </summary>
+        [Required]
+        public bool TvDB { get; set; }
+
+        /// <summary>
+        /// Auto-match against The Movie Database (TMDB).
+        /// </summary>
+        [Required]
+        public bool TMDB { get; set; }
+
+        /// <summary>
+        /// Auto-match against Trakt.
+        /// </summary>
+        [Required]
+        public bool Trakt { get; set; }
+
+        // /// <summary>
+        // /// Auto-match against My Anime List (MAL).
+        // /// </summary>
+        // [Required]
+        // public bool MAL { get; set; }
+
+        // /// <summary>
+        // /// Auto-match against AniList.
+        // /// </summary>
+        // [Required]
+        // public bool AniList { get; set; }
+
+        // /// <summary>
+        // /// Auto-match against Animeshon.
+        // /// </summary>
+        // [Required]
+        // public bool Animeshon { get; set; }
+
+        // /// <summary>
+        // /// Auto-match against Kitsu.
+        // /// </summary>
+        // [Required]
+        // public bool Kitsu { get; set; }
+    }
+
+    /// <summary>
     /// Basic anidb data across all anidb types.
     /// </summary>
     public class AniDB
@@ -648,7 +788,7 @@ public class Series : BaseModel
             if (result != null)
             {
                 Type = SeriesType.Unknown;
-                Title = result.MainTitle;
+                Title = result.PreferredTitle;
                 Titles = includeTitles
                     ? result.Titles.Select(
                         title => new Title
@@ -681,12 +821,12 @@ public class Series : BaseModel
             ID = similar.SimilarAnimeID;
             ShokoID = series?.AnimeSeriesID;
             SetTitles(similar, series, includeTitles);
-            Poster = GetAniDBPoster(similar.AnimeID);
+            Poster = GetAniDBPoster(similar.SimilarAnimeID);
             Rating = null;
             UserApproval = new Rating
             {
-                Value = new Vote(similar.Approval, similar.Total).GetRating(),
-                MaxValue = 10,
+                Value = new Vote(similar.Approval, similar.Total).GetRating(100),
+                MaxValue = 100,
                 Votes = similar.Total,
                 Source = "AniDB",
                 Type = "User Approval"
@@ -723,7 +863,7 @@ public class Series : BaseModel
             if (result != null)
             {
                 Type = SeriesType.Unknown;
-                Title = result.MainTitle;
+                Title = result.PreferredTitle;
                 Titles = includeTitles
                     ? result.Titles.Select(
                         title => new Title
@@ -829,25 +969,17 @@ public class Series : BaseModel
     /// </summary>
     public class AniDBWithDate : AniDB
     {
-        public AniDBWithDate(HttpContext ctx, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null) : base(anime,
+        public AniDBWithDate(SVR_AniDB_Anime anime, SVR_AnimeSeries series = null) : base(anime,
             series)
         {
-            if (anime.AirDate != null)
+            if (anime.AirDate.HasValue)
             {
-                var airdate = anime.AirDate.Value;
-                if (airdate != DateTime.MinValue)
-                {
-                    AirDate = airdate;
-                }
+                AirDate = anime.AirDate.Value;
             }
 
-            if (anime.EndDate != null)
+            if (anime.EndDate.HasValue)
             {
-                var enddate = anime.EndDate.Value;
-                if (enddate != DateTime.MinValue)
-                {
-                    EndDate = enddate;
-                }
+                EndDate = anime.EndDate.Value;
             }
         }
 
@@ -987,21 +1119,22 @@ public class Series : BaseModel
     public class Resource
     {
         /// <summary>
+        /// Resource type.
+        /// </summary>
+        [Required]
+        public string Type { get; set; }
+
+        /// <summary>
         /// site name
         /// </summary>
         [Required]
-        public string name { get; set; }
+        public string Name { get; set; }
 
         /// <summary>
         /// the url to the series page
         /// </summary>
         [Required]
-        public string url { get; set; }
-
-        /// <summary>
-        /// favicon or something. A logo
-        /// </summary>
-        public Image image { get; set; }
+        public string URL { get; set; }
     }
 }
 
@@ -1067,19 +1200,42 @@ public class SeriesIDs : IDs
 public class SeriesSearchResult : Series
 {
     /// <summary>
-    /// What is the string we matched on
+    /// Indicates whether the search result is an exact match to the query.
     /// </summary>
-    public string Match { get; set; }
+    public bool ExactMatch { get; set; }
 
     /// <summary>
-    /// The Sorensen-Dice Distance of the match
+    /// Represents the position of the match within the sanitized string.
+    /// This property is only applicable when ExactMatch is set to true.
+    /// A lower value indicates a match that occurs earlier in the string.
+    /// </summary>
+    public int Index { get; set; }
+
+    /// <summary>
+    /// Represents the similarity measure between the sanitized query and the sanitized matched result.
+    /// This may be the sorensen-dice distance or the tag weight when comparing tags for a series.
+    /// A lower value indicates a more similar match.
     /// </summary>
     public double Distance { get; set; }
 
-    public SeriesSearchResult(HttpContext ctx, SVR_AnimeSeries ser, string match, double dist) : base(ctx, ser)
+    /// <summary>
+    /// Represents the absolute difference in length between the sanitized query and the sanitized matched result.
+    /// A lower value indicates a match with a more similar length to the query.
+    /// </summary>
+    public int LengthDifference { get; set; }
+
+    /// <summary>
+    /// Contains the original matched substring from the original string.
+    /// </summary>
+    public string Match { get; set; } = string.Empty;
+
+    public SeriesSearchResult(HttpContext ctx, SeriesSearch.SearchResult<SVR_AnimeSeries> result) : base(ctx, result.Result)
     {
-        Match = match;
-        Distance = dist;
+        ExactMatch = result.ExactMatch;
+        Index = result.Index;
+        Distance = result.Distance;
+        LengthDifference = result.LengthDifference;
+        Match = result.Match;
     }
 }
 
@@ -1128,11 +1284,23 @@ public class SeriesSizes
 {
     public SeriesSizes() : base()
     {
+        Missing = 0;
+        Hidden = 0;
         FileSources = new FileSourceCounts();
         Total = new EpisodeTypeCounts();
         Local = new EpisodeTypeCounts();
         Watched = new EpisodeTypeCounts();
     }
+
+    /// <summary>
+    /// Count of missing episodes that are not hidden.
+    /// </summary>
+    public int Missing { get; set; }
+
+    /// <summary>
+    /// Count of hidden episodes, be it available or missing.
+    /// </summary>
+    public int Hidden { get; set; }
 
     /// <summary>
     /// Counts of each file source type available within the local colleciton

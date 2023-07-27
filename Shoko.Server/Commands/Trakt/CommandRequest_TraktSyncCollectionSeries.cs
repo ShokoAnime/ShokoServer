@@ -35,28 +35,17 @@ public class CommandRequest_TraktSyncCollectionSeries : CommandRequestImplementa
     {
         Logger.LogInformation("Processing CommandRequest_TraktSyncCollectionSeries");
 
-        try
-        {
-            var settings = _settingsProvider.GetSettings();
-            if (!settings.TraktTv.Enabled ||
-                string.IsNullOrEmpty(settings.TraktTv.AuthToken))
-            {
-                return;
-            }
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return;
 
-            var series = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
-            if (series == null)
-            {
-                Logger.LogError("Could not find anime series: {0}", AnimeSeriesID);
-                return;
-            }
-
-            _helper.SyncCollectionToTrakt_Series(series);
-        }
-        catch (Exception ex)
+        var series = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
+        if (series == null)
         {
-            Logger.LogError("Error processing CommandRequest_TraktSyncCollectionSeries: {0}", ex);
+            Logger.LogError("Could not find anime series: {AnimeSeriesID}", AnimeSeriesID);
+            return;
         }
+
+        _helper.SyncCollectionToTrakt_Series(series);
     }
 
     /// <summary>

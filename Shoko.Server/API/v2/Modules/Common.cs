@@ -144,10 +144,14 @@ public class Common : BaseController
     {
         if (folderId == 0)
         {
-            return new APIMessage(400, "ImportFolderID missing");
+            return new APIMessage(400, "folderId missing");
         }
 
-        var res = Importer.DeleteImportFolder(folderId);
+        var importFolder = RepoFactory.ImportFolder.GetByID(folderId);
+        if (importFolder == null)
+            return new APIMessage(404, "ImportFolder missing");
+
+        var res = Importer.DeleteImportFolder(importFolder);
         return string.IsNullOrEmpty(res) ? Ok() : InternalError(res);
     }
 
@@ -754,10 +758,7 @@ public class Common : BaseController
     {
         try
         {
-            ShokoService.CmdProcessorHasher.Stop();
-
-            RepoFactory.CommandRequest.ClearHasherQueue();
-            ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
+            ShokoService.CmdProcessorHasher.Clear();
 
             return Ok();
         }
@@ -776,10 +777,7 @@ public class Common : BaseController
     {
         try
         {
-            ShokoService.CmdProcessorGeneral.Stop();
-
-            RepoFactory.CommandRequest.ClearGeneralQueue();
-            ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
+            ShokoService.CmdProcessorGeneral.Clear();
 
             return Ok();
         }
@@ -798,10 +796,7 @@ public class Common : BaseController
     {
         try
         {
-            ShokoService.CmdProcessorImages.Stop();
-
-            RepoFactory.CommandRequest.ClearImageQueue();
-            ShokoService.CmdProcessorImages.NotifyOfNewCommand();
+            ShokoService.CmdProcessorImages.Clear();
 
             return Ok();
         }
@@ -2483,7 +2478,7 @@ public class Common : BaseController
 
         var series_list = new List<Serie>();
 
-        var series = SeriesSearch.Search(uid, query, offset + limit + limit_tag, GetFlags(tagSearch, fuzzy), tagfilter);
+        var series = SeriesSearch.SearchSeries(user, query, offset + limit + limit_tag, GetFlags(tagSearch, fuzzy), tagfilter);
         foreach (var ser in series)
         {
             if (offset == 0)
@@ -2739,16 +2734,16 @@ public class Common : BaseController
             id = 0, name = "Filters", viewed = 0, url = APIV2Helper.ConstructFilterUrl(HttpContext)
         };
         var allGfs = RepoFactory.GroupFilter.GetTopLevel()
-            .Where(a => a.InvisibleInClients == 0 &&
+            .Where(a => !a.IsHidden &&
                         ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
-                         (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory))
+                         a.IsDirectory))
             .ToList();
         var _filters = new List<Filters>();
 
         foreach (var gf in allGfs)
         {
             Filters filter;
-            if ((gf.FilterType & (int)GroupFilterType.Directory) == 0)
+            if (!gf.IsDirectory)
             {
                 filter = Filter.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
                     tagfilter);
@@ -2800,7 +2795,7 @@ public class Common : BaseController
     {
         var gf = RepoFactory.GroupFilter.GetByID(id);
 
-        if ((gf.FilterType & (int)GroupFilterType.Directory) != 0)
+        if (gf.IsDirectory)
         {
             // if it's a directory, it IS a filter-inception;
             var fgs = Filters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
@@ -3007,13 +3002,7 @@ public class Common : BaseController
             return;
         }
 
-        var k = Math.Max(Math.Min((int)(a.GroupName.Length / 6D), (int)(query.Length / 6D)), 1);
-        if (query.Length <= 4 || a.GroupName.Length <= 4)
-        {
-            k = 0;
-        }
-
-        var result = Misc.DiceFuzzySearch(a.GroupName, query, k, a);
+        var result = SeriesSearch.DiceFuzzySearch(a.GroupName, query, a);
         if (result.Index == -1)
         {
             return;

@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -115,9 +116,22 @@ public static class MediaInfo
 
     private static string GetMediaInfoPathForOS()
     {
+        var envVar = Environment.GetEnvironmentVariable("MEDIAINFO_PATH");
+        var path = string.Empty;
+        if (!string.IsNullOrEmpty(envVar))
+        {
+            // Allow spesifying an executable name other than "mediainfo"
+            if (!envVar.Contains(Path.DirectorySeparatorChar) && !envVar.Contains(Path.AltDirectorySeparatorChar))
+                return envVar;
+            // Resolve the path from the application's data directory if the
+            // path is not an absolute path.
+            path = Path.Combine(Utils.ApplicationPath, envVar);
+            if (File.Exists(path)) return path;
+        }
+
         var settings = Utils.SettingsProvider.GetSettings();
-        var path = settings.Import.MediaInfoPath;
-        if (path != null && File.Exists(path)) return path;
+        path = settings.Import.MediaInfoPath;
+        if (!string.IsNullOrEmpty(path) && File.Exists(path)) return path;
 
         if (Utils.IsRunningOnLinuxOrMac()) return "mediainfo";
 
@@ -157,5 +171,40 @@ public static class MediaInfo
         }
 
         return m;
+    }
+
+    public static string GetVersion()
+    {
+        try
+        {
+            var exe = GetMediaInfoPathForOS();
+            var pProcess = new Process
+            {
+                StartInfo =
+                {
+                    FileName = exe,
+                    ArgumentList = { "--version" },
+                    UseShellExecute = false,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                }
+            };
+            pProcess.Start();
+            var output = pProcess.StandardOutput.ReadToEnd().Trim();
+            //Wait for process to finish
+            pProcess.WaitForExit();
+
+            var index = output.IndexOf("v", StringComparison.InvariantCultureIgnoreCase);
+            var version = index > 0 ? output[index..] : output.Split('\n').Skip(1).FirstOrDefault();
+            return version;
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "Unable to get MediaInfo verion");
+        }
+
+        return null;
     }
 }

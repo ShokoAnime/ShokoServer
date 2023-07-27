@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
-using NHibernate.Criterion;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
@@ -12,15 +11,13 @@ public class BookmarkedAnimeRepository : BaseDirectRepository<BookmarkedAnime, i
 {
     public BookmarkedAnime GetByAnimeID(int animeID)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var cr = session
-                .CreateCriteria(typeof(BookmarkedAnime))
-                .Add(Restrictions.Eq("AnimeID", animeID))
-                .UniqueResult<BookmarkedAnime>();
-            return cr;
-        }
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            return session.Query<BookmarkedAnime>()
+                .Where(a => a.AnimeID == animeID)
+                .SingleOrDefault();
+        });
     }
 
     public override IReadOnlyList<BookmarkedAnime> GetAll()
@@ -30,11 +27,11 @@ public class BookmarkedAnimeRepository : BaseDirectRepository<BookmarkedAnime, i
 
     public override IReadOnlyList<BookmarkedAnime> GetAll(ISession session)
     {
-        return GetAll();
+        return base.GetAll(session).OrderBy(a => a.Priority).ToList();
     }
 
     public override IReadOnlyList<BookmarkedAnime> GetAll(ISessionWrapper session)
     {
-        return GetAll();
+        return base.GetAll(session).OrderBy(a => a.Priority).ToList();
     }
 }

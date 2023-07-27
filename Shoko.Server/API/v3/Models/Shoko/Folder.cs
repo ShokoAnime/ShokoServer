@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel;
-using Newtonsoft.Json;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 

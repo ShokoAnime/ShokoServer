@@ -97,14 +97,14 @@ internal class AnimeGroupCreator
 
         _animeGroupUserRepo.DeleteAll(session);
         _animeGroupRepo.DeleteAll(session, tempGroupId);
-        lock (BaseRepository.GlobalDBLock)
+        BaseRepository.Lock(() =>
         {
             session.CreateSQLQuery(@"
                 UPDATE AnimeSeries SET AnimeGroupID = :tempGroupId;
                 UPDATE GroupFilter SET GroupsIdsString = '{}';")
                 .SetInt32("tempGroupId", tempGroupId)
                 .ExecuteUpdate();
-        }
+        });
 
         // We've deleted/modified all AnimeSeries/GroupFilter records, so update caches to reflect that
         _animeSeriesRepo.ClearCache();
@@ -164,7 +164,7 @@ internal class AnimeGroupCreator
             localSession => { localSession.Dispose(); });
 
         using var session = DatabaseFactory.SessionFactory.OpenSession().Wrap();
-        _animeGroupRepo.UpdateBatch(session, groups);
+        BaseRepository.Lock(session, groups, (s, g) => _animeGroupRepo.UpdateBatch(s, g));
         _log.Info("AnimeGroup statistics and contracts have been updated");
 
         ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo
@@ -177,7 +177,7 @@ internal class AnimeGroupCreator
             .ToList();
 
         // Insert the AnimeGroup_Users so that they get assigned a primary key before we update plex/kodi contracts
-        _animeGroupUserRepo.InsertBatch(session, animeGroupUsers);
+        BaseRepository.Lock(session, animeGroupUsers, (s, u) => _animeGroupUserRepo.InsertBatch(s, u));
         // We need to repopulate caches for AnimeGroup_User and AnimeGroup because we've updated/inserted them
         // and they need to be up to date for the plex/kodi contract updating to work correctly
         _animeGroupUserRepo.Populate(session, false);
@@ -190,7 +190,7 @@ internal class AnimeGroupCreator
             groupUser.UpdatePlexKodiContracts();
         }
 
-        _animeGroupUserRepo.UpdateBatch(session, animeGroupUsers);
+        BaseRepository.Lock(session, animeGroupUsers, (s, u) => _animeGroupUserRepo.UpdateBatch(s, u));
         _log.Info("AnimeGroup_Users have been created");
     }
 
@@ -211,8 +211,7 @@ internal class AnimeGroupCreator
         ServerState.Instance.DatabaseBlocked =
             new ServerState.DatabaseBlockedInfo { Blocked = true, Status = "Calculating Non-Tag Filters" };
         IEnumerable<SVR_GroupFilter> grpFilters = _groupFilterRepo.GetAll(session).Where(a =>
-            a.FilterType != (int)GroupFilterType.Tag &&
-            ((GroupFilterType)a.FilterType & GroupFilterType.Directory) == 0).ToList();
+            a.FilterType != (int)GroupFilterType.Tag && !a.IsDirectory).ToList();
 
         // The main reason for doing this in parallel is because UpdateEntityReferenceStrings does JSON encoding
         // and is enough work that it can benefit from running in parallel
@@ -224,12 +223,12 @@ internal class AnimeGroupCreator
                 filter.UpdateEntityReferenceStrings();
             });
 
-        lock (BaseRepository.GlobalDBLock)
+        BaseRepository.Lock(() =>
         {
             using var trans = session.BeginTransaction();
             _groupFilterRepo.BatchUpdate(session, grpFilters);
             trans.Commit();
-        }
+        });
 
         _log.Info("Group Filters updated");
     }
@@ -261,10 +260,7 @@ internal class AnimeGroupCreator
             newGroupsToSeries[grp] = new Tuple<SVR_AnimeGroup, SVR_AnimeSeries>(group, series);
         }
 
-        lock (BaseRepository.GlobalDBLock)
-        {
-            _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
-        }
+        BaseRepository.Lock(() => _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection()));
 
         // Anime groups should have IDs now they've been inserted. Now assign the group ID's to their respective series
         // (The caller of this method will be responsible for saving the AnimeSeries)
@@ -317,11 +313,7 @@ internal class AnimeGroupCreator
                     groupAndSeries.AsReadOnlyCollection()));
         }
 
-        lock (BaseRepository.GlobalDBLock)
-        {
-            _animeGroupRepo.InsertBatch(session,
-                newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
-        }
+        BaseRepository.Lock(() => _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection()));
 
         // Anime groups should have IDs now they've been inserted. Now assign the group ID's to their respective series
         // (The caller of this method will be responsible for saving the AnimeSeries)
@@ -404,21 +396,33 @@ internal class AnimeGroupCreator
                 .FirstOrDefault(s => s != null);
 
             var mainAnimeId = grpCalculator.GetGroupAnimeId(series.AniDB_ID);
+            // No existing group was found, so create a new one.
             if (animeGroup == null)
             {
-                // No existing group was found, so create a new one
-                var mainSeries = _animeSeriesRepo.GetByAnimeID(mainAnimeId);
-
+                // Find the main series for the group.
+                var mainSeries = series.AniDB_ID == mainAnimeId ?
+                    series :
+                    _animeSeriesRepo.GetByAnimeID(mainAnimeId);
                 animeGroup = CreateAnimeGroup(mainSeries, mainAnimeId, DateTime.Now);
                 RepoFactory.AnimeGroup.Save(animeGroup, true, true);
             }
-            // Update the auto-refreshed details if the main series changed.
-            else if (!animeGroup.DefaultAnimeSeriesID.HasValue && animeGroup.IsManuallyNamed == 0 &&
-                     mainAnimeId == series.AniDB_ID)
+            // Update the group details if we have the main series for the group.
+            else if (mainAnimeId == series.AniDB_ID)
             {
-                animeGroup.GroupName = animeGroup.SortName = series.GetSeriesName();
-                animeGroup.Description = series.GetAnime().Description;
+                // Always update the automatic main id.
                 animeGroup.MainAniDBAnimeID = mainAnimeId;
+                // Update the auto-refreshed details if the main series changed
+                // and no default series is set.
+                if (!animeGroup.DefaultAnimeSeriesID.HasValue)
+                {
+                    // Override the group name if the group is not manually named.
+                    if (animeGroup.IsManuallyNamed == 0)
+                        animeGroup.GroupName = animeGroup.SortName = series.GetSeriesName();
+                    // Override the group desc. if the group doesn't have an override.
+                    if (animeGroup.OverrideDescription == 0)
+                        animeGroup.Description = series.GetAnime().Description;
+                }
+                animeGroup.DateTimeUpdated = DateTime.Now;
                 RepoFactory.AnimeGroup.Save(animeGroup, true, true);
             }
         }
@@ -463,13 +467,13 @@ internal class AnimeGroupCreator
             IReadOnlyCollection<SVR_AnimeGroup> createdGroups = null;
             SVR_AnimeGroup tempGroup = null;
 
-            lock (BaseRepository.GlobalDBLock)
+            BaseRepository.Lock(() =>
             {
                 using var trans = session.BeginTransaction();
                 tempGroup = CreateTempAnimeGroup(session);
                 ClearGroupsAndDependencies(session, tempGroup.AnimeGroupID);
                 trans.Commit();
-            }
+            });
 
             if (_autoGroupSeries)
             {
@@ -483,11 +487,13 @@ internal class AnimeGroupCreator
             }
 
             UpdateAnimeSeriesContractsAndSave(session, animeSeries);
-            using (var trans = session.BeginTransaction())
+
+            BaseRepository.Lock(() =>
             {
-                lock (BaseRepository.GlobalDBLock) session.Delete(tempGroup); // We should no longer need the temporary group we created earlier
+                using var trans = session.BeginTransaction();
+                session.Delete(tempGroup); // We should no longer need the temporary group we created earlier
                 trans.Commit();
-            }
+            });
 
             // We need groups and series cached for updating of AnimeGroup contracts to work
             _animeGroupRepo.Populate(session, false);
@@ -549,24 +555,24 @@ internal class AnimeGroupCreator
             var series = group.GetAllSeries(true);
             // recalculate series
             _log.Info($"Recalculating Series Stats and Contracts for Group: {group.GroupName} ({group.AnimeGroupID})");
-            lock (BaseRepository.GlobalDBLock)
+            BaseRepository.Lock(() =>
             {
                 using var trans = session.BeginTransaction();
                 UpdateAnimeSeriesContractsAndSave(session, series);
                 trans.Commit();
-            }
+            });
 
             // Update Cache so that group can recalculate
             series.ForEach(a => _animeSeriesRepo.Cache.Update(a));
 
             // Recalculate group
             _log.Info($"Recalculating Group Stats and Contracts for Group: {group.GroupName} ({group.AnimeGroupID})");
-            lock (BaseRepository.GlobalDBLock)
+            BaseRepository.Lock(() =>
             {
                 using var trans = session.BeginTransaction();
                 UpdateAnimeGroupsAndTheirContracts(groups);
                 trans.Commit();
-            }
+            });
 
             // update cache
             _animeGroupRepo.Cache.Update(group);

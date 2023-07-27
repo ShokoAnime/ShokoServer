@@ -175,7 +175,7 @@ public class MovieDBHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError("Error in MovieDB Search: {Message}", ex.Message);
+            _logger.LogError(ex, "Error in MovieDB Search");
         }
 
         return results;
@@ -197,7 +197,7 @@ public class MovieDBHelper
             }
             catch (Exception e)
             {
-                _logger.LogError("Failed to Update MovieDB Movie ID: {Id} Error: {E}", movie.MovieId, e);
+                _logger.LogError(e, "Failed to Update MovieDB Movie ID: {Id}", movie.MovieId);
             }
         }
     }
@@ -218,7 +218,7 @@ public class MovieDBHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in UpdateMovieInfo: {Ex}", ex);
+            _logger.LogError(ex, "Error in UpdateMovieInfo");
         }
     }
 
@@ -272,6 +272,14 @@ public class MovieDBHelper
             return;
         }
 
+        // Disable auto-matching when we remove an existing match for the series.
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+        if (series != null)
+        {
+            series.IsTMDBAutoMatchingDisabled = true;
+            RepoFactory.AnimeSeries.Save(series, false, true, true);
+        }
+
         RepoFactory.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);
     }
 
@@ -281,34 +289,24 @@ public class MovieDBHelper
 
         foreach (var ser in allSeries)
         {
+            if (ser.IsTMDBAutoMatchingDisabled)
+                continue;
+
             var anime = ser.GetAnime();
             if (anime == null)
-            {
                 continue;
-            }
-
-            if (anime.IsMovieDBLinkDisabled())
-            {
-                continue;
-            }
 
             // don't scan if it is associated on the TvDB
             if (anime.GetCrossRefTvDB().Count > 0)
-            {
                 continue;
-            }
 
             // don't scan if it is associated on the MovieDB
             if (anime.GetCrossRefMovieDB() != null)
-            {
                 continue;
-            }
 
             // don't scan if it is not a movie
             if (!anime.GetSearchOnMovieDB())
-            {
                 continue;
-            }
 
             _logger.LogTrace("Found anime movie without MovieDB association: {MainTitle}", anime.MainTitle);
 

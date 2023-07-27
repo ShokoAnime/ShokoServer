@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -589,10 +590,12 @@ public class TagFilter<T> where T : class
 {
     private readonly Func<T, string> _nameSelector;
     private readonly Func<string, T> _lookup;
+    private readonly Func<string, T> _ctor;
 
-    public TagFilter(Func<string, T> lookup, Func<T, string> nameSelector)
+    public TagFilter(Func<string, T> lookup, Func<T, string> nameSelector, Func<string, T> ctor = null)
     {
         _nameSelector = nameSelector;
+        _ctor = ctor ?? (typeof(T) == typeof(string) ? new Func<string, T>(name => name as T) : name => (T)Activator.CreateInstance(typeof(T), name));
         _lookup = lookup;
     }
 
@@ -603,7 +606,7 @@ public class TagFilter<T> where T : class
 
     private T GetTag(string name)
     {
-        return _lookup(name) ?? (typeof(T) == typeof(string) ? name as T : (T)Activator.CreateInstance(typeof(T), name));
+        return _lookup(name) ?? _ctor(name);
     }
 
     /// <summary>
@@ -622,7 +625,7 @@ public class TagFilter<T> where T : class
 
     private void ProcessModifications(TagFilter.Filter flags, List<T> tags)
     {
-        var toRemove = new List<T>((int)Math.Ceiling(tags.Count / 2D));
+        var toRemove = new ConcurrentBag<T>();
         switch (tags.Count)
         {
             case 1:
@@ -646,7 +649,7 @@ public class TagFilter<T> where T : class
         if (addOriginal) tags.Add(GetTag("original work"));
     }
 
-    private void MarkTagsForRemoval(T sourceTag, TagFilter.Filter flags, IList<T> toRemove)
+    private void MarkTagsForRemoval(T sourceTag, TagFilter.Filter flags, ConcurrentBag<T> toRemove)
     {
         var sourceName = GetTagName(sourceTag);
         if (!TagFilter.IsTagBlackListed(sourceName, flags)) return;

@@ -66,6 +66,34 @@ public class SVR_GroupFilter : GroupFilter
         }
     }
 
+    /// <summary>
+    /// It is considered locked if it's not user defined or if the locked flag
+    /// is set.
+    /// </summary>
+    public bool IsLocked
+    {
+        get => !((GroupFilterType)FilterType).HasFlag(GroupFilterType.UserDefined) || (Locked.HasValue && Locked.Value == 1);
+        set => Locked = value ? 1 : 0;
+    }
+
+    /// <summary>
+    /// Check if the group filter can contain sub-filters.
+    /// </summary>
+    public bool IsDirectory
+    {
+        get => ((GroupFilterType)FilterType).HasFlag(GroupFilterType.Directory);
+        set => FilterType = value ? FilterType | (int)GroupFilterType.Directory : FilterType & ~(int)GroupFilterType.Directory;
+    }
+
+    /// <summary>
+    /// Indicates the group filter should be hidden unless explictly requested
+    /// for.
+    /// </summary>
+    public bool IsHidden
+    {
+        get => InvisibleInClients == 1;
+        set => InvisibleInClients = value ? 1 : 0;
+    }
 
     public virtual HashSet<GroupFilterConditionType> Types =>
         new HashSet<GroupFilterConditionType>(
@@ -577,7 +605,7 @@ public class SVR_GroupFilter : GroupFilter
             );
         }
 
-        if ((FilterType & (int)GroupFilterType.Tag) == (int)GroupFilterType.Tag)
+        if (((GroupFilterType)FilterType).HasFlag(GroupFilterType.Tag))
         {
             GroupFilterName = GroupFilterName.Replace('`', '\'');
         }
@@ -660,7 +688,7 @@ public class SVR_GroupFilter : GroupFilter
     public bool EvaluateGroupFilter(CL_AnimeGroup_User contractGroup, JMMUser curUser)
     {
         //Directories don't count
-        if ((FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
+        if (IsDirectory)
         {
             return false;
         }
@@ -1367,7 +1395,7 @@ public class SVR_GroupFilter : GroupFilter
     public bool EvaluateGroupFilter(CL_AnimeSeries_User contractSerie, JMMUser curUser)
     {
         //Directories don't count
-        if ((FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
+        if (IsDirectory)
         {
             return false;
         }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
@@ -17,32 +18,30 @@ public static class ModelHelper
 {
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable)
     {
-        var total = enumerable.Count();
+        var list = enumerable is IReadOnlyList<T> l ? l : enumerable.ToList();
         return new ListResult<T>
         {
-            Total = total,
-            List = enumerable
-                .ToList()
+            Total = list.Count,
+            List = list
         };
     }
 
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable, int page, int pageSize)
     {
-        var total = enumerable.Count();
+        var list = enumerable is IReadOnlyList<T> l ? l : enumerable.ToList();
         if (pageSize <= 0)
         {
             return new ListResult<T>
             {
-                Total = total,
-                List = enumerable
-                    .ToList()
+                Total = list.Count,
+                List = list
             };
         }
 
         return new ListResult<T>
         {
-            Total = total,
-            List = enumerable
+            Total = list.Count,
+            List = list
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
                 .ToList()
@@ -52,13 +51,13 @@ public static class ModelHelper
     public static ListResult<U> ToListResult<T, U>(this IEnumerable<T> enumerable, Func<T, U> mapper, int page,
         int pageSize)
     {
-        var total = enumerable.Count();
+        var list = enumerable is IReadOnlyList<T> l ? l : enumerable.ToList();
         if (pageSize <= 0)
         {
             return new ListResult<U>
             {
-                Total = total,
-                List = enumerable
+                Total = list.Count,
+                List = list
                     .Select(mapper)
                     .ToList()
             };
@@ -66,8 +65,8 @@ public static class ModelHelper
 
         return new ListResult<U>
         {
-            Total = total,
-            List = enumerable
+            Total = list.Count,
+            List = list
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
                 .Select(mapper)
@@ -114,22 +113,78 @@ public static class ModelHelper
             .Count();
     }
 
+    public static string ToDataURL(byte[] byteArray, string contentType, string fieldName = "ByteArrayToDataUrl", ModelStateDictionary modelState = null)
+    {
+        if (byteArray == null || string.IsNullOrEmpty(contentType))
+        {
+            modelState?.AddModelError(fieldName, $"Invalid byte array or content type for field '{fieldName}'.");
+            return null;
+        }
+
+        try
+        {
+            string base64 = Convert.ToBase64String(byteArray);
+            return $"data:{contentType};base64,{base64}";
+        }
+        catch (Exception)
+        {
+            modelState?.AddModelError(fieldName, $"Unexpected error when converting byte array to data URL for field '{fieldName}'.");
+            return null;
+        }
+    }
+
+    public static (byte[] byteArray, string contentType) FromDataURL(string dataUrl, string fieldName = "DataUrlToByteArray", ModelStateDictionary modelState = null)
+    {
+        var parts = dataUrl.Split(new[] { ":", ";", "," }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 4 || parts[0] != "data")
+        {
+            modelState?.AddModelError(fieldName, $"Invalid data URL format for field '{fieldName}'.");
+            return (null, null);
+        }
+
+        try
+        {
+            var byteArray = Convert.FromBase64String(parts[3]);
+            return (byteArray, parts[1]);
+        }
+        catch (FormatException)
+        {
+            modelState?.AddModelError(fieldName, $"Base64 data is not in a correct format for field '{fieldName}'.");
+            return (null, null);
+        }
+        catch (Exception)
+        {
+            modelState?.AddModelError(fieldName, $"Unexpected error when converting data URL to byte array for field '{fieldName}'.");
+            return (null, null);
+        }
+    }
+
     public static SeriesSizes GenerateSeriesSizes(List<SVR_AnimeEpisode> episodeList, int userID)
     {
         var sizes = new SeriesSizes();
+        var fileSet = new HashSet<int>();
         foreach (var episode in episodeList)
         {
-            var anidbEpisode = episode?.AniDB_Episode;
+            var anidbEpisode = episode.AniDB_Episode;
             var fileList = episode.GetVideoLocals();
             var isLocal = fileList.Count > 0;
             var isWatched = (episode.GetUserRecord(userID)?.WatchedCount ?? 0) > 0;
             foreach (var file in fileList)
             {
+                // Only iterate the same file once.
+                if (!fileSet.Add(file.VideoLocalID))
+                    continue;
+
                 var anidbFile = file.GetAniDBFile();
                 if (anidbFile == null)
                 {
                     sizes.FileSources.Unknown++;
                     continue;
+                }
+
+                if (episode.IsHidden)
+                {
+                    sizes.Hidden++;
                 }
 
                 switch (File.ParseFileSource(anidbFile.File_Source))
@@ -191,6 +246,10 @@ public static class ModelHelper
                     {
                         sizes.Local.Episodes++;
                     }
+                    else if (!episode.IsHidden)
+                    {
+                        sizes.Missing++;
+                    }
 
                     if (isWatched)
                     {
@@ -216,6 +275,10 @@ public static class ModelHelper
                     if (isLocal)
                     {
                         sizes.Local.Specials++;
+                    }
+                    else if (!episode.IsHidden)
+                    {
+                        sizes.Missing++;
                     }
 
                     if (isWatched)

@@ -22,7 +22,7 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
 {
     public string Name { get; } = "SQLite";
 
-    public int RequiredVersion { get; } = 93;
+    public int RequiredVersion { get; } = 102;
 
 
     public void BackupDatabase(string fullfilename)
@@ -31,7 +31,21 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
         File.Copy(GetDatabaseFilePath(), fullfilename);
     }
 
-    private static string DatabasePath => Utils.SettingsProvider.GetSettings().Database.MySqliteDirectory;
+    private static string _databasePath = null;
+    private static string DatabasePath
+    {
+        get
+        {
+            if (_databasePath != null)
+                return _databasePath;
+
+            var dirPath =  Utils.SettingsProvider.GetSettings().Database.MySqliteDirectory;
+            if (string.IsNullOrWhiteSpace(dirPath))
+                return _databasePath = Utils.ApplicationPath;
+
+            return _databasePath = Path.Combine(Utils.ApplicationPath, dirPath);
+        }
+    }
 
     private static string GetDatabaseFilePath()
     {
@@ -630,6 +644,30 @@ public class SQLite : BaseDatabase<SqliteConnection>, IDatabase
         new(93, 8, "ALTER TABLE AniDB_Anime_Tag ADD LocalSpoiler integer NOT NULL DEFAULT 0;"),
         new(93, 9, "ALTER TABLE AniDB_Anime_Tag DROP COLUMN Approval;"),
         new(93, 10, DatabaseFixes.FixTagParentIDsAndNameOverrides),
+        new(94, 1, "ALTER TABLE AnimeEpisode ADD IsHidden integer NOT NULL DEFAULT 0;"),
+        new(94, 2, "ALTER TABLE AnimeSeries_User ADD HiddenUnwatchedEpisodeCount integer NOT NULL DEFAULT 0;"),
+        new(95, 1, "UPDATE VideoLocal SET DateTimeImported = DateTimeCreated WHERE EXISTS(SELECT Hash FROM CrossRef_File_Episode xref WHERE xref.Hash = VideoLocal.Hash)"),
+        new(96, 1, "CREATE TABLE AniDB_FileUpdate ( AniDB_FileUpdateID INTEGER PRIMARY KEY AUTOINCREMENT, FileSize INTEGER NOT NULL, Hash TEXT NOT NULL, HasResponse INTEGER NOT NULL, UpdatedAt timestamp NOT NULL )"),
+        new(96, 2, "CREATE INDEX IX_AniDB_FileUpdate ON AniDB_FileUpdate(FileSize, Hash)"),
+        new(96, 3, DatabaseFixes.MigrateAniDB_FileUpdates),
+        new(97, 1, "ALTER TABLE AniDB_Anime DROP COLUMN DisableExternalLinksFlag;"),
+        new(97, 2, "ALTER TABLE AnimeSeries ADD DisableAutoMatchFlags integer NOT NULL DEFAULT 0;"),
+        new(97, 3, "ALTER TABLE AniDB_Anime ADD VNDBID INT NULL"),
+        new(97, 4, "ALTER TABLE AniDB_Anime ADD BangumiID INT NULL"),
+        new(97, 5, "ALTER TABLE AniDB_Anime ADD LianID INT NULL"),
+        new(97, 6, "ALTER TABLE AniDB_Anime ADD FunimationID TEXT NULL"),
+        new(97, 7, "ALTER TABLE AniDB_Anime ADD HiDiveID TEXT NULL"),
+        new(98, 1, "ALTER TABLE AniDB_Anime DROP COLUMN LianID;"),
+        new(98, 2, "ALTER TABLE AniDB_Anime DROP COLUMN AnimePlanetID;"),
+        new(98, 3, "ALTER TABLE AniDB_Anime DROP COLUMN AnimeNfo;"),
+        new(98, 4, "ALTER TABLE AniDB_Anime ADD LainID INT NULL"),
+        new(99, 1, DatabaseFixes.FixEpisodeDateTimeUpdated),
+        new(100, 1, "ALTER TABLE AnimeSeries ADD HiddenMissingEpisodeCount integer NOT NULL DEFAULT 0;"),
+        new(100, 2, "ALTER TABLE AnimeSeries ADD HiddenMissingEpisodeCountGroups integer NOT NULL DEFAULT 0;"),
+        new(100, 3, DatabaseFixes.UpdateSeriesWithHiddenEpisodes),
+        new(101, 1, "UPDATE AniDB_Anime SET AirDate = NULL, BeginYear = 0 WHERE AirDate = '1970-01-01 00:00:00';"),
+        new(102, 1, "ALTER TABLE JMMUser ADD AvatarImageBlob BLOB NULL;"),
+        new(102, 2, "ALTER TABLE JMMUser ADD AvatarImageMetadata VARCHAR(128) NULL;"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

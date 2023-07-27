@@ -35,6 +35,11 @@ public class File
     public long Size { get; set; }
 
     /// <summary>
+    /// If this file is marked as a file variation.
+    /// </summary>
+    public bool IsVariation { get; set; }
+
+    /// <summary>
     /// The calculated hashes of the file
     /// </summary>
     /// <returns></returns>
@@ -61,7 +66,16 @@ public class File
     public TimeSpan? ResumePosition { get; set; }
 
     /// <summary>
-    /// The last watched date for the current user. Is null if unwatched
+    /// The last time the current user viewed the file. Will be null if the user
+    /// have not viewed the file yet.
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime? Viewed { get; set; }
+
+    /// <summary>
+    /// The last time the current user watched the file until completion, or
+    /// otherwise marked the file was watched. Will be null if the user have not
+    /// watched the file yet.
     /// </summary>
     [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime? Watched { get; set; }
@@ -70,6 +84,7 @@ public class File
     /// When the file was last imported. Usually is a file only imported once,
     /// but there may be exceptions.
     /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime? Imported { get; set; }
 
     /// <summary>
@@ -93,24 +108,36 @@ public class File
     [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
     public AniDB _AniDB { get; set; }
 
-    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null)
+    /// <summary>
+    /// The <see cref="MediaInfo"/>, if to-be included in the response data.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public MediaInfo MediaInfo { get; set; }
+
+    public File(HttpContext context, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
+        this(file.GetUserRecord(context?.GetUser()?.JMMUserID ?? 0), file, withXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths) {}
+
+    public File(SVR_VideoLocal_User userRecord, SVR_VideoLocal file, bool withXRefs = false, HashSet<DataSource> includeDataFrom = null, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
     {
-        var userID = context?.GetUser()?.JMMUserID ?? 0;
-        var userRecord = file.GetUserRecord(userID);
         ID = file.VideoLocalID;
         Size = file.FileSize;
+        IsVariation = file.IsVariation;
         Hashes = new Hashes { ED2K = file.Hash, MD5 = file.MD5, CRC32 = file.CRC32, SHA1 = file.SHA1 };
         Resolution = FileQualityFilter.GetResolution(file);
         Locations = file.Places.Select(a => new Location
         {
-            ImportFolderID = a.ImportFolderID, RelativePath = a.FilePath, IsAccessible = a.GetFile() != null
+            ImportFolderID = a.ImportFolderID,
+            RelativePath = a.FilePath,
+            AbsolutePath = includeAbsolutePaths ? a.FullServerPath : null,
+            IsAccessible = a.GetFile() != null,
         }).ToList();
         Duration = file.DurationTimeSpan;
         ResumePosition = userRecord?.ResumePositionTimeSpan;
-        Watched = userRecord?.WatchedDate;
-        Imported = file.DateTimeImported;
-        Created = file.DateTimeCreated;
-        Updated = file.DateTimeUpdated;
+        Viewed = userRecord?.LastUpdated.ToUniversalTime();
+        Watched = userRecord?.WatchedDate?.ToUniversalTime();
+        Imported = file.DateTimeImported?.ToUniversalTime();
+        Created = file.DateTimeCreated.ToUniversalTime();
+        Updated = file.DateTimeUpdated.ToUniversalTime();
         if (withXRefs)
         {
             var episodes = file.GetAnimeEpisodes();
@@ -153,6 +180,14 @@ public class File
             if (anidbFile != null)
                 this._AniDB = new File.AniDB(anidbFile);
         }
+
+        if (includeMediaInfo)
+        {
+            var mediaContainer = file?.Media;
+            if (mediaContainer == null)
+                throw new Exception("Unable to find media container for File");
+            MediaInfo = new MediaInfo(file, mediaContainer);
+        }
     }
 
     public class Location
@@ -166,6 +201,12 @@ public class File
         /// The relative path from the import folder's path on the server. The Filename can be easily extracted from this. Using the ImportFolder, you can get the full server path of the file or map it if the client has remote access to the filesystem. 
         /// </summary>
         public string RelativePath { get; set; }
+
+        /// <summary>
+        /// The absolute path for the file on the server.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string AbsolutePath { get; set; }
 
         /// <summary>
         /// Can the server access the file right now
@@ -197,7 +238,7 @@ public class File
             OriginalFileName = anidb.FileName;
             FileSize = anidb.FileSize;
             Description = anidb.File_Description;
-            Updated = anidb.DateTimeUpdated;
+            Updated = anidb.DateTimeUpdated.ToUniversalTime();
             AudioLanguages = anidb.Languages.Select(a => a.LanguageName).ToList();
             SubLanguages = anidb.Subtitles.Select(a => a.LanguageName).ToList();
         }
@@ -339,15 +380,15 @@ public class File
             ResumePosition = TimeSpan.Zero;
             WatchedCount = 0;
             LastWatchedAt = null;
-            LastUpdatedAt = DateTime.Now;
+            LastUpdatedAt = DateTime.UtcNow;
         }
 
         public FileUserStats(SVR_VideoLocal_User userStats)
         {
             ResumePosition = userStats.ResumePositionTimeSpan;
             WatchedCount = userStats.WatchedCount;
-            LastWatchedAt = userStats.WatchedDate;
-            LastUpdatedAt = userStats.LastUpdated;
+            LastWatchedAt = userStats.WatchedDate?.ToUniversalTime();
+            LastUpdatedAt = userStats.LastUpdated.ToUniversalTime();
         }
 
         public FileUserStats MergeWithExisting(SVR_VideoLocal_User existing, SVR_VideoLocal file = null)
@@ -358,12 +399,8 @@ public class File
                 file = existing.GetVideoLocal();
             }
 
-            // Update the last updated field. It's needed for calculating the correct series user stats after setting the watch state.
-            existing.LastUpdated = LastUpdatedAt;
-            RepoFactory.VideoLocalUser.Save(existing);
-
             // Sync the watch date and aggregate the data up to the episode if needed.
-            file.ToggleWatchedStatus(LastWatchedAt.HasValue, true, LastWatchedAt, true, existing.JMMUserID, true, true);
+            file.ToggleWatchedStatus(LastWatchedAt.HasValue, true, LastWatchedAt?.ToLocalTime(), true, existing.JMMUserID, true, true, LastUpdatedAt.ToLocalTime());
 
             // Update the rest of the data. The watch count have been bumped when toggling the watch state, so set it to it's intended value.
             existing.WatchedCount = WatchedCount;
@@ -413,7 +450,7 @@ public class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] episodeIDs { get; set; }
+            public int[] EpisodeIDs { get; set; }
         }
 
         /// <summary>
@@ -426,14 +463,14 @@ public class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] fileIDs { get; set; }
+            public int[] FileIDs { get; set; }
 
             /// <summary>
             /// The episode identifier.
             /// </summary>
             /// <value></value>
             [Required]
-            public int episodeID { get; set; }
+            public int EpisodeID { get; set; }
         }
 
         /// <summary>
@@ -446,21 +483,21 @@ public class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int seriesID { get; set; }
+            public int SeriesID { get; set; }
 
             /// <summary>
             /// The start of the range of episodes to link to the file. Append a type prefix to use another episode type.
             /// </summary>
             /// <value></value>
             [Required]
-            public string rangeStart { get; set; }
+            public string RangeStart { get; set; }
 
             /// <summary>
-            /// The end of the range of episodes to link to the file. The prefix used should be the same as in <see cref="rangeStart"/>.
+            /// The end of the range of episodes to link to the file. The prefix used should be the same as in <see cref="RangeStart"/>.
             /// </summary>
             /// <value></value>
             [Required]
-            public string rangeEnd { get; set; }
+            public string RangeEnd { get; set; }
         }
 
         /// <summary>
@@ -473,28 +510,28 @@ public class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] fileIDs { get; set; }
+            public int[] FileIDs { get; set; }
 
             /// <summary>
             /// The series identifier.
             /// </summary>
             /// <value></value>
             [Required]
-            public int seriesID { get; set; }
+            public int SeriesID { get; set; }
 
             /// <summary>
             /// The start of the range of episodes to link to the file. Append a type prefix to use another episode type.
             /// </summary>
             /// <value></value>
             [Required]
-            public string rangeStart { get; set; }
+            public string RangeStart { get; set; }
 
             /// <summary>
             /// If true then files will be linked to a single episode instead of a range spanning the amount of files to add.
             /// </summary>
             /// <value></value>
             [DefaultValue(false)]
-            public bool singleEpisode { get; set; }
+            public bool SingleEpisode { get; set; }
         }
 
         /// <summary>
@@ -507,7 +544,7 @@ public class File
             /// </summary>
             /// <value></value>
             [Required]
-            public int[] episodeIDs { get; set; }
+            public int[] EpisodeIDs { get; set; }
         }
 
         /// <summary>
@@ -522,6 +559,88 @@ public class File
             [Required]
             public int[] fileIDs { get; set; }
         }
+    }
+
+    public enum FileSortCriteria
+    {
+        None = 0,
+        ImportFolderName = 1,
+        ImportFolderID = 2,
+        AbsolutePath = 3,
+        RelativePath = 4,
+        FileSize = 5,
+        DuplicateCount = 6,
+        CreatedAt = 7,
+        ImportedAt = 8,
+        ViewedAt = 9,
+        WatchedAt = 10,
+        ED2K = 11,
+        MD5 = 12,
+        SHA1 = 13,
+        CRC32 = 14,
+        FileName = 15,
+        FileID = 16,
+    }
+
+    private static Func<(SVR_VideoLocal Video, SVR_VideoLocal_Place Location, List<SVR_VideoLocal_Place> Locations, SVR_VideoLocal_User UserRecord), object> GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
+        criteria switch
+        {
+            FileSortCriteria.ImportFolderName => (tuple) => tuple.Location?.ImportFolder?.ImportFolderName ?? string.Empty,
+            FileSortCriteria.ImportFolderID => (tuple) => tuple.Location?.ImportFolderID,
+            FileSortCriteria.AbsolutePath => (tuple) => tuple.Location?.FullServerPath,
+            FileSortCriteria.RelativePath => (tuple) => tuple.Location?.FilePath,
+            FileSortCriteria.FileSize => (tuple) => tuple.Video.FileSize,
+            FileSortCriteria.FileName => (tuple) => tuple.Location?.FileName,
+            FileSortCriteria.FileID => (tuple) => tuple.Video.VideoLocalID,
+            FileSortCriteria.DuplicateCount => (tuple) => tuple.Locations.Count,
+            FileSortCriteria.CreatedAt => (tuple) => tuple.Video.DateTimeCreated,
+            FileSortCriteria.ImportedAt => isInverted ? (tuple) => tuple.Video.DateTimeImported ?? DateTime.MinValue : (tuple) => tuple.Video.DateTimeImported ?? DateTime.MaxValue,
+            FileSortCriteria.ViewedAt => isInverted ? (tuple) => tuple.UserRecord?.LastUpdated ?? DateTime.MinValue : (tuple) => tuple.UserRecord?.LastUpdated ?? DateTime.MaxValue,
+            FileSortCriteria.WatchedAt => isInverted ? (tuple) => tuple.UserRecord?.WatchedDate ?? DateTime.MinValue : (tuple) => tuple.UserRecord?.WatchedDate ?? DateTime.MaxValue,
+            FileSortCriteria.ED2K => (tuple) => tuple.Video.Hash,
+            FileSortCriteria.MD5 => (tuple) => tuple.Video.MD5,
+            FileSortCriteria.SHA1 => (tuple) => tuple.Video.SHA1,
+            FileSortCriteria.CRC32 => (tuple) => tuple.Video.CRC32,
+            _ => null,
+        };
+
+    public static IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, List<SVR_VideoLocal_Place>, SVR_VideoLocal_User)> OrderBy(IEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, List<SVR_VideoLocal_Place>, SVR_VideoLocal_User)> enumerable, List<string> sortCriterias)
+    {
+        bool first = true;
+        return sortCriterias.Aggregate(enumerable, (current, rawSortCriteria) =>
+        {
+            // Any unrecognised criterias are ignored.
+            var (sortCriteria, isInverted) = ParseSortCriteria(rawSortCriteria);
+            var orderFunc = GetOrderFunction(sortCriteria, isInverted);
+            if (orderFunc == null)
+                return current;
+
+            // First criteria in the list.
+            if (first)
+            {
+                first = false;
+                return isInverted ? enumerable.OrderByDescending(orderFunc) : enumerable.OrderBy(orderFunc);
+            }
+
+            // All other criterias in the list.
+            var ordered = current as IOrderedEnumerable<(SVR_VideoLocal, SVR_VideoLocal_Place, List<SVR_VideoLocal_Place>, SVR_VideoLocal_User)>;
+            return isInverted ? ordered.ThenByDescending(orderFunc) : ordered.ThenBy(orderFunc);
+        });
+    }
+
+    private static (FileSortCriteria criteria, bool isInverted) ParseSortCriteria(string input)
+    {
+        var isInverted = false;
+        if (input[0] == '-')
+        {
+            isInverted = true;
+            input = input[1..];
+        }
+
+        if (!Enum.TryParse<FileSortCriteria>(input, ignoreCase: true, out var sortCriteria))
+            sortCriteria = FileSortCriteria.None;
+
+        return (sortCriteria, isInverted);
     }
 
     public static FileSource ParseFileSource(string source)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
@@ -38,57 +38,44 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_GetUpdated");
 
-        try
+        // check the automated update table to see when the last time we ran this command
+        var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
+        if (sched != null)
         {
-            // check the automated update table to see when the last time we ran this command
-            var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
-            if (sched != null)
-            {
-                var settings = _settingsProvider.GetSettings();
-                var freqHours = Utils.GetScheduledHours(settings.AniDb.Anime_UpdateFrequency);
+            var settings = _settingsProvider.GetSettings();
+            var freqHours = Utils.GetScheduledHours(settings.AniDb.Anime_UpdateFrequency);
 
-                // if we have run this in the last 12 hours and are not forcing it, then exit
-                var tsLastRun = DateTime.Now - sched.LastUpdate;
-                if (tsLastRun.TotalHours < freqHours)
-                {
-                    if (!ForceRefresh)
-                    {
-                        return;
-                    }
-                }
-            }
-
-            DateTime webUpdateTime;
-            if (sched == null)
-            {
-                // if this is the first time, lets ask for last 3 days
-                webUpdateTime = DateTime.UtcNow.AddDays(-3);
-
-                sched = new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBUpdates };
-            }
-            else
-            {
-                Logger.LogTrace("Last AniDB info update was : {UpdateDetails}", sched.UpdateDetails);
-                webUpdateTime = DateTime.UnixEpoch.AddSeconds(long.Parse(sched.UpdateDetails));
-
-                Logger.LogInformation("{UpdateTime} since last UPDATED command", DateTime.UtcNow - webUpdateTime);
-            }
-
-            var (response, countAnime, countSeries) = Update(webUpdateTime, _requestFactory, sched, 0, 0);
-
-            while (response?.Response?.Count > 200)
-            {
-                (response, countAnime, countSeries) = Update(response.Response.LastUpdated, _requestFactory, sched,
-                    countAnime, countSeries);
-            }
-
-            Logger.LogInformation("Updating {Count} anime records, and {CountSeries} group status records", countAnime,
-                countSeries);
+            // if we have run this in the last 12 hours and are not forcing it, then exit
+            var tsLastRun = DateTime.Now - sched.LastUpdate;
+            if (tsLastRun.TotalHours < freqHours && !ForceRefresh) return;
         }
-        catch (Exception ex)
+
+        DateTime webUpdateTime;
+        if (sched == null)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_GetUpdated: {Ex}", ex);
+            // if this is the first time, lets ask for last 3 days
+            webUpdateTime = DateTime.UtcNow.AddDays(-3);
+
+            sched = new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBUpdates };
         }
+        else
+        {
+            Logger.LogTrace("Last AniDB info update was : {UpdateDetails}", sched.UpdateDetails);
+            webUpdateTime = DateTime.UnixEpoch.AddSeconds(long.Parse(sched.UpdateDetails));
+
+            Logger.LogInformation("{UpdateTime} since last UPDATED command", DateTime.UtcNow - webUpdateTime);
+        }
+
+        var (response, countAnime, countSeries) = Update(webUpdateTime, _requestFactory, sched, 0, 0);
+
+        while (response?.Response?.Count > 200)
+        {
+            (response, countAnime, countSeries) = Update(response.Response.LastUpdated, _requestFactory, sched,
+                countAnime, countSeries);
+        }
+
+        Logger.LogInformation("Updating {Count} anime records, and {CountSeries} group status records", countAnime,
+            countSeries);
     }
 
     private (UDPResponse<ResponseUpdatedAnime> response, int countAnime, int countSeries) Update(DateTime webUpdateTime,
@@ -117,6 +104,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
             return (response, countAnime, countSeries);
         }
 
+        var settings = _settingsProvider.GetSettings();
         foreach (var animeID in animeIDsToUpdate)
         {
             // update the anime from HTTP
@@ -131,7 +119,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
             var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
 
             // but only if it hasn't been recently updated
-            var ts = DateTime.Now - update.UpdatedAt;
+            var ts = DateTime.Now - (update?.UpdatedAt ?? DateTime.UnixEpoch);
             if (ts.TotalHours > 4)
             {
                 var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
@@ -139,6 +127,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
                     {
                         c.AnimeID = animeID;
                         c.ForceRefresh = true;
+                        c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
                     }
                 );
                 cmdAnime.Save();
@@ -149,10 +138,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
             // this will allow us to determine which anime has missing episodes
             // so we only get by an anime where we also have an associated series
             var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-            if (ser == null)
-            {
-                continue;
-            }
+            if (ser == null) continue;
 
             var cmdStatus = _commandFactory.Create<CommandRequest_GetReleaseGroupStatus>(c =>
             {

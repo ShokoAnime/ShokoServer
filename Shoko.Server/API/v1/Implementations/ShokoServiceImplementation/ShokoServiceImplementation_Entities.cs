@@ -81,7 +81,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return null;
             }
 
-            var episode = series.GetNextEpisode(userID, true);
+            var episode = series.GetNextEpisode(userID);
             if (episode == null)
             {
                 return null;
@@ -105,6 +105,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             return
                 RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID)
+                    .Where(a => a != null && !a.IsHidden)
                     .Select(a => a.GetUserContract(userID))
                     .Where(a => a != null)
                     .Where(a => a.WatchedCount == 0)
@@ -663,7 +664,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not find video record";
             }
 
-            vid.IsIgnored = isIgnored ? 1 : 0;
+            vid.IsIgnored = isIgnored;
             RepoFactory.VideoLocal.Save(vid, false);
             return string.Empty;
         }
@@ -685,7 +686,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not find video record";
             }
 
-            vid.IsVariation = isVariation ? 1 : 0;
+            vid.IsVariation = isVariation;
             RepoFactory.VideoLocal.Save(vid, false);
             return string.Empty;
         }
@@ -922,7 +923,15 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("AniDB/Refresh/{missingInfo}/{outOfDate}/{countOnly}")]
     public int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly)
     {
-        return Importer.UpdateAniDBFileData(missingInfo, outOfDate, countOnly);
+        try
+        {
+            return Importer.UpdateAniDBFileData(missingInfo, outOfDate, countOnly);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, ex.ToString());
+            return 0;
+        }
     }
 
     [HttpPost("File/Refresh/{videoLocalID}")]
@@ -998,7 +1007,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var pl = vl.GetBestVideoLocalPlace(true);
             if (pl == null)
             {
-                logger.Error("Unable to hash videolocal with id = {videoLocalID}, it has no assigned place");
+                logger.Error("Unable to hash videolocal with id = {videoLocalID}, it has no assigned place", videoLocalID);
                 return;
             }
 
@@ -1257,6 +1266,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             return
                 RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID)
+                    .Where(a => a != null && !a.IsHidden)
                     .Select(a => a.GetUserContract(userID))
                     .Where(a => a != null)
                     .ToList();
@@ -2487,21 +2497,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("AniDB/Anime/ExternalLinksFlag/{animeID}/{flags}")]
     public void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags)
     {
-        try
-        {
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-            if (anime == null)
-            {
-                return;
-            }
-
-            anime.DisableExternalLinksFlag = flags;
-            RepoFactory.AniDB_Anime.Save(anime);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-        }
+        logger.Trace("UpdateAnimeDisableExternalLinksFlag is deprecated.");
     }
 
     [HttpPost("Group/DefaultSeries/{animeGroupID}/{animeSeriesID}")]
@@ -2521,8 +2517,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return;
             }
 
-            grp.DefaultAnimeSeriesID = animeSeriesID;
-            RepoFactory.AnimeGroup.Save(grp, false, false);
+            grp.SetMainSeries(ser);
         }
         catch (Exception ex)
         {
@@ -2541,8 +2536,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return;
             }
 
-            grp.DefaultAnimeSeriesID = null;
-            RepoFactory.AnimeGroup.Save(grp, false, false);
+            grp.SetMainSeries(null);
         }
         catch (Exception ex)
         {

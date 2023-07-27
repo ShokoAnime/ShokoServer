@@ -110,7 +110,7 @@ public class Startup
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "An error occurred starting the server: {Ex}", e);
+            _logger.LogError(e, "An error occurred starting the server");
         }
 
         var settings = _settingsProvider?.GetSettings();
@@ -130,8 +130,7 @@ public class Startup
         }
         catch (Exception e)
         {
-            Utils.ShowErrorMessage("Unable to start hosting. Check the logs");
-            _logger.LogError(e, "Error was: {Ex}", e);
+            Utils.ShowErrorMessage(e, "Unable to start hosting. Check the logs");
             StopHost();
             ShokoEventHandler.Instance.OnShutdown();
         }

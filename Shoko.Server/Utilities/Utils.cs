@@ -13,6 +13,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using NLog.Config;
+using NLog.Filters;
 using NLog.Targets;
 using NLog.Targets.Wrappers;
 using Shoko.Models.Enums;
@@ -34,17 +35,23 @@ public static class Utils
     {
         get => s_aniDBTitleHelper ??= new AniDBTitleHelper(ServiceContainer.GetRequiredService<ISettingsProvider>());
     }
+    private static string _applicationPath { get; set; } = null;
     public static string ApplicationPath
     {
         get
         {
-            if (IsLinux)
-            {
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".shoko",
-                    DefaultInstance);
-            }
+            if (_applicationPath != null)
+                return _applicationPath;
 
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            var shokoHome = Environment.GetEnvironmentVariable("SHOKO_HOME");
+            if (!string.IsNullOrWhiteSpace(shokoHome))
+                return _applicationPath = Path.GetFullPath(shokoHome);
+
+            if (IsLinux)
+                return _applicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".shoko",
+                    DefaultInstance);
+
+            return _applicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 DefaultInstance);
         }
     }
@@ -93,14 +100,27 @@ public static class Utils
 
         var signalrTarget =
             new AsyncTargetWrapper(
-                new SignalRTarget { Name = "signalr", MaxLogsCount = 1000, Layout = "${message}" }, 50,
+                new SignalRTarget { Name = "signalr", MaxLogsCount = 5000, Layout = "${message}${onexception:\\: ${exception:format=tostring}}" }, 50,
                 AsyncTargetWrapperOverflowAction.Discard);
         LogManager.Configuration.AddTarget("signalr", signalrTarget);
-        LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Info, signalrTarget));
+        LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Trace, signalrTarget));
         var consoleTarget = (ColoredConsoleTarget)LogManager.Configuration.FindTargetByName("console");
         if (consoleTarget != null)
         {
-            consoleTarget.Layout = "${date:format=HH\\:mm\\:ss}| ${logger:shortname=true} --- ${message}";
+            consoleTarget.Layout = "${date:format=HH\\:mm\\:ss}| ${logger:shortname=true} --- ${message}${onexception:\\: ${exception:format=tostring}}";
+        }
+
+        foreach (var loggingRule in LogManager.Configuration.LoggingRules)
+        {
+            if (loggingRule.Targets.Contains(target) || loggingRule.Targets.Contains(consoleTarget) || loggingRule.Targets.Contains(signalrTarget))
+            {
+                loggingRule.FilterDefaultAction = FilterResult.Log;
+                loggingRule.Filters.Add(new ConditionBasedFilter()
+                {
+                    Action = FilterResult.Ignore,
+                    Condition = "(contains(message, 'password') or contains(message, 'token') or contains(message, 'key')) and starts-with(message, 'Settings.')"
+                });
+            }
         }
 
         LogManager.ReconfigExistingLoggers();
@@ -489,11 +509,11 @@ public static class Utils
         return !args.Cancel;
     }
 
-    public static void ShowErrorMessage(Exception ex)
+    public static void ShowErrorMessage(Exception ex, string message = null)
     {
         //MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = ex.Message });
-        logger.Error(ex, ex.ToString());
+        ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = message ?? ex.Message });
+        logger.Error(ex, message);
     }
 
     public static void ShowErrorMessage(string msg)
@@ -517,33 +537,25 @@ public static class Utils
         logger.Error(msg);
     }
 
-    public static string GetApplicationVersion(Assembly a)
+    public static string GetApplicationVersion(Assembly a = null)
     {
+        a ??= Assembly.GetExecutingAssembly();
         return a.GetName().Version.ToString();
     }
 
-    public static string GetApplicationExtraVersion(Assembly a)
+    public static Dictionary<string, string> GetApplicationExtraVersion()
     {
-        var version =
-            (AssemblyInformationalVersionAttribute)a.GetCustomAttribute(
-                typeof(AssemblyInformationalVersionAttribute));
+        var version = Assembly.GetExecutingAssembly().GetCustomAttribute(typeof(AssemblyInformationalVersionAttribute))
+            as AssemblyInformationalVersionAttribute;
         if (version == null)
-        {
-            return string.Empty;
-        }
+            return new();
 
-        return version.InformationalVersion;
+        return version.InformationalVersion.Split(",")
+                .Select(raw => raw.Split("="))
+                .Where(pair => pair.Length == 2 && !string.IsNullOrEmpty(pair[1]))
+                .ToDictionary(pair => pair[0], pair => pair[1]);
     }
-
-    public static string GetApplicationVersion()
-    {
-        return GetApplicationVersion(Assembly.GetExecutingAssembly());
-    }
-
-    public static string GetApplicationExtraVersion()
-    {
-        return GetApplicationExtraVersion(Assembly.GetExecutingAssembly());
-    }
+    
 
     public static long GetCurrentUTCTime()
     {
@@ -802,103 +814,7 @@ public static class Utils
 
     public static string GetOSInfo()
     {
-        //Get Operating system information.
-        var os = Environment.OSVersion;
-        //Get version information about the os.
-        var vs = os.Version;
-
-        //Variable to hold our return value
-        var operatingSystem = string.Empty;
-
-        if (os.Platform == PlatformID.Win32Windows)
-        {
-            //This is a pre-NT version of Windows
-            switch (vs.Minor)
-            {
-                case 0:
-                    operatingSystem = "95";
-                    break;
-                case 10:
-                    if (vs.Revision.ToString() == "2222A")
-                    {
-                        operatingSystem = "98SE";
-                    }
-                    else
-                    {
-                        operatingSystem = "98";
-                    }
-
-                    break;
-                case 90:
-                    operatingSystem = "Me";
-                    break;
-            }
-        }
-        else if (os.Platform == PlatformID.Win32NT)
-        {
-            switch (vs.Major)
-            {
-                case 3:
-                    operatingSystem = "NT 3.51";
-                    break;
-                case 4:
-                    operatingSystem = "NT 4.0";
-                    break;
-                case 5:
-                    if (vs.Minor == 0)
-                    {
-                        operatingSystem = "2000";
-                    }
-                    else
-                    {
-                        operatingSystem = "XP";
-                    }
-
-                    break;
-                case 6:
-                    switch (vs.Minor)
-                    {
-                        case 0:
-                            operatingSystem = "Vista / 2008 Server";
-                            break;
-                        case 1:
-                            operatingSystem = "7 / 2008 Server R2";
-                            break;
-                        case 2:
-                            operatingSystem = "8 / 2012 Server";
-                            break;
-                        case 3:
-                            operatingSystem = "8.1 / 2012 Server R2";
-                            break;
-                        default:
-                            operatingSystem = "Unknown";
-                            break;
-                    }
-
-                    break;
-            }
-        }
-
-        //Make sure we actually got something in our OS check
-        //We don't want to just return " Service Pack 2" or " 32-bit"
-        //That information is useless without the OS version.
-        if (operatingSystem != string.Empty)
-        {
-            //Got something.  Let's prepend "Windows" and get more info.
-            operatingSystem = "Windows " + operatingSystem;
-            //See if there's a service pack installed.
-            if (os.ServicePack != string.Empty)
-            {
-                //Append it to the OS name.  i.e. "Windows XP Service Pack 3"
-                operatingSystem += " " + os.ServicePack;
-            }
-
-            //Append the OS architecture.  i.e. "Windows XP Service Pack 3 32-bit"
-            operatingSystem += " " + GetOSArchitecture() + "-bit";
-        }
-
-        //Return the information we've gathered.
-        return operatingSystem;
+        return RuntimeInformation.OSDescription;
     }
 
     public static string GetMd5Hash(string input)
@@ -1275,5 +1191,48 @@ public static class Utils
     public static bool IsRunningOnMono()
     {
         return Type.GetType("Mono.Runtime") != null;
+    }
+
+    /// <summary>
+    /// Determines an encoded string's encoding by analyzing its byte order mark (BOM).
+    /// Defaults to ASCII when detection of the text file's endianness fails.
+    /// </summary>
+    /// <param name="data">Byte array of the encoded string</param>
+    /// <returns>The detected encoding.</returns>
+    public static Encoding GetEncoding(byte[] data)
+    {
+        if (data.Length < 4)
+        {
+            return Encoding.ASCII;
+        }
+        // Analyze the BOM
+#pragma warning disable SYSLIB0001
+        if (data[0] == 0x2b && data[1] == 0x2f && data[2] == 0x76)
+        {
+            return Encoding.UTF7;
+        }
+
+        if (data[0] == 0xef && data[1] == 0xbb && data[2] == 0xbf)
+        {
+            return Encoding.UTF8;
+        }
+
+        if (data[0] == 0xff && data[1] == 0xfe)
+        {
+            return Encoding.Unicode; //UTF-16LE
+        }
+
+        if (data[0] == 0xfe && data[1] == 0xff)
+        {
+            return Encoding.BigEndianUnicode; //UTF-16BE
+        }
+
+        if (data[0] == 0 && data[1] == 0 && data[2] == 0xfe && data[3] == 0xff)
+        {
+            return Encoding.UTF32;
+        }
+
+        return Encoding.ASCII;
+#pragma warning restore SYSLIB0001
     }
 }

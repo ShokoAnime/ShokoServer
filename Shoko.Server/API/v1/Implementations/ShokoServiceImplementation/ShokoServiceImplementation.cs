@@ -17,6 +17,7 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models;
 using Shoko.Server.Plex;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.MovieDB;
@@ -291,23 +292,53 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
         try
         {
+            var hasherQueueState = !ShokoService.CmdProcessorHasher.Paused ? (
+                ShokoService.CmdProcessorHasher.QueueState
+            ) : (
+                new()
+                {
+                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
+                    message = "Paused",
+                    extraParams = new string[0],
+                }
+            );
             contract.HashQueueCount = ShokoService.CmdProcessorHasher.QueueCount;
-            contract.HashQueueState =
-                ShokoService.CmdProcessorHasher.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-            contract.HashQueueStateId = (int)ShokoService.CmdProcessorHasher.QueueState.queueState;
-            contract.HashQueueStateParams = ShokoService.CmdProcessorHasher.QueueState.extraParams;
+            contract.HashQueueMessage = hasherQueueState.formatMessage();
+            contract.HashQueueState = hasherQueueState.formatMessage(); // Deprecated since 3.6.0.0
+            contract.HashQueueStateId = (int)hasherQueueState.queueState;
+            contract.HashQueueStateParams = hasherQueueState.extraParams;
 
+            var generalQueueState = !ShokoService.CmdProcessorGeneral.Paused ? (
+                ShokoService.CmdProcessorGeneral.QueueState
+            ) : (
+                new()
+                {
+                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
+                    message = "Paused",
+                    extraParams = new string[0],
+                }
+            );
             contract.GeneralQueueCount = ShokoService.CmdProcessorGeneral.QueueCount;
-            contract.GeneralQueueState =
-                ShokoService.CmdProcessorGeneral.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-            contract.GeneralQueueStateId = (int)ShokoService.CmdProcessorGeneral.QueueState.queueState;
-            contract.GeneralQueueStateParams = ShokoService.CmdProcessorGeneral.QueueState.extraParams;
+            contract.GeneralQueueMessage = generalQueueState.formatMessage();
+            contract.GeneralQueueState = generalQueueState.formatMessage(); // Deprecated since 3.6.0.0
+            contract.GeneralQueueStateId = (int)generalQueueState.queueState;
+            contract.GeneralQueueStateParams = generalQueueState.extraParams;
 
+            var imagesQueueState = !ShokoService.CmdProcessorImages.Paused ? (
+                ShokoService.CmdProcessorImages.QueueState
+            ) : (
+                new()
+                {
+                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
+                    message = "Paused",
+                    extraParams = new string[0],
+                }
+            );
             contract.ImagesQueueCount = ShokoService.CmdProcessorImages.QueueCount;
-            contract.ImagesQueueState =
-                ShokoService.CmdProcessorImages.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-            contract.ImagesQueueStateId = (int)ShokoService.CmdProcessorImages.QueueState.queueState;
-            contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
+            contract.ImagesQueueMessage = imagesQueueState.formatMessage();
+            contract.ImagesQueueState = imagesQueueState.formatMessage(); // Deprecated since 3.6.0.0
+            contract.ImagesQueueStateId = (int)imagesQueueState.queueState;
+            contract.ImagesQueueStateParams = imagesQueueState.extraParams;
 
             var udp = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
             var http = HttpContext.RequestServices.GetRequiredService<IHttpConnectionHandler>();
@@ -589,12 +620,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.MovieDb.AutoPostersAmount = contractIn.MovieDB_AutoPostersAmount;
 
             // Import settings
-            settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',').ToList();
+            settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
             settings.Import.UseExistingFileWatchedStatus =
                 contractIn.Import_UseExistingFileWatchedStatus;
             settings.AutoGroupSeries = contractIn.AutoGroupSeries;
             settings.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
-            settings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
+            settings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
             settings.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
             if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
             {
@@ -756,10 +787,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            ShokoService.CmdProcessorHasher.Stop();
-
-            RepoFactory.CommandRequest.ClearHasherQueue();
-            ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
+            ShokoService.CmdProcessorHasher.Clear();
         }
         catch (Exception ex)
         {
@@ -772,10 +800,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            ShokoService.CmdProcessorImages.Stop();
-
-            RepoFactory.CommandRequest.ClearImageQueue();
-            ShokoService.CmdProcessorImages.NotifyOfNewCommand();
+            ShokoService.CmdProcessorImages.Clear();
         }
         catch (Exception ex)
         {
@@ -788,10 +813,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            ShokoService.CmdProcessorGeneral.Stop();
-
-            RepoFactory.CommandRequest.ClearGeneralQueue();
-            ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
+            ShokoService.CmdProcessorGeneral.Clear();
         }
         catch (Exception ex)
         {
@@ -917,6 +939,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         try
         {
             var imgType = (ImageEntityType)imageType;
+            int animeID = 0;
 
             switch (imgType)
             {
@@ -940,6 +963,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
                     banner.Enabled = enabled ? 1 : 0;
                     RepoFactory.TvDB_ImageWideBanner.Save(banner);
+                    animeID = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(banner.SeriesID).FirstOrDefault()?.AniDBID ?? 0;
                     break;
 
                 case ImageEntityType.TvDB_Cover:
@@ -951,6 +975,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
                     poster.Enabled = enabled ? 1 : 0;
                     RepoFactory.TvDB_ImagePoster.Save(poster);
+                    animeID = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(poster.SeriesID).FirstOrDefault()?.AniDBID ?? 0;
                     break;
 
                 case ImageEntityType.TvDB_FanArt:
@@ -962,6 +987,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
                     fanart.Enabled = enabled ? 1 : 0;
                     RepoFactory.TvDB_ImageFanart.Save(fanart);
+                    animeID = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(fanart.SeriesID).FirstOrDefault()?.AniDBID ?? 0;
                     break;
 
                 case ImageEntityType.MovieDB_Poster:
@@ -973,6 +999,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
                     moviePoster.Enabled = enabled ? 1 : 0;
                     RepoFactory.MovieDB_Poster.Save(moviePoster);
+                    animeID = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(moviePoster.MovieId, CrossRefType.MovieDB)?.AnimeID ?? 0;
                     break;
 
                 case ImageEntityType.MovieDB_FanArt:
@@ -984,9 +1011,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
                     movieFanart.Enabled = enabled ? 1 : 0;
                     RepoFactory.MovieDB_Fanart.Save(movieFanart);
+                    animeID = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(movieFanart.MovieId, CrossRefType.MovieDB)?.AnimeID ?? 0;
                     break;
             }
 
+            if (animeID != 0) SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
             return string.Empty;
         }
         catch (Exception ex)
@@ -1024,8 +1053,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
             if (!isDefault)
             {
-                // this mean we are removing an image as deafult
-                // which esssential means deleting the record
+                // this mean we are removing an image as default
+                // which essential means deleting the record
 
                 var img =
                     RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, sizeType);
@@ -1051,8 +1080,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 RepoFactory.AniDB_Anime_DefaultImage.Save(img);
             }
 
-            var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-            RepoFactory.AnimeSeries.Save(series, false);
+            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             return string.Empty;
         }

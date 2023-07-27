@@ -22,6 +22,8 @@ public class AnimeSeriesMap : ClassMap<SVR_AnimeSeries>
         Map(x => x.LatestEpisodeAirDate);
         Map(x => x.MissingEpisodeCount).Not.Nullable();
         Map(x => x.MissingEpisodeCountGroups).Not.Nullable();
+        Map(x => x.HiddenMissingEpisodeCount).Not.Nullable();
+        Map(x => x.HiddenMissingEpisodeCountGroups).Not.Nullable();
         Map(x => x.SeriesNameOverride);
         Map(x => x.DefaultFolder);
         Map(x => x.ContractVersion).Not.Nullable();
@@ -29,5 +31,6 @@ public class AnimeSeriesMap : ClassMap<SVR_AnimeSeries>
         Map(x => x.ContractSize).Not.Nullable();
         Map(x => x.AirsOn);
         Map(x => x.UpdatedAt).Not.Nullable();
+        Map(x => x.DisableAutoMatchFlags).Not.Nullable().CustomType<Shoko.Models.Enums.DataSourceType>();
     }
 }

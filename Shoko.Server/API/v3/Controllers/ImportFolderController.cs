@@ -37,12 +37,12 @@ public class ImportFolderController : BaseController
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
         }
 
         if (folder.Path == string.Empty)
         {
-            return BadRequest("The Folder path must not be Empty");
+            return ValidationProblem("The Folder path must not be Empty", nameof(folder.Path));
         }
 
         try
@@ -89,13 +89,13 @@ public class ImportFolderController : BaseController
     {
         if (patch == null)
         {
-            return BadRequest("Invalid JSON Patch document.");
+            return ValidationProblem("Invalid JSON Patch document.");
         }
 
         var existing = RepoFactory.ImportFolder.GetByID(folderID);
         if (existing == null)
         {
-            return NotFound("ImportFolder not found");
+            return NotFound("Folder not found.");
         }
 
         var patchModel = new ImportFolder(existing);
@@ -103,7 +103,7 @@ public class ImportFolderController : BaseController
         TryValidateModel(patchModel);
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
         }
 
         var serverModel = patchModel.GetServerModel();
@@ -121,14 +121,15 @@ public class ImportFolderController : BaseController
     public ActionResult EditImportFolder([FromBody] ImportFolder folder)
     {
         if (string.IsNullOrEmpty(folder.Path))
-        {
-            return BadRequest("Path missing. Import Folders must be a location that exists on the server");
-        }
+            ModelState.AddModelError(nameof(folder.Path), "Path missing. Import Folders must be a location that exists on the server.");
 
         if (folder.ID == 0)
-        {
-            return BadRequest("ID missing. If this is a new Folder, then use POST");
-        }
+            ModelState.AddModelError(nameof(folder.ID), "ID missing. If this is a new Folder, then use POST.");
+        else if (RepoFactory.ImportFolder.GetByID(folder.ID) == null)
+            ModelState.AddModelError(nameof(folder.ID), "ID invalid. If this is a new Folder, then use POST.");
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
         RepoFactory.ImportFolder.SaveImportFolder(folder.GetServerModel());
 
@@ -149,7 +150,7 @@ public class ImportFolderController : BaseController
     {
         if (folderID == 0)
         {
-            return BadRequest("ID missing");
+            return NotFound("Folder not found.");
         }
 
         if (!removeRecords)
@@ -161,9 +162,15 @@ public class ImportFolderController : BaseController
             return Ok();
         }
 
-        var errorMessage = Importer.DeleteImportFolder(folderID, updateMyList);
+        var importFolder = RepoFactory.ImportFolder.GetByID(folderID);
+        if (importFolder == null)
+            return NotFound("Folder not found.");
 
-        return string.IsNullOrEmpty(errorMessage) ? Ok() : InternalError(errorMessage);
+        var errorMessage = Importer.DeleteImportFolder(importFolder, updateMyList);
+        if (!string.IsNullOrEmpty(errorMessage))
+            return InternalError(errorMessage);
+
+        return Ok();
     }
 
     /// <summary>
@@ -176,9 +183,7 @@ public class ImportFolderController : BaseController
     {
         var folder = RepoFactory.ImportFolder.GetByID(folderID);
         if (folder == null)
-        {
-            return BadRequest("No Import Folder with ID");
-        }
+            return NotFound("Folder not found.");
 
         Importer.RunImport_ScanFolder(folderID);
         return Ok();

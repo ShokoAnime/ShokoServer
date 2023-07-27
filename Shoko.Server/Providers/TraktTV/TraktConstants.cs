@@ -6,7 +6,6 @@ public static class TraktConstants
 
     // Production
     public const string ClientID = "a20707fa9666bea4acd86bc6ea2123bd6ffdbe996b4927cfdba96f4d3fca3042";
-
     public const string ClientSecret = "7ef5eec766070fa0b34a4a4a2fea2ad0ddbe9bb1bc1e8eb621551c52fb288739";
     public const string BaseAPIURL = @"https://api.trakt.tv";
     public const string BaseWebsiteURL = @"https://trakt.tv";
@@ -24,7 +23,6 @@ public static class TraktSearchType
 {
     // movie , show , episode , person , list 
     public const string movie = "movie";
-
     public const string show = "show";
     public const string episode = "episode";
     public const string person = "person";
@@ -36,7 +34,6 @@ public static class TraktSearchIDType
 {
     // movie , show , episode , person , list 
     public const string traktmovie = "trakt-movie";
-
     public const string traktshow = "trakt-show";
     public const string traktepisode = "trakt-episode";
     public const string imdb = "imdb";
@@ -80,6 +77,8 @@ public static class TraktStatusCodes
     public const int Success = 200;
     public const int Success_Post = 201;
     public const int Success_Delete = 204;
+    public const int Awaiting_Auth = 400;
+    public const int Token_Expired = 410;
 
     public const int Bad_Request = 400;
     public const int Unauthorized = 401;

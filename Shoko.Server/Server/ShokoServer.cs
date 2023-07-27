@@ -16,12 +16,14 @@ using Quartz;
 using QuartzJobFactory;
 using Sentry;
 using Shoko.Commons.Properties;
+using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
@@ -40,7 +42,7 @@ public class ShokoServer
 {
     //private static bool doneFirstTrakTinfo = false;
     private readonly ILogger<ShokoServer> logger;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
     private static DateTime lastTraktInfoUpdate = DateTime.Now;
     private static DateTime lastVersionCheck = DateTime.Now;
@@ -66,9 +68,6 @@ public class ShokoServer
 
     public static List<UserCulture> userLanguages = new();
 
-    private Mutex mutex;
-    private const string SentryDsn = "https://47df427564ab42f4be998e637b3ec45a@o330862.ingest.sentry.io/1851880";
-
     public string[] GetSupportedDatabases()
     {
         return new[] { "SQLite", "Microsoft SQL Server 2014", "MySQL/MariaDB" };
@@ -77,6 +76,7 @@ public class ShokoServer
     public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider, IServiceProvider serviceProvider, ISchedulerFactory schedulerFactory)
     {
         this.logger = logger;
+        _settingsProvider = settingsProvider;
         _serviceProvider = serviceProvider;
         _schedulerFactory = schedulerFactory;
         var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);
@@ -92,27 +92,42 @@ public class ShokoServer
 
     ~ShokoServer()
     {
-        _sentry.Dispose();
+        _sentry?.Dispose();
         ShokoEventHandler.Instance.Shutdown -= ShutDown;
     }
 
     public bool StartUpServer()
     {
-        _sentry = SentrySdk.Init(opts =>
+        var settings = _settingsProvider.GetSettings();
+        // Only try to set up Sentry if the user DID NOT OPT __OUT__.
+        if (!settings.SentryOptOut && Constants.SentryDsn.StartsWith("https://"))
         {
-            opts.Dsn = SentryDsn;
-            opts.Release = Utils.GetApplicationVersion();
-        });
+            // Get the release and extra info from the assembly.
+            var extraInfo = Utils.GetApplicationExtraVersion();
 
+            // Only initialize the SDK if we're not on a debug build.
+            //
+            // If the release channel is not set or if it's set to "debug" then
+            // it's considered to be a debug build.
+            if (extraInfo.TryGetValue("channel", out var environment) && environment != "debug")
+                _sentry = SentrySdk.Init(opts =>
+                {
+                    // Assign the DSN key and release version.
+                    opts.Dsn = Constants.SentryDsn;
+                    opts.Environment = environment;
+                    opts.Release = Utils.GetApplicationVersion();
 
-        Analytics.PostEvent("Server", "Startup");
-        if (Utils.IsLinux)
-        {
-            Analytics.PostEvent("Server", "Linux Startup");
+                    // Conditionally assign the extra info if they're included in the assembly.
+                    if (extraInfo.TryGetValue("commit", out var gitCommit))
+                        opts.DefaultTags.Add("commit", gitCommit);
+                    if (extraInfo.TryGetValue("tag", out var gitTag))
+                        opts.DefaultTags.Add("commit.tag", gitTag);
+
+                    // Append the release channel for the release on non-stable branches.
+                    if (environment != "stable")
+                        opts.Release += string.IsNullOrEmpty(gitCommit) ? $"-{environment}" : $"-{environment}-{gitCommit[0..7]}";
+                });
         }
-
-        var settingsProvider = _serviceProvider.GetRequiredService<ISettingsProvider>();
-        var settings = settingsProvider.GetSettings();
 
         // Check if any of the DLL are blocked, common issue with daily builds
         if (!CheckBlockedFiles())
@@ -121,45 +136,12 @@ public class ShokoServer
             Environment.Exit(1);
         }
 
-        // Migrate programdata folder from JMMServer to ShokoServer
-        // this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
-        if (!MigrateProgramDataLocation())
-        {
-            Utils.ShowErrorMessage(Resources.Migration_LoadError,
-                Resources.ShokoServer);
-            Environment.Exit(1);
-        }
-
         //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
-        CommandHelper.LoadCommands(_serviceProvider);
+        CommandHelper.LoadCommands(Utils.ServiceContainer);
 
-        if (!Utils.IsLinux)
-        {
-            try
-            {
-                mutex = Mutex.OpenExisting(Utils.DefaultInstance + "Mutex");
-                //since it hasn't thrown an exception, then we already have one copy of the app open.
-                return false;
-                //MessageBox.Show(Shoko.Commons.Properties.Resources.Server_Running,
-                //    Shoko.Commons.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
-                //Environment.Exit(0);
-            }
-            catch (Exception ex)
-            {
-                //since we didn't find a mutex with that name, create one
-                Debug.WriteLine("Exception thrown:" + ex.Message + " Creating a new mutex...");
-                mutex = new Mutex(true, Utils.DefaultInstance + "Mutex");
-            }
-        }
+        Loader.InitPlugins(Utils.ServiceContainer);
 
-        // RenameFileHelper.InitialiseRenamers();
-        // var services = new ServiceCollection();
-        // ConfigureServices(services);
-        // Plugin.Loader.Instance.Load(services);
-        // _serviceProvider = services.BuildServiceProvider();
-        // Plugin.Loader.Instance.InitPlugins(_serviceProvider);
-
-        settingsProvider.DebugSettingsToLog();
+        _settingsProvider.DebugSettingsToLog();
 
         ServerState.Instance.DatabaseAvailable = false;
         ServerState.Instance.ServerOnline = false;
@@ -178,29 +160,17 @@ public class ShokoServer
 
         ServerState.Instance.LoadSettings(settings);
 
-        InitCulture();
-
         // run rotator once and set 24h delay
-        _serviceProvider.GetRequiredService<LogRotator>().Start();
+        Utils.ServiceContainer.GetRequiredService<LogRotator>().Start();
 
-        Analytics.PostEvent("Server", "StartupFinished");
         // for log readability, this will simply init the singleton
-        _serviceProvider.GetService<IUDPConnectionHandler>();
+        Utils.ServiceContainer.GetService<IUDPConnectionHandler>();
         return true;
     }
 
     private bool CheckBlockedFiles()
     {
-        if (Utils.IsRunningOnLinuxOrMac())
-        {
-            return true;
-        }
-
-        if (Environment.OSVersion.Platform != PlatformID.Win32NT)
-        {
-            // do stuff on windows only
-            return true;
-        }
+        if (Utils.IsRunningOnLinuxOrMac()) return true;
 
         var programlocation =
             Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
@@ -235,47 +205,6 @@ public class ShokoServer
         return result;
     }
 
-    public bool MigrateProgramDataLocation()
-    {
-        var oldApplicationPath =
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "JMMServer");
-        var newApplicationPath =
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                Assembly.GetEntryAssembly().GetName().Name);
-        if (Directory.Exists(oldApplicationPath) && !Directory.Exists(newApplicationPath))
-        {
-            try
-            {
-                var migrationdirs = new List<MigrationDirectory>
-                {
-                    new() { From = oldApplicationPath, To = newApplicationPath }
-                };
-
-                foreach (var md in migrationdirs)
-                {
-                    if (!md.SafeMigrate())
-                    {
-                        break;
-                    }
-                }
-
-                logger.LogInformation("Successfully migrated programdata folder");
-            }
-            catch (Exception e)
-            {
-                logger.LogError("Error occured during MigrateProgramDataLocation(): {Ex}", e);
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private void InitCulture()
-    {
-    }
-
-
     #region Database settings and initial start up
 
     public event EventHandler LoginFormNeeded;
@@ -288,7 +217,7 @@ public class ShokoServer
         var setupComplete = bool.Parse(e.Result.ToString());
         if (!setupComplete)
         {
-            var settings = _serviceProvider.GetRequiredService<ISettingsProvider>().GetSettings();
+            var settings = _settingsProvider.GetSettings();
             ServerState.Instance.ServerOnline = false;
             if (!string.IsNullOrEmpty(settings.Database.Type))
             {
@@ -306,10 +235,9 @@ public class ShokoServer
         ServerInfo.Instance.RefreshImportFolders();
         ServerState.Instance.ServerStartingStatus = Resources.Server_Complete;
         ServerState.Instance.ServerOnline = true;
-        var settingsProvider = _serviceProvider.GetRequiredService<ISettingsProvider>();
-        var settings = settingsProvider.GetSettings();
+        var settings = _settingsProvider.GetSettings();
         settings.FirstRun = false;
-        settingsProvider.SaveSettings();
+        _settingsProvider.SaveSettings();
         if (string.IsNullOrEmpty(settings.AniDb.Username) ||
             string.IsNullOrEmpty(settings.AniDb.Password))
         {
@@ -342,8 +270,7 @@ public class ShokoServer
 
     private void WorkerSetupDB_DoWork(object sender, DoWorkEventArgs e)
     {
-        var settingsProvider = _serviceProvider.GetRequiredService<ISettingsProvider>();
-        var settings = settingsProvider.GetSettings();
+        var settings = _settingsProvider.GetSettings();
 
         try
         {
@@ -416,9 +343,9 @@ public class ShokoServer
             Scanner.Instance.Init();
 
             ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingQueue;
-            ShokoService.CmdProcessorGeneral.Init(_serviceProvider);
-            ShokoService.CmdProcessorHasher.Init(_serviceProvider);
-            ShokoService.CmdProcessorImages.Init(_serviceProvider);
+            ShokoService.CmdProcessorGeneral.Init(Utils.ServiceContainer);
+            ShokoService.CmdProcessorHasher.Init(Utils.ServiceContainer);
+            ShokoService.CmdProcessorImages.Init(Utils.ServiceContainer);
 
             ServerState.Instance.DatabaseAvailable = true;
 
@@ -443,8 +370,6 @@ public class ShokoServer
 
             StartWatchingFiles();
 
-            DownloadAllImages();
-
             var folders = RepoFactory.ImportFolder.GetAll();
 
             if (settings.Import.ScanDropFoldersOnStart)
@@ -452,7 +377,7 @@ public class ShokoServer
                 ScanDropFolders();
             }
 
-            if (settings.Import.RunOnStart && folders.Count > 0)
+            if (settings.Import.RunOnStart)
             {
                 var scheduler = _schedulerFactory.GetScheduler().Result;
                 scheduler.TriggerJob(ImportJob.Key);
@@ -538,8 +463,7 @@ public class ShokoServer
 
             //verNew = verInfo.versions.ServerVersionAbs;
 
-            var settingsProvider = _serviceProvider.GetRequiredService<ISettingsProvider>();
-            var settings = settingsProvider.GetSettings();
+            var settings = _settingsProvider.GetSettings();
             verNew =
                 JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(
                     JMMAutoUpdatesHelper.GetLatestVersionNumber(settings.UpdateChannel))
@@ -622,7 +546,6 @@ public class ShokoServer
 
     private void ShutDown()
     {
-        Analytics.PostEvent("Server", "Shutdown");
         StopWatchingFiles();
         ShokoService.CancelAndWaitForQueues();
         AniDBDispose();
@@ -646,8 +569,7 @@ public class ShokoServer
     public void StartWatchingFiles()
     {
         _fileWatchers = new List<RecoveringFileSystemWatcher>();
-        var settingsProvider = _serviceProvider.GetRequiredService<ISettingsProvider>();
-        var settings = settingsProvider.GetSettings();
+        var settings = _settingsProvider.GetSettings();
 
         foreach (var share in RepoFactory.ImportFolder.GetAll())
         {
@@ -693,7 +615,7 @@ public class ShokoServer
 
     private void FileAdded(object sender, string path)
     {
-        var commandFactory = _serviceProvider.GetRequiredService<ICommandRequestFactory>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         if (!File.Exists(path)) return;
         if (!FileHashHelper.IsVideo(path)) return;
 
@@ -780,14 +702,14 @@ public class ShokoServer
 
     private void SetupAniDBProcessor()
     {
-        var handler = _serviceProvider.GetRequiredService<IUDPConnectionHandler>();
-        var settings = _serviceProvider.GetRequiredService<ISettingsProvider>().GetSettings().AniDb;
+        var handler = Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
+        var settings = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>().GetSettings().AniDb;
         handler.Init(settings.Username, settings.Password, settings.ServerAddress, settings.ServerPort, settings.ClientPort);
     }
 
     private void AniDBDispose()
     {
-        var handler = _serviceProvider.GetRequiredService<IUDPConnectionHandler>();
+        var handler = Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
         handler.ForceLogout();
         handler.CloseConnections();
     }
@@ -806,9 +728,7 @@ public class ShokoServer
     /// <returns>true if there was any commands added to the queue, flase otherwise</returns>
     public bool SyncPlex()
     {
-        var commandFactory = _serviceProvider.GetRequiredService<ICommandRequestFactory>();
-        Analytics.PostEvent("Plex", "SyncAll");
-
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         var flag = false;
         foreach (var user in RepoFactory.JMMUser.GetAll())
         {

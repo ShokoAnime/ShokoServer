@@ -1,23 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Threading;
 using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
-using Shoko.Commons.Utils;
-using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
-using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -28,30 +21,37 @@ namespace Shoko.Server.Commands.Import;
 [Command(CommandRequestType.DownloadAniDBImages)]
 public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
 {
+    private const string DownloadImage = "Downloading Image {0}: {1}";
+
+    private const string FailedToDownloadNoID = "Images failed to download: Can\'t find {EntityType} with ID: {AnimeID}";
+
     private readonly IUDPConnectionHandler _handler;
+
     private readonly ISettingsProvider _settingsProvider;
+
     public int AnimeID { get; set; }
+
     public bool ForceDownload { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority1;
 
     public override QueueStateStruct PrettyDescription => new()
     {
-        message = "Downloading Image {0}: {1}",
+        message = DownloadImage,
         queueState = QueueStateEnum.DownloadImage,
         extraParams = new[] { Resources.Command_ValidateAllImages_AniDBPosters, AnimeID.ToString() }
     };
 
     public QueueStateStruct PrettyDescriptionCharacters => new()
     {
-        message = "Downloading Image {0}: {1}",
+        message = DownloadImage,
         queueState = QueueStateEnum.DownloadImage,
         extraParams = new[] { Resources.Command_ValidateAllImages_AniDBCharacters, AnimeID.ToString() }
     };
 
     public QueueStateStruct PrettyDescriptionCreators => new()
     {
-        message = "Downloading Image {0}: {1}",
+        message = DownloadImage,
         queueState = QueueStateEnum.DownloadImage,
         extraParams = new[] { Resources.Command_ValidateAllImages_AniDBSeiyuus, AnimeID.ToString() }
     };
@@ -60,263 +60,109 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_DownloadAniDBImages: {AnimeID}", AnimeID);
 
-        try
+        var settings = _settingsProvider.GetSettings();
+        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+        if (anime == null)
         {
-            var settings = _settingsProvider.GetSettings();
-            var types = new List<ImageEntityType>
-            {
-                ImageEntityType.AniDB_Cover, ImageEntityType.AniDB_Character, ImageEntityType.AniDB_Creator
-            };
+            Logger.LogWarning(FailedToDownloadNoID, "anime", AnimeID);
+            return;
+        }
 
-            foreach (var entityTypeEnum in types)
+        var requests = new List<ImageDownloadRequest>
+        {
+            new(anime, ForceDownload, _handler.ImageServerUrl)
+        };
+
+        var characterOffset = requests.Count;
+        if (settings.AniDb.DownloadCharacters)
+        {
+            var characters = RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
+                .Select(xref => RepoFactory.AniDB_Character.GetByCharID(xref.CharID))
+                .Where(a => !string.IsNullOrEmpty(a?.PicName))
+                .DistinctBy(a => a.CharID)
+                .ToList();
+            if (characters.Any())
+                requests.AddRange(characters.Select(character => new ImageDownloadRequest(character, ForceDownload, _handler.ImageServerUrl)));
+            else
+                Logger.LogWarning(FailedToDownloadNoID, "characters for anime", AnimeID);
+        }
+
+        var creatorOffset = requests.Count;
+        if (settings.AniDb.DownloadCreators)
+        {
+            // Get all voice-actors working on this anime.
+            var voiceActors = RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
+                .SelectMany(xref => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(xref.CharID))
+                .Select(xref => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(xref.SeiyuuID))
+                .Where(va => !string.IsNullOrEmpty(va?.PicName));
+            // Get all staff members working on this anime.
+            var staffMembers = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(AnimeID)
+                .Select(xref => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(xref.CreatorID))
+                .Where(staff => !string.IsNullOrEmpty(staff?.PicName));
+            // Concatenate the streams into a single list.
+            var creators = voiceActors
+                .Concat(staffMembers)
+                .DistinctBy(creator => creator.SeiyuuID)
+                .ToList();
+
+            if (creators.Any())
+                requests.AddRange(creators.Select(va => new ImageDownloadRequest(va, ForceDownload, _handler.ImageServerUrl)));
+            else
+                Logger.LogWarning(FailedToDownloadNoID, "creators for anime", AnimeID);
+        }
+
+        for (var index = 0; index < requests.Count; index++)
+        {
+            // Update the queue state.
+            if (index == characterOffset)
+                ShokoService.CmdProcessorImages.QueueState = PrettyDescriptionCharacters;
+            else if (index == creatorOffset)
+                ShokoService.CmdProcessorImages.QueueState = PrettyDescriptionCreators;
+
+            // Process the
+            var req = requests[index];
+            try
             {
-                var downloadUrls = new List<string>();
-                var fileNames = new List<string>();
-                switch (entityTypeEnum)
+                // If this has any issues, it will throw an exception, so the catch below will handle it.
+                Logger.LogInformation("Image downloading to {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                var result = req.DownloadNow();
+                switch (result)
                 {
-                    case ImageEntityType.AniDB_Cover:
-                        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
-                        if (anime == null)
-                        {
-                            Logger.LogWarning(
-                                "AniDB poster image failed to download: Can\'t find AniDB_Anime with ID: {AnimeID}",
-                                AnimeID);
-                            return;
-                        }
-
-                        downloadUrls.Add(string.Format(_handler.ImageServerUrl, anime.Picname));
-                        fileNames.Add(anime.PosterPath);
+                    case ImageDownloadResult.Success:
+                        Logger.LogInformation("Image downloaded; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
                         break;
-
-                    case ImageEntityType.AniDB_Character:
-                        if (!settings.AniDb.DownloadCharacters)
-                        {
-                            continue;
-                        }
-
-                        var chrs = (from xref1 in RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
-                                select RepoFactory.AniDB_Character.GetByCharID(xref1.CharID))
-                            .Where(a => !string.IsNullOrEmpty(a?.PicName))
-                            .DistinctBy(a => a.CharID)
-                            .ToList();
-                        if (chrs == null || chrs.Count == 0)
-                        {
-                            Logger.LogWarning(
-                                "AniDB Character image failed to download: Can\'t find Character for anime: {AnimeID}",
-                                AnimeID
-                            );
-                            return;
-                        }
-
-                        foreach (var chr in chrs)
-                        {
-                            downloadUrls.Add(string.Format(_handler.ImageServerUrl, chr.PicName));
-                            fileNames.Add(chr.GetPosterPath());
-                        }
-
-                        ShokoService.CmdProcessorImages.QueueState = PrettyDescriptionCharacters;
+                    case ImageDownloadResult.Cached:
+                        Logger.LogDebug("Image already in cache; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
                         break;
-
-                    case ImageEntityType.AniDB_Creator:
-                        if (!settings.AniDb.DownloadCreators)
-                        {
-                            continue;
-                        }
-
-                        var creators = (from xref1 in RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
-                                from xref2 in RepoFactory.AniDB_Character_Seiyuu.GetByCharID(xref1.CharID)
-                                select RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(xref2.SeiyuuID))
-                            .Where(a => !string.IsNullOrEmpty(a?.PicName))
-                            .DistinctBy(a => a.SeiyuuID)
-                            .ToList();
-                        if (creators == null || creators.Count == 0)
-                        {
-                            Logger.LogWarning(
-                                "AniDB Seiyuu image failed to download: Can\'t find Seiyuus for anime: {AnimeID}",
-                                AnimeID
-                            );
-                            return;
-                        }
-
-                        foreach (var creator in creators)
-                        {
-                            downloadUrls.Add(string.Format(_handler.ImageServerUrl, creator.PicName));
-                            fileNames.Add(creator.GetPosterPath());
-                        }
-
-                        ShokoService.CmdProcessorImages.QueueState = PrettyDescriptionCreators;
+                    case ImageDownloadResult.Failure:
+                        Logger.LogError("Image failed to download; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                        break;
+                    case ImageDownloadResult.RemovedResource:
+                        Logger.LogWarning("Image failed to download and the local entry has been removed; {FilePath} from {DownloadUrl}", req.FilePath,
+                            req.DownloadUrl);
+                        break;
+                    case ImageDownloadResult.InvalidResource:
+                        Logger.LogError("Image failed to download and the local entry could not be removed; {FilePath} from {DownloadUrl}", req.FilePath,
+                            req.DownloadUrl);
                         break;
                 }
-
-                if (downloadUrls.Count == 0 || fileNames.All(string.IsNullOrEmpty))
-                {
-                    Logger.LogWarning("Image failed to download: No URLs were generated. This should never happen");
-                    return;
-                }
-
-
-                for (var i = 0; i < downloadUrls.Count; i++)
-                {
-                    try
-                    {
-                        if (string.IsNullOrEmpty(fileNames[i]))
-                        {
-                            continue;
-                        }
-
-                        var downloadImage = true;
-                        var fileExists = File.Exists(fileNames[i]);
-                        var imageValid = fileExists && Misc.IsImageValid(fileNames[i]);
-
-                        if (imageValid && !ForceDownload)
-                        {
-                            downloadImage = false;
-                        }
-
-                        if (!downloadImage)
-                        {
-                            continue;
-                        }
-
-                        var tempName = Path.Combine(ImageUtils.GetImagesTempFolder(),
-                            Path.GetFileName(fileNames[i]));
-
-                        try
-                        {
-                            if (fileExists)
-                            {
-                                File.Delete(fileNames[i]);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.LogWarning(Resources.Command_DeleteError, fileNames, ex.Message);
-                            return;
-                        }
-
-                        // If this has any issues, it will throw an exception, so the catch below will handle it
-                        RecursivelyRetryDownload(downloadUrls[i], ref tempName, 0, 5);
-
-                        // move the file to it's final location
-                        // check that the final folder exists
-                        var fullPath = Path.GetDirectoryName(fileNames[i]);
-                        if (!Directory.Exists(fullPath))
-                        {
-                            Directory.CreateDirectory(fullPath);
-                        }
-
-                        File.Move(tempName, fileNames[i]);
-                        Logger.LogInformation("Image downloaded: {FileName} from {DownloadUrl}", fileNames[i],
-                            downloadUrls[i]);
-                    }
-                    catch (WebException e)
-                    {
-                        Logger.LogWarning(
-                            "Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
-                            downloadUrls[i],
-                            AnimeID,
-                            e.Message);
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.LogError(e,
-                            "Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
-                            downloadUrls[i],
-                            AnimeID,
-                            e);
-                    }
-                }
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error processing CommandRequest_DownloadAniDBImages: {AnimeID} - {Ex}", AnimeID, ex);
-        }
-    }
-
-    private static void RecursivelyRetryDownload(string downloadURL, ref string tempFilePath, int count, int maxretry)
-    {
-        try
-        {
-            // download image
-            if (downloadURL.Length <= 0)
+            catch (WebException e)
             {
-                return;
+                Logger.LogWarning(
+                    "Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
+                    req.DownloadUrl,
+                    AnimeID,
+                    e.Message);
             }
-
-            // Ignore all certificate failures.
-            ServicePointManager.Expect100Continue = true;
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-            ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
-
-            using var client = new WebClient();
-            client.Headers.Add("user-agent", "JMM");
-            //OnImageDownloadEvent(new ImageDownloadEventArgs("", req, ImageDownloadEventType.Started));
-            //BaseConfig.MyAnimeLog.Write("ProcessImages: Download: {0}  *** to ***  {1}", req.URL, fullName);
-
-            AniDbImageRateLimiter.Instance.EnsureRate();
-            var bytes = client.DownloadData(downloadURL);
-            AniDbImageRateLimiter.Instance.Reset();
-            if (bytes.Length < 4)
+            catch (Exception e)
             {
-                throw new WebException(
-                    "The image download stream returned less than 4 bytes (a valid image has 2-4 bytes in the header)");
+                Logger.LogError(e,
+                    "Error processing CommandRequest_DownloadAniDBImages: {Url} ({AnimeID}) - {Ex}",
+                    req.DownloadUrl,
+                    AnimeID,
+                    e);
             }
-
-            var imageFormat = Misc.GetImageFormat(bytes);
-            string extension;
-            switch (imageFormat)
-            {
-                case ImageFormatEnum.bmp:
-                    extension = ".bmp";
-                    break;
-                case ImageFormatEnum.gif:
-                    extension = ".gif";
-                    break;
-                case ImageFormatEnum.jpeg:
-                    extension = ".jpeg";
-                    break;
-                case ImageFormatEnum.png:
-                    extension = ".png";
-                    break;
-                case ImageFormatEnum.tiff:
-                    extension = ".tiff";
-                    break;
-                default: throw new WebException("The image download stream returned an invalid image");
-            }
-
-            if (extension.Length <= 0)
-            {
-                return;
-            }
-
-            var newFile = Path.ChangeExtension(tempFilePath, extension);
-            if (newFile == null)
-            {
-                return;
-            }
-
-            if (File.Exists(newFile))
-            {
-                File.Delete(newFile);
-            }
-
-            using (var fs = new FileStream(newFile, FileMode.Create, FileAccess.Write))
-            {
-                fs.Write(bytes, 0, bytes.Length);
-            }
-
-            tempFilePath = newFile;
-        }
-        catch (WebException)
-        {
-            if (count + 1 >= maxretry)
-            {
-                throw;
-            }
-
-            Thread.Sleep(500);
-            RecursivelyRetryDownload(downloadURL, ref tempFilePath, count + 1, maxretry);
         }
     }
 

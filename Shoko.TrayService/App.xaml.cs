@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
@@ -29,6 +30,8 @@ public partial class App
         s_instance = this;
         Console.CancelKeyPress += OnConsoleOnCancelKeyPress;
         InitialiseTaskbarIcon();
+        
+        
         try
         {
             UnhandledExceptionManager.AddHandler();
@@ -38,15 +41,38 @@ public partial class App
             Console.WriteLine(ex.ToString());
         }
 
+        Mutex mutex;
+        try
+        {
+            mutex = Mutex.OpenExisting(Utils.DefaultInstance + "Mutex");
+            Shutdown();
+        }
+        catch (Exception ex)
+        {
+            // since we didn't find a mutex with that name, create one
+            Debug.WriteLine("Exception thrown:" + ex.Message + " Creating a new mutex...");
+            mutex = new Mutex(true, Utils.DefaultInstance + "Mutex");
+        }
+
         Utils.SetInstance();
         Utils.InitLogger();
         var logFactory = new LoggerFactory().AddNLog();
         _logger = logFactory.CreateLogger("App.xaml");
-        var settingsProvider = new SettingsProvider(logFactory.CreateLogger<SettingsProvider>());
-        Utils.SettingsProvider = settingsProvider;
-        var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
-        startup.Start();
-        AddEventHandlers();
+
+        try
+        {
+            var settingsProvider = new SettingsProvider(logFactory.CreateLogger<SettingsProvider>());
+            settingsProvider.LoadSettings();
+            Utils.SettingsProvider = settingsProvider;
+            var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
+            startup.Start();
+            AddEventHandlers();
+        }
+        catch (Exception exception)
+        {
+            _logger.LogCritical(exception, "The server has failed to start");
+            s_instance.Shutdown();
+        }
     }
 
     private void AddEventHandlers()
@@ -60,7 +86,6 @@ public partial class App
 
     private void InitialiseTaskbarIcon()
     {
-#pragma warning disable CA1416
         _icon = new TaskbarIcon{
                                    ToolTipText = "Shoko Server",
                                    ContextMenu = CreateContextMenu(),
@@ -70,7 +95,6 @@ public partial class App
         using var iconStream = GetResourceStream(new Uri("pack://application:,,,/ShokoServer;component/db.ico"))?.Stream;
         if (iconStream is not null)
             _icon.Icon = new Icon(iconStream);
-#pragma warning restore CA1416
     }
     
     private ContextMenu CreateContextMenu()
@@ -97,7 +121,7 @@ public partial class App
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to Open WebUI: {Ex}", e);
+            _logger.LogError(e, "Failed to Open WebUI");
         }
     }
 

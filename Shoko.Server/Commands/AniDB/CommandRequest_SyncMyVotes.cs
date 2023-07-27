@@ -35,68 +35,65 @@ public class CommandRequest_SyncMyVotes : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_SyncMyVotes");
 
-        try
-        {
-            var settings = _settingsProvider.GetSettings();
-            var request = _requestFactory.Create<RequestVotes>(
-                r =>
-                {
-                    r.Username = settings.AniDb.Username;
-                    r.Password = settings.AniDb.Password;
-                }
-            );
-            var response = request.Execute();
-            if (response.Response == null)
+        var settings = _settingsProvider.GetSettings();
+        var request = _requestFactory.Create<RequestVotes>(
+            r =>
             {
-                return;
+                r.Username = settings.AniDb.Username;
+                r.Password = settings.AniDb.Password;
             }
+        );
+        var response = request.Execute();
+        if (response.Response == null)
+        {
+            return;
+        }
 
-            foreach (var myVote in response.Response)
+        foreach (var myVote in response.Response)
+        {
+            var dbVotes = RepoFactory.AniDB_Vote.GetByEntity(myVote.EntityID);
+            AniDB_Vote thisVote = null;
+            foreach (var dbVote in dbVotes)
             {
-                var dbVotes = RepoFactory.AniDB_Vote.GetByEntity(myVote.EntityID);
-                AniDB_Vote thisVote = null;
-                foreach (var dbVote in dbVotes)
+                // we can only have anime permanent or anime temp but not both
+                if (myVote.VoteType is AniDBVoteType.Anime or AniDBVoteType.AnimeTemp)
                 {
-                    // we can only have anime permanent or anime temp but not both
-                    if (myVote.VoteType is AniDBVoteType.Anime or AniDBVoteType.AnimeTemp)
-                    {
-                        if (dbVote.VoteType is (int)AniDBVoteType.Anime or (int)AniDBVoteType.AnimeTemp)
-                        {
-                            thisVote = dbVote;
-                        }
-                    }
-                    else
+                    if (dbVote.VoteType is (int)AniDBVoteType.Anime or (int)AniDBVoteType.AnimeTemp)
                     {
                         thisVote = dbVote;
                     }
                 }
-
-                if (thisVote == null)
+                else
                 {
-                    thisVote = new AniDB_Vote { EntityID = myVote.EntityID };
+                    thisVote = dbVote;
                 }
-
-                thisVote.VoteType = (int)myVote.VoteType;
-                thisVote.VoteValue = (int)(myVote.VoteValue * 100);
-
-                RepoFactory.AniDB_Vote.Save(thisVote);
-
-                if (myVote.VoteType is not (AniDBVoteType.Anime or AniDBVoteType.AnimeTemp))
-                {
-                    continue;
-                }
-
-                // download the anime info if the user doesn't already have it
-                var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c => c.AnimeID = thisVote.EntityID);
-                cmdAnime.Save();
             }
 
-            Logger.LogInformation("Processed Votes: {Count} Items", response.Response.Count);
+            if (thisVote == null)
+            {
+                thisVote = new AniDB_Vote { EntityID = myVote.EntityID };
+            }
+
+            thisVote.VoteType = (int)myVote.VoteType;
+            thisVote.VoteValue = (int)(myVote.VoteValue * 100);
+
+            RepoFactory.AniDB_Vote.Save(thisVote);
+
+            if (myVote.VoteType is not (AniDBVoteType.Anime or AniDBVoteType.AnimeTemp))
+            {
+                continue;
+            }
+
+            // download the anime info if the user doesn't already have it
+            var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+            {
+                c.AnimeID = thisVote.EntityID;
+                c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
+            });
+            cmdAnime.Save();
         }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error processing CommandRequest_SyncMyVotes: {Ex} ", ex);
-        }
+
+        Logger.LogInformation("Processed Votes: {Count} Items", response.Response.Count);
     }
 
     public override void GenerateCommandID()

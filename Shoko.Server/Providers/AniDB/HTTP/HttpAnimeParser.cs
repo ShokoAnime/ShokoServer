@@ -128,16 +128,23 @@ public class HttpAnimeParser
             if (DateTime.TryParseExact(
                     dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal, out var date
-                ))
+                ) && date != DateTime.UnixEpoch)
             {
                 anime.AirDate = date;
             }
             else if (DateTime.TryParseExact(
                          dateString, "yyyy-MM", CultureInfo.InvariantCulture,
-                         DateTimeStyles.AssumeUniversal, out var date2
-                     ))
+                         DateTimeStyles.AssumeUniversal, out date
+                     ) && date != DateTime.UnixEpoch)
             {
-                anime.AirDate = date2;
+                anime.AirDate = date;
+            }
+            else if (DateTime.TryParseExact(
+                         dateString, "yyyy", CultureInfo.InvariantCulture,
+                         DateTimeStyles.AssumeUniversal, out date
+                     ) && date != DateTime.UnixEpoch)
+            {
+                anime.AirDate = date;
             }
         }
 
@@ -148,7 +155,7 @@ public class HttpAnimeParser
             if (DateTime.TryParseExact(
                     dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal, out var date
-                ))
+                ) && date != DateTime.UnixEpoch)
             {
                 anime.EndDate = date;
             }
@@ -342,22 +349,19 @@ public class HttpAnimeParser
 
         decimal.TryParse(TryGetProperty(node, "rating"), style, culture, out var rating);
         int.TryParse(TryGetAttribute(node, "rating", "votes"), out var votes);
+        if (!DateTime.TryParse(TryGetAttribute(node, "update"), out var lastUpdated))
+            lastUpdated = DateTime.UnixEpoch;
 
         var titles = node.ChildNodes.Cast<XmlNode>()
-            .Select(nodeChild => new
+            .Where(nodeChild => Equals("title", nodeChild?.Name))
+            .Select(nodeChild => new ResponseTitle
             {
-                nodeChild,
-                episodeTitle = new ResponseTitle
-                {
-                    Language =
-                        nodeChild?.Attributes?["xml:lang"]?.Value.GetTitleLanguage() ?? TitleLanguage.Unknown,
-                    Title = UnescapeXml(nodeChild?.InnerText.Trim())?.Replace('`', '\''),
-                    TitleType = TitleType.None
-                }
+                Language = nodeChild?.Attributes?["xml:lang"]?.Value.GetTitleLanguage() ?? TitleLanguage.Unknown,
+                Title = UnescapeXml(nodeChild?.InnerText.Trim())?.Replace('`', '\''),
+                TitleType = TitleType.None,
             })
-            .Where(t => Equals("title", t.nodeChild?.Name) && !string.IsNullOrEmpty(t.nodeChild.InnerText) &&
-                        t.episodeTitle.Language != TitleLanguage.Unknown)
-            .Select(t => t.episodeTitle).ToList();
+            .Where(episodeTitle => !string.IsNullOrEmpty(episodeTitle.Title) && episodeTitle.Language != TitleLanguage.Unknown)
+            .ToList();
 
         var dateString = TryGetProperty(node, "airdate");
         var airDate = GetDate(dateString, true);
@@ -374,6 +378,7 @@ public class HttpAnimeParser
             EpisodeID = id,
             AnimeID = animeID,
             AirDate = airDate,
+            LastUpdated = lastUpdated,
             Titles = titles
         };
     }

@@ -18,10 +18,7 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<SVR_AnimeSeries_U
     {
         EndDeleteCallback = cr =>
         {
-            if (!Changes.ContainsKey(cr.JMMUserID))
-            {
-                Changes[cr.JMMUserID] = new ChangeTracker<int>();
-            }
+            Changes.TryAdd(cr.JMMUserID, new ChangeTracker<int>());
 
             Changes[cr.JMMUserID].Remove(cr.AnimeSeriesID);
 
@@ -50,19 +47,15 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<SVR_AnimeSeries_U
     {
         UpdatePlexKodiContracts(obj);
         SVR_AnimeSeries_User old;
-        lock (GlobalDBLock)
+        old = Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            old = session.Get<SVR_AnimeSeries_User>(obj.AnimeSeries_UserID);
-        }
+            return session.Get<SVR_AnimeSeries_User>(obj.AnimeSeries_UserID);
+        });
 
         var types = SVR_AnimeSeries_User.GetConditionTypesChanged(old, obj);
         base.Save(obj);
-        if (!Changes.ContainsKey(obj.JMMUserID))
-        {
-            Changes[obj.JMMUserID] = new ChangeTracker<int>();
-        }
-
+        Changes.TryAdd(obj.JMMUserID, new ChangeTracker<int>());
         Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
 
         obj.UpdateGroupFilter(types);
@@ -109,6 +102,6 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<SVR_AnimeSeries_U
 
     public ChangeTracker<int> GetChangeTracker(int userid)
     {
-        return Changes.ContainsKey(userid) ? Changes[userid] : new ChangeTracker<int>();
+        return Changes.TryGetValue(userid, out var change) ? change : new ChangeTracker<int>();
     }
 }

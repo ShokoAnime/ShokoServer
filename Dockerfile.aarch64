@@ -4,6 +4,7 @@ ARG version
 ARG channel
 ARG commit
 ARG tag
+ARG date
 
 #MAINTAINER Cayde Dixon <me@cazzar.net>
 
@@ -11,7 +12,7 @@ RUN mkdir -p /usr/src/app/source /usr/src/app/build
 COPY . /usr/src/app/source
 WORKDIR /usr/src/app/source
 
-RUN dotnet build -c=Release -o=/usr/src/app/build/ -r=linux-arm64 Shoko.CLI/Shoko.CLI.csproj "/p:Version=\"${version}\",InformationalVersion=\"channel=${channel},commit=${commit},tag=${tag}\""
+RUN dotnet build -c=Release -o=/usr/src/app/build/ -r=linux-arm64 Shoko.CLI/Shoko.CLI.csproj "/p:Version=\"${version}\",InformationalVersion=\"channel=${channel},commit=${commit},tag=${tag},date=${date}\""
 
 FROM mcr.microsoft.com/dotnet/aspnet:6.0
 ENV PUID=1000 \
@@ -33,13 +34,11 @@ COPY --from=0 /usr/src/app/build .
 COPY ./dockerentry.sh /dockerentry.sh
 
 WORKDIR /usr/src/app/build/webui
-#RUN curl -L $(curl https://api.github.com/repos/ShokoAnime/ShokoServer-WebUI/releases | jq -r '. | map(select(.prerelease==false)) | .[0].assets[0].browser_download_url') -o latest.zip
-RUN curl -L $(curl https://api.github.com/repos/ShokoAnime/ShokoServer-WebUI/releases | jq -r '.[0].assets[0].browser_download_url') -o latest.zip
+RUN curl -L $(curl https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases/latest | jq -r '.assets[0].browser_download_url') -o latest.zip
 RUN unzip -o latest.zip
 RUN rm latest.zip
 
 VOLUME /home/shoko/.shoko/
-VOLUME /usr/src/app/build/webui
 
 HEALTHCHECK --start-period=5m CMD curl -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:8111/v1/Server' || exit 1
 

@@ -91,7 +91,7 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
             RepoFactory.AnimeGroup.Save(grp, false, false);
         }
 
-        ShokoEventHandler.Instance.OnFileMatched(_vlocal.GetBestVideoLocalPlace());
+        ShokoEventHandler.Instance.OnFileMatched(_vlocal.GetBestVideoLocalPlace(), _vlocal);
 
         if (_settings.AniDb.MyList_AddFiles)
         {

@@ -2,10 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using F23.StringSimilarity;
+using F23.StringSimilarity.Interfaces;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -22,17 +25,14 @@ public static class SeriesSearch
         Fuzzy = 4
     }
 
-    private static readonly char[] InvalidPathChars =
-        $"{new string(Path.GetInvalidFileNameChars())}{new string(Path.GetInvalidPathChars())}()+".ToCharArray();
+    private static readonly char[] InvalidPathChars = Path.GetInvalidFileNameChars().Concat(Path.GetInvalidPathChars()).Concat(new char[] { '(', ')', '+' }).ToArray();
 
-    private static readonly char[] ReplaceWithSpace = @"[-.]".ToCharArray();
+    private static readonly char[] ReplaceWithSpace = new char[] { '[', '-', '.', ']' };
 
     public static string SanitizeFuzzy(string value, bool replaceInvalid)
     {
         if (!replaceInvalid)
-        {
             return value;
-        }
 
         value = value.FilterCharacters(InvalidPathChars, true);
         value = ReplaceWithSpace.Aggregate(value, (current, c) => current.Replace(c, ' '));
@@ -40,443 +40,469 @@ public static class SeriesSearch
         return value.CompactWhitespaces();
     }
 
-    /// <summary>
-    ///     function used in fuzzy search
-    /// </summary>
-    /// <param name="grouping"></param>
-    /// <param name="query"></param>
-    private static SearchResult<List<SVR_AnimeSeries>> CheckTitlesFuzzy(IGrouping<int, SVR_AnimeSeries> grouping,
-        string query)
+    private static readonly IStringDistance DiceSearch = new SorensenDice();
+
+    public static SearchResult<T> DiceFuzzySearch<T>(string text, string pattern, T value)
     {
-        if (!(grouping?.SelectMany(a => a.GetAllTitles()).Any() ?? false))
-        {
-            return null;
-        }
+        if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(pattern))
+            return new();
+        // This forces ASCII, because it's faster to stop caring if ss and ß are the same
+        // No it's not perfect, but it works better for those who just want to do lazy searching
+        string inputString = text.FilterSearchCharacters();
+        string query = pattern.FilterSearchCharacters();
+        inputString = inputString.Replace('_', ' ').Replace('-', ' ');
+        query = query.Replace('_', ' ').Replace('-', ' ');
+        query = query.CompactWhitespaces();
+        inputString = inputString.CompactWhitespaces();
+        // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
+        query = query.ToLowerInvariant();
+        inputString = inputString.ToLowerInvariant();
 
-        SearchResult<List<SVR_AnimeSeries>> dist = null;
+        if (string.IsNullOrWhiteSpace(query) || string.IsNullOrWhiteSpace(inputString))
+            return new();
 
-        foreach (var item in grouping)
-        {
-            foreach (var title in item.GetAllTitles())
+        // Shortcut
+        var lengthDiff = Math.Abs(query.Length - inputString.Length);
+        int index = inputString.IndexOf(query, StringComparison.Ordinal);
+        if (index > -1)
+            return new()
             {
-                if (string.IsNullOrEmpty(title))
-                {
-                    continue;
-                }
-
-                var k = Math.Max(Math.Min((int)(title.Length / 6D), (int)(query.Length / 6D)), 1);
-                if (query.Length <= 4 || title.Length <= 4)
-                {
-                    k = 0;
-                }
-
-                var result =
-                    Misc.DiceFuzzySearch(title, query, k, grouping);
-                if (result.Index == -1)
-                {
-                    continue;
-                }
-
-                var searchGrouping = new SearchResult<List<SVR_AnimeSeries>>
-                {
-                    Distance = result.Distance,
-                    Index = result.Index,
-                    ExactMatch = result.ExactMatch,
-                    Match = title,
-                    Result = grouping.OrderBy(a => a.AirDate).ToList()
-                };
-                if (result.Distance < (dist?.Distance ?? int.MaxValue))
-                {
-                    dist = searchGrouping;
-                }
-            }
-        }
-
-        return dist;
-    }
-
-    /// <summary>
-    ///     function used in fuzzy search
-    /// </summary>
-    /// <param name="grouping"></param>
-    /// <param name="query"></param>
-    private static SearchResult<List<SVR_AnimeSeries>> CheckTitlesIndexOf(IGrouping<int, SVR_AnimeSeries> grouping,
-        string query)
-    {
-        if (!(grouping?.SelectMany(a => a.GetAllTitles()).Any() ?? false))
-        {
-            return null;
-        }
-
-        SearchResult<List<SVR_AnimeSeries>> dist = null;
-
-        foreach (var item in grouping)
-        foreach (var title in item.GetAllTitles())
-        {
-            if (string.IsNullOrEmpty(title))
-            {
-                continue;
-            }
-
-            var result = title.IndexOf(query, StringComparison.OrdinalIgnoreCase);
-            if (result == -1)
-            {
-                continue;
-            }
-
-            var searchGrouping = new SearchResult<List<SVR_AnimeSeries>>
-            {
-                Distance = 0,
-                Index = result,
                 ExactMatch = true,
-                Match = title,
-                Result = grouping.OrderBy(a => a.AirDate).ToList()
+                Index = index,
+                LengthDifference = lengthDiff,
+                Match = text,
+                Result = value,
             };
-            if (result < (dist?.Index ?? int.MaxValue))
-            {
-                dist = searchGrouping;
-            }
+
+        // always search the longer string for the shorter one
+        if (query.Length > inputString.Length)
+        {
+            string temp = query;
+            query = inputString;
+            inputString = temp;
         }
 
-        return dist;
+        double result = DiceSearch.Distance(inputString, query);
+
+        // Don't count an error as liberally when the title is short
+        if (inputString.Length < 5 && result > 0.5)
+            return new();
+
+        if (result >= 0.8)
+            return new();
+
+        return new()
+        {
+            Distance = result,
+            LengthDifference = lengthDiff,
+            Match = text,
+            Result = value,
+        };
     }
 
-    public static List<SearchResult<T>> SearchCollection<T>(string query, IEnumerable<T> list,
-        Func<T, List<string>> selector)
+    private static SearchResult<T> IndexOfSearch<T>(string text, string pattern, T value)
     {
-        var parallelList = list.ToList().AsParallel();
-        var results = parallelList.Select(a =>
+        var index = text.IndexOf(pattern, StringComparison.OrdinalIgnoreCase);
+        if (index == -1)
+            return new();
+
+        var lengthDiff = Math.Abs(pattern.Length - text.Length);
+        return new()
         {
-            var titles = selector(a);
-            SearchResult<T> dist = null;
-            foreach (var title in titles)
-            {
-                if (string.IsNullOrEmpty(title))
-                {
-                    continue;
-                }
+            ExactMatch = true,
+            Index = index,
+            LengthDifference = lengthDiff,
+            Match = text,
+            Result = value,
+        };
+    }
 
-                var k = Math.Max(Math.Min((int)(title.Length / 6D), (int)(query.Length / 6D)), 1);
-                if (query.Length <= 4 || title.Length <= 4)
-                {
-                    k = 0;
-                }
+    public static bool FuzzyMatch(this string text, string query)
+    {
+        if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(query))
+            return false;
+        var result = DiceFuzzySearch(text, query, text);
+        if (string.IsNullOrWhiteSpace(result.Match))
+            return false;
+        if (result.ExactMatch)
+            return true;
+        if (text.Length <= 5 && result.Distance > 0.5D)
+            return false;
+        return result.Distance < 0.8D;
+    }
 
-                var result =
-                    Misc.DiceFuzzySearch(title, query, k, a);
-                if (result.Index == -1)
-                {
-                    continue;
-                }
+    public static IEnumerable<SearchResult<T>> Search<T>(this IEnumerable<T> enumerable, string query, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
+        => SearchCollection(enumerable is ParallelQuery<T> parallel ? parallel : enumerable.AsParallel(), query, selector, fuzzy, take, skip);
 
-                var searchGrouping = new SearchResult<T>
-                {
-                    Distance = result.Distance,
-                    Index = result.Index,
-                    ExactMatch = result.ExactMatch,
-                    Match = title,
-                    Result = a
-                };
-                if (result.Distance < (dist?.Distance ?? int.MaxValue))
-                {
-                    dist = searchGrouping;
-                }
-            }
+    public static ParallelQuery<SearchResult<T>> Search<T>(this ParallelQuery<T> enumerable, string query, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
+        => SearchCollection(enumerable, query, selector, fuzzy, take, skip);
 
-            return dist;
-        }).Where(a => a != null && a.Index != -1).ToList().OrderBy(a => a.Index).ThenBy(a => a.Distance).ToList();
+    private static ParallelQuery<SearchResult<T>> SearchCollection<T>(ParallelQuery<T> query, string search, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
+    {
+        // Don't do anything if we want to take zero or less entries.
+        if (take.HasValue && take.Value <= 0)
+            return new List<SearchResult<T>>().AsParallel();
 
-        return results;
+        ParallelQuery<SearchResult<T>> enumerable = query
+            .Select(t => selector(t)
+                .Aggregate<string, SearchResult<T>>(null, (current, title) =>
+                {
+                    if (string.IsNullOrWhiteSpace(title))
+                        return current;
+
+                    var result = fuzzy ? DiceFuzzySearch(title, search, t) : IndexOfSearch(title, search, t);
+                    if (result.CompareTo(current) >= 0)
+                        return current;
+
+                    return result;
+                })
+            )
+            .Where(a => !string.IsNullOrEmpty(a?.Match))
+            .OrderBy(a => a);
+
+        if (skip.HasValue && skip.Value > 0)
+            enumerable = enumerable.Skip(skip.Value);
+
+        if (take.HasValue)
+            enumerable = enumerable.Take(take.Value);
+
+        return enumerable;
     }
 
     /// <summary>
     ///     Search for series with given query in name or tag
     /// </summary>
     /// <param name="query">target string</param>
-    /// <param name="userID">user id</param>
+    /// <param name="user">user</param>
     /// <param name="limit">The number of results to return</param>
     /// <param name="flags">The SearchFlags to determine the type of search</param>
+    /// <param name="tagFilter">Tag filter to use if <paramref name="flags"/>
+    /// includes <see cref="SearchFlags.Tags"/>.</param>
     /// <returns>
     ///     <see cref="List{SearchResult}" />
     /// </returns>
-    public static List<SearchResult<SVR_AnimeSeries>> Search(int userID, string query, int limit, SearchFlags flags,
-        TagFilter.Filter tagFilter = TagFilter.Filter.None)
+    public static List<SearchResult<SVR_AnimeSeries>> SearchSeries(SVR_JMMUser user, string query, int limit, SearchFlags flags,
+            TagFilter.Filter tagFilter = TagFilter.Filter.None)
     {
-        if (string.IsNullOrEmpty(query)) return new List<SearchResult<SVR_AnimeSeries>>();
+        if (string.IsNullOrWhiteSpace(query) || user == null || limit <= 0)
+            return new List<SearchResult<SVR_AnimeSeries>>();
+
         query = query.ToLowerInvariant();
-
-        var user = RepoFactory.JMMUser.GetByID(userID);
-        if (user == null)
-        {
-            throw new Exception("User not found");
-        }
-
-        var allSeries =
-            RepoFactory.AnimeSeries.GetAll().AsParallel().Where(a =>
-                a?.GetAnime() != null && (a.GetAnime().GetAllTags().Count == 0 ||
-                                          !a.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories())));
-
-        var allTags = RepoFactory.AniDB_Tag.GetAll().AsParallel()
-            .Where(a => !user.GetHideCategories().Contains(a.TagName) &&
-                        !TagFilter.IsTagBlackListed(a.TagName, tagFilter));
+        var forbiddenTags = user.GetHideCategories();
 
         //search by anime id
-        if (int.TryParse(query, out var aid))
+        if (int.TryParse(query, out int animeID))
         {
-            var aidResults = SearchTitlesByAnimeID(aid, allSeries);
-            if (aidResults.Count > 0)
+            var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            var anime = series.GetAnime();
+            var tags = anime?.GetAllTags();
+            if (anime != null && !tags.FindInEnumerable(forbiddenTags))
+                return new List<SearchResult<SVR_AnimeSeries>>
+                {
+                    new SearchResult<SVR_AnimeSeries>
+                    {
+                        ExactMatch = true,
+                        Match = series.AniDB_ID.ToString(),
+                        Result = series,
+                    },
+                };
+        }
+
+        var allSeries = !flags.HasFlag(SearchFlags.Titles) ? null : RepoFactory.AnimeSeries.GetAll()
+            .AsParallel()
+            .Where(series =>
             {
-                return aidResults;
-            }
-        }
-
-        #region Search_TitlesOnly
-
-        switch (flags)
+                var anime = series.GetAnime();
+                var tags = anime?.GetAllTags();
+                return anime != null && (tags.Count == 0 || !tags.FindInEnumerable(forbiddenTags));
+            });
+        var allTags = !flags.HasFlag(SearchFlags.Tags) ? null : RepoFactory.AniDB_Tag.GetAll()
+            .AsParallel()
+            .Where(tag => !forbiddenTags.Contains(tag.TagName) && !TagFilter.IsTagBlackListed(tag.TagName, tagFilter));
+        return flags switch
         {
-            case SearchFlags.Titles:
-                return SearchTitlesIndexOf(query, limit, allSeries);
-            case SearchFlags.Fuzzy | SearchFlags.Titles:
-                return SearchTitlesFuzzy(query, limit, allSeries);
-            case SearchFlags.Tags:
-                return SearchTagsEquals(query, limit, user, allTags);
-            case SearchFlags.Fuzzy | SearchFlags.Tags:
-                return SearchTagsFuzzy(query, limit, user, allTags);
-            case SearchFlags.Tags | SearchFlags.Titles:
-                var titleResult = SearchTitlesIndexOf(query, limit, allSeries);
-
-                var tagLimit = limit - titleResult.Count;
-                if (tagLimit <= 0)
-                {
-                    return titleResult;
-                }
-
-                titleResult.AddRange(SearchTagsEquals(query, tagLimit, user, allTags));
-                return titleResult;
-            case SearchFlags.Fuzzy | SearchFlags.Tags | SearchFlags.Titles:
-                var titles = SearchTitlesFuzzy(query, limit, allSeries);
-
-                var tagLimit2 = limit - titles.Count;
-                if (tagLimit2 <= 0)
-                {
-                    return titles;
-                }
-
-                titles.AddRange(SearchTagsFuzzy(query, tagLimit2, user, allTags));
-                return titles;
-        }
-
-        #endregion
-
-        return new List<SearchResult<SVR_AnimeSeries>>();
+            SearchFlags.Titles => SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), false, limit)
+                .ToList(),
+            SearchFlags.Fuzzy | SearchFlags.Titles => SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), true, limit)
+                .ToList(),
+            SearchFlags.Tags => SearchTagsExact(query, limit, forbiddenTags, allTags),
+            SearchFlags.Fuzzy | SearchFlags.Tags => SearchTagsFuzzy(query, limit, forbiddenTags, allTags),
+            SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTags(query, limit, forbiddenTags, allSeries, allTags),
+            SearchFlags.Fuzzy | SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTagsFuzzy(query, limit, forbiddenTags, allSeries, allTags),
+            _ => new List<SearchResult<SVR_AnimeSeries>>(),
+        };
     }
 
-    private static List<SearchResult<SVR_AnimeSeries>> SearchTitlesByAnimeID(int aid,
-        ParallelQuery<SVR_AnimeSeries> allSeries)
+    private static List<SearchResult<SVR_AnimeSeries>> SearchTitleAndTags(
+        string query,
+        int limit,
+        HashSet<string> forbiddenTags,
+        ParallelQuery<SVR_AnimeSeries> allSeries,
+        ParallelQuery<AniDB_Tag> allTags)
     {
-        // We should only have one, but meh
-        return allSeries
-            .Where(a => a.AniDB_ID == aid).Select(b => new SearchResult<SVR_AnimeSeries>
-            {
-                Distance = 0,
-                Index = 0,
-                ExactMatch = true,
-                Match = b.AniDB_ID.ToString(),
-                Result = b
-            })
+        var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), false, limit)
             .ToList();
+        var tagLimit = limit - titleResult.Count;
+        if (tagLimit > 0)
+            titleResult.AddRange(SearchTagsExact(query, tagLimit, forbiddenTags, allTags));
+        return titleResult;
     }
 
-    private static List<SearchResult<SVR_AnimeSeries>> SearchTagsEquals(string query, int limit, SVR_JMMUser user,
+    private static List<SearchResult<SVR_AnimeSeries>> SearchTitleAndTagsFuzzy(
+        string query,
+        int limit,
+        HashSet<string> forbiddenTags,
+        ParallelQuery<SVR_AnimeSeries> allSeries,
         ParallelQuery<AniDB_Tag> allTags)
     {
-        var series = new List<SearchResult<SVR_AnimeSeries>>();
-        IEnumerable<CustomTag> customTags = RepoFactory.CustomTag.GetAll();
-        series.AddRange(customTags.Where(a => a.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase))
-            .SelectMany(tag =>
-            {
-                return RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID)
-                    .Select(xref =>
-                    {
-                        if (xref.CrossRefType != (int)CustomTagCrossRefType.Anime)
-                        {
-                            return null;
-                        }
-
-                        var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
-                        // Because we are searching tags, then getting series from it, we need to make sure it's allowed
-                        // for example, porn could have the drugs tag, even though it's not a "porn tag"
-                        if (anime?.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? true)
-                        {
-                            return null;
-                        }
-
-                        return new SearchResult<SVR_AnimeSeries>
-                        {
-                            Distance = 0,
-                            Index = 0,
-                            Match = tag.TagName,
-                            Result = anime,
-                            ExactMatch = true
-                        };
-                    }).Where(a => a != null).OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName());
-            }).Take(limit));
-
-        limit -= series.Count;
-
-        series.AddRange(allTags.Where(a => a.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase))
-            .SelectMany(tag =>
-            {
-                return RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID)
-                    .Select(xref =>
-                    {
-                        var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
-                        // Because we are searching tags, then getting series from it, we need to make sure it's allowed
-                        // for example, porn could have the drugs tag, even though it's not a "porn tag"
-                        if (anime?.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? true)
-                        {
-                            return null;
-                        }
-
-                        return new SearchResult<SVR_AnimeSeries>
-                        {
-                            Distance = (600 - xref.Weight) / 600D,
-                            Index = 0,
-                            Match = tag.TagName,
-                            Result = anime,
-                            ExactMatch = true
-                        };
-                    }).Where(a => a != null).OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName());
-            }).Take(limit));
-        return series;
+        var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), true, limit)
+            .ToList();
+        var tagLimit = limit - titleResult.Count;
+        if (tagLimit > 0)
+            titleResult.AddRange(SearchTagsFuzzy(query, tagLimit, forbiddenTags, allTags));
+        return titleResult;
     }
 
-    private static List<SearchResult<SVR_AnimeSeries>> SearchTagsFuzzy(string query, int limit, SVR_JMMUser user,
-        ParallelQuery<AniDB_Tag> allTags)
+    private static List<SearchResult<SVR_AnimeSeries>> SearchTagsExact(string query, int limit,
+        HashSet<string> forbiddenTags, ParallelQuery<AniDB_Tag> allTags)
     {
-        var series = new List<SearchResult<SVR_AnimeSeries>>();
-        IEnumerable<Misc.SearchInfo<CustomTag>> customTags = RepoFactory.CustomTag.GetAll().Select(a =>
-        {
-            if (user.GetHideCategories().Contains(a.TagName))
-            {
-                return null;
-            }
-
-            var tag = Misc.DiceFuzzySearch(a.TagName, query, 0, a);
-            if (tag.Index == -1 || tag.Result == null)
-            {
-                return null;
-            }
-
-            return tag;
-        }).Where(a => a != null).OrderBy(a => a.Distance);
-        series.AddRange(customTags.SelectMany(tag =>
-        {
-            return RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.Result.CustomTagID)
+        var seriesList = new List<SearchResult<SVR_AnimeSeries>>();
+        seriesList.AddRange(RepoFactory.CustomTag.GetAll()
+            .Where(tag => tag.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase))
+            .SelectMany(tag => RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID)
                 .Select(xref =>
                 {
                     if (xref.CrossRefType != (int)CustomTagCrossRefType.Anime)
-                    {
                         return null;
-                    }
 
-                    var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
-                    // Because we are searching tags, then getting series from it, we need to make sure it's allowed
-                    // for example, porn could have the drugs tag, even though it's not a "porn tag"
-                    if (anime?.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? true)
-                    {
+                    var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
+                    var anime = series?.GetAnime();
+                    var tags = anime?.GetAllTags();
+                    if (anime == null || (tags.Count == 0 || tags.FindInEnumerable(forbiddenTags)))
                         return null;
-                    }
 
                     return new SearchResult<SVR_AnimeSeries>
                     {
-                        Distance = tag.Distance,
-                        Index = tag.Index,
-                        Match = tag.Result.TagName,
-                        Result = anime,
-                        ExactMatch = tag.ExactMatch
+                        ExactMatch = true,
+                        Match = tag.TagName,
+                        Result = series,
                     };
-                }).Where(b => b != null).OrderBy(b => b.Distance).ThenBy(b => b.Result.GetSeriesName()).ToList();
-        }).Take(limit));
+                })
+                .Where(a => a != null)
+            )
+            .OrderBy(a => a.Result.GetSeriesName())
+            .Take(limit)
+        );
 
-        limit -= series.Count;
+        limit -= seriesList.Count;
 
-        var tags = allTags.Select(tag =>
-        {
-            var result = Misc.DiceFuzzySearch(tag.TagName, query, 0, tag);
-            if (result.Index == -1 || result.Result == null)
-            {
-                return null;
-            }
-
-            return result;
-        }).Where(a => a != null).OrderBy(a => a.Distance);
-        series.AddRange(tags.SelectMany(tag =>
-        {
-            return RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.Result.TagID)
+        seriesList.AddRange(allTags
+            .Where(a => a.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase))
+            .SelectMany(tag => RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID)
                 .Select(xref =>
                 {
-                    var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
-                    // Because we are searching tags, then getting series from it, we need to make sure it's allowed
-                    // for example, porn could have the drugs tag, even though it's not a "porn tag"
-                    if (anime?.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? true)
-                    {
+                    var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                    var anime = series?.GetAnime();
+                    var tags = anime?.GetAllTags();
+                    if (anime == null || (tags.Count == 0 || tags.FindInEnumerable(forbiddenTags)))
                         return null;
-                    }
 
                     return new SearchResult<SVR_AnimeSeries>
                     {
-                        Distance = (600D - xref.Weight) / 600,
-                        Index = tag.Index,
-                        Match = tag.Result.TagName,
-                        Result = anime,
-                        ExactMatch = tag.ExactMatch
+                        ExactMatch = true,
+                        Distance = (600 - xref.Weight) / 600D,
+                        Match = tag.TagName,
+                        Result = series,
                     };
-                }).Where(a => a != null).OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName()).ToList();
-        }).Take(limit));
-        return series;
+                })
+                .Where(a => a != null)
+            )
+            .OrderBy(a => a)
+            .ThenBy(a => a.Result.GetSeriesName())
+            .Take(limit)
+        );
+        return seriesList;
     }
 
-    private static List<SearchResult<SVR_AnimeSeries>> SearchTitlesIndexOf(string query, int limit,
-        ParallelQuery<SVR_AnimeSeries> allSeries)
+    private static List<SearchResult<SVR_AnimeSeries>> SearchTagsFuzzy(string query, int limit,
+        HashSet<string> forbiddenTags, ParallelQuery<AniDB_Tag> allTags)
     {
-        var sanitizedQuery = SanitizeFuzzy(query, false);
-        return allSeries.GroupBy(a => a.AnimeGroupID).Select(a => CheckTitlesIndexOf(a, sanitizedQuery))
-            .Where(a => a != null).OrderBy(a => a.Index).SelectMany(a => a.Result.Select(b =>
-                new SearchResult<SVR_AnimeSeries>
+        var seriesList = new List<SearchResult<SVR_AnimeSeries>>();
+        var customTags = RepoFactory.CustomTag.GetAll()
+            .AsParallel()
+            .Select(tag =>
+            {
+                if (forbiddenTags.Contains(tag.TagName))
+                    return null;
+
+                var result = DiceFuzzySearch(tag.TagName, query, tag);
+                if (result.Index == -1 || result.Result == null)
+                    return null;
+
+                return result;
+            })
+            .Where(a => a != null);
+        seriesList.AddRange(customTags
+            .SelectMany(tag => RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.Result.CustomTagID)
+                .Select(xref =>
                 {
-                    Distance = a.Distance,
-                    Index = a.Index,
-                    ExactMatch = a.ExactMatch,
-                    Match = a.Match,
-                    Result = b
-                })).Take(limit).ToList();
-    }
+                    if (xref.CrossRefType != (int)CustomTagCrossRefType.Anime)
+                        return null;
 
-    private static List<SearchResult<SVR_AnimeSeries>> SearchTitlesFuzzy(string query, int limit,
-        ParallelQuery<SVR_AnimeSeries> allSeries)
-    {
-        // ToList() after the Parallel compatible operations are done to prevent an OutOfMemoryException on the ParallelEnumerable
-        return allSeries.GroupBy(a => a.AnimeGroupID).Select(a => CheckTitlesFuzzy(a, query)).Where(a => a != null)
-            .ToList()
-            .OrderBy(a => a.Index).ThenBy(a => a.Distance).SelectMany(a => a.Result.Select(b =>
-                new SearchResult<SVR_AnimeSeries>
+                    var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
+                    var anime = series?.GetAnime();
+                    var tags = anime?.GetAllTags();
+                    if (anime == null || (tags.Count == 0 || tags.FindInEnumerable(forbiddenTags)))
+                        return null;
+
+                    return new SearchResult<SVR_AnimeSeries>
+                    {
+                        ExactMatch = tag.ExactMatch,
+                        Index = tag.Index,
+                        Distance = tag.Distance,
+                        LengthDifference = tag.LengthDifference,
+                        Match = tag.Result.TagName,
+                        Result = series,
+                    };
+                })
+                .Where(b => b != null)
+            )
+            .OrderBy(a => a)
+            .ThenBy(b => b.Result.GetSeriesName())
+            .Take(limit));
+
+        limit -= seriesList.Count;
+
+        var tags = allTags
+            .Select(tag =>
+            {
+                var result = DiceFuzzySearch(tag.TagName, query, tag);
+                if (result.Index == -1 || result.Result == null)
+                    return null;
+
+                return result;
+            })
+            .Where(a => a != null);
+        seriesList.AddRange(tags
+            .SelectMany(tag => RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.Result.TagID)
+                .Select(xref =>
                 {
-                    Distance = a.Distance,
-                    Index = a.Index,
-                    ExactMatch = a.ExactMatch,
-                    Match = a.Match,
-                    Result = b
-                })).Take(limit).ToList();
+                    var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                    var anime = series?.GetAnime();
+                    var tags = anime?.GetAllTags();
+                    if (anime == null || (tags.Count == 0 || tags.FindInEnumerable(forbiddenTags)))
+                        return null;
+
+                    return new SearchResult<SVR_AnimeSeries>
+                    {
+                        ExactMatch = tag.ExactMatch,
+                        Index = tag.Index,
+                        Distance = (tag.Distance + (600 - xref.Weight) / 600D) / 2,
+                        LengthDifference = tag.LengthDifference,
+                        Match = tag.Result.TagName,
+                        Result = series,
+                    };
+                })
+                .Where(a => a != null)
+            )
+            .OrderBy(a => a)
+            .ThenBy(a => a.Result.GetSeriesName())
+            .Take(limit)
+        );
+        return seriesList;
     }
 
-    public class SearchResult<T>
+    private static Func<SVR_AnimeSeries, IEnumerable<string>> CreateSeriesTitleDelegate()
     {
-        public bool ExactMatch { get; set; }
-        public double Distance { get; set; }
-        public int Index { get; set; }
-        public string Match { get; set; }
+        var settings = Utils.SettingsProvider.GetSettings();
+        var languages = new HashSet<string> { "en", "x-jat" };
+        languages.UnionWith(settings.LanguagePreference);
+        return series => RepoFactory.AniDB_Anime_Title.GetByAnimeID(series.AniDB_ID)
+            .Where(title => title.TitleType == TitleType.Main || languages.Contains(title.LanguageCode))
+            .Select(title => title.Title)
+            .Append(series.GetSeriesName())
+            .Distinct();
+    }
 
+    public class SearchResult<T> : IComparable<SearchResult<T>>
+    {
+        /// <summary>
+        /// Indicates whether the search result is an exact match to the query.
+        /// </summary>
+        public bool ExactMatch { get; set; } = false;
+
+        /// <summary>
+        /// Represents the position of the match within the sanitized string.
+        /// This property is only applicable when ExactMatch is set to true.
+        /// A lower value indicates a match that occurs earlier in the string.
+        /// </summary>
+        public int Index { get; set; } = 0;
+
+        /// <summary>
+        /// Represents the similarity measure between the sanitized query and the sanitized matched result.
+        /// This may be the sorensen-dice distance or the tag weight when comparing tags for a series.
+        /// A lower value indicates a more similar match.
+        /// </summary>
+        public double Distance { get; set; } = 0D;
+
+        /// <summary>
+        /// Represents the absolute difference in length between the sanitized query and the sanitized matched result.
+        /// A lower value indicates a match with a more similar length to the query.
+        /// </summary>
+        public int LengthDifference { get; set; } = 0;
+
+        /// <summary>
+        /// Contains the original matched substring from the original string.
+        /// </summary>
+        public string Match { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Represents the result object associated with the match.
+        /// </summary>
         public T Result { get; set; }
+
+        /// <summary>
+        /// Compares the current SearchResult instance with another SearchResult instance.
+        /// The comparison is performed in the following order:
+        /// 1. ExactMatch (descending): prioritize exact matches
+        /// 2. Index (ascending): prioritize matches that occur earlier in the string
+        /// 3. Distance (ascending): prioritize matches with smaller similarity distances
+        /// 4. LengthDifference (ascending): prioritize matches with a more similar length to the query
+        /// 5. Match (ascending): prioritize matches based on their lexicographic order
+        /// </summary>
+        /// <param name="other">The SearchResult instance to compare with the current instance.</param>
+        /// <returns>A negative, zero, or positive integer indicating the relative order of the objects being compared.</returns>
+        public int CompareTo(SearchResult<T> other)
+        {
+            if (other == null)
+                return -1;
+
+            var isEmpty = string.IsNullOrEmpty(Match);
+            var otherIsEmpty = string.IsNullOrEmpty(other.Match);
+            if (isEmpty && otherIsEmpty)
+                return 0;
+            if (isEmpty)
+                return 1;
+            if (otherIsEmpty)
+                return -1;
+
+            int exactMatchComparison = ExactMatch == other.ExactMatch ? 0 : ExactMatch ? -1 : 1;
+            if (exactMatchComparison != 0)
+                return exactMatchComparison;
+
+            int indexComparison = Index.CompareTo(other.Index);
+            if (indexComparison != 0)
+                return indexComparison;
+
+            int distanceComparison = Distance.CompareTo(other.Distance);
+            if (distanceComparison != 0)
+                return distanceComparison;
+
+            int lengthDifferenceComparison = LengthDifference.CompareTo(other.LengthDifference);
+            if (lengthDifferenceComparison != 0)
+                return lengthDifferenceComparison;
+
+            return string.Compare(Match, other.Match);
+        }
     }
 }

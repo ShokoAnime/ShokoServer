@@ -6,14 +6,16 @@ on:
       - master
 
 jobs:
-  cli-framework-daily:
+  current_info:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        dotnet: [ '6.x' ]
+    name: Current Information
 
-    name: Build CLI — Framework dependent (Daily)
+    outputs:
+      version: ${{ steps.release_info.outputs.version }}
+      date: ${{ steps.commit_date_iso8601.outputs.date }}
+      sha: ${{ github.sha }}
+      sha_short: ${{ steps.commit_info.outputs.sha }}
 
     steps:
       - name: Checkout master
@@ -23,7 +25,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
-      - name: Get current version
+      - name: Get Current Version
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
@@ -31,29 +33,38 @@ jobs:
           prefix: v
           prefixRegex: "[vV]?"
 
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
+      - name: Get Commit Date (as ISO8601)
+        id: commit_date_iso8601
+        shell: bash
+        run: |
+          echo "date=$(git --no-pager show -s --format=%aI ${{ github.sha }})" >> "$GITHUB_OUTPUT"
+      - id: commit_info
+        name: Shorten Commit Hash
+        uses: actions/github-script@v6
         with:
-          dotnet-version: ${{ matrix.dotnet }}
+          script: |
+            const sha = context.sha.substring(0, 7);
+            core.setOutput("sha", sha);
 
-      - run: dotnet publish -c Release --no-self-contained Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=dev,commit=${{ github.sha }}\""
-
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: Shoko.CLI_Framework_any-x64.zip
-          path: Shoko.Server/bin/Release/net6.0/${{matrix.rid}}/publish/
-
-  cli-standalone-daily:
+  cli-daily:
     runs-on: ubuntu-latest
 
+    needs:
+      - current_info
+
     strategy:
       matrix:
-        rid: ['win-x64', 'linux-x64']
+        rid: ['linux-x64', 'linux-arm64']
         dotnet: [ '6.x' ]
+        build_type: ['Standalone']
+        include:
+          - build_props: ''
+            build_type: 'Standalone'
+          - build_type: 'Framework'
+            build_props: '--no-self-contained'
+            rid: 'linux-x64'
 
-    name: Build CLI — Standalone ${{ matrix.rid }} (Daily)
+    name: Build CLI — ${{ matrix.build_type }} ${{ matrix.rid }} (Daily)
 
     steps:
       - name: Checkout master
@@ -61,113 +72,222 @@ jobs:
         with:
           ref: "${{ github.sha }}"
           submodules: recursive
-          fetch-depth: 0 # This is set to download the full git history for the repo
 
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: ${{ matrix.dotnet }}
-
-      - name: Get current version
-        id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
-        with:
-          branch: true
-          prefix: v
-          prefixRegex: "[vV]?"
-
-      - run: dotnet publish -c Release -r ${{ matrix.rid }} Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=dev,commit=${{ github.sha }}\""
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: Shoko.CLI_Standalone_${{ matrix.rid }}.zip
-          path: Shoko.Server/bin/Release/net6.0/${{matrix.rid}}/publish/
-
-  tray-service-framework-daily:
-    runs-on: windows-latest
-
-    strategy:
-      matrix:
-        dotnet: [ '6.x' ]
-
-    name: Build Tray Service — Framework dependent (Daily)
-
-    steps:
-      - name: Checkout master
-        uses: actions/checkout@master
-        with:
-          ref: "${{ github.sha }}"
-          submodules: recursive
-          fetch-depth: 0 # This is set to download the full git history for the repo
-
-      - name: Get current version
-        id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
-        with:
-          branch: true
-          prefix: v
-          prefixRegex: "[vV]?"
-
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: ${{ matrix.dotnet }}
-
-      - run: dotnet publish -c Release --no-self-contained Shoko.TrayService "/p:Version=\`"${{ steps.release_info.outputs.version }}\`",InformationalVersion=\`"channel=dev,commit=${{ github.sha }}\`""
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: Shoko.TrayService_Framework_win10-x64.zip
-          path: Shoko.Server/bin/Release/net6.0-windows/publish/
-
-  tray-service-standalone-daily:
-    runs-on: windows-latest
-
-    strategy:
-      matrix:
-        dotnet: [ '6.x' ]
-
-    name: Build Tray Service — Standalone (Daily)
-
-    steps:
-      - name: Checkout master
-        uses: actions/checkout@master
-        with:
-          ref: "${{ github.sha }}"
-          submodules: recursive
-          fetch-depth: 0 # This is set to download the full git history for the repo
-
-      - name: Get current version
-        id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
-        with:
-          branch: true
-          prefix: v
-          prefixRegex: "[vV]?"
-
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: ${{ matrix.dotnet }}
-
-      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net6.0-windows Shoko.TrayService "/p:Version=\`"${{ steps.release_info.outputs.version }}\`",InformationalVersion=\`"channel=dev,commit=${{ github.sha }}\`""
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: Shoko.TrayService_Standalone_win10-x64.zip
-          path: Shoko.Server/bin/Release/net6.0-windows/win10-x64/publish/
-
-      - name: Archive Release (for shokoanime.com)
+      - name: Replace Sentry DSN key
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\ShokoServer.zip
+        run: ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+        if: ${{ matrix.rid == 'linux-arm64' }}
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} ${{ matrix.build_props }} Shoko.CLI "/p:Version=\"${{ needs.current_info.outputs.version }}\",InformationalVersion=\"channel=dev,commit=${{ needs.current_info.outputs.sha }},date=${{ needs.current_info.outputs.date }}\""
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Shoko.CLI_${{ matrix.build_type }}_${{ matrix.rid }}.zip
+          path: Shoko.Server/bin/Release/net6.0/${{matrix.rid}}/publish/
+
+  tray-service-daily:
+    runs-on: windows-latest
+
+    needs:
+      - current_info
+
+    strategy:
+      matrix:
+        dotnet: [ '6.x' ]
+        build_type: ['Standalone', 'Framework']
+        include:
+          - build_props: '-r win10-x64 --self-contained true -f net6.0-windows'
+            build_type: 'Standalone'
+          - build_dir: '/net6.0-windows/win10-x64'
+            build_type: 'Standalone'
+          - build_props: ''
+            build_type: 'Framework'
+          - build_dir: '/net6.0-windows'
+            build_type: 'Framework'
+
+    name: Build Tray Service ${{ matrix.build_type }} (Daily)
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+
+      - name: Replace Sentry DSN key
+        shell: pwsh
+        run: .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService "/p:Version=\`"${{ needs.current_info.outputs.version }}\`",InformationalVersion=\`"channel=dev,commit=${{ needs.current_info.outputs.sha }},date=${{ needs.current_info.outputs.date }}\`""
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Shoko.TrayService_${{ matrix.build_type }}_win10-x64.zip
+          path: Shoko.Server/bin/Release${{ matrix.build_dir }}/publish/
 
       - name: Upload to shokoanime.com
+        if: ${{ matrix.build_type == 'Standalone' }}
         shell: pwsh
         env:
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
-        run : .\\.github\\workflows\\UploadArchive.ps1
+        run : Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\ShokoServer.zip && .\\.github\\workflows\\UploadArchive.ps1
+
+  docker-daily-build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: 'amd64'
+            dockerfile: 'Dockerfile'
+
+          - arch: 'arm64'
+            dockerfile: 'Dockerfile.aarch64'
+
+    name: Build Docker Image - ${{ matrix.arch }} (Daily)
+
+    needs:
+      - current_info
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+
+      - name: Replace Sentry DSN key
+        shell: pwsh
+        run: ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+
+      - uses: docker/setup-qemu-action@v2
+        name: Set up QEMU
+        with:
+          platforms: arm64
+        if: ${{ matrix.arch == 'arm64' }}
+
+      - uses: docker/setup-buildx-action@v2
+        name: Set up Docker Buildx
+
+      - name: Log into docker hub
+        run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+
+        # Disabled provenance for now, until it works with docker manifest create.
+        # The manifest list produced by the new feature is incompatible with the
+        # expected format used in the docker manifest create command.
+      - name: Build and Push the Docker image
+        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:daily-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ needs.current_info.outputs.version }} --build-arg channel=dev --build-arg commit=${{ needs.current_info.outputs.sha }} --build-arg date=${{ needs.current_info.outputs.date }} --push --provenance=false
+
+  docker-daily-push_manifest:
+    runs-on: ubuntu-latest
+
+    name: Push combined tag for both docker images
+
+    needs:
+      - docker-daily-build
+
+    steps:
+      - name: Log into Docker Hub
+        run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Create manifest
+        run: docker manifest create ${{ secrets.DOCKER_REPO }}:daily --amend ${{ secrets.DOCKER_REPO }}:daily-amd64 --amend ${{ secrets.DOCKER_REPO }}:daily-arm64
+
+      - name: Push manifest
+        run: docker manifest push ${{ secrets.DOCKER_REPO }}:daily
+
+  sentry-upload:
+    runs-on: ubuntu-latest
+
+    needs:
+      - current_info
+      - cli-daily
+      - tray-service-daily
+      - docker-daily-push_manifest
+
+    name: Upload version info to Sentry.io
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+
+      # Only add the release to sentry if the build is successful.
+      - name: Push Sentry Release "${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}"
+        uses: getsentry/action-release@v1.2.1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          # SENTRY_URL: https://sentry.io/
+        with:
+          environment: 'dev'
+          version: ${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}
+
+  discord-notify:
+    runs-on: ubuntu-latest
+
+    name: Send notifications about the new daily build
+
+    needs:
+      - current_info
+      - sentry-upload
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+
+      - name: Generate Changelog for Sentry Release
+        id: generate_changelog
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          RELEASE_VERSION: ${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}
+        run: |
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "CHANGELOG<<$EOF" >> "$GITHUB_OUTPUT"
+          curl -s "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/releases/$RELEASE_VERSION/commits/" \
+            -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
+            -H "Content-Type: application/json" \
+            | jq -r '.[].message + "\n"' >> "$GITHUB_OUTPUT"
+          echo "$EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Notify Discord Users
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          nodetail: true
+          title: New Daily Server Build!
+          description: |
+            **Version**: `${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}`
+
+            To update by by grabbing the latest daily from [out site](https://shokoanime.com/downloads/shoko-server) or through Docker!
+
+            **Changes since last build**:
+            ${{ steps.generate_changelog.outputs.CHANGELOG }}

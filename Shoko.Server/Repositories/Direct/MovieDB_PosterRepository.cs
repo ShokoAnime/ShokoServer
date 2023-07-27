@@ -12,50 +12,44 @@ public class MovieDB_PosterRepository : BaseDirectRepository<MovieDB_Poster, int
 {
     public MovieDB_Poster GetByOnlineID(string url)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return GetByOnlineID(session, url);
-        }
+        });
     }
 
     public MovieDB_Poster GetByOnlineID(ISession session, string url)
     {
-        lock (GlobalDBLock)
-        {
-            var cr = session
-                .CreateCriteria(typeof(MovieDB_Poster))
-                .Add(Restrictions.Eq("URL", url))
-                .List<MovieDB_Poster>().FirstOrDefault();
-            return cr;
-        }
+        var cr = session
+            .CreateCriteria(typeof(MovieDB_Poster))
+            .Add(Restrictions.Eq("URL", url))
+            .List<MovieDB_Poster>().FirstOrDefault();
+        return cr;
     }
 
     public List<MovieDB_Poster> GetByMovieID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             return GetByMovieID(session.Wrap(), id);
-        }
+        });
     }
 
     public List<MovieDB_Poster> GetByMovieID(ISessionWrapper session, int id)
     {
-        lock (GlobalDBLock)
-        {
-            var objs = session
-                .CreateCriteria(typeof(MovieDB_Poster))
-                .Add(Restrictions.Eq("MovieId", id))
-                .List<MovieDB_Poster>();
+        var objs = session
+            .CreateCriteria(typeof(MovieDB_Poster))
+            .Add(Restrictions.Eq("MovieId", id))
+            .List<MovieDB_Poster>();
 
-            return new List<MovieDB_Poster>(objs);
-        }
+        return new List<MovieDB_Poster>(objs);
     }
 
     public List<MovieDB_Poster> GetAllOriginal()
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             var objs = session
@@ -64,6 +58,6 @@ public class MovieDB_PosterRepository : BaseDirectRepository<MovieDB_Poster, int
                 .List<MovieDB_Poster>();
 
             return new List<MovieDB_Poster>(objs);
-        }
+        });
     }
 }

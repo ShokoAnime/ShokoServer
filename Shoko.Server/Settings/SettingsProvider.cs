@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -10,7 +9,9 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Utils;
+using Shoko.Server.Server;
 using Shoko.Server.Utilities;
+using Shoko.Server.Utilities.MediaInfoLib;
 using Constants = Shoko.Server.Server.Constants;
 using Formatting = Newtonsoft.Json.Formatting;
 using Legacy = Shoko.Server.Settings.Migration.ServerSettings_Legacy;
@@ -27,7 +28,6 @@ public class SettingsProvider : ISettingsProvider
     public SettingsProvider(ILogger<SettingsProvider> logger)
     {
         _logger = logger;
-        LoadSettings();
     }
 
     public IServerSettings GetSettings()
@@ -42,7 +42,7 @@ public class SettingsProvider : ISettingsProvider
         SaveSettings();
     }
 
-    private void LoadSettings()
+    public void LoadSettings()
     {
         var appPath = Utils.ApplicationPath;
         if (!Directory.Exists(appPath))
@@ -148,7 +148,7 @@ public class SettingsProvider : ISettingsProvider
             Import =
                 new ImportSettings
                 {
-                    VideoExtensions = legacy.VideoExtensions.Split(',').ToList(),
+                    VideoExtensions = legacy.VideoExtensions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
                     DefaultSeriesLanguage = legacy.DefaultSeriesLanguage,
                     DefaultEpisodeLanguage = legacy.DefaultEpisodeLanguage,
                     RunOnStart = legacy.RunImportOnStart,
@@ -167,12 +167,12 @@ public class SettingsProvider : ISettingsProvider
                     Server = legacy.Plex_Server
                 },
             AutoGroupSeries = legacy.AutoGroupSeries,
-            AutoGroupSeriesRelationExclusions = legacy.AutoGroupSeriesRelationExclusions,
+            AutoGroupSeriesRelationExclusions = legacy.AutoGroupSeriesRelationExclusions.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
             AutoGroupSeriesUseScoreAlgorithm = legacy.AutoGroupSeriesUseScoreAlgorithm,
             FileQualityFilterEnabled = legacy.FileQualityFilterEnabled,
             FileQualityPreferences = legacy.FileQualityFilterPreferences,
             LanguagePreference = legacy.LanguagePreference.Split(',').ToList(),
-            EpisodeLanguagePreference = legacy.EpisodeLanguagePreference,
+            EpisodeLanguagePreference = legacy.EpisodeLanguagePreference.Split(',').ToList(),
             LanguageUseSynonyms = legacy.LanguageUseSynonyms,
             CloudWatcherTime = legacy.CloudWatcherTime,
             EpisodeTitleSource = legacy.EpisodeTitleSource,
@@ -208,13 +208,13 @@ public class SettingsProvider : ISettingsProvider
                 settings.Database.Username = legacy.MySQL_Username;
                 settings.Database.Password = legacy.MySQL_Password;
                 settings.Database.Schema = legacy.MySQL_SchemaName;
-                settings.Database.Hostname = legacy.MySQL_Hostname;
+                settings.Database.Host = legacy.MySQL_Hostname;
                 break;
             case Constants.DatabaseType.SqlServer:
                 settings.Database.Username = legacy.DatabaseUsername;
                 settings.Database.Password = legacy.DatabasePassword;
                 settings.Database.Schema = legacy.DatabaseName;
-                settings.Database.Hostname = legacy.DatabaseServer;
+                settings.Database.Host = legacy.DatabaseServer;
                 break;
         }
 
@@ -254,14 +254,16 @@ public class SettingsProvider : ISettingsProvider
 
     public void LoadSettingsFromFile(string path, bool delete = false)
     {
-        FixNonEmittedDefaults(path);
+        var settings = File.ReadAllText(path);
+        settings = SettingsMigrations.MigrateSettings(settings);
+        settings = FixNonEmittedDefaults(path, settings);
         try
         {
-            Instance = Deserialize<ServerSettings>(File.ReadAllText(path));
+            Instance = Deserialize<ServerSettings>(settings);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "An error occurred while loading the settings from file: {Ex}", e);
+            _logger.LogError(e, "An error occurred while loading the settings from file");
         }
 
         if (delete)
@@ -274,13 +276,10 @@ public class SettingsProvider : ISettingsProvider
     /// Fix the behavior of missing members in pre-4.0
     /// </summary>
     /// <param name="path"></param>
-    private static void FixNonEmittedDefaults(string path)
+    /// <param name="settings"></param>
+    private static string FixNonEmittedDefaults(string path, string settings)
     {
-        var json = File.ReadAllText(path);
-        if (json.Contains("\"FirstRun\":"))
-        {
-            return;
-        }
+        if (settings.Contains("\"FirstRun\":")) return settings;
 
         var serializerSettings = new JsonSerializerSettings
         {
@@ -290,13 +289,20 @@ public class SettingsProvider : ISettingsProvider
             MissingMemberHandling = MissingMemberHandling.Ignore,
             DefaultValueHandling = DefaultValueHandling.Populate
         };
-        var result = JsonConvert.DeserializeObject<ServerSettings>(json, serializerSettings);
+        var result = JsonConvert.DeserializeObject<ServerSettings>(settings, serializerSettings);
         var inCode = Serialize(result, true);
         File.WriteAllText(path, inCode);
+        return inCode;
     }
 
     public void SaveSettings()
     {
+        if (Instance == null)
+        {
+            _logger.LogWarning("Tried to save settings, but the settings were null");
+            return;
+        }
+
         var path = Path.Combine(Utils.ApplicationPath, SettingsFilename);
 
         var context = new ValidationContext(Instance, null, null);
@@ -358,11 +364,6 @@ public class SettingsProvider : ISettingsProvider
                 value = Serialize(value);
             }
 
-            if (prop.Name.ToLower().EndsWith("password"))
-            {
-                value = "***HIDDEN***";
-            }
-
             _logger.LogInformation("{Path}.{PropName}: {Value}", path, prop.Name, value);
         }
     }
@@ -396,10 +397,22 @@ public class SettingsProvider : ISettingsProvider
         var a = Assembly.GetEntryAssembly();
         try
         {
-            if (Utils.GetApplicationVersion(a) != null)
-            {
-                _logger.LogInformation("Shoko Server Version: v{ApplicationVersion}", Utils.GetApplicationVersion(a));
-            }
+            var serverVersion = new ComponentVersion { Version = Utils.GetApplicationVersion() };
+            var extraVersionDict = Utils.GetApplicationExtraVersion();
+            if (extraVersionDict.TryGetValue("tag", out var tag))
+                serverVersion.Tag = tag;
+            if (extraVersionDict.TryGetValue("commit", out var commit))
+                serverVersion.Commit = commit;
+            if (extraVersionDict.TryGetValue("channel", out var rawChannel))
+                if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var channel))
+                    serverVersion.ReleaseChannel = channel;
+                else
+                    serverVersion.ReleaseChannel = ReleaseChannel.Debug;
+            if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
+                serverVersion.ReleaseDate = releaseDate;
+
+            _logger.LogInformation("Shoko Server Version: v{ApplicationVersion}, Channel: {Channel}, Tag: {Tag}, Commit: {Commit}", serverVersion.Version,
+                serverVersion.ReleaseChannel, serverVersion.Tag, serverVersion.Commit);
         }
         catch (Exception ex)
         {
@@ -424,33 +437,14 @@ public class SettingsProvider : ISettingsProvider
         {
             var mediaInfoVersion = "**** MediaInfo Not found *****";
 
-            var mediaInfoPath = Assembly.GetEntryAssembly().Location;
-            var fi = new FileInfo(mediaInfoPath);
-            mediaInfoPath = Path.Combine(fi.Directory.FullName, "MediaInfo", "MediaInfo.exe");
-
-            if (File.Exists(mediaInfoPath))
-            {
-                var fvi = FileVersionInfo.GetVersionInfo(mediaInfoPath);
-                mediaInfoVersion =
-                    $"MediaInfo {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({mediaInfoPath})";
-            }
-
+            var tempVersion = MediaInfo.GetVersion();
+            if (tempVersion != null) mediaInfoVersion = $"MediaInfo: {tempVersion}";
             _logger.LogInformation(mediaInfoVersion);
 
             var hasherInfoVersion = "**** Hasher - DLL NOT found *****";
 
-            var fullHasherexepath = Assembly.GetEntryAssembly().Location;
-            fi = new FileInfo(fullHasherexepath);
-            fullHasherexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
-                "librhash.dll");
-
-            if (File.Exists(fullHasherexepath))
-            {
-                var fvi = FileVersionInfo.GetVersionInfo(fullHasherexepath);
-                hasherInfoVersion =
-                    $"RHash {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({fullHasherexepath})";
-            }
-
+            tempVersion = Hasher.GetVersion();
+            if (tempVersion != null) hasherInfoVersion = $"RHash: {tempVersion}";
             _logger.LogInformation(hasherInfoVersion);
         }
         catch (Exception ex)

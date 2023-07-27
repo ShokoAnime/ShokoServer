@@ -5,23 +5,24 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Web;
-using F23.StringSimilarity;
-using F23.StringSimilarity.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+
+using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -104,7 +105,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("{seriesID}")]
     public ActionResult<Series> GetSeries([FromRoute] int seriesID, [FromQuery] bool randomImages = false,
-        [FromQuery] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -125,10 +126,11 @@ public class SeriesController : BaseController
     /// </summary>
     /// <param name="seriesID">The ID of the Series</param>
     /// <param name="deleteFiles">Whether to delete all of the files in the series from the disk.</param>
+    /// <param name="completelyRemove">Removes all records relating to the series. Use with caution, as you may get banned if it's abused.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{seriesID}")]
-    public ActionResult DeleteSeries([FromRoute] int seriesID, [FromQuery] bool deleteFiles = false)
+    public ActionResult DeleteSeries([FromRoute] int seriesID, [FromQuery] bool deleteFiles = false, [FromQuery] bool completelyRemove = false)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -136,9 +138,77 @@ public class SeriesController : BaseController
             return NotFound(SeriesNotFoundWithSeriesID);
         }
 
-        series.DeleteSeries(deleteFiles, true);
+        series.DeleteSeries(deleteFiles, true, completelyRemove);
 
         return Ok();
+    }
+
+    /// <summary>
+    /// Get the auto-matching settings for the series.
+    /// </summary>
+    /// <param name="seriesID"></param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("{seriesID}/AutoMatchSettings")]
+    public ActionResult<Series.AutoMatchSettings> GetAutoMatchSettingsBySeriesID([FromRoute] int seriesID)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        return new Series.AutoMatchSettings(series);
+    }
+
+    /// <summary>
+    /// Patch the auto-matching settings in the v3 model and merge it back into
+    /// the database model.
+    /// </summary>
+    /// <param name="seriesID"></param>
+    /// <param name="patchDocument"></param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPatch("{seriesID}/AutoMatchSettings")]
+    public ActionResult<Series.AutoMatchSettings> PatchAutoMatchSettingsBySeriesID([FromRoute] int seriesID, [FromBody] JsonPatchDocument<Series.AutoMatchSettings> patchDocument)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        // Patch the settings in the v3 model and merge it back into the database
+        // model.
+        var autoMatchSettings = new Series.AutoMatchSettings(series);
+        patchDocument.ApplyTo(autoMatchSettings, ModelState);
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        return autoMatchSettings.MergeWithExisting(series);
+    }
+
+    /// <summary>
+    /// Replace the auto-matching settings with the representation sent from the
+    /// client.
+    /// </summary>
+    /// <param name="seriesID"></param>
+    /// <param name="autoMatchSettings"></param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPut("{seriesID}/AutoMatchSettings")]
+    public ActionResult<Series.AutoMatchSettings> PutAutoMatchSettingsBySeriesID([FromRoute] int seriesID, [FromBody] Series.AutoMatchSettings autoMatchSettings)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        return autoMatchSettings.MergeWithExisting(series);
     }
 
     /// <summary>
@@ -233,7 +303,7 @@ public class SeriesController : BaseController
                 return user.AllowedAnime(anime);
             })
             .OrderBy(a => a.animeTitle)
-            .ToListResult(tuple => new Series.AniDBWithDate(HttpContext, tuple.anime), page, pageSize);
+            .ToListResult(tuple => new Series.AniDBWithDate(tuple.anime), page, pageSize);
     }
 
     /// <summary>
@@ -278,7 +348,7 @@ public class SeriesController : BaseController
             return InternalError(AnidbNotFoundForSeriesID);
         }
 
-        return new Series.AniDBWithDate(HttpContext, anidb, series);
+        return new Series.AniDBWithDate(anidb, series);
     }
 
     /// <summary>
@@ -393,28 +463,25 @@ public class SeriesController : BaseController
         [FromQuery] [Range(0, 1)] double? approval = null
     )
     {
+        startDate = startDate?.ToLocalTime();
+        endDate = endDate?.ToLocalTime();
         if (startDate.HasValue && !endDate.HasValue)
-        {
             endDate = DateTime.Now;
-        }
 
         if (endDate.HasValue && !startDate.HasValue)
-        {
-            return BadRequest("Missing start date.");
-        }
+            ModelState.AddModelError(nameof(startDate), "Missing start date.");
 
         if (startDate.HasValue && endDate.HasValue)
         {
             if (endDate.Value > DateTime.Now)
-            {
-                return BadRequest("End date cannot be set into the future.");
-            }
+                ModelState.AddModelError(nameof(endDate), "End date cannot be set into the future.");
 
             if (startDate.Value > endDate.Value)
-            {
-                return BadRequest("Start date cannot be newer than the end date.");
-            }
+                ModelState.AddModelError(nameof(startDate), "Start date cannot be newer than the end date.");
         }
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
         var user = User;
         var watchedAnimeList = GetWatchedAnimeForPeriod(user, startDate, endDate);
@@ -440,7 +507,7 @@ public class SeriesController : BaseController
                 var similarToCount = similarTo.Count();
                 return new Series.AniDBRecommendedForYou()
                 {
-                    Anime = new Series.AniDBWithDate(HttpContext, anime, series), SimilarTo = similarToCount
+                    Anime = new Series.AniDBWithDate(anime, series), SimilarTo = similarToCount
                 };
             })
             .OrderByDescending(e => e.SimilarTo)
@@ -460,6 +527,8 @@ public class SeriesController : BaseController
     private List<SVR_AniDB_Anime> GetWatchedAnimeForPeriod(SVR_JMMUser user, DateTime? startDate = null,
         DateTime? endDate = null)
     {
+        startDate = startDate?.ToLocalTime();
+        endDate = endDate?.ToLocalTime();
         IEnumerable<SVR_VideoLocal_User> userDataQuery = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID);
         if (startDate.HasValue && endDate.HasValue)
         {
@@ -479,6 +548,7 @@ public class SeriesController : BaseController
             .Where(file => file != null)
             .Select(file => file.EpisodeCrossRefs.OrderBy(xref => xref.EpisodeOrder).ThenBy(xref => xref.Percentage)
                 .FirstOrDefault())
+            .Where(xref => xref != null)
             .Select(xref => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID))
             .Where(episode => episode != null)
             .DistinctBy(episode => episode.AnimeSeriesID)
@@ -537,7 +607,7 @@ public class SeriesController : BaseController
             return Forbid(AnidbForbiddenForUser);
         }
 
-        return new Series.AniDBWithDate(HttpContext, anidb);
+        return new Series.AniDBWithDate(anidb);
     }
 
     /// <summary>
@@ -621,7 +691,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}/Series")]
     public ActionResult<Series> GetSeriesByAnidbID([FromRoute] int anidbID, [FromQuery] bool randomImages = false,
-        [FromQuery] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var series = RepoFactory.AnimeSeries.GetByAnimeID(anidbID);
         if (series == null)
@@ -641,12 +711,16 @@ public class SeriesController : BaseController
     /// Queue a refresh of the AniDB Info for series with AniDB ID
     /// </summary>
     /// <param name="anidbID">AniDB ID</param>
-    /// <param name="force">Forcefully retrive updated data from AniDB</param>
+    /// <param name="force">Try to forcefully retrive updated data from AniDB if
+    /// we're not banned and if the the last update is outside the no-update
+    /// window (configured in the settings).</param>
     /// <param name="downloadRelations">Download relations for the series</param>
-    /// <param name="createSeriesEntry">Also create the Series entries if they doesn't exist</param>
-    /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
+    /// <param name="createSeriesEntry">Also create the Series entries if
+    /// it/they do not exist</param>
+    /// <param name="immediate">Try to immediately refresh the data if we're
+    /// not HTTP banned.</param>
     /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
-    /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
+    /// <returns>True if the refresh was performed at once, otherwise false if it was queued.</returns>
     [HttpPost("AniDB/{anidbID}/Refresh")]
     public ActionResult<bool> RefreshAniDBByAniDBID([FromRoute] int anidbID, [FromQuery] bool force = false,
         [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
@@ -666,10 +740,14 @@ public class SeriesController : BaseController
     /// Queue a refresh of the AniDB Info for series with ID
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
-    /// <param name="force">Forcefully retrive updated data from AniDB</param>
+    /// <param name="force">Try to forcefully retrive updated data from AniDB if
+    /// we're not banned and if the the last update is outside the no-update
+    /// window (configured in the settings).</param>
     /// <param name="downloadRelations">Download relations for the series</param>
-    /// <param name="createSeriesEntry">Create the Series entries for related series if they doesn't exist</param>
-    /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
+    /// <param name="createSeriesEntry">Also create the Series entries if
+    /// it/they do not exist</param>
+    /// <param name="immediate">Try to immediately refresh the data if we're
+    /// not HTTP banned.</param>
     /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
     /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
     [HttpPost("{seriesID}/AniDB/Refresh")]
@@ -832,6 +910,7 @@ public class SeriesController : BaseController
 
         var seriesList = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbID)
             .Select(xref => RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID))
+            .Where(series => series != null)
             .ToList();
 
         var user = User;
@@ -862,29 +941,13 @@ public class SeriesController : BaseController
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-        {
             return NotFound(SeriesNotFoundWithSeriesID);
-        }
 
         if (!User.AllowedSeries(series))
-        {
             return Forbid(SeriesForbiddenForUser);
-        }
-
-        if (vote.Value < 0)
-        {
-            return BadRequest("Value must be greater than or equal to 0.");
-        }
 
         if (vote.Value > vote.MaxValue)
-        {
-            return BadRequest($"Value must be less than or equal to the set max value ({vote.MaxValue}).");
-        }
-
-        if (vote.MaxValue <= 0)
-        {
-            return BadRequest("Max value must be an integer above 0.");
-        }
+            return ValidationProblem($"Value must be less than or equal to the set max value ({vote.MaxValue}).", nameof(vote.Value));
 
         Series.AddSeriesVote(_commandFactory, series, User.JMMUserID, vote);
 
@@ -943,21 +1006,15 @@ public class SeriesController : BaseController
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute] int seriesID,
         [FromRoute] Image.ImageType imageType)
     {
+        if (!AllowedImageTypes.Contains(imageType))
+            return NotFound();
+
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-        {
             return NotFound(SeriesNotFoundWithSeriesID);
-        }
 
         if (!User.AllowedSeries(series))
-        {
             return Forbid(SeriesForbiddenForUser);
-        }
-
-        if (!AllowedImageTypes.Contains(imageType))
-        {
-            return BadRequest(InvalidImageTypeForSeries);
-        }
 
         var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
         var defaultBanner = Series.GetDefaultImage(series.AniDB_ID, imageSizeType);
@@ -988,33 +1045,23 @@ public class SeriesController : BaseController
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute] int seriesID,
         [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
+        if (!AllowedImageTypes.Contains(imageType))
+            return NotFound();
+
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-        {
             return NotFound(SeriesNotFoundWithSeriesID);
-        }
 
         if (!User.AllowedSeries(series))
-        {
             return Forbid(SeriesForbiddenForUser);
-        }
-
-        if (!AllowedImageTypes.Contains(imageType))
-        {
-            return BadRequest(InvalidImageTypeForSeries);
-        }
 
         var imageEntityType = Image.GetImageTypeFromSourceAndType(body.Source, imageType);
         if (!imageEntityType.HasValue)
-        {
-            return BadRequest("Invalid body source");
-        }
+            return ValidationProblem("Invalid body source");
 
         // All dynamic ids are stringified ints, so extract the image id from the body.
         if (!int.TryParse(body.ID, out var imageID))
-        {
-            return BadRequest("Invalid body id. Id must be a stringified int.");
-        }
+            return ValidationProblem("Invalid body id. Id must be a stringified int.");
 
         // Check if the id is valid for the given type and source.
 
@@ -1024,7 +1071,7 @@ public class SeriesController : BaseController
             case ImageEntityType.AniDB_Cover:
                 if (imageID != series.AniDB_ID)
                 {
-                    return BadRequest(InvalidIDForSource);
+                    return ValidationProblem(InvalidIDForSource);
                 }
 
                 break;
@@ -1033,12 +1080,12 @@ public class SeriesController : BaseController
                     var tvdbPoster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
                     if (tvdbPoster == null)
                     {
-                        return BadRequest(InvalidIDForSource);
+                        return ValidationProblem(InvalidIDForSource);
                     }
 
                     if (tvdbPoster.Enabled != 1)
                     {
-                        return BadRequest(InvalidImageIsDisabled);
+                        return ValidationProblem(InvalidImageIsDisabled);
                     }
 
                     break;
@@ -1047,12 +1094,12 @@ public class SeriesController : BaseController
                 var tmdbPoster = RepoFactory.MovieDB_Poster.GetByID(imageID);
                 if (tmdbPoster == null)
                 {
-                    return BadRequest(InvalidIDForSource);
+                    return ValidationProblem(InvalidIDForSource);
                 }
 
                 if (tmdbPoster.Enabled != 1)
                 {
-                    return BadRequest(InvalidImageIsDisabled);
+                    return ValidationProblem(InvalidImageIsDisabled);
                 }
 
                 break;
@@ -1062,12 +1109,12 @@ public class SeriesController : BaseController
                 var tvdbBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
                 if (tvdbBanner == null)
                 {
-                    return BadRequest(InvalidIDForSource);
+                    return ValidationProblem(InvalidIDForSource);
                 }
 
                 if (tvdbBanner.Enabled != 1)
                 {
-                    return BadRequest(InvalidImageIsDisabled);
+                    return ValidationProblem(InvalidImageIsDisabled);
                 }
 
                 break;
@@ -1077,12 +1124,12 @@ public class SeriesController : BaseController
                 var tvdbFanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
                 if (tvdbFanart == null)
                 {
-                    return BadRequest(InvalidIDForSource);
+                    return ValidationProblem(InvalidIDForSource);
                 }
 
                 if (tvdbFanart.Enabled != 1)
                 {
-                    return BadRequest(InvalidImageIsDisabled);
+                    return ValidationProblem(InvalidImageIsDisabled);
                 }
 
                 break;
@@ -1090,19 +1137,19 @@ public class SeriesController : BaseController
                 var tmdbFanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
                 if (tmdbFanart == null)
                 {
-                    return BadRequest(InvalidIDForSource);
+                    return ValidationProblem(InvalidIDForSource);
                 }
 
                 if (tmdbFanart.Enabled != 1)
                 {
-                    return BadRequest(InvalidImageIsDisabled);
+                    return ValidationProblem(InvalidImageIsDisabled);
                 }
 
                 break;
 
             // Not allowed.
             default:
-                return BadRequest("Invalid source and/or type");
+                return ValidationProblem("Invalid source and/or type.");
         }
 
         var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
@@ -1130,32 +1177,23 @@ public class SeriesController : BaseController
     [HttpDelete("{seriesID}/Images/{imageType}")]
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute] int seriesID, [FromRoute] Image.ImageType imageType)
     {
+        if (!AllowedImageTypes.Contains(imageType))
+            return NotFound();
+
         // Check if the series exists and if the user can access the series.
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
-        {
             return NotFound(SeriesNotFoundWithSeriesID);
-        }
 
         if (!User.AllowedSeries(series))
-        {
             return Forbid(SeriesForbiddenForUser);
-        }
-
-        // Check if
-        if (!AllowedImageTypes.Contains(imageType))
-        {
-            return BadRequest(InvalidImageTypeForSeries);
-        }
 
         // Check if a default image is set.
         var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
         var defaultImage =
             RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, imageSizeType);
         if (defaultImage == null)
-        {
-            return BadRequest("No default banner.");
-        }
+            return ValidationProblem("No default banner.");
 
         // Delete the entry.
         RepoFactory.AniDB_Anime_DefaultImage.Delete(defaultImage);
@@ -1204,7 +1242,7 @@ public class SeriesController : BaseController
             return new List<Tag>();
         }
 
-        return Series.GetTags(HttpContext, anidb, filter, excludeDescriptions, orderByName, onlyVerified);
+        return Series.GetTags(anidb, filter, excludeDescriptions, orderByName, onlyVerified);
     }
 
     /// <summary>
@@ -1235,7 +1273,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("{seriesID}/Cast")]
     public ActionResult<List<Role>> GetSeriesCast([FromRoute] int seriesID,
-        [FromQuery] Role.CreatorRoleType? roleType = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Role.CreatorRoleType> roleType = null)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -1248,7 +1286,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return Series.GetCast(HttpContext, series.AniDB_ID, roleType);
+        return Series.GetCast(series.AniDB_ID, roleType);
     }
 
     #endregion
@@ -1278,9 +1316,7 @@ public class SeriesController : BaseController
 
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
-        {
-            return BadRequest("No Group entry for the given groupID");
-        }
+            return ValidationProblem("No Group entry for the given groupID", "groupID");
 
         series.MoveSeries(group);
 
@@ -1298,102 +1334,74 @@ public class SeriesController : BaseController
     /// <param name="fuzzy">whether or not to use fuzzy search</param>
     /// <param name="limit">number of return items</param>
     /// <returns>List<see cref="SeriesSearchResult"/></returns>
+    [HttpGet("Search")]
+    public ActionResult<IEnumerable<SeriesSearchResult>> SearchQuery([FromQuery] string query, [FromQuery] bool fuzzy = true,
+        [FromQuery, Range(0, 1000)] int limit = 50)
+        => SearchInternal(query, fuzzy, limit);
+
+    /// <summary>
+    /// Search for series with given query in name or tag
+    /// </summary>
+    /// <param name="query">target string</param>
+    /// <param name="fuzzy">whether or not to use fuzzy search</param>
+    /// <param name="limit">number of return items</param>
+    /// <returns>List<see cref="SeriesSearchResult"/></returns>
+    [Obsolete("Use the other endpoint instead.")]
     [HttpGet("Search/{query}")]
-    public ActionResult<IEnumerable<SeriesSearchResult>> Search([FromRoute] string query, [FromQuery] bool fuzzy = true,
-        [FromQuery] int limit = int.MaxValue)
+    public ActionResult<IEnumerable<SeriesSearchResult>> SearchPath([FromRoute] string query, [FromQuery] bool fuzzy = true,
+        [FromQuery, Range(0, 1000)] int limit = 50)
+        => SearchInternal(HttpUtility.UrlDecode(query), fuzzy, limit);
+
+    [NonAction]
+    internal ActionResult<IEnumerable<SeriesSearchResult>> SearchInternal(string query, bool fuzzy = true, int limit = 50)
     {
-        var user = User;
-        var search = new SorensenDice();
-        query = query.ToLowerInvariant();
-        query = query.Replace("+", " ");
-
-        var seriesList = new List<SeriesSearchResult>();
-        var allSeries = RepoFactory.AnimeSeries.GetAll()
-            .Where(series => user.AllowedSeries(series))
-            .AsParallel();
-
-        var languages = new HashSet<string> { "en", "x-jat" };
-        var settings = SettingsProvider.GetSettings();
-        languages.UnionWith(settings.LanguagePreference);
-        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<double, string>>();
-
+        var flags = SeriesSearch.SearchFlags.Titles;
         if (fuzzy)
-        {
-            allSeries.ForAll(a => CheckTitlesFuzzy(search, languages, a, query, ref distLevenshtein, limit));
-        }
-        else
-        {
-            allSeries.ForAll(a => CheckTitles(languages, a, query, ref distLevenshtein, limit));
-        }
+            flags |= SeriesSearch.SearchFlags.Fuzzy;
 
-        var tempListToSort = distLevenshtein.Keys.GroupBy(a => a.AnimeGroupID).Select(a =>
-        {
-            var tempSeries = a.ToList();
-            tempSeries.Sort((j, k) =>
-            {
-                var result1 = distLevenshtein[j];
-                var result2 = distLevenshtein[k];
-                var exactMatch = result1.Item1.CompareTo(result2.Item1);
-                if (exactMatch != 0)
-                {
-                    return exactMatch;
-                }
-
-                var title1 = j.GetSeriesName();
-                var title2 = k.GetSeriesName();
-                if (title1 == null && title2 == null)
-                {
-                    return 0;
-                }
-
-                if (title1 == null)
-                {
-                    return 1;
-                }
-
-                if (title2 == null)
-                {
-                    return -1;
-                }
-
-                return string.Compare(title1, title2, StringComparison.InvariantCultureIgnoreCase);
-            });
-            var result = new SearchGrouping
-            {
-                Series = a.OrderBy(b => b.AirDate).ToList(),
-                Distance = distLevenshtein[tempSeries[0]].Item1,
-                Match = distLevenshtein[tempSeries[0]].Item2
-            };
-            return result;
-        });
-
-        var series = tempListToSort.OrderBy(a => a.Distance)
-            .ThenBy(a => a.Match.Length).SelectMany(a => a.Series).ToDictionary(a => a, a => distLevenshtein[a]);
-        foreach (var ser in series)
-        {
-            seriesList.Add(new SeriesSearchResult(HttpContext, ser.Key, ser.Value.Item2, ser.Value.Item1));
-            if (seriesList.Count >= limit)
-            {
-                break;
-            }
-        }
-
-        return seriesList;
+        return SeriesSearch.SearchSeries(User, query, limit, flags)
+            .Select(result => new SeriesSearchResult(HttpContext, result))
+            .ToList();
     }
 
     /// <summary>
     /// Search the title dump for the given query or directly using the anidb id.
     /// </summary>
     /// <param name="query">Query to search for</param>
+    /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
     /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
     /// <param name="includeTitles">Include titles in the results.</param>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
-    [HttpGet("AniDB/Search/{query}")]
-    public ActionResult<ListResult<Series.AniDB>> AnidbSearch([FromRoute] string query, [FromQuery] bool? local = null,
+    [HttpGet("AniDB/Search")]
+    public ActionResult<ListResult<Series.AniDB>> AnidbSearchQuery([FromQuery] string query,
+        [FromQuery] bool fuzzy = true, [FromQuery] bool? local = null,
         [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50,
         [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        => AnidbSearchInternal(query, fuzzy, local, includeTitles, pageSize, page);
+
+    /// <summary>
+    /// Search the title dump for the given query or directly using the anidb id.
+    /// </summary>
+    /// <param name="query">Query to search for</param>
+    /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
+    /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
+    /// <param name="includeTitles">Include titles in the results.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns></returns>
+    [Obsolete("Use the other endpoint instead.")]
+    [HttpGet("AniDB/Search/{query}")]
+    public ActionResult<ListResult<Series.AniDB>> AnidbSearchPath([FromRoute] string query,
+        [FromQuery] bool fuzzy = true, [FromQuery] bool? local = null,
+        [FromQuery] bool includeTitles = true, [FromQuery] [Range(0, 100)] int pageSize = 50,
+        [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        => AnidbSearchInternal(HttpUtility.UrlDecode(query), fuzzy, local, includeTitles, pageSize, page);
+
+    [NonAction]
+    internal ListResult<Series.AniDB> AnidbSearchInternal(string query, bool fuzzy = true, bool? local = null,
+        bool includeTitles = true, int pageSize = 50, int page = 1)
     {
         // We're searching using the anime ID, so first check the local db then the title cache for a match.
         if (int.TryParse(query, out var animeID))
@@ -1416,8 +1424,25 @@ public class SeriesController : BaseController
             return new ListResult<Series.AniDB>();
         }
 
+        // Return all known entries on anidb if no query is given.
+        if (string.IsNullOrEmpty(query))
+            return Utils.AniDBTitleHelper.GetAll()
+                .OrderBy(anime => anime.AnimeID)
+                .Select(result =>
+                {
+                    var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
+                    if (local.HasValue && series == null == local.Value)
+                    {
+                        return null;
+                    }
+
+                    return new Series.AniDB(result, series, includeTitles);
+                })
+                .Where(result => result != null)
+                .ToListResult(page, pageSize);
+
         // Search the title cache for anime matching the query.
-        return Utils.AniDBTitleHelper.SearchTitle(HttpUtility.UrlDecode(query))
+        return Utils.AniDBTitleHelper.SearchTitle(query, fuzzy)
             .Select(result =>
             {
                 var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);
@@ -1457,9 +1482,9 @@ public class SeriesController : BaseController
         var series =
             tempSeries.OrderBy(a => a.Value).ToDictionary(a => a.Key, a => a.Value);
 
-        foreach (var ser in series)
+        foreach (var (ser, match) in series)
         {
-            seriesList.Add(new SeriesSearchResult(HttpContext, ser.Key, ser.Value, 0));
+            seriesList.Add(new SeriesSearchResult(HttpContext, new() { Result = ser, Match = match }));
             if (seriesList.Count >= limit)
             {
                 break;
@@ -1476,7 +1501,7 @@ public class SeriesController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("PathEndsWith/{*path}")]
-    public ActionResult<List<Series>> GetSeries([FromRoute] string path)
+    public ActionResult<List<Series>> PathEndsWith([FromRoute] string path)
     {
         var user = User;
         var query = path;
@@ -1494,215 +1519,18 @@ public class SeriesController : BaseController
             .TrimEnd(Path.DirectorySeparatorChar);
         // There should be no circumstance where FullServerPath has no Directory Name, unless you have missing import folders
         return RepoFactory.VideoLocalPlace.GetAll().AsParallel()
-            .Where(a => a.FullServerPath != null && Path.GetDirectoryName(a.FullServerPath)
-                .EndsWith(query, StringComparison.OrdinalIgnoreCase))
-            .SelectMany(a => a.VideoLocal.GetAnimeEpisodes()).Select(a => a.GetAnimeSeries())
+            .Where(a =>
+            {
+                if (a.FullServerPath == null) return false;
+                var dir = Path.GetDirectoryName(a.FullServerPath);
+                return dir != null && dir.EndsWith(query, StringComparison.OrdinalIgnoreCase);
+            })
+            .SelectMany(a => a.VideoLocal?.GetAnimeEpisodes() ?? Enumerable.Empty<SVR_AnimeEpisode>()).Select(a => a.GetAnimeSeries())
             .Distinct()
-            .Where(ser => ser == null || user.AllowedSeries(ser)).Select(a => new Series(HttpContext, a)).ToList();
+            .Where(ser => ser != null && user.AllowedSeries(ser)).Select(a => new Series(HttpContext, a)).ToList();
     }
 
     #region Helpers
-
-    /// <summary>
-    /// function used in fuzzy search
-    /// </summary>
-    /// <param name="search"></param>
-    /// <param name="languages"></param>
-    /// <param name="a"></param>
-    /// <param name="query"></param>
-    /// <param name="distLevenshtein"></param>
-    /// <param name="limit"></param>
-    [NonAction]
-    private static void CheckTitlesFuzzy(IStringDistance search, HashSet<string> languages, SVR_AnimeSeries a,
-        string query,
-        ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<double, string>> distLevenshtein, int limit)
-    {
-        if (distLevenshtein.Count >= limit)
-        {
-            return;
-        }
-
-        if (a?.Contract?.AniDBAnime?.AnimeTitles == null)
-        {
-            return;
-        }
-
-        var dist = double.MaxValue;
-        var match = string.Empty;
-
-        var seriesTitles = a.Contract.AniDBAnime.AnimeTitles
-            .Where(b => languages.Contains(b.Language.ToLower()) &&
-                        b.TitleType != Shoko.Models.Constants.AnimeTitleType.ShortName).Select(b => b.Title)
-            .ToList();
-        foreach (var title in seriesTitles)
-        {
-            if (string.IsNullOrWhiteSpace(title))
-            {
-                continue;
-            }
-
-            var result = 0.0;
-            // Check for exact match
-            if (!title.Equals(query, StringComparison.Ordinal))
-            {
-                result = search.Distance(title, query);
-            }
-
-            // For Dice, 1 is no reasonable match
-            if (result >= 1)
-            {
-                continue;
-            }
-
-            // Don't count an error as liberally when the title is short
-            if (title.Length < 5 && result > 0.8)
-            {
-                continue;
-            }
-
-            if (result < dist)
-            {
-                match = title;
-                dist = result;
-            }
-            else if (Math.Abs(result - dist) < 0.00001)
-            {
-                if (title.Length < match.Length)
-                {
-                    match = title;
-                }
-            }
-        }
-
-        // Keep the lowest distance, then by shortest title
-        if (dist < double.MaxValue)
-        {
-            distLevenshtein.AddOrUpdate(a, new Tuple<double, string>(dist, match),
-                (key, oldValue) =>
-                {
-                    if (oldValue.Item1 < dist)
-                    {
-                        return oldValue;
-                    }
-
-                    if (Math.Abs(oldValue.Item1 - dist) < 0.00001)
-                    {
-                        return oldValue.Item2.Length < match.Length
-                            ? oldValue
-                            : new Tuple<double, string>(dist, match);
-                    }
-
-                    return new Tuple<double, string>(dist, match);
-                });
-        }
-    }
-
-    /// <summary>
-    /// function used in search
-    /// </summary>
-    /// <param name="languages"></param>
-    /// <param name="a"></param>
-    /// <param name="query"></param>
-    /// <param name="distLevenshtein"></param>
-    /// <param name="limit"></param>
-    [NonAction]
-    private static void CheckTitles(HashSet<string> languages, SVR_AnimeSeries a, string query,
-        ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<double, string>> distLevenshtein, int limit)
-    {
-        if (distLevenshtein.Count >= limit)
-        {
-            return;
-        }
-
-        if (a?.Contract?.AniDBAnime?.AnimeTitles == null)
-        {
-            return;
-        }
-
-        var dist = double.MaxValue;
-        var match = string.Empty;
-
-        var seriesTitles = a.Contract.AniDBAnime.AnimeTitles
-            .Where(b => languages.Contains(b.Language.ToLower()) &&
-                        b.TitleType != Shoko.Models.Constants.AnimeTitleType.ShortName).Select(b => b.Title)
-            .ToList();
-        foreach (var title in seriesTitles)
-        {
-            if (string.IsNullOrWhiteSpace(title))
-            {
-                continue;
-            }
-
-            var result = 1.0;
-            // Check for exact match
-            if (title.Equals(query, StringComparison.Ordinal))
-            {
-                result = 0.0;
-            }
-            else
-            {
-                var index = title.IndexOf(query, StringComparison.InvariantCultureIgnoreCase);
-                if (index >= 0)
-                {
-                    result = ((double)title.Length - index) / title.Length * 0.8D; // ensure that 0.8 doesn't skip later
-                }
-            }
-
-            // For Dice, 1 is no reasonable match
-            if (result >= 1)
-            {
-                continue;
-            }
-
-            // Don't count an error as liberally when the title is short
-            if (title.Length < 5 && result > 0.8)
-            {
-                continue;
-            }
-
-            if (result < dist)
-            {
-                match = title;
-                dist = result;
-            }
-            else if (Math.Abs(result - dist) < 0.00001)
-            {
-                if (title.Length < match.Length)
-                {
-                    match = title;
-                }
-            }
-        }
-
-        // Keep the lowest distance, then by shortest title
-        if (dist < double.MaxValue)
-        {
-            distLevenshtein.AddOrUpdate(a, new Tuple<double, string>(dist, match),
-                (key, oldValue) =>
-                {
-                    if (oldValue.Item1 < dist)
-                    {
-                        return oldValue;
-                    }
-
-                    if (Math.Abs(oldValue.Item1 - dist) < 0.00001)
-                    {
-                        return oldValue.Item2.Length < match.Length
-                            ? oldValue
-                            : new Tuple<double, string>(dist, match);
-                    }
-
-                    return new Tuple<double, string>(dist, match);
-                });
-        }
-    }
-
-    private class SearchGrouping
-    {
-        public List<SVR_AnimeSeries> Series { get; set; }
-        public double Distance { get; set; }
-        public string Match { get; set; }
-    }
 
     [NonAction]
     private static void CheckTitlesStartsWith(SVR_AnimeSeries a, string query,

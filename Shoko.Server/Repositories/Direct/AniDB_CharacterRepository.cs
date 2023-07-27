@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
-using NHibernate.Criterion;
-using NHibernate.SqlCommand;
 using Shoko.Commons.Collections;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
@@ -17,30 +15,30 @@ public class AniDB_CharacterRepository : BaseDirectRepository<AniDB_Character, i
 {
     public AniDB_Character GetByCharID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return GetByCharID(session.Wrap(), id);
-        }
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            return GetByCharIDUnsafe(session.Wrap(), id);
+        });
     }
 
     public AniDB_Character GetByCharID(ISessionWrapper session, int id)
     {
-        lock (GlobalDBLock)
-        {
-            var cr = session
-                .CreateCriteria(typeof(AniDB_Character))
-                .Add(Restrictions.Eq("CharID", id))
-                .UniqueResult<AniDB_Character>();
-            return cr;
-        }
+        return Lock(() => GetByCharIDUnsafe(session, id));
+    }
+
+    private AniDB_Character GetByCharIDUnsafe(ISessionWrapper session, int id)
+    {
+        return session.Query<AniDB_Character>()
+            .Where(a => a.CharID == id)
+            .SingleOrDefault();
     }
 
     public List<AnimeCharacterAndSeiyuu> GetCharactersAndSeiyuuForAnime(int animeID)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
             var animeChars = session.CreateSQLQuery(
                     @"
                 SELECT {chr.*}, {seiyuu.*}, animeChr.CharType
@@ -73,7 +71,7 @@ public class AniDB_CharacterRepository : BaseDirectRepository<AniDB_Character, i
                 ).ToList();
 
             return animeChars;
-        }
+        });
     }
 
     public ILookup<int, AnimeCharacterAndSeiyuu> GetCharacterAndSeiyuuByAnime(ISessionWrapper session,
@@ -94,7 +92,7 @@ public class AniDB_CharacterRepository : BaseDirectRepository<AniDB_Character, i
             return EmptyLookup<int, AnimeCharacterAndSeiyuu>.Instance;
         }
 
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             // The below query makes sure that only one seiyuu is returned for each anime/character combiniation
             var animeChars = session.CreateSQLQuery(
@@ -131,7 +129,7 @@ public class AniDB_CharacterRepository : BaseDirectRepository<AniDB_Character, i
                 .ToLookup(ac => ac.AnimeID);
 
             return animeChars;
-        }
+        });
     }
 }
 

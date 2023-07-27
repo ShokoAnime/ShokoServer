@@ -10,22 +10,12 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/Shoko.Server/bin/Debug/net6.0/Shoko.CLI.dll",
+            "program": "${workspaceFolder}/Shoko.Server/bin/Debug/net6.0/Shoko.CLI",
             "args": [],
-            "cwd": "${workspaceFolder}",
-            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
-            "console": "integratedTerminal",
-            "stopAtEntry": false
-        },
-        {
-            "name": ".NET Core Launch (mediainfo) ",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build-mediainfo",
-            // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/Shoko.Server/bin/Debug/net6.0/MediaInfoWrapper.dll",
-            "args": ["/share/raid/Hentai/Vicious/[RG] Vicious - 2 (640x480 DVD XviD) [BC5B644C].ogm", "5"],
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/Shoko.Server/bin/Debug/net6.0",
+            "env": {
+              "SHOKO_HOME": "${workspaceFolder}/Shoko.Server/bin/Debug/net6.0/data"
+            },
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "integratedTerminal",
             "stopAtEntry": false

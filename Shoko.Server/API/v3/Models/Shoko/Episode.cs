@@ -14,7 +14,9 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
+
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
+using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -31,16 +33,33 @@ public class Episode : BaseModel
     public TimeSpan Duration { get; set; }
 
     /// <summary>
-    /// Where to resume the next playback.
+    /// Where to resume the next playback for the most recently watched file, if
+    /// any. Otherwise `null` if no files for the episode have any resume
+    /// positions.
     /// </summary>
     public TimeSpan? ResumePosition { get; set; }
 
     /// <summary>
-    /// The Last Watched Date for the current user. If null, it is unwatched
+    /// The last watched date and time for the current user for the most
+    /// recently watched file, if any. Or `null` if it is considered
+    /// "unwatched."
     /// </summary>
-    [Required]
+    [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime? Watched { get; set; }
-    
+
+    /// <summary>
+    /// Total number of times the episode have been watched (till completion) by
+    /// the user across all files.
+    /// </summary>
+    public int WatchCount { get; set; }
+
+    /// <summary>
+    /// Episode is marked as "ignored." Which means it won't be show up in the
+    /// api unless explictly requested, and will not count against the unwatched
+    /// counts and missing counts for the series.
+    /// </summary>
+    public bool IsHidden { get; set; }
+
     /// <summary>
     /// The <see cref="Episode.AniDB"/>, if <see cref="DataSource.AniDB"/> is
     /// included in the data to add.
@@ -60,32 +79,26 @@ public class Episode : BaseModel
     public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource> includeDataFrom = null)
     {
         var userID = context.GetUser()?.JMMUserID ?? 0;
+        var episodeUserRecord = episode.GetUserRecord(userID);
         var anidbEpisode = episode.AniDB_Episode;
         var tvdbEpisodes = episode.TvDBEpisodes;
         var files = episode.GetVideoLocals();
-        var (file, userRecord) = files
-            .Select(file =>
-            {
-                var userRecord = file.GetUserRecord(userID);
-                if (userRecord == null)
-                {
-                    return (file, null);
-                }
-
-                return (file, userRecord);
-            })
-            .Where(tuple => tuple.Item1 != null)
-            .OrderByDescending(tuple => tuple.Item2?.LastUpdated)
+        var (file, fileUserRecord) = files
+            .Select(file => (file, userRecord: file.GetUserRecord(userID)))
+            .OrderByDescending(tuple => tuple.userRecord?.LastUpdated)
             .FirstOrDefault();
         IDs = new EpisodeIDs
         {
             ID = episode.AnimeEpisodeID,
+            ParentSeries = episode.AnimeSeriesID,
             AniDB = episode.AniDB_EpisodeID,
             TvDB = tvdbEpisodes.Select(a => a.Id).ToList()
         };
         Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, anidbEpisode.LengthSeconds);
-        ResumePosition = userRecord?.ResumePositionTimeSpan;
-        Watched = userRecord?.WatchedDate;
+        ResumePosition = fileUserRecord?.ResumePositionTimeSpan;
+        Watched = fileUserRecord?.WatchedDate?.ToUniversalTime();
+        WatchCount = episodeUserRecord?.WatchedCount ?? 0;
+        IsHidden = episode.IsHidden;
         Name = GetEpisodeTitle(episode.AniDB_EpisodeID);
         Size = files.Count;
 
@@ -94,7 +107,6 @@ public class Episode : BaseModel
         if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
             this._TvDB = tvdbEpisodes.Select(tvdbEpisode => new TvDB(tvdbEpisode));
     }
-
 
     internal static string GetEpisodeTitle(int anidbEpisodeID)
     {
@@ -129,8 +141,9 @@ public class Episode : BaseModel
                 return EpisodeType.ThemeSong;
             case AniDBEpisodeType.Trailer:
                 return EpisodeType.Trailer;
-            default:
             case AniDBEpisodeType.Other:
+                return EpisodeType.Other;
+            default:
                 return EpisodeType.Unknown;
         }
     }
@@ -171,12 +184,37 @@ public class Episode : BaseModel
 
             var titles = RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
 
+            // This logic will be moved into the anidb episode model after the
+            // refactor… in fact… it's already in there. But the refactor is not
+            // done yet, so this will do for now.
+            var mainTitle = string.Empty;
+            // Try finding one of the preferred languages.
+            foreach (var language in Languages.PreferredEpisodeNamingLanguages)
+            {
+                var title = titles
+                    .Where(a => a.Language == language.Language).ToList()
+                    .FirstOrDefault()
+                    ?.Title;
+                if (!string.IsNullOrEmpty(title))
+                {
+                    mainTitle = title;
+                    break;
+                }
+            }
+            // Fallback to English if available.
+            if (string.IsNullOrEmpty(mainTitle)) {
+                mainTitle = titles.Where(a => a.Language == TitleLanguage.English)
+                    .FirstOrDefault()
+                    ?.Title;
+            }
+
             ID = ep.EpisodeID;
             Type = MapAniDBEpisodeType(ep.GetEpisodeTypeEnum());
             EpisodeNumber = ep.EpisodeNumber;
             AirDate = ep.GetAirDateAsDate();
             Description = ep.Description;
             Rating = new Rating { MaxValue = 10, Value = rating, Votes = votes, Source = "AniDB" };
+            Title = mainTitle;
             Titles = titles.Select(a => new Title
                 {
                     Name = a.Title, Language = a.LanguageCode, Default = false, Source = "AniDB"
@@ -207,7 +245,12 @@ public class Episode : BaseModel
         public DateTime? AirDate { get; set; }
 
         /// <summary>
-        /// Titles for the Episode
+        /// Preferred title for the episode.
+        /// </summary>
+        public string Title { get; set; }
+
+        /// <summary>
+        /// All titles for the episode.
         /// </summary>
         public List<Title> Titles { get; set; }
 
@@ -307,6 +350,15 @@ public class Episode : BaseModel
 
     public class EpisodeIDs : IDs
     {
+        #region Series
+
+        /// <summary>
+        /// The id of the parent <see cref="Series"/>.
+        /// </summary>
+        public int ParentSeries { get; set; }
+
+        #endregion
+
         #region XRefs
 
         // These are useful for many things, but for clients, it is mostly auxiliary

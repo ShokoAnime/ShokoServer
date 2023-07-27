@@ -104,7 +104,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         // actually rename the file
         var path = Path.GetDirectoryName(fullFileName);
         var newFullName = Path.Combine(path, renamed);
-        var textStreams = SubtitleHelper.GetSubtitleStreams(FullServerPath);
 
         try
         {
@@ -141,34 +140,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             }
 
             // Rename external subs!
-            var oldBasename = Path.GetFileNameWithoutExtension(fullFileName);
-            var newBasename = Path.GetFileNameWithoutExtension(renamed);
-            foreach (var sub in textStreams)
-            {
-                if (string.IsNullOrEmpty(sub.Filename))
-                {
-                    continue;
-                }
-
-                var oldSubPath = Path.Combine(path, sub.Filename);
-
-                if (!File.Exists(oldSubPath))
-                {
-                    logger.Error($"Unable to rename external subtitle \"{sub.Filename}\". Cannot access the file");
-                    continue;
-                }
-
-                var newSub = sub.Filename.Replace(oldBasename, newBasename);
-                try
-                {
-                    var file = new FileInfo(oldSubPath);
-                    file.MoveTo(newSub);
-                }
-                catch (Exception e)
-                {
-                    logger.Error($"Unable to rename external subtitle \"{sub.Filename}\" to \"{newSub}\". {e}");
-                }
-            }
+            RenameExternalSubtitles(fullFileName, renamed);
 
             logger.Info($"Renaming file SUCCESS! From \"{fullFileName}\" to \"{newFullName}\"");
             var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
@@ -225,6 +197,8 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             // just in case
             VideoLocal.FileName = renamed;
             RepoFactory.VideoLocal.Save(VideoLocal, false);
+            
+            ShokoEventHandler.Instance.OnFileRenamed(ImportFolder, Path.GetFileName(fullFileName), renamed, this);
         }
         catch (Exception ex)
         {
@@ -261,10 +235,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                         foreach (var xref in xrefs)
                         {
                             var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                            if (ep == null)
-                            {
-                                continue;
-                            }
+                            if (ep == null) continue;
 
                             var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
                                 c =>
@@ -299,18 +270,18 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     // ignore
                 }
 
-                lock (BaseRepository.GlobalDBLock)
+                BaseRepository.Lock(session, s =>
                 {
-                    using var transaction = session.BeginTransaction();
-                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+                    using var transaction = s.BeginTransaction();
+                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, this);
 
                     seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
                         .Select(a => a.GetAnimeSeries()));
-                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, v);
 
-                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(s, a));
                     transaction.Commit();
-                }
+                });
             }
             else
             {
@@ -323,13 +294,13 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     // ignore
                 }
 
-                lock (BaseRepository.GlobalDBLock)
+                BaseRepository.Lock(session, s =>
                 {
-                    using var transaction = session.BeginTransaction();
-                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                    using var transaction = s.BeginTransaction();
+                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, this);
+                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(s, a));
                     transaction.Commit();
-                }
+                });
             }
         }
 
@@ -402,7 +373,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 // ignore
             }
 
-            lock (BaseRepository.GlobalDBLock)
+            BaseRepository.Lock(() =>
             {
                 using var transaction = session.BeginTransaction();
                 RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
@@ -410,7 +381,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
 
                 transaction.Commit();
-            }
+            });
         }
         else
         {
@@ -423,13 +394,13 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 // ignore
             }
 
-            lock (BaseRepository.GlobalDBLock)
+            BaseRepository.Lock(() =>
             {
                 using var transaction = session.BeginTransaction();
                 RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
                 dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                 transaction.Commit();
-            }
+            });
         }
     }
 
@@ -519,6 +490,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             try
             {
                 File.Delete(FullServerPath);
+                DeleteExternalSubtitles(FullServerPath);
             }
             catch (Exception ex)
             {
@@ -568,6 +540,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         try
         {
             File.Delete(FullServerPath);
+            DeleteExternalSubtitles(FullServerPath);
         }
         catch (FileNotFoundException)
         {
@@ -612,6 +585,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             try
             {
                 File.Delete(FullServerPath);
+                DeleteExternalSubtitles(FullServerPath);
             }
             catch (Exception ex)
             {
@@ -812,6 +786,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
 
         // Save for later. Scan for subtitles while the vlplace is still set for the source location
         var originalFileName = FullServerPath;
+        var oldPath = FilePath;
 
         MoveDuplicateFiles(newFilePath, destFolder);
 
@@ -828,6 +803,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
         }
 
+        ShokoEventHandler.Instance.OnFileMoved(dropFolder, destFolder, oldPath, newFilePath, this);
         Utils.ShokoServer.RemoveFileWatcherExclusion(newFullServerPath);
         return (newFolderPath, string.Empty);
     }
@@ -924,6 +900,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             }
 
             var originalFileName = FullServerPath;
+            var oldPath = FilePath;
 
             if (File.Exists(newFullServerPath))
             {
@@ -991,7 +968,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     // Normally we'd let the Multiple Files Utility handle it, but let's just delete the V1
                     logger.Info("The existing file is a V1 from the same group. Replacing it.");
                     // Delete the destination
-                    (var success, var _) = destVideoLocalPlace.RemoveAndDeleteFile();
+                    var (success, _) = destVideoLocalPlace.RemoveAndDeleteFile();
                     if (!success)
                     {
                         return false;
@@ -1055,6 +1032,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             }
 
             MoveExternalSubtitles(newFullServerPath, originalFileName);
+            ShokoEventHandler.Instance.OnFileMoved(dropFolder, destFolder, oldPath, newFilePath, this);
         }
         catch (Exception ex)
         {
@@ -1111,6 +1089,72 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         }
     }
 
+    private static void RenameExternalSubtitles(string fullFileName, string renamed)
+    {
+        var textStreams = SubtitleHelper.GetSubtitleStreams(fullFileName);
+        var path = Path.GetDirectoryName(fullFileName);
+        var oldBasename = Path.GetFileNameWithoutExtension(fullFileName);
+        var newBasename = Path.GetFileNameWithoutExtension(renamed);
+        foreach (var sub in textStreams)
+        {
+            if (string.IsNullOrEmpty(sub.Filename))
+            {
+                continue;
+            }
+
+            var oldSubPath = Path.Combine(path, sub.Filename);
+
+            if (!File.Exists(oldSubPath))
+            {
+                logger.Error($"Unable to rename external subtitle \"{sub.Filename}\". Cannot access the file");
+                continue;
+            }
+
+            var newSub = Path.Combine(path, sub.Filename.Replace(oldBasename, newBasename));
+            try
+            {
+                var file = new FileInfo(oldSubPath);
+                file.MoveTo(newSub);
+            }
+            catch (Exception e)
+            {
+                logger.Error($"Unable to rename external subtitle \"{sub.Filename}\" to \"{newSub}\". {e}");
+            }
+        }
+    }
+
+    private static void DeleteExternalSubtitles(string originalFileName)
+    {
+        try
+        {
+            var textStreams = SubtitleHelper.GetSubtitleStreams(originalFileName);
+            // move any subtitle files
+            foreach (var subtitleFile in textStreams)
+            {
+                if (string.IsNullOrEmpty(subtitleFile.Filename)) continue;
+
+                var srcParent = Path.GetDirectoryName(originalFileName);
+                if (string.IsNullOrEmpty(srcParent)) continue;
+
+                var subPath = Path.Combine(srcParent, subtitleFile.Filename);
+                if (!File.Exists(subPath)) continue;
+
+                try
+                {
+                    File.Delete(subPath);
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e, $"Unable to delete file: \"{subtitleFile}\"");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, ex.ToString());
+        }
+    }
+
     private void MoveDuplicateFiles(string newFilePath, SVR_ImportFolder destFolder)
     {
         var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)
@@ -1148,22 +1192,13 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
     {
         try
         {
-            if (string.IsNullOrEmpty(dir))
-            {
-                return;
-            }
-
-            if (!Directory.Exists(dir))
-            {
-                return;
-            }
+            if (string.IsNullOrEmpty(dir)) return;
+            if (!Directory.Exists(dir)) return;
+            if (Utils.SettingsProvider.GetSettings().Import.Exclude.Any(s => Regex.IsMatch(dir, s))) return;
 
             if (IsDirectoryEmpty(dir))
             {
-                if (importfolder)
-                {
-                    return;
-                }
+                if (importfolder) return;
 
                 try
                 {
@@ -1171,13 +1206,9 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 }
                 catch (Exception ex)
                 {
-                    if (ex is DirectoryNotFoundException || ex is FileNotFoundException)
-                    {
-                        return;
-                    }
+                    if (ex is DirectoryNotFoundException || ex is FileNotFoundException) return;
 
-                    logger.Warn("Unable to DELETE directory: {0} Error: {1}", dir,
-                        ex);
+                    logger.Warn("Unable to DELETE directory: {0} Error: {1}", dir, ex);
                 }
 
                 return;
@@ -1186,17 +1217,13 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             // If it has folder, recurse
             foreach (var d in Directory.EnumerateDirectories(dir))
             {
-                if (Utils.SettingsProvider.GetSettings().Import.Exclude.Any(s => Regex.IsMatch(Path.GetDirectoryName(d) ?? string.Empty, s))) continue;
+                if (Utils.SettingsProvider.GetSettings().Import.Exclude.Any(s => Regex.IsMatch(d, s))) continue;
                 RecursiveDeleteEmptyDirectories(d, false);
             }
         }
         catch (Exception e)
         {
-            if (e is FileNotFoundException || e is DirectoryNotFoundException)
-            {
-                return;
-            }
-
+            if (e is FileNotFoundException || e is DirectoryNotFoundException || e is UnauthorizedAccessException) return;
             logger.Error($"There was an error removing the empty directory: {dir}\r\n{e}");
         }
     }

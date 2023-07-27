@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -33,6 +33,32 @@ public class AniDBTitleHelper
         _settingsProvider = settingsProvider;
     }
 
+    public IEnumerable<ResponseAniDBTitles.Anime> GetAll()
+    {
+        try
+        {
+            if (_cache == null)
+            {
+                CreateCache();
+            }
+
+            if (_cache != null)
+            {
+                return _cache.Animes;
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+        if (_cache == null)
+        {
+            CreateCache();
+        }
+
+        return new List<ResponseAniDBTitles.Anime>();
+    }
+
     public ResponseAniDBTitles.Anime SearchAnimeID(int animeID)
     {
         try
@@ -53,7 +79,7 @@ public class AniDBTitleHelper
         return null;
     }
 
-    public IEnumerable<ResponseAniDBTitles.Anime> SearchTitle(string query)
+    public IEnumerable<ResponseAniDBTitles.Anime> SearchTitle(string query, bool fuzzy = true)
     {
         try
         {
@@ -65,13 +91,16 @@ public class AniDBTitleHelper
             if (_cache != null)
             {
                 var languages = _settingsProvider.GetSettings().LanguagePreference;
-                return SeriesSearch.SearchCollection(
-                        query, _cache.Animes,
+                return _cache.Animes
+                    .AsParallel()
+                    .Search(
+                        query,
                         anime => anime.Titles
-                            .Where(a => a.Language == TitleLanguage.English || a.Language == TitleLanguage.Romaji ||
+                            .Where(a => a.TitleType == TitleType.Main || a.Language == TitleLanguage.English || a.Language == TitleLanguage.Romaji ||
                                         languages.Contains(a.LanguageCode))
                             .Select(a => a.Title)
-                            .ToList()
+                            .ToList(),
+                        fuzzy
                     )
                     .Select(a => a.Result);
             }

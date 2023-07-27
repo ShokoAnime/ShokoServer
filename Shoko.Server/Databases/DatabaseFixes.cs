@@ -246,7 +246,10 @@ public class DatabaseFixes
                 .List<object[]>().Select(a => new CrossRef_AniDB_TvDB
                 {
                     AniDBID = (int)a[0], TvDBID = (int)a[1], CrossRefSource = (CrossRefSource)a[2]
-                }).DistinctBy(a => new[] { a.AniDBID, a.TvDBID }).ToList();
+                }).DistinctBy(a => new[]
+                {
+                    a.AniDBID, a.TvDBID
+                }).ToList();
             foreach (var link in links)
             {
                 var exists =
@@ -376,9 +379,7 @@ public class DatabaseFixes
 
         var stafftosave = allstaff.Select(a => new AnimeStaff
         {
-            Name = a.SeiyuuName?.Replace("`", "'"),
-            AniDBID = a.SeiyuuID,
-            ImagePath = a.GetPosterPath()?.Replace(creatorBasePath, "")
+            Name = a.SeiyuuName?.Replace("`", "'"), AniDBID = a.SeiyuuID, ImagePath = a.GetPosterPath()?.Replace(creatorBasePath, "")
         }).ToList();
         RepoFactory.AnimeStaff.Save(stafftosave);
 
@@ -495,10 +496,31 @@ public class DatabaseFixes
     public static void MigrateAniDB_AnimeUpdates()
     {
         var tosave = RepoFactory.AniDB_Anime.GetAll()
-            .Select(anime => new AniDB_AnimeUpdate { AnimeID = anime.AnimeID, UpdatedAt = anime.DateTimeUpdated })
+            .Select(anime => new AniDB_AnimeUpdate
+            {
+                AnimeID = anime.AnimeID, UpdatedAt = anime.DateTimeUpdated
+            })
             .ToList();
 
         RepoFactory.AniDB_AnimeUpdate.Save(tosave);
+    }
+
+    public static void MigrateAniDB_FileUpdates()
+    {
+        var tosave = RepoFactory.AniDB_File.GetAll()
+            .Select(file => new AniDB_FileUpdate
+            {
+                FileSize = file.FileSize, Hash = file.Hash, HasResponse = true, UpdatedAt = file.DateTimeUpdated
+            })
+            .ToList();
+
+        tosave.AddRange(RepoFactory.CrossRef_File_Episode.GetAll().Where(a => RepoFactory.AniDB_File.GetByHash(a.Hash) == null)
+            .Select(a => (xref: a, vl: RepoFactory.VideoLocal.GetByHash(a.Hash))).Where(a => a.vl != null).Select(a => new AniDB_FileUpdate
+            {
+                FileSize = a.xref.FileSize, Hash = a.xref.Hash, HasResponse = false, UpdatedAt = a.vl.DateTimeCreated
+            }));
+
+        RepoFactory.AniDB_FileUpdate.Save(tosave);
     }
 
     public static void FixDuplicateTagFiltersAndUpdateSeasons()
@@ -810,9 +832,9 @@ public class DatabaseFixes
 
     public static void FixTagParentIDsAndNameOverrides()
     {
-        var xmlUtils = Utils.ServiceContainer.GetService<HttpXmlUtils>();
-        var animeParser = Utils.ServiceContainer.GetService<HttpAnimeParser>();
-        var animeCreator = Utils.ServiceContainer.GetService<AnimeCreator>();
+        var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
+        var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
+        var animeCreator = Utils.ServiceContainer.GetRequiredService<AnimeCreator>();
         var animeList = RepoFactory.AniDB_Anime.GetAll();
         logger.Info($"Updating anidb tags for {animeList.Count} local anidb anime entries...");
 
@@ -825,14 +847,19 @@ public class DatabaseFixes
             var xml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID);
             if (string.IsNullOrEmpty(xml))
             {
-                logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime with id {anime.AnimeID}");
+                logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
                 continue;
             }
 
-            var response = animeParser.Parse(anime.AnimeID, xml);
-            if (response == null)
+            ResponseGetAnime response;
+            try
             {
-                logger.Warn($"Unable to parse cached Anime_HTTP xml dum for anime with id {anime.AnimeID}");
+                response = animeParser.Parse(anime.AnimeID, xml);
+                if (response == null) throw new NullReferenceException(nameof(response));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, $"Unable to parse cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
                 continue;
             }
 
@@ -848,5 +875,131 @@ public class DatabaseFixes
         RepoFactory.AniDB_Tag.Delete(tagsToDelete);
 
         logger.Info($"Done updating anidb tags for {animeList.Count} anidb anime entries.");
+    }
+
+    public static void FixEpisodeDateTimeUpdated()
+    {
+        var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
+        var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
+        var animeCreator = Utils.ServiceContainer.GetRequiredService<AnimeCreator>();
+        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var anidbAnimeDict = RepoFactory.AniDB_Anime.GetAll()
+            .ToDictionary(an => an.AnimeID);
+        var anidbEpisodeDict = RepoFactory.AniDB_Episode.GetAll()
+            .ToDictionary(ep => ep.EpisodeID);
+        var anidbAnimeIDs = anidbEpisodeDict.Values
+            .GroupBy(ep => ep.AnimeID)
+            .Where(list => anidbAnimeDict.ContainsKey(list.Key))
+            .ToDictionary(list => anidbAnimeDict[list.Key], list => list.ToList());
+        // This list will _hopefully_ initially be an empty…
+        var episodesToSave = anidbEpisodeDict.Values
+            .Where(ep => !anidbAnimeDict.ContainsKey(ep.AnimeID))
+            .ToList();
+        var animeToUpdateSet = anidbEpisodeDict.Values
+            .Where(ep => !anidbAnimeDict.ContainsKey(ep.AnimeID))
+            .Select(ep => ep.AnimeID)
+            .Distinct()
+            .ToHashSet();
+
+        logger.Info($"Updating last updated episode timestamps for {anidbAnimeIDs.Count} local anidb anime entries...");
+
+        // …but if we do have any, then reset their timestamp now.
+        foreach (var faultyEpisode in episodesToSave)
+            faultyEpisode.DateTimeUpdated = DateTime.UnixEpoch;
+
+        var faultyCount = episodesToSave.Count;
+        var resetCount = 0;
+        var updatedCount = 0;
+        var progressCount = 0;
+        foreach (var (anime, episodeList) in anidbAnimeIDs)
+        {
+            if (++progressCount % 10 == 0)
+                logger.Info($"Updating last updated episode timestamps for local anidb anime entries... ({progressCount}/{anidbAnimeIDs.Count})");
+
+            var xml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID);
+            if (string.IsNullOrEmpty(xml))
+            {
+                logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
+                // We're unable to find the xml file, so the safest thing to do for future-proofing is to reset the dates.
+                foreach (var episode in episodeList)
+                {
+                    resetCount++;
+                    episode.DateTimeUpdated = DateTime.UnixEpoch;
+                    episodesToSave.Add(episode);
+                }
+                continue;
+            }
+
+            ResponseGetAnime response;
+            try
+            {
+                response = animeParser.Parse(anime.AnimeID, xml);
+                if (response == null) throw new NullReferenceException(nameof(response));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, $"Unable to parse cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
+                // We're unable to parse the xml file, so the safest thing to do for future-proofing is to reset the dates.
+                foreach (var episode in episodeList)
+                {
+                    resetCount++;
+                    episode.DateTimeUpdated = DateTime.UnixEpoch;
+                    episodesToSave.Add(episode);
+                }
+                continue;
+            }
+
+            var responseEpisodeDict = response.Episodes.ToDictionary(ep => ep.EpisodeID);
+            foreach (var episode in episodeList)
+            {
+                // The episode was found in the XML file, so we can safely update the timestamp.
+                if (responseEpisodeDict.TryGetValue(episode.EpisodeID, out var responseEpisode))
+                {
+                    updatedCount++;
+                    episode.DateTimeUpdated = responseEpisode.LastUpdated;
+                    episodesToSave.Add(episode);
+                }
+                // The episode was deleted from the anime at some point, or the cache is outdated.
+                else
+                {
+                    episode.DateTimeUpdated = DateTime.UnixEpoch;
+                    faultyCount++;
+                    episodesToSave.Add(episode);
+                    animeToUpdateSet.Add(episode.AnimeID);
+                }
+            }
+        }
+
+        // Save the changes, if any.
+        RepoFactory.AniDB_Episode.Save(episodesToSave);
+
+        // Queue an update for the anime entries that needs it, hopefully fixing
+        // the faulty episodes after the update.
+        foreach (var animeID in animeToUpdateSet)
+        {
+            var command = commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+            {
+                c.AnimeID = animeID;
+                c.ForceRefresh = true;
+                c.DownloadRelations = false;
+            });
+            command.Save();
+        }
+
+        logger.Info($"Done updating last updated episode timestamps for {anidbAnimeIDs.Count} local anidb anime entries. Updated {updatedCount} episodes, reset {resetCount} episodes and queued anime {animeToUpdateSet.Count} updates for {faultyCount} faulty episodes.");
+    }
+    
+    public static void UpdateSeriesWithHiddenEpisodes()
+    {
+        var seriesList = RepoFactory.AnimeEpisode.GetAll()
+            .Where(episode => episode.IsHidden)
+            .Select(episode => episode.AnimeSeriesID)
+            .Distinct()
+            .Select(seriesID => RepoFactory.AnimeSeries.GetByID(seriesID))
+            .Where(series => series != null)
+            .ToList();
+
+        foreach (var series in seriesList)
+            series.UpdateStats(false, true);
     }
 }

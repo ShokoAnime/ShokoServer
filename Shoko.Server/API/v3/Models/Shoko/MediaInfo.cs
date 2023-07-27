@@ -40,6 +40,7 @@ public class MediaInfo
     /// <summary>
     /// Date when encoding took place, if known.
     /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime? Encoded { get; }
 
     /// <summary>
@@ -89,7 +90,7 @@ public class MediaInfo
         Duration = file.DurationTimeSpan;
         BitRate = general.OverallBitRate;
         FrameRate = general.FrameRate;
-        Encoded = general.Encoded_Date;
+        Encoded = general.Encoded_Date?.ToUniversalTime();
         Audio = mediaContainer.AudioStreams
             .Select(audio => new AudioStreamInfo(audio))
             .ToList();
@@ -288,7 +289,7 @@ public class MediaInfo
 
         public StreamFormatInfo(Stream stream)
         {
-            Name = stream.Format.ToLowerInvariant();
+            Name = stream.Format?.ToLowerInvariant() ?? "unknown";
             Profile = stream.Format_Profile?.ToLowerInvariant();
             Level = stream.Format_Level?.ToLowerInvariant();
             Settings = stream.Format_Settings;

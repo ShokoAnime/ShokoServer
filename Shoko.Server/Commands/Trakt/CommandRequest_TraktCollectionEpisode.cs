@@ -39,31 +39,22 @@ public class CommandRequest_TraktCollectionEpisode : CommandRequestImplementatio
 
         var settings = _settingsProvider.GetSettings();
 
-        try
+        if (!settings.TraktTv.Enabled ||
+            string.IsNullOrEmpty(settings.TraktTv.AuthToken))
         {
-            if (!settings.TraktTv.Enabled ||
-                string.IsNullOrEmpty(settings.TraktTv.AuthToken))
-            {
-                return;
-            }
-
-            var ep = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
-            if (ep != null)
-            {
-                var syncType = TraktSyncType.CollectionAdd;
-                if (ActionEnum == TraktSyncAction.Remove)
-                {
-                    syncType = TraktSyncType.CollectionRemove;
-                }
-
-                _helper.SyncEpisodeToTrakt(ep, syncType);
-            }
+            return;
         }
-        catch (Exception ex)
+
+        var ep = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
+        if (ep != null)
         {
-            Logger.LogError("Error processing CommandRequest_TraktCollectionEpisode: {0} - {1} - {2}", AnimeEpisodeID,
-                Action,
-                ex);
+            var syncType = TraktSyncType.CollectionAdd;
+            if (ActionEnum == TraktSyncAction.Remove)
+            {
+                syncType = TraktSyncType.CollectionRemove;
+            }
+
+            _helper.SyncEpisodeToTrakt(ep, syncType);
         }
     }
 

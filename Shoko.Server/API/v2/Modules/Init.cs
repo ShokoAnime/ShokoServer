@@ -64,9 +64,8 @@ public class Init : BaseController
         };
         list.Add(version);
 
-        string versionExtra = Utils.GetApplicationExtraVersion();
-
-        if (!string.IsNullOrEmpty(versionExtra))
+        var extraVersionDict = Utils.GetApplicationExtraVersion();
+        if (extraVersionDict.TryGetValue("commit", out var versionExtra))
         {
             version = new ComponentVersion
             {
@@ -233,7 +232,7 @@ public class Init : BaseController
         }
         catch (Exception e)
         {
-            _logger.LogError("There was an error starting the server: {E}", e);
+            _logger.LogError(e, "There was an error starting the server");
             return APIStatus.InternalError($"There was an error starting the server: {e}");
         }
         return APIStatus.OK();
@@ -331,13 +330,13 @@ public class Init : BaseController
         var settings = new DatabaseSettings
         {
             db_type = _settings.Database.Type,
-            mysql_hostname = _settings.Database.Hostname,
+            mysql_hostname = _settings.Database.Host,
             mysql_password = _settings.Database.Password,
             mysql_schemaname = _settings.Database.Schema,
             mysql_username = _settings.Database.Username,
             sqlite_databasefile = _settings.Database.SQLite_DatabaseFile,
             sqlserver_databasename = _settings.Database.Schema,
-            sqlserver_databaseserver = _settings.Database.Hostname,
+            sqlserver_databaseserver = _settings.Database.Host,
             sqlserver_password = _settings.Database.Password,
             sqlserver_username = _settings.Database.Username
         };
@@ -370,7 +369,7 @@ public class Init : BaseController
             if (details.Count > 0)
                 return new APIMessage(HttpStatusCode.BadRequest, "An invalid setting was passed", details);
             _settings.Database.Type = dbtype;
-            _settings.Database.Hostname = settings.mysql_hostname;
+            _settings.Database.Host = settings.mysql_hostname;
             _settings.Database.Password = settings.mysql_password;
             _settings.Database.Schema = settings.mysql_schemaname;
             _settings.Database.Username = settings.mysql_username;
@@ -390,7 +389,7 @@ public class Init : BaseController
             if (details.Count > 0)
                 return new APIMessage(HttpStatusCode.BadRequest, "An invalid setting was passed", details);
             _settings.Database.Type = dbtype;
-            _settings.Database.Hostname = settings.sqlserver_databaseserver;
+            _settings.Database.Host = settings.sqlserver_databaseserver;
             _settings.Database.Schema = settings.sqlserver_databasename;
             _settings.Database.Username = settings.sqlserver_username;
             _settings.Database.Password = settings.sqlserver_password;

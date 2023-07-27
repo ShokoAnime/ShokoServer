@@ -11,13 +11,17 @@ public static class Languages
         Enum.GetValues<TitleLanguage>().Select(l => new NamingLanguage(l)).ToList();
 
     private static List<NamingLanguage> _preferredNamingLanguages;
+
     public static List<NamingLanguage> PreferredNamingLanguages
     {
         get
         {
-            var preference = Utils.SettingsProvider.GetSettings().LanguagePreference ?? new List<string>();
-            if (_preferredNamingLanguages != null) return _preferredNamingLanguages;
+            if (_preferredNamingLanguages != null)
+                return _preferredNamingLanguages;
+
+            var preference = Utils.SettingsProvider.GetSettings().LanguagePreference ?? new();
             return _preferredNamingLanguages = preference
+                .Where(l => !string.IsNullOrEmpty(l))
                 .Select(l => new NamingLanguage(l))
                 .Where(l => l.Language != TitleLanguage.Unknown)
                 .ToList();
@@ -25,15 +29,22 @@ public static class Languages
         set => _preferredNamingLanguages = value;
     }
 
+    private static List<NamingLanguage> _preferredEpisodeNamingLanguages;
+
     public static List<NamingLanguage> PreferredEpisodeNamingLanguages
     {
         get
         {
-            var preference = Utils.SettingsProvider.GetSettings().EpisodeLanguagePreference?.Split(',') ?? new string[] { };
-            return preference
+            if (_preferredEpisodeNamingLanguages != null)
+                return _preferredEpisodeNamingLanguages;
+
+            var preference = Utils.SettingsProvider.GetSettings().EpisodeLanguagePreference ?? new();
+            return _preferredEpisodeNamingLanguages = preference
+                .Where(l => !string.IsNullOrEmpty(l))
                 .Select(l => new NamingLanguage(l))
                 .Where(l => l.Language != TitleLanguage.Unknown)
                 .ToList();
         }
+        set => _preferredEpisodeNamingLanguages = value;
     }
 }

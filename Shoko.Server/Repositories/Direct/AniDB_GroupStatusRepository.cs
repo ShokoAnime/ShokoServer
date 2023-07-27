@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using NHibernate.Criterion;
 using NHibernate.Linq;
-using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
@@ -13,22 +11,24 @@ public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatu
 {
     public List<AniDB_GroupStatus> GetByAnimeID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var objs = session
-                .CreateCriteria(typeof(AniDB_GroupStatus))
-                .Add(Restrictions.Eq("AnimeID", id))
-                .List<AniDB_GroupStatus>();
-
-            return new List<AniDB_GroupStatus>(objs);
-        }
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            return session.Query<AniDB_GroupStatus>()
+                .Where(a => a.AnimeID == id)
+                .ToList();
+        });
     }
 
     public void DeleteForAnime(int animeid)
     {
-        using var session = DatabaseFactory.SessionFactory.OpenSession();
-        session.Query<AniDB_GroupStatus>().Where(a => a.AnimeID == animeid).Delete();
+        Lock(() =>
+        {
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            // Query can't batch delete, while Query can
+            session.Query<AniDB_GroupStatus>().Where(a => a.AnimeID == animeid).Delete();
+        });
+
         SVR_AniDB_Anime.UpdateStatsByAnimeID(animeid);
     }
 }

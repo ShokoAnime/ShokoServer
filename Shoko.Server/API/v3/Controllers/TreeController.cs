@@ -5,13 +5,22 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
+
+using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
+using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
+using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -34,12 +43,13 @@ public class TreeController : BaseController
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
     /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <returns></returns>
     [HttpGet("ImportFolder/{folderID}/File")]
     public ActionResult<ListResult<File>> GetFilesInImportFolder([FromRoute] int folderID,
         [FromQuery] [Range(0, 100)] int pageSize = 50,
         [FromQuery] [Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool includeXRefs = false)
+        [FromQuery] bool includeXRefs = false, [FromQuery] bool includeAbsolutePaths = false)
     {
         var importFolder = RepoFactory.ImportFolder.GetByID(folderID);
         if (importFolder == null)
@@ -51,7 +61,7 @@ public class TreeController : BaseController
             .GroupBy(place => place.VideoLocalID)
             .Select(places => RepoFactory.VideoLocal.GetByID(places.Key))
             .OrderBy(file => file.DateTimeCreated)
-            .ToListResult(file => new File(HttpContext, file, includeXRefs), page, pageSize);
+            .ToListResult(file => new File(HttpContext, file, includeXRefs, includeAbsolutePaths: includeAbsolutePaths), page, pageSize);
     }
 
     #endregion
@@ -61,7 +71,7 @@ public class TreeController : BaseController
     /// Get a list of all the sub-<see cref="Filter"/> for the <see cref="Filter"/> with the given <paramref name="filterID"/>.
     /// </summary>
     /// <remarks>
-    /// The <see cref="Filter"/> must have <see cref="Filter.Directory"/> set to true to use
+    /// The <see cref="Filter"/> must have <see cref="Filter.IsDirectory"/> set to true to use
     /// this endpoint.
     /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
@@ -76,17 +86,13 @@ public class TreeController : BaseController
     {
         var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
         if (groupFilter == null)
-        {
             return NotFound(FilterController.FilterNotFound);
-        }
 
-        if (!((GroupFilterType)groupFilter.FilterType).HasFlag(GroupFilterType.Directory))
-        {
-            return BadRequest("Filter contains no sub-filters.");
-        }
+        if (!groupFilter.IsDirectory)
+            return new ListResult<Filter>();
 
         return RepoFactory.GroupFilter.GetByParentID(filterID)
-            .Where(filter => showHidden || filter.InvisibleInClients != 1)
+            .Where(filter => showHidden || !filter.IsHidden)
             .OrderBy(filter => filter.GroupFilterName)
             .ToListResult(filter => new Filter(HttpContext, filter), page, pageSize);
     }
@@ -94,6 +100,10 @@ public class TreeController : BaseController
     /// <summary>
     /// Get a paginated list of all the top-level <see cref="Group"/>s for the <see cref="Filter"/> with the given <paramref name="filterID"/>.
     /// </summary>
+    /// <remarks>
+    /// The <see cref="Filter"/> must have <see cref="Filter.IsDirectory"/> set to false to use
+    /// this endpoint.
+    /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
@@ -112,31 +122,39 @@ public class TreeController : BaseController
         {
             var user = User;
             groups = RepoFactory.AnimeGroup.GetAll()
-                .Where(group => !group.AnimeGroupParentID.HasValue && user.AllowedGroup(group))
+                .Where(group =>
+                {
+                    if (group.AnimeGroupParentID.HasValue)
+                        return false;
+
+                    if (!user.AllowedGroup(group))
+                        return false;
+
+                    return includeEmpty || group.GetAllSeries()
+                        .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
+                })
                 .OrderBy(group => group.GetSortName());
         }
         else
         {
             var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
             if (groupFilter == null)
-            {
                 return NotFound(FilterController.FilterNotFound);
-            }
+
+            // Directories should only contain sub-filters, not groups and series.
+            if (groupFilter.IsDirectory)
+                return new ListResult<Group>();
 
             // Fast path when user is not in the filter
             if (!groupFilter.GroupsIds.TryGetValue(User.JMMUserID, out var groupIds))
-            {
                 return new ListResult<Group>();
-            }
 
             groups = groupIds
                 .Select(group => RepoFactory.AnimeGroup.GetByID(group))
                 .Where(group =>
                 {
                     if (group == null || group.AnimeGroupParentID.HasValue)
-                    {
                         return false;
-                    }
 
                     return includeEmpty || group.GetAllSeries()
                         .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
@@ -154,6 +172,10 @@ public class TreeController : BaseController
     /// the top-level group's name with the filter for the given
     /// <paramref name="filterID"/> applied.
     /// </summary>
+    /// <remarks>
+    /// The <see cref="Filter"/> must have <see cref="Filter.IsDirectory"/> set to false to use
+    /// this endpoint.
+    /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing
     /// <see cref="Episode"/>s in the count.</param>
@@ -168,11 +190,15 @@ public class TreeController : BaseController
             if (groupFilter == null)
                 return NotFound(FilterController.FilterNotFound);
 
+            // Directories should only contain sub-filters, not groups and series.
+            if (groupFilter.IsDirectory)
+                return new Dictionary<char, int>();
+
             // Fast path when user is not in the filter
             if (!groupFilter.GroupsIds.TryGetValue(user.JMMUserID, out var groupIds))
                 return new Dictionary<char, int>();
 
-            var groups = groupIds
+            return groupIds
                 .Select(group => RepoFactory.AnimeGroup.GetByID(group))
                 .Where(group =>
                 {
@@ -209,50 +235,52 @@ public class TreeController : BaseController
     /// </summary>
     /// <remarks>
     ///  Pass a <paramref name="filterID"/> of <code>0</code> to disable filter.
+    /// <br/>
+    /// The <see cref="Filter"/> must have <see cref="Filter.IsDirectory"/> set to false to use
+    /// this endpoint.
     /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
     /// <param name="randomImages">Randomise images shown for each <see cref="Series"/>.</param>
+    /// <param name="includeMissing">Include <see cref="Series"/> with missing
+    /// <see cref="Episode"/>s in the count.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Series")]
     public ActionResult<ListResult<Series>> GetSeriesInFilteredGroup([FromRoute] int filterID,
         [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool randomImages = false)
+        [FromQuery] bool randomImages = false, [FromQuery] bool includeMissing = false)
     {
         // Return the series with no group filter applied.
+        var user = User;
         if (filterID == 0)
-        {
             return RepoFactory.AnimeSeries.GetAll()
-                .Where(series => User.AllowedSeries(series))
+                .Where(series => user.AllowedSeries(series) && (includeMissing || series.GetVideoLocals().Count > 0))
                 .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
                 .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
-        }
 
         // Check if the group filter exists.
         var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
         if (groupFilter == null)
-        {
             return NotFound(FilterController.FilterNotFound);
-        }
+
+        // Directories should only contain sub-filters, not groups and series.
+        if (groupFilter.IsDirectory)
+            return new ListResult<Series>();
 
         // Return all series if group filter is not applied to series.
         if (groupFilter.ApplyToSeries != 1)
-        {
             return RepoFactory.AnimeSeries.GetAll()
-                .Where(series => User.AllowedSeries(series))
+                .Where(series => user.AllowedSeries(series) && (includeMissing || series.GetVideoLocals().Count > 0))
                 .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
                 .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
-        }
 
         // Return early if every series will be filtered out.
-        if (!groupFilter.SeriesIds.TryGetValue(User.JMMUserID, out var seriesIDs))
-        {
+        if (!groupFilter.SeriesIds.TryGetValue(user.JMMUserID, out var seriesIDs))
             return new ListResult<Series>();
-        }
 
         return seriesIDs.Select(id => RepoFactory.AnimeSeries.GetByID(id))
-            .Where(series => series != null && User.AllowedSeries(series))
+            .Where(series => series != null && user.AllowedSeries(series) && (includeMissing || series.GetVideoLocals().Count > 0))
             .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
             .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
     }
@@ -260,6 +288,10 @@ public class TreeController : BaseController
     /// <summary>
     /// Get a list of all the sub-<see cref="Group"/>s belonging to the <see cref="Group"/> with the given <paramref name="groupID"/> and which are present within the <see cref="Filter"/> with the given <paramref name="filterID"/>.
     /// </summary>
+    /// <remarks>
+    /// The <see cref="Filter"/> must have <see cref="Filter.IsDirectory"/> set to false to use
+    /// this endpoint.
+    /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="groupID"><see cref="Group"/> ID</param>
     /// <param name="randomImages">Randomise images shown for the <see cref="Group"/>.</param>
@@ -271,58 +303,44 @@ public class TreeController : BaseController
     {
         // Return sub-groups with no group filter applied.
         if (filterID == 0)
-        {
             return GetSubGroups(groupID, randomImages, includeEmpty);
-        }
 
         var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
         if (groupFilter == null)
-        {
             return NotFound(FilterController.FilterNotFound);
-        }
 
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
-        {
             return NotFound(GroupController.GroupNotFound);
-        }
 
         var user = User;
         if (!user.AllowedGroup(group))
-        {
             return Forbid(GroupController.GroupForbiddenForUser);
-        }
+
+        // Directories should only contain sub-filters, not groups and series.
+        if (groupFilter.IsDirectory)
+            return new List<Group>();
 
         // Just return early because the every group will be filtered out.
         if (!groupFilter.SeriesIds.TryGetValue(user.JMMUserID, out var seriesIDs))
-        {
             return new List<Group>();
-        }
 
         return group.GetChildGroups()
             .Where(subGroup =>
             {
                 if (subGroup == null)
-                {
                     return false;
-                }
 
                 if (!user.AllowedGroup(subGroup))
-                {
                     return false;
-                }
 
                 if (!includeEmpty && !subGroup.GetAllSeries()
                         .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0)))
-                {
                     return false;
-                }
 
                 if (groupFilter.ApplyToSeries != 1)
-                {
                     return true;
-                }
 
                 return subGroup.GetAllSeries().Any(series => seriesIDs.Contains(series.AnimeSeriesID));
             })
@@ -335,7 +353,10 @@ public class TreeController : BaseController
     /// Get a list of all the <see cref="Series"/> for the <see cref="Group"/> within the <see cref="Filter"/>.
     /// </summary>
     /// <remarks>
-    ///  Pass a <paramref name="filterID"/> of <code>0</code> to disable filter or .
+    ///  Pass a <paramref name="filterID"/> of <code>0</code> to disable filter.
+    /// <br/>
+    /// The <see cref="Filter"/> must have <see cref="Filter.IsDirectory"/> set to false to use
+    /// this endpoint.
     /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="groupID"><see cref="Group"/> ID</param>
@@ -347,44 +368,36 @@ public class TreeController : BaseController
     [HttpGet("Filter/{filterID}/Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetSeriesInFilteredGroup([FromRoute] int filterID, [FromRoute] int groupID,
         [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false,
-        [FromQuery] bool randomImages = false, [FromQuery] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Return the groups with no group filter applied.
         if (filterID == 0)
-        {
             return GetSeriesInGroup(groupID, recursive, includeMissing, randomImages, includeDataFrom);
-        }
 
         // Check if the group filter exists.
         var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
         if (groupFilter == null)
-        {
             return NotFound(FilterController.FilterNotFound);
-        }
 
         if (groupFilter.ApplyToSeries != 1)
-        {
             return GetSeriesInGroup(groupID, recursive, includeMissing, randomImages);
-        }
 
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
-        {
             return NotFound(GroupController.GroupNotFound);
-        }
 
         var user = User;
         if (!user.AllowedGroup(group))
-        {
             return Forbid(GroupController.GroupForbiddenForUser);
-        }
+
+        // Directories should only contain sub-filters, not groups and series.
+        if (groupFilter.IsDirectory)
+            return new List<Series>();
 
         // Just return early because the every series will be filtered out.
         if (!groupFilter.SeriesIds.TryGetValue(user.JMMUserID, out var seriesIDs))
-        {
             return new List<Series>();
-        }
 
         return (recursive ? group.GetAllSeries() : group.GetSeries())
             .Where(series => seriesIDs.Contains(series.AnimeSeriesID))
@@ -459,7 +472,7 @@ public class TreeController : BaseController
     [HttpGet("Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetSeriesInGroup([FromRoute] int groupID, [FromQuery] bool recursive = false,
         [FromQuery] bool includeMissing = false, [FromQuery] bool randomImages = false,
-        [FromQuery] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -490,7 +503,8 @@ public class TreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/MainSeries")]
-    public ActionResult<Series> GetMainSeriesInGroup([FromRoute] int groupID, [FromQuery] bool randomImages = false, [FromQuery] HashSet<DataSource> includeDataFrom = null)
+    public ActionResult<Series> GetMainSeriesInGroup([FromRoute] int groupID, [FromQuery] bool randomImages = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -525,12 +539,24 @@ public class TreeController : BaseController
     /// <see cref="Filter"/> or <see cref="Group"/> is irrelevant at this level.
     /// </remarks>
     /// <param name="seriesID">Series ID</param>
+    /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
+    /// <param name="page">The page index.</param>
     /// <param name="includeMissing">Include missing episodes in the list.</param>
+    /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
-    /// <returns></returns>
+    /// <param name="includeWatched">Include watched episodes in the list.</param>
+    /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
+    /// <param name="search">An optional search query to filter episodes based on their titles.</param>
+    /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
+    /// <returns>A list of episodes based on the specified filters.</returns>
     [HttpGet("Series/{seriesID}/Episode")]
-    public ActionResult<List<Episode>> GetEpisodes([FromRoute] int seriesID, [FromQuery] bool includeMissing = false,
-        [FromQuery] HashSet<DataSource> includeDataFrom = null)
+    public ActionResult<ListResult<Episode>> GetEpisodes([FromRoute] int seriesID,
+        [FromQuery] [Range(0, 1000)] int pageSize = 20, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False, [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
+        [FromQuery] string search = null, [FromQuery] bool fuzzy = true)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -543,11 +569,213 @@ public class TreeController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        return series.GetAnimeEpisodes(true)
-            .Select(a => new Episode(HttpContext, a, includeDataFrom))
-            .Where(a => a.Size > 0 || includeMissing)
-            .ToList();
+        var user = User;
+        var hasSearch = !string.IsNullOrWhiteSpace(search);
+        var episodes = series.GetAnimeEpisodes()
+            .AsParallel()
+            .Select(episode => new { Shoko = episode, AniDB = episode?.AniDB_Episode })
+            .Where(both =>
+            {
+                // Make sure we have an anidb entry for the episode, otherwise,
+                // just hide it.
+                var shoko = both.Shoko;
+                var anidb = both.AniDB;
+                if (anidb == null)
+                    return false;
+
+                // Filter by hidden state, if spesified
+                if (includeHidden != IncludeOnlyFilter.True)
+                {
+                    // If we should hide hidden episodes and the episode is hidden, then hide it.
+                    // Or if we should only show hidden episodes and the episode is not hidden, then hide it.
+                    var shouldHideHidden = includeHidden == IncludeOnlyFilter.False;
+                    if (shouldHideHidden == shoko.IsHidden)
+                        return false;
+                }
+
+                // Filter by episode type, if specified
+                if (type != null && type.Count > 0)
+                {
+                    var mappedType = Episode.MapAniDBEpisodeType((AniDBEpisodeType)anidb.EpisodeType);
+                    if (!type.Contains(mappedType))
+                        return false;
+                }
+
+                // Filter by availability, if specified
+                if (includeMissing != IncludeOnlyFilter.True)
+                {
+                    // If we should hide missing episodes and the episode has no files, then hide it.
+                    // Or if we should only show missing episodes and the episode has files, the hide it.
+                    var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
+                    var noFiles = shoko.GetVideoLocals().Count == 0;
+                    if (shouldHideMissing == noFiles)
+                        return false;
+                }
+
+                // Filter by user watched status, if specified
+                if (includeWatched != IncludeOnlyFilter.True)
+                {
+                    // If we should hide watched episodes and the episode is watched, then hide it.
+                    // Or if we should only show watched episodes and the the episode is not watched, then hide it.
+                    var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
+                    var isWatched = shoko.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
+                    if (shouldHideWatched == isWatched)
+                        return false;
+                }
+
+                return true;
+            });
+        if (hasSearch)
+        {
+            var languages = SettingsProvider.GetSettings()
+                .LanguagePreference
+                .Select(lang => lang.GetTitleLanguage())
+                .Concat(new TitleLanguage[] { TitleLanguage.English, TitleLanguage.Romaji })
+                .ToHashSet();
+            return episodes
+                .Search(
+                    search,
+                    ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB.EpisodeID)
+                        .Where(title => title != null && languages.Contains(title.Language))
+                        .Select(title => title.Title)
+                        .Append(ep.Shoko.Title)
+                        .Distinct()
+                        .ToList(),
+                    fuzzy
+                )
+                .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom), page, pageSize);
+        }
+
+        return episodes
+            // Order the episodes since we're not using the search ordering.
+            .OrderBy(episode => episode.AniDB.EpisodeType)
+            .ThenBy(episode => episode.AniDB.EpisodeNumber)
+            .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom), page, pageSize);
     }
+
+    /// <summary>
+    /// Get the <see cref="Episode.AniDB"/>s for the <see cref="Series.AniDB"/> with <paramref name="anidbID"/>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Filter"/> or <see cref="Group"/> is irrelevant at this level.
+    /// </remarks>
+    /// <param name="anidbID">AniDB series ID</param>
+    /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
+    /// <param name="page">The page index.</param>
+    /// <param name="includeMissing">Include missing episodes in the list.</param>
+    /// <param name="includeHidden">Include hidden episodes in the list.</param>
+    /// <param name="includeWatched">Include watched episodes in the list.</param>
+    /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
+    /// <param name="search">An optional search query to filter episodes based on their titles.</param>
+    /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
+    /// <returns>A list of episodes based on the specified filters.</returns>
+    [HttpGet("Series/AniDB/{anidbID}/Episode")]
+    public ActionResult<ListResult<Episode.AniDB>> GetAniDBEpisodes([FromRoute] int anidbID,
+        [FromQuery] [Range(0, 1000)] int pageSize = 20,
+        [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
+        [FromQuery] string search = null, [FromQuery] bool fuzzy = true)
+    {
+        var anidbSeries = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
+        if (anidbSeries == null)
+        {
+            return NotFound(SeriesController.AnidbNotFoundForAnidbID);
+        }
+
+        if (!User.AllowedAnime(anidbSeries))
+        {
+            return Forbid(SeriesController.AnidbForbiddenForUser);
+        }
+
+        var user = User;
+        var hasSearch = !string.IsNullOrWhiteSpace(search);
+        var episodes = anidbSeries.GetAniDBEpisodes()
+            .AsParallel()
+            .Select(episode => new { Shoko = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID), AniDB = episode })
+            .Where(both =>
+            {
+                // Make sure we have an anidb entry for the episode, otherwise,
+                // just hide it.
+                var shoko = both.Shoko;
+                var anidb = both.AniDB;
+                if (anidb == null)
+                    return false;
+
+                // Filter by hidden state, if spesified
+                if (includeHidden != IncludeOnlyFilter.True)
+                {
+                    // If we should hide hidden episodes and the episode is hidden, then hide it.
+                    // Or if we should only show hidden episodes and the episode is not hidden, then hide it.
+                    var shouldHideHidden = includeHidden == IncludeOnlyFilter.False;
+                    var isHidden = shoko?.IsHidden ?? false;
+                    if (shouldHideHidden == isHidden)
+                        return false;
+                }
+
+                // Filter by episode type, if specified
+                if (type != null && type.Count > 0)
+                {
+                    var mappedType = Episode.MapAniDBEpisodeType((AniDBEpisodeType)anidb.EpisodeType);
+                    if (!type.Contains(mappedType))
+                        return false;
+                }
+
+                // Filter by availability, if specified
+                if (includeMissing != IncludeOnlyFilter.True)
+                {
+                    // If we should hide missing episodes and the episode has no files, then hide it.
+                    // Or if we should only show missing episodes and the episode has files, the hide it.
+                    var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
+                    var files = shoko?.GetVideoLocals().Count ?? 0;
+                    var noFiles = files == 0;
+                    if (shouldHideMissing == noFiles)
+                        return false;
+                }
+
+                // Filter by user watched status, if specified
+                if (includeWatched != IncludeOnlyFilter.True)
+                {
+                    // If we should hide watched episodes and the episode is watched, then hide it.
+                    // Or if we should only show watched episodes and the the episode is not watched, then hide it.
+                    var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
+                    var isWatched = shoko?.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
+                    if (shouldHideWatched == isWatched)
+                        return false;
+                }
+
+                return true;
+            });
+        if (hasSearch)
+        {
+            var languages = SettingsProvider.GetSettings()
+                .LanguagePreference
+                .Select(lang => lang.GetTitleLanguage())
+                .Concat(new TitleLanguage[] { TitleLanguage.English, TitleLanguage.Romaji })
+                .ToHashSet();
+            return episodes
+                .Search(
+                    search,
+                    ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB.EpisodeID)
+                        .Where(title => title != null && languages.Contains(title.Language))
+                        .Select(title => title.Title)
+                        .Append(ep.Shoko.Title)
+                        .Distinct()
+                        .ToList(),
+                    fuzzy
+                )
+                .ToListResult(a => new Episode.AniDB(a.Result.AniDB), page, pageSize);
+        }
+
+        return episodes
+            // Order the episodes since we're not using the search ordering.
+            .OrderBy(episode => episode.AniDB.EpisodeType)
+            .ThenBy(episode => episode.AniDB.EpisodeNumber)
+            .ToListResult(a => new Episode.AniDB(a.AniDB), page, pageSize);
+    }
+    
 
     /// <summary>
     /// Get the next <see cref="Episode"/> for the <see cref="Series"/> with <paramref name="seriesID"/>.
@@ -558,12 +786,17 @@ public class TreeController : BaseController
     /// <param name="seriesID">Series ID</param>
     /// <param name="onlyUnwatched">Only show the next unwatched episode.</param>
     /// <param name="includeSpecials">Include specials in the search.</param>
+    /// <param name="includeMissing">Include missing episodes in the list.</param>
+    /// <param name="includeHidden">Include hidden episodes in the list.</param>
+    /// <param name="includeRewatching">Include already watched episodes in the
+    /// search if we determine the user is "re-watching" the series.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/NextUpEpisode")]
     public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID,
         [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true,
-        [FromQuery] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery] bool includeMissing = true, [FromQuery] bool includeHidden = false,
+        [FromQuery] bool includeRewatching = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var user = User;
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -577,7 +810,14 @@ public class TreeController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        var episode = series.GetNextEpisode(user.JMMUserID, onlyUnwatched, includeSpecials);
+        var episode = series.GetNextEpisode(user.JMMUserID, new()
+        {
+            IncludeCurrentlyWatching = !onlyUnwatched,
+            IncludeHidden = includeHidden,
+            IncludeMissing = includeMissing,
+            IncludeRewatching = includeRewatching,
+            IncludeSpecials = includeSpecials,
+        });
         if (episode == null)
         {
             return null;
@@ -594,10 +834,14 @@ public class TreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="isManuallyLinked">Omit to select all files. Set to true to only select manually
     /// linked files, or set to false to only select automatically linked files.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/File")]
     public ActionResult<List<File>> GetFilesForSeries([FromRoute] int seriesID, [FromQuery] bool includeXRefs = false,
-        [FromQuery] HashSet<DataSource> includeDataFrom = null, [FromQuery] bool? isManuallyLinked = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery] bool? isManuallyLinked = null, [FromQuery] bool includeMediaInfo = false,
+        [FromQuery] bool includeAbsolutePaths = false)
     {
         var user = User;
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -612,7 +856,7 @@ public class TreeController : BaseController
         }
 
         return series.GetVideoLocals(isManuallyLinked.HasValue ? isManuallyLinked.Value ? CrossRefSource.User : CrossRefSource.AniDB : null)        
-            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom))
+            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths))
             .ToList();
     }
 
@@ -628,10 +872,14 @@ public class TreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="isManuallyLinked">Omit to select all files. Set to true to only select manually
     /// linked files, or set to false to only select automatically linked files.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/File")]
     public ActionResult<List<File>> GetFilesForEpisode([FromRoute] int episodeID, [FromQuery] bool includeXRefs = false,
-        [FromQuery] HashSet<DataSource> includeDataFrom = null, [FromQuery] bool? isManuallyLinked = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery] bool? isManuallyLinked = null, [FromQuery] bool includeMediaInfo = false,
+        [FromQuery] bool includeAbsolutePaths = false)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -651,7 +899,7 @@ public class TreeController : BaseController
         }
 
         return episode.GetVideoLocals(isManuallyLinked.HasValue ? isManuallyLinked.Value ? CrossRefSource.User : CrossRefSource.AniDB : null)
-            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom))
+            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths))
             .ToList();
     }
 

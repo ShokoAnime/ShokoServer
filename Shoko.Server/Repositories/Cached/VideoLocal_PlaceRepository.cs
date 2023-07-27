@@ -3,7 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Extensions;
+using Shoko.Commons.Properties;
+using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -40,6 +45,28 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
 
     public override void RegenerateDb()
     {
+        ServerState.Instance.ServerStartingStatus = string.Format(
+            Resources.Database_Validating, nameof(VideoLocal_Place), " Removing orphaned VideoLocal_Places");
+        var count = 0;
+        int max;
+
+        var list = Cache.Values.Where(a => a is { VideoLocalID: 0 }).ToList();
+        max = list.Count;
+
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        foreach (var batch in list.Batch(50))
+        {
+            using var transaction = session.BeginTransaction();
+            foreach (var a in batch)
+            {
+                DeleteWithOpenTransaction(session, a);
+                count++;
+                ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(VideoLocal_Place),
+                    " Removing Orphaned VideoLocal_Places - " + count + "/" + max);
+            }
+
+            transaction.Commit();
+        }
     }
 
     public List<SVR_VideoLocal_Place> GetByImportFolder(int importFolderID)

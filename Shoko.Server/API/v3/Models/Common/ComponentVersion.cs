@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
 # nullable enable
@@ -7,12 +8,12 @@ namespace Shoko.Server.API.v3.Models.Common;
 public class ComponentVersion
 {
     /// <summary>
-    /// Version or message
+    /// Version number.
     /// </summary>
     public string? Version { get; set; }
 
     /// <summary>
-    ///Commit SHA.
+    /// Commit SHA.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string? Commit { get; set; }
@@ -24,10 +25,23 @@ public class ComponentVersion
     public ReleaseChannel? ReleaseChannel { get; set; }
 
     /// <summary>
+    /// Release date.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime? ReleaseDate { get; set; }
+
+    /// <summary>
     /// Git Tag.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string? Tag { get; set; }
+
+    /// <summary>
+    /// A short description about this release/version.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? Description { get; set; }
 }
 
 

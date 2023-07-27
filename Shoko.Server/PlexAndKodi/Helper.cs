@@ -434,7 +434,7 @@ public static class Helper
             .Where(a => a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count > 0)
             .ToList();
 
-        foreach (var gg in gfs.Where(a => (a.FilterType & (int)GroupFilterType.Directory) == 0))
+        foreach (var gg in gfs.Where(a => !a.IsDirectory))
         {
             if (gg.GroupsIds.ContainsKey(userid))
             {
@@ -466,9 +466,7 @@ public static class Helper
         if (pp.Art == null)
         {
             foreach (var gg in gfs
-                         .Where(a =>
-                             (a.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory &&
-                             a.InvisibleInClients == 0)
+                         .Where(a => a.IsDirectory && !a.IsHidden)
                          .Randomize(f.GroupFilterID))
             {
                 GetValidVideoRecursive(prov, gg, userid, pp);
@@ -491,7 +489,7 @@ public static class Helper
         pp.Title = gg.GroupFilterName;
         pp.Id = gg.GroupFilterID;
         pp.AnimeType = AnimeTypes.AnimeGroupFilter.ToString();
-        if ((gg.FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
+        if (gg.IsDirectory)
         {
             GetValidVideoRecursive(prov, gg, userid, pp);
         }
@@ -658,7 +656,7 @@ public static class Helper
             }
 
             var v = GenerateFromSeries(cserie, ser, ser.GetAnime(), userid);
-            v.AirDate = ser.AirDate;
+            v.AirDate = ser.AirDate ?? DateTime.MinValue;
             v.UpdatedAt = ser.LatestEpisodeAirDate.HasValue
                 ? ser.LatestEpisodeAirDate.Value.ToUnixTime()
                 : null;
@@ -669,7 +667,7 @@ public static class Helper
         {
             var ser = grp.DefaultAnimeSeriesID.HasValue
                 ? allSeries.FirstOrDefault(a => a.AnimeSeriesID == grp.DefaultAnimeSeriesID.Value)
-                : allSeries.Find(a => a.AirDate != DateTime.MinValue);
+                : allSeries.Find(a => a.AirDate.HasValue);
             if (ser == null && allSeries.Count > 0)
             {
                 ser = allSeries[0];

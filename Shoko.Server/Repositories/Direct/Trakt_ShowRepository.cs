@@ -1,5 +1,5 @@
-﻿using NHibernate;
-using NHibernate.Criterion;
+﻿using System.Linq;
+using NHibernate;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
@@ -9,23 +9,23 @@ public class Trakt_ShowRepository : BaseDirectRepository<Trakt_Show, int>
 {
     public Trakt_Show GetByTraktSlug(string slug)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return GetByTraktSlug(session, slug);
-        }
+            return GetByTraktSlugUnsafe(session, slug);
+        });
     }
 
 
     public Trakt_Show GetByTraktSlug(ISession session, string slug)
     {
-        lock (GlobalDBLock)
-        {
-            var cr = session
-                .CreateCriteria(typeof(Trakt_Show))
-                .Add(Restrictions.Eq("TraktID", slug))
-                .UniqueResult<Trakt_Show>();
-            return cr;
-        }
+        return Lock(() => GetByTraktSlugUnsafe(session, slug));
+    }
+
+    private static Trakt_Show GetByTraktSlugUnsafe(ISession session, string slug)
+    {
+        return session.Query<Trakt_Show>()
+            .Where(a => a.TraktID == slug)
+            .Take(1).SingleOrDefault();
     }
 }

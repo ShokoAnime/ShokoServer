@@ -33,17 +33,8 @@ public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation
     protected override void Process()
     {
         Logger.LogInformation("Processing CommandRequest_LinkAniDBTvDB: {0}", AnimeID);
-
-        try
-        {
-            _helper.LinkAniDBTvDB(AnimeID, TvDBID, AdditiveLink);
-            SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError("Error processing CommandRequest_LinkAniDBTvDB: {0} - {1}", AnimeID,
-                ex);
-        }
+        _helper.LinkAniDBTvDB(AnimeID, TvDBID, AdditiveLink);
+        SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
     }
 
     public override void GenerateCommandID()

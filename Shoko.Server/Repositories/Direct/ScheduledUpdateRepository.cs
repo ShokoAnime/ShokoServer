@@ -1,4 +1,4 @@
-﻿using NHibernate.Criterion;
+﻿using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
@@ -8,14 +8,13 @@ public class ScheduledUpdateRepository : BaseDirectRepository<ScheduledUpdate, i
 {
     public ScheduledUpdate GetByUpdateType(int uptype)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var cr = session
-                .CreateCriteria(typeof(ScheduledUpdate))
-                .Add(Restrictions.Eq("UpdateType", uptype))
-                .UniqueResult<ScheduledUpdate>();
-            return cr;
-        }
+            return session.Query<ScheduledUpdate>()
+                .Where(a => a.UpdateType == uptype)
+                .Take(1)
+                .SingleOrDefault();
+        });
     }
 }

@@ -54,208 +54,156 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
         Logger.LogInformation("Processing CommandRequest_DeleteFileFromMyList: Hash: {Hash} FileSize: {Size} MyListID: {MyListID} FileID: {FileID} AnimeID: {AnimeID} Episode: {EpisodeType} {EpisodeNumber}",
             Hash, FileSize, MyListID, FileID, AnimeID, EpisodeType, EpisodeNumber);
 
-        try
+        var settings = _settingsProvider.GetSettings();
+        switch (settings.AniDb.MyList_DeleteType)
         {
-            var settings = _settingsProvider.GetSettings();
-            UDPRequest<Void> request;
-            switch (settings.AniDb.MyList_DeleteType)
+            case AniDBFileDeleteType.Delete:
+                SendDeleteCommand();
+                break;
+            case AniDBFileDeleteType.MarkDeleted:
+                SendUpdateCommand(MyList_State.Deleted);
+                break;
+            case AniDBFileDeleteType.MarkUnknown:
+                SendUpdateCommand(MyList_State.Unknown);
+                break;
+            case AniDBFileDeleteType.MarkExternalStorage:
+                SendUpdateCommand(MyList_State.Remote);
+                break;
+            case AniDBFileDeleteType.MarkDisk:
+                SendUpdateCommand(MyList_State.Disk);
+                break;
+            case AniDBFileDeleteType.DeleteLocalOnly:
+                Logger.LogInformation(
+                    "Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", Hash);
+                break;
+        }
+    }
+
+    private void SendDeleteCommand()
+    {
+        UDPRequest<Void> request;
+        if (!string.IsNullOrEmpty(Hash))
+        {
+            request = _requestFactory.Create<RequestRemoveFile>(
+                r =>
+                {
+                    r.Hash = Hash;
+                    r.Size = FileSize;
+                }
+            );
+            Logger.LogInformation("Deleting file from MyList: Hash: {Hash}", Hash);
+            request.Execute();
+            return;
+        }
+
+        if (MyListID != 0)
+        {
+            request = _requestFactory.Create<RequestRemoveMyListID>(
+                r =>
+                {
+                    r.MyListID = MyListID;
+                }
+            );
+            Logger.LogInformation(
+                "Deleting File from MyList: MyListID: {MyListID}", MyListID);
+            request.Execute();
+            return;
+        }
+
+        if (FileID != 0)
+        {
+            request = _requestFactory.Create<RequestRemoveFileID>(
+                r =>
+                {
+                    r.FileID = FileID;
+                }
+            );
+            Logger.LogInformation(
+                "Deleting File from MyList: FileID: {FileID}", FileID);
+            request.Execute();
+            return;
+        }
+
+        if (AnimeID == 0) return;
+
+        request = _requestFactory.Create<RequestRemoveEpisode>(
+            r =>
             {
-                case AniDBFileDeleteType.Delete:
-                    if (!string.IsNullOrEmpty(Hash))
-                    {
-                        request = _requestFactory.Create<RequestRemoveFile>(
-                            r =>
-                            {
-                                r.Hash = Hash;
-                                r.Size = FileSize;
-                            }
-                        );
-                        Logger.LogInformation("Deleting file from MyList: Hash: {Hash}", Hash);
-                        request.Execute();
-                    }
-                    else if (MyListID != 0)
-                    {
-                        request = _requestFactory.Create<RequestRemoveMyListID>(
-                            r =>
-                            {
-                                r.MyListID = MyListID;
-                            }
-                        );
-                        Logger.LogInformation(
-                            "Deleting File from MyList: MyListID: {MyListID}", MyListID);
-                        request.Execute();
-                    }
-                    else if (FileID != 0)
-                    {
-                        request = _requestFactory.Create<RequestRemoveFileID>(
-                            r =>
-                            {
-                                r.FileID = FileID;
-                            }
-                        );
-                        Logger.LogInformation(
-                            "Deleting File from MyList: FileID: {FileID}", FileID);
-                        request.Execute();
-                    }
-                    else
-                    {
-                        request = _requestFactory.Create<RequestRemoveEpisode>(
-                            r =>
-                            {
-                                r.AnimeID = AnimeID;
-                                r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
-                                r.EpisodeNumber = EpisodeNumber;
-                            }
-                        );
-                        Logger.LogInformation(
-                            "Deleting Episode from MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}", AnimeID,
-                            EpisodeType, EpisodeNumber);
-                        request.Execute();
-                    }
-
-                    break;
-                case AniDBFileDeleteType.MarkDeleted:
-                    if (string.IsNullOrEmpty(Hash))
-                    {
-                        request = _requestFactory.Create<RequestUpdateEpisode>(
-                            r =>
-                            {
-                                r.AnimeID = AnimeID;
-                                r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
-                                r.EpisodeNumber = EpisodeNumber;
-                                r.State = MyList_State.Deleted;
-                            }
-                        );
-                        Logger.LogInformation(
-                            "Marking Episode as deleted in MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}",
-                            AnimeID, EpisodeType, EpisodeNumber);
-                        request.Execute();
-                    }
-                    else
-                    {
-                        request = _requestFactory.Create<RequestUpdateFile>(
-                            r =>
-                            {
-                                r.Hash = Hash;
-                                r.Size = FileSize;
-                                r.State = MyList_State.Deleted;
-                            }
-                        );
-                        Logger.LogInformation("Marking file as deleted in MyList: Hash: {Hash}", Hash);
-                        var response = request.Execute();
-                        if (response.Code == UDPReturnCode.NO_SUCH_FILE) Logger.LogWarning("Update MyList returned NO_SUCH_FILE for {Hash}", Hash);
-                    }
-
-                    break;
-                case AniDBFileDeleteType.MarkUnknown:
-                    if (string.IsNullOrEmpty(Hash))
-                    {
-                        request = _requestFactory.Create<RequestUpdateEpisode>(
-                            r =>
-                            {
-                                r.AnimeID = AnimeID;
-                                r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
-                                r.EpisodeNumber = EpisodeNumber;
-                                r.State = MyList_State.Unknown;
-                            }
-                        );
-                        Logger.LogInformation(
-                            "Marking Episode as unknown in MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}",
-                            AnimeID, EpisodeType, EpisodeNumber);
-                        request.Execute();
-                    }
-                    else
-                    {
-                        request = _requestFactory.Create<RequestUpdateFile>(
-                            r =>
-                            {
-                                r.Hash = Hash;
-                                r.Size = FileSize;
-                                r.State = MyList_State.Unknown;
-                            }
-                        );
-                        Logger.LogInformation("Marking file as unknown in MyList: Hash: {Hash}", Hash);
-                        var response = request.Execute();
-                        if (response.Code == UDPReturnCode.NO_SUCH_FILE) Logger.LogWarning("Update MyList returned NO_SUCH_FILE for {Hash}", Hash);
-                    }
-
-                    break;
-                case AniDBFileDeleteType.DeleteLocalOnly:
-                    Logger.LogInformation(
-                        "Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", Hash);
-                    break;
-                case AniDBFileDeleteType.MarkExternalStorage:
-                    if (string.IsNullOrEmpty(Hash))
-                    {
-                        request = _requestFactory.Create<RequestUpdateEpisode>(
-                            r =>
-                            {
-                                r.AnimeID = AnimeID;
-                                r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
-                                r.EpisodeNumber = EpisodeNumber;
-                                r.State = MyList_State.Remote;
-                            }
-                        );
-                        Logger.LogInformation(
-                            "Marking Episode as remote in MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}",
-                            AnimeID, EpisodeType, EpisodeNumber);
-                        request.Execute();
-                    }
-                    else
-                    {
-                        request = _requestFactory.Create<RequestUpdateFile>(
-                            r =>
-                            {
-                                r.Hash = Hash;
-                                r.Size = FileSize;
-                                r.State = MyList_State.Remote;
-                            }
-                        );
-                        Logger.LogInformation("Marking file as remote in MyList: Hash: {Hash}", Hash);
-                        var response = request.Execute();
-                        if (response.Code == UDPReturnCode.NO_SUCH_FILE) Logger.LogWarning("Update MyList returned NO_SUCH_FILE for {Hash}", Hash);
-                    }
-
-                    break;
-                case AniDBFileDeleteType.MarkDisk:
-                    if (string.IsNullOrEmpty(Hash))
-                    {
-                        request = _requestFactory.Create<RequestUpdateEpisode>(
-                            r =>
-                            {
-                                r.AnimeID = AnimeID;
-                                r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
-                                r.EpisodeNumber = EpisodeNumber;
-                                r.State = MyList_State.Disk;
-                            }
-                        );
-                        Logger.LogInformation(
-                            "Marking Episode as Disk in MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}",
-                            AnimeID, EpisodeType, EpisodeNumber);
-                        request.Execute();
-                    }
-                    else
-                    {
-                        request = _requestFactory.Create<RequestUpdateFile>(
-                            r =>
-                            {
-                                r.Hash = Hash;
-                                r.Size = FileSize;
-                                r.State = MyList_State.Disk;
-                            }
-                        );
-                        Logger.LogInformation("Marking file as Disk in MyList: Hash: {Hash}", Hash);
-                        var response = request.Execute();
-                        if (response.Code == UDPReturnCode.NO_SUCH_FILE) Logger.LogWarning("Update MyList returned NO_SUCH_FILE for {Hash}", Hash);
-                    }
-
-                    break;
+                r.AnimeID = AnimeID;
+                r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
+                r.EpisodeNumber = EpisodeNumber;
             }
-        }
-        catch (AniDBBannedException ex)
+        );
+        Logger.LogInformation(
+            "Deleting Episode from MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}", AnimeID,
+            EpisodeType, EpisodeNumber);
+        request.Execute();
+    }
+
+    private void SendUpdateCommand(MyList_State state)
+    {
+        UDPRequest<Void> request;
+        if (!string.IsNullOrEmpty(Hash))
         {
-            Logger.LogError(ex, "Error processing {Type}: Hash: {Hash} - {Ex}", GetType().Name, Hash, ex);
+            request = _requestFactory.Create<RequestUpdateFile>(
+                r =>
+                {
+                    r.Hash = Hash;
+                    r.Size = FileSize;
+                    r.State = state;
+                }
+            );
+            Logger.LogInformation("Marking file as {State} in MyList: Hash: {Hash}", state, Hash);
+            var response = request.Execute();
+            if (response.Code == UDPReturnCode.NO_SUCH_FILE) Logger.LogWarning("Update MyList returned NO_SUCH_FILE for {Hash}", Hash);
+            return;
         }
+
+        if (MyListID != 0)
+        {
+            request = _requestFactory.Create<RequestUpdateMyListID>(
+                r =>
+                {
+                    r.MyListID = MyListID;
+                    r.State = state;
+                }
+            );
+            Logger.LogInformation("Marking file as {State} in MyList: MyListID: {MyListID}", state, MyListID);
+            var response = request.Execute();
+            if (response.Code == UDPReturnCode.NO_SUCH_FILE) Logger.LogWarning("Update MyList returned NO_SUCH_FILE for MyListID: {MyListID}", MyListID);
+            return;
+        }
+
+        if (FileID != 0)
+        {
+            request = _requestFactory.Create<RequestUpdateFileID>(
+                r =>
+                {
+                    r.FileID = FileID;
+                    r.State = state;
+                }
+            );
+            Logger.LogInformation("Marking file as {State} in MyList: FileID: {FileID}", state, FileID);
+            var response = request.Execute();
+            if (response.Code == UDPReturnCode.NO_SUCH_FILE) Logger.LogWarning("Update MyList returned NO_SUCH_FILE for FileID: {FileID}", FileID);
+            return;
+        }
+
+        if (AnimeID == 0) return;
+
+        request = _requestFactory.Create<RequestUpdateEpisode>(
+            r =>
+            {
+                r.AnimeID = AnimeID;
+                r.EpisodeType = (Providers.AniDB.EpisodeType)(int)EpisodeType;
+                r.EpisodeNumber = EpisodeNumber;
+                r.State = state;
+            }
+        );
+        Logger.LogInformation(
+            "Marking Episode as {State} in MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}",
+            state, AnimeID, EpisodeType, EpisodeNumber);
+        request.Execute();
     }
 
     /// <summary>
@@ -285,11 +233,11 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
                     out var mylistID) && mylistID != 0)
             {
                 var vid = RepoFactory.VideoLocal.GetByMyListID(mylistID);
-                if (vid != null)
-                {
-                    Hash = vid.Hash;
-                    FileSize = vid.FileSize;
-                }
+                if (vid == null) return false;
+
+                Hash = vid.Hash;
+                FileSize = vid.FileSize;
+                return true;
             }
 
             // populate the fields
@@ -309,12 +257,13 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
             if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(AnimeID)),
                     out var animeID))
                 AnimeID = animeID;
+            
+            if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(FileID)),
+                    out var fileID))
+                FileID = fileID;
         }
 
-        if (Hash.Trim().Length > 0 || AnimeID > 0)
-            return true;
-
-        return false;
+        return Hash.Trim().Length > 0 || AnimeID > 0 || FileID > 0;
     }
 
     public override CommandRequest ToDatabaseObject()

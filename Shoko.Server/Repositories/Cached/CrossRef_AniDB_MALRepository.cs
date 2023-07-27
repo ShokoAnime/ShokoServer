@@ -37,7 +37,7 @@ public class CrossRef_AniDB_MALRepository : BaseCachedRepository<CrossRef_AniDB_
             return EmptyLookup<int, CrossRef_AniDB_MAL>.Instance;
         }
 
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var xrefByAnime = session.CreateCriteria<CrossRef_AniDB_MAL>()
                 .Add(Restrictions.In(nameof(CrossRef_AniDB_MAL.AnimeID), animeIds))
@@ -47,7 +47,7 @@ public class CrossRef_AniDB_MALRepository : BaseCachedRepository<CrossRef_AniDB_
                 .ToLookup(cr => cr.AnimeID);
 
             return xrefByAnime;
-        }
+        });
     }
 
     public List<CrossRef_AniDB_MAL> GetByMALID(int id)

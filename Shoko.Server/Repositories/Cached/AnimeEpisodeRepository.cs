@@ -91,8 +91,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
 
     public List<SVR_AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
     {
-        IEnumerable<int> ids;
-        lock (GlobalDBLock)
+        var ids = Lock(() =>
         {
             const string ignoreVariationsQuery =
                 @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
@@ -100,10 +99,10 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
                 @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
 
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            ids = ignoreVariations
+            return ignoreVariations
                 ? session.CreateSQLQuery(ignoreVariationsQuery).List<object>().Select(Convert.ToInt32)
                 : session.CreateSQLQuery(countVariationsQuery).List<object>().Select(Convert.ToInt32);
-        }
+        });
 
         return ids.Select(GetByAniDBEpisodeID).Where(a => a != null).ToList();
     }

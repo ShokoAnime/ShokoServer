@@ -1,19 +1,19 @@
 ﻿using System;
 using Microsoft.AspNetCore.Mvc;
-using NLog;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server.API.v2.Modules;
+namespace Shoko.Server.API;
 
 [ApiController]
 [Route("/api/auth")]
-//[ApiVersion("2.0")]
 [ApiVersionNeutral]
-public class Auth : BaseController
+[AdvertiseApiVersions("2.0", "2.1", "3")]
+public class AuthenticationController : BaseController
 {
-    private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+    private readonly ILogger<AuthenticationController> _logger;
 
     /// <summary>
     /// Get an authentication token for the user.
@@ -64,7 +64,7 @@ public class Auth : BaseController
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
         }
 
         return InternalError();
@@ -81,7 +81,8 @@ public class Auth : BaseController
         return Ok();
     }
 
-    public Auth(ISettingsProvider settingsProvider) : base(settingsProvider)
+    public AuthenticationController(ISettingsProvider settingsProvider, ILogger<AuthenticationController> logger) : base(settingsProvider)
     {
+        _logger = logger;
     }
 }

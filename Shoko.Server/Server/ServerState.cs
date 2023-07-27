@@ -260,25 +260,13 @@ public class ServerState : INotifyPropertyChangedExt
         AniDB_ServerPort = settings.AniDb.ServerPort.ToString();
         AniDB_ClientPort = settings.AniDb.ClientPort.ToString();
 
-        if (Utils.IsRunningOnLinuxOrMac())
-        {
-            return;
-        }
+        if (Utils.IsRunningOnLinuxOrMac()) return;
 
-        if (autostartMethod == AutostartMethod.TaskScheduler)
-        {
-            var task = TaskService.Instance.GetTask(autostartTaskName);
-            if (task != null && task.State != TaskState.Disabled)
-            {
-                IsAutostartEnabled = true;
-            }
-            else
-            {
-                IsAutostartEnabled = false;
-            }
+        if (autostartMethod != AutostartMethod.TaskScheduler) return;
 
-            IsAutostartDisabled = !isAutostartEnabled;
-        }
+        var task = TaskService.Instance.GetTask(autostartTaskName);
+        IsAutostartEnabled = task != null && task.State != TaskState.Disabled;
+        IsAutostartDisabled = !isAutostartEnabled;
     }
 
     public class DatabaseBlockedInfo

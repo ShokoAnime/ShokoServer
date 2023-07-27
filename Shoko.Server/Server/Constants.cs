@@ -5,6 +5,8 @@ namespace Shoko.Server.Server;
 
 public static class Constants
 {
+    public const string SentryDsn = "SENTRY_DSN_KEY_GOES_HERE";
+
     public static readonly string WebCacheError = @"<error>No Results</error>";
     public static readonly string AniDBTitlesURL = @"http://anidb.net/api/anime-titles.xml.gz";
     public static readonly string AnonWebCacheUsername = @"AnonymousWebCacheUser";
@@ -44,7 +46,7 @@ public static class Constants
     // http://wiki.anidb.net/w/WebAOM#Move.2Frename_system
     public struct FileRenameTag
     {
-        public static readonly string AnimeNameRomaji = "%ann";
+        public static readonly string AnimeNameMain = "%ann";
         public static readonly string AnimeNameKanji = "%kan";
         public static readonly string AnimeNameEnglish = "%eng";
         public static readonly string EpisodeNameRomaji = "%epn";

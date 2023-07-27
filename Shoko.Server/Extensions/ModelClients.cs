@@ -77,7 +77,7 @@ public static class ModelClients
             VideoExtensions = string.Join(",", settings.Import.VideoExtensions),
             AutoGroupSeries = settings.AutoGroupSeries,
             AutoGroupSeriesUseScoreAlgorithm = settings.AutoGroupSeriesUseScoreAlgorithm,
-            AutoGroupSeriesRelationExclusions = settings.AutoGroupSeriesRelationExclusions,
+            AutoGroupSeriesRelationExclusions = string.Join("|", settings.AutoGroupSeriesRelationExclusions),
             FileQualityFilterEnabled = settings.FileQualityFilterEnabled,
             FileQualityFilterPreferences = SettingsProvider.Serialize(settings.FileQualityPreferences),
             Import_MoveOnImport = settings.Import.MoveOnImport,
@@ -150,12 +150,10 @@ public static class ModelClients
             DateTimeDescUpdated = anime.DateTimeDescUpdated,
             ImageEnabled = anime.ImageEnabled,
             Restricted = anime.Restricted,
-            AnimePlanetID = anime.AnimePlanetID,
             ANNID = anime.ANNID,
             AllCinemaID = anime.AllCinemaID,
-            AnimeNfo = anime.AnimeNfo,
             LatestEpisodeNumber = anime.LatestEpisodeNumber,
-            DisableExternalLinksFlag = anime.DisableExternalLinksFlag
+            DisableExternalLinksFlag = 0
         };
     }
 

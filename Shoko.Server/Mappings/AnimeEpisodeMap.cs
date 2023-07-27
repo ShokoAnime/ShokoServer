@@ -16,5 +16,6 @@ public class AnimeEpisodeMap : ClassMap<SVR_AnimeEpisode>
         Map(x => x.AnimeSeriesID).Not.Nullable();
         Map(x => x.DateTimeCreated).Not.Nullable();
         Map(x => x.DateTimeUpdated).Not.Nullable();
+        Map(x => x.IsHidden).Not.Nullable();
     }
 }

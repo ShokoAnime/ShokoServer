@@ -592,40 +592,32 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         return RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
     }
 
-    public string GetFormattedTitle(List<SVR_AniDB_Anime_Title> titles)
+    private string GetFormattedTitle(List<SVR_AniDB_Anime_Title> titles = null)
     {
+        // Get the titles now if they were not provided as an argument.
+        titles ??= GetTitles();
+
+        // Check each preferred language in order.
         foreach (var thisLanguage in Languages.PreferredNamingLanguages.Select(a => a.Language))
         {
-            SVR_AniDB_Anime_Title title = null;
+            // First check the main title.
+            var title = titles.FirstOrDefault(title => title.TitleType == TitleType.Main && title.Language == thisLanguage);
+            if (title != null) return title.Title;
 
-            // Romaji and English titles will be contained in MAIN and/or OFFICIAL
-            // we won't use synonyms for these two languages
-            if (thisLanguage == TitleLanguage.Romaji || thisLanguage == TitleLanguage.English)
-            {
-                title = titles.FirstOrDefault(title => title.TitleType == TitleType.Main && title.Language == thisLanguage);
-                if (title != null) return title.Title;
-            }
-
-            // now try the official title
+            // Then check for an official title.
             title = titles.FirstOrDefault(title => title.TitleType == TitleType.Official && title.Language == thisLanguage);
             if (title != null) return title.Title;
 
-            // try synonyms
+            // Then check for _any_ title at all, if there is no main or official title in the langugage.
             if (Utils.SettingsProvider.GetSettings().LanguageUseSynonyms)
             {
-                title = titles.FirstOrDefault(title => title.TitleType == TitleType.Synonym && title.Language == thisLanguage);
+                title = titles.FirstOrDefault(title => title.Language == thisLanguage);
                 if (title != null) return title.Title;
             }
         }
 
-        // otherwise just use the main title
+        // Otherwise just use the cached main title.
         return MainTitle;
-    }
-
-    public string GetFormattedTitle()
-    {
-        var thisTitles = GetTitles();
-        return GetFormattedTitle(thisTitles);
     }
 
     [XmlIgnore]
@@ -659,7 +651,6 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
     public SVR_AniDB_Anime()
     {
-        DisableExternalLinksFlag = 0;
     }
 
     #region Init and Populate
@@ -692,7 +683,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         if (Restricted == 0)
         {
             var settings = Utils.SettingsProvider.GetSettings();
-            if (settings.TvDB.AutoLink)
+            if (settings.TvDB.AutoLink && !series.IsTvDBAutoMatchingDisabled)
             {
                 var cmd = commandFactory.Create<CommandRequest_TvDBSearchAnime>(c => c.AnimeID = AnimeID);
                 cmd.Save();
@@ -700,13 +691,14 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
             // check for Trakt associations
             if (settings.TraktTv.Enabled &&
-                !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
+                !string.IsNullOrEmpty(settings.TraktTv.AuthToken) &&
+                !series.IsTraktAutoMatchingDisabled)
             {
                 var cmd = commandFactory.Create<CommandRequest_TraktSearchAnime>(c => c.AnimeID = AnimeID);
                 cmd.Save();
             }
 
-            if (AnimeType == (int)Shoko.Models.Enums.AnimeType.Movie)
+            if (AnimeType == (int)Shoko.Models.Enums.AnimeType.Movie && !series.IsTMDBAutoMatchingDisabled)
             {
                 var cmd = commandFactory.Create<CommandRequest_MovieDBSearchAnime>(c => c.AnimeID = AnimeID);
                 cmd.Save();
@@ -905,21 +897,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
                 .ToList();
 
             // Seasons
-            if (anime.AirDate != null)
-            {
-                var beginYear = anime.AirDate.Value.Year;
-                var endYear = anime.EndDate?.Year ?? DateTime.Today.Year;
-                for (var year = beginYear; year <= endYear; year++)
-                {
-                    foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
-                    {
-                        if (anime.IsInSeason(season, year))
-                        {
-                            contract.Stat_AllSeasons.Add($"{season} {year}");
-                        }
-                    }
-                }
-            }
+            contract.Stat_AllSeasons.UnionWith(anime.GetSeasons().Select(tuple => $"{tuple.Season} {tuple.Year}"));
 
             // Anime tags
             var dictAnimeTags = animeTagsByAnime[anime.AnimeID]
@@ -1036,21 +1014,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
             }
         }
 
-        if (AirDate != null)
-        {
-            var beginYear = AirDate.Value.Year;
-            var endYear = EndDate?.Year ?? DateTime.Today.Year;
-            for (var year = beginYear; year <= endYear; year++)
-            {
-                foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
-                {
-                    if (this.IsInSeason(season, year))
-                    {
-                        cl.Stat_AllSeasons.Add($"{season} {year}");
-                    }
-                }
-            }
-        }
+        cl.Stat_AllSeasons.UnionWith(this.GetSeasons().Select(tuple => $"{tuple.Season} {tuple.Year}"));
 
         sw.Restart();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generating Tag Contracts");

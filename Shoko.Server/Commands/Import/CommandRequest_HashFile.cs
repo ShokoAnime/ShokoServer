@@ -49,14 +49,94 @@ public class CommandRequest_HashFile : CommandRequestImplementation
     {
         Logger.LogTrace("Checking File For Hashes: {Filename}", FileName);
 
-        try
+        var (existing, vlocal, vlocalplace, folder) = GetVideoLocal();
+        if (vlocal == null || vlocalplace == null)
         {
-            ProcessFile_LocalInfo();
+            Logger.LogTrace("Could not get or create VideoLocal. exiting");
+            return;
         }
-        catch (Exception ex)
+
+        var filename = vlocalplace.FileName;
+
+        Logger.LogTrace("No existing hash in VideoLocal (or forced), checking XRefs");
+        if (vlocal.HasAnyEmptyHashes() && !ForceHash)
         {
-            Logger.LogError(ex, "Error processing file: {Filename}\n{Ex}", FileName, ex);
+            // try getting the hash from the CrossRef
+            if (TrySetHashFromXrefs(filename, vlocal))
+                Logger.LogTrace("Found Hash in CrossRef_File_Episode: {Hash}", vlocal.Hash);
+            else if (TrySetHashFromFileNameHash(filename, vlocal)) Logger.LogTrace("Found Hash in FileNameHash: {Hash}", vlocal.Hash);
+
+            if (string.IsNullOrEmpty(vlocal.Hash) || string.IsNullOrEmpty(vlocal.CRC32) || string.IsNullOrEmpty(vlocal.MD5) ||
+                string.IsNullOrEmpty(vlocal.SHA1))
+                FillHashesAgainstVideoLocalRepo(vlocal);
         }
+
+        if (!FillMissingHashes(vlocal, ForceHash) && existing)
+        {
+            Logger.LogTrace("Hashes were not necessary for file, so exiting: {File}, Hash: {Hash}", FileName, vlocal.Hash);
+            return;
+        }
+
+        // We should have a hash by now
+        // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
+        // TODO change this back to lookup by hash and filesize, but it'll need database migration and changes to other lookups
+        var tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
+        var changed = false;
+
+        if (tlocal != null)
+        {
+            Logger.LogTrace("Found existing VideoLocal with hash, merging info from it");
+            // Merge hashes and save, regardless of duplicate file
+            changed = MergeInfoFrom(tlocal, vlocal);
+            vlocal = tlocal;
+        }
+
+        // returns trinary state. null is return. true or false is duplicate
+        var duplicate = ProcessDuplicates(vlocal, vlocalplace);
+        if (duplicate == null) return;
+
+        if (!duplicate.Value || changed)
+        {
+            Logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FileName, vlocal.Hash);
+            RepoFactory.VideoLocal.Save(vlocal, true);
+        }
+
+        vlocalplace.VideoLocalID = vlocal.VideoLocalID;
+        RepoFactory.VideoLocalPlace.Save(vlocalplace);
+
+        if (duplicate.Value)
+        {
+            var crProcfile3 = _commandFactory.Create<CommandRequest_ProcessFile>(
+                c =>
+                {
+                    c.VideoLocalID = vlocal.VideoLocalID;
+                    c.ForceAniDB = false;
+                }
+            );
+            crProcfile3.Save();
+            return;
+        }
+
+        SaveFileNameHash(filename, vlocal);
+
+        if ((vlocal.Media?.GeneralStream?.Duration ?? 0) == 0 || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
+        {
+            if (vlocalplace.RefreshMediaInfo())
+            {
+                RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
+            }
+        }
+
+        ShokoEventHandler.Instance.OnFileHashed(folder, vlocalplace);
+
+        // now add a command to process the file
+        var crProcFile = _commandFactory.Create<CommandRequest_ProcessFile>(c =>
+        {
+            c.VideoLocalID = vlocal.VideoLocalID;
+            c.ForceAniDB = ForceHash;
+            c.SkipMyList = SkipMyList;
+        });
+        crProcFile.Save();
     }
 
     //Added size return, since symbolic links return 0, we use this function also to return the size of the file.
@@ -103,27 +183,26 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         }
     }
 
-    private void ProcessFile_LocalInfo()
+    private (bool existing, SVR_VideoLocal, SVR_VideoLocal_Place, SVR_ImportFolder) GetVideoLocal()
     {
         // hash and read media info for file
-        int nshareID;
-
         var tup = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
         if (tup == null)
         {
             Logger.LogError("Unable to locate Import Folder for {FileName}", FileName);
-            return;
+            return default;
         }
 
         var folder = tup.Item1;
         var filePath = tup.Item2;
         long filesize = 0;
         Exception e = null;
+        var existing = false;
 
         if (!File.Exists(FileName))
         {
             Logger.LogError("File does not exist: {Filename}", FileName);
-            return;
+            return default;
         }
 
         var settings = _settingsProvider.GetSettings();
@@ -154,18 +233,17 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             if (numAttempts >= 60 || filesize == 0)
             {
                 Logger.LogError("Could not access file: {Filename}", FileName);
-                return;
+                return default;
             }
         }
 
         if (!File.Exists(FileName))
         {
             Logger.LogError("Could not access file: {Filename}", FileName);
-            return;
+            return default;
         }
 
-        nshareID = folder.ImportFolderID;
-
+        var nshareID = folder.ImportFolderID;
 
         // check if we have already processed this file
         var vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, nshareID);
@@ -177,6 +255,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             vlocal = vlocalplace.VideoLocal;
             if (vlocal != null)
             {
+                existing = true;
                 Logger.LogTrace("VideoLocal record found in database: {Filename}", FileName);
 
                 // This will only happen with DB corruption, so just clean up the mess.
@@ -202,7 +281,6 @@ public class CommandRequest_HashFile : CommandRequestImplementation
 
         if (vlocal == null)
         {
-            // TODO support reading MD5 and SHA1 from files via the standard way
             Logger.LogTrace("No existing VideoLocal, creating temporary record");
             vlocal = new SVR_VideoLocal
             {
@@ -214,8 +292,8 @@ public class CommandRequest_HashFile : CommandRequestImplementation
                 CRC32 = string.Empty,
                 MD5 = string.Empty,
                 SHA1 = string.Empty,
-                IsIgnored = 0,
-                IsVariation = 0
+                IsIgnored = false,
+                IsVariation = false
             };
         }
 
@@ -229,283 +307,86 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             // Make sure we have an ID
             RepoFactory.VideoLocalPlace.Save(vlocalplace);
         }
-
-        // check if we need to get a hash this file
-        if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
-        {
-            Logger.LogTrace("No existing hash in VideoLocal, checking XRefs");
-            if (!ForceHash)
-            {
-                // try getting the hash from the CrossRef
-                var crossRefs =
-                    RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(filename, vlocal.FileSize);
-                if (crossRefs.Any())
-                {
-                    vlocal.Hash = crossRefs[0].Hash;
-                    vlocal.HashSource = (int)HashSource.DirectHash;
-                }
-            }
-
-            // try getting the hash from the LOCAL cache
-            if (!ForceHash && string.IsNullOrEmpty(vlocal.Hash))
-            {
-                var fnhashes =
-                    RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
-                if (fnhashes != null && fnhashes.Count > 1)
-                {
-                    // if we have more than one record it probably means there is some sort of corruption
-                    // lets delete the local records
-                    foreach (var fnh in fnhashes)
-                    {
-                        RepoFactory.FileNameHash.Delete(fnh.FileNameHashID);
-                    }
-                }
-
-                // reinit this to check if we erased them
-                fnhashes = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
-
-                if (fnhashes != null && fnhashes.Count == 1)
-                {
-                    Logger.LogTrace("Got hash from LOCAL cache: {Filename} ({Hash})", FileName, fnhashes[0].Hash);
-                    vlocal.Hash = fnhashes[0].Hash;
-                    vlocal.HashSource = (int)HashSource.WebCacheFileName;
-                }
-            }
-
-            if (string.IsNullOrEmpty(vlocal.Hash))
-            {
-                FillVideoHashes(vlocal);
-            }
-
-            // hash the file
-            if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
-            {
-                Logger.LogInformation("Hashing File: {Filename}", FileName);
-                ShokoService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
-                var start = DateTime.Now;
-                // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{Path.DirectorySeparatorChar}"), true,
-                    ShokoServer.OnHashProgress,
-                    true, true, true);
-                var ts = DateTime.Now - start;
-                Logger.LogTrace("Hashed file in {Seconds:#0.0} seconds --- {Filename} ({Size})", ts.TotalSeconds,
-                    FileName,
-                    Utils.FormatByteSize(vlocal.FileSize));
-                vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
-                vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
-                vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
-                vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();
-                vlocal.HashSource = (int)HashSource.DirectHash;
-            }
-
-            FillMissingHashes(vlocal);
-            // We should have a hash by now
-            // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
-
-            var tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
-            var duplicate = false;
-            var changed = false;
-
-            if (tlocal != null)
-            {
-                Logger.LogTrace("Found existing VideoLocal with hash, merging info from it");
-                // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
-                changed = tlocal.MergeInfoFrom(vlocal);
-                vlocal = tlocal;
-
-                var preps = vlocal.Places.Where(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath)).ToList();
-                foreach (var prep in preps)
-                {
-                    if (prep == null)
-                    {
-                        continue;
-                    }
-
-                    // clean up, if there is a 'duplicate file' that is invalid, remove it.
-                    if (prep.FullServerPath == null)
-                    {
-                        RepoFactory.VideoLocalPlace.Delete(prep);
-                    }
-                    else
-                    {
-                        if (!File.Exists(prep.FullServerPath))
-                        {
-                            RepoFactory.VideoLocalPlace.Delete(prep);
-                        }
-                    }
-                }
-
-                var dupPlace = vlocal.Places.FirstOrDefault(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath));
-
-                if (dupPlace != null)
-                {
-                    Logger.LogWarning("Found Duplicate File");
-                    Logger.LogWarning("---------------------------------------------");
-                    Logger.LogWarning("New File: {FullServerPath}", vlocalplace.FullServerPath);
-                    Logger.LogWarning("Existing File: {FullServerPath}", dupPlace.FullServerPath);
-                    Logger.LogWarning("---------------------------------------------");
-
-                    if (settings.Import.AutomaticallyDeleteDuplicatesOnImport)
-                    {
-                        vlocalplace.RemoveRecordAndDeletePhysicalFile();
-                        return;
-                    }
-
-                    // check if we have a record of this in the database, if not create one
-                    var dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(
-                        vlocalplace.FilePath,
-                        dupPlace.FilePath,
-                        vlocalplace.ImportFolderID, dupPlace.ImportFolderID);
-                    if (dupFiles.Count == 0)
-                    {
-                        dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(dupPlace.FilePath,
-                            vlocalplace.FilePath, dupPlace.ImportFolderID, vlocalplace.ImportFolderID);
-                    }
-
-                    if (dupFiles.Count == 0)
-                    {
-                        var dup = new DuplicateFile
-                        {
-                            DateTimeUpdated = DateTime.Now,
-                            FilePathFile1 = vlocalplace.FilePath,
-                            FilePathFile2 = dupPlace.FilePath,
-                            ImportFolderIDFile1 = vlocalplace.ImportFolderID,
-                            ImportFolderIDFile2 = dupPlace.ImportFolderID,
-                            Hash = vlocal.Hash
-                        };
-                        RepoFactory.DuplicateFile.Save(dup);
-                    }
-
-                    //Notify duplicate, don't delete
-                    duplicate = true;
-                }
-            }
-
-            if (!duplicate || changed)
-            {
-                RepoFactory.VideoLocal.Save(vlocal, true);
-            }
-
-            vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-            RepoFactory.VideoLocalPlace.Save(vlocalplace);
-
-            if (duplicate)
-            {
-                var crProcfile3 = _commandFactory.Create<CommandRequest_ProcessFile>(
-                    c =>
-                    {
-                        c.VideoLocalID = vlocal.VideoLocalID;
-                        c.ForceAniDB = false;
-                    }
-                );
-                crProcfile3.Save();
-                return;
-            }
-
-            // also save the filename to hash record
-            // replace the existing records just in case it was corrupt
-            var fnhashes2 = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
-            if (fnhashes2 is { Count: > 1 })
-            {
-                // if we have more than one record it probably means there is some sort of corruption
-                // lets delete the local records
-                RepoFactory.FileNameHash.Delete(fnhashes2);
-            }
-
-            var fnhash = fnhashes2 is { Count: 1 } ? fnhashes2[0] : new FileNameHash();
-
-            fnhash.FileName = filename;
-            fnhash.FileSize = vlocal.FileSize;
-            fnhash.Hash = vlocal.Hash;
-            fnhash.DateTimeUpdated = DateTime.Now;
-            RepoFactory.FileNameHash.Save(fnhash);
-        }
-        else
-        {
-            FillMissingHashes(vlocal);
-        }
-
-
-        if ((vlocal.Media?.GeneralStream?.Duration ?? 0) == 0 || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
-        {
-            if (vlocalplace.RefreshMediaInfo())
-            {
-                RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
-            }
-        }
-
-        ShokoEventHandler.Instance.OnFileHashed(folder, vlocalplace);
-
-        // now add a command to process the file
-        var crProcFile = _commandFactory.Create<CommandRequest_ProcessFile>(c =>
-        {
-            c.VideoLocalID = vlocal.VideoLocalID;
-            c.ForceAniDB = false;
-            c.SkipMyList = SkipMyList;
-        });
-        crProcFile.Save();
+        
+        return (existing, vlocal, vlocalplace, folder);
     }
 
-    private void FillMissingHashes(SVR_VideoLocal vlocal)
+    private bool TrySetHashFromXrefs(string filename, SVR_VideoLocal vlocal)
     {
-        var needcrc32 = string.IsNullOrEmpty(vlocal.CRC32);
-        var needmd5 = string.IsNullOrEmpty(vlocal.MD5);
-        var needsha1 = string.IsNullOrEmpty(vlocal.SHA1);
-        if (needcrc32 || needmd5 || needsha1)
+        var crossRefs =
+            RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(filename, vlocal.FileSize);
+        if (!crossRefs.Any()) return false;
+
+        vlocal.Hash = crossRefs[0].Hash;
+        vlocal.HashSource = (int)HashSource.DirectHash;
+        Logger.LogTrace("Got hash from xrefs: {Filename} ({Hash})", FileName, crossRefs[0].Hash);
+        return true;
+    }
+
+    private bool TrySetHashFromFileNameHash(string filename, SVR_VideoLocal vlocal)
+    {
+        // TODO support reading MD5 and SHA1 from files via the standard way
+        var fnhashes = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+        if (fnhashes is { Count: > 1 })
         {
-            FillVideoHashes(vlocal);
+            // if we have more than one record it probably means there is some sort of corruption
+            // lets delete the local records
+            foreach (var fnh in fnhashes)
+            {
+                RepoFactory.FileNameHash.Delete(fnh.FileNameHashID);
+            }
         }
 
-        needcrc32 = string.IsNullOrEmpty(vlocal.CRC32);
-        needmd5 = string.IsNullOrEmpty(vlocal.MD5);
-        needsha1 = string.IsNullOrEmpty(vlocal.SHA1);
-        if (!needcrc32 && !needmd5 && !needsha1) return;
+        // reinit this to check if we erased them
+        fnhashes = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+
+        if (fnhashes is not { Count: 1 }) return false;
+
+        Logger.LogTrace("Got hash from LOCAL cache: {Filename} ({Hash})", FileName, fnhashes[0].Hash);
+        vlocal.Hash = fnhashes[0].Hash;
+        vlocal.HashSource = (int)HashSource.WebCacheFileName;
+        return true;
+
+    }
+
+    private bool FillMissingHashes(SVR_VideoLocal vlocal, bool force)
+    {
+        var hasherSettings = _settingsProvider.GetSettings().Import.Hasher;
+        var needEd2k = string.IsNullOrEmpty(vlocal.Hash) || force;
+        var needCRC32 = string.IsNullOrEmpty(vlocal.CRC32) && hasherSettings.CRC || hasherSettings.ForceGeneratesAllHashes && force;
+        var needMD5 = string.IsNullOrEmpty(vlocal.MD5) && hasherSettings.MD5 || hasherSettings.ForceGeneratesAllHashes && force;
+        var needSHA1 = string.IsNullOrEmpty(vlocal.SHA1) && hasherSettings.SHA1 || hasherSettings.ForceGeneratesAllHashes && force;
+        if (needCRC32 || needMD5 || needSHA1) FillHashesAgainstVideoLocalRepo(vlocal);
+
+        needCRC32 = string.IsNullOrEmpty(vlocal.CRC32) && hasherSettings.CRC || hasherSettings.ForceGeneratesAllHashes && force;
+        needMD5 = string.IsNullOrEmpty(vlocal.MD5) && hasherSettings.MD5 || hasherSettings.ForceGeneratesAllHashes && force;
+        needSHA1 = string.IsNullOrEmpty(vlocal.SHA1) && hasherSettings.SHA1 || hasherSettings.ForceGeneratesAllHashes && force;
+        if (!needEd2k && !needCRC32 && !needMD5 && !needSHA1) return false;
 
         ShokoService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
         var start = DateTime.Now;
         var tp = new List<string>();
-        if (needsha1)
-        {
-            tp.Add("SHA1");
-        }
-
-        if (needmd5)
-        {
-            tp.Add("MD5");
-        }
-
-        if (needcrc32)
-        {
-            tp.Add("CRC32");
-        }
+        if (needSHA1) tp.Add("SHA1");
+        if (needMD5) tp.Add("MD5");
+        if (needCRC32) tp.Add("CRC32");
 
         Logger.LogTrace("Calculating missing {Filename} hashes for: {Types}", FileName, string.Join(",", tp));
         // update the VideoLocal record with the Hash, since cloud support we calculate everything
         var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{Path.DirectorySeparatorChar}"), true,
             ShokoServer.OnHashProgress,
-            needcrc32, needmd5, needsha1);
+            needCRC32, needMD5, needSHA1);
         var ts = DateTime.Now - start;
         Logger.LogTrace("Hashed file in {TotalSeconds:#0.0} seconds --- {Filename} ({Size})", ts.TotalSeconds,
             FileName, Utils.FormatByteSize(vlocal.FileSize));
-        if (string.IsNullOrEmpty(vlocal.Hash))
-        {
-            vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
-        }
 
-        if (needsha1)
-        {
-            vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();
-        }
+        if (string.IsNullOrEmpty(vlocal.Hash) || force) vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
+        if (needSHA1) vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();
+        if (needMD5) vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
+        if (needCRC32) vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
+        Logger.LogTrace("Hashed file {Filename} ({Size}): Hash: {Hash}, CRC: {CRC}, SHA1: {SHA1}, MD5: {MD5}", FileName, Utils.FormatByteSize(vlocal.FileSize),
+            vlocal.Hash, vlocal.CRC32, vlocal.SHA1, vlocal.MD5);
 
-        if (needmd5)
-        {
-            vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
-        }
-
-        if (needcrc32)
-        {
-            vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
-        }
+        return true;
     }
 
     private static void FillHashesAgainstVideoLocalRepo(SVR_VideoLocal v)
@@ -581,14 +462,119 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         }
     }
 
-    private void FillVideoHashes(SVR_VideoLocal v)
+    public bool MergeInfoFrom(SVR_VideoLocal target, SVR_VideoLocal source)
     {
-        if (string.IsNullOrEmpty(v.CRC32) || string.IsNullOrEmpty(v.MD5) || string.IsNullOrEmpty(v.SHA1))
+        var changed = false;
+        if (string.IsNullOrEmpty(target.Hash) && !string.IsNullOrEmpty(source.Hash))
         {
-            FillHashesAgainstVideoLocalRepo(v);
+            target.Hash = source.Hash;
+            changed = true;
         }
+        if (string.IsNullOrEmpty(target.CRC32) && !string.IsNullOrEmpty(source.CRC32))
+        {
+            target.CRC32 = source.CRC32;
+            changed = true;
+        }
+        if (string.IsNullOrEmpty(target.MD5) && !string.IsNullOrEmpty(source.MD5))
+        {
+            target.MD5 = source.MD5;
+            changed = true;
+        }
+        if (string.IsNullOrEmpty(target.SHA1) && !string.IsNullOrEmpty(source.SHA1))
+        {
+            target.SHA1 = source.SHA1;
+            changed = true;
+        }
+        return changed;
     }
 
+    private bool? ProcessDuplicates(SVR_VideoLocal vlocal, SVR_VideoLocal_Place vlocalplace)
+    {
+        if (vlocal == null) return null;
+        // If the VideoLocalID == 0, then it's a new file that wasn't merged after hashing, so it can't be a dupe
+        if (vlocal.VideoLocalID == 0) return false;
+
+        var preps = vlocal.Places.Where(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath)).ToList();
+        foreach (var prep in preps)
+        {
+            if (prep == null) continue;
+
+            // clean up, if there is a 'duplicate file' that is invalid, remove it.
+            if (prep.FullServerPath == null)
+            {
+                RepoFactory.VideoLocalPlace.Delete(prep);
+                continue;
+            }
+
+            if (File.Exists(prep.FullServerPath)) continue;
+            RepoFactory.VideoLocalPlace.Delete(prep);
+        }
+
+        var dupPlace = vlocal.Places.FirstOrDefault(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath));
+
+        if (dupPlace == null) return false;
+
+        Logger.LogWarning("Found Duplicate File");
+        Logger.LogWarning("---------------------------------------------");
+        Logger.LogWarning("New File: {FullServerPath}", vlocalplace.FullServerPath);
+        Logger.LogWarning("Existing File: {FullServerPath}", dupPlace.FullServerPath);
+        Logger.LogWarning("---------------------------------------------");
+
+        var settings = _settingsProvider.GetSettings();
+        if (settings.Import.AutomaticallyDeleteDuplicatesOnImport)
+        {
+            vlocalplace.RemoveRecordAndDeletePhysicalFile();
+            return null;
+        }
+
+        // check if we have a record of this in the database, if not create one
+        var dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(
+            vlocalplace.FilePath,
+            dupPlace.FilePath,
+            vlocalplace.ImportFolderID, dupPlace.ImportFolderID);
+        if (dupFiles.Count == 0)
+        {
+            dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(dupPlace.FilePath,
+                vlocalplace.FilePath, dupPlace.ImportFolderID, vlocalplace.ImportFolderID);
+        }
+
+        if (dupFiles.Count == 0)
+        {
+            var dup = new DuplicateFile
+            {
+                DateTimeUpdated = DateTime.Now,
+                FilePathFile1 = vlocalplace.FilePath,
+                FilePathFile2 = dupPlace.FilePath,
+                ImportFolderIDFile1 = vlocalplace.ImportFolderID,
+                ImportFolderIDFile2 = dupPlace.ImportFolderID,
+                Hash = vlocal.Hash
+            };
+            RepoFactory.DuplicateFile.Save(dup);
+        }
+
+        return true;
+    }
+
+    private static void SaveFileNameHash(string filename, SVR_VideoLocal vlocal)
+    {
+        // also save the filename to hash record
+        // replace the existing records just in case it was corrupt
+        var fnhashes2 = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+        if (fnhashes2 is { Count: > 1 })
+        {
+            // if we have more than one record it probably means there is some sort of corruption
+            // lets delete the local records
+            RepoFactory.FileNameHash.Delete(fnhashes2);
+        }
+
+        var fnhash = fnhashes2 is { Count: 1 } ? fnhashes2[0] : new FileNameHash();
+
+        fnhash.FileName = filename;
+        fnhash.FileSize = vlocal.FileSize;
+        fnhash.Hash = vlocal.Hash;
+        fnhash.DateTimeUpdated = DateTime.Now;
+        RepoFactory.FileNameHash.Save(fnhash);
+    }
 
     /// <summary>
     /// This should generate a unique key for a command

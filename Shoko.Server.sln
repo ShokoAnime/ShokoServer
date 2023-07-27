@@ -15,6 +15,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Dockerfile = Dockerfile
 		SharedAssemblyInfo.cs = SharedAssemblyInfo.cs
 		Dockerfile.aarch64 = Dockerfile.aarch64
+		.editorconfig = .editorconfig
+		.git-blame-ignore-revs = .git-blame-ignore-revs
+		.gitignore = .gitignore
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shoko.CLI", "Shoko.CLI\Shoko.CLI.csproj", "{3A8E0177-9701-4A59-A6CD-16C6908839EA}"
@@ -28,14 +31,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{00DE
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{700D0E2E-FF22-4810-8BC5-537207182EDF}"
 	ProjectSection(SolutionItems) = preProject
-		.github\workflows\build-release-stable.yml = .github\workflows\build-release-stable.yml
 		.github\workflows\docker-daily.yml = .github\workflows\docker-daily.yml
 		.github\workflows\docker-manual.yml = .github\workflows\docker-manual.yml
 		.github\workflows\docker-release.yml = .github\workflows\docker-release.yml
 		.github\workflows\plugin-nuget.yml = .github\workflows\plugin-nuget.yml
-		.github\workflows\publish-pre-release-daily.yml = .github\workflows\publish-pre-release-daily.yml
 		.github\workflows\tray-standalone-manual.yml = .github\workflows\tray-standalone-manual.yml
 		.github\workflows\UploadArchive.ps1 = .github\workflows\UploadArchive.ps1
+		.github\workflows\build-daily.yml = .github\workflows\build-daily.yml
+		.github\workflows\build-release.yml = .github\workflows\build-release.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "x86", "x86", "{700D0E2E-FF22-4810-8BC5-537207182ECA}"

@@ -16,9 +16,10 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 using TvDbSharper;
 using TvDbSharper.Dto;
+
+using SentrySdk = Sentry.SentrySdk;
 
 namespace Shoko.Server.Providers.TvDB;
 
@@ -65,8 +66,7 @@ public class TvDBApiHelper
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error in TvDBAuth: {Ex}", e);
-            Analytics.PostEvent("TvDB", "Login Failed");
+            _logger.LogError(e, "Error in TvDBAuth");
             throw;
         }
     }
@@ -109,25 +109,22 @@ public class TvDBApiHelper
                 {
                     return await GetSeriesInfoOnlineAsync(seriesID, forceRefresh);
                 }
-
-                Analytics.PostEvent("TvDB", "Login Failed", "Tried to Get Series Without Login");
-                // suppress 404 and move on
             }
+            // suppress 404 and move on
             else if (exception.StatusCode == (int)HttpStatusCode.NotFound)
             {
-                Analytics.PostEvent("TvDB", "404: GetSeriesInfo", $"{seriesID}");
                 return null;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TvDBApiHelper.GetSeriesInfoOnline: {Ex}", ex);
-            Analytics.PostException(ex);
+            _logger.LogError(ex, "Error in TvDBApiHelper.GetSeriesInfoOnline");
+            SentrySdk.CaptureException(ex);
         }
 
         return null;
@@ -186,18 +183,18 @@ public class TvDBApiHelper
                 "TvDB returned an error code: {StatusCode}\\n        {Message}\\n        when searching for {Criteria}",
                 exception.StatusCode, exception.Message, criteria
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in SearchSeries: {Ex}", ex);
-            Analytics.PostException(ex);
+            _logger.LogError(ex, "Error in SearchSeries");
+            SentrySdk.CaptureException(ex);
         }
 
         return results;
     }
 
-    public void LinkAniDBTvDB(int animeID, int tvDBID, bool additiveLink = false)
+    public void LinkAniDBTvDB(int animeID, int tvDBID, bool additiveLink, bool isAutomatic = false)
     {
         if (!additiveLink)
         {
@@ -229,7 +226,7 @@ public class TvDBApiHelper
 
         xref.TvDBID = tvDBID;
 
-        xref.CrossRefSource = CrossRefSource.User;
+        xref.CrossRefSource = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
 
         RepoFactory.CrossRef_AniDB_TvDB.Save(xref);
 
@@ -238,7 +235,10 @@ public class TvDBApiHelper
         );
 
         var settings = _settingsProvider.GetSettings();
-        if (settings.TraktTv.Enabled && !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+        if (settings.TraktTv.Enabled &&
+            !string.IsNullOrEmpty(settings.TraktTv.AuthToken) &&
+            !series.IsTraktAutoMatchingDisabled)
         {
             // check for Trakt associations
             var trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
@@ -332,15 +332,15 @@ public class TvDBApiHelper
                 return languages;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TVDBHelper.GetSeriesBannersOnline: {Ex}", ex);
-            Analytics.PostException(ex);
+            _logger.LogError(ex, "Error in TVDBHelper.GetSeriesBannersOnline");
+            SentrySdk.CaptureException(ex);
         }
 
         return languages;
@@ -389,10 +389,10 @@ public class TvDBApiHelper
                 return null;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
 
         return null;
@@ -426,10 +426,10 @@ public class TvDBApiHelper
                 return new Image[] { };
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch
         {
@@ -503,15 +503,15 @@ public class TvDBApiHelper
                 return tvImages;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TVDBApiHelper.GetSeriesFanartOnlineAsync: {Ex}", ex);
-            Analytics.PostException(ex);
+            _logger.LogError(ex, "Error in TVDBApiHelper.GetSeriesFanartOnlineAsync");
+            SentrySdk.CaptureException(ex);
         }
 
         return tvImages;
@@ -585,15 +585,15 @@ public class TvDBApiHelper
                 return tvImages;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync: {Ex}", ex);
-            Analytics.PostException(ex);
+            _logger.LogError(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync");
+            SentrySdk.CaptureException(ex);
         }
 
         return tvImages;
@@ -667,15 +667,15 @@ public class TvDBApiHelper
                 return tvImages;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync: {Ex}", ex);
-            Analytics.PostException(ex);
+            _logger.LogError(ex, "Error in TVDBApiHelper.GetPosterOnlineAsync");
+            SentrySdk.CaptureException(ex);
         }
 
         return tvImages;
@@ -841,23 +841,22 @@ public class TvDBApiHelper
                 {
                     return await GetEpisodesOnlineAsync(seriesID);
                 }
-                // suppress 404 and move on
             }
+            // suppress 404 and move on
             else if (exception.StatusCode == (int)HttpStatusCode.NotFound)
             {
-                Analytics.PostEvent("TvDB", "404: Get Episode List for Series", $"{seriesID}");
                 return apiEpisodes;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
-            Analytics.PostException(exception);
+            SentrySdk.CaptureException(exception);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TvDBApiHelper.GetEpisodesOnlineAsync: {Ex}", ex);
-            Analytics.PostException(ex);
+            _logger.LogError(ex, "Error in TvDBApiHelper.GetEpisodesOnlineAsync");
+            SentrySdk.CaptureException(ex);
         }
 
         return apiEpisodes;
@@ -939,8 +938,8 @@ public class TvDBApiHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TVDBHelper.GetEpisodes: {Ex}", ex);
-            Analytics.PostException(ex);
+            _logger.LogError(ex, "Error in TVDBHelper.GetEpisodes");
+            SentrySdk.CaptureException(ex);
             return null;
         }
     }
@@ -978,6 +977,14 @@ public class TvDBApiHelper
         RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(
             RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID));
 
+        // Disable auto-matching when we remove an existing match for the series.
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+        if (series != null)
+        {
+            series.IsTvDBAutoMatchingDisabled = true;
+            RepoFactory.AnimeSeries.Save(series, false, true, true);
+        }
+
         SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
     }
 
@@ -993,6 +1000,15 @@ public class TvDBApiHelper
 
         foreach (var ser in allSeries)
         {
+            if (ser.IsTvDBAutoMatchingDisabled)
+                continue;
+
+            var anime = ser.GetAnime();
+            if (anime == null)
+                continue;
+
+            _logger.LogTrace("Found anime without TvDB association: {MaintTitle}", anime.MainTitle);
+
             var cmd = _commandFactory.Create<CommandRequest_TvDBSearchAnime>(c => c.AnimeID = ser.AniDB_ID);
             cmd.Save();
         }
@@ -1090,13 +1106,13 @@ public class TvDBApiHelper
                 case (int)HttpStatusCode.NotFound: return seriesList;
             }
 
-            _logger.LogError(exception, "TvDB returned an error code: {StatusCode}\\n        {Message}",
+            _logger.LogError("TvDB returned an error code: {StatusCode}\\n        {Message}",
                 exception.StatusCode, exception.Message
             );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in GetUpdatedSeriesList: {Ex}", ex);
+            _logger.LogError(ex, "Error in GetUpdatedSeriesList");
         }
 
         return seriesList;
@@ -1200,7 +1216,7 @@ public class TvDBApiHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "IncrementalTvDBUpdate: {Ex}", ex);
+            _logger.LogError(ex, "IncrementalTvDBUpdate");
             return string.Empty;
         }
     }

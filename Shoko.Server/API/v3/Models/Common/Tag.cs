@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Models.Server;
 
 #nullable enable
@@ -34,7 +35,7 @@ public class Tag
         Source = "AniDB";
         IsVerified = tag.Verified;
         IsSpoiler = tag.GlobalSpoiler;
-        LastUpdated = tag.LastUpdated;
+        LastUpdated = tag.LastUpdated.ToUniversalTime();
     }
 
     /// <summary>
@@ -92,6 +93,7 @@ public class Tag
     /// When the tag info was last updated.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    [JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime? LastUpdated { get; set; }
     
     /// <summary>

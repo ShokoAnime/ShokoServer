@@ -71,7 +71,7 @@ public class HttpXmlUtils
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred during WriteAnimeHTTPToFile(): {Ex}", ex);
+            _logger.LogError(ex, "Error occurred during WriteAnimeHTTPToFile()");
         }
     }
 }

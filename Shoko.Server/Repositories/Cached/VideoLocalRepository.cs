@@ -8,13 +8,11 @@ using Newtonsoft.Json;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
-using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
-using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
@@ -28,17 +26,14 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     private PocoIndex<int, SVR_VideoLocal, string> _hashes;
     private PocoIndex<int, SVR_VideoLocal, string> _sha1;
     private PocoIndex<int, SVR_VideoLocal, string> _md5;
-    private PocoIndex<int, SVR_VideoLocal, int> _ignored;
+    private PocoIndex<int, SVR_VideoLocal, bool> _ignored;
 
     public VideoLocalRepository()
     {
         DeleteWithOpenTransactionCallback = (ses, obj) =>
         {
             RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(ses, obj.Places.ToList());
-            RepoFactory.VideoLocalUser.DeleteWithOpenTransaction(
-                ses,
-                RepoFactory.VideoLocalUser.GetByVideoLocalID(obj.VideoLocalID)
-            );
+            RepoFactory.VideoLocalUser.DeleteWithOpenTransaction(ses, RepoFactory.VideoLocalUser.GetByVideoLocalID(obj.VideoLocalID));
         };
     }
 
@@ -80,7 +75,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         _hashes = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.Hash);
         _sha1 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.SHA1);
         _md5 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.MD5);
-        _ignored = new PocoIndex<int, SVR_VideoLocal, int>(Cache, a => a.IsIgnored);
+        _ignored = new PocoIndex<int, SVR_VideoLocal, bool>(Cache, a => a.IsIgnored);
     }
 
     public override void RegenerateDb()
@@ -221,33 +216,6 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
             transaction.Commit();
         }
-
-        ServerState.Instance.ServerStartingStatus = string.Format(
-            Resources.Database_Validating, nameof(VideoLocal),
-            " Cleaning Fragmented Records"
-        );
-        using (var transaction = session.BeginTransaction())
-        {
-            var list2 = Cache.Values.SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
-                .Where(
-                    a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
-                         a.GetEpisode() == null
-                ).ToArray();
-            count = 0;
-            max = list2.Length;
-            foreach (var xref in list2)
-            {
-                // We don't need to update anything since they don't exist
-                RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
-                count++;
-                ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, nameof(VideoLocal),
-                    " Cleaning Fragmented Records - " + count + "/" + max
-                );
-            }
-
-            transaction.Commit();
-        }
     }
 
     public List<SVR_VideoLocal> GetByImportFolder(int importFolderID)
@@ -324,7 +292,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         return ReadLock(
             () => Cache.Values.Where(
                     p => p.Places.Any(
-                        a => a.FilePath.FuzzyMatches(fileName)
+                        a => a.FilePath.FuzzyMatch(fileName)
                     )
                 )
                 .ToList()
@@ -403,7 +371,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     public List<SVR_VideoLocal> GetRandomFiles(int maxResults)
     {
-        var values = ReadLock(Cache.Values.ToList);
+        var values = ReadLock(Cache.Values.ToList).Where(a => a.EpisodeCrossRefs.Any()).ToList();
 
         using var en = new UniqueRandoms(0, values.Count - 1).GetEnumerator();
         var vids = new List<SVR_VideoLocal>();
@@ -522,20 +490,50 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         return ReadLock(() => _hashes.GetMultiple(""));
     }
 
-    public List<SVR_VideoLocal> GetVideosWithoutEpisode()
+    public List<SVR_VideoLocal> GetVideosWithoutEpisode(bool includeBrokenXRefs = false)
     {
         return ReadLock(
             () => Cache.Values
-                .Where(
-                    a =>
-                    {
-                        if (a.IsIgnored != 0) return false;
+                .Where( a =>
+                {
+                    if (a.IsIgnored)
+                        return false;
 
-                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
-                        if (!xrefs.Any()) return true;
+                    var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
+                    if (!xrefs.Any())
+                        return true;
+
+                    if (includeBrokenXRefs)
                         return !xrefs.Any(IsImported);
-                    }
-                )
+
+                    return false;
+                })
+                .OrderByNatural(local =>
+                {
+                    var place = local?.GetBestVideoLocalPlace();
+                    if (place == null) return null;
+                    return place.FullServerPath ?? place.FilePath;
+                })
+                .ThenBy(local => local?.VideoLocalID ?? 0)
+                .ToList()
+        );
+    }
+
+    public List<SVR_VideoLocal> GetVideosWithMissingCrossReferenceData()
+    {
+        return ReadLock(
+            () => Cache.Values
+                .Where( a =>
+                {
+                    if (a.IsIgnored)
+                        return false;
+
+                    var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
+                    if (!xrefs.Any())
+                        return false;
+
+                    return !xrefs.All(IsImported);
+                })
                 .OrderByNatural(local =>
                 {
                     var place = local?.GetBestVideoLocalPlace();
@@ -558,7 +556,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     public List<SVR_VideoLocal> GetVideosWithoutEpisodeUnsorted()
     {
         return ReadLock(() =>
-            Cache.Values.Where(a => a.IsIgnored == 0 && !RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash).Any())
+            Cache.Values.Where(a => !a.IsIgnored && !RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash).Any())
                 .ToList());
     }
 
@@ -586,7 +584,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     public List<SVR_VideoLocal> GetIgnoredVideos()
     {
-        return ReadLock(() => _ignored.GetMultiple(1));
+        return ReadLock(() => _ignored.GetMultiple(true));
     }
 
     public SVR_VideoLocal GetByMyListID(int myListID)

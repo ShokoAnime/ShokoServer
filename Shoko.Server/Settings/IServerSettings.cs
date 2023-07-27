@@ -25,18 +25,27 @@ public interface IServerSettings
     LinuxSettings Linux { get; set; }
     FileQualityPreferences FileQualityPreferences { get; set; }
     bool AutoGroupSeries { get; set; }
-    string AutoGroupSeriesRelationExclusions { get; set; }
+    List<string> AutoGroupSeriesRelationExclusions { get; set; }
     bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
     bool FileQualityFilterEnabled { get; set; }
     List<string> LanguagePreference { get; set; }
-    string EpisodeLanguagePreference { get; set; }
+    List<string> EpisodeLanguagePreference { get; set; }
     bool LanguageUseSynonyms { get; set; }
     int CloudWatcherTime { get; set; }
     DataSourceType EpisodeTitleSource { get; set; }
     DataSourceType SeriesDescriptionSource { get; set; }
     DataSourceType SeriesNameSource { get; set; }
+    /// <summary>
+    /// Path where the images are stored. If set to <c>null</c> then it will use
+    /// the default location.
+    /// </summary>
     string ImagesPath { get; set; }
+    /// <summary>
+    /// Load image metadata from the file system and send to the clients.
+    /// </summary>
+    bool LoadImageMetadata { get; set; }
     string UpdateChannel { get; set; }
     bool TraceLog { get; set; }
     int CachingDatabaseTimeout { get; set; }
+    bool SentryOptOut { get; set; }
 }

@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB.UDP;
 
@@ -64,6 +65,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
 
     private byte[] SendUnsafe(byte[] payload, byte[] result)
     {
+        EmptyBuffer();
         _aniDBSocket.SendTo(payload, _remoteIpEndPoint);
         EndPoint temp = _remoteIpEndPoint;
         var received = _aniDBSocket.ReceiveFrom(result, ref temp);
@@ -82,51 +84,76 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         }
 
         Array.Resize(ref result, received);
+
+        EmptyBuffer();
         return result;
+    }
+
+    private void EmptyBuffer()
+    {
+        if (_aniDBSocket.Available == 0) return;
+        var result = new byte[1600];
+        try
+        {
+            _aniDBSocket.Receive(result);
+            var decodedString = Utils.GetEncoding(result).GetString(result, 0, result.Length);
+            if (decodedString[0] == 0xFEFF) // remove BOM
+            {
+                decodedString = decodedString[1..];
+            }
+            _logger.LogWarning("Unexpected data in the UDP stream: {Result}", decodedString);
+        }
+        catch
+        {
+            // ignore
+        }
     }
 
     public bool TryConnection()
     {
-        // Dont send Expect 100 requests. These requests aren't always supported by remote internet devices, in which case can cause failure.
-        ServicePointManager.Expect100Continue = false;
-
-        try
+        lock (Lock)
         {
-            _localIpEndPoint = new IPEndPoint(IPAddress.Any, _clientPort);
+            // Dont send Expect 100 requests. These requests aren't always supported by remote internet devices, in which case can cause failure.
+            ServicePointManager.Expect100Continue = false;
 
-            // we use bind() here (normally only for servers, not clients) instead of connect() because of this:
-            /*
-             * Local Port
-             *  A client should select a fixed local port >1024 at install time and reuse it for local UDP Sockets. If the API sees too many different UDP Ports from one IP within ~1 hour it will ban the IP. (So make sure you're reusing your UDP ports also for testing/debugging!)
-             *  The local port may be hardcoded, however, an option to manually specify another port should be offered.
-             */
-            _aniDBSocket.Bind(_localIpEndPoint);
-            _aniDBSocket.ReceiveTimeout = 30000; // 30 seconds
+            try
+            {
+                _localIpEndPoint = new IPEndPoint(IPAddress.Any, _clientPort);
 
-            _logger.LogInformation("Bound to local address: {Local} - Port: {ClientPort} ({Family})", _localIpEndPoint,
-                _clientPort, _localIpEndPoint.AddressFamily);
+                // we use bind() here (normally only for servers, not clients) instead of connect() because of this:
+                /*
+                 * Local Port
+                 *  A client should select a fixed local port >1024 at install time and reuse it for local UDP Sockets. If the API sees too many different UDP Ports from one IP within ~1 hour it will ban the IP. (So make sure you're reusing your UDP ports also for testing/debugging!)
+                 *  The local port may be hardcoded, however, an option to manually specify another port should be offered.
+                 */
+                _aniDBSocket.Bind(_localIpEndPoint);
+                _aniDBSocket.ReceiveTimeout = 30000; // 30 seconds
+
+                _logger.LogInformation("Bound to local address: {Local} - Port: {ClientPort} ({Family})", _localIpEndPoint,
+                    _clientPort, _localIpEndPoint.AddressFamily);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Could not bind to local port");
+                return false;
+            }
+
+            try
+            {
+                var remoteHostEntry = Dns.GetHostEntry(_serverHost);
+                _remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], _serverPort);
+
+                _logger.LogInformation("Bound to remote address: {Address} : {Port}", _remoteIpEndPoint.Address,
+                    _remoteIpEndPoint.Port);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Could not bind to remote port");
+                return false;
+            }
+
+            return true;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Could not bind to local port: {Ex}", ex);
-            return false;
-        }
-
-        try
-        {
-            var remoteHostEntry = Dns.GetHostEntry(_serverHost);
-            _remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], _serverPort);
-
-            _logger.LogInformation("Bound to remote address: {Address} : {Port}", _remoteIpEndPoint.Address,
-                _remoteIpEndPoint.Port);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Could not bind to remote port: {Ex}", ex);
-            return false;
-        }
-
-        return true;
     }
 
     public void Dispose()
@@ -154,7 +181,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
             }
             catch (SocketException ex)
             {
-                _logger.LogError(ex, "Failed to Shutdown and Disconnect the connection to AniDB: {@Ex}", ex);
+                _logger.LogError(ex, "Failed to Shutdown and Disconnect the connection to AniDB");
             }
             finally
             {

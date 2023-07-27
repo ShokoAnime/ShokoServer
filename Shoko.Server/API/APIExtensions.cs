@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -116,7 +117,7 @@ public static class APIExtensions
                 options.MapType<SeriesType>(() => new OpenApiSchema { Type = "string" });
                 options.MapType<EpisodeType>(() => new OpenApiSchema { Type = "string" });
 
-                options.CustomSchemaIds(x => x.FullName);
+                options.CustomSchemaIds(GetTypeName);
             });
         services.AddSwaggerGenNewtonsoftSupport();
         services.AddSignalR(o => { o.EnableDetailedErrors = true; });
@@ -165,14 +166,17 @@ public static class APIExtensions
         {
             o.ReportApiVersions = true;
             o.AssumeDefaultVersionWhenUnspecified = true;
-            o.DefaultApiVersion = ApiVersion.Default;
             o.ApiVersionReader = ApiVersionReader.Combine(
                 new QueryStringApiVersionReader(),
                 new HeaderApiVersionReader("api-version"),
                 new ShokoApiReader()
             );
         });
-        services.AddVersionedApiExplorer();
+        services.AddVersionedApiExplorer(options =>
+        {
+            options.GroupNameFormat = "'v'VVV";
+            options.SubstituteApiVersionInUrl = true;
+        });
         services.AddResponseCaching();
 
         services.Configure<KestrelServerOptions>(options =>
@@ -180,6 +184,19 @@ public static class APIExtensions
             options.AllowSynchronousIO = true;
         });
         return services;
+    }
+
+    private static string GetTypeName(Type type)
+    {
+        if (type.IsGenericType)
+            return GetGenericTypeName(type);
+
+        return string.Join(".", type.FullName.Replace("+", ".").Replace("`1", "").Split(".").TakeLast(2));
+    }
+
+    private static string GetGenericTypeName(Type genericType)
+    {
+        return genericType.Name.Replace("+", ".").Replace("`1", "") + "[" + string.Join(",", genericType.GetGenericArguments().Select(GetTypeName)) + "]";
     }
     
     private static OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)
@@ -224,22 +241,23 @@ public static class APIExtensions
 #if DEBUG
         app.UseDeveloperExceptionPage();
 #endif
-        var dir = new DirectoryInfo(Path.Combine(Utils.ApplicationPath, "webui"));
-        if (!dir.Exists)
+        // Create web ui directory and add the bootstrapper.
+        var webUIDir = new DirectoryInfo(Path.Combine(Utils.ApplicationPath, "webui"));
+        if (!webUIDir.Exists)
         {
-            dir.Create();
+            webUIDir.Create();
 
-            var backup = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
+            var backupDir = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
                 "webui"));
-            if (backup.Exists)
+            if (backupDir.Exists)
             {
-                CopyFilesRecursively(backup, dir);
+                CopyFilesRecursively(backupDir, webUIDir);
             }
         }
 
         app.UseStaticFiles(new StaticFileOptions
         {
-            FileProvider = new WebUiFileProvider(dir.FullName), RequestPath = "/webui", ServeUnknownFileTypes = true,
+            FileProvider = new WebUiFileProvider(webUIDir.FullName), RequestPath = "/webui", ServeUnknownFileTypes = true,
             OnPrepareResponse = ctx =>
             {
                 ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -247,7 +265,31 @@ public static class APIExtensions
             }
         });
 
-        app.UseSwagger();
+        app.UseSwagger(c =>
+        {
+            c.PreSerializeFilters.Add((swaggerDoc, _) => {
+                var version = double.Parse(swaggerDoc.Info.Version);
+                swaggerDoc.Servers.Add(new OpenApiServer{Url = $"/api/v{version:0}/"});
+
+                var basepathInt = $"/api/v{version:0}/";
+                var basepathDecimal = $"/api/v{version:0.0}/";
+                var paths = new OpenApiPaths();
+                foreach (var path in swaggerDoc.Paths)
+                {
+                    if (!path.Key.Contains(basepathInt) && !path.Key.Contains(basepathDecimal))
+                    {
+                        path.Value.Servers.Clear();
+                        path.Value.Servers.Add(new OpenApiServer
+                        {
+                            Url = "/"
+                        });
+                    }
+
+                    paths.Add(path.Key.Replace(basepathInt, "/").Replace(basepathDecimal, "/"), path.Value);
+                }
+                swaggerDoc.Paths = paths;
+            });
+        });
         app.UseSwaggerUI(
             options =>
             {
@@ -258,6 +300,7 @@ public static class APIExtensions
                     options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
                         description.GroupName.ToUpperInvariant());
                 }
+                options.EnablePersistAuthorization();
             });
         // Important for first run at least
         app.UseAuthentication();

@@ -118,7 +118,6 @@ public class AnimeCreator
         anime.AirDate = animeInfo.AirDate;
         anime.AllCinemaID = animeInfo.AllCinemaID;
         anime.AnimeID = animeInfo.AnimeID;
-        anime.AnimePlanetID = animeInfo.AnimePlanetID;
         anime.AnimeType = (int)animeInfo.AnimeType;
         anime.ANNID = animeInfo.ANNID;
         anime.AvgReviewRating = animeInfo.AvgReviewRating;
@@ -148,77 +147,128 @@ public class AnimeCreator
         return true;
     }
 
-    private void CreateEpisodes(List<ResponseEpisode> eps, SVR_AniDB_Anime anime)
+    private void CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
     {
-        if (eps == null)
-        {
+        if (rawEpisodeList == null)
             return;
-        }
 
         var episodeCountSpecial = 0;
         var episodeCountNormal = 0;
-
-        var currentAniDBEpisodes =
-            RepoFactory.AniDB_Episode.GetByAnimeID(anime.AnimeID).ToDictionary(a => a.EpisodeID, a => a);
-        var oldtitles = currentAniDBEpisodes.SelectMany(a => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.Key).Where(b => b != null).Select(b => (EpisodeID:a.Key, Title:b)))
-            .ToLookup(a => a.EpisodeID, a => a.Title);
-
-        var epIDs = eps.Select(b => b.EpisodeID).ToHashSet();
-        var epsToRemove = currentAniDBEpisodes.Values.Where(a => !epIDs.Contains(a.EpisodeID)).ToList();
+        var epIDs = rawEpisodeList
+            .Select(e => e.EpisodeID)
+            .ToHashSet();
+        var epsBelongingToThisAnime = RepoFactory.AniDB_Episode.GetByAnimeID(anime.AnimeID)
+            .ToDictionary(e => e.EpisodeID);
+        var epsBelongingToOtherAnime = epIDs
+            .Where(id => !epsBelongingToThisAnime.ContainsKey(id))
+            .Select(id => RepoFactory.AniDB_Episode.GetByEpisodeID(id))
+            .Where(episode => episode != null)
+            .ToList();
+        var currentAniDBEpisodes = epsBelongingToThisAnime.Values
+            .Concat(epsBelongingToOtherAnime)
+            .ToDictionary(a => a.EpisodeID);
+        var currentAniDBEpisodeTitles = currentAniDBEpisodes.Keys
+            .ToDictionary(id => id, id => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(id).ToHashSet());
+        var epsToRemove = currentAniDBEpisodes.Values
+            .Where(a => !epIDs.Contains(a.EpisodeID))
+            .ToList();
         var epsToSave = new List<AniDB_Episode>();
         var titlesToRemove = new List<SVR_AniDB_Episode_Title>();
         var titlesToSave = new List<SVR_AniDB_Episode_Title>();
 
-        foreach (var epraw in eps)
+        foreach (var rawEpisode in rawEpisodeList)
         {
-            var epNew = new AniDB_Episode
-            {
-                AirDate = Commons.Utils.AniDB.GetAniDBDateAsSeconds(epraw.AirDate), AnimeID = epraw.AnimeID,
-                DateTimeUpdated = DateTime.Now,
-                EpisodeID = epraw.EpisodeID,
-                EpisodeNumber = epraw.EpisodeNumber,
-                EpisodeType = (int)epraw.EpisodeType,
-                LengthSeconds = epraw.LengthSeconds,
-                Rating = epraw.Rating.ToString(CultureInfo.InvariantCulture),
-                Votes = epraw.Votes.ToString(CultureInfo.InvariantCulture),
-                Description = epraw.Description ?? string.Empty
-            };
+            // Load the titles for the episode now, since we might need to check
+            // them even if we don't update the episode itself.
+            if (!currentAniDBEpisodeTitles.TryGetValue(rawEpisode.EpisodeID, out var currentTitles))
+                currentTitles = new();
 
-            if (!currentAniDBEpisodes.ContainsKey(epNew.EpisodeID)) epsToSave.Add(epNew);
-            else if (!currentAniDBEpisodes[epNew.EpisodeID].Equals(epNew))
+            // Check if the existing record, if any, needs to be updated.
+            if (currentAniDBEpisodes.TryGetValue(rawEpisode.EpisodeID, out var episode))
             {
-                epNew.AniDB_EpisodeID = currentAniDBEpisodes[epNew.EpisodeID].AniDB_EpisodeID;
-                epsToSave.Add(epNew);
+                // The data we have stored is either in sync (or newer) than
+                // the raw episode data, so skip updating the episode.
+                if (episode.DateTimeUpdated >= rawEpisode.LastUpdated)
+                {
+                    // If the episode does not belong to the anime being
+                    // processed, or if none of the titles changed since last
+                    // time, then also skip updating the episode titles.
+                    if (episode.AnimeID != rawEpisode.AnimeID)
+                        continue;
+                    if (currentTitles.Count == rawEpisode.Titles.Count &&
+                        currentTitles.All(t1 => rawEpisode.Titles.Any(t2 => string.Equals(t1.Title, t2.Title))))
+                        goto count;
+                }
+                // Update the existing record.
+                else
+                {
+                    episode.AirDate = Commons.Utils.AniDB.GetAniDBDateAsSeconds(rawEpisode.AirDate);
+                    episode.AnimeID = anime.AnimeID;
+                    episode.DateTimeUpdated = rawEpisode.LastUpdated;
+                    // episode.EpisodeID = rawEpisode.EpisodeID;
+                    episode.EpisodeNumber = rawEpisode.EpisodeNumber;
+                    episode.EpisodeType = (int)rawEpisode.EpisodeType;
+                    episode.LengthSeconds = rawEpisode.LengthSeconds;
+                    episode.Rating = rawEpisode.Rating.ToString(CultureInfo.InvariantCulture);
+                    episode.Votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture);
+                    episode.Description = rawEpisode.Description ?? string.Empty;
+                    epsToSave.Add(episode);
+                }
+            }
+            // Create a new record.
+            else
+            {
+                episode = new()
+                {
+                    AirDate = Commons.Utils.AniDB.GetAniDBDateAsSeconds(rawEpisode.AirDate),
+                    AnimeID = rawEpisode.AnimeID,
+                    DateTimeUpdated = rawEpisode.LastUpdated,
+                    EpisodeID = rawEpisode.EpisodeID,
+                    EpisodeNumber = rawEpisode.EpisodeNumber,
+                    EpisodeType = (int)rawEpisode.EpisodeType,
+                    LengthSeconds = rawEpisode.LengthSeconds,
+                    Rating = rawEpisode.Rating.ToString(CultureInfo.InvariantCulture),
+                    Votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture),
+                    Description = rawEpisode.Description ?? string.Empty
+                };
+                epsToSave.Add(episode);
             }
 
-            // Titles
-            var newTitles = epraw.Titles.Where(rawtitle => !string.IsNullOrEmpty(rawtitle?.Title))
+            // Convert the raw titles to their equivalent database model.
+            var newTitles = rawEpisode.Titles
                 .Select(rawtitle => new SVR_AniDB_Episode_Title
                 {
-                    AniDB_EpisodeID = epraw.EpisodeID, Language = rawtitle.Language, Title = rawtitle.Title
-                }).ToList();
+                    AniDB_EpisodeID = rawEpisode.EpisodeID,
+                    Language = rawtitle.Language,
+                    Title = rawtitle.Title,
+                })
+                .ToList();
 
-            titlesToSave.AddRange(newTitles.Where(a =>
-                !oldtitles.Contains(epraw.EpisodeID) || !oldtitles[epraw.EpisodeID].Any(b => b.Equals(a))));
-            if (oldtitles.Contains(epraw.EpisodeID))
-                titlesToRemove.AddRange(oldtitles[epraw.EpisodeID].Where(a => !newTitles.Any(b => b.Equals(a))));
+            // Mark the new titles to-be saved.
+            titlesToSave.AddRange(newTitles.Where(a => !currentTitles.Contains(a)));
 
-            // since the HTTP api doesn't return a count of the number of specials, we will calculate it here
-            if (epNew.GetEpisodeTypeEnum() == Shoko.Models.Enums.EpisodeType.Episode)
+            // Remove outdated titles.
+            if (currentTitles.Count > 0)
+                titlesToRemove.AddRange(currentTitles.Where(a => !newTitles.Any(b => b.Equals(a))));
+
+            // Since the HTTP API doesn't return a count of the number of normal
+            // episodes and/or specials, then we will calculate it now.
+            count: switch (episode.GetEpisodeTypeEnum())
             {
-                episodeCountNormal++;
-            }
+                case Shoko.Models.Enums.EpisodeType.Episode:
+                    episodeCountNormal++;
+                    break;
 
-            if (epNew.GetEpisodeTypeEnum() == Shoko.Models.Enums.EpisodeType.Special)
-            {
-                episodeCountSpecial++;
+                case Shoko.Models.Enums.EpisodeType.Special:
+                    episodeCountSpecial++;
+                    break;
             }
         }
 
-        if (currentAniDBEpisodes.Count > 0)
+        if (epsToRemove.Count > 0)
         {
             _logger.LogTrace("Deleting the following episodes (no longer in AniDB)");
-            foreach (var ep in currentAniDBEpisodes.Values)
+            foreach (var ep in epsToRemove)
             {
                 _logger.LogTrace("AniDB Ep: {EpisodeID} Type: {EpisodeType} Number: {EpisodeNumber}", ep.EpisodeID,
                     ep.EpisodeType, ep.EpisodeNumber);
@@ -421,7 +471,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to Remove Characters for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Remove Characters for {MainTitle}", anime.MainTitle);
         }
 
 
@@ -441,7 +491,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to Remove Seiyuus for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Remove Seiyuus for {MainTitle}", anime.MainTitle);
         }
 
         var charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
@@ -578,13 +628,13 @@ public class AnimeCreator
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError(e, "Unable to Populate and Save Seiyuus for {MainTitle}: {Ex}", anime.AnimeID, e);
+                        _logger.LogError(e, "Unable to Populate and Save Seiyuus for {MainTitle}", anime.AnimeID);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unable to Populate and Save Characters for {MainTitle}: {Ex}", anime.AnimeID, ex);
+                _logger.LogError(ex, "Unable to Populate and Save Characters for {MainTitle}", anime.AnimeID);
             }
         }
 
@@ -597,7 +647,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to Save Characters and Seiyuus for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Save Characters and Seiyuus for {MainTitle}", anime.MainTitle);
         }
     }
 
@@ -615,7 +665,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to Remove Staff for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Remove Staff for {MainTitle}", anime.MainTitle);
         }
 
         var animeStaffToSave = new List<AniDB_Anime_Staff>();
@@ -652,6 +702,7 @@ public class AnimeCreator
                 var roleType = rawStaff.CreatorType switch
                 {
                     "Animation Work" => StaffRoleType.Studio,
+                    "Work" => StaffRoleType.Studio,
                     "Original Work" => StaffRoleType.SourceWork,
                     "Music" => StaffRoleType.Music,
                     "Character Design" => StaffRoleType.CharacterDesign,
@@ -687,7 +738,7 @@ public class AnimeCreator
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unable to Populate and Save Staff for {MainTitle}: {Ex}", anime.MainTitle, ex);
+                _logger.LogError(ex, "Unable to Populate and Save Staff for {MainTitle}", anime.MainTitle);
             }
         }
 
@@ -698,7 +749,7 @@ public class AnimeCreator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to Save Staff for {MainTitle}: {Ex}", anime.MainTitle, ex);
+            _logger.LogError(ex, "Unable to Save Staff for {MainTitle}", anime.MainTitle);
         }
     }
 
@@ -745,7 +796,7 @@ public class AnimeCreator
                         anime.AllCinemaID = id;
                         break;
                     }
-                case AniDB_ResourceLinkType.AnimeNFO:
+                case AniDB_ResourceLinkType.VNDB:
                     {
                         if (!int.TryParse(resource.ResourceID, out id))
                         {
@@ -757,17 +808,53 @@ public class AnimeCreator
                             break;
                         }
 
-                        anime.AnimeNfo = id;
+                        anime.VNDBID = id;
+                        break;
+                    }
+                case AniDB_ResourceLinkType.Bangumi:
+                    {
+                        if (!int.TryParse(resource.ResourceID, out id))
+                        {
+                            break;
+                        }
+
+                        if (id == 0)
+                        {
+                            break;
+                        }
+
+                        anime.BangumiID = id;
+                        break;
+                    }
+                case AniDB_ResourceLinkType.DotLain:
+                    {
+                        if (!int.TryParse(resource.ResourceID, out id))
+                        {
+                            break;
+                        }
+
+                        if (id == 0)
+                        {
+                            break;
+                        }
+
+                        anime.LainID = id;
                         break;
                     }
                 case AniDB_ResourceLinkType.Site_JP:
                     {
-                        anime.Site_JP = resource.ResourceID;
+                        if (string.IsNullOrEmpty(anime.Site_JP))
+                            anime.Site_JP = resource.ResourceID;
+                        else
+                            anime.Site_JP += "|" + resource.ResourceID;
                         break;
                     }
                 case AniDB_ResourceLinkType.Site_EN:
                     {
-                        anime.Site_EN = resource.ResourceID;
+                        if (string.IsNullOrEmpty(anime.Site_EN))
+                            anime.Site_EN = resource.ResourceID;
+                        else
+                            anime.Site_EN += "|" + resource.ResourceID;
                         break;
                     }
                 case AniDB_ResourceLinkType.Wiki_EN:
@@ -823,6 +910,16 @@ public class AnimeCreator
                 case AniDB_ResourceLinkType.Crunchyroll:
                     {
                         anime.CrunchyrollID = resource.ResourceID;
+                        break;
+                    }
+                case AniDB_ResourceLinkType.Funimation:
+                    {
+                        anime.FunimationID = resource.ResourceID;
+                        break;
+                    }
+                case AniDB_ResourceLinkType.HiDive:
+                    {
+                        anime.HiDiveID = resource.ResourceID;
                         break;
                     }
                 case AniDB_ResourceLinkType.MAL:

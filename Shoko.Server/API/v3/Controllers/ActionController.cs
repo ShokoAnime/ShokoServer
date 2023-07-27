@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -11,6 +12,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.Plex;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.MovieDB;
@@ -233,39 +235,50 @@ public class ActionController : BaseController
     [HttpGet("DownloadMissingAniDBAnimeData")]
     public ActionResult UpdateMissingAniDBXML()
     {
-        try
+        // Check existing anime.
+        int index = 0;
+        var queuedAnimeSet = new HashSet<int>();
+        var localAnimeSet = RepoFactory.AniDB_Anime.GetAll()
+            .Select(a => a.AnimeID)
+            .OrderBy(a => a)
+            .ToHashSet();
+        _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files…", localAnimeSet.Count);
+        foreach (var animeID in localAnimeSet)
         {
-            var allAnime = RepoFactory.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
-            _logger.LogInformation("Starting the check for {AllAnimeCount} anime XML files", allAnime.Count);
-            var updatedAnime = 0;
-            for (var i = 0; i < allAnime.Count; i++)
-            {
-                var animeID = allAnime[i];
-                if (i % 10 == 1)
-                {
-                    _logger.LogInformation("Checking anime {I}/{AllAnimeCount} for XML file", i + 1, allAnime.Count);
-                }
+            if (++index % 10 == 1)
+                _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files — {CurrentCount}/{AllAnimeCount}", localAnimeSet.Count, index + 1, localAnimeSet.Count);
 
-                var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
-                var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
+            var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
+            var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
 
-                if (rawXml != null)
-                {
-                    continue;
-                }
+            if (rawXml != null)
+                continue;
 
-                Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, true, false, false);
-                updatedAnime++;
-            }
-
-            _logger.LogInformation("Updating {UpdatedAnime} anime", updatedAnime);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Error checking and queuing AniDB XML Updates: {E}", e);
-            return InternalError(e.Message);
+            Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, true, false, false);
+            queuedAnimeSet.Add(animeID);
         }
 
+        // Queue missing anime needed by existing files.
+        index = 0;
+        var localEpisodeSet = RepoFactory.AniDB_Episode.GetAll()
+            .Select(episode => episode.EpisodeID)
+            .ToHashSet();
+        var missingAnimeSet = RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData()
+            .SelectMany(file => file.EpisodeCrossRefs)
+            .Where(xref => !queuedAnimeSet.Contains(xref.AnimeID) && (!localAnimeSet.Contains(xref.AnimeID) || !localEpisodeSet.Contains(xref.EpisodeID)))
+            .Select(xref => xref.AnimeID)
+            .ToHashSet();
+        _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update…", missingAnimeSet.Count);
+        foreach (var animeID in missingAnimeSet)
+        {
+            if (++index % 10 == 1)
+                _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
+
+            Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, true, true, true);
+            queuedAnimeSet.Add(animeID);
+        }
+
+        _logger.LogInformation("Queued {QueuedAnimeCount} anime for an online refresh.", queuedAnimeSet.Count);
         return Ok();
     }
 
@@ -344,6 +357,21 @@ public class ActionController : BaseController
     }
 
     /// <summary>
+    /// Update AniDB Files with missing file info, including with missing release
+    /// groups and/or with out-of-date internal data versions.
+    /// </summary>
+    /// <param name="missingInfo">Update files with missing release group info</param>
+    /// <param name="outOfDate">Update files with and out-of-date internal version.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("UpdateMissingAniDBFileInfo")]
+    public ActionResult UpdateMissingAniDBFileInfo([FromQuery] bool missingInfo = true, [FromQuery] bool outOfDate = false)
+    {
+        Importer.UpdateAniDBFileData(missingInfo, outOfDate, false);
+        return Ok();
+    }
+
+    /// <summary>
     /// Update the AniDB Calendar data for use on the dashboard.
     /// </summary>
     /// <returns></returns>
@@ -371,6 +399,22 @@ public class ActionController : BaseController
     }
 
     /// <summary>
+    /// Rename al <see cref="Group"/>s. This won't recreate the whole library,
+    /// only rename any groups without a custom name set based on the current
+    /// language preference.
+    /// </summary>
+    /// <remarks>
+    /// This action requires an admin account because it affects all groups.
+    /// </remarks>
+    [Authorize("admin")]
+    [HttpGet("RenameAllGroups")]
+    public ActionResult RenameAllGroups()
+    {
+        Task.Factory.StartNew(() => SVR_AnimeGroup.RenameAllGroups()).ConfigureAwait(false);
+        return Ok();
+    }
+
+    /// <summary>
     /// Sync watch states with plex.
     /// </summary>
     /// <returns></returns>
@@ -380,6 +424,19 @@ public class ActionController : BaseController
     {
         _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser()).Save();
         return Ok();
+    }
+    
+    /// <summary>
+    /// Forcibly runs AddToMyList commands for all manual links
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("AddAllManualLinksToMyList")]
+    public ActionResult AddAllManualLinksToMyList()
+    {
+        var cmds = RepoFactory.VideoLocal.GetManuallyLinkedVideos().Select(a => _commandFactory.Create<CommandRequest_AddFileToMyList>(c => c.Hash = a.Hash)).ToList();
+        cmds.ForEach(a => a.Save());
+        return Ok($"Saved {cmds.Count} AddToMyList Commands");
     }
 
     #endregion

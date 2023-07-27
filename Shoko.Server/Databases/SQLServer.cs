@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
 {
     public string Name { get; } = "SQLServer";
-    public int RequiredVersion { get; } = 100;
+    public int RequiredVersion { get; } = 109;
 
     public void BackupDatabase(string fullfilename)
     {
@@ -70,30 +70,23 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     public override string GetTestConnectionString()
     {
         var settings = Utils.SettingsProvider.GetSettings();
-        return $"data source={settings.Database.Hostname};Initial Catalog=master;user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True";
+        return $"data source={settings.Database.Hostname},{settings.Database.Port};Initial Catalog=master;user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True";
     }
 
     public override string GetConnectionString()
     {
         var settings = Utils.SettingsProvider.GetSettings();
         return
-            $"data source={settings.Database.Hostname};Initial Catalog={settings.Database.Schema};user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True";
+            $"data source={settings.Database.Hostname},{settings.Database.Port};Initial Catalog={settings.Database.Schema};user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True";
     }
 
     public ISessionFactory CreateSessionFactory()
     {
-        // SQL Server batching on Mono is busted atm.
-        // Fixed in https://github.com/mono/corefx/commit/6e65509a17da898933705899677c22eae437d68a
-        // but waiting for release
         return Fluently.Configure()
             .Database(MsSqlConfiguration.MsSql2008.ConnectionString(GetConnectionString()))
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
-                // SQL Server batching on Mono is busted atm.
-                // Fixed in https://github.com/mono/corefx/commit/6e65509a17da898933705899677c22eae437d68a
-                // but waiting for release. This will negatively affect performance, but there's not much choice
-                if (!Utils.IsRunningOnLinuxOrMac()) return;
                 prop.Batcher<NonBatchingBatcherFactory>();
                 prop.BatchSize = 0;
                 // uncomment this for SQL output
@@ -101,7 +94,6 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
             }))
             .BuildSessionFactory();
     }
-
 
     public bool DatabaseAlreadyExists()
     {
@@ -116,7 +108,6 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
 
         return false;
     }
-
 
     public void CreateDatabase()
     {
@@ -665,6 +656,26 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
         new DatabaseCommand(100, 8, "ALTER TABLE AniDB_Anime_Tag ADD LocalSpoiler integer NOT NULL DEFAULT 0;"),
         new DatabaseCommand(100, 9, "ALTER TABLE AniDB_Anime_Tag DROP COLUMN Approval;"),
         new DatabaseCommand(100, 10, DatabaseFixes.FixTagParentIDsAndNameOverrides),
+        new DatabaseCommand(101, 1, "ALTER TABLE AnimeEpisode ADD IsHidden integer NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(101, 2, "ALTER TABLE AnimeSeries_User ADD HiddenUnwatchedEpisodeCount integer NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(102, 1, "UPDATE v SET DateTimeImported = DateTimeCreated FROM VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash;"),
+        new DatabaseCommand(103, 1, "CREATE TABLE AniDB_FileUpdate ( AniDB_FileUpdateID INT IDENTITY(1,1) NOT NULL, FileSize BIGINT NOT NULL, Hash nvarchar(150) NOT NULL, HasResponse BIT NOT NULL, UpdatedAt datetime NOT NULL )"),
+        new DatabaseCommand(103, 2, "CREATE INDEX IX_AniDB_FileUpdate ON AniDB_FileUpdate(FileSize, Hash)"),
+        new DatabaseCommand(103, 3, DatabaseFixes.MigrateAniDB_FileUpdates),
+        new DatabaseCommand(104, 1, "ALTER TABLE AniDB_Anime DROP COLUMN DisableExternalLinksFlag;"),
+        new DatabaseCommand(104, 2, "ALTER TABLE AnimeSeries ADD DisableAutoMatchFlags integer NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(104, 3, "ALTER TABLE AniDB_Anime ADD VNDBID int, BangumiID int, LianID int, FunimationID nvarchar(max), HiDiveID nvarchar(max)"),
+        new DatabaseCommand(105, 1, "ALTER TABLE AniDB_Anime DROP COLUMN LianID;"),
+        new DatabaseCommand(105, 2, "ALTER TABLE AniDB_Anime DROP COLUMN AnimePlanetID;"),
+        new DatabaseCommand(105, 3, "ALTER TABLE AniDB_Anime DROP COLUMN AnimeNfo;"),
+        new DatabaseCommand(105, 4, "ALTER TABLE AniDB_Anime ADD LainID INT NULL"),
+        new DatabaseCommand(106, 1, DatabaseFixes.FixEpisodeDateTimeUpdated),
+        new DatabaseCommand(107, 1, "ALTER TABLE AnimeSeries ADD HiddenMissingEpisodeCount int NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(107, 2, "ALTER TABLE AnimeSeries ADD HiddenMissingEpisodeCountGroups int NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(107, 3, DatabaseFixes.UpdateSeriesWithHiddenEpisodes),
+        new DatabaseCommand(108, 1, "UPDATE AniDB_Anime SET AirDate = NULL, BeginYear = 0 WHERE AirDate = '1970-01-01 00:00:00';"),
+        new DatabaseCommand(109, 1, "ALTER TABLE JMMUser ADD AvatarImageBlob VARBINARY(MAX) NULL;"),
+        new DatabaseCommand(109, 2, "ALTER TABLE JMMUser ADD AvatarImageMetadata NVARCHAR(128) NULL;"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

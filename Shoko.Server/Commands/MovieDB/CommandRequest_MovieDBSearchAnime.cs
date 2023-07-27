@@ -37,60 +37,53 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
     {
         Logger.LogInformation("Processing CommandRequest_MovieDBSearchAnime: {AnimeID}", AnimeID);
 
-        try
+        // Use TvDB setting
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TvDB.AutoLink)
         {
-            // Use TvDB setting
-            var settings = _settingsProvider.GetSettings();
-            if (!settings.TvDB.AutoLink)
-            {
-                return;
-            }
-
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
-            if (anime == null)
-            {
-                return;
-            }
-
-            var searchCriteria = anime.PreferredTitle;
-
-            // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
-            var results = _helper.Search(searchCriteria);
-            Logger.LogTrace("Found {Count} moviedb results for {Criteria} on MovieDB", results.Count, searchCriteria);
-            if (ProcessSearchResults(results, searchCriteria))
-            {
-                return;
-            }
-
-
-            if (results.Count != 0)
-            {
-                return;
-            }
-
-            foreach (var title in anime.GetTitles())
-            {
-                if (title.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Official)
-                {
-                    continue;
-                }
-
-                if (string.Equals(searchCriteria, title.Title, StringComparison.CurrentCultureIgnoreCase))
-                {
-                    continue;
-                }
-
-                results = _helper.Search(title.Title);
-                Logger.LogTrace("Found {Count} moviedb results for search on {Title}", results.Count, title.Title);
-                if (ProcessSearchResults(results, title.Title))
-                {
-                    return;
-                }
-            }
+            return;
         }
-        catch (Exception ex)
+
+        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+        if (anime == null)
         {
-            Logger.LogError("Error processing CommandRequest_TvDBSearchAnime: {AnimeID} - {Ex}", AnimeID, ex);
+            return;
+        }
+
+        var searchCriteria = anime.PreferredTitle;
+
+        // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
+        var results = _helper.Search(searchCriteria);
+        Logger.LogTrace("Found {Count} moviedb results for {Criteria} on MovieDB", results.Count, searchCriteria);
+        if (ProcessSearchResults(results, searchCriteria))
+        {
+            return;
+        }
+
+
+        if (results.Count != 0)
+        {
+            return;
+        }
+
+        foreach (var title in anime.GetTitles())
+        {
+            if (title.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Official)
+            {
+                continue;
+            }
+
+            if (string.Equals(searchCriteria, title.Title, StringComparison.CurrentCultureIgnoreCase))
+            {
+                continue;
+            }
+
+            results = _helper.Search(title.Title);
+            Logger.LogTrace("Found {Count} moviedb results for search on {Title}", results.Count, title.Title);
+            if (ProcessSearchResults(results, title.Title))
+            {
+                return;
+            }
         }
     }
 

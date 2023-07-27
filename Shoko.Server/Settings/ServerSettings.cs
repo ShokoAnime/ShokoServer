@@ -12,6 +12,9 @@ namespace Shoko.Server.Settings;
 
 public class ServerSettings : IServerSettings
 {
+    // Increment this when a new migration is added
+    public int SettingsVersion { get; set; } = SettingsMigrations.Version;
+
     [Range(1, 65535, ErrorMessage = "PluginAutoWatchThreshold must be between 1 and 65535")]
     public ushort ServerPort { get; set; } = 8111;
 
@@ -54,7 +57,7 @@ public class ServerSettings : IServerSettings
 
     public bool AutoGroupSeries { get; set; }
 
-    public string AutoGroupSeriesRelationExclusions { get; set; } = "same setting|character";
+    public List<string> AutoGroupSeriesRelationExclusions { get; set; } = new() { "same setting", "character" };
 
     public bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
 
@@ -64,8 +67,10 @@ public class ServerSettings : IServerSettings
 
     private List<string> _languagePreference = new()
     {
-        "x-jat", "en"
+        "x-jat",
+        "en",
     };
+
     public List<string> LanguagePreference
     {
         get => _languagePreference;
@@ -76,7 +81,19 @@ public class ServerSettings : IServerSettings
         }
     }
 
-    public string EpisodeLanguagePreference { get; set; } = string.Empty;
+    private List<string> _episodeLanguagePreference = new()
+    {
+        "en",
+    };
+
+    public List<string> EpisodeLanguagePreference {
+        get => _episodeLanguagePreference;
+        set
+        {
+            _episodeLanguagePreference = value;
+            Languages.PreferredEpisodeNamingLanguages = null;
+        }
+    }
 
     public bool LanguageUseSynonyms { get; set; } = true;
 
@@ -88,6 +105,7 @@ public class ServerSettings : IServerSettings
 
     [JsonIgnore] public string _ImagesPath;
 
+    /// <inheritdoc />
     public string ImagesPath
     {
         get => _ImagesPath;
@@ -98,6 +116,9 @@ public class ServerSettings : IServerSettings
         }
     }
 
+    /// <inheritdoc/> />
+    public bool LoadImageMetadata { get; set; } = false;
+
     public TraktSettings TraktTv { get; set; } = new();
 
     public string UpdateChannel { get; set; } = "Stable";
@@ -105,4 +126,6 @@ public class ServerSettings : IServerSettings
     public LinuxSettings Linux { get; set; } = new();
 
     public bool TraceLog { get; set; }
+
+    public bool SentryOptOut { get; set; } = false;
 }

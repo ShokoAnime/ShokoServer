@@ -8,19 +8,7 @@
             "args": [
                 "build",
                 "${workspaceFolder}/Shoko.CLI/Shoko.CLI.csproj",
-                "/property:GenerateFullPaths=true,Version=${input:version},InformationalVersion=\"channel=debug\"",
-                "/consoleloggerparameters:NoSummary"
-            ],
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "label": "build-mediainfo",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/MediaInfoWrapper/MediaInfoWrapper.csproj",
-                "/property:GenerateFullPaths=true",
+                "/property:GenerateFullPaths=true,Version=${input:version},InformationalVersion=\"channel=debug,commit=${input:commit},date=${input:date}\"",
                 "/consoleloggerparameters:NoSummary"
             ],
             "problemMatcher": "$msCompile"
@@ -55,8 +43,27 @@
         {
             "id": "version",
             "type": "promptString",
-            "default": "5.0.0",
-            "description": "The version to build"
-        }
+            "default": "10.0.0",
+            "description": "The local version to build."
+        },
+        // Open the command prompt (by pressing F1), remove the ">" and paste in "ext install augustocdias.tasks-shell-input" and hit enter.
+        {
+            "id": "commit",
+            "type": "command",
+            "command": "shellCommand.execute",
+            "args": {
+                "command": "git log --format=\"%H\" -n 1",
+                "cwd": "${workspaceFolder}",
+            },
+        },
+        {
+            "id": "date",
+            "type": "command",
+            "command": "shellCommand.execute",
+            "args": {
+                "command": "git log --format=\"%aI\" -n 1",
+                "cwd": "${workspaceFolder}",
+            },
+        },
     ]
 }

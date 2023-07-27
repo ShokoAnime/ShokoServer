@@ -39,7 +39,7 @@ public class TvDB_SeriesRepository : BaseCachedRepository<TvDB_Series, int>
             return EmptyLookup<int, Tuple<CrossRef_AniDB_TvDB, TvDB_Series>>.Instance;
         }
 
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var tvDbSeriesByAnime = session.CreateSQLQuery(@"
                 SELECT {cr.*}, {series.*}
@@ -56,7 +56,7 @@ public class TvDB_SeriesRepository : BaseCachedRepository<TvDB_Series, int>
                         (TvDB_Series)r[1]));
 
             return tvDbSeriesByAnime;
-        }
+        });
     }
 
     public override void RegenerateDb()

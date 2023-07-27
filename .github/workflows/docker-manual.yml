@@ -36,18 +36,19 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
-      - name: Get next version
+      - name: Replace Sentry DSN key
+        shell: pwsh
+        run: ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+
+      - name: Get release info
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
         with:
-          branch: true
+          tag: "${{ github.event.inputs.ref }}"
           prefix: v
           prefixRegex: "[vV]?"
-          suffix: ${{ github.event.inputs.release }}
-          suffixRegex: "dev|${{ github.event.inputs.release }}"
-          increment: suffix
 
-      - uses: docker/setup-qemu-action@v1
+      - uses: docker/setup-qemu-action@v2
         name: Set up QEMU
         with:
           platforms: arm64
@@ -59,8 +60,11 @@ jobs:
       - name: Log into docker hub
         run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
 
+        # Disabled provenance for now, until it works with docker manifest create.
+        # The manifest list produced by the new feature is incompatible with the
+        # expected format used in the docker manifest create command.
       - name: Build and Push the Docker image
-        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ steps.release_info.outputs.version }}-${{ github.event.inputs.release }} --build-arg channel=${{ github.event.inputs.release }} --build-arg commit=${{ github.sha }} --build-arg tag=${{ steps.release_info.outputs.tag }} --push
+        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ steps.release_info.outputs.version }}-${{ github.event.inputs.release }} --build-arg channel=${{ github.event.inputs.release }} --build-arg commit=${{ github.sha }} --build-arg tag=${{ steps.release_info.outputs.tag }} --build-arg date=${{ steps.release_info.outputs.date }} --push --provenance=false
 
   docker-manual-push_manifest:
     needs: docker-manual-build

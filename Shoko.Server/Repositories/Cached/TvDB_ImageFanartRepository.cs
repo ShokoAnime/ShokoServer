@@ -47,7 +47,7 @@ public class TvDB_ImageFanartRepository : BaseCachedRepository<TvDB_ImageFanart,
             return EmptyLookup<int, TvDB_ImageFanart>.Instance;
         }
 
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
             var fanartByAnime = session.CreateSQLQuery(@"
                 SELECT DISTINCT crAdbTvTb.AniDBID, {tvdbFanart.*}
@@ -62,7 +62,7 @@ public class TvDB_ImageFanartRepository : BaseCachedRepository<TvDB_ImageFanart,
                 .ToLookup(r => (int)r[0], r => (TvDB_ImageFanart)r[1]);
 
             return fanartByAnime;
-        }
+        });
     }
 
     public override void RegenerateDb()

@@ -21,11 +21,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
     {
         EndDeleteCallback = cr =>
         {
-            if (!Changes.ContainsKey(cr.JMMUserID))
-            {
-                Changes[cr.JMMUserID] = new ChangeTracker<int>();
-            }
-
+            Changes.TryAdd(cr.JMMUserID, new ChangeTracker<int>());
             Changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
 
             cr.DeleteFromFilters();
@@ -57,20 +53,16 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
     public override void Save(SVR_AnimeGroup_User obj)
     {
         // Get The previous AnimeGroup_User from db for comparison;
-        SVR_AnimeGroup_User old;
-        lock (GlobalDBLock)
+        var old = Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            old = session.Get<SVR_AnimeGroup_User>(obj.AnimeGroup_UserID);
-        }
+            return session.Get<SVR_AnimeGroup_User>(obj.AnimeGroup_UserID);
+        });
 
         obj.UpdatePlexKodiContracts();
         var types = GetConditionTypesChanged(old, obj);
         base.Save(obj);
-        if (!Changes.ContainsKey(obj.JMMUserID))
-        {
-            Changes[obj.JMMUserID] = new ChangeTracker<int>();
-        }
+        Changes.TryAdd(obj.JMMUserID, new ChangeTracker<int>());
 
         Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeGroupID);
         obj.UpdateGroupFilters(types);
@@ -131,7 +123,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
         using var trans = session.BeginTransaction();
         foreach (var groupUser in groupUsers)
         {
-            lock (GlobalDBLock) session.Insert(groupUser);
+            session.Insert(groupUser);
 
             UpdateCache(groupUser);
             if (!Changes.TryGetValue(groupUser.JMMUserID, out var changeTracker))
@@ -170,7 +162,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
         using var trans = session.BeginTransaction();
         foreach (var groupUser in groupUsers)
         {
-            lock (GlobalDBLock) session.Update(groupUser);
+            session.Update(groupUser);
             UpdateCache(groupUser);
 
             if (!Changes.TryGetValue(groupUser.JMMUserID, out var changeTracker))
@@ -202,11 +194,8 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
         // First, get all of the current user/groups so that we can inform the change tracker that they have been removed later
         var usrGrpMap = GetAll().GroupBy(g => g.JMMUserID, g => g.AnimeGroupID);
 
-        lock (GlobalDBLock)
-        {
-            // Then, actually delete the AnimeGroup_Users
-            session.CreateQuery("delete SVR_AnimeGroup_User agu").ExecuteUpdate();
-        }
+        // Then, actually delete the AnimeGroup_Users
+        Lock(() => session.CreateQuery("delete SVR_AnimeGroup_User agu").ExecuteUpdate());
 
         // Now, update the change trackers with all removed records
         foreach (var grp in usrGrpMap)
@@ -243,6 +232,6 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
 
     public ChangeTracker<int> GetChangeTracker(int userid)
     {
-        return ReadLock(() => Changes.ContainsKey(userid) ? Changes[userid] : new ChangeTracker<int>());
+        return ReadLock(() => Changes.TryGetValue(userid, out var change) ? change : new ChangeTracker<int>());
     }
 }

@@ -2,6 +2,8 @@
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
@@ -20,24 +22,24 @@ namespace Shoko.Server.Commands.Generic;
 
 public abstract class CommandRequestImplementation : ICommandRequest
 {
-    protected readonly ILogger Logger;
+    [XmlIgnore][JsonIgnore]protected readonly ILogger Logger;
 
     // ignoring the base properties so that when we serialize we only get the properties
     // defined in the concrete class
 
-    [XmlIgnore] public int CommandRequestID { get; set; }
+    [XmlIgnore][JsonIgnore] public int CommandRequestID { get; set; }
 
-    [XmlIgnore] public int Priority { get; set; }
+    [XmlIgnore][JsonIgnore] public int Priority { get; set; }
 
-    [XmlIgnore] public int CommandType => (int?)GetType().GetCustomAttribute<CommandAttribute>()?.RequestType ?? -1;
+    [XmlIgnore][JsonIgnore] public int CommandType => (int?)GetType().GetCustomAttribute<CommandAttribute>()?.RequestType ?? -1;
 
-    [XmlIgnore] public string CommandID { get; set; }
+    [XmlIgnore][JsonIgnore] public string CommandID { get; set; }
 
-    [XmlIgnore] public string CommandDetails { get; set; }
+    [XmlIgnore][JsonIgnore] public string CommandDetails { get; set; }
 
-    [XmlIgnore] public DateTime DateTimeUpdated { get; set; }
+    [XmlIgnore][JsonIgnore] public DateTime DateTimeUpdated { get; set; }
 
-    [XmlIgnore] public bool BubbleExceptions = false;
+    [XmlIgnore][JsonIgnore] public bool BubbleExceptions = false;
 
     public CommandRequestImplementation(ILoggerFactory loggerFactory) : this()
     {
@@ -50,7 +52,7 @@ public abstract class CommandRequestImplementation : ICommandRequest
     }
 
     /// <summary>
-    /// Inherited classes to provide the implemenation of how to process this command
+    /// Inherited classes to provide the implementation of how to process this command
     /// </summary>
     protected abstract void Process();
 
@@ -66,12 +68,9 @@ public abstract class CommandRequestImplementation : ICommandRequest
         }
         catch (Exception e)
         {
-            if (BubbleExceptions)
-            {
-                throw;
-            }
+            if (BubbleExceptions) throw;
 
-            Logger.LogError(e, "Error processing {Type}: {CommandDetails} - {Exception}", GetType().Name, CommandID, e);
+            Logger.LogError(e, "Error processing {Type}: {CommandDetails}", GetType().Name, ToJson());
         }
     }
 
@@ -79,8 +78,8 @@ public abstract class CommandRequestImplementation : ICommandRequest
 
     public abstract bool LoadFromDBCommand(CommandRequest cq);
     public abstract CommandRequestPriority DefaultPriority { get; }
-    public abstract QueueStateStruct PrettyDescription { get; }
-    public virtual CommandConflict ConflictBehavior { get; } = CommandConflict.Ignore;
+    [XmlIgnore] public abstract QueueStateStruct PrettyDescription { get; }
+    [XmlIgnore][JsonIgnore] public virtual CommandConflict ConflictBehavior { get; } = CommandConflict.Ignore;
 
     public abstract CommandRequest ToDatabaseObject();
 
@@ -99,6 +98,14 @@ public abstract class CommandRequestImplementation : ICommandRequest
         serializer.Serialize(writer, this, ns);
 
         return sb.ToString();
+    }
+
+    public string ToJson()
+    {
+        return JsonSerializer.Serialize(this, GetType(), new JsonSerializerOptions
+        {
+            WriteIndented = false, MaxDepth = 5, IgnoreReadOnlyProperties = true, IncludeFields = false
+        });
     }
 
     public void Save(bool force = false)
@@ -128,14 +135,14 @@ public abstract class CommandRequestImplementation : ICommandRequest
         }
         catch (TransactionException e)
         {
-            Logger.LogError(e, "Failed to Save CommandRequest, retying: {Ex}", e);
+            Logger.LogError(e, "Failed to Save CommandRequest, retying");
             try
             {
                 RepoFactory.CommandRequest.Save(cri);
             }
             catch (TransactionException ex)
             {
-                Logger.LogError(e, "Still Failed to Save CommandRequest: {Ex}", ex);
+                Logger.LogError(ex, "Still Failed to Save CommandRequest");
             }
         }
 

@@ -25,16 +25,23 @@ public static class Program
         }
         Utils.SetInstance();
         Utils.InitLogger();
-        
-        // startup DI builds ShokoServer and StartServer, then those build the runtime DI. The startup DI allows logging and other DI handling during startup
-
         var logFactory = new LoggerFactory().AddNLog();
-        var settingsProvider = new SettingsProvider(logFactory.CreateLogger<SettingsProvider>());
-        Utils.SettingsProvider = settingsProvider;
-        var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
-        startup.Start();
-        AddEventHandlers();
-        startup.WaitForShutdown();
+        var logger = logFactory.CreateLogger("Main");
+
+        try
+        {
+            var settingsProvider = new SettingsProvider(logFactory.CreateLogger<SettingsProvider>());
+            settingsProvider.LoadSettings();
+            Utils.SettingsProvider = settingsProvider;
+            var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
+            startup.Start();
+            AddEventHandlers();
+            startup.WaitForShutdown();
+        }
+        catch (Exception e)
+        {
+            logger.LogCritical(e, "The server failed to start");
+        }
     }
     
     private static void AddEventHandlers()

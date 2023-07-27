@@ -30,6 +30,10 @@ public class SVR_VideoLocal : VideoLocal, IHash
 
     #region DB columns
 
+    public new bool IsIgnored { get; set; }
+
+    public new bool IsVariation { get; set; }
+
     public int MediaVersion { get; set; }
     public byte[] MediaBlob { get; set; }
     public int MediaSize { get; set; }
@@ -177,7 +181,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
         }
     }
 
-    private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate)
+    private void SaveWatchedStatus(bool watched, int userID, DateTime? watchedDate, bool updateWatchedDate, DateTime? lastUpdated = null)
     {
         var vidUserRecord = GetUserRecord(userID);
         if (watched)
@@ -190,7 +194,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
             if (watchedDate.HasValue && updateWatchedDate)
                 vidUserRecord.WatchedDate = watchedDate.Value;
 
-            vidUserRecord.LastUpdated = DateTime.Now;
+            vidUserRecord.LastUpdated = lastUpdated ?? DateTime.Now;
             RepoFactory.VideoLocalUser.Save(vidUserRecord);
         }
         else
@@ -203,31 +207,9 @@ public class SVR_VideoLocal : VideoLocal, IHash
         }
     }
 
-    public static bool ResolveFile(string fullname)
-    {
-        if (string.IsNullOrEmpty(fullname)) return false;
-        var tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
-        if (tup.Item1 == null)
-            return false;
-        try
-        {
-            return File.Exists(fullname);
-        }
-        catch (Exception)
-        {
-            logger.Warn("File with Exception: " + fullname);
-            return false;
-        }
-    }
-
     public FileInfo GetBestFileLink()
     {
-        foreach (var p in Places.OrderBy(a => a.ImportFolderType))
-        {
-            if (ResolveFile(p.FullServerPath))
-                return new FileInfo(p.FullServerPath);
-        }
-        return null;
+        return Places.OrderBy(a => a.ImportFolderType).Select(p => p.GetFile()).FirstOrDefault(file => file != null);
     }
 
     public SVR_VideoLocal_Place GetBestVideoLocalPlace(bool resolve = false)
@@ -236,7 +218,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
             return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).MinBy(a => a.ImportFolderType);
 
         return Places.Where(p => !string.IsNullOrEmpty(p?.FullServerPath)).OrderBy(a => a.ImportFolderType)
-            .FirstOrDefault(p => ResolveFile(p.FullServerPath));
+            .FirstOrDefault(p => File.Exists(p.FullServerPath));
     }
 
     public void SetResumePosition(long resumeposition, int userID)
@@ -253,7 +235,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
     }
 
     public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, bool updateStats, int userID,
-        bool syncTrakt, bool updateWatchedDate)
+        bool syncTrakt, bool updateWatchedDate, DateTime? lastUpdated = null)
     {
         var settings = Utils.SettingsProvider.GetSettings();
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
@@ -263,12 +245,11 @@ public class SVR_VideoLocal : VideoLocal, IHash
         var aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
 
         if (user.IsAniDBUser == 0)
-            SaveWatchedStatus(watched, userID, watchedDate, updateWatchedDate);
+            SaveWatchedStatus(watched, userID, watchedDate, updateWatchedDate, lastUpdated);
         else
             foreach (var juser in aniDBUsers)
                 if (juser.IsAniDBUser == 1)
-                    SaveWatchedStatus(watched, juser.JMMUserID, watchedDate, updateWatchedDate);
-
+                    SaveWatchedStatus(watched, juser.JMMUserID, watchedDate, updateWatchedDate, lastUpdated);
 
         // now lets find all the associated AniDB_File record if there is one
         if (user.IsAniDBUser == 1)
@@ -318,7 +299,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
                 {
                     var vidUser = filexref.GetVideoLocalUserRecord(userID);
                     if (vidUser?.WatchedDate != null)
-                        epPercentWatched += filexref.Percentage;
+                        epPercentWatched += filexref.Percentage <= 0 ? 100 : filexref.Percentage;
 
                     if (epPercentWatched > 95) break;
                 }
@@ -368,7 +349,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
                 {
                     var vidUser = filexref.GetVideoLocalUserRecord(userID);
                     if (vidUser?.WatchedDate != null)
-                        epPercentWatched += filexref.Percentage;
+                        epPercentWatched += filexref.Percentage <= 0 ? 100 : filexref.Percentage;
 
                     if (epPercentWatched > 95) break;
                 }
@@ -439,8 +420,8 @@ public class SVR_VideoLocal : VideoLocal, IHash
             FileSize = FileSize,
             Hash = Hash,
             HashSource = HashSource,
-            IsIgnored = IsIgnored,
-            IsVariation = IsVariation,
+            IsIgnored = IsIgnored ? 1 : 0,
+            IsVariation = IsVariation ? 1 : 0,
             Duration = (long) (Media?.GeneralStream.Duration ?? 0),
             MD5 = MD5,
             SHA1 = SHA1,
@@ -485,6 +466,19 @@ public class SVR_VideoLocal : VideoLocal, IHash
         return true;
     }
 
+    /// <summary>
+    /// Checks if any of the hashes are empty
+    /// </summary>
+    /// <returns></returns>
+    public bool HasAnyEmptyHashes()
+    {
+        if (string.IsNullOrEmpty(Hash)) return true;
+        if (string.IsNullOrEmpty(MD5)) return true;
+        if (string.IsNullOrEmpty(SHA1)) return true;
+        if (string.IsNullOrEmpty(CRC32)) return true;
+        return false;
+    }
+
     public CL_VideoDetailed ToClientDetailed(int userID)
     {
         // get the cross ref episode
@@ -499,8 +493,8 @@ public class SVR_VideoLocal : VideoLocal, IHash
             VideoLocal_Hash = Hash,
             VideoLocal_FileSize = FileSize,
             VideoLocalID = VideoLocalID,
-            VideoLocal_IsIgnored = IsIgnored,
-            VideoLocal_IsVariation = IsVariation,
+            VideoLocal_IsIgnored = IsIgnored ? 1 : 0,
+            VideoLocal_IsVariation = IsVariation ? 1 : 0,
             Places = Places.Select(a => a.ToClient()).ToList(),
             VideoLocal_MD5 = MD5,
             VideoLocal_SHA1 = SHA1,
@@ -546,64 +540,6 @@ public class SVR_VideoLocal : VideoLocal, IHash
             Media = Media == null ? null : new Media(VideoLocalID, Media),
         };
         return cl;
-    }
-
-    public CL_VideoLocal_ManualLink ToContractManualLink(int userID)
-    {
-        var cl = new CL_VideoLocal_ManualLink
-        {
-            CRC32 = CRC32,
-            DateTimeUpdated = DateTimeUpdated,
-            FileName = FileName,
-            FileSize = FileSize,
-            Hash = Hash,
-            HashSource = HashSource,
-            IsIgnored = IsIgnored,
-            IsVariation = IsVariation,
-            MD5 = MD5,
-            SHA1 = SHA1,
-            VideoLocalID = VideoLocalID,
-            Places = Places.Select(a => a.ToClient()).ToList()
-        };
-        var userRecord = GetUserRecord(userID);
-        if (userRecord?.WatchedDate == null)
-        {
-            cl.IsWatched = 0;
-            cl.WatchedDate = null;
-        }
-        else
-        {
-            cl.IsWatched = 1;
-            cl.WatchedDate = userRecord.WatchedDate;
-        }
-        cl.ResumePosition = userRecord?.ResumePosition ?? 0;
-        return cl;
-    }
-
-    public bool MergeInfoFrom(VideoLocal vl)
-    {
-        var changed = false;
-        if (string.IsNullOrEmpty(Hash) && !string.IsNullOrEmpty(vl.Hash))
-        {
-            Hash = vl.Hash;
-            changed = true;
-        }
-        if (string.IsNullOrEmpty(CRC32) && !string.IsNullOrEmpty(vl.CRC32))
-        {
-            CRC32 = vl.CRC32;
-            changed = true;
-        }
-        if (string.IsNullOrEmpty(MD5) && !string.IsNullOrEmpty(vl.MD5))
-        {
-            MD5 = vl.MD5;
-            changed = true;
-        }
-        if (string.IsNullOrEmpty(SHA1) && !string.IsNullOrEmpty(vl.SHA1))
-        {
-            SHA1 = vl.SHA1;
-            changed = true;
-        }
-        return changed;
     }
 }
 

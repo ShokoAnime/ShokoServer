@@ -46,13 +46,10 @@ public class ServerInfo : INotifyPropertyChangedExt
         ImportFolders = new AsyncObservableCollection<SVR_ImportFolder>();
         AdminMessages = new AsyncObservableCollection<Azure_AdminMessage>();
 
-        ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += CmdProcessorGeneral_OnQueueCountChangedEvent;
         ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += CmdProcessorGeneral_OnQueueStateChangedEvent;
 
-        ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent += CmdProcessorHasher_OnQueueCountChangedEvent;
         ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += CmdProcessorHasher_OnQueueStateChangedEvent;
 
-        ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += CmdProcessorImages_OnQueueCountChangedEvent;
         ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += CmdProcessorImages_OnQueueStateChangedEvent;
 
         var http = Utils.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
@@ -63,13 +60,10 @@ public class ServerInfo : INotifyPropertyChangedExt
 
     ~ServerInfo()
     {
-        ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent -= CmdProcessorGeneral_OnQueueCountChangedEvent;
         ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent -= CmdProcessorGeneral_OnQueueStateChangedEvent;
 
-        ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent -= CmdProcessorHasher_OnQueueCountChangedEvent;
         ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent -= CmdProcessorHasher_OnQueueStateChangedEvent;
 
-        ShokoService.CmdProcessorImages.OnQueueCountChangedEvent -= CmdProcessorImages_OnQueueCountChangedEvent;
         ShokoService.CmdProcessorImages.OnQueueStateChangedEvent -= CmdProcessorImages_OnQueueStateChangedEvent;
 
         var http = Utils.ServiceContainer.GetRequiredService<IHttpConnectionHandler>();
@@ -178,32 +172,20 @@ public class ServerInfo : INotifyPropertyChangedExt
 
     private void CmdProcessorImages_OnQueueStateChangedEvent(QueueStateEventArgs ev)
     {
-        ImagesQueueState = ev.QueueState.formatMessage();
-    }
-
-    private void CmdProcessorImages_OnQueueCountChangedEvent(QueueCountEventArgs ev)
-    {
         ImagesQueueCount = ev.QueueCount;
+        ImagesQueueState = ev.QueueState.formatMessage();
     }
 
     private void CmdProcessorHasher_OnQueueStateChangedEvent(QueueStateEventArgs ev)
     {
-        HasherQueueState = ev.QueueState.formatMessage();
-    }
-
-    private void CmdProcessorHasher_OnQueueCountChangedEvent(QueueCountEventArgs ev)
-    {
         HasherQueueCount = ev.QueueCount;
+        HasherQueueState = ev.QueueState.formatMessage();
     }
 
     private void CmdProcessorGeneral_OnQueueStateChangedEvent(QueueStateEventArgs ev)
     {
-        GeneralQueueState = ev.QueueState.formatMessage();
-    }
-
-    private void CmdProcessorGeneral_OnQueueCountChangedEvent(QueueCountEventArgs ev)
-    {
         GeneralQueueCount = ev.QueueCount;
+        GeneralQueueState = ev.QueueState.formatMessage();
     }
 
     #region Observable Properties

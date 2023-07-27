@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
@@ -44,7 +45,7 @@ public class ReverseTreeController : BaseController
 
         if (!filter.ParentGroupFilterID.HasValue || filter.ParentGroupFilterID.Value == 0)
         {
-            return BadRequest("Unable to get parent Filter for a top-level Filter");
+            return ValidationProblem("Unable to get parent Filter for a top-level Filter", "filterID");
         }
 
         var parentGroup = topLevel ? filter.TopLevelGroupFilter : filter.Parent;
@@ -85,7 +86,7 @@ public class ReverseTreeController : BaseController
 
         if (!group.AnimeGroupParentID.HasValue || group.AnimeGroupParentID.Value == 0)
         {
-            return BadRequest("Unable to get parent Group for a top-level Group");
+            return ValidationProblem("Unable to get parent Group for a top-level Group", "groupID");
         }
 
         var parentGroup = topLevel ? group.TopLevelAnimeGroup : group.Parent;
@@ -140,7 +141,7 @@ public class ReverseTreeController : BaseController
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/Series")]
     public ActionResult<Series> GetSeriesFromEpisode([FromRoute] int episodeID, [FromQuery] bool randomImages = false,
-        [FromQuery] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -169,7 +170,8 @@ public class ReverseTreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("File/{fileID}/Episode")]
-    public ActionResult<List<Episode>> GetEpisodeFromFile([FromRoute] int fileID, [FromQuery] HashSet<DataSource> includeDataFrom = null)
+    public ActionResult<List<Episode>> GetEpisodeFromFile([FromRoute] int fileID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)

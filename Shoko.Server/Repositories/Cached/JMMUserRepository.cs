@@ -44,11 +44,11 @@ public class JMMUserRepository : BaseCachedRepository<SVR_JMMUser, int>
             SVR_JMMUser old = null;
             if (!isNew)
             {
-                lock (GlobalDBLock)
+                old = Lock(() =>
                 {
                     using var session = DatabaseFactory.SessionFactory.OpenSession();
-                    old = session.Get<SVR_JMMUser>(obj.JMMUserID);
-                }
+                    return session.Get<SVR_JMMUser>(obj.JMMUserID);
+                });
             }
 
             updateGroupFilters = SVR_JMMUser.CompareUser(old, obj);
@@ -60,6 +60,14 @@ public class JMMUserRepository : BaseCachedRepository<SVR_JMMUser, int>
             logger.Trace("Updating group filter stats by user from JMMUserRepository.Save: {0}", obj.JMMUserID);
             obj.UpdateGroupFilters();
         }
+    }
+
+    public SVR_JMMUser GetByUsername(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            return null;
+
+        return ReadLock(() => Cache.Values.FirstOrDefault(user => string.Equals(user.Username, username, StringComparison.InvariantCultureIgnoreCase)));
     }
 
     public List<SVR_JMMUser> GetAniDBUsers()

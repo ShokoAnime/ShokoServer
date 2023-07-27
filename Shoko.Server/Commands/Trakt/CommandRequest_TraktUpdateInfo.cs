@@ -30,16 +30,7 @@ public class CommandRequest_TraktUpdateInfo : CommandRequestImplementation
     protected override void Process()
     {
         Logger.LogInformation("Processing CommandRequest_TraktUpdateInfo: {0}", TraktID);
-
-        try
-        {
-            _helper.UpdateAllInfo(TraktID);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError("Error processing CommandRequest_TraktUpdateInfo: {0} - {1}", TraktID,
-                ex);
-        }
+        _helper.UpdateAllInfo(TraktID);
     }
 
 

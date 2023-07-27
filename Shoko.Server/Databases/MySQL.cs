@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 using NHibernate;
+using NHibernate.Driver.MySqlConnector;
 using Shoko.Commons.Properties;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -19,7 +20,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
 {
     public string Name { get; } = "MySQL";
-    public int RequiredVersion { get; } = 107;
+    public int RequiredVersion { get; } = 116;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -663,10 +664,8 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
             "ALTER TABLE AnimeEpisode_User DROP COLUMN ContractSize, DROP COLUMN ContractBlob, DROP COLUMN ContractVersion;"),
         new(99, 1,
             "ALTER TABLE `AniDB_File` DROP `File_AudioCodec`, DROP `File_VideoCodec`, DROP `File_VideoResolution`, DROP `File_FileExtension`, DROP `File_LengthSeconds`, DROP `Anime_GroupName`, DROP `Anime_GroupNameShort`, DROP `Episode_Rating`, DROP `Episode_Votes`, DROP `IsWatched`, DROP `WatchedDate`, DROP `CRC`, DROP `MD5`, DROP `SHA1`"),
-        new(99, 2,
-            "ALTER TABLE `AniDB_File` MODIFY `IsCensored` bit NULL; ALTER TABLE `AniDB_File` MODIFY `IsDeprecated` bit not null; ALTER TABLE `AniDB_File` MODIFY `IsChaptered` bit not null"),
-        new(99, 3,
-            "ALTER TABLE `AniDB_GroupStatus` MODIFY `Rating` decimal(6,2) NULL; UPDATE `AniDB_GroupStatus` SET `Rating` = `Rating` / 100 WHERE `Rating` > 10"),
+        new(99, 2, "UPDATE AniDB_File SET IsChaptered = 0 WHERE IsChaptered = -1; UPDATE AniDB_File SET IsDeprecated = 0 WHERE IsDeprecated = -1; ALTER TABLE `AniDB_File` MODIFY `IsCensored` bit NULL; ALTER TABLE `AniDB_File` MODIFY `IsDeprecated` bit not null; ALTER TABLE `AniDB_File` MODIFY `IsChaptered` bit not null"),
+        new(99, 3, "ALTER TABLE `AniDB_GroupStatus` MODIFY `Rating` decimal(6,2) NULL; UPDATE `AniDB_GroupStatus` SET `Rating` = `Rating` / 100 WHERE `Rating` > 10"),
         new(99, 4, "ALTER TABLE `AniDB_Character` DROP COLUMN CreatorListRaw;"),
         new(99, 5, "ALTER TABLE `AniDB_Anime_Character` DROP COLUMN EpisodeListRaw;"),
         new(99, 6, "ALTER TABLE `AniDB_Anime` DROP COLUMN AwardList;"),
@@ -714,6 +713,26 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
         new(107, 8, "ALTER TABLE AniDB_Anime_Tag ADD LocalSpoiler integer NOT NULL DEFAULT 0;"),
         new(107, 9, "ALTER TABLE AniDB_Anime_Tag DROP COLUMN Approval;"),
         new(107, 10, DatabaseFixes.FixTagParentIDsAndNameOverrides),
+        new(108, 1, "ALTER TABLE AnimeEpisode ADD IsHidden integer NOT NULL DEFAULT 0;"),
+        new(108, 2, "ALTER TABLE AnimeSeries_User ADD HiddenUnwatchedEpisodeCount integer NOT NULL DEFAULT 0;"),
+        new(109, 1, "UPDATE VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash SET DateTimeImported = DateTimeCreated;"),
+        new(110, 1, "CREATE TABLE `AniDB_FileUpdate` ( `AniDB_FileUpdateID` INT NOT NULL AUTO_INCREMENT, `FileSize` BIGINT NOT NULL, `Hash` varchar(50) NOT NULL, `HasResponse` BIT NOT NULL, `UpdatedAt` datetime NOT NULL, PRIMARY KEY (`AniDB_FileUpdateID`) );"),
+        new(110, 2, "ALTER TABLE `AniDB_FileUpdate` ADD INDEX `IX_AniDB_FileUpdate` (`FileSize` ASC, `Hash` ASC) ;"),
+        new(110, 3, DatabaseFixes.MigrateAniDB_FileUpdates),
+        new(111, 1, "ALTER TABLE AniDB_Anime DROP COLUMN DisableExternalLinksFlag;"),
+        new(111, 2, "ALTER TABLE AnimeSeries ADD DisableAutoMatchFlags integer NOT NULL DEFAULT 0;"),
+        new(111, 3, "ALTER TABLE `AniDB_Anime` ADD ( `VNDBID` INT NULL, `BangumiID` INT NULL, `LianID` INT NULL, `FunimationID` text character set utf8 null, `HiDiveID` text character set utf8 null );"),
+        new(112, 1, "ALTER TABLE AniDB_Anime DROP COLUMN LianID;"),
+        new(112, 2, "ALTER TABLE AniDB_Anime DROP COLUMN AnimePlanetID;"),
+        new(112, 3, "ALTER TABLE AniDB_Anime DROP COLUMN AnimeNfo;"),
+        new(112, 4, "ALTER TABLE AniDB_Anime ADD LainID INT NULL"),
+        new(113, 1, DatabaseFixes.FixEpisodeDateTimeUpdated),
+        new(114, 1, "ALTER TABLE AnimeSeries ADD HiddenMissingEpisodeCount INT NOT NULL DEFAULT 0;"),
+        new(114, 2, "ALTER TABLE AnimeSeries ADD HiddenMissingEpisodeCountGroups INT NOT NULL DEFAULT 0;"),
+        new(114, 3, DatabaseFixes.UpdateSeriesWithHiddenEpisodes),
+        new(115, 1, "UPDATE AniDB_Anime SET AirDate = NULL, BeginYear = 0 WHERE AirDate = '1970-01-01 00:00:00';"),
+        new(116, 1, "ALTER TABLE JMMUser ADD AvatarImageBlob BLOB NULL;"),
+        new(116, 2, "ALTER TABLE JMMUser ADD AvatarImageMetadata VARCHAR(128) NULL;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
@@ -954,14 +973,14 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         var settings = Utils.SettingsProvider.GetSettings();
         return
-            $"Server={settings.Database.Hostname};Database={settings.Database.Schema};User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
+            $"Server={settings.Database.Hostname};Port={settings.Database.Port};Database={settings.Database.Schema};User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
     }
 
     public override string GetTestConnectionString()
     {
         var settings = Utils.SettingsProvider.GetSettings();
         return
-            $"Server={settings.Database.Hostname};Database=mysql;User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
+            $"Server={settings.Database.Hostname};Port={settings.Database.Port};Database=mysql;User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
     }
 
     public override bool HasVersionsTable()
@@ -980,11 +999,13 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         var settings = Utils.SettingsProvider.GetSettings();
         return Fluently.Configure()
-            .Database(MySQLConfiguration.Standard.ConnectionString(
-                x => x.Database(settings.Database.Schema + ";CharSet=utf8mb4")
+            .Database(MySQLConfiguration.Standard
+                .ConnectionString(x => x.Database(settings.Database.Schema)
                     .Server(settings.Database.Hostname)
+                    .Port(settings.Database.Port)
                     .Username(settings.Database.Username)
-                    .Password(settings.Database.Password)))
+                    .Password(settings.Database.Password))
+                .Driver<MySqlConnectorDriver>())
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
@@ -1035,7 +1056,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
             }
 
             var connStr =
-                $"Server={settings.Database.Hostname};User ID={settings.Database.Username};Password={settings.Database.Password}";
+                $"Server={settings.Database.Hostname};Port={settings.Database.Port};User ID={settings.Database.Username};Password={settings.Database.Password}";
             Logger.Trace(connStr);
             var sql =
                 $"CREATE DATABASE {settings.Database.Schema} DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
@@ -1119,7 +1140,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
             "AND collation_name != 'utf8mb4_unicode_ci'";
 
         using (var conn = new MySqlConnection(
-                   $"Server={settings.Database.Hostname};User ID={settings.Database.Username};Password={settings.Database.Password};database={settings.Database.Schema}"))
+                   $"Server={settings.Database.Hostname};Port={settings.Database.Port};User ID={settings.Database.Username};Password={settings.Database.Password};database={settings.Database.Schema}"))
         {
             var mySQL = (MySQL)DatabaseFactory.Instance;
             conn.Open();

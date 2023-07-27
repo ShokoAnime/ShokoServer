@@ -16,10 +16,6 @@ public class QueueEmitter : BaseEmitter, IDisposable
 
     public QueueEmitter(IHubContext<AggregateHub> hub) : base(hub)
     {
-        ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += OnGeneralQueueCountChangedEvent;
-        ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent += OnHasherQueueCountChangedEvent;
-        ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += OnImageQueueCountChangedEvent;
-
         ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnGeneralQueueStateChangedEvent;
         ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += OnHasherQueueStateChangedEvent;
         ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += OnImageQueueStateChangedEvent;
@@ -28,10 +24,6 @@ public class QueueEmitter : BaseEmitter, IDisposable
 
     public void Dispose()
     {
-        ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent -= OnGeneralQueueCountChangedEvent;
-        ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent -= OnHasherQueueCountChangedEvent;
-        ShokoService.CmdProcessorImages.OnQueueCountChangedEvent -= OnImageQueueCountChangedEvent;
-
         ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent -= OnGeneralQueueStateChangedEvent;
         ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent -= OnHasherQueueStateChangedEvent;
         ShokoService.CmdProcessorImages.OnQueueStateChangedEvent -= OnImageQueueStateChangedEvent;
@@ -51,35 +43,17 @@ public class QueueEmitter : BaseEmitter, IDisposable
     private async void OnGeneralQueueStateChangedEvent(QueueStateEventArgs e)
     {
         await StateChangedAsync("QueueStateChanged", "GeneralQueueState",
-            new QueueStateSignalRModel
-                {State = e.QueueState.queueState, Description = e.QueueState.formatMessage()});
+            new QueueStateSignalRModel(e));
     }
 
     private async void OnHasherQueueStateChangedEvent(QueueStateEventArgs e)
     {
-        await StateChangedAsync("QueueStateChanged", "HasherQueueState", new QueueStateSignalRModel
-            {State = e.QueueState.queueState, Description = e.QueueState.formatMessage()});
+        await StateChangedAsync("QueueStateChanged", "HasherQueueState", new QueueStateSignalRModel(e));
     }
 
     private async void OnImageQueueStateChangedEvent(QueueStateEventArgs e)
     {
-        await StateChangedAsync("QueueStateChanged", "ImageQueueState", new QueueStateSignalRModel
-            {State = e.QueueState.queueState, Description = e.QueueState.formatMessage()});
-    }
-
-    private async void OnGeneralQueueCountChangedEvent(QueueCountEventArgs ev)
-    {
-        await StateChangedAsync("QueueCountChanged", "GeneralQueueCount", ev.QueueCount);
-    }
-        
-    private async void OnHasherQueueCountChangedEvent(QueueCountEventArgs ev)
-    {
-        await StateChangedAsync("QueueCountChanged", "HasherQueueCount", ev.QueueCount);
-    }
-        
-    private async void OnImageQueueCountChangedEvent(QueueCountEventArgs ev)
-    {
-        await StateChangedAsync("QueueCountChanged", "ImageQueueCount", ev.QueueCount);
+        await StateChangedAsync("QueueStateChanged", "ImageQueueState", new QueueStateSignalRModel(e));
     }
 
     private async Task StateChangedAsync(string method, string property, object currentState)
@@ -95,33 +69,9 @@ public class QueueEmitter : BaseEmitter, IDisposable
     {
         return new Dictionary<string, object>
         {
-            {
-                "GeneralQueueState",
-                new QueueStateSignalRModel
-                {
-                    State = ShokoService.CmdProcessorGeneral.QueueState.queueState,
-                    Description = ShokoService.CmdProcessorGeneral.QueueState.formatMessage()
-                }
-            },
-            {
-                "HasherQueueState",
-                new QueueStateSignalRModel
-                {
-                    State = ShokoService.CmdProcessorHasher.QueueState.queueState,
-                    Description = ShokoService.CmdProcessorHasher.QueueState.formatMessage()
-                }
-            },
-            {
-                "ImageQueueState",
-                new QueueStateSignalRModel
-                {
-                    State = ShokoService.CmdProcessorImages.QueueState.queueState,
-                    Description = ShokoService.CmdProcessorImages.QueueState.formatMessage()
-                }
-            },
-            { "GeneralQueueCount", ShokoService.CmdProcessorGeneral.QueueCount },
-            { "HasherQueueCount", ShokoService.CmdProcessorHasher.QueueCount },
-            { "ImageQueueCount", ShokoService.CmdProcessorImages.QueueCount },
+            { "GeneralQueueState", new QueueStateSignalRModel(ShokoService.CmdProcessorGeneral) },
+            { "HasherQueueState",  new QueueStateSignalRModel(ShokoService.CmdProcessorHasher) },
+            { "ImageQueueState", new QueueStateSignalRModel(ShokoService.CmdProcessorImages) },
         };
     }
 }

@@ -242,8 +242,6 @@ public class PlexHelper
         var (_, content) = RequestAsync($"https://plex.tv/api/v2/pins/{_key.Id}", HttpMethod.Get).Result;
         try
         {
-            Analytics.PostEvent("Plex", "Start Token");
-
             _key = JsonConvert.DeserializeObject<PlexKey>(content);
         }
         catch

@@ -37,6 +37,7 @@ public static class RepoFactory
     public static FileNameHashRepository FileNameHash { get; } = new();
     public static DuplicateFileRepository DuplicateFile { get; } = new();
     public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate { get; } = new();
+    public static AniDB_FileUpdateRepository AniDB_FileUpdate { get; } = new();
     public static CrossRef_Subtitles_AniDB_FileRepository CrossRef_Subtitles_AniDB_File { get; } = new();
     public static CrossRef_Languages_AniDB_FileRepository CrossRef_Languages_AniDB_File { get; } = new();
     public static CrossRef_AniDB_OtherRepository CrossRef_AniDB_Other { get; } = new();

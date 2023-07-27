@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
-using NHibernate.Criterion;
+using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct;
 
@@ -10,42 +9,23 @@ public class AniDB_Anime_CharacterRepository : BaseDirectRepository<AniDB_Anime_
 {
     public List<AniDB_Anime_Character> GetByAnimeID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var cats = session
-                .CreateCriteria(typeof(AniDB_Anime_Character))
-                .Add(Restrictions.Eq("AnimeID", id))
-                .List<AniDB_Anime_Character>();
-
-            return new List<AniDB_Anime_Character>(cats);
-        }
-    }
-
-    public List<AniDB_Anime_Character> GetByAnimeID(ISessionWrapper session, int id)
-    {
-        lock (GlobalDBLock)
-        {
-            var cats = session
-                .CreateCriteria(typeof(AniDB_Anime_Character))
-                .Add(Restrictions.Eq("AnimeID", id))
-                .List<AniDB_Anime_Character>();
-
-            return new List<AniDB_Anime_Character>(cats);
-        }
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            return session.Query<AniDB_Anime_Character>()
+                .Where(a => a.AnimeID == id)
+                .ToList();
+        });
     }
 
     public List<AniDB_Anime_Character> GetByCharID(int id)
     {
-        lock (GlobalDBLock)
+        return Lock(() =>
         {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            var cats = session
-                .CreateCriteria(typeof(AniDB_Anime_Character))
-                .Add(Restrictions.Eq("CharID", id))
-                .List<AniDB_Anime_Character>();
-
-            return new List<AniDB_Anime_Character>(cats);
-        }
+            using var session = DatabaseFactory.SessionFactory.OpenStatelessSession();
+            return session.Query<AniDB_Anime_Character>()
+                .Where(a => a.CharID == id)
+                .ToList();
+        });
     }
 }

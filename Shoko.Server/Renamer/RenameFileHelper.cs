@@ -212,6 +212,7 @@ public class RenameFileHelper
                     continue;
                 }
 
+                Logger.Info($"Added Renamer: {key} - {desc}");
                 Renamers.Add(key, (implementation, desc));
             }
         }

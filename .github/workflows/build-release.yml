@@ -24,6 +24,10 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
+      - name: Replace Sentry DSN key
+        shell: pwsh
+        run: ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+
       - name: Get release version
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
@@ -37,7 +41,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release --no-self-contained Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }}\""
+      - run: dotnet publish -c Release --no-self-contained Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }},date=${{ steps.release_info.outputs.date }}\""
 
       - name: Archive Release
         shell: pwsh
@@ -56,7 +60,7 @@ jobs:
 
     strategy:
       matrix:
-        rid: ['win-x64', 'linux-x64']
+        rid: ['win-x64', 'linux-x64', 'linux-arm64']
         dotnet: [ '6.x' ]
 
     name: Build CLI — Standalone ${{ matrix.rid }} (Stable)
@@ -69,6 +73,10 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
+      - name: Replace Sentry DSN key
+        shell: pwsh
+        run: ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+
       - name: Get release version
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
@@ -77,12 +85,18 @@ jobs:
           prefix: v
           prefixRegex: "[vV]?"
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+        if: ${{ matrix.rid == 'linux-arm64' }}
+
       - name: Setup dotnet
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r ${{ matrix.rid }} Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }}\""
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} Shoko.CLI "/p:Version=\"${{ steps.release_info.outputs.version }}\",InformationalVersion=\"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }},date=${{ steps.release_info.outputs.date }}\""
 
       - name: Archive Release (${{ matrix.rid }})
         shell: pwsh
@@ -96,8 +110,18 @@ jobs:
           tag: ${{ steps.release_info.outputs.tag }}
           file_glob: true
 
+      - name: Upload Artifact to shokoanime.com
+        if: ${{ matrix.rid != 'win-x64' }}
+        shell: pwsh
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        run:
+          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ steps.release_info.outputs.version_short }}-${{ matrix.rid }}.zip" -local "Shoko.CLI_Standalone_${{ matrix.rid }}.zip";
+
   tray-service-framework-stable:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     strategy:
       matrix:
@@ -113,6 +137,10 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
+      - name: Replace Sentry DSN key
+        shell: pwsh
+        run: .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+
       - name: Get release version
         id: release_info
         uses: revam/gh-action-get-tag-and-version@v1
@@ -126,11 +154,11 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r win10-x64 --no-self-contained Shoko.TrayService "/p:Version=\`"${{ steps.release_info.outputs.version }}\`",InformationalVersion=\`"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }}\`""
+      - run: dotnet publish -c Release -r win10-x64 --no-self-contained Shoko.TrayService "/p:Version=\`"${{ steps.release_info.outputs.version }}\`",InformationalVersion=\`"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }},date=${{ steps.release_info.outputs.date }}\`""
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\publish .\\Shoko.TrayService_Framework_win10-x64.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\Shoko.TrayService_Framework_win10-x64.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
@@ -141,13 +169,83 @@ jobs:
           file_glob: true
 
   tray-service-standalone-stable:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     strategy:
       matrix:
         dotnet: [ '6.x' ]
 
     name: Build Tray Service — Standalone (Stable)
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.ref }}"
+          submodules: recursive
+          fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Replace Sentry DSN key
+        shell: pwsh
+        run: .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+
+      - name: Get release version
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v1
+        with:
+          tag: "${{ github.ref }}"
+          prefix: v
+          prefixRegex: "[vV]?"
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net6.0-windows Shoko.TrayService "/p:Version=\`"${{ steps.release_info.outputs.version }}\`",InformationalVersion=\`"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }},date=${{ steps.release_info.outputs.date }}\`""
+
+      - name: Archive Release
+        shell: pwsh
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\Shoko.TrayService_Standalone_win10-x64.zip
+
+      - name: Upload Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./Shoko.TrayService*.zip
+          tag: ${{ steps.release_info.outputs.tag }}
+          file_glob: true
+
+      - name: Build Installer
+        run: iscc /O".\\" ".\\Installer\\ShokoServer.iss"
+
+      - name: Upload Installer to GitHub
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./Shoko.Setup.exe
+          tag: ${{ steps.release_info.outputs.tag }}
+          file_glob: true
+
+      - name: Upload Installer to shokoanime.com
+        shell: pwsh
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        run:
+          .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ steps.release_info.outputs.version_short }}-Win.exe" -local "Shoko.Setup.exe";
+
+  sentry-upload:
+    runs-on: ubuntu-latest
+
+    needs:
+      - cli-framework-stable
+      - cli-standalone-stable
+      - tray-service-framework-stable
+      - tray-service-standalone-stable
+
+    name: Upload version info to Sentry.io
 
     steps:
       - name: Checkout master
@@ -165,21 +263,13 @@ jobs:
           prefix: v
           prefixRegex: "[vV]?"
 
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
+      - name: Push Sentry release "${{ steps.release_info.outputs.version }}"
+        uses: getsentry/action-release@v1.2.1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          # SENTRY_URL: https://sentry.io/
         with:
-          dotnet-version: ${{ matrix.dotnet }}
-
-      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net6.0-windows Shoko.TrayService "/p:Version=\`"${{ steps.release_info.outputs.version }}\`",InformationalVersion=\`"channel=stable,commit=${{ github.sha }},tag=${{ steps.release_info.outputs.tag }}\`""
-
-      - name: Archive Release
-        shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net6.0-windows\\win10-x64\\publish .\\Shoko.TrayService_Standalone_win10-x64.zip
-
-      - name: Upload Release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./Shoko.TrayService*.zip
-          tag: ${{ steps.release_info.outputs.tag }}
-          file_glob: true
+          environment: 'stable'
+          version: ${{ steps.release_info.outputs.version }}

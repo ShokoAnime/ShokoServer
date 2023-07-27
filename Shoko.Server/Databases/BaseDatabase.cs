@@ -3,8 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using NHibernate.Util;
 using NLog;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models;
 using Shoko.Models.Enums;
@@ -22,13 +22,28 @@ public abstract class BaseDatabase<T>
     // ReSharper disable once StaticMemberInGenericType
     protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+    private static string _databaseBackupDirectoryPath;
+    private static string DatabaseBackupDirectoryPath
+    {
+        get
+        {
+            if (_databaseBackupDirectoryPath != null)
+                return _databaseBackupDirectoryPath;
+
+            var dirPath =  Utils.SettingsProvider.GetSettings().Database.DatabaseBackupDirectory;
+            if (string.IsNullOrWhiteSpace(dirPath))
+                return _databaseBackupDirectoryPath = Utils.ApplicationPath;
+
+            return _databaseBackupDirectoryPath = Path.Combine(Utils.ApplicationPath, dirPath);
+        }
+    }
+
     public string GetDatabaseBackupName(int version)
     {
         var settings = Utils.SettingsProvider.GetSettings();
-        var backupath = settings.Database.DatabaseBackupDirectory;
         try
         {
-            Directory.CreateDirectory(backupath);
+            Directory.CreateDirectory(DatabaseBackupDirectoryPath);
         }
         catch
         {
@@ -39,7 +54,7 @@ public abstract class BaseDatabase<T>
                     DateTime.Now.Year.ToString("D4") + DateTime.Now.Month.ToString("D2") +
                     DateTime.Now.Day.ToString("D2") + DateTime.Now.Hour.ToString("D2") +
                     DateTime.Now.Minute.ToString("D2");
-        return Path.Combine(backupath, fname);
+        return Path.Combine(DatabaseBackupDirectoryPath, fname);
     }
 
 
@@ -60,7 +75,7 @@ public abstract class BaseDatabase<T>
 
     protected abstract void ConnectionWrapper(string connectionstring, Action<T> action);
 
-    protected Dictionary<string, Dictionary<string, Versions>> AllVersions { get; set; }
+    protected Dictionary<(string Version, string Revision), Versions> AllVersions { get; set; }
     protected List<DatabaseCommand> Fixes = new();
 
 
@@ -68,14 +83,12 @@ public abstract class BaseDatabase<T>
     {
         try
         {
-            AllVersions = HasVersionsTable()
-                ? RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey)
-                : new Dictionary<string, Dictionary<string, Versions>>();
+            AllVersions = HasVersionsTable() ? RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey) : new Dictionary<(string, string), Versions>();
         }
         catch (Exception e) //First Time
         {
             Logger.Error(e, "There was an error setting up the database: {Message}", e);
-            AllVersions = new Dictionary<string, Dictionary<string, Versions>>();
+            AllVersions = new Dictionary<(string, string), Versions>();
         }
 
         Fixes = new List<DatabaseCommand>();
@@ -92,17 +105,8 @@ public abstract class BaseDatabase<T>
             VersionProgram = ServerState.Instance.ApplicationVersion
         };
         RepoFactory.Versions.Save(v);
-        var dv = new Dictionary<string, Versions>();
-        if (AllVersions.ContainsKey(v.VersionValue))
-        {
-            dv = AllVersions[v.VersionValue];
-        }
-        else
-        {
-            AllVersions.Add(v.VersionValue, dv);
-        }
 
-        dv.Add(v.VersionRevision, v);
+        AllVersions.Add((v.VersionValue, v.VersionRevision), v);
     }
 
     protected void ExecuteWithException(T connection, DatabaseCommand cmd)
@@ -121,12 +125,8 @@ public abstract class BaseDatabase<T>
 
     public int GetDatabaseVersion()
     {
-        if (AllVersions.Count == 0)
-        {
-            return 0;
-        }
-
-        return AllVersions.Keys.Select(int.Parse).ToList().Max();
+        if (AllVersions.Count == 0) return 0;
+        return AllVersions.Keys.Select(a => int.Parse(a.Version)).Max();
     }
 
     public ArrayList GetData(string sql)
@@ -138,21 +138,18 @@ public abstract class BaseDatabase<T>
 
     internal void PreFillVersions(IEnumerable<DatabaseCommand> commands)
     {
-        if (AllVersions.Count <= 1 || AllVersions.Values.ElementAt(0).Count != 1)
-        {
-            return;
-        }
+        // Get first version. If the first patch has been fully run, return
+        if (AllVersions.Count <= 1 || AllVersions.Count(a => a.Key.Version == "1") != 1) return;
 
-        var v = AllVersions.Values.ElementAt(0).Values.ElementAt(0);
+        var v = AllVersions.FirstOrDefault().Value;
         var value = v.VersionValue;
         AllVersions.Clear();
         RepoFactory.Versions.Delete(v);
-        foreach (var dc in commands)
+        var version = int.Parse(value);
+
+        foreach (var dc in commands.Where(a => a.Version <= version))
         {
-            if (dc.Version <= int.Parse(value))
-            {
-                AddVersion(dc.Version.ToString(), dc.Revision.ToString(), dc.CommandName);
-            }
+            AddVersion(dc.Version.ToString(), dc.Revision.ToString(), dc.CommandName);
         }
     }
 
@@ -192,8 +189,7 @@ public abstract class BaseDatabase<T>
 
     public Tuple<bool, string> ExecuteCommand(T connection, DatabaseCommand cmd)
     {
-        if (cmd.Version != 0 && cmd.Revision != 0 && AllVersions.ContainsKey(cmd.Version.ToString()) &&
-            AllVersions[cmd.Version.ToString()].ContainsKey(cmd.Revision.ToString()))
+        if (cmd.Version != 0 && cmd.Revision != 0 && AllVersions.ContainsKey((cmd.Version.ToString(), cmd.Revision.ToString())))
         {
             return new Tuple<bool, string>(true, null);
         }

@@ -52,27 +52,60 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
         Logger.LogInformation("Processing CommandRequest_UpdateMyListFileStatus: {Hash}", Hash);
         FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
 
-        try
+        var settings = _settingsProvider.GetSettings();
+        // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
+        var vid = RepoFactory.VideoLocal.GetByHash(Hash);
+        if (vid == null)
         {
-            var settings = _settingsProvider.GetSettings();
-            // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
-            var vid = RepoFactory.VideoLocal.GetByHash(Hash);
-            if (vid == null)
-            {
-                return;
-            }
+            return;
+        }
 
-            if (vid.GetAniDBFile() != null)
+        if (vid.GetAniDBFile() != null)
+        {
+            if (Watched && WatchedDateAsSecs > 0)
+            {
+                var watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
+                var request = _requestFactory.Create<RequestUpdateFile>(
+                    r =>
+                    {
+                        r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
+                        r.Hash = vid.Hash;
+                        r.Size = vid.FileSize;
+                        r.IsWatched = true;
+                        r.WatchedDate = watchedDate;
+                    }
+                );
+                request.Execute();
+            }
+            else
+            {
+                var request = _requestFactory.Create<RequestUpdateFile>(
+                    r =>
+                    {
+                        r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
+                        r.Hash = vid.Hash;
+                        r.Size = vid.FileSize;
+                        r.IsWatched = false;
+                    }
+                );
+                request.Execute();
+            }
+        }
+        else
+        {
+            // we have a manual link, so get the xrefs and add the episodes instead as generic files
+            var xrefs = vid.EpisodeCrossRefs;
+            foreach (var episode in xrefs.Select(xref => xref.GetEpisode()).Where(episode => episode != null))
             {
                 if (Watched && WatchedDateAsSecs > 0)
                 {
                     var watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                    var request = _requestFactory.Create<RequestUpdateFile>(
+                    var request = _requestFactory.Create<RequestUpdateEpisode>(
                         r =>
                         {
                             r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
-                            r.Hash = vid.Hash;
-                            r.Size = vid.FileSize;
+                            r.EpisodeNumber = episode.EpisodeNumber;
+                            r.AnimeID = episode.AnimeID;
                             r.IsWatched = true;
                             r.WatchedDate = watchedDate;
                         }
@@ -81,72 +114,32 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
                 }
                 else
                 {
-                    var request = _requestFactory.Create<RequestUpdateFile>(
+                    var request = _requestFactory.Create<RequestUpdateEpisode>(
                         r =>
                         {
                             r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
-                            r.Hash = vid.Hash;
-                            r.Size = vid.FileSize;
+                            r.EpisodeNumber = episode.EpisodeNumber;
+                            r.AnimeID = episode.AnimeID;
                             r.IsWatched = false;
                         }
                     );
                     request.Execute();
                 }
             }
-            else
-            {
-                // we have a manual link, so get the xrefs and add the episodes instead as generic files
-                var xrefs = vid.EpisodeCrossRefs;
-                foreach (var episode in xrefs.Select(xref => xref.GetEpisode()).Where(episode => episode != null))
-                {
-                    if (Watched && WatchedDateAsSecs > 0)
-                    {
-                        var watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                        var request = _requestFactory.Create<RequestUpdateEpisode>(
-                            r =>
-                            {
-                                r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
-                                r.EpisodeNumber = episode.EpisodeNumber;
-                                r.AnimeID = episode.AnimeID;
-                                r.IsWatched = true;
-                                r.WatchedDate = watchedDate;
-                            }
-                        );
-                        request.Execute();
-                    }
-                    else
-                    {
-                        var request = _requestFactory.Create<RequestUpdateEpisode>(
-                            r =>
-                            {
-                                r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
-                                r.EpisodeNumber = episode.EpisodeNumber;
-                                r.AnimeID = episode.AnimeID;
-                                r.IsWatched = false;
-                            }
-                        );
-                        request.Execute();
-                    }
-                }
-            }
-
-            Logger.LogInformation("Updating file list status: {Hash} - {Watched}", vid.Hash, Watched);
-
-            if (!UpdateSeriesStats)
-            {
-                return;
-            }
-
-            // update watched stats
-            var eps = RepoFactory.AnimeEpisode.GetByHash(vid.ED2KHash);
-            if (eps.Count > 0)
-            {
-                eps.DistinctBy(a => a.AnimeSeriesID).ForEach(a => a.GetAnimeSeries().QueueUpdateStats());
-            }
         }
-        catch (Exception ex)
+
+        Logger.LogInformation("Updating file list status: {Hash} - {Watched}", vid.Hash, Watched);
+
+        if (!UpdateSeriesStats)
         {
-            Logger.LogError(ex, "Error processing CommandRequest_UpdateMyListFileStatus: {Hash} - {Ex}", Hash, ex);
+            return;
+        }
+
+        // update watched stats
+        var eps = RepoFactory.AnimeEpisode.GetByHash(vid.ED2KHash);
+        if (eps.Count > 0)
+        {
+            eps.DistinctBy(a => a.AnimeSeriesID).ForEach(a => a.GetAnimeSeries().QueueUpdateStats());
         }
     }
 

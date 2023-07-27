@@ -43,18 +43,15 @@ public class SettingsController : BaseController
     {
         if (settings == null)
         {
-            return BadRequest("The settings object is invalid.");
+            return ValidationProblem("The settings object is invalid.");
         }
 
         var existingSettings = SettingsProvider.GetSettings();
         settings.ApplyTo((ServerSettings)existingSettings, ModelState);
         if (!skipValidation)
         {
-            TryValidateModel(existingSettings);
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (!TryValidateModel(existingSettings))
+                return ValidationProblem(ModelState);
         }
 
         SettingsProvider.SaveSettings();
@@ -69,18 +66,20 @@ public class SettingsController : BaseController
     [HttpPost("AniDB/TestLogin")]
     public ActionResult TestAniDB([FromBody] Credentials credentials)
     {
-        if (string.IsNullOrWhiteSpace(credentials.Username) || string.IsNullOrWhiteSpace(credentials.Password))
-        {
-            return BadRequest("AniDB needs both a username and a password");
-        }
+        if (string.IsNullOrWhiteSpace(credentials.Username))
+            ModelState.AddModelError(nameof(credentials.Username), "Username cannot be empty.");
+
+        if (string.IsNullOrWhiteSpace(credentials.Password))
+            ModelState.AddModelError(nameof(credentials.Password), "Password cannot be empty.");
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
         handler.ForceLogout();
 
         if (!handler.TestLogin(credentials.Username, credentials.Password))
-        {
-            return BadRequest("Failed to log in");
-        }
+            return ValidationProblem("Failed to log in.", "Connection");
 
         return Ok();
     }

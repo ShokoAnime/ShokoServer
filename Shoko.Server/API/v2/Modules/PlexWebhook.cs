@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -12,6 +13,7 @@ using Newtonsoft.Json;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Plex.Collection;
+using Shoko.Models.Plex.Connections;
 using Shoko.Models.Plex.Libraries;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
@@ -76,6 +78,7 @@ public class PlexWebhook : BaseController
 
         return Ok(); //doesn't need to be an ApiStatus.OK() since really, all I take is plex.   
     }
+
 
     #region Plex events
 
@@ -247,8 +250,6 @@ public class PlexWebhook : BaseController
     [HttpGet("sync")]
     public ActionResult Sync()
     {
-        Analytics.PostEvent("Plex", "SyncOne");
-
         _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser()).Save();
         return APIStatus.OK();
     }
@@ -270,17 +271,57 @@ public class PlexWebhook : BaseController
         return APIStatus.OK();
     }
 
-
-#if DEBUG
     [Authorize]
-    [HttpGet("test/dir")]
-    public Directory[] GetDirectories()
+    [HttpGet("libraries")]
+    public ActionResult<Directory[]> GetLibraries()
     {
-        return CallPlexHelper(h => h.GetDirectories());
+        var result = CallPlexHelper(h => h.GetDirectories());
+
+        if (result.Length == 0)
+            return APIStatus.NotFound("No directories found please ensure server token is set and try again");
+
+        return result;
     }
 
+    [Authorize, HttpPost("libraries")]
+    public ActionResult SetLibraries([FromBody] List<int> ids)
+    {
+        return CallPlexHelper(h =>
+        {
+            var dirs = h.GetDirectories();
+            var selected = dirs.Where(d => ids.Contains(d.Key)).ToList();
+            if (selected.Count == 0)
+                return APIStatus.BadRequest("No directories found please ensure server token is set and try again");
+
+            SettingsProvider.GetSettings().Plex.Libraries = selected.Select(s => s.Key).ToList();
+            return APIStatus.OK();
+        });
+    }
+
+    [HttpGet("server/list"), Authorize]
+    public ActionResult<List<MediaDevice>> Servers()
+    {
+        return CallPlexHelper(h => h.GetPlexServers());
+    }
+
+    [HttpPost("server"), Authorize]
+    public ActionResult SetServer([FromBody] string clientId)
+    {
+        return CallPlexHelper(h =>
+        {
+            var servers = h.GetPlexServers();
+            var server = servers.FirstOrDefault(s => s.ClientIdentifier == clientId);
+            if (server == null)
+                return APIStatus.BadRequest();
+
+            h.UseServer(server);
+            return APIStatus.OK();
+        });
+    }
+#if DEBUG
+
     [Authorize]
-    [HttpGet("test/lib/{id}")]
+    [HttpGet("libraries/{id}")]
     public PlexLibrary[] GetShowsForDirectory(int id)
     {
         return CallPlexHelper(h => ((SVR_Directory)h.GetDirectories().FirstOrDefault(d => d.Key == id))?.GetShows());

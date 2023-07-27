@@ -3,15 +3,18 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
-// using ImageMagick;
+using ImageMagick;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
 /// <summary>
@@ -41,7 +44,7 @@ public class Image
     /// The relative path from the base image directory. A client with access to the server's filesystem can map
     /// these for quick access and no need for caching
     /// </summary>
-    public string RelativeFilepath { get; set; }
+    public string? RelativeFilepath { get; set; }
 
     /// <summary>
     /// Is it marked as default. Only one default is possible for a given <see cref="Image.Type"/>.
@@ -63,32 +66,56 @@ public class Image
     /// </summary>
     public bool Disabled { get; set; }
 
+    /// <summary>
+    /// Series info for the image, currently only set when sending a random
+    /// image.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public ImageSeriesInfo? Series { get; set; } = null;
+
     public Image(int id, ImageEntityType type, bool preferred = false, bool disabled = false) : this(id.ToString(),
         type, preferred, disabled)
     {
-        if (type == ImageEntityType.Static)
+        switch (type)
         {
-            throw new ArgumentException("Static Resources do not use an integer ID");
-        }
+            case ImageEntityType.Static:
+                throw new ArgumentException("Static Resources do not use an integer ID");
 
-        RelativeFilepath = GetImagePath(type, id)?.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
-        /*
-        var imagePath = GetImagePath(type, id);
-        if (string.IsNullOrEmpty(imagePath)) {
-            RelativeFilepath = null;
-            Width = null;
-            Height = null;
+            case ImageEntityType.UserAvatar:
+            {
+                var user = RepoFactory.JMMUser.GetByID(id);
+                if (user != null && user.HasAvatarImage)
+                {
+                    var imageMetadata = user.AvatarImageMetadata;
+                    // we need to set _something_ for the clients that determine
+                    // if an image exists by checking if a relative path is set,
+                    // so we set the id.
+                    RelativeFilepath = $"/{id}";
+                    Width = imageMetadata.Width;
+                    Height = imageMetadata.Height;
+                }
+                break;
+            }
+
+            default:
+            {
+                var imagePath = GetImagePath(type, id);
+                if (!string.IsNullOrEmpty(imagePath))
+                {
+                    RelativeFilepath = imagePath.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
+                    if (!RelativeFilepath.StartsWith("/"))
+                        RelativeFilepath = "/" + RelativeFilepath;
+                    // This causes serious IO lag on some systems. Enable at own risk.
+                    if (Utils.SettingsProvider.GetSettings().LoadImageMetadata)
+                    {
+                        var info = new MagickImageInfo(imagePath);
+                        Width = info.Width;
+                        Height = info.Height;
+                    }
+                }
+                break;
+            }
         }
-        // This causes serious IO lag on some systems. Removing until we have better Image data structures
-        else
-        {
-            var info = new MagickImageInfo(imagePath);
-            RelativeFilepath = imagePath.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
-            if (!RelativeFilepath.StartsWith("/"))
-                RelativeFilepath = "/" + RelativeFilepath;
-            Width = info.Width;
-            Height = info.Height;
-        }*/
     }
 
     public Image(string id, ImageEntityType type, bool preferred = false, bool disabled = false)
@@ -124,6 +151,8 @@ public class Image
                 return ImageType.Staff;
             case ImageEntityType.Static:
                 return ImageType.Static;
+            case ImageEntityType.UserAvatar:
+                return ImageType.Avatar;
             default:
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
@@ -149,6 +178,8 @@ public class Image
             case ImageEntityType.Staff:
             case ImageEntityType.Static:
                 return ImageSource.Shoko;
+            case ImageEntityType.UserAvatar:
+                return ImageSource.User;
             default:
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
@@ -190,6 +221,11 @@ public class Image
                 ImageType.Static => ImageEntityType.Static,
                 ImageType.Character => ImageEntityType.Character,
                 ImageType.Staff => ImageEntityType.Staff,
+                _ => null
+            },
+            ImageSource.User => imageType switch
+            {
+                ImageType.Avatar => ImageEntityType.UserAvatar,
                 _ => null
             },
             _ => null
@@ -241,7 +277,7 @@ public class Image
         };
     }
 
-    public static string GetImagePath(ImageEntityType type, int id)
+    public static string? GetImagePath(ImageEntityType type, int id)
     {
         string path;
 
@@ -528,7 +564,7 @@ public class Image
                 .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
                 .SelectMany(a => RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
                 .Where(a => a.RoleType == (int)StaffRoleType.Seiyuu && a.RoleID.HasValue)
-                .Select(a => RepoFactory.AnimeCharacter.GetByID(a.RoleID.Value))
+                .Select(a => RepoFactory.AnimeCharacter.GetByID(a.RoleID!.Value))
                 .GetRandomElement()?.CharacterID,
             ImageEntityType.Staff => RepoFactory.AniDB_Anime.GetAll()
                 .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
@@ -536,6 +572,97 @@ public class Image
                 .Select(a => RepoFactory.AnimeStaff.GetByID(a.StaffID))
                 .GetRandomElement()?.StaffID,
             _ => null
+        };
+    }
+
+    internal static SVR_AnimeSeries? GetFirstSeriesForImage(ImageEntityType imageType, int imageID)
+    {
+        switch (imageType)
+        {
+            case ImageEntityType.AniDB_Cover:
+                return RepoFactory.AnimeSeries.GetByAnimeID(imageID);
+            case ImageEntityType.TvDB_Banner:
+            {
+                var tvdbWideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
+                if (tvdbWideBanner == null)
+                    return null;
+
+                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbWideBanner.SeriesID)
+                    .FirstOrDefault();
+                if (xref == null)
+                    return null;
+
+                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
+            }
+            case ImageEntityType.TvDB_Cover:
+            {
+                var tvdbPoster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
+                if (tvdbPoster == null)
+                    return null;
+
+                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbPoster.SeriesID)
+                    .FirstOrDefault();
+                if (xref == null)
+                    return null;
+
+                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
+            }
+            case ImageEntityType.TvDB_FanArt:
+            {
+                var tvdbFanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
+                if (tvdbFanart == null)
+                    return null;
+
+                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbFanart.SeriesID)
+                    .FirstOrDefault();
+                if (xref == null)
+                    return null;
+
+                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
+            }
+            case ImageEntityType.TvDB_Episode:
+            {
+                var tvdbEpisode = RepoFactory.TvDB_Episode.GetByID(imageID);
+                if (tvdbEpisode == null)
+                    return null;
+                
+                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbEpisode.SeriesID)
+                    .FirstOrDefault();
+                if (xref == null)
+                    return null;
+
+                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
+            }
+            case ImageEntityType.MovieDB_FanArt:
+            {
+                var tmdbFanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
+                if (tmdbFanart == null)
+                    return null;
+                
+                // This will be slow as HELL. Why don't we have a lookup?
+                var xref = RepoFactory.CrossRef_AniDB_Other.GetAll()
+                    .FirstOrDefault(xref => xref.CrossRefType == (int)CrossRefType.MovieDB && int.Parse(xref.CrossRefID) == tmdbFanart.MovieId);
+                if (xref == null)
+                    return null;
+
+                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+            }
+            case ImageEntityType.MovieDB_Poster:
+            {
+                var tmdbPoster = RepoFactory.MovieDB_Poster.GetByID(imageID);
+                if (tmdbPoster == null)
+                    return null;
+                
+                // This will be slow as HELL. Why don't we have a lookup?
+                var xref = RepoFactory.CrossRef_AniDB_Other.GetAll()
+                    .FirstOrDefault(xref => xref.CrossRefType == (int)CrossRefType.MovieDB && int.Parse(xref.CrossRefID) == tmdbPoster.MovieId);
+                if (xref == null)
+                    return null;
+
+                return RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+            }
+            default:
+                return null;
         };
     }
 
@@ -559,6 +686,11 @@ public class Image
         ///
         /// </summary>
         TMDB = 3,
+
+        /// <summary>
+        /// User provided data.
+        /// </summary>
+        User = 99,
 
         /// <summary>
         ///
@@ -603,9 +735,33 @@ public class Image
         Staff = 6,
 
         /// <summary>
+        /// User avatar.
+        /// </summary>
+        Avatar = 99,
+
+        /// <summary>
         /// Static resources are only valid if the <see cref="Image.Source"/> is set to <see cref="ImageSource.Shoko"/>.
         /// </summary>
         Static = 100
+    }
+
+    public class ImageSeriesInfo
+    {
+        /// <summary>
+        /// The shoko series id.
+        /// </summary>
+        public int ID { get; set; }
+
+        /// <summary>
+        /// The preferred series name for the user.
+        /// </summary>
+        public string Name { get; set; }
+
+        public ImageSeriesInfo(int id, string name)
+        {
+            ID = id;
+            Name = name;
+        }
     }
 
     /// <summary>
@@ -620,8 +776,8 @@ public class Image
             /// from the API. Also see <seealso cref="Image.ID"/>.
             /// </summary>
             /// <value></value>
-            [Required]
-            public string ID { get; set; }
+            [Required, MinLength(1)]
+            public string ID { get; set; } = "";
 
             /// <summary>
             /// The image source.
