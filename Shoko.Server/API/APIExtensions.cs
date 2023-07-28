@@ -120,7 +120,8 @@ public static class APIExtensions
                 options.CustomSchemaIds(GetTypeName);
             });
         services.AddSwaggerGenNewtonsoftSupport();
-        services.AddSignalR(o => { o.EnableDetailedErrors = true; });
+        services.AddSignalR(o => { o.EnableDetailedErrors = true; })
+            .AddNewtonsoftJsonProtocol();
 
         // allow CORS calls from other both local and non-local hosts
         services.AddCors(options =>
