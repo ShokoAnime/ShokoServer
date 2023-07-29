@@ -53,6 +53,7 @@ public class ShokoServer
 
     internal static BackgroundWorker workerSetupDB = new();
 
+    // TODO Move all of these to Quartz
     private static Timer autoUpdateTimer;
     private static Timer autoUpdateTimerShort;
 

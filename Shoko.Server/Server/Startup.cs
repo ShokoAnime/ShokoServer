@@ -52,7 +52,7 @@ public class Startup
             services.AddScoped<CommonImplementation>();
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
             services.AddSingleton<ICommandRequestFactory, CommandRequestFactory>();
-            services.AddSingleton<IConnectivityMonitor>(_ => new GeneralConnectivityMonitor());
+            services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();
             services.AddTransient<ScanFolderJob>();
             services.AddTransient<DeleteImportFolderJob>();
 
