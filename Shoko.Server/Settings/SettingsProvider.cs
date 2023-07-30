@@ -365,7 +365,7 @@ public class SettingsProvider : ISettingsProvider
                 value = Serialize(value);
             }
 
-            if (prop.Name.ToLower().EndsWith("password"))
+            if (prop.Name.ToLower().EndsWith("password") || prop.Name.ToLower().EndsWith("avdumpkey"))
             {
                 value = "***HIDDEN***";
             }
