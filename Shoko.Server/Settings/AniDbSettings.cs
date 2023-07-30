@@ -5,10 +5,14 @@ namespace Shoko.Server.Settings;
 
 public class AniDbSettings
 {
-    [Required(AllowEmptyStrings = false)] public string Username { get; set; }
-    [Required(AllowEmptyStrings = false)] public string Password { get; set; }
+    [Required(AllowEmptyStrings = false)]
+    public string Username { get; set; }
 
-    [Required(AllowEmptyStrings = false)] public string ServerAddress { get; set; } = "api.anidb.net";
+    [Required(AllowEmptyStrings = false)]
+    public string Password { get; set; }
+
+    [Required(AllowEmptyStrings = false)]
+    public string ServerAddress { get; set; } = "api.anidb.net";
 
     public ushort ServerPort { get; set; } = 9000;
 
@@ -59,4 +63,6 @@ public class AniDbSettings
     public int MinimumHoursToRedownloadAnimeInfo { get; set; } = 24;
 
     public bool AutomaticallyImportSeries { get; set; } = false;
+
+    public AVDumpSettings AVDump { get; set; } = new();
 }

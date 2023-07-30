@@ -19,6 +19,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
 using CommandRequestPriority = Shoko.Server.Server.CommandRequestPriority;
+using AVDump = Shoko.Server.API.v3.Models.Shoko.AVDump;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using FileSortCriteria = Shoko.Server.API.v3.Models.Shoko.File.FileSortCriteria;
 using Path = System.IO.Path;
@@ -625,9 +626,12 @@ public class FileController : BaseController
     /// Run a file through AVDump and return the result.
     /// </summary>
     /// <param name="fileID">VideoLocal ID</param>
+    /// <param name="priority">Increase the priority to the max for the queued command.</param>
+    /// <param name="immediate">Immediately run the AVDump, without adding the command to the queue.</param>
     /// <returns></returns>
     [HttpPost("{fileID}/AVDump")]
-    public ActionResult<AVDumpResult> AvDumpFile([FromRoute] int fileID)
+    public ActionResult<AVDump.Result> AvDumpFile([FromRoute] int fileID, [FromQuery] bool priority = false,
+        [FromQuery] bool immediate = false)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -644,13 +648,26 @@ public class FileController : BaseController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var result = AVDumpHelper.DumpFile(filePath).Replace("\r", "");
-
-        return new AVDumpResult()
+        var command = _commandFactory.Create<CommandRequest_AVDumpFile>(
+            c => c.Videos = new() { { file.VideoLocalID, filePath } }
+        );
+        if (immediate)
         {
-            FullOutput = result,
-            Ed2k = result.Split('\n').FirstOrDefault(s => s.Trim().Contains("ed2k://")),
-        };
+            command.BubbleExceptions = true;
+            command.ProcessCommand();
+            var result = command.Result;
+            return new AVDump.Result
+            {
+                FullOutput = result.StandardOutput,
+                Ed2k = result.ED2Ks.FirstOrDefault(),
+            };
+        }
+
+        if (priority)
+            command.Priority = (int) CommandRequestPriority.Priority1;
+
+        command.Save();
+        return Ok();
     }
 
     /// <summary>

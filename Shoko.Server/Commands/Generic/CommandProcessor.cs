@@ -8,11 +8,12 @@ using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Commands.Interfaces;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands.Generic;
 
-public abstract class CommandProcessor : IDisposable
+public abstract class CommandProcessor : IDisposable, ICommandProcessor
 {
     protected ILogger Logger;
     protected readonly BackgroundWorker WorkerCommands = new();
@@ -222,7 +223,9 @@ public abstract class CommandProcessor : IDisposable
 
                         QueueState = icr.PrettyDescription;
 
+                        icr.Processor = this;
                         icr.ProcessCommand();
+                        icr.Processor = null;
                     }
                     catch (Exception ex)
                     {

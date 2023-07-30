@@ -201,25 +201,30 @@ public class ActionController : BaseController
     [HttpGet("AVDumpMismatchedFiles")]
     public ActionResult AVDumpMismatchedFiles()
     {
+        var settings = SettingsProvider.GetSettings();
+        if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
+            return BadRequest("Missing AVDump API key");
+
         var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
             .ToDictionary(a => a, a => a.GetAniDBFile());
         Task.Factory.StartNew(() =>
         {
-            var list = allvids.Keys.Select(vid => new { vid, anidb = allvids[vid] })
-                .Where(_tuple => _tuple.anidb != null)
-                .Where(_tuple => !_tuple.anidb.IsDeprecated)
-                .Where(_tuple => _tuple.vid.Media?.MenuStreams.Any() != _tuple.anidb.IsChaptered)
-                .Select(_tuple => _tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
-                .Where(path => !string.IsNullOrEmpty(path)).ToList();
-            var index = 0;
-            foreach (var path in list)
+            var list = allvids.Keys.Select(vid => new { Video = vid, AniDB = allvids[vid] })
+                .Where(_tuple => _tuple.AniDB != null)
+                .Where(_tuple => !_tuple.AniDB.IsDeprecated)
+                .Where(_tuple => _tuple.Video.Media?.MenuStreams.Any() != _tuple.AniDB.IsChaptered)
+                .Select(_tuple => new { Path = _tuple.Video.GetBestVideoLocalPlace(true)?.FullServerPath, Video = _tuple.Video })
+                .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToList();
+
+            foreach (var obj in list)
             {
-                _logger.LogInformation($"AVDump Start {index + 1}/{list.Count}: {path}");
-                AVDumpHelper.DumpFile(path);
-                _logger.LogInformation($"AVDump Finished {index + 1}/{list.Count}: {path}");
-                index++;
-                _logger.LogInformation($"AVDump Progress: {list.Count - index} remaining");
+                var command = _commandFactory.Create<CommandRequest_AVDumpFile>(
+                    c => c.Videos = new() { { obj.Video.VideoLocalID, obj.Path } }
+                );
+                command.Save();
             }
+
+            _logger.LogInformation("Queued {QueuedAnimeCount} files for avdumping.", list.Count);
         });
 
         return Ok();

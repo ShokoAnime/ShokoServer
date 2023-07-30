@@ -41,6 +41,8 @@ public abstract class CommandRequestImplementation : ICommandRequest
 
     [XmlIgnore][JsonIgnore] public bool BubbleExceptions = false;
 
+    [XmlIgnore][JsonIgnore] public ICommandProcessor Processor { get; set; } = null;
+
     public CommandRequestImplementation(ILoggerFactory loggerFactory) : this()
     {
         Logger = loggerFactory.CreateLogger(GetType());

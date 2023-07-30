@@ -51,6 +51,11 @@ public class File
     public List<Location> Locations { get; set; }
 
     /// <summary>
+    /// AVDump info for the file.
+    /// </summary>
+    public AVDumpInfo AVDump { get; set; }
+
+    /// <summary>
     /// Try to fit this file's resolution to something like 1080p, 480p, etc
     /// </summary>
     public string Resolution { get; set; }
@@ -131,6 +136,7 @@ public class File
             AbsolutePath = includeAbsolutePaths ? a.FullServerPath : null,
             IsAccessible = a.GetFile() != null,
         }).ToList();
+        AVDump = new AVDumpInfo(file);
         Duration = file.DurationTimeSpan;
         ResumePosition = userRecord?.ResumePositionTimeSpan;
         Viewed = userRecord?.LastUpdated.ToUniversalTime();
@@ -669,6 +675,76 @@ public class File
             "camcorder" => FileSource.Camera,
             _ => FileSource.Unknown
         };
+    }
+
+    /// <summary>
+    /// AVDump info for the file.
+    /// </summary>
+    public class AVDumpInfo
+    {
+        /// <summary>
+        /// Indicates if an AVDump session is queued or running.
+        /// </summary>
+        public string Status;
+
+        /// <summary>
+        /// The current progress if an AVDump session is running.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public double? Progress { get; set; }
+
+        /// <summary>
+        /// The succeeded AniDB creq count, if an AVDump session is running.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? SucceededCreqCount { get; set; }
+
+        /// <summary>
+        /// The failed AniDB creq count, if an AVDump session is running.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? FailedCreqCount { get; set; }
+
+        /// <summary>
+        /// The pending AniDB creq count, if an AVDump session is running.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? PendingCreqCount { get; set; }
+
+        /// <summary>
+        /// Indicates when the AVDump session was started, if an AVDump session
+        /// is running.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public DateTime? StartedAt { get; set; }
+
+        /// <summary>
+        /// The last time we did a successful AVDump of the file.
+        /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime? LastDumpedAt { get; set; }
+
+        /// <summary>
+        /// The version of the AVDump component from the last time we did a
+        /// successful AVDump.
+        /// </summary>
+        public string LastVersion { get; set; }
+
+        public AVDumpInfo(SVR_VideoLocal video)
+        {
+            var session = AVDumpHelper.GetSessionForVideo(video);
+            Status = session == null ? null : session.IsRunning ? "Running" : "Queued";
+            if (session != null && session.IsRunning)
+            {
+                Progress = session.Progress;
+                SucceededCreqCount = session.SucceededCreqCount;
+                FailedCreqCount = session.FailedCreqCount;
+                PendingCreqCount = session.PendingCreqCount;
+                StartedAt = session.StartedAt.ToUniversalTime();
+            }
+            LastDumpedAt = video.LastAVDumped?.ToUniversalTime();
+            LastVersion = video.LastAVDumpVersion;
+        }
     }
 }
 

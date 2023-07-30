@@ -47,7 +47,8 @@ public enum CommandRequestType
     ValidateAllImages = 96,
     TvDB_UpdateEpisode = 97,
     NullCommand = 98,
-    DownloadAniDBImages = 99
+    DownloadAniDBImages = 99,
+    AVDumpFile = 100,
 }
 
 public enum CommandRequestPriority

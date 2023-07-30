@@ -16,7 +16,9 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
 
     private static readonly HashSet<int> CommandTypesHasher = new()
     {
-        (int)CommandRequestType.HashFile, (int)CommandRequestType.ReadMediaInfo
+        (int)CommandRequestType.HashFile,
+        (int)CommandRequestType.ReadMediaInfo,
+        (int)CommandRequestType.AVDumpFile,
     };
     private static readonly int[] CommandTypesHasherArray = CommandTypesHasher.ToArray();
 
