@@ -19,12 +19,12 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Databases;
 
-public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
+public class SQLServer : BaseDatabase<SqlConnection>
 {
-    public string Name { get; } = "SQLServer";
-    public int RequiredVersion { get; } = 109;
+    public override string Name { get; } = "SQLServer";
+    public override int RequiredVersion { get; } = 109;
 
-    public void BackupDatabase(string fullfilename)
+    public override void BackupDatabase(string fullfilename)
     {
         fullfilename = Path.GetFileName(fullfilename) + ".bak";
         //TODO We cannot write the backup anywhere, because
@@ -80,7 +80,7 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
             $"data source={settings.Database.Hostname},{settings.Database.Port};Initial Catalog={settings.Database.Schema};user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True";
     }
 
-    public ISessionFactory CreateSessionFactory()
+    public override ISessionFactory CreateSessionFactory()
     {
         return Fluently.Configure()
             .Database(MsSqlConfiguration.MsSql2008.ConnectionString(GetConnectionString()))
@@ -95,7 +95,7 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
             .BuildSessionFactory();
     }
 
-    public bool DatabaseAlreadyExists()
+    public override bool DatabaseAlreadyExists()
     {
         var settings = Utils.SettingsProvider.GetSettings();
         var cmd = $"Select count(*) from sysdatabases where name = '{settings.Database.Schema}'";
@@ -109,7 +109,7 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
         return false;
     }
 
-    public void CreateDatabase()
+    public override void CreateDatabase()
     {
         if (DatabaseAlreadyExists()) return;
 
@@ -808,7 +808,7 @@ public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     }
 
 
-    public void CreateAndUpdateSchema()
+    public override void CreateAndUpdateSchema()
     {
         ConnectionWrapper(GetConnectionString(), myConn =>
         {

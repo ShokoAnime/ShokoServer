@@ -369,7 +369,8 @@ public class ShokoServer
             if (settings.Import.RunOnStart)
             {
                 var scheduler = _schedulerFactory.GetScheduler().Result;
-                scheduler.TriggerJob(ImportJob.Key);
+                scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().StoreDurably().WithGeneratedIdentity().Build()).GetAwaiter()
+                    .GetResult();
             }
 
             ServerState.Instance.ServerOnline = true;
@@ -396,7 +397,7 @@ public class ShokoServer
     public void RefreshAllMediaInfo()
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.TriggerJob(MediaInfoJob.Key);
+        scheduler.StartJob(JobBuilder<MediaInfoJob>.Create().DisallowConcurrentExecution().StoreDurably().WithGeneratedIdentity().Build()).GetAwaiter().GetResult();
     }
 
     #endregion
@@ -650,17 +651,18 @@ public class ShokoServer
     public void ScanDropFolders()
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.TriggerJob(ScanDropFoldersJob.Key);
+        scheduler.StartJob(JobBuilder<ScanDropFoldersJob>.Create().StoreDurably().DisallowConcurrentExecution().WithGeneratedIdentity().Build()).GetAwaiter().GetResult();
     }
 
     public void ScanFolder(int importFolderID)
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
         scheduler.StartJob(JobBuilder<ScanFolderJob>.Create()
+                .DisallowConcurrentExecution()
                 .StoreDurably()
                 .UsingJobData(a => a.ImportFolderID = importFolderID)
                 .WithGeneratedIdentity()
-                .Build());
+                .Build()).GetAwaiter().GetResult();
     }
 
     public void RemoveMissingFiles(bool removeMyList = true)
@@ -669,8 +671,8 @@ public class ShokoServer
         scheduler.StartJob(JobBuilder<RemoveMissingFilesJob>.Create()
             .StoreDurably()
             .UsingJobData(a => a.RemoveMyList = removeMyList)
-            .WithIdentity(RemoveMissingFilesJob.Key)
-            .Build());
+            .WithGeneratedIdentity()
+            .Build()).GetAwaiter().GetResult();
     }
 
     public static void SyncMyList()
@@ -681,12 +683,11 @@ public class ShokoServer
     public void DeleteImportFolder(int importFolderID)
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.ScheduleJob(JobBuilder<DeleteImportFolderJob>.Create()
+        scheduler.StartJob(JobBuilder<DeleteImportFolderJob>.Create()
                 .StoreDurably()
                 .UsingJobData(a => a.ImportFolderID = importFolderID)
                 .WithGeneratedIdentity()
-                .Build(),
-            TriggerBuilder.Create().StartNow().Build());
+                .Build()).GetAwaiter().GetResult();
     }
 
     private void SetupAniDBProcessor()

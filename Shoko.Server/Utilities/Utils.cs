@@ -104,7 +104,7 @@ public static class Utils
                 AsyncTargetWrapperOverflowAction.Discard);
         LogManager.Configuration.AddTarget("signalr", signalrTarget);
         LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Trace, signalrTarget));
-        var consoleTarget = (ColoredConsoleTarget)LogManager.Configuration.FindTargetByName("console");
+        var consoleTarget = LogManager.Configuration.FindTargetByName<ColoredConsoleTarget>("console");
         if (consoleTarget != null)
         {
             consoleTarget.Layout = "${date:format=HH\\:mm\\:ss}| ${logger:shortname=true} --- ${message}${onexception:\\: ${exception:format=tostring}}";

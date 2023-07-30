@@ -5,16 +5,16 @@
 using System;
 using System.Threading.Tasks;
 using Quartz;
+using QuartzJobFactory.Attributes;
 using Shoko.Server.Commands;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
+[JobKeyMember("MediaInfo")]
+[JobKeyGroup("Legacy")]
 internal class MediaInfoJob : IJob
 {
-
-    public static readonly JobKey Key = new("MediaImport", "Legacy");
-
     private readonly ICommandRequestFactory _commandRequestFactory;
 
     public MediaInfoJob(ICommandRequestFactory commandRequestFactory)
@@ -22,7 +22,9 @@ internal class MediaInfoJob : IJob
         _commandRequestFactory = commandRequestFactory;
     }
     
-    public async Task Execute(IJobExecutionContext context)
+    protected MediaInfoJob() { }
+    
+    public Task Execute(IJobExecutionContext context)
     {
         try
         {
@@ -40,5 +42,7 @@ internal class MediaInfoJob : IJob
             // do you want the job to refire?
             throw new JobExecutionException(msg: "", refireImmediately: false, cause: ex);
         }
+
+        return Task.CompletedTask;
     }
 }

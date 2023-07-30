@@ -5,16 +5,16 @@
 using System;
 using System.Threading.Tasks;
 using Quartz;
-using Shoko.Server.Utilities;
+using QuartzJobFactory.Attributes;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
+[JobKeyMember("Import")]
+[JobKeyGroup("Legacy")]
+[DisallowConcurrentExecution]
 internal class ImportJob : IJob
 {
-
-    public static readonly JobKey Key = new("Importer", "Legacy");
-    
-    public async Task Execute(IJobExecutionContext context)
+    public Task Execute(IJobExecutionContext context)
     {
         // TODO: Make everything asynchronous
         try
@@ -46,5 +46,7 @@ internal class ImportJob : IJob
             // do you want the job to refire?
             throw new JobExecutionException(msg: "", refireImmediately: false, cause: ex);
         }
+
+        return Task.CompletedTask;
     }
 }

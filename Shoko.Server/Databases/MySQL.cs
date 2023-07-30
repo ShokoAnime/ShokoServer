@@ -17,10 +17,10 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Databases;
 
-public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
+public class MySQL : BaseDatabase<MySqlConnection>
 {
-    public string Name { get; } = "MySQL";
-    public int RequiredVersion { get; } = 116;
+    public override string Name { get; } = "MySQL";
+    public override int RequiredVersion { get; } = 116;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -826,7 +826,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
             "ALTER TABLE `Versions` ADD INDEX `IX_Versions_VersionType` (`VersionType`,`VersionValue`,`VersionRevision`);")
     };
 
-    public void BackupDatabase(string fullfilename)
+    public override void BackupDatabase(string fullfilename)
     {
         fullfilename += ".sql";
         using (var conn = new MySqlConnection(GetConnectionString()))
@@ -995,7 +995,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
         return count > 0;
     }
 
-    public ISessionFactory CreateSessionFactory()
+    public override ISessionFactory CreateSessionFactory()
     {
         var settings = Utils.SettingsProvider.GetSettings();
         return Fluently.Configure()
@@ -1015,7 +1015,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
             .BuildSessionFactory();
     }
 
-    public bool DatabaseAlreadyExists()
+    public override bool DatabaseAlreadyExists()
     {
         var settings = Utils.SettingsProvider.GetSettings();
         try
@@ -1045,7 +1045,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
         return false;
     }
 
-    public void CreateDatabase()
+    public override void CreateDatabase()
     {
         var settings = Utils.SettingsProvider.GetSettings();
         try
@@ -1075,7 +1075,7 @@ public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     }
 
 
-    public void CreateAndUpdateSchema()
+    public override void CreateAndUpdateSchema()
     {
         ConnectionWrapper(GetConnectionString(), myConn =>
         {

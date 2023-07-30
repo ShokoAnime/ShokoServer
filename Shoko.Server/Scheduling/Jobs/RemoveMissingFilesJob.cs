@@ -5,16 +5,19 @@
 using System;
 using System.Threading.Tasks;
 using Quartz;
-using Shoko.Server.Utilities;
+using QuartzJobFactory.Attributes;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
+[JobKeyMember("RemoveMissingFiles")]
+[JobKeyGroup("Legacy")]
+[DisallowConcurrentExecution]
 internal class RemoveMissingFilesJob : IJob
 {
-    public static readonly JobKey Key = new("RemoveMissingFiles", "Legacy");
+    [JobKeyMember]
     public bool RemoveMyList { get; set; }
-    
-    public async Task Execute(IJobExecutionContext context)
+
+    public Task Execute(IJobExecutionContext context)
     {
         try
         {
@@ -26,5 +29,7 @@ internal class RemoveMissingFilesJob : IJob
             // do you want the job to refire?
             throw new JobExecutionException(msg: "", refireImmediately: false, cause: ex);
         }
+
+        return Task.CompletedTask;
     }
 }

@@ -19,5 +19,7 @@ public interface IDatabase
     int GetDatabaseVersion();
     void Init();
     bool HasVersionsTable();
+    public string GetTestConnectionString();
+    public string GetConnectionString();
     bool TestConnection();
 }

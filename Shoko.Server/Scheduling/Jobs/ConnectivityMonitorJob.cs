@@ -6,27 +6,31 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Quartz;
+using QuartzJobFactory.Attributes;
 using Shoko.Server.Services.ConnectivityMon;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
+[JobKeyMember("UptimeMonitor")]
+[JobKeyGroup("System")]
+[DisallowConcurrentExecution]
 public class ConnectivityMonitorJob : IJob
 {
-    public static readonly JobKey Key = new("UptimeMonitor", "System");
-
     private readonly IEnumerable<IConnectivityMonitor> _connectivityMonitors;
 
     public ConnectivityMonitorJob(IEnumerable<IConnectivityMonitor> connectivityMonitors)
     {
         _connectivityMonitors = connectivityMonitors;
     }
-    
+
+    protected ConnectivityMonitorJob() { }
+
     public async Task Execute(IJobExecutionContext context)
     {
         try 
         {
             // get data out of the MergedJobDataMap
-            //var value = context.MergedJobDataMap.GetString("some-vaule");
+            //var value = context.MergedJobDataMap.GetString("some-value");
             // TODO: Logging
             await Parallel.ForEachAsync(_connectivityMonitors, async (monitor, token) =>
             {

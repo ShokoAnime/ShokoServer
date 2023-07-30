@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
@@ -17,7 +18,7 @@ using Constants = Shoko.Server.Server.Constants;
 
 namespace Shoko.Server.Databases;
 
-public abstract class BaseDatabase<T>
+public abstract class BaseDatabase<T> : IDatabase
 {
     // ReSharper disable once StaticMemberInGenericType
     protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
@@ -37,6 +38,8 @@ public abstract class BaseDatabase<T>
             return _databaseBackupDirectoryPath = Path.Combine(Utils.ApplicationPath, dirPath);
         }
     }
+
+    public abstract int RequiredVersion { get; }
 
     public string GetDatabaseBackupName(int version)
     {
@@ -62,7 +65,7 @@ public abstract class BaseDatabase<T>
     protected abstract void Execute(T connection, string command);
     protected abstract long ExecuteScalar(T connection, string command);
     protected abstract ArrayList ExecuteReader(T connection, string command);
-    public abstract string GetTestConnectionString();
+
     public abstract string GetConnectionString();
 
     public virtual bool TestConnection()
@@ -72,6 +75,7 @@ public abstract class BaseDatabase<T>
     }
 
     public abstract bool HasVersionsTable();
+    public abstract string GetTestConnectionString();
 
     protected abstract void ConnectionWrapper(string connectionstring, Action<T> action);
 
@@ -129,12 +133,20 @@ public abstract class BaseDatabase<T>
         return AllVersions.Keys.Select(a => int.Parse(a.Version)).Max();
     }
 
+    public abstract ISessionFactory CreateSessionFactory();
+    public abstract bool DatabaseAlreadyExists();
+    public abstract void CreateDatabase();
+    public abstract void CreateAndUpdateSchema();
+    public abstract void BackupDatabase(string fullfilename);
+
     public ArrayList GetData(string sql)
     {
         ArrayList ret = null;
         ConnectionWrapper(GetConnectionString(), myConn => { ret = ExecuteReader(myConn, sql); });
         return ret;
     }
+
+    public abstract string Name { get; }
 
     internal void PreFillVersions(IEnumerable<DatabaseCommand> commands)
     {

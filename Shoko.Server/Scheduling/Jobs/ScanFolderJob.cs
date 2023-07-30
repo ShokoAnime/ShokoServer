@@ -5,14 +5,18 @@
 using System;
 using System.Threading.Tasks;
 using Quartz;
+using QuartzJobFactory.Attributes;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
+[JobKeyMember("ScanFolder")]
+[JobKeyGroup("Actions")]
 internal class ScanFolderJob : IJob
 {
+    [JobKeyMember]
     public int ImportFolderID { get; set; }
 
-    public async Task Execute(IJobExecutionContext context)
+    public Task Execute(IJobExecutionContext context)
     {
         try
         {
@@ -24,5 +28,7 @@ internal class ScanFolderJob : IJob
             // do you want the job to refire?
             throw new JobExecutionException(msg: "", refireImmediately: false, cause: ex);
         }
+
+        return Task.CompletedTask;
     }
 }

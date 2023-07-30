@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using NLog;
 using Quartz;
+using QuartzJobFactory;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
@@ -164,7 +165,7 @@ public class Common : BaseController
     public async Task<ActionResult> RunImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.TriggerJob(ImportJob.Key);
+        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().StoreDurably().WithGeneratedIdentity().Build());
         return Ok();
     }
 
@@ -2688,7 +2689,7 @@ public class Common : BaseController
     public async Task<ActionResult> RunCloudImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.TriggerJob(ImportJob.Key);
+        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().StoreDurably().WithGeneratedIdentity().Build());
         return Ok();
     }
 

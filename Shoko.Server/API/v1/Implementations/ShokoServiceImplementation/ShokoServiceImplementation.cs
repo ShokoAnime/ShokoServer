@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Quartz;
+using QuartzJobFactory;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Client;
@@ -715,7 +716,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     public async void RunImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.TriggerJob(ImportJob.Key);
+        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().StoreDurably().WithDefaultIdentity().Build());
     }
 
     [HttpPost("File/Hashes/Sync")]

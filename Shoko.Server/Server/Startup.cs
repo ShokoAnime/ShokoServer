@@ -6,6 +6,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
 using Quartz;
+using Quartz.AspNetCore;
+using QuartzJobFactory;
 using Shoko.Commons.Properties;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.API;
@@ -55,22 +57,22 @@ public class Startup
             services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();
             services.AddTransient<ScanFolderJob>();
             services.AddTransient<DeleteImportFolderJob>();
+            services.AddTransient<ScanDropFoldersJob>();
+            services.AddTransient<RemoveMissingFilesJob>();
+            services.AddTransient<MediaInfoJob>();
 
             services.AddQuartz(q =>
             {
                 // as of 3.3.2 this also injects scoped services (like EF DbContext) without problems
                 q.UseMicrosoftDependencyInjectionJobFactory();
+                
+                // use the database that we have selected for quartz
+                //q.UseDatabase();
 
                 // Register the connectivity monitor job with a trigger that executes every 5 minutes
                 q.ScheduleJob<ConnectivityMonitorJob>(
-                    trigger => trigger.WithCronSchedule("0 */5 * * * ?").StartNow(), 
-                    j => j.WithIdentity(ConnectivityMonitorJob.Key).DisallowConcurrentExecution().Build());
-
-                q.AddJob<ImportJob>(j => j.WithIdentity(ImportJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
-                q.AddJob<ScanFolderJob>(j => j.DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
-                q.AddJob<ScanDropFoldersJob>(j => j.WithIdentity(ScanDropFoldersJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
-                q.AddJob<RemoveMissingFilesJob>(j => j.WithIdentity(RemoveMissingFilesJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
-                q.AddJob<MediaInfoJob>(j => j.WithIdentity(MediaInfoJob.Key).DisallowConcurrentExecution().StoreDurably().Build()); // TODO: Maybe add schedule
+                    trigger => trigger.WithCronSchedule("0 */5 * * * ?").StartNow(),
+                    j => j.StoreDurably().DisallowConcurrentExecution().WithGeneratedIdentity());
 
                 // TODO, in the future, when commands are Jobs, we'll use a AddCommands() extension like below for those, but manual registration for scheduled tasks like above
             });

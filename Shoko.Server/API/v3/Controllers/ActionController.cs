@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using QuartzJobFactory;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
@@ -60,7 +61,7 @@ public class ActionController : BaseController
     public async Task<ActionResult> RunImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.TriggerJob(ImportJob.Key);
+        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().StoreDurably().WithGeneratedIdentity().Build());
         return Ok();
     }
 
