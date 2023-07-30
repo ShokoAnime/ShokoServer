@@ -2,6 +2,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Server;
 
+#nullable enable
 namespace Shoko.Server.Commands.Interfaces;
 
 public interface ICommandRequest
@@ -12,5 +13,6 @@ public interface ICommandRequest
     CommandRequestPriority DefaultPriority { get; }
     QueueStateStruct PrettyDescription { get; }
     CommandConflict ConflictBehavior { get; }
+    ICommandProcessor? Processor { get; set; }
     void GenerateCommandID();
 }

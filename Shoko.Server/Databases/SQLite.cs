@@ -22,7 +22,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name { get; } = "SQLite";
 
-    public override int RequiredVersion { get; } = 102;
+    public override int RequiredVersion { get; } = 103;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -668,6 +668,8 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(101, 1, "UPDATE AniDB_Anime SET AirDate = NULL, BeginYear = 0 WHERE AirDate = '1970-01-01 00:00:00';"),
         new(102, 1, "ALTER TABLE JMMUser ADD AvatarImageBlob BLOB NULL;"),
         new(102, 2, "ALTER TABLE JMMUser ADD AvatarImageMetadata VARCHAR(128) NULL;"),
+        new(103, 1, "ALTER TABLE VideoLocal ADD LastAVDumped timestamp;"),
+        new(103, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion text;"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

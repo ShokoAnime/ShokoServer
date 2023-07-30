@@ -36,9 +36,11 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
-      - name: Replace Sentry DSN key
+      - name: Replace Sentry DSN and other keys
         shell: pwsh
-        run: ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+        run: |
+          ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+          ./.github/workflows/ReplaceAVD3URL.ps1 -dsn ${{ secrets.AVD3_URL }}
 
       - name: Get release info
         id: release_info

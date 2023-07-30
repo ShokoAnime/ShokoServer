@@ -850,6 +850,10 @@ public class Common : BaseController
     [HttpGet("avdumpmismatchedfiles")]
     public ActionResult AVDumpMismatchedFiles()
     {
+        var settings = SettingsProvider.GetSettings();
+        if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
+            return BadRequest("Missing AVDump API key");
+
         var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
             .ToDictionary(a => a, a => a.GetAniDBFile());
         var logger = LogManager.GetCurrentClassLogger();
@@ -859,17 +863,18 @@ public class Common : BaseController
                 .Where(tuple => tuple.anidb != null)
                 .Where(tuple => !tuple.anidb.IsDeprecated)
                 .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != tuple.anidb.IsChaptered)
-                .Select(tuple => tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
-                .Where(path => !string.IsNullOrEmpty(path)).ToList();
-            var index = 0;
-            foreach (var path in list)
+                .Select(_tuple => new { Path = _tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath, Video = _tuple.vid })
+                .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToList();
+
+            foreach (var obj in list)
             {
-                logger.Info($"AVDump Start {index + 1}/{list.Count}: {path}");
-                AVDumpHelper.DumpFile(path);
-                logger.Info($"AVDump Finished {index + 1}/{list.Count}: {path}");
-                index++;
-                logger.Info($"AVDump Progress: {list.Count - index} remaining");
+                var command = _commandFactory.Create<CommandRequest_AVDumpFile>(
+                    c => c.Videos = new() { { obj.Video.VideoLocalID, obj.Path } }
+                );
+                command.Save();
             }
+
+            logger.Info($"Queued {list.Count} files for avdumping.");
         });
 
         return Ok();

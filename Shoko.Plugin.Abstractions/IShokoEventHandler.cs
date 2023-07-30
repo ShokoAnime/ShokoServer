@@ -7,7 +7,7 @@ namespace Shoko.Plugin.Abstractions
         /// <summary>
         /// Fired when a file is deleted and removed from Shoko.
         /// </summary>
-        public event EventHandler<FileDeletedEventArgs> FileDeleted;
+        event EventHandler<FileDeletedEventArgs> FileDeleted;
         /// <summary>
         /// Fired when a file is detected, either during a forced import/scan or a watched folder.
         /// Nothing has been done with the file yet here.
@@ -53,5 +53,9 @@ namespace Shoko.Plugin.Abstractions
         /// Fired when the core settings has been saved.
         /// </summary>
         event EventHandler<SettingsSavedEventArgs> SettingsSaved;
+        /// <summary>
+        /// Fired when an avdump event occurs.
+        /// </summary>
+        event EventHandler<AVDumpEventArgs> AVDumpEvent;
     }
 }

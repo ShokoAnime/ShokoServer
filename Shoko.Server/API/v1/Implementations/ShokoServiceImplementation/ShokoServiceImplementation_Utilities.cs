@@ -1552,6 +1552,23 @@ public partial class ShokoServiceImplementation
     [HttpGet("AniDB/AVDumpFile/{vidLocalID}")]
     public string AVDumpFile(int vidLocalID)
     {
-        return AVDumpHelper.DumpFile(vidLocalID);
+        var video = RepoFactory.VideoLocal.GetByID(vidLocalID);
+        if (video == null)
+        {
+            return "Unable to get VideoLocal with id: " + vidLocalID;
+        }
+
+        var filePath = video.GetBestVideoLocalPlace(true)?.FullServerPath;
+        if (string.IsNullOrEmpty(filePath))
+        {
+            return "Unable to get file location for VideoLocal with id: " + video.VideoLocalID;
+        }
+
+        var command = _commandFactory.Create<CommandRequest_AVDumpFile>(
+            c => c.Videos = new() { { vidLocalID, filePath } }
+        );
+        command.BubbleExceptions = true;
+        command.ProcessCommand();
+        return command.Result.StandardOutput.Replace("\n", "\r\n");
     }
 }

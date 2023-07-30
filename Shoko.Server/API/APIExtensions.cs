@@ -29,6 +29,7 @@ using File = System.IO.File;
 using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
 using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
 using QueueEmitter = Shoko.Server.API.SignalR.Aggregate.QueueEmitter;
+using AVDumpEmitter = Shoko.Server.API.SignalR.Aggregate.AVDumpEmitter;
 using LegacyAniDBEmitter = Shoko.Server.API.SignalR.Legacy.AniDBEmitter;
 using LegacyQueueEmitter = Shoko.Server.API.SignalR.Legacy.QueueEmitter;
 using LegacyShokoEventEmitter = Shoko.Server.API.SignalR.Legacy.ShokoEventEmitter;
@@ -45,6 +46,7 @@ public static class APIExtensions
         services.AddSingleton<LegacyShokoEventEmitter>();
         services.AddSingleton<AniDBEmitter>();
         services.AddSingleton<ShokoEventEmitter>();
+        services.AddSingleton<AVDumpEmitter>();
         services.AddSingleton<QueueEmitter>();
 
         services.AddAuthentication(options =>
@@ -314,6 +316,7 @@ public static class APIExtensions
             conf.MapHub<LoggingHub>("/signalr/logging");
             conf.MapHub<ShokoEventHub>("/signalr/shoko");
             conf.MapHub<AggregateHub>("/signalr/aggregate");
+            ;
         });
 
         app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());

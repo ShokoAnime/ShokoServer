@@ -20,7 +20,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 116;
+    public override int RequiredVersion { get; } = 117;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -733,6 +733,8 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(115, 1, "UPDATE AniDB_Anime SET AirDate = NULL, BeginYear = 0 WHERE AirDate = '1970-01-01 00:00:00';"),
         new(116, 1, "ALTER TABLE JMMUser ADD AvatarImageBlob BLOB NULL;"),
         new(116, 2, "ALTER TABLE JMMUser ADD AvatarImageMetadata VARCHAR(128) NULL;"),
+        new(117, 1, "ALTER TABLE VideoLocal ADD LastAVDumped datetime;"),
+        new(117, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion nvarchar(128);"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

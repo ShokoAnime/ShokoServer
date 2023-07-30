@@ -38,6 +38,18 @@ public class SVR_VideoLocal : VideoLocal, IHash
     public byte[] MediaBlob { get; set; }
     public int MediaSize { get; set; }
 
+    /// <summary>
+    /// Last time we did a successful AVDump.
+    /// </summary>
+    /// <value></value>
+    public DateTime? LastAVDumped { get; set; }
+    
+    /// <summary>
+    /// The Version of AVDump from Last time we did a successful AVDump.
+    /// </summary>
+    /// <value></value>
+    public string LastAVDumpVersion { get; set; }
+
     #endregion
 
     public int MyListID { get; set; }

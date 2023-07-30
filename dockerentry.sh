@@ -6,9 +6,6 @@ PGID=${PGID:-100}
 
 [ $PUID -eq 0 ] && [ $PGID -eq 0 ] && echo "You really shouldn't be doing this..." && dotnet /usr/src/app/build/Shoko.CLI.dll
 
-
-[ "$AVDUMP_MONO" = true ] && (which mono > /dev/null || (apt-get update && apt-get install -y mono-runtime libmono-system-xml-linq4.0-cil))
-
 GROUP="shokogroup"
 USER="shoko"
 
@@ -64,5 +61,5 @@ UMASK set:    $(umask)
 -------------------------------------
 "
 
-# Go and run the server 
+# Go and run the server
 exec gosu $USER:$GROUP /usr/src/app/build/Shoko.CLI
