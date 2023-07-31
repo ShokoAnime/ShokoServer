@@ -369,7 +369,7 @@ public class ShokoServer
             if (settings.Import.RunOnStart)
             {
                 var scheduler = _schedulerFactory.GetScheduler().Result;
-                scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().StoreDurably().WithGeneratedIdentity().Build()).GetAwaiter()
+                scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().WithGeneratedIdentity().Build()).GetAwaiter()
                     .GetResult();
             }
 
@@ -397,7 +397,7 @@ public class ShokoServer
     public void RefreshAllMediaInfo()
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob(JobBuilder<MediaInfoJob>.Create().DisallowConcurrentExecution().StoreDurably().WithGeneratedIdentity().Build()).GetAwaiter().GetResult();
+        scheduler.StartJob(JobBuilder<MediaInfoJob>.Create().DisallowConcurrentExecution().WithGeneratedIdentity().Build()).GetAwaiter().GetResult();
     }
 
     #endregion
@@ -651,7 +651,7 @@ public class ShokoServer
     public void ScanDropFolders()
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob(JobBuilder<ScanDropFoldersJob>.Create().StoreDurably().DisallowConcurrentExecution().WithGeneratedIdentity().Build()).GetAwaiter().GetResult();
+        scheduler.StartJob(JobBuilder<ScanDropFoldersJob>.Create().DisallowConcurrentExecution().WithGeneratedIdentity().Build()).GetAwaiter().GetResult();
     }
 
     public void ScanFolder(int importFolderID)
@@ -659,7 +659,6 @@ public class ShokoServer
         var scheduler = _schedulerFactory.GetScheduler().Result;
         scheduler.StartJob(JobBuilder<ScanFolderJob>.Create()
                 .DisallowConcurrentExecution()
-                .StoreDurably()
                 .UsingJobData(a => a.ImportFolderID = importFolderID)
                 .WithGeneratedIdentity()
                 .Build()).GetAwaiter().GetResult();
@@ -669,7 +668,6 @@ public class ShokoServer
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
         scheduler.StartJob(JobBuilder<RemoveMissingFilesJob>.Create()
-            .StoreDurably()
             .UsingJobData(a => a.RemoveMyList = removeMyList)
             .WithGeneratedIdentity()
             .Build()).GetAwaiter().GetResult();
@@ -684,7 +682,6 @@ public class ShokoServer
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
         scheduler.StartJob(JobBuilder<DeleteImportFolderJob>.Create()
-                .StoreDurably()
                 .UsingJobData(a => a.ImportFolderID = importFolderID)
                 .WithGeneratedIdentity()
                 .Build()).GetAwaiter().GetResult();

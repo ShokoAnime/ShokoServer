@@ -716,7 +716,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     public async void RunImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().StoreDurably().WithDefaultIdentity().Build());
+        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().WithGeneratedIdentity().Build());
     }
 
     [HttpPost("File/Hashes/Sync")]

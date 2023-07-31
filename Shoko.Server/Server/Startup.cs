@@ -74,7 +74,7 @@ public class Startup
                 // Register the connectivity monitor job with a trigger that executes every 5 minutes
                 q.ScheduleJob<ConnectivityMonitorJob>(
                     trigger => trigger.WithCronSchedule("0 */15 * * * ?").StartNow(),
-                    j => j.StoreDurably().DisallowConcurrentExecution().WithGeneratedIdentity());
+                    j => j.DisallowConcurrentExecution().WithGeneratedIdentity());
 
                 // TODO, in the future, when commands are Jobs, we'll use a AddCommands() extension like below for those, but manual registration for scheduled tasks like above
             });

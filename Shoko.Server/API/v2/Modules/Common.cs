@@ -165,7 +165,7 @@ public class Common : BaseController
     public async Task<ActionResult> RunImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().StoreDurably().WithGeneratedIdentity().Build());
+        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().WithGeneratedIdentity().Build());
         return Ok();
     }
 
@@ -2689,7 +2689,7 @@ public class Common : BaseController
     public async Task<ActionResult> RunCloudImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().StoreDurably().WithGeneratedIdentity().Build());
+        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().WithGeneratedIdentity().Build());
         return Ok();
     }
 
