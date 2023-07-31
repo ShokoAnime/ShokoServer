@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Shoko.Server.Services.Connectivity;
 
-public abstract class HeadConnectivityMonitor : IConnectivityMonitor
+public abstract class GetConnectivityMonitor : IConnectivityMonitor
 {
     private readonly ILogger _logger;
     private readonly string _target;
@@ -15,7 +15,7 @@ public abstract class HeadConnectivityMonitor : IConnectivityMonitor
     private bool _lastState;
     private DateTime? _lastRunTimestamp;
 
-    protected HeadConnectivityMonitor(string target, ILogger logger)
+    protected GetConnectivityMonitor(string target, ILogger logger)
     {
         _logger = logger;
         _target = target;
@@ -35,7 +35,7 @@ public abstract class HeadConnectivityMonitor : IConnectivityMonitor
         
         _logger.LogInformation("Trying to connect to {Service}", Service);
         // TODO: Use polly for retry and backoff
-        using var request = new HttpRequestMessage(HttpMethod.Head, new Uri(_target));
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(_target));
         var sw = Stopwatch.StartNew();
         try
         {

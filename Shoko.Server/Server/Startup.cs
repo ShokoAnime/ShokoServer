@@ -19,7 +19,7 @@ using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Scheduling.Jobs;
-using Shoko.Server.Services.ConnectivityMon;
+using Shoko.Server.Services.Connectivity;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
@@ -55,6 +55,8 @@ public class Startup
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
             services.AddSingleton<ICommandRequestFactory, CommandRequestFactory>();
             services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();
+            services.AddSingleton<IConnectivityMonitor, MicrosoftConnectivityMonitor>();
+            services.AddSingleton<IConnectivityMonitor, WeChatConnectivityMonitor>();
             services.AddTransient<ScanFolderJob>();
             services.AddTransient<DeleteImportFolderJob>();
             services.AddTransient<ScanDropFoldersJob>();
@@ -71,7 +73,7 @@ public class Startup
 
                 // Register the connectivity monitor job with a trigger that executes every 5 minutes
                 q.ScheduleJob<ConnectivityMonitorJob>(
-                    trigger => trigger.WithCronSchedule("0 */5 * * * ?").StartNow(),
+                    trigger => trigger.WithCronSchedule("0 */15 * * * ?").StartNow(),
                     j => j.StoreDurably().DisallowConcurrentExecution().WithGeneratedIdentity());
 
                 // TODO, in the future, when commands are Jobs, we'll use a AddCommands() extension like below for those, but manual registration for scheduled tasks like above

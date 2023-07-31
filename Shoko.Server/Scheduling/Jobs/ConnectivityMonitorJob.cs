@@ -4,10 +4,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Quartz;
 using QuartzJobFactory.Attributes;
-using Shoko.Server.Services.ConnectivityMon;
+using Shoko.Server.Services.Connectivity;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
@@ -16,11 +18,13 @@ namespace Shoko.Server.Scheduling.Jobs;
 [DisallowConcurrentExecution]
 public class ConnectivityMonitorJob : IJob
 {
-    private readonly IEnumerable<IConnectivityMonitor> _connectivityMonitors;
+    private readonly IConnectivityMonitor[] _connectivityMonitors;
+    private readonly ILogger<ConnectivityMonitorJob> _logger;
 
-    public ConnectivityMonitorJob(IEnumerable<IConnectivityMonitor> connectivityMonitors)
+    public ConnectivityMonitorJob(IEnumerable<IConnectivityMonitor> connectivityMonitors, ILogger<ConnectivityMonitorJob> logger)
     {
-        _connectivityMonitors = connectivityMonitors;
+        _connectivityMonitors = connectivityMonitors.ToArray();
+        _logger = logger;
     }
 
     protected ConnectivityMonitorJob() { }
@@ -31,11 +35,14 @@ public class ConnectivityMonitorJob : IJob
         {
             // get data out of the MergedJobDataMap
             //var value = context.MergedJobDataMap.GetString("some-value");
-            // TODO: Logging
+            _logger.LogInformation("Checking Network Connectivity");
             await Parallel.ForEachAsync(_connectivityMonitors, async (monitor, token) =>
             {
-                await monitor.ExecuteCheckAsync();
+                await monitor.ExecuteCheckAsync(token);
             });
+
+            _logger.LogInformation("Successfully connected to {Count}/{Total} services", _connectivityMonitors.Count(a => a.HasConnected),
+                _connectivityMonitors.Length);
             // ... do work
         } catch (Exception ex) {
             // do you want the job to refire?
