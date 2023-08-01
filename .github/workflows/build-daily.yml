@@ -287,7 +287,7 @@ jobs:
           description: |
             **Version**: `${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}`
 
-            To update by by grabbing the latest daily from [out site](https://shokoanime.com/downloads/shoko-server) or through Docker!
+            Update by grabbing the latest daily from [out site](https://shokoanime.com/downloads/shoko-server) or through Docker!
 
             **Changes since last build**:
             ${{ steps.generate_changelog.outputs.CHANGELOG }}
