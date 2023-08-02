@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -35,7 +35,7 @@ public static class AVDumpHelper
 
     private static Regex ProgressRegex = new Regex(@"^\s*(?<currentFiles>\d+)\/(?<totalFiles>\d+)\s+Files\s+\|\s+(?<currentBytes>\d+)\/(?<totalBytes>\d+)\s+\w{1,4}\s+\|", RegexOptions.Compiled);
 
-    private static Regex SummaryRegex = new Regex(@"^\s*Total\s+\[(?<progress>[\s#]+)\]\s+(?<speed1m>\d+)\s+(?<speed5m>\d+)\s+(?<speed15m>\d+)(?<speedUnit>[A-Za-z]+)/s\s*$", RegexOptions.Compiled);
+    private static Regex SummaryRegex = new Regex(@"^\s*Total\s+\[(?<progress>[\s#]+)\]\s+(?<speed1m>\-?\d+)\s+(?<speed5m>\-?\d+)\s+(?<speed15m>\-?\d+)(?<speedUnit>[A-Za-z]+)/s\s*$", RegexOptions.Compiled);
 
     private static Regex SeperatorRegex = new Regex(@"^\s*\-+\s*$", RegexOptions.Compiled);
 
