@@ -112,7 +112,8 @@ public class MediaInfo
                 if (string.IsNullOrEmpty(key))
                     continue;
                 var (hours, minutes, seconds, milliseconds, _rest) = key.Substring(1).Split('_');
-                var timestamp = TimeSpan.Parse($"{hours}:{minutes}:{seconds}.{milliseconds}");
+                if (!TimeSpan.TryParse($"{hours}:{minutes}:{seconds}.{milliseconds}", out var timestamp))
+                    continue;
                 var title = string.IsNullOrEmpty(value) ? "" : value[0] == ':' ? value.Substring(1).Trim() : value.Trim();
                 var chapterInfo = new ChapterInfo(title, timestamp);
                 Chapters.Add(chapterInfo);
