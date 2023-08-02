@@ -56,6 +56,7 @@ public class Startup
             services.AddSingleton<ICommandRequestFactory, CommandRequestFactory>();
             services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, MicrosoftConnectivityMonitor>();
+            services.AddSingleton<IConnectivityMonitor, MozillaConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, WeChatConnectivityMonitor>();
             services.AddTransient<ScanFolderJob>();
             services.AddTransient<DeleteImportFolderJob>();
