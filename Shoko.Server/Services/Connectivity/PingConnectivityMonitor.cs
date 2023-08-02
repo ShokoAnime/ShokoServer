@@ -24,6 +24,8 @@ public abstract class PingConnectivityMonitor : IConnectivityMonitor
         _target = target;
     }
 
+    public abstract string Service { get; }
+
     public async Task ExecuteCheckAsync(CancellationToken token)
     {
         // Only trigger every 15 minutes
