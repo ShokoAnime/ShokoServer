@@ -38,7 +38,7 @@ jobs:
         shell: pwsh
         run: |
           .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
-          .\\.github\\workflows\\ReplaceAVD3URL.ps1 -dsn ${{ secrets.AVD3_URL }}
+          .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Get release info
         id: release_info
