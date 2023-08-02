@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -164,8 +164,10 @@ public static class AVDumpHelper
         if (commandId.HasValue && commandId <= 0)
             commandId = null;
         AVDumpSession session;
+        int preExistingSessions;
         lock (_startLock)
         {
+            preExistingSessions = ActiveSessions.Count;
             session = new AVDumpSession(commandId, videoDict.Keys, videoDict.Values);
             var checkedIds = new HashSet<int>();
             foreach (var videoId in videoDict.Keys)
@@ -271,7 +273,8 @@ public static class AVDumpHelper
                     "--DisableFileRename=true",
                     "--Consumers=ED2K",
                     $"--Auth={settings.AniDb.Username.Trim()}:{settings.AniDb.AVDumpKey?.Trim()}",
-                    $"--LPort={settings.AniDb.AVDumpClientPort}",
+                    // Workaround for when we try to start multiple dump sessions.
+                    $"--LPort={(preExistingSessions == 0 ? settings.AniDb.AVDumpClientPort : 0)}",
                     "--PrintEd2kLink=true",
                 }.Concat(videoDict.Values).ToArray()
             );
