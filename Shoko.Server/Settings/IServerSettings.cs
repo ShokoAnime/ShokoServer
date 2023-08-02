@@ -24,6 +24,7 @@ public interface IServerSettings
     TraktSettings TraktTv { get; set; }
     LinuxSettings Linux { get; set; }
     FileQualityPreferences FileQualityPreferences { get; set; }
+    ConnectivitySettings Connectivity { get; set; }
     bool AutoGroupSeries { get; set; }
     List<string> AutoGroupSeriesRelationExclusions { get; set; }
     bool AutoGroupSeriesUseScoreAlgorithm { get; set; }

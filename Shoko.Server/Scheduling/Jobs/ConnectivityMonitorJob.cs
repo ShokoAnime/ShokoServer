@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using QuartzJobFactory.Attributes;
 using Shoko.Server.Services.Connectivity;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
@@ -18,11 +19,13 @@ namespace Shoko.Server.Scheduling.Jobs;
 [DisallowConcurrentExecution]
 public class ConnectivityMonitorJob : IJob
 {
+    private readonly ISettingsProvider _settingsProvider;
     private readonly IConnectivityMonitor[] _connectivityMonitors;
     private readonly ILogger<ConnectivityMonitorJob> _logger;
 
-    public ConnectivityMonitorJob(IEnumerable<IConnectivityMonitor> connectivityMonitors, ILogger<ConnectivityMonitorJob> logger)
+    public ConnectivityMonitorJob(ISettingsProvider settingsProvider, IEnumerable<IConnectivityMonitor> connectivityMonitors, ILogger<ConnectivityMonitorJob> logger)
     {
+        _settingsProvider = settingsProvider;
         _connectivityMonitors = connectivityMonitors.ToArray();
         _logger = logger;
     }
@@ -33,16 +36,28 @@ public class ConnectivityMonitorJob : IJob
     {
         try 
         {
+            var currentlyDisabledMonitors = _settingsProvider.GetSettings().Connectivity.DisabledMonitorServices
+                .ToHashSet();
+            var monitors = _connectivityMonitors
+                .Where(monitor => !currentlyDisabledMonitors.Contains(monitor.Service.ToLowerInvariant()))
+                .ToList();
+
+            if (monitors.Count == 0)
+            {
+                _logger.LogInformation("Skipped checking Network Connectivity");
+                return;
+            }
+
             // get data out of the MergedJobDataMap
             //var value = context.MergedJobDataMap.GetString("some-value");
             _logger.LogInformation("Checking Network Connectivity");
-            await Parallel.ForEachAsync(_connectivityMonitors, async (monitor, token) =>
+            await Parallel.ForEachAsync(monitors, async (monitor, token) =>
             {
                 await monitor.ExecuteCheckAsync(token);
             });
 
-            _logger.LogInformation("Successfully connected to {Count}/{Total} services", _connectivityMonitors.Count(a => a.HasConnected),
-                _connectivityMonitors.Length);
+            _logger.LogInformation("Successfully connected to {Count}/{Total} services", monitors.Count(a => a.HasConnected),
+                monitors.Count);
             // ... do work
         } catch (Exception ex) {
             // do you want the job to refire?

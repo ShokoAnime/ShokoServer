@@ -55,6 +55,8 @@ public class ServerSettings : IServerSettings
 
     public PluginSettings Plugins { get; set; } = new();
 
+    public ConnectivitySettings Connectivity { get; set; } = new();
+
     public bool AutoGroupSeries { get; set; }
 
     public List<string> AutoGroupSeriesRelationExclusions { get; set; } = new() { "same setting", "character" };

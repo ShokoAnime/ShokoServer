@@ -9,6 +9,7 @@ namespace Shoko.Server.Services.Connectivity;
 
 public interface IConnectivityMonitor
 {
+    public string Service { get; }
     public Task ExecuteCheckAsync(CancellationToken token);
     public bool HasConnected { get; }
 }
