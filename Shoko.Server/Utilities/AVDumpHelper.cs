@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -173,7 +173,7 @@ public static class AVDumpHelper
                 if (ActiveSessions.TryGetValue(videoId, out var otherSession) ||
                     !ActiveSessions.TryAdd(videoId, session))
                 {
-                    var message = "Unable to run on the same VideoLocal concurrently.";
+                    var message = "Unable start an AVDump session for a VideoLocal already in a session.";
                     logger.Warn(message);
                     foreach (var checkedVideoId in checkedIds)
                         ActiveSessions.TryRemove(checkedVideoId, out otherSession);
