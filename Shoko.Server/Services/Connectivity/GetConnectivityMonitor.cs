@@ -24,7 +24,7 @@ public abstract class GetConnectivityMonitor : IConnectivityMonitor
             Timeout = TimeSpan.FromSeconds(5)
         };
     }
-    
+
     public abstract string Service { get; }
 
     public async Task ExecuteCheckAsync(CancellationToken token)
@@ -32,7 +32,7 @@ public abstract class GetConnectivityMonitor : IConnectivityMonitor
         // Only trigger every 15 minutes
         if (_lastRunTimestamp is not null && _lastRunTimestamp.Value.AddMinutes(15) < DateTime.Now)
             return;
-        
+
         _logger.LogInformation("Trying to connect to {Service}", Service);
         // TODO: Use polly for retry and backoff
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(_target));
