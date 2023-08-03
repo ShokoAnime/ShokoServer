@@ -266,6 +266,7 @@ public static class AVDumpHelper
             };
             using var subProcess = GetSubProcessForOS(
                 new string[] {
+                    $"--Timeout={settings.AniDb.AVDump.CreqTimeout}:{settings.AniDb.AVDump.CreqMaxRetries}",
                     $"--Concurrent={settings.AniDb.AVDump.MaxConcurrency}",
                     "--HideBuffers=true",
                     "--HideFileProgress=true",
