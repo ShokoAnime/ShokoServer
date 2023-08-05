@@ -631,7 +631,7 @@ public class FileController : BaseController
     /// <returns></returns>
     [HttpPost("{fileID}/AVDump")]
     public ActionResult<AVDump.Result> AvDumpFile([FromRoute] int fileID, [FromQuery] bool priority = false,
-        [FromQuery] bool immediate = false)
+        [FromQuery] bool immediate = true)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
