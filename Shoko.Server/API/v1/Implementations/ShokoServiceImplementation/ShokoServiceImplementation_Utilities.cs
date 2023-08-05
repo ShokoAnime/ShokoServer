@@ -1569,6 +1569,12 @@ public partial class ShokoServiceImplementation
         );
         command.BubbleExceptions = true;
         command.ProcessCommand();
-        return command.Result.StandardOutput.Replace("\n", "\r\n");
+
+        var output = command.Result.StandardOutput.Replace("\n", "\r\n");
+        if (command.Result.IsSuccess)
+            output += $"--------------------------------------------------------------------------------\r\n\r\n{string.Join("\r\n", command.Result.ED2Ks)}\r\n\r\nDumping successful.";
+        else
+            output += $"--------------------------------------------------------------------------------\r\n\r\nFailed to complete AVDump session {command.Result.SessionID}:\r\n\r\nFiles:\r\n{string.Join("\r\n", command.Result.AbsolutePaths)}\r\n\r\nStandard Output:\r\n{command.Result.StandardOutput}{(command.Result.StandardError.Length > 0 ? $"\r\nStandard Error:\r\n{command.Result.StandardError}" : "")}";
+        return output;
     }
 }
