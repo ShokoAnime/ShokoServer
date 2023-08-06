@@ -216,7 +216,7 @@ public class FileController : BaseController
                 if (includeDuplicates != IncludeOnlyFilter.True)
                 {
                     var shouldHideDuplicate = includeDuplicates == IncludeOnlyFilter.False;
-                    var hasDuplicates = video.Places.Count > 1;
+                    var hasDuplicates = locations.Count > 1;
                     if (shouldHideDuplicate == hasDuplicates)
                         return false;
                 }
