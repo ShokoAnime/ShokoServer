@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 110;
+    public override int RequiredVersion { get; } = 111;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -678,6 +678,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(109, 2, "ALTER TABLE JMMUser ADD AvatarImageMetadata NVARCHAR(128) NULL;"),
         new DatabaseCommand(110, 1, "ALTER TABLE VideoLocal ADD LastAVDumped datetime;"),
         new DatabaseCommand(110, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion nvarchar(128);"),
+        new DatabaseCommand(111, 1, DatabaseFixes.FixAnimeSourceLinks),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

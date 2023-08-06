@@ -877,6 +877,17 @@ public class DatabaseFixes
         logger.Info($"Done updating anidb tags for {animeList.Count} anidb anime entries.");
     }
 
+    public static void FixAnimeSourceLinks()
+    {
+        var animesToSave = RepoFactory.AniDB_Anime.GetAll();
+        foreach (var anime in animesToSave)
+        {
+            anime.Site_JP = string.Join("|", anime.Site_JP.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct());
+            anime.Site_EN = string.Join("|", anime.Site_EN.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct());
+        }
+        RepoFactory.AniDB_Anime.Save(animesToSave);
+    }
+
     public static void FixEpisodeDateTimeUpdated()
     {
         var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();

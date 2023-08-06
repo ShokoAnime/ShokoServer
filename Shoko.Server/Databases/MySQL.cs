@@ -20,7 +20,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 117;
+    public override int RequiredVersion { get; } = 118;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -735,6 +735,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(116, 2, "ALTER TABLE JMMUser ADD AvatarImageMetadata VARCHAR(128) NULL;"),
         new(117, 1, "ALTER TABLE VideoLocal ADD LastAVDumped datetime;"),
         new(117, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion nvarchar(128);"),
+        new(118, 1, DatabaseFixes.FixAnimeSourceLinks),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

@@ -846,7 +846,7 @@ public class AnimeCreator
                         if (string.IsNullOrEmpty(anime.Site_JP))
                             anime.Site_JP = resource.ResourceID;
                         else
-                            anime.Site_JP += "|" + resource.ResourceID;
+                            anime.Site_JP = string.Join("|", anime.Site_JP.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Append(resource.ResourceID).Distinct());
                         break;
                     }
                 case AniDB_ResourceLinkType.Site_EN:
@@ -854,7 +854,7 @@ public class AnimeCreator
                         if (string.IsNullOrEmpty(anime.Site_EN))
                             anime.Site_EN = resource.ResourceID;
                         else
-                            anime.Site_EN += "|" + resource.ResourceID;
+                            anime.Site_EN = string.Join("|", anime.Site_EN.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Append(resource.ResourceID).Distinct());
                         break;
                     }
                 case AniDB_ResourceLinkType.Wiki_EN:
