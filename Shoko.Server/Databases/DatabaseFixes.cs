@@ -879,11 +879,19 @@ public class DatabaseFixes
 
     public static void FixAnimeSourceLinks()
     {
-        var animesToSave = RepoFactory.AniDB_Anime.GetAll();
-        foreach (var anime in animesToSave)
+        var animesToSave = new HashSet<SVR_AniDB_Anime>();
+        foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
         {
-            anime.Site_JP = string.Join("|", anime.Site_JP.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct());
-            anime.Site_EN = string.Join("|", anime.Site_EN.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct());
+            if (!string.IsNullOrEmpty(anime.Site_JP))
+            {
+                animesToSave.Add(anime);
+                anime.Site_JP = string.Join("|", anime.Site_JP.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct());
+            }
+            if (!string.IsNullOrEmpty(anime.Site_EN))
+            {
+                animesToSave.Add(anime);
+                anime.Site_EN = string.Join("|", anime.Site_EN.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct());
+            }
         }
         RepoFactory.AniDB_Anime.Save(animesToSave);
     }
