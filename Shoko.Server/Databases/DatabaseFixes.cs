@@ -1032,6 +1032,8 @@ public class DatabaseFixes
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         var allSeries = RepoFactory.AnimeSeries.GetAll()
             .ToDictionary(series => series.AnimeSeriesID);
+        var allSeriesAnidbId = allSeries.Values
+            .ToDictionary(series => series.AniDB_ID);
         var allAniDBEpisodes = RepoFactory.AniDB_Episode.GetAll()
             .ToDictionary(ep => ep.EpisodeID);
         var shokoEpisodesToRemove = RepoFactory.AnimeEpisode.GetAll()
@@ -1060,21 +1062,21 @@ public class DatabaseFixes
                 continue;
 
             // The series does not exist anymore. Schedule the episode to be removed.
-            if (!allSeries.TryGetValue(shokoEpisode.AnimeSeriesID, out var shokoSeries))
+            if (!allSeries.TryGetValue(shokoEpisode.AnimeSeriesID, out var actualSeries))
             {
                 shokoEpisodesToRemove.Add(shokoEpisode);
                 continue;
             }
 
             // The episode is linked to the correct series, continue.
-            if (shokoSeries.AniDB_ID == episode.AnimeID)
+            if (actualSeries.AniDB_ID == episode.AnimeID)
                 continue;
 
             // The series was incorrectly linked to the wrong series. Correct it
             // if it's possible, or delete the episode.
-            if (allSeries.TryGetValue(shokoEpisode.AnimeSeriesID, out var otherSeries))
+            if (allSeriesAnidbId.TryGetValue(episode.AnimeID, out var correctSeries))
             {
-                shokoEpisode.AnimeSeriesID = otherSeries.AnimeSeriesID;
+                shokoEpisode.AnimeSeriesID = correctSeries.AnimeSeriesID;
                 shokoEpisodesToSave.Add(shokoEpisode);
                 continue;
             }
