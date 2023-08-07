@@ -1116,21 +1116,6 @@ public class DatabaseFixes
             tvdbXRefOverridesToRemove.AddRange(tvdbXRefOverrides);
         }
 
-        logger.Trace($"Deleting {shokoEpisodesToRemove.Count} orphaned shoko episodes.");
-        RepoFactory.AnimeEpisode.Delete(shokoEpisodesToRemove);
-
-        logger.Trace($"Deleting {anidbFilesToRemove.Count} orphaned anidb files.");
-        RepoFactory.AniDB_File.Delete(anidbFilesToRemove);
-
-        logger.Trace($"Deleting {xrefsToRemove.Count} orphaned file/episode cross-references.");
-        RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
-
-        logger.Trace($"Deleting {tvdbXRefsToRemove.Count} orphaned anidb/tvdb episode cross-references.");
-        RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(tvdbXRefsToRemove);
-
-        logger.Trace($"Deleting {tvdbXRefOverridesToRemove.Count} orphaned anidb/tvdb episode cross-reference overrides.");
-        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(tvdbXRefOverridesToRemove);
-
         // Schedule a refetch of any video files affected by the removal of the
         // episodes. They were likely moved to another episode entry so let's
         // try and fetch that.
@@ -1145,5 +1130,20 @@ public class DatabaseFixes
             });
             command.Save();
         }
+
+        logger.Trace($"Deleting {shokoEpisodesToRemove.Count} orphaned shoko episodes.");
+        RepoFactory.AnimeEpisode.Delete(shokoEpisodesToRemove);
+
+        logger.Trace($"Deleting {anidbFilesToRemove.Count} orphaned anidb files.");
+        RepoFactory.AniDB_File.Delete(anidbFilesToRemove);
+
+        logger.Trace($"Deleting {tvdbXRefsToRemove.Count} orphaned anidb/tvdb episode cross-references.");
+        RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(tvdbXRefsToRemove);
+
+        logger.Trace($"Deleting {tvdbXRefOverridesToRemove.Count} orphaned anidb/tvdb episode cross-reference overrides.");
+        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(tvdbXRefOverridesToRemove);
+
+        logger.Trace($"Deleting {xrefsToRemove.Count} orphaned file/episode cross-references.");
+        RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
     }
 }
