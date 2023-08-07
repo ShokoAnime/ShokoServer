@@ -1049,15 +1049,8 @@ public class DatabaseFixes
             })
             .ToHashSet();
 
-        // Remove any existing links to the episodes that will be removed.
-        var anidbFilesToRemove = new List<SVR_AniDB_File>();
-        var xrefsToRemove = new List<CrossRef_File_Episode>();
-        var videosToRefetch = new List<SVR_VideoLocal>();
-        var tvdbXRefsToRemove = new List<CrossRef_AniDB_TvDB_Episode>();
-        var tvdbXRefOverridesToRemove = new List<CrossRef_AniDB_TvDB_Episode_Override>();
-
         // Validate existing shoko episodes.
-        logger.Trace($"Checking {allAniDBEpisodes.Values} anidb episodes for broken or incorrect links…");
+        logger.Trace($"Checking {allAniDBEpisodes.Values.Count} anidb episodes for broken or incorrect links…");
         var shokoEpisodesToSave = new List<SVR_AnimeEpisode>();
         foreach (var episode in allAniDBEpisodes.Values)
         {
@@ -1067,7 +1060,7 @@ public class DatabaseFixes
                 continue;
 
             // The series does not exist anymore. Schedule the episode to be removed.
-            if (!allSeries.TryGetValue(shokoEpisode.AnimeEpisodeID, out var shokoSeries))
+            if (!allSeries.TryGetValue(shokoEpisode.AnimeSeriesID, out var shokoSeries))
             {
                 shokoEpisodesToRemove.Add(shokoEpisode);
                 continue;
@@ -1090,11 +1083,16 @@ public class DatabaseFixes
             // episode.
             shokoEpisodesToRemove.Add(shokoEpisode);
         }
-        logger.Trace($"Checked {allAniDBEpisodes.Values} anidb episodes for broken or incorrect links. Found {shokoEpisodesToSave.Count} shoko episodes to fix.");
+        logger.Trace($"Checked {allAniDBEpisodes.Values.Count} anidb episodes for broken or incorrect links. Found {shokoEpisodesToSave.Count} shoko episodes to fix and {shokoEpisodesToRemove.Count} to remove.");
         RepoFactory.AnimeEpisode.Save(shokoEpisodesToSave);
 
         // Remove any existing links to the episodes that will be removed.
         logger.Trace($"Checking {shokoEpisodesToRemove.Count} orphaned shoko episodes before deletion.");
+        var anidbFilesToRemove = new List<SVR_AniDB_File>();
+        var xrefsToRemove = new List<CrossRef_File_Episode>();
+        var videosToRefetch = new List<SVR_VideoLocal>();
+        var tvdbXRefsToRemove = new List<CrossRef_AniDB_TvDB_Episode>();
+        var tvdbXRefOverridesToRemove = new List<CrossRef_AniDB_TvDB_Episode_Override>();
         foreach (var shokoEpisode in shokoEpisodesToRemove)
         {
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(shokoEpisode.AniDB_EpisodeID);
