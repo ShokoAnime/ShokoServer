@@ -893,7 +893,12 @@ public class DatabaseFixes
                 anime.Site_EN = string.Join("|", anime.Site_EN.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct());
             }
         }
+
+        logger.Trace($"Found {animesToSave.Count} animes with faulty source links. Updating…");
+
         RepoFactory.AniDB_Anime.Save(animesToSave);
+
+        logger.Trace($"Updated {animesToSave.Count} animes with faulty source links.");
     }
 
     public static void FixEpisodeDateTimeUpdated()
@@ -1111,16 +1116,25 @@ public class DatabaseFixes
             tvdbXRefOverridesToRemove.AddRange(tvdbXRefOverrides);
         }
 
-        logger.Trace($"Deleting {shokoEpisodesToRemove.Count} orphaned shoko episodes, {anidbFilesToRemove.Count} orphaned anidb files, {xrefsToRemove.Count} orphaned file/episode cross-references, {tvdbXRefsToRemove.Count} orphaned anidb/tvdb episode cross-references, and {tvdbXRefOverridesToRemove.Count} orphaned anidb/tvdb episode cross-reference overrides to remove, and sheduling {videosToRefetch.Count} videos to for a re-fetch.");
+        logger.Trace($"Deleting {shokoEpisodesToRemove.Count} orphaned shoko episodes.");
         RepoFactory.AnimeEpisode.Delete(shokoEpisodesToRemove);
+
+        logger.Trace($"Deleting {anidbFilesToRemove.Count} orphaned anidb files.");
         RepoFactory.AniDB_File.Delete(anidbFilesToRemove);
+
+        logger.Trace($"Deleting {xrefsToRemove.Count} orphaned file/episode cross-references.");
         RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
+
+        logger.Trace($"Deleting {tvdbXRefsToRemove.Count} orphaned anidb/tvdb episode cross-references.");
         RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(tvdbXRefsToRemove);
+
+        logger.Trace($"Deleting {tvdbXRefOverridesToRemove.Count} orphaned anidb/tvdb episode cross-reference overrides.");
         RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(tvdbXRefOverridesToRemove);
 
         // Schedule a refetch of any video files affected by the removal of the
         // episodes. They were likely moved to another episode entry so let's
         // try and fetch that.
+        logger.Trace($"Scheduling {videosToRefetch.Count} videos for a re-fetch.");
         foreach (var video in videosToRefetch)
         {
             var command = commandFactory.Create<CommandRequest_ProcessFile>(c =>
