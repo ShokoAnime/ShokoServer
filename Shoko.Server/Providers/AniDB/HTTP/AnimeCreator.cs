@@ -280,7 +280,7 @@ public class AnimeCreator
         }
 
         // Validate existing shoko episodes.
-        var series = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+        var correctSeries = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
         var shokoEpisodesToRemove = new List<SVR_AnimeEpisode>();
         var shokoEpisodesToSave = new List<SVR_AnimeEpisode>();
         var shokoSeriesDict = new Dictionary<int, SVR_AnimeSeries>();
@@ -289,6 +289,8 @@ public class AnimeCreator
         var videosToRefetch = new List<SVR_VideoLocal>();
         var tvdbXRefsToRemove = new List<CrossRef_AniDB_TvDB_Episode>();
         var tvdbXRefOverridesToRemove = new List<CrossRef_AniDB_TvDB_Episode_Override>();
+        if (correctSeries != null)
+            shokoSeriesDict.Add(correctSeries.AnimeSeriesID, correctSeries);
         foreach (var episode in epsToSave)
         {
             // No shoko episode, continue.
@@ -296,26 +298,18 @@ public class AnimeCreator
             if (shokoEpisode == null)
                 continue;
 
-            // Retrive the shoko series from the dictionary or fetch it from the database.
-            if (!shokoSeriesDict.TryGetValue(shokoEpisode.AnimeSeriesID, out var shokoSeries))
-                shokoSeriesDict.Add(shokoEpisode.AnimeSeriesID, RepoFactory.AnimeSeries.GetByID(shokoEpisode.AnimeSeriesID));
-
-            // The series does not exist anymore. Schedule the episode to be removed.
-            if (shokoSeries == null)
-            {
-                shokoEpisodesToRemove.Add(shokoEpisode);
-                continue;
-            }
-
-            // The episode is linked to the correct series, continue.
-            if (shokoSeries.AniDB_ID == episode.AnimeID)
+            // The series exists and the episode mapping is correct, continue.
+            if ((
+                    shokoSeriesDict.TryGetValue(shokoEpisode.AnimeSeriesID, out var actualSeries) ||
+                    shokoSeriesDict.TryAdd(shokoEpisode.AnimeSeriesID, actualSeries = RepoFactory.AnimeSeries.GetByID(shokoEpisode.AnimeSeriesID))
+                ) && actualSeries != null && actualSeries.AniDB_ID == episode.AnimeID)
                 continue;
 
             // The series was incorrectly linked to the wrong series. Correct it
             // if it's possible, or delete the episode.
-            if (series != null)
+            if (correctSeries != null)
             {
-                shokoEpisode.AnimeSeriesID = series.AnimeSeriesID;
+                shokoEpisode.AnimeSeriesID = correctSeries.AnimeSeriesID;
                 shokoEpisodesToSave.Add(shokoEpisode);
                 continue;
             }

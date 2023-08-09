@@ -1061,15 +1061,8 @@ public class DatabaseFixes
             if (shokoEpisode == null)
                 continue;
 
-            // The series does not exist anymore. Schedule the episode to be removed.
-            if (!allSeries.TryGetValue(shokoEpisode.AnimeSeriesID, out var actualSeries))
-            {
-                shokoEpisodesToRemove.Add(shokoEpisode);
-                continue;
-            }
-
-            // The episode is linked to the correct series, continue.
-            if (actualSeries.AniDB_ID == episode.AnimeID)
+            // The series exists and the episode mapping is correct, continue.
+            if (allSeries.TryGetValue(shokoEpisode.AnimeSeriesID, out var actualSeries) && actualSeries.AniDB_ID == episode.AnimeID)
                 continue;
 
             // The series was incorrectly linked to the wrong series. Correct it
