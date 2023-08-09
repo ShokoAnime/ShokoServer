@@ -314,7 +314,8 @@ public class Filter : BaseModel
                         },
                     };
                 }
-                else {
+                else
+                {
                     groupFilter.BaseCondition = (int)(IsInverted ? GroupFilterBaseCondition.Exclude : GroupFilterBaseCondition.Include);
                     if (Conditions != null)
                     {
