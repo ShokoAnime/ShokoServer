@@ -37,9 +37,9 @@ public static class WebUIHelper
     /// and install the update.
     /// </summary>
     /// <param name="tagName">Tag name to download.</param>
-    /// <param name="_channel">Deprecated.</param>
+    /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
     /// <returns></returns>
-    public static void GetUrlAndUpdate(string tagName, string _channel = null)
+    public static void GetUrlAndUpdate(string tagName)
     {
         ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
         var release = DownloadApiResponse($"releases/tags/{tagName}");
@@ -70,6 +70,7 @@ public static class WebUIHelper
     /// </summary>
     /// <param name="url">direct link to version you want to install</param>
     /// <param name="releaseDate">the release date from the api response</param>
+    /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
     /// <returns></returns>
     private static void DownloadAndInstallUpdate(string url, DateTime releaseDate)
     {
@@ -168,6 +169,7 @@ public static class WebUIHelper
     /// Find the latest version for the release channel.
     /// </summary>
     /// <param name="stable">do version have to be stable</param>
+    /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
     /// <returns></returns>
     public static string WebUIGetLatestVersion(bool stable)
     {
@@ -184,8 +186,9 @@ public static class WebUIHelper
     /// for the release channel.
     /// </summary>
     /// <param name="stable">do version have to be stable</param>
+    /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
     /// <returns></returns>
-    public static string GetVersionTag(bool stable)
+    private static string GetVersionTag(bool stable)
     {
         var releases = DownloadApiResponse("releases");
         foreach (var release in releases)
@@ -215,6 +218,7 @@ public static class WebUIHelper
     /// <param name="endpoint">Endpoint to probe for data.</param>
     /// <param name="repoName">Repository name.</param>
     /// <returns></returns>
+    /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
     internal static dynamic DownloadApiResponse(string endpoint, string repoName = null)
     {
         if (string.IsNullOrEmpty(repoName))

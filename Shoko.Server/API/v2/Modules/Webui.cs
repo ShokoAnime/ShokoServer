@@ -39,7 +39,7 @@ public class Webui : BaseController
             }
         }
 
-        WebUIHelper.GetUrlAndUpdate(WebUILatestStableVersion().version, "stable");
+        WebUIHelper.GetUrlAndUpdate(WebUILatestStableVersion().version);
         return Redirect("/webui/index.html");
     }
 
@@ -50,7 +50,7 @@ public class Webui : BaseController
     [HttpGet("update/stable")]
     public ActionResult WebUIStableUpdate()
     {
-        WebUIHelper.GetUrlAndUpdate(WebUILatestStableVersion().version, "stable");
+        WebUIHelper.GetUrlAndUpdate(WebUILatestStableVersion().version);
         return Ok();
     }
 
@@ -61,7 +61,7 @@ public class Webui : BaseController
     [HttpGet("update/unstable")]
     public ActionResult WebUIUnstableUpdate()
     {
-        WebUIHelper.GetUrlAndUpdate(WebUILatestUnstableVersion().version, "dev");
+        WebUIHelper.GetUrlAndUpdate(WebUILatestUnstableVersion().version);
         return Ok();
     }
 
