@@ -30,6 +30,7 @@ using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
 using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
 using QueueEmitter = Shoko.Server.API.SignalR.Aggregate.QueueEmitter;
 using AVDumpEmitter = Shoko.Server.API.SignalR.Aggregate.AVDumpEmitter;
+using NetworkEmitter = Shoko.Server.API.SignalR.Aggregate.NetworkEmitter;
 using LegacyAniDBEmitter = Shoko.Server.API.SignalR.Legacy.AniDBEmitter;
 using LegacyQueueEmitter = Shoko.Server.API.SignalR.Legacy.QueueEmitter;
 using LegacyShokoEventEmitter = Shoko.Server.API.SignalR.Legacy.ShokoEventEmitter;
@@ -47,6 +48,7 @@ public static class APIExtensions
         services.AddSingleton<AniDBEmitter>();
         services.AddSingleton<ShokoEventEmitter>();
         services.AddSingleton<AVDumpEmitter>();
+        services.AddSingleton<NetworkEmitter>();
         services.AddSingleton<QueueEmitter>();
 
         services.AddAuthentication(options =>

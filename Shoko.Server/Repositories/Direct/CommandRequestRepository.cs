@@ -1,11 +1,13 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using NHibernate.Linq;
 using NLog;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Services;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Databases;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Direct;
@@ -27,9 +29,18 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         (int)CommandRequestType.TvDB_DownloadImages,
         (int)CommandRequestType.ImageDownload,
         (int)CommandRequestType.ValidateAllImages,
-        (int)CommandRequestType.DownloadAniDBImages
+        (int)CommandRequestType.DownloadAniDBImages,
     };
     private static readonly int[] CommandTypesImagesArray = CommandTypesImages.ToArray();
+
+    private static readonly HashSet<int> CommandTypesGeneral = Enum
+        .GetValues(typeof(CommandRequestType))
+        .OfType<CommandRequestType>()
+        .Cast<int>()
+        .Except(CommandTypesHasher)
+        .Except(CommandTypesImages)
+        .ToHashSet();
+    private static readonly int[] CommandTypesGeneralArray = CommandTypesGeneral.ToArray();
 
     private static readonly HashSet<int> AniDbUdpCommands = new()
     {
@@ -46,31 +57,45 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         (int)CommandRequestType.AniDB_GetUpdated,
         (int)CommandRequestType.AniDB_UpdateWatchedUDP,
         (int)CommandRequestType.AniDB_UpdateMylistStats,
-        (int)CommandRequestType.AniDB_VoteAnime
+        (int)CommandRequestType.AniDB_VoteAnime,
+        (int)CommandRequestType.AniDB_VoteEpisode,
     };
 
     private static readonly HashSet<int> AniDbHttpCommands = new()
     {
-        (int)CommandRequestType.AniDB_GetAnimeHTTP,
+        (int)CommandRequestType.AniDB_GetAnimeHTTP_Force,
         (int)CommandRequestType.AniDB_SyncMyList,
-        (int)CommandRequestType.AniDB_SyncVotes
+        (int)CommandRequestType.AniDB_SyncVotes,
     };
 
-    // This is called very often, so speed it up as much as possible
-    // We can spare bytes of RAM to speed up the command queue
-    private static readonly HashSet<int> CommandTypesGeneral = Enum.GetValues(typeof(CommandRequestType))
-        .OfType<CommandRequestType>().Cast<int>().Except(CommandTypesHasher).Except(CommandTypesImages)
-        .ToHashSet();
-    private static readonly int[] CommandTypesGeneralArray = CommandTypesGeneral.ToArray();
+    private static readonly HashSet<int> HttpNetworkCommands = new()
+    {
+        // General commands
+        (int)CommandRequestType.TvDBSearch,
+        (int)CommandRequestType.TvDB_UpdateSeries,
+        (int)CommandRequestType.TvDB_SearchAnime,
+        (int)CommandRequestType.MovieDB_SearchAnime,
+        (int)CommandRequestType.Trakt_SearchAnime,
+        (int)CommandRequestType.Trakt_UpdateInfo,
+        (int)CommandRequestType.Trakt_EpisodeHistory,
+        (int)CommandRequestType.Trakt_SyncCollection,
+        (int)CommandRequestType.Trakt_SyncCollectionSeries,
+        (int)CommandRequestType.Trakt_EpisodeCollection,
+        (int)CommandRequestType.Trakt_UpdateAllSeries,
+        (int)CommandRequestType.Plex_Sync,
+        (int)CommandRequestType.TvDB_UpdateEpisode, // this isn't used.
 
-    private static readonly HashSet<int> CommandTypesGeneralUDPBan = CommandTypesGeneral.Except(AniDbUdpCommands).ToHashSet();
-    private static readonly int[] CommandTypesGeneralUDPBanArray = CommandTypesGeneralUDPBan.ToArray();
+        // Image commands
+        (int)CommandRequestType.TvDB_DownloadImages,
+        (int)CommandRequestType.ImageDownload,
+        (int)CommandRequestType.ValidateAllImages,
+        (int)CommandRequestType.DownloadAniDBImages,
+    };
 
-    private static readonly HashSet<int> CommandTypesGeneralHTTPBan = CommandTypesGeneral.Except(AniDbHttpCommands).ToHashSet();
-    private static readonly int[] CommandTypesGeneralHTTPBanArray = CommandTypesGeneralHTTPBan.ToArray();
-
-    private static readonly HashSet<int> CommandTypesGeneralFullBan = CommandTypesGeneral.Except(AniDbUdpCommands).Except(AniDbHttpCommands).ToHashSet();
-    private static readonly int[] CommandTypesGeneralFullBanArray = CommandTypesGeneralFullBan.ToArray();
+    /// <summary>
+    /// A map of commands to use under different conditions.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, int[]> CommandConditionMap = new();
 
     /// <summary>
     /// Returns a numeric index for which queue to use
@@ -102,35 +127,59 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         return cr;
     }
 
-    public bool CheckIfCommandRequestIsDisabled(CommandRequestType type, bool httpBanned, bool udpBanned, bool udpUnavailable)
+    private int[] GetExecutableCommands(IEnumerable<int> commands, IConnectivityService connectivityService)
+    {
+        // This caching takes advantage over the fact that all the base arrays have an unique length.
+        var httpBanned = connectivityService.IsAniDBHttpBanned;
+        var httpUnavailable = !connectivityService.NetworkAvailability.HasInternet();
+        var udpBanned = connectivityService.IsAniDBUdpBanned;
+        var udpUnavailable = !connectivityService.IsAniDBUdpReachable;
+        var count = commands is int[] countArray ? countArray.Length : commands.Count();
+        var key = $"c={count},hb={httpBanned},hu={httpUnavailable},ub={udpBanned},uu={udpUnavailable}";
+        if (CommandConditionMap.TryGetValue(key, out var array))
+            return array;
+
+        if (udpBanned || udpUnavailable)
+            commands = commands.Except(AniDbUdpCommands);
+
+        if (httpBanned || httpUnavailable)
+            commands = commands.Except(AniDbHttpCommands);
+
+        if (httpUnavailable)
+            commands = commands.Except(HttpNetworkCommands);
+
+        array = commands is int[] array1 ? array1 : commands.ToArray();
+        CommandConditionMap.TryAdd(key, array);
+        return array;
+    }
+
+    public bool CheckIfCommandRequestIsDisabled(CommandRequestType type, IConnectivityService connectivityService)
     {
         if (!CommandTypesGeneral.Contains((int)type))
             return false;
 
-        if (httpBanned && udpBanned)
-            return !CommandTypesGeneralFullBan.Contains((int)type);
+        var udpBanned = connectivityService.IsAniDBUdpBanned;
+        var udpUnavailable = !connectivityService.IsAniDBUdpReachable;
+        if ((udpBanned || udpUnavailable) && AniDbUdpCommands.Contains((int)type))
+            return true;
 
-        if (udpBanned)
-            return !CommandTypesGeneralUDPBan.Contains((int)type);
+        var httpBanned = connectivityService.IsAniDBHttpBanned;
+        var httpUnavailable = !connectivityService.NetworkAvailability.HasInternet();
+        if ((httpBanned || httpUnavailable) && AniDbHttpCommands.Contains((int)type))
+            return true;
 
-        if (httpBanned)
-            return !CommandTypesGeneralHTTPBan.Contains((int)type);
+        if (httpUnavailable && HttpNetworkCommands.Contains((int)type))
+            return true;
 
         return false;
     }
 
-    public List<CommandRequest> GetNextGeneralCommandRequests(IUDPConnectionHandler udpHandler, IHttpConnectionHandler httpHandler, bool showAll = false)
+    public List<CommandRequest> GetNextGeneralCommandRequests(IConnectivityService connectivityService, bool showAll = false)
     {
         try
         {
-            var types = CommandTypesGeneralArray;
-            if (!showAll) {
-                var noUDP = udpHandler.IsBanned || !udpHandler.IsNetworkAvailable;
-                if (httpHandler.IsBanned && noUDP) types = CommandTypesGeneralFullBanArray;
-                else if (noUDP) types = CommandTypesGeneralUDPBanArray;
-                else if (httpHandler.IsBanned) types = CommandTypesGeneralHTTPBanArray;
-            }
-            var cr = Lock(() =>
+            var types = showAll ? CommandTypesGeneralArray : GetExecutableCommands(CommandTypesGeneralArray, connectivityService);
+            return Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return session.Query<CommandRequest>()
@@ -139,8 +188,6 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                     .ThenBy(r => r.DateTimeUpdated)
                     .ToList();
             });
-
-            return cr;
         }
         catch (Exception e)
         {
@@ -149,17 +196,12 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         }
     }
 
-    public CommandRequest GetNextDBCommandRequestGeneral(IUDPConnectionHandler udpHandler, IHttpConnectionHandler httpHandler)
+    public CommandRequest GetNextDBCommandRequestGeneral(IConnectivityService connectivityService)
     {
         try
         {
-            var noUDP = udpHandler.IsBanned || !udpHandler.IsNetworkAvailable;
-            var types = CommandTypesGeneralArray;
-            if (httpHandler.IsBanned && noUDP) types = CommandTypesGeneralFullBanArray;
-            else if (noUDP) types = CommandTypesGeneralUDPBanArray;
-            else if (httpHandler.IsBanned) types = CommandTypesGeneralHTTPBanArray;
-
-            var cr = Lock(() =>
+            var types = GetExecutableCommands(CommandTypesGeneralArray, connectivityService);
+            return Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return session.Query<CommandRequest>()
@@ -169,8 +211,6 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                     .Take(1)
                     .SingleOrDefault();
             });
-
-            return cr;
         }
         catch (Exception e)
         {
@@ -184,7 +224,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         try
         {
             var types = CommandTypesHasherArray;
-            var cr = Lock(() =>
+            return Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return session.Query<CommandRequest>()
@@ -193,8 +233,6 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                     .ThenBy(r => r.DateTimeUpdated)
                     .ToList();
             });
-
-            return cr;
         }
         catch (Exception e)
         {
@@ -210,13 +248,12 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
             return Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var crs = session.Query<CommandRequest>()
+                return session.Query<CommandRequest>()
                     .Where(a => CommandTypesHasherArray.Contains(a.CommandType))
                     .OrderBy(cr => cr.Priority)
                     .ThenBy(cr => cr.DateTimeUpdated)
                     .Take(1)
                     .SingleOrDefault();
-                return crs;
             });
         }
         catch (Exception e)
@@ -227,12 +264,12 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
     }
 
 
-    public List<CommandRequest> GetNextImagesCommandRequests()
+    public List<CommandRequest> GetNextImagesCommandRequests(IConnectivityService connectivityService, bool showAll)
     {
         try
         {
-            var types = CommandTypesImagesArray;
-            var cr = Lock(() =>
+            var types = showAll ? CommandTypesGeneralArray : GetExecutableCommands(CommandTypesGeneralArray, connectivityService);
+            return Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return session.Query<CommandRequest>()
@@ -241,8 +278,6 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
                     .ThenBy(r => r.DateTimeUpdated)
                     .ToList();
             });
-
-            return cr;
         }
         catch (Exception e)
         {
@@ -251,20 +286,20 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         }
     }
 
-    public CommandRequest GetNextDBCommandRequestImages()
+    public CommandRequest GetNextDBCommandRequestImages(IConnectivityService connectivityService)
     {
         try
         {
+            var types = GetExecutableCommands(CommandTypesImagesArray, connectivityService);
             return Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
-                var crs = session.Query<CommandRequest>()
-                    .Where(a => CommandTypesImagesArray.Contains(a.CommandType))
+                return session.Query<CommandRequest>()
+                    .Where(a => types.Contains(a.CommandType))
                     .OrderBy(cr => cr.Priority)
                     .ThenBy(cr => cr.DateTimeUpdated)
                     .Take(1)
                     .SingleOrDefault();
-                return crs;
             });
         }
         catch (Exception e)

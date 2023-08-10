@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Server;
 
@@ -93,13 +94,13 @@ public class Queue
         /// </summary>
         public bool IsDisabled { get; }
 
-        public QueueItem(CommandProcessor processor, CommandRequest request, bool httpBanned, bool udpBanned, bool udpUnavailable)
+        public QueueItem(CommandProcessor processor, CommandRequest request, IConnectivityService connectivityService)
         {
             ID = request.CommandRequestID;
             Name = request.CommandID;
             Type = (CommandRequestType)request.CommandType;
             IsRunning = processor.CurrentCommand != null && processor.CurrentCommand.CommandRequestID == request.CommandRequestID;
-            IsDisabled = Repositories.RepoFactory.CommandRequest.CheckIfCommandRequestIsDisabled(Type, httpBanned, udpBanned, udpUnavailable);
+            IsDisabled = Repositories.RepoFactory.CommandRequest.CheckIfCommandRequestIsDisabled(Type, connectivityService);
         }
     }
 

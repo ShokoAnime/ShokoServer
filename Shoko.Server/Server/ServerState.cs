@@ -14,9 +14,9 @@ public class ServerState : INotifyPropertyChangedExt
 {
     private static Logger logger = LogManager.GetCurrentClassLogger();
 
-    private static ServerState _instance;
+    private static ServerState _instance = new();
 
-    public static ServerState Instance => _instance ?? (_instance = new ServerState());
+    public static ServerState Instance => _instance;
 
     public ServerState()
     {

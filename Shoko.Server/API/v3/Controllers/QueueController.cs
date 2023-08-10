@@ -5,12 +5,12 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands.Generic;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -37,15 +37,12 @@ public class QueueController : BaseController
 
     private readonly ILogger<InitController> _logger;
 
-    private readonly IUDPConnectionHandler _udpHandler;
+    private readonly IConnectivityService _connectivityService;
 
-    private readonly IHttpConnectionHandler _httpHandler;
-
-    public QueueController(ILogger<InitController> logger, ISettingsProvider settingsProvider, IUDPConnectionHandler udpHandler, IHttpConnectionHandler httpHandler) : base(settingsProvider)
+    public QueueController(ILogger<InitController> logger, ISettingsProvider settingsProvider, IConnectivityService connectivityService) : base(settingsProvider)
     {
         _logger = logger;
-        _udpHandler = udpHandler;
-        _httpHandler = httpHandler;
+        _connectivityService = connectivityService;
     }
 
     /// <summary>
@@ -204,19 +201,16 @@ public class QueueController : BaseController
         if (processor == null)
             return NotFound(NoQueueWithName);
 
-        var httpBanned = _httpHandler.IsBanned;
-        var udpBanned = _udpHandler.IsBanned;
-        var udpUnavailable = _udpHandler.IsNetworkAvailable;
         return queueName.ToLowerInvariant() switch
         {
-            "general" => RepoFactory.CommandRequest.GetNextGeneralCommandRequests(_udpHandler, _httpHandler, showAll)
-                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, httpBanned, udpBanned, udpUnavailable), page, pageSize),
+            "general" => RepoFactory.CommandRequest.GetNextGeneralCommandRequests(_connectivityService, showAll)
+                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService), page, pageSize),
 
             "hasher" => RepoFactory.CommandRequest.GetNextHasherCommandRequests()
-                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, httpBanned, udpBanned, udpUnavailable), page, pageSize),
+                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService), page, pageSize),
 
-            "image" => RepoFactory.CommandRequest.GetNextImagesCommandRequests()
-                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, httpBanned, udpBanned, udpUnavailable), page, pageSize),
+            "image" => RepoFactory.CommandRequest.GetNextImagesCommandRequests(_connectivityService, showAll)
+                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService), page, pageSize),
 
             _ => NotFound(NoQueueWithName),
         };
@@ -233,7 +227,7 @@ public class QueueController : BaseController
     {
         return queueName.ToLowerInvariant() switch
         {
-            "general" => RepoFactory.CommandRequest.GetNextGeneralCommandRequests(_udpHandler, _httpHandler, true)
+            "general" => RepoFactory.CommandRequest.GetNextGeneralCommandRequests(_connectivityService, true)
                 .GroupBy(a => (CommandRequestType)a.CommandType)
                 .ToDictionary(a => a.Key, a => a.Count()),
 
@@ -241,7 +235,7 @@ public class QueueController : BaseController
                 .GroupBy(a => (CommandRequestType)a.CommandType)
                 .ToDictionary(a => a.Key, a => a.Count()),
 
-            "image" => RepoFactory.CommandRequest.GetNextImagesCommandRequests()
+            "image" => RepoFactory.CommandRequest.GetNextImagesCommandRequests(_connectivityService, true)
                 .GroupBy(a => (CommandRequestType)a.CommandType)
                 .ToDictionary(a => a.Key, a => a.Count()),
 
