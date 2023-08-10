@@ -29,7 +29,6 @@ namespace Shoko.Server.Server;
 
 public class Startup
 {
-    private const string SentryDsn = "https://47df427564ab42f4be998e637b3ec45a@o330862.ingest.sentry.io/1851880";
     private readonly ILogger<Startup> _logger;
     private readonly ISettingsProvider _settingsProvider;
     private IWebHost _webHost;
@@ -150,7 +149,7 @@ public class Startup
         if (_webHost != null) return _webHost;
 
         var settings = settingsProvider.GetSettings();
-        var result = new WebHostBuilder().UseKestrel(options =>
+        var builder = new WebHostBuilder().UseKestrel(options =>
             {
                 options.ListenAnyIP(settings.ServerPort);
             })
@@ -166,14 +165,39 @@ public class Startup
                 logging.AddFilter("System", LogLevel.Warning);
                 logging.AddFilter("Shoko.Server.API", LogLevel.Warning);
 #endif
-            }).UseNLog()
-            .UseSentry(
-                o =>
+            }).UseNLog();
+
+        // Only try to set up Sentry if the user DID NOT OPT __OUT__.
+        if (!settings.SentryOptOut && Constants.SentryDsn.StartsWith("https://"))
+        {
+            // Get the release and extra info from the assembly.
+            var extraInfo = Utils.GetApplicationExtraVersion();
+
+            // Only initialize the SDK if we're not on a debug build.
+            //
+            // If the release channel is not set or if it's set to "debug" then
+            // it's considered to be a debug build.
+            if (extraInfo.TryGetValue("channel", out var environment) && environment != "debug")
+                builder = builder.UseSentry(opts =>
                 {
-                    o.Release = Utils.GetApplicationVersion();
-                    o.Dsn = SentryDsn;
-                })
-            .Build();
+                    // Assign the DSN key and release version.
+                    opts.Dsn = Constants.SentryDsn;
+                    opts.Environment = environment;
+                    opts.Release = Utils.GetApplicationVersion();
+
+                    // Conditionally assign the extra info if they're included in the assembly.
+                    if (extraInfo.TryGetValue("commit", out var gitCommit))
+                        opts.DefaultTags.Add("commit", gitCommit);
+                    if (extraInfo.TryGetValue("tag", out var gitTag))
+                        opts.DefaultTags.Add("commit.tag", gitTag);
+
+                    // Append the release channel for the release on non-stable branches.
+                    if (environment != "stable")
+                        opts.Release += string.IsNullOrEmpty(gitCommit) ? $"-{environment}" : $"-{environment}-{gitCommit[0..7]}";
+                });
+        }
+
+        var result = builder.Build();
         Utils.SettingsProvider = result.Services.GetRequiredService<ISettingsProvider>();
         Utils.ServiceContainer = result.Services;
         return result;
