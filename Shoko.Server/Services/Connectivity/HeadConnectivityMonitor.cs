@@ -33,7 +33,7 @@ public abstract class HeadConnectivityMonitor : IConnectivityMonitor
         if (_lastRunTimestamp is not null && _lastRunTimestamp.Value.AddMinutes(15) < DateTime.Now)
             return;
 
-        _logger.LogInformation("Trying to connect to {Service}", Service);
+        _logger.LogTrace("Trying to connect to {Service}", Service);
         // TODO: Use polly for retry and backoff
         using var request = new HttpRequestMessage(HttpMethod.Head, new Uri(_target));
         var sw = Stopwatch.StartNew();
@@ -43,16 +43,16 @@ public abstract class HeadConnectivityMonitor : IConnectivityMonitor
             _lastState = result.IsSuccessStatusCode;
             sw.Stop();
             if (_lastState)
-                _logger.LogInformation("Successfully connected to {Service} in {Time}ms", Service, sw.ElapsedMilliseconds);
+                _logger.LogTrace("Successfully connected to {Service} in {Time}ms", Service, sw.ElapsedMilliseconds);
             else
-                _logger.LogInformation("Received a failed status code from {Service} in {Time}ms: {Code}", Service, sw.ElapsedMilliseconds,
+                _logger.LogTrace("Received a failed status code from {Service} in {Time}ms: {Code}", Service, sw.ElapsedMilliseconds,
                     (int)result.StatusCode);
         }
         catch
         {
             _lastState = false;
             sw.Stop();
-            _logger.LogInformation("Failed to connect to {Service} after {Time}ms", Service, sw.ElapsedMilliseconds);
+            _logger.LogTrace("Failed to connect to {Service} after {Time}ms", Service, sw.ElapsedMilliseconds);
         }
         finally
         {

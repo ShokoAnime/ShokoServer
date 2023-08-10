@@ -2,8 +2,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Commands.Generic;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands;
@@ -11,6 +11,8 @@ namespace Shoko.Server.Commands;
 public class CommandProcessorGeneral : CommandProcessor
 {
     public override string QueueType { get; } = "General";
+
+    private IConnectivityService ConnectivityService { get; set; }
 
     protected override void UpdatePause(bool pauseState)
     {
@@ -20,6 +22,7 @@ public class CommandProcessorGeneral : CommandProcessor
 
     public override void Init(IServiceProvider provider)
     {
+        ConnectivityService = provider.GetRequiredService<IConnectivityService>();
         base.Init(provider);
         QueueState = new QueueStateStruct
         {
@@ -30,9 +33,5 @@ public class CommandProcessorGeneral : CommandProcessor
     }
 
     protected override Shoko.Models.Server.CommandRequest GetNextCommandRequest()
-    {
-        var udpHandler = ServiceProvider.GetRequiredService<IUDPConnectionHandler>();
-        var httpHandler = ServiceProvider.GetRequiredService<IHttpConnectionHandler>();
-        return RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral(udpHandler, httpHandler);
-    }
+        => RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral(ConnectivityService);
 }

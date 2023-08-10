@@ -10,6 +10,7 @@ using Quartz.AspNetCore;
 using QuartzJobFactory;
 using Shoko.Commons.Properties;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API;
 using Shoko.Server.Commands;
 using Shoko.Server.PlexAndKodi;
@@ -38,7 +39,7 @@ public class Startup
         _logger = logger;
         _settingsProvider = settingsProvider;
     }
-    
+
     // tried doing it without UseStartup<ServerStartup>(), but the documentation is lacking, and I couldn't get Configure() to work otherwise
     private class ServerStartup
     {
@@ -58,6 +59,7 @@ public class Startup
             services.AddSingleton<IConnectivityMonitor, MicrosoftConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, MozillaConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, WeChatConnectivityMonitor>();
+            services.AddSingleton<IConnectivityService, ConnectivityService>();
             services.AddTransient<ScanFolderJob>();
             services.AddTransient<DeleteImportFolderJob>();
             services.AddTransient<ScanDropFoldersJob>();
@@ -68,13 +70,13 @@ public class Startup
             {
                 // as of 3.3.2 this also injects scoped services (like EF DbContext) without problems
                 q.UseMicrosoftDependencyInjectionJobFactory();
-                
+
                 // use the database that we have selected for quartz
                 //q.UseDatabase();
 
                 // Register the connectivity monitor job with a trigger that executes every 5 minutes
                 q.ScheduleJob<ConnectivityMonitorJob>(
-                    trigger => trigger.WithCronSchedule("0 */15 * * * ?").StartNow(),
+                    trigger => trigger.WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(),
                     j => j.DisallowConcurrentExecution().WithGeneratedIdentity());
 
                 // TODO, in the future, when commands are Jobs, we'll use a AddCommands() extension like below for those, but manual registration for scheduled tasks like above
@@ -99,7 +101,7 @@ public class Startup
             lifetime.ApplicationStopping.Register(() => ShokoEventHandler.Instance.OnShutdown());
         }
     }
-    
+
     public void Start()
     {
         try

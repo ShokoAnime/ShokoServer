@@ -1,6 +1,8 @@
 ﻿using System;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Repositories;
 
@@ -10,6 +12,8 @@ public class CommandProcessorImages : CommandProcessor
 {
     public override string QueueType { get; } = "Image";
 
+    private IConnectivityService ConnectivityService { get; set; }
+
     protected override void UpdatePause(bool pauseState)
     {
         ServerInfo.Instance.ImagesQueuePaused = pauseState;
@@ -18,6 +22,7 @@ public class CommandProcessorImages : CommandProcessor
 
     public override void Init(IServiceProvider provider)
     {
+        ConnectivityService = provider.GetRequiredService<IConnectivityService>();
         base.Init(provider);
         QueueState = new QueueStateStruct
         {
@@ -28,5 +33,5 @@ public class CommandProcessorImages : CommandProcessor
     }
 
     protected override Shoko.Models.Server.CommandRequest GetNextCommandRequest()
-        => RepoFactory.CommandRequest.GetNextDBCommandRequestImages();
+        => RepoFactory.CommandRequest.GetNextDBCommandRequestImages(ConnectivityService);
 }

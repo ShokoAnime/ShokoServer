@@ -10,6 +10,8 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
+using Shoko.Plugin.Abstractions.Services;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -29,12 +31,14 @@ public class TvDBApiHelper
     private readonly ILogger<TvDBApiHelper> _logger;
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ISettingsProvider _settingsProvider;
+    private readonly IConnectivityService _connectivityService;
 
-    public TvDBApiHelper(ILogger<TvDBApiHelper> logger, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider)
+    public TvDBApiHelper(ILogger<TvDBApiHelper> logger, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider, IConnectivityService connectivityService)
     {
         _logger = logger;
         _commandFactory = commandFactory;
         _settingsProvider = settingsProvider;
+        _connectivityService = connectivityService;
         _client = new TvDbClient();
         _client.BaseUrl = "https://api-beta.thetvdb.com";
     }
@@ -207,7 +211,7 @@ public class TvDBApiHelper
         // if not download it now
         var tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(tvDBID);
 
-        if (tvSeries != null)
+        if (tvSeries != null || !_connectivityService.NetworkAvailability.HasInternet())
         {
             // download and update series info, episode info and episode images
             // will also download fanart, posters and wide banners
@@ -216,7 +220,7 @@ public class TvDBApiHelper
         }
         else
         {
-            var unused = GetSeriesInfoOnlineAsync(tvDBID, true).Result;
+            tvSeries = GetSeriesInfoOnlineAsync(tvDBID, true).Result;
         }
 
         var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvDBID) ??

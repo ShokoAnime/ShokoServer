@@ -49,6 +49,7 @@ public enum CommandRequestType
     NullCommand = 98,
     DownloadAniDBImages = 99,
     AVDumpFile = 100,
+    AniDB_GetAnimeHTTP_Force = 101,
 }
 
 public enum CommandRequestPriority
