@@ -47,6 +47,8 @@ public class Startup
             services.AddSingleton<ISettingsProvider, SettingsProvider>();
             services.AddSingleton<ShokoServer>();
             services.AddSingleton(_ => ShokoService.CmdProcessorGeneral);
+            services.AddSingleton(_ => ShokoService.CmdProcessorHasher);
+            services.AddSingleton(_ => ShokoService.CmdProcessorImages);
             services.AddSingleton<LogRotator>();
             services.AddSingleton<TraktTVHelper>();
             services.AddSingleton<TvDBApiHelper>();
