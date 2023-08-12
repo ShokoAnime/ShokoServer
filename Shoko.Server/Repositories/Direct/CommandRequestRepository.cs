@@ -134,21 +134,21 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
     {
         // This caching takes advantage over the fact that all the base arrays have an unique length.
         var httpBanned = connectivityService.IsAniDBHttpBanned;
-        var httpUnavailable = !connectivityService.NetworkAvailability.HasInternet();
+        var networkUnavailable = !connectivityService.NetworkAvailability.HasInternet();
         var udpBanned = connectivityService.IsAniDBUdpBanned;
         var udpUnavailable = !connectivityService.IsAniDBUdpReachable;
         var count = commands is int[] countArray ? countArray.Length : commands.Count();
-        var key = $"c={count},hb={httpBanned},hu={httpUnavailable},ub={udpBanned},uu={udpUnavailable}";
+        var key = $"c={count},nu={networkUnavailable},hb={httpBanned},ub={udpBanned},uu={udpUnavailable}";
         if (CommandConditionMap.TryGetValue(key, out var array))
             return array;
 
-        if (udpBanned || udpUnavailable)
+        if (udpBanned || udpUnavailable || networkUnavailable)
             commands = commands.Except(AniDbUdpCommands);
 
-        if (httpBanned || httpUnavailable)
+        if (httpBanned || networkUnavailable)
             commands = commands.Except(AniDbHttpCommands);
 
-        if (httpUnavailable)
+        if (networkUnavailable)
             commands = commands.Except(HttpNetworkCommands);
 
         array = commands is int[] array1 ? array1 : commands.ToArray();
@@ -162,16 +162,16 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
             return false;
 
         var udpBanned = connectivityService.IsAniDBUdpBanned;
+        var networkUnavailable = !connectivityService.NetworkAvailability.HasInternet();
         var udpUnavailable = !connectivityService.IsAniDBUdpReachable;
-        if ((udpBanned || udpUnavailable) && AniDbUdpCommands.Contains((int)type))
+        if ((udpBanned || udpUnavailable || networkUnavailable) && AniDbUdpCommands.Contains((int)type))
             return true;
 
         var httpBanned = connectivityService.IsAniDBHttpBanned;
-        var httpUnavailable = !connectivityService.NetworkAvailability.HasInternet();
-        if ((httpBanned || httpUnavailable) && AniDbHttpCommands.Contains((int)type))
+        if ((httpBanned || networkUnavailable) && AniDbHttpCommands.Contains((int)type))
             return true;
 
-        if (httpUnavailable && HttpNetworkCommands.Contains((int)type))
+        if (networkUnavailable && HttpNetworkCommands.Contains((int)type))
             return true;
 
         return false;
