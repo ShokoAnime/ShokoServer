@@ -17,7 +17,6 @@ RUN dotnet build -c=Release -o=/usr/src/app/build/ -r=linux-arm64 Shoko.CLI/Shok
 FROM mcr.microsoft.com/dotnet/aspnet:6.0
 ENV PUID=1000 \
     PGID=100 \
-    AVDUMP_MONO=false \
     LANG=C.UTF-8 \
     LC_CTYPE=C.UTF-8 \
     LC_ALL=C.UTF-8
