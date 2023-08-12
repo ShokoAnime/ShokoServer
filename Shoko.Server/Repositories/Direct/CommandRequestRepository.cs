@@ -70,6 +70,9 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
 
     private static readonly HashSet<int> HttpNetworkCommands = new()
     {
+        // Hasher commands
+        (int)CommandRequestType.AVDumpFile,
+
         // General commands
         (int)CommandRequestType.TvDBSearch,
         (int)CommandRequestType.TvDB_UpdateSeries,
@@ -219,11 +222,11 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         }
     }
 
-    public List<CommandRequest> GetNextHasherCommandRequests()
+    public List<CommandRequest> GetNextHasherCommandRequests(IConnectivityService connectivityService, bool showAll)
     {
         try
         {
-            var types = CommandTypesHasherArray;
+            var types = showAll ? CommandTypesHasherArray : GetExecutableCommands(CommandTypesHasherArray, connectivityService);
             return Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
@@ -241,15 +244,16 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         }
     }
 
-    public CommandRequest GetNextDBCommandRequestHasher()
+    public CommandRequest GetNextDBCommandRequestHasher(IConnectivityService connectivityService)
     {
         try
         {
+            var types = GetExecutableCommands(CommandTypesHasherArray, connectivityService);
             return Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
                 return session.Query<CommandRequest>()
-                    .Where(a => CommandTypesHasherArray.Contains(a.CommandType))
+                    .Where(a => types.Contains(a.CommandType))
                     .OrderBy(cr => cr.Priority)
                     .ThenBy(cr => cr.DateTimeUpdated)
                     .Take(1)

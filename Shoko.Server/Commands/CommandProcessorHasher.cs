@@ -1,6 +1,8 @@
 ﻿using System;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Repositories;
 
@@ -10,6 +12,8 @@ public class CommandProcessorHasher : CommandProcessor
 {
     public override string QueueType { get; } = "Hasher";
 
+    private IConnectivityService ConnectivityService { get; set; }
+
     protected override void UpdatePause(bool pauseState)
     {
         ServerInfo.Instance.HasherQueuePaused = pauseState;
@@ -18,6 +22,7 @@ public class CommandProcessorHasher : CommandProcessor
 
     public override void Init(IServiceProvider provider)
     {
+        ConnectivityService = provider.GetRequiredService<IConnectivityService>();
         base.Init(provider);
         QueueState = new QueueStateStruct
         {
@@ -28,5 +33,5 @@ public class CommandProcessorHasher : CommandProcessor
     }
 
     protected override Shoko.Models.Server.CommandRequest GetNextCommandRequest()
-        => RepoFactory.CommandRequest.GetNextDBCommandRequestHasher();
+        => RepoFactory.CommandRequest.GetNextDBCommandRequestHasher(ConnectivityService);
 }

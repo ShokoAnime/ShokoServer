@@ -206,7 +206,7 @@ public class QueueController : BaseController
             "general" => RepoFactory.CommandRequest.GetNextGeneralCommandRequests(_connectivityService, showAll)
                 .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService), page, pageSize),
 
-            "hasher" => RepoFactory.CommandRequest.GetNextHasherCommandRequests()
+            "hasher" => RepoFactory.CommandRequest.GetNextHasherCommandRequests(_connectivityService, showAll)
                 .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService), page, pageSize),
 
             "image" => RepoFactory.CommandRequest.GetNextImagesCommandRequests(_connectivityService, showAll)
@@ -231,7 +231,7 @@ public class QueueController : BaseController
                 .GroupBy(a => (CommandRequestType)a.CommandType)
                 .ToDictionary(a => a.Key, a => a.Count()),
 
-            "hasher" => RepoFactory.CommandRequest.GetNextHasherCommandRequests()
+            "hasher" => RepoFactory.CommandRequest.GetNextHasherCommandRequests(_connectivityService, true)
                 .GroupBy(a => (CommandRequestType)a.CommandType)
                 .ToDictionary(a => a.Key, a => a.Count()),
 
