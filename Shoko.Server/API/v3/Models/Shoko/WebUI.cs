@@ -227,11 +227,12 @@ public class WebUI
 
     public class WebUISeriesFileSummary
     {
-        public WebUISeriesFileSummary(SVR_AnimeSeries series, HashSet<EpisodeType> episodeTypes = null, bool withEpisodeDetails = false, bool showMissingFutureEpisodes = false)
+        public WebUISeriesFileSummary(SVR_AnimeSeries series, HashSet<EpisodeType> episodeTypes = null, bool withEpisodeDetails = false, bool showMissingFutureEpisodes = false, HashSet<FileSummaryGroupByCriteria> groupByCriteria = null)
         {
             // By default only show 'normal', 'special' or 'other' episodes.
-            if (episodeTypes == null)
-                episodeTypes = new() { EpisodeType.Normal, EpisodeType.Special, EpisodeType.Other };
+            episodeTypes ??= new() { EpisodeType.Normal, EpisodeType.Special, EpisodeType.Other };
+            // By default, don't divide into groups.
+            groupByCriteria ??= new();
             var crossRefs = RepoFactory.CrossRef_File_Episode
                 .GetByAnimeID(series.AniDB_ID);
             // The episodes we want to look at. We filter it down to only normal and speical episodes.
@@ -284,64 +285,83 @@ public class WebUI
                     var isAutoLinked = (CrossRefSource)xref.CrossRefSource == CrossRefSource.AniDB;
                     var anidbFile = isAutoLinked && anidbFiles.ContainsKey(xref.Hash) ? anidbFiles[xref.Hash] : null;
                     var releaseGroup = anidbFile != null && anidbFile.GroupID != 0 && releaseGroups.ContainsKey(anidbFile.GroupID) ? releaseGroups[anidbFile.GroupID] : null;
+                    var groupByDetails = new GroupByDetails();
 
-                    var dirPath = System.IO.Path.GetDirectoryName(location.FullServerPath);
-                    var groupName = isAutoLinked ? file.ReleaseGroup?.GroupName ?? "Unknown" : "None";
-                    var version = isAutoLinked ? anidbFile?.FileVersion ?? 1 : 1;
-                    var source = File.ParseFileSource(anidbFile?.File_Source);
-                    var videoStream = media.Video.FirstOrDefault();
-                    var bitDepth = videoStream.BitDepth;
-                    var width = videoStream.Width;
-                    var height = videoStream.Height;
-                    var resolution = MediaInfoUtils.GetStandardResolution(new(width, height));
-                    var videoCodecs = string.Join(", ", media.Video
-                        .Select(stream => stream.Codec.Simplified)
-                        .Distinct()
-                        .OrderBy(codec => codec)
-                        .ToList());
-                    var audioCodecs = string.Join(", ", media.Audio
-                        .Select(stream => stream.Codec.Simplified)
-                        .Distinct()
-                        .OrderBy(codec => codec)
-                        .ToList());
-                    var subtitleCodecs = string.Join(", ", media.Subtitles
-                        .Select(stream => stream.Codec.Simplified)
-                        .Distinct()
-                        .OrderBy(codec => codec)
-                        .ToList());
-                    var subtitleLanguage = string.Join(", ", media.Subtitles
-                        .Select(stream => stream.LanguageCode ?? "unk")
-                        .Distinct()
-                        .OrderBy(language => language)
-                        .ToList());
-                    var audioLanguage = string.Join(", ", media.Audio
-                        .Select(stream => stream.LanguageCode ?? "unk")
-                        .Distinct()
-                        .OrderBy(language => language)
-                        .ToList());
+                    // Release group criterias
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.GroupName))
+                    {
+                        groupByDetails.GroupName = isAutoLinked ? file.ReleaseGroup?.GroupName ?? "Unknown" : "None";
+                        groupByDetails.GroupNameShort = isAutoLinked ? file.ReleaseGroup?.GroupNameShort ?? "Unk" : "-";
+                    }
+
+                    // File criterias
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileVersion))
+                        groupByDetails.FileVersion = isAutoLinked ? anidbFile?.FileVersion ?? 1 : 1;
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileSource))
+                        groupByDetails.FileSource = File.ParseFileSource(anidbFile?.File_Source);
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileLocation))
+                        groupByDetails.FileLocation = System.IO.Path.GetDirectoryName(location.FullServerPath);
+
+                    // Video criterias
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoCodecs))
+                        groupByDetails.VideoCodecs = string.Join(", ", media.Video
+                            .Select(stream => stream.Codec.Simplified)
+                            .Distinct()
+                            .OrderBy(codec => codec)
+                            .ToList());
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoBitDepth) ||
+                        groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoResolutuion))
+                    {
+                        var videoStream = media.Video.FirstOrDefault();
+                        if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoBitDepth))
+                            groupByDetails.VideoBitDepth = videoStream?.BitDepth ?? 0;
+                        if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoBitDepth))
+                        {
+                            var width = videoStream?.Width ?? 0;
+                            var height = videoStream?.Height ?? 0;
+                            groupByDetails.VideoWidth = width;
+                            groupByDetails.VideoHeight = height;
+                            groupByDetails.VideoResolution = MediaInfoUtils.GetStandardResolution(new(width, height));
+                        }
+                    }
+
+                    // Audio criterias
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.AudioCodecs))
+                        groupByDetails.AudioCodecs = string.Join(", ", media.Audio
+                            .Select(stream => stream.Codec.Simplified)
+                            .Distinct()
+                            .OrderBy(codec => codec)
+                            .ToList());
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.AudioLanguages))
+                        groupByDetails.AudioLanguages = string.Join(", ", media.Audio
+                            .Select(stream => stream.LanguageCode ?? "unk")
+                            .Distinct()
+                            .OrderBy(language => language)
+                            .ToList());
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.AudioStreamCount))
+                        groupByDetails.AudioStreamCount = media.Audio.Count;
+
+                    // Text criterias
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.SubtitleCodecs))
+                        groupByDetails.SubtitleCodecs = string.Join(", ", media.Subtitles
+                            .Select(stream => stream.Codec.Simplified)
+                            .Distinct()
+                            .OrderBy(codec => codec)
+                            .ToList());
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.SubtitleLanguages))
+                        groupByDetails.SubtitleLanguages = string.Join(", ", media.Subtitles
+                            .Select(stream => stream.LanguageCode ?? "unk")
+                            .Distinct()
+                            .OrderBy(language => language)
+                            .ToList());
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.SubtitleStreamCount))
+                        groupByDetails.SubtitleStreamCount = media.Subtitles.Count;
+
                     return new
                     {
-                        Hash = xref.Hash,
-                        FileID = file.VideoLocalID,
-                        EpisodeID = episode.ID,
-                        GroupBy = new {
-                            GroupName = groupName,
-                            Version = version,
-                            Source = source,
-                            BitDepth = bitDepth,
-                            Resolution = resolution,
-                            Width = width,
-                            Height = height,
-                            VideoCodecs = videoCodecs,
-                            AudioCodecs = audioCodecs,
-                            AudioLanguage = audioLanguage,
-                            AudioCount = media.Audio.Count,
-                            SubtitleCodecs = subtitleCodecs,
-                            SubtitleLanguage = subtitleLanguage,
-                            SubtitleCount = media.Subtitles.Count,
-                            Location = dirPath,
-                        },
-                        Value = new EpisodeDetails {
+                        GroupBy = groupByDetails,
+                        Episode = new EpisodeDetails
+                        {
                             FileID = anidbFile?.FileID,
                             EpisodeID = episode.AniDB.EpisodeID,
                             Type = episode.Type,
@@ -354,11 +374,10 @@ public class WebUI
                 .Where(file => file != null)
                 .ToList();
             var presentEpisodes = files
-                .Select(xref => episodes[xref.EpisodeID])
-                .DistinctBy(episode => episode.ID)
-                .ToDictionary(episode => episode.ID);
+                .Select(xref => xref.Episode.EpisodeID)
+                .ToHashSet();
             Groups = files
-                .GroupBy(data => data.GroupBy, data => data.Value)
+                .GroupBy(data => data.GroupBy, data => data.Episode)
                 .Select(list =>
                 {
                     var data = list.Key;
@@ -387,20 +406,21 @@ public class WebUI
                     return new EpisodeGroupSummary()
                     {
                         GroupName = data.GroupName,
-                        Version = data.Version,
-                        Source = data.Source,
-                        BitDepth = data.BitDepth,
-                        Resolution = data.Resolution,
-                        Width = data.Width,
-                        Height = data.Height,
+                        GroupNameShort = data.GroupNameShort,
+                        FileVersion = data.FileVersion,
+                        FileSource = data.FileSource,
+                        FileLocation = data.FileLocation,
                         VideoCodecs = data.VideoCodecs,
+                        VideoBitDepth = data.VideoBitDepth,
+                        VideoResolution = data.VideoResolution,
+                        VideoWidth = data.VideoWidth,
+                        VideoHeight = data.VideoHeight,
                         AudioCodecs = data.AudioCodecs,
-                        AudioLanguages = string.IsNullOrEmpty(data.AudioLanguage) ? new string[] {} : data.AudioLanguage.Split(", "),
-                        AudioCount = data.AudioCount,
+                        AudioLanguages = string.IsNullOrEmpty(data.AudioLanguages) ? new string[] {} : data.AudioLanguages.Split(", "),
+                        AudioStreamCount = data.AudioStreamCount,
                         SubtitleCodecs = data.SubtitleCodecs,
-                        SubtitleLanguages = string.IsNullOrEmpty(data.SubtitleLanguage) ? new string[] {} : data.SubtitleLanguage.Split(", "),
-                        SubtitleCount = data.SubtitleCount,
-                        Location = data.Location,
+                        SubtitleLanguages = string.IsNullOrEmpty(data.SubtitleLanguages) ? new string[] {} : data.SubtitleLanguages.Split(", "),
+                        SubtitleStreamCount = data.SubtitleStreamCount,
                         RangeByType = episodeData,
                         Episodes = withEpisodeDetails ? list
                             .OrderBy(ep => ep.Type)
@@ -413,7 +433,7 @@ public class WebUI
 
             var now = DateTime.Now;
             MissingEpisodes = episodes.Values
-                .Where(episode => !presentEpisodes.ContainsKey(episode.ID) && episode.AirDate != null && !episode.IsHidden && (showMissingFutureEpisodes || episode.AirDate < now))
+                .Where(episode => !presentEpisodes.Contains(episode.ID) && episode.AirDate != null && !episode.IsHidden && (showMissingFutureEpisodes || episode.AirDate < now))
                 .OrderBy(episode => episode.Type)
                 .ThenBy(episode => episode.Number)
                 .Select(episode => new Episode.AniDB(episode.AniDB))
@@ -424,86 +444,128 @@ public class WebUI
 
         public List<Episode.AniDB> MissingEpisodes;
 
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum FileSummaryGroupByCriteria
+        {
+            GroupName = 1,
+            FileVersion = 2,
+            FileSource = 4,
+            FileLocation = 8,
+            VideoCodecs = 16,
+            VideoBitDepth = 32,
+            VideoResolutuion = 64,
+            AudioCodecs = 128,
+            AudioLanguages = 256,
+            AudioStreamCount = 512,
+            SubtitleCodecs = 1024,
+            SubtitleLanguages = 2048,
+            SubtitleStreamCount = 4096,
+        }
+
         /// <summary>
         /// Summary of a group of episodes.
         /// </summary>
         public class EpisodeGroupSummary
         {
             /// <summary>
-            /// The release group for the files in this range. Will be "Unknown"
-            /// if the release group is unknown, or "None" if manually linked.
+            /// The name release group for the files in this range. Will be
+            /// "Unknown" if the release group is unknown, or "None" if manually
+            /// linked.
             /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public string GroupName;
+
+            /// <summary>
+            /// The short name of the release group for the files in this range.
+            /// Will be "Unk" if the release group is unknown, or "-" if
+            /// manually linked.
+            /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public string GroupNameShort;
 
             /// <summary>
             /// The release version for the files in this range.
             /// </summary>
-            public int Version;
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public int? FileVersion;
 
             /// <summary>
             /// The source type for the files in this range (e.g., BluRay, Web, etc.).
             /// </summary>
-            public FileSource Source;
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public FileSource? FileSource;
 
             /// <summary>
-            /// The bit depth for the video stream of the files in this range.
+            /// The parent directory location of the files in this range.
             /// </summary>
-            public int BitDepth;
-
-            /// <summary>
-            /// The common name of the resolution for the files in this range (e.g., 720p, 1080p, etc.).
-            /// </summary>
-            public string Resolution;
-
-            /// <summary>
-            /// The viewport width for the video stream of the files in this range.
-            /// </summary>
-            public int Width;
-
-            /// <summary>
-            /// The viewport height for the video stream of the files in this range.
-            /// </summary>
-            public int Height;
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public string FileLocation;
 
             /// <summary>
             /// The video codecs used in the files of this range (e.g., h264, h265, etc.).
             /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public string VideoCodecs;
+
+            /// <summary>
+            /// The bit depth for the video stream of the files in this range.
+            /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public int? VideoBitDepth;
+
+            /// <summary>
+            /// The common name of the resolution for the files in this range (e.g., 720p, 1080p, etc.).
+            /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public string VideoResolution;
+
+            /// <summary>
+            /// The viewport width for the video stream of the files in this range.
+            /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public int? VideoWidth;
+
+            /// <summary>
+            /// The viewport height for the video stream of the files in this range.
+            /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public int? VideoHeight;
 
             /// <summary>
             /// The audio codecs used in the files of this range (e.g., acc, ac3, dts, etc.).
             /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public string AudioCodecs;
 
             /// <summary>
             /// The ISO 639-1 two-letter language codes for the audio streams of the files in this range (e.g., "en" for English, "ja" for Japanese, etc.).
             /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public IEnumerable<string> AudioLanguages;
 
             /// <summary>
             /// The number of audio streams in the files in the range.
             /// </summary>
-            public int AudioCount;
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public int? AudioStreamCount;
 
             /// <summary>
             /// The subtitle/text codecs used in the files of this range (e.g., srt, ass, etc.).
             /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public string SubtitleCodecs;
 
             /// <summary>
             /// The ISO 639-1 two-letter language codes for the subtitle/text streams of the files in this range (e.g., "en" for English, "ja" for Japanese, etc.).
             /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public IEnumerable<string> SubtitleLanguages;
 
             /// <summary>
             /// The number of subtitle/text streams in the files in the range.
             /// </summary>
-            public int SubtitleCount;
-
-            /// <summary>
-            /// The parent directory location of the files in this range.
-            /// </summary>
-            public string Location;
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public int? SubtitleStreamCount;
 
             /// <summary>
             /// Dictionary of episode ranges and sizes by type (e.g., normal episode, special episode).
@@ -539,6 +601,81 @@ public class WebUI
             /// The accumulated file size in bytes across all files in this range.
             /// </summary>
             public long FileSize;
+        }
+
+        private class GroupByDetails : IEquatable<GroupByDetails>
+        {
+            public string GroupName;
+            public string GroupNameShort;
+            public int? FileVersion;
+            public FileSource? FileSource;
+            public int? VideoBitDepth;
+            public string VideoResolution;
+            public int? VideoWidth;
+            public int? VideoHeight;
+            public string VideoCodecs;
+            public string AudioCodecs;
+            public string AudioLanguages;
+            public int? AudioStreamCount;
+            public string SubtitleCodecs;
+            public string SubtitleLanguages;
+            public int? SubtitleStreamCount;
+            public string FileLocation;
+
+            public bool Equals(GroupByDetails other)
+            {
+                if (other == null)
+                    return false;
+                return 
+                    GroupName == other.GroupName &&
+                    // GroupNameShort == other.GroupNameShort &&
+
+                    FileVersion == other.FileVersion &&
+                    FileSource == other.FileSource &&
+                    FileLocation == other.FileLocation &&
+
+                    VideoCodecs == other.VideoCodecs &&
+                    VideoBitDepth == other.VideoBitDepth &&
+                    VideoResolution == other.VideoResolution &&
+                    // VideoWidth == other.VideoWidth &&
+                    // VideoHeight == other.VideoHeight &&
+
+                    AudioCodecs == other.AudioCodecs &&
+                    AudioLanguages == other.AudioLanguages &&
+                    AudioStreamCount == other.AudioStreamCount &&
+
+                    SubtitleCodecs == other.SubtitleCodecs &&
+                    SubtitleLanguages == other.SubtitleLanguages &&
+                    SubtitleStreamCount == other.SubtitleStreamCount;
+            }
+
+            public override int GetHashCode()
+            {
+                int hash = 17;
+
+                hash = hash * 31 + (GroupName?.GetHashCode() ?? 0);
+                // hash = hash * 31 + (GroupNameShort?.GetHashCode() ?? 0);
+
+                hash = hash * 31 + FileVersion.GetHashCode();
+                hash = hash * 31 + FileSource.GetHashCode();
+                hash = hash * 31 + (FileLocation?.GetHashCode() ?? 0);
+
+                hash = hash * 31 + (VideoCodecs?.GetHashCode() ?? 0);
+                hash = hash * 31 + VideoBitDepth.GetHashCode();
+                hash = hash * 31 + (VideoResolution?.GetHashCode() ?? 0);
+                // hash = hash * 31 + VideoWidth.GetHashCode();
+                // hash = hash * 31 + VideoHeight.GetHashCode();
+
+                hash = hash * 31 + (AudioCodecs?.GetHashCode() ?? 0);
+                hash = hash * 31 + (AudioLanguages?.GetHashCode() ?? 0);
+                hash = hash * 31 + AudioStreamCount.GetHashCode();
+
+                hash = hash * 31 + (SubtitleCodecs?.GetHashCode() ?? 0);
+                hash = hash * 31 + (SubtitleLanguages?.GetHashCode() ?? 0);
+                hash = hash * 31 + SubtitleStreamCount.GetHashCode();
+
+                return hash;
+            }
         }
 
         public class EpisodeDetails

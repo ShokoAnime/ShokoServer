@@ -22,6 +22,7 @@ using WebUITheme = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUITheme;
 using WebUIGroupExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIGroupExtra;
 using WebUISeriesExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesExtra;
 using WebUISeriesFileSummary = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary;
+using FileSummaryGroupByCriteria = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary.FileSummaryGroupByCriteria;
 using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -241,13 +242,17 @@ public class WebUIController : BaseController
     /// </summary>
     /// <param name="seriesID">The ID of the series to retrieve file information for.</param>
     /// <param name="type">Filter the view to only the spesified <see cref="EpisodeType"/>s.</param>
+    /// <param name="groupBy">Group the episodes in view into smaller groups based on <see cref="FileSummaryGroupByCriteria"/>s.</param>
     /// <param name="includeEpisodeDetails">Include episode details for each range.</param>
     /// <param name="includeMissingFutureEpisodes">Include missing episodes that will air in the future.</param>
     /// <returns>A <c>WebUISeriesFileSummary</c> object containing a summary of file information for the series.</returns>
     [HttpGet("Series/{seriesID}/FileSummary")]
-    public ActionResult<WebUISeriesFileSummary> GetSeriesFileSummary([FromRoute] int seriesID,
+    public ActionResult<WebUISeriesFileSummary> GetSeriesFileSummary(
+        [FromRoute] int seriesID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
-        [FromQuery] bool includeEpisodeDetails = false, [FromQuery] bool includeMissingFutureEpisodes = false)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<FileSummaryGroupByCriteria> groupBy = null,
+        [FromQuery] bool includeEpisodeDetails = false,
+        [FromQuery] bool includeMissingFutureEpisodes = false)
     {
         // Retrieve a summary of file information for the specified series if it exists and the user has permissions.
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
