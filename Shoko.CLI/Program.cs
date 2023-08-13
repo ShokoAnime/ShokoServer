@@ -53,14 +53,41 @@ public static class Program
         ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += OnCmdProcessorHasherOnQueueStateChangedEvent;
     }
 
+    private static string LastGeneralQueueMessage = string.Empty;
+
     private static void OnCmdProcessorGeneralOnQueueStateChangedEvent(QueueStateEventArgs ev) 
-        => Console.WriteLine($@"General Queue state change: {ev.QueueState.formatMessage()}");
+    {
+        var message = ev.QueueState.formatMessage();
+        if (!string.Equals(LastGeneralQueueMessage, message))
+        {
+            message = LastGeneralQueueMessage;
+            Console.WriteLine($@"General Queue state change: {message}");
+        }
+    }
+
+    private static string LastImagesQueueMessage = string.Empty;
 
     private static void OnCmdProcessorImagesOnQueueStateChangedEvent(QueueStateEventArgs ev) 
-        => Console.WriteLine($@"Images Queue state change: {ev.QueueState.formatMessage()}");
+    {
+        var message = ev.QueueState.formatMessage();
+        if (!string.Equals(LastImagesQueueMessage, message))
+        {
+            message = LastImagesQueueMessage;
+            Console.WriteLine($@"Images Queue state change: {message}");
+        }
+    }
+
+    private static string LastHasherQueueMessage = string.Empty;
 
     private static void OnCmdProcessorHasherOnQueueStateChangedEvent(QueueStateEventArgs ev) 
-        => Console.WriteLine($@"Hasher Queue state change: {ev.QueueState.formatMessage()}");
+    {
+        var message = ev.QueueState.formatMessage();
+        if (!string.Equals(LastHasherQueueMessage, message))
+        {
+            message = LastHasherQueueMessage;
+            Console.WriteLine($@"Hasher Queue state change: {message}");
+        }
+    }
 
     private static void OnInstanceOnPropertyChanged(object? _, PropertyChangedEventArgs e)
     {
