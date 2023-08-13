@@ -416,10 +416,12 @@ public class WebUI
                         VideoWidth = data.VideoWidth,
                         VideoHeight = data.VideoHeight,
                         AudioCodecs = data.AudioCodecs,
-                        AudioLanguages = string.IsNullOrEmpty(data.AudioLanguages) ? new string[] {} : data.AudioLanguages.Split(", "),
+                        AudioLanguages = data.AudioLanguages == null ? null :
+                            string.IsNullOrEmpty(data.AudioLanguages) ? new string[] {} : data.AudioLanguages.Split(", "),
                         AudioStreamCount = data.AudioStreamCount,
                         SubtitleCodecs = data.SubtitleCodecs,
-                        SubtitleLanguages = string.IsNullOrEmpty(data.SubtitleLanguages) ? new string[] {} : data.SubtitleLanguages.Split(", "),
+                        SubtitleLanguages = data.SubtitleLanguages == null ? null :
+                            string.IsNullOrEmpty(data.SubtitleLanguages) ? new string[] {} : data.SubtitleLanguages.Split(", "),
                         SubtitleStreamCount = data.SubtitleStreamCount,
                         RangeByType = episodeData,
                         Episodes = withEpisodeDetails ? list
