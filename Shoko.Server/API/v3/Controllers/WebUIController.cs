@@ -266,7 +266,7 @@ public class WebUIController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        return new WebUISeriesFileSummary(series, type, includeEpisodeDetails, includeMissingFutureEpisodes);
+        return new WebUISeriesFileSummary(series, type, includeEpisodeDetails, includeMissingFutureEpisodes, groupBy);
     }
 
     /// <summary>
