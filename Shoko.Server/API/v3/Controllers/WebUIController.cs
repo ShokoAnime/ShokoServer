@@ -281,7 +281,7 @@ public class WebUIController : BaseController
     [AllowAnonymous]
     [DatabaseBlockedExempt]
     [InitFriendly]
-    [HttpGet("Install")]
+    [HttpPost("Install")]
     public ActionResult InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable)
     {
         var indexLocation = Path.Combine(Utils.ApplicationPath, "webui", "index.html");
@@ -319,7 +319,7 @@ public class WebUIController : BaseController
     /// <returns></returns>
     [DatabaseBlockedExempt]
     [InitFriendly]
-    [HttpGet("Update")]
+    [HttpPost("Update")]
     public ActionResult UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable)
     {
         var result = LatestWebUIVersion(channel);
