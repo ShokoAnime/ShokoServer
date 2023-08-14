@@ -5,7 +5,6 @@ using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
@@ -20,9 +19,13 @@ public class CommandRequest_GetAnimeHTTP_Force : CommandRequestImplementation
 {
     private readonly ICommandRequestFactory _commandFactory;
 
-    public int AnimeID { get; set; }
+    public virtual int AnimeID { get; set; }
+    public virtual bool DownloadRelations { get; set; }
+    public virtual int RelDepth { get; set; }
+    public virtual bool CreateSeriesEntry { get; set; }
 
-    public bool DownloadRelations { get; set; }
+    [XmlIgnore][JsonIgnore]
+    public virtual SVR_AniDB_Anime Result { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority2;
 
@@ -32,13 +35,6 @@ public class CommandRequest_GetAnimeHTTP_Force : CommandRequestImplementation
         queueState = QueueStateEnum.AnimeInfo,
         extraParams = new[] { AnimeID.ToString() }
     };
-
-    public int RelDepth { get; set; }
-
-    public bool CreateSeriesEntry { get; set; }
-
-    [XmlIgnore][JsonIgnore]
-    public SVR_AniDB_Anime Result { get; set; }
 
     public override void PostInit()
     {
@@ -77,14 +73,8 @@ public class CommandRequest_GetAnimeHTTP_Force : CommandRequestImplementation
         return $"CommandRequest_GetAnimeHTTP_Force_{animeID}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -116,21 +106,6 @@ public class CommandRequest_GetAnimeHTTP_Force : CommandRequestImplementation
         }
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_GetAnimeHTTP_Force(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory) : base(loggerFactory)

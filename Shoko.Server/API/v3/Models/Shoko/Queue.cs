@@ -3,6 +3,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Commands.Generic;
+using Shoko.Server.Models;
 using Shoko.Server.Server;
 
 using QueueStateEnum = Shoko.Models.Queue.QueueStateEnum;
@@ -82,6 +83,8 @@ public class Queue
         /// </summary>
         [JsonConverter(typeof(StringEnumConverter))]
         public CommandRequestType Type { get; }
+        
+        public string Description { get; }
 
         /// <summary>
         /// Indicates the item is currently actively running in the queue.
@@ -99,6 +102,7 @@ public class Queue
             ID = request.CommandRequestID;
             Name = request.CommandID;
             Type = (CommandRequestType)request.CommandType;
+            Description = request.PrettyDescription.formatMessage();
             IsRunning = processor.CurrentCommand != null && processor.CurrentCommand.CommandRequestID == request.CommandRequestID;
             IsDisabled = Repositories.RepoFactory.CommandRequest.CheckIfCommandRequestIsDisabled(Type, connectivityService);
         }

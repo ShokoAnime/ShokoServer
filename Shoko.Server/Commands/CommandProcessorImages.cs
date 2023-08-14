@@ -4,6 +4,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Commands.Generic;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands;
@@ -32,6 +33,6 @@ public class CommandProcessorImages : CommandProcessor
         };
     }
 
-    protected override Shoko.Models.Server.CommandRequest GetNextCommandRequest()
+    protected override CommandRequest GetNextCommandRequest()
         => RepoFactory.CommandRequest.GetNextDBCommandRequestImages(ConnectivityService);
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -8,11 +9,10 @@ using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
 using NHibernate;
-using Shoko.Commons.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Exceptions;
 using Shoko.Server.Commands.Interfaces;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Server;
@@ -20,36 +20,24 @@ using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
 
 namespace Shoko.Server.Commands.Generic;
 
-public abstract class CommandRequestImplementation : ICommandRequest
+public abstract class CommandRequestImplementation : CommandRequest, ICommandRequest
 {
-    [XmlIgnore][JsonIgnore]protected readonly ILogger Logger;
+    [XmlIgnore][JsonIgnore] protected readonly ILogger Logger;
 
     // ignoring the base properties so that when we serialize we only get the properties
     // defined in the concrete class
 
-    [XmlIgnore][JsonIgnore] public int CommandRequestID { get; set; }
+    [XmlIgnore][JsonIgnore] public virtual bool BubbleExceptions { get; set; } = false;
 
-    [XmlIgnore][JsonIgnore] public int Priority { get; set; }
-
-    [XmlIgnore][JsonIgnore] public int CommandType => (int?)GetType().GetCustomAttribute<CommandAttribute>()?.RequestType ?? -1;
-
-    [XmlIgnore][JsonIgnore] public string CommandID { get; set; }
-
-    [XmlIgnore][JsonIgnore] public string CommandDetails { get; set; }
-
-    [XmlIgnore][JsonIgnore] public DateTime DateTimeUpdated { get; set; }
-
-    [XmlIgnore][JsonIgnore] public bool BubbleExceptions = false;
-
-    [XmlIgnore][JsonIgnore] public ICommandProcessor Processor { get; set; } = null;
-
-    public CommandRequestImplementation(ILoggerFactory loggerFactory) : this()
+    protected CommandRequestImplementation(ILoggerFactory loggerFactory) : this()
     {
         Logger = loggerFactory.CreateLogger(GetType());
     }
 
+    [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     protected CommandRequestImplementation()
     {
+        CommandType = (int?)GetType().GetCustomAttribute<CommandAttribute>()?.RequestType ?? -1;
         Priority = (int)DefaultPriority;
     }
 
@@ -58,11 +46,9 @@ public abstract class CommandRequestImplementation : ICommandRequest
     /// </summary>
     protected abstract void Process();
 
-    public virtual void PostInit()
-    {
-    }
+    public override void PostInit() { }
 
-    public void ProcessCommand()
+    public override void ProcessCommand()
     {
         try
         {
@@ -76,16 +62,14 @@ public abstract class CommandRequestImplementation : ICommandRequest
         }
     }
 
-    public abstract void GenerateCommandID();
+    public override CommandConflict ConflictBehavior => CommandConflict.Ignore;
 
-    public abstract bool LoadFromDBCommand(CommandRequest cq);
-    public abstract CommandRequestPriority DefaultPriority { get; }
-    [XmlIgnore] public abstract QueueStateStruct PrettyDescription { get; }
-    [XmlIgnore][JsonIgnore] public virtual CommandConflict ConflictBehavior { get; } = CommandConflict.Ignore;
+    protected virtual string GetCommandDetails()
+    {
+        return ToXML();
+    }
 
-    public abstract CommandRequest ToDatabaseObject();
-
-    public string ToXML()
+    private string ToXML()
     {
         var ns = new XmlSerializerNamespaces();
         ns.Add("", string.Empty);
@@ -102,7 +86,7 @@ public abstract class CommandRequestImplementation : ICommandRequest
         return sb.ToString();
     }
 
-    public string ToJson()
+    private string ToJson()
     {
         return JsonSerializer.Serialize(this, GetType(), new JsonSerializerOptions
         {
@@ -110,7 +94,7 @@ public abstract class CommandRequestImplementation : ICommandRequest
         });
     }
 
-    public void Save(bool force = false)
+    public virtual void Save(bool force = false)
     {
         var commandID = CommandID + (force ? "_Forced" : "");
         var crTemp = RepoFactory.CommandRequest.GetByCommandID(commandID);
@@ -127,20 +111,20 @@ public abstract class CommandRequestImplementation : ICommandRequest
             }
         }
 
-        var cri = ToDatabaseObject();
-        cri.CommandID = commandID;
-        Logger.LogTrace("Saving new CommandRequest: {CommandType} {CommandID}", (CommandRequestType)cri.CommandType,
-            cri.CommandID);
+        DateTimeUpdated = DateTime.Now;
+        GenerateCommandID();
+        CommandDetails = GetCommandDetails();
+        Logger.LogTrace("Saving new CommandRequest: {CommandType} {CommandID}", (CommandRequestType)CommandType, CommandID);
         try
         {
-            RepoFactory.CommandRequest.Save(cri);
+            RepoFactory.CommandRequest.Save(this);
         }
         catch (TransactionException e)
         {
             Logger.LogError(e, "Failed to Save CommandRequest, retying");
             try
             {
-                RepoFactory.CommandRequest.Save(cri);
+                RepoFactory.CommandRequest.Save(this);
             }
             catch (TransactionException ex)
             {
@@ -148,7 +132,7 @@ public abstract class CommandRequestImplementation : ICommandRequest
             }
         }
 
-        switch (CommandRequestRepository.GetQueueIndex(cri))
+        switch (CommandRequestRepository.GetQueueIndex(this))
         {
             case 0:
                 ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
@@ -162,7 +146,7 @@ public abstract class CommandRequestImplementation : ICommandRequest
         }
     }
 
-    protected string TryGetProperty(XmlDocument doc, string keyName, string propertyName)
+    protected static string TryGetProperty(XmlDocument doc, string keyName, string propertyName)
     {
         try
         {
@@ -190,7 +174,7 @@ public abstract class CommandRequestImplementation : ICommandRequest
         return string.Empty;
     }
 
-    protected string TryGetProperty(XmlDocument doc, string keyName, params string[] propertyNames)
+    protected static string TryGetProperty(XmlDocument doc, string keyName, params string[] propertyNames)
     {
         try
         {
@@ -226,7 +210,7 @@ public abstract class CommandRequestImplementation : ICommandRequest
         return string.Empty;
     }
 
-    protected string TryGetProperty(XmlDocument doc, string[] keyNames, params string[] propertyNames)
+    protected static string TryGetProperty(XmlDocument doc, string[] keyNames, params string[] propertyNames)
     {
         try
         {

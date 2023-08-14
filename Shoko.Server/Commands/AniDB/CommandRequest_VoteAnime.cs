@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -19,9 +18,9 @@ namespace Shoko.Server.Commands.AniDB;
 public class CommandRequest_VoteAnime : CommandRequestImplementation
 {
     private readonly IRequestFactory _requestFactory;
-    public int AnimeID { get; set; }
-    public int VoteType { get; set; }
-    public decimal VoteValue { get; set; }
+    public virtual int AnimeID { get; set; }
+    public virtual int VoteType { get; set; }
+    public virtual decimal VoteValue { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -56,23 +55,16 @@ public class CommandRequest_VoteAnime : CommandRequestImplementation
         CommandID = $"CommandRequest_Vote_{AnimeID}_{VoteType}_{VoteValue}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
-        var style = NumberStyles.Number;
-        var culture = CultureInfo.CreateSpecificCulture("en-GB");
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
         var docCreator = new XmlDocument();
         docCreator.LoadXml(CommandDetails);
 
+        var style = NumberStyles.Number;
+        var culture = CultureInfo.CreateSpecificCulture("en-GB");
         // populate the fields
         AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_VoteAnime", "AnimeID"));
         VoteType = int.Parse(TryGetProperty(docCreator, "CommandRequest_VoteAnime", "VoteType"));
@@ -80,21 +72,6 @@ public class CommandRequest_VoteAnime : CommandRequestImplementation
             style, culture);
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_VoteAnime(ILoggerFactory loggerFactory, IRequestFactory requestFactory) : base(loggerFactory)

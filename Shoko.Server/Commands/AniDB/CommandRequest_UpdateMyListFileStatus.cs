@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Extensions;
@@ -25,11 +24,11 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
     private readonly IRequestFactory _requestFactory;
     private readonly ISettingsProvider _settingsProvider;
 
-    public string FullFileName { get; set; }
-    public string Hash { get; set; }
-    public bool Watched { get; set; }
-    public bool UpdateSeriesStats { get; set; }
-    public int WatchedDateAsSecs { get; set; }
+    public virtual string FullFileName { get; set; }
+    public virtual string Hash { get; set; }
+    public virtual bool Watched { get; set; }
+    public virtual bool UpdateSeriesStats { get; set; }
+    public virtual int WatchedDateAsSecs { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -152,14 +151,8 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
         CommandID = $"CommandRequest_UpdateMyListFileStatus_{Hash}_{Guid.NewGuid().ToString()}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -186,24 +179,7 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
             WatchedDateAsSecs = dateSecs;
         }
 
-        FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
-
         return Hash.Trim().Length > 0;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_UpdateMyListFileStatus(ILoggerFactory loggerFactory, IRequestFactory requestFactory, ISettingsProvider settingsProvider) :

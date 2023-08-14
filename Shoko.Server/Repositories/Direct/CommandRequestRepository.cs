@@ -7,7 +7,9 @@ using NLog;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Server.Commands.Generic;
 using Shoko.Server.Databases;
+using Shoko.Server.Models;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Direct;
@@ -151,7 +153,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         if (networkUnavailable)
             commands = commands.Except(HttpNetworkCommands);
 
-        array = commands is int[] array1 ? array1 : commands.ToArray();
+        array = commands as int[] ?? commands.ToArray();
         CommandConditionMap.TryAdd(key, array);
         return array;
     }

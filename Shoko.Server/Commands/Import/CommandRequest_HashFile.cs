@@ -26,10 +26,10 @@ public class CommandRequest_HashFile : CommandRequestImplementation
 {
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ISettingsProvider _settingsProvider;
-    public string FileName { get; set; }
-    public bool ForceHash { get; set; }
+    public virtual string FileName { get; set; }
+    public virtual bool ForceHash { get; set; }
 
-    public bool SkipMyList { get; set; }
+    public virtual bool SkipMyList { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
@@ -40,7 +40,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         extraParams = new[] { FileName }
     };
 
-    public QueueStateStruct PrettyDescriptionHashing => new()
+    private QueueStateStruct PrettyDescriptionHashing => new()
     {
         message = "Hashing File: {0}", queueState = QueueStateEnum.HashingFile, extraParams = new[] { FileName }
     };
@@ -462,7 +462,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         }
     }
 
-    public bool MergeInfoFrom(SVR_VideoLocal target, SVR_VideoLocal source)
+    private static bool MergeInfoFrom(SVR_VideoLocal target, SVR_VideoLocal source)
     {
         var changed = false;
         if (string.IsNullOrEmpty(target.Hash) && !string.IsNullOrEmpty(source.Hash))
@@ -585,14 +585,8 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         CommandID = $"CommandRequest_HashFile_{FileName}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -605,21 +599,6 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         SkipMyList = bool.Parse(TryGetProperty(docCreator, "CommandRequest_HashFile", "SkipMyList"));
 
         return FileName.Trim().Length > 0;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_HashFile(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) :

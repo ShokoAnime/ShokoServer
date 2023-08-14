@@ -1,7 +1,5 @@
-﻿using System;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Server;
@@ -9,13 +7,13 @@ using Shoko.Server.Server;
 namespace Shoko.Server.Commands;
 
 [Command(CommandRequestType.NullCommand)]
-internal class CommandRequest_Null : CommandRequestImplementation
+public class CommandRequest_Null : CommandRequestImplementation
 {
     protected override void Process()
     {
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
         return true;
     }
@@ -23,17 +21,9 @@ internal class CommandRequest_Null : CommandRequestImplementation
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
     public override QueueStateStruct PrettyDescription => new();
 
-    public override CommandRequest ToDatabaseObject()
+    protected override string GetCommandDetails()
     {
-        GenerateCommandID();
-        return new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            DateTimeUpdated = DateTime.Now,
-            CommandDetails = ""
-        };
+        return string.Empty;
     }
 
     public override void GenerateCommandID()

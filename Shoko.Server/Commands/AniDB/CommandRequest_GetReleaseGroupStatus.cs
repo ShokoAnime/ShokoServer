@@ -24,8 +24,8 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
     private readonly IRequestFactory _requestFactory;
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ISettingsProvider _settingsProvider;
-    public int AnimeID { get; set; }
-    public bool ForceRefresh { get; set; }
+    public virtual int AnimeID { get; set; }
+    public virtual bool ForceRefresh { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
@@ -147,14 +147,8 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
         CommandID = $"CommandRequest_GetReleaseGroupStatus_{AnimeID}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -167,21 +161,6 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
             bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroupStatus", "ForceRefresh"));
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_GetReleaseGroupStatus(ILoggerFactory loggerFactory, IRequestFactory requestFactory,

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Text.Json.Serialization;
 using System.Xml;
 using System.Xml.Serialization;
@@ -8,7 +7,6 @@ using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.ImageDownload;
@@ -28,14 +26,14 @@ public class CommandRequest_DownloadImage : CommandRequestImplementation
     [XmlIgnore][JsonIgnore]
     private readonly IUDPConnectionHandler _handler;
 
-    public int EntityID { get; set; }
+    public virtual int EntityID { get; set; }
 
-    public int EntityType { get; set; }
+    public virtual int EntityType { get; set; }
 
-    public bool ForceDownload { get; set; }
+    public virtual bool ForceDownload { get; set; }
 
     [XmlIgnore][JsonIgnore]
-    public ImageEntityType EntityTypeEnum
+    public virtual ImageEntityType EntityTypeEnum
     {
         get => (ImageEntityType)EntityType;
         set => EntityType = (int)value;
@@ -275,14 +273,8 @@ public class CommandRequest_DownloadImage : CommandRequestImplementation
         CommandID = $"CommandRequest_DownloadImage_{EntityID}_{EntityType}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -296,21 +288,6 @@ public class CommandRequest_DownloadImage : CommandRequestImplementation
             bool.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadImage", "ForceDownload"));
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_DownloadImage(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(

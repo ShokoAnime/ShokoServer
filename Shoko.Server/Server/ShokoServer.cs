@@ -126,7 +126,7 @@ public class ShokoServer
         }
 
         //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
-        CommandHelper.LoadCommands(Utils.ServiceContainer);
+        //CommandHelper.LoadCommands(Utils.ServiceContainer);
 
         Loader.InitPlugins(Utils.ServiceContainer);
 

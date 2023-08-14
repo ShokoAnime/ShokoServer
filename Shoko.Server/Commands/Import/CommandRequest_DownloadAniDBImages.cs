@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.ImageDownload;
@@ -29,9 +28,9 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
 
     private readonly ISettingsProvider _settingsProvider;
 
-    public int AnimeID { get; set; }
+    public virtual int AnimeID { get; set; }
 
-    public bool ForceDownload { get; set; }
+    public virtual bool ForceDownload { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority1;
 
@@ -42,14 +41,14 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
         extraParams = new[] { Resources.Command_ValidateAllImages_AniDBPosters, AnimeID.ToString() }
     };
 
-    public QueueStateStruct PrettyDescriptionCharacters => new()
+    private QueueStateStruct PrettyDescriptionCharacters => new()
     {
         message = DownloadImage,
         queueState = QueueStateEnum.DownloadImage,
         extraParams = new[] { Resources.Command_ValidateAllImages_AniDBCharacters, AnimeID.ToString() }
     };
 
-    public QueueStateStruct PrettyDescriptionCreators => new()
+    private QueueStateStruct PrettyDescriptionCreators => new()
     {
         message = DownloadImage,
         queueState = QueueStateEnum.DownloadImage,
@@ -171,14 +170,8 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
         CommandID = $"CommandRequest_DownloadImage_{AnimeID}_{ForceDownload}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -191,21 +184,6 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
             bool.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadAniDBImages", "ForceDownload"));
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_DownloadAniDBImages(ILoggerFactory loggerFactory, IUDPConnectionHandler handler, ISettingsProvider settingsProvider) :

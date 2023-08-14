@@ -3,23 +3,18 @@ using System.Text.Json.Serialization;
 using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
-using NHibernate;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Commands.Import;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
 
 namespace Shoko.Server.Commands.AniDB;
 
@@ -35,10 +30,15 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
     private readonly ICommandRequestFactory _commandFactory;
     private readonly IServerSettings _settings;
 
-    public int AnimeID { get; set; }
-    public bool ForceRefresh { get; set; }
-    public bool CacheOnly { get; set; }
-    public bool DownloadRelations { get; set; }
+    public virtual int AnimeID { get; set; }
+    public virtual bool ForceRefresh { get; set; }
+    public virtual bool CacheOnly { get; set; }
+    public virtual bool DownloadRelations { get; set; }
+    public virtual int RelDepth { get; set; }
+
+    public virtual bool CreateSeriesEntry { get; set; }
+
+    [XmlIgnore][JsonIgnore] public virtual SVR_AniDB_Anime Result { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority2;
 
@@ -48,12 +48,6 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
         queueState = QueueStateEnum.AnimeInfo,
         extraParams = new[] { AnimeID.ToString() }
     };
-
-    public int RelDepth { get; set; }
-
-    public bool CreateSeriesEntry { get; set; }
-
-    [XmlIgnore][JsonIgnore] public SVR_AniDB_Anime Result { get; set; }
 
     public override void PostInit()
     {
@@ -93,7 +87,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
         // online refresh _or_ if there is no local anime record, then try
         // to fetch a new updated record online but fallback to loading from
         // the cache unless we request a forced online refresh.
-        ResponseGetAnime response = null;
+        ResponseGetAnime response;
         if (!CacheOnly && !animeRecentlyUpdated && !_handler.IsBanned && (ForceRefresh || anime == null))
         {
             try
@@ -326,7 +320,6 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
             catch (AniDBBannedException)
             {
                 // Catch banned exceptions if we run the command in-place.
-                continue;
             }
         }
     }
@@ -341,14 +334,8 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
         return $"CommandRequest_GetAnimeHTTP_{animeID}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -392,21 +379,6 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
         }
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_GetAnimeHTTP(ILoggerFactory loggerFactory, IHttpConnectionHandler handler,

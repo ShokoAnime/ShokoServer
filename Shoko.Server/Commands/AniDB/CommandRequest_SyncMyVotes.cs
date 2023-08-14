@@ -101,14 +101,8 @@ public class CommandRequest_SyncMyVotes : CommandRequestImplementation
         CommandID = "CommandRequest_SyncMyVotes";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -116,21 +110,6 @@ public class CommandRequest_SyncMyVotes : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_SyncMyVotes(ILoggerFactory loggerFactory, IRequestFactory requestFactory,

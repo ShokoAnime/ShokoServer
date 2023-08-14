@@ -27,12 +27,11 @@ public class CommandRequest_GetFile : CommandRequestImplementation
 {
     private readonly IUDPConnectionHandler _handler;
     private readonly IRequestFactory _requestFactory;
-
-    public int VideoLocalID { get; set; }
-    public bool ForceAniDB { get; set; }
-
     private SVR_VideoLocal vlocal;
-    [XmlIgnore][JsonIgnore] public SVR_AniDB_File Result;
+
+    public virtual int VideoLocalID { get; set; }
+    public virtual bool ForceAniDB { get; set; }
+    [XmlIgnore][JsonIgnore] public virtual SVR_AniDB_File Result { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
 
@@ -141,7 +140,7 @@ public class CommandRequest_GetFile : CommandRequestImplementation
         Result = RepoFactory.AniDB_File.GetByFileID(aniFile.FileID);
     }
 
-    public void CreateLanguages(ResponseGetFile response)
+    private static void CreateLanguages(ResponseGetFile response)
     {
         using var session = DatabaseFactory.SessionFactory.OpenSession();
         BaseRepository.Lock(session, s =>
@@ -186,7 +185,7 @@ public class CommandRequest_GetFile : CommandRequestImplementation
         });
     }
 
-    public void CreateEpisodes(string filename, ResponseGetFile response)
+    private void CreateEpisodes(string filename, ResponseGetFile response)
     {
         if (response.EpisodeIDs.Count <= 0)
         {
@@ -280,14 +279,8 @@ public class CommandRequest_GetFile : CommandRequestImplementation
         CommandID = $"CommandRequest_GetFile_{VideoLocalID}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -300,21 +293,6 @@ public class CommandRequest_GetFile : CommandRequestImplementation
         vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_GetFile(ILoggerFactory loggerFactory, IUDPConnectionHandler handler,

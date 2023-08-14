@@ -3,7 +3,6 @@ using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Providers.TvDB;
@@ -16,8 +15,8 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation
 {
     private readonly TvDBApiHelper _helper;
-    public int TvDBSeriesID { get; set; }
-    public bool ForceRefresh { get; set; }
+    public virtual int TvDBSeriesID { get; set; }
+    public virtual bool ForceRefresh { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
 
@@ -39,14 +38,8 @@ public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation
         CommandID = $"CommandRequest_TvDBDownloadImages_{TvDBSeriesID}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -60,21 +53,6 @@ public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation
             bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBDownloadImages", "ForceRefresh"));
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_TvDBDownloadImages(ILoggerFactory loggerFactory, TvDBApiHelper helper) : base(loggerFactory)

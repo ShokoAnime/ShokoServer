@@ -7,8 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Interfaces;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands.Generic;
@@ -17,7 +17,6 @@ public abstract class CommandProcessor : IDisposable, ICommandProcessor
 {
     protected ILogger Logger;
     protected readonly BackgroundWorker WorkerCommands = new();
-    protected IServiceProvider ServiceProvider;
     private bool _processingCommands;
     private bool _cancelled = false;
 
@@ -104,7 +103,6 @@ public abstract class CommandProcessor : IDisposable, ICommandProcessor
 
     public virtual void Init(IServiceProvider provider)
     {
-        ServiceProvider = provider;
         var logFactory = provider.GetRequiredService<ILoggerFactory>();
         Logger = logFactory.CreateLogger(GetType());
 
@@ -198,34 +196,29 @@ public abstract class CommandProcessor : IDisposable, ICommandProcessor
                 if (WorkerCommands.CancellationPending) return;
 
                 var crdb = GetNextCommandRequest();
+
                 if (crdb == null)
                 {
                     if (QueueCount > 0)
                         Logger.LogWarning("No command returned from repo, but there are {QueueCount} commands left", QueueCount);
-
                     return;
                 }
+                
 
-                var icr = CommandHelper.GetCommand(ServiceProvider, crdb);
-                if (icr == null)
-                {
-                    Logger.LogWarning("No implementation found for command: {CommandType}-{CommandID}", crdb.CommandType,
-                        crdb.CommandID);
-                }
                 // Only continue with running the command if a cancellation is
                 // not pending.
-                else if (!WorkerCommands.CancellationPending)
+                if (!WorkerCommands.CancellationPending)
                 {
                     Logger.LogTrace("Processing command request: {CommandID}", crdb.CommandID);
                     try
                     {
                         CurrentCommand = crdb;
 
-                        QueueState = icr.PrettyDescription;
+                        QueueState = crdb.PrettyDescription;
 
-                        icr.Processor = this;
-                        icr.ProcessCommand();
-                        icr.Processor = null;
+                        crdb.Processor = this;
+                        crdb.ProcessCommand();
+                        crdb.Processor = null;
                     }
                     catch (Exception ex)
                     {

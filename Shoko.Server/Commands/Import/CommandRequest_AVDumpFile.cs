@@ -1,14 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
@@ -21,17 +19,17 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_AVDumpFile : CommandRequestImplementation
 {
     [XmlIgnore]
-    public Dictionary<int, string> Videos { get; set; }
+    public virtual Dictionary<int, string> Videos { get; set; }
 
     [XmlArray("Videos"), XmlArrayItem("Item")]
-    public Item[] VideoItems
+    public virtual Item[] VideoItems
     {
         get => Videos.Select(pair => new Item() { Key = pair.Key, Value = pair.Value }).OrderBy(item => item.Key).ToArray();
         set => Videos = value.ToDictionary(v => v.Key, v => v.Value);
     }
 
     [XmlIgnore, JsonIgnore]
-    public AVDumpHelper.AVDumpSession Result { get; protected set; } = null;
+    public virtual AVDumpHelper.AVDumpSession Result { get; protected set; } = null;
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority3;
 
@@ -132,41 +130,20 @@ public class CommandRequest_AVDumpFile : CommandRequestImplementation
         CommandID = $"CommandRequest_AVDumpFile_{string.Join(",", Videos.Keys.OrderBy(videoId => videoId))}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
         var docCreator = XDocument.Parse(CommandDetails);
 
         // populate the fields
-        Videos = docCreator.Element("CommandRequest_AVDumpFile")
-                    .Element("Videos")
+        Videos = docCreator.Element("CommandRequest_AVDumpFile")!
+                    .Element("Videos")!
                     .Elements()
-                    .ToDictionary(x => int.Parse(x.Attribute("key").Value), x => x.Value);
+                    .ToDictionary(x => int.Parse(x.Attribute("key")!.Value), x => x.Value);
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_AVDumpFile(ILoggerFactory loggerFactory) : base(loggerFactory)

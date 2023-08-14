@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Server;
@@ -38,37 +36,9 @@ public class CommandRequest_GetAniDBTitles : CommandRequestImplementation
         CommandID = $"CommandRequest_GetAniDBTitles_{DateTime.Now.ToString()}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
-        // read xml to get parameters
-        if (CommandDetails.Trim().Length > 0)
-        {
-            var docCreator = new XmlDocument();
-            docCreator.LoadXml(CommandDetails);
-        }
-
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_GetAniDBTitles(ILoggerFactory loggerFactory) : base(loggerFactory)

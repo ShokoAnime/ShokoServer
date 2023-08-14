@@ -1,6 +1,4 @@
 using Shoko.Commons.Queue;
-using Shoko.Models.Server;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.Commands.Interfaces;
 

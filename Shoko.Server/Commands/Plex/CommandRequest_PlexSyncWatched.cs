@@ -19,10 +19,10 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.Commands.Plex;
 
 [Command(CommandRequestType.Plex_Sync)]
-internal class CommandRequest_PlexSyncWatched : CommandRequestImplementation
+public class CommandRequest_PlexSyncWatched : CommandRequestImplementation
 {
     private readonly ISettingsProvider _settingsProvider;
-    public JMMUser User;
+    public virtual JMMUser User { get; set; }
 
     protected override void Process()
     {
@@ -109,30 +109,16 @@ internal class CommandRequest_PlexSyncWatched : CommandRequestImplementation
         extraParams = new[] { User.Username }
     };
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-        User = RepoFactory.JMMUser.GetByID(Convert.ToInt32(cq.CommandDetails));
+        User = RepoFactory.JMMUser.GetByID(Convert.ToInt32(CommandDetails));
         return true;
     }
 
 
-    public override CommandRequest ToDatabaseObject()
+    protected override string GetCommandDetails()
     {
-        GenerateCommandID();
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = User.JMMUserID.ToString(CultureInfo.InvariantCulture),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
+        return User.JMMUserID.ToString(CultureInfo.InvariantCulture);
     }
 
     private DateTime FromUnixTime(long unixTime)

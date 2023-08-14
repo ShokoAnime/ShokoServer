@@ -4,14 +4,13 @@ using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
 
 namespace Shoko.Server.Commands;
 
@@ -21,8 +20,8 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
 {
     private readonly MovieDBHelper _helper;
     private readonly ISettingsProvider _settingsProvider;
-    public int AnimeID { get; set; }
-    public bool ForceRefresh { get; set; }
+    public virtual int AnimeID { get; set; }
+    public virtual bool ForceRefresh { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -68,7 +67,7 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
 
         foreach (var title in anime.GetTitles())
         {
-            if (title.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Official)
+            if (title.TitleType != TitleType.Official)
             {
                 continue;
             }
@@ -110,14 +109,8 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
         CommandID = $"CommandRequest_MovieDBSearchAnime{AnimeID}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -130,21 +123,6 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
             bool.Parse(TryGetProperty(docCreator, "CommandRequest_MovieDBSearchAnime", "ForceRefresh"));
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_MovieDBSearchAnime(ILoggerFactory loggerFactory, MovieDBHelper helper, ISettingsProvider settingsProvider) : base(loggerFactory)

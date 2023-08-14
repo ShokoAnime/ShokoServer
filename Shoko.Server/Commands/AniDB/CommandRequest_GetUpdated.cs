@@ -23,7 +23,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
     private readonly IRequestFactory _requestFactory;
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ISettingsProvider _settingsProvider;
-    public bool ForceRefresh { get; set; }
+    public virtual bool ForceRefresh { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
@@ -157,14 +157,8 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
         CommandID = "CommandRequest_GetUpdated";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -175,21 +169,6 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
         ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetUpdated", "ForceRefresh"));
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_GetUpdated(ILoggerFactory loggerFactory, IRequestFactory requestFactory,

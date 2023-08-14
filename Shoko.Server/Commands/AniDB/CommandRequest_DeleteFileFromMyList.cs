@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Providers.AniDB;
@@ -26,13 +25,13 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
     private readonly IRequestFactory _requestFactory;
     private readonly ISettingsProvider _settingsProvider;
 
-    public string Hash { get; set; }
-    public long FileSize { get; set; }
-    public EpisodeType EpisodeType { get; set; }
-    public int EpisodeNumber { get; set; }
-    public int AnimeID { get; set; }
-    public int MyListID { get; set; }
-    public int FileID { get; set; }
+    public virtual string Hash { get; set; }
+    public virtual long FileSize { get; set; }
+    public virtual EpisodeType EpisodeType { get; set; }
+    public virtual int EpisodeNumber { get; set; }
+    public virtual int AnimeID { get; set; }
+    public virtual int MyListID { get; set; }
+    public virtual int FileID { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
@@ -215,70 +214,48 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
         CommandID = $"CommandRequest_DeleteFileFromMyList_{Hash}_{this.FileID}_{MyListID}_{AnimeID}_{EpisodeType}{EpisodeNumber}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
-        if (CommandDetails.Trim().Length > 0)
+        if (CommandDetails.Trim().Length <= 0) return false;
+
+        var docCreator = new XmlDocument();
+        docCreator.LoadXml(CommandDetails);
+
+        if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "MyListID"),
+                out var mylistID) && mylistID != 0)
         {
-            var docCreator = new XmlDocument();
-            docCreator.LoadXml(CommandDetails);
+            var vid = RepoFactory.VideoLocal.GetByMyListID(mylistID);
+            if (vid == null) return false;
 
-            if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "MyListID"),
-                    out var mylistID) && mylistID != 0)
-            {
-                var vid = RepoFactory.VideoLocal.GetByMyListID(mylistID);
-                if (vid == null) return false;
-
-                Hash = vid.Hash;
-                FileSize = vid.FileSize;
-                return true;
-            }
-
-            // populate the fields
-            Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(Hash));
-            FileSize = long.Parse(
-                TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(FileSize))
-            );
-
-            if (Enum.TryParse<EpisodeType>(
-                    TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeType)),
-                    out var episodeType))
-                EpisodeType = episodeType;
-            if (int.TryParse(
-                    TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeNumber)),
-                    out var epNum))
-                EpisodeNumber = epNum;
-            if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(AnimeID)),
-                    out var animeID))
-                AnimeID = animeID;
-            
-            if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(FileID)),
-                    out var fileID))
-                FileID = fileID;
+            Hash = vid.Hash;
+            FileSize = vid.FileSize;
+            return true;
         }
 
+        // populate the fields
+        Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(Hash));
+        FileSize = long.Parse(
+            TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(FileSize))
+        );
+
+        if (Enum.TryParse<EpisodeType>(
+                TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeType)),
+                out var episodeType))
+            EpisodeType = episodeType;
+        if (int.TryParse(
+                TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeNumber)),
+                out var epNum))
+            EpisodeNumber = epNum;
+        if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(AnimeID)),
+                out var animeID))
+            AnimeID = animeID;
+            
+        if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(FileID)),
+                out var fileID))
+            FileID = fileID;
+
         return Hash.Trim().Length > 0 || AnimeID > 0 || FileID > 0;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        CommandRequest cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_DeleteFileFromMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory, ISettingsProvider settingsProvider) : base(

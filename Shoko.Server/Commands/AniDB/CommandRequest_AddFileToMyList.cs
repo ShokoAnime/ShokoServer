@@ -4,7 +4,6 @@ using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
@@ -26,8 +25,8 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ISettingsProvider _settingsProvider;
 
-    public string Hash { get; set; }
-    public bool ReadStates { get; set; } = true;
+    public virtual string Hash { get; set; }
+    public virtual bool ReadStates { get; set; } = true;
 
 
     [NonSerialized] private SVR_VideoLocal _videoLocal;
@@ -229,53 +228,26 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
         CommandID = $"CommandRequest_AddFileToMyList_{Hash}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
-        if (CommandDetails.Trim().Length > 0)
-        {
-            var docCreator = new XmlDocument();
-            docCreator.LoadXml(CommandDetails);
-
-            // populate the fields
-            Hash = TryGetProperty(docCreator, "CommandRequest_AddFileToMyList", "Hash");
-            var read = TryGetProperty(docCreator, "CommandRequest_AddFileToMyList", "ReadStates");
-            if (!bool.TryParse(read, out var readStates))
-            {
-                readStates = true;
-            }
-
-            ReadStates = readStates;
-        }
-
-        if (Hash.Trim().Length <= 0)
-        {
+        if (CommandDetails.Trim().Length <= 0)
             return false;
-        }
+
+        var docCreator = new XmlDocument();
+        docCreator.LoadXml(CommandDetails);
+
+        // populate the fields
+        Hash = TryGetProperty(docCreator, "CommandRequest_AddFileToMyList", "Hash");
+        var read = TryGetProperty(docCreator, "CommandRequest_AddFileToMyList", "ReadStates");
+        if (!bool.TryParse(read, out var readStates)) readStates = true;
+
+        ReadStates = readStates;
+
+        if (Hash.Trim().Length <= 0)return false;
 
         _videoLocal = RepoFactory.VideoLocal.GetByHash(Hash);
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_AddFileToMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory,

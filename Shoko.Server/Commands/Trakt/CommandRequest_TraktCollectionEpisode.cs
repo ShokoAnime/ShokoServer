@@ -3,7 +3,6 @@ using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Providers.TraktTV;
@@ -19,10 +18,10 @@ public class CommandRequest_TraktCollectionEpisode : CommandRequestImplementatio
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
-    public int AnimeEpisodeID { get; set; }
-    public int Action { get; set; }
+    public virtual int AnimeEpisodeID { get; set; }
+    public virtual int Action { get; set; }
 
-    public TraktSyncAction ActionEnum => (TraktSyncAction)Action;
+    public virtual TraktSyncAction ActionEnum => (TraktSyncAction)Action;
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
 
@@ -67,14 +66,8 @@ public class CommandRequest_TraktCollectionEpisode : CommandRequestImplementatio
         CommandID = $"CommandRequest_TraktCollectionEpisode{AnimeEpisodeID}-{Action}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -87,21 +80,6 @@ public class CommandRequest_TraktCollectionEpisode : CommandRequestImplementatio
         Action = int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktCollectionEpisode", "Action"));
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_TraktCollectionEpisode(ILoggerFactory loggerFactory, TraktTVHelper helper, ISettingsProvider settingsProvider) : base(loggerFactory)

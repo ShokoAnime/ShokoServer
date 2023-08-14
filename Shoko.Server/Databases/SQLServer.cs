@@ -91,7 +91,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
                 prop.BatchSize = 0;
                 // uncomment this for SQL output
                 //prop.LogSqlInConsole = true;
-            }))
+            }).SetInterceptor(new NHibernateDependencyInjector(Utils.ServiceContainer)))
             .BuildSessionFactory();
     }
 

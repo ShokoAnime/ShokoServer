@@ -3,7 +3,6 @@ using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Repositories;
@@ -15,7 +14,7 @@ namespace Shoko.Server.Commands;
 [Command(CommandRequestType.ReadMediaInfo)]
 public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
 {
-    public int VideoLocalID { get; set; }
+    public virtual int VideoLocalID { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
@@ -54,14 +53,8 @@ public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
         CommandID = $"CommandRequest_ReadMediaInfo_{VideoLocalID}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -73,21 +66,6 @@ public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
             TryGetProperty(docCreator, "CommandRequest_ReadMediaInfo", "VideoLocalID"));
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_ReadMediaInfo(ILoggerFactory loggerFactory) : base(loggerFactory)

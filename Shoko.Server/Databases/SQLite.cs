@@ -73,7 +73,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             {
                 // uncomment this for SQL output
                 //prop.LogSqlInConsole = true;
-            }))
+            }).SetInterceptor(new NHibernateDependencyInjector(Utils.ServiceContainer)))
             .BuildSessionFactory();
     }
 

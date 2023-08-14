@@ -3,7 +3,6 @@ using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Providers.TraktTV;
@@ -16,7 +15,7 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_TraktUpdateInfo : CommandRequestImplementation
 {
     private readonly TraktTVHelper _helper;
-    public string TraktID { get; set; }
+    public virtual string TraktID { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -39,14 +38,8 @@ public class CommandRequest_TraktUpdateInfo : CommandRequestImplementation
         CommandID = $"CommandRequest_TraktUpdateInfo{TraktID}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -57,21 +50,6 @@ public class CommandRequest_TraktUpdateInfo : CommandRequestImplementation
         TraktID = TryGetProperty(docCreator, "CommandRequest_TraktUpdateInfo", "TraktID");
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_TraktUpdateInfo(ILoggerFactory loggerFactory, TraktTVHelper helper) : base(loggerFactory)

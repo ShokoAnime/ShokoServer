@@ -32,7 +32,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
     private readonly IRequestFactory _requestFactory;
     private readonly ICommandRequestFactory _commandFactory;
     private readonly IServerSettings _settings;
-    public bool ForceRefresh { get; set; }
+    public virtual bool ForceRefresh { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
@@ -290,14 +290,8 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         CommandID = "CommandRequest_SyncMyList";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -308,21 +302,6 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_SyncMyList", "ForceRefresh"));
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_SyncMyList(ILoggerFactory loggerFactory, IRequestFactory requestFactory,

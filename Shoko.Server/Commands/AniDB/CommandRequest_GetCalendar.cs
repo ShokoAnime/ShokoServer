@@ -23,7 +23,7 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ISettingsProvider _settingsProvider;
 
-    public bool ForceRefresh { get; set; }
+    public virtual bool ForceRefresh { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
@@ -140,14 +140,8 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
         CommandID = "CommandRequest_GetCalendar";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -159,21 +153,6 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
             TryGetProperty(docCreator, "CommandRequest_GetCalendar", "ForceRefresh"));
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_GetCalendar(ILoggerFactory loggerFactory, IRequestFactory requestFactory,

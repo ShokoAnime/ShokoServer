@@ -4,9 +4,8 @@ using System.Xml;
 using Microsoft.Extensions.Logging;
 using NHibernate;
 using Shoko.Commons.Queue;
-using Shoko.Models.Enums;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Databases;
@@ -16,6 +15,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using EpisodeType = Shoko.Models.Enums.EpisodeType;
 using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
 
 namespace Shoko.Server.Commands;
@@ -26,8 +26,8 @@ public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
-    public int AnimeID { get; set; }
-    public bool ForceRefresh { get; set; }
+    public virtual int AnimeID { get; set; }
+    public virtual bool ForceRefresh { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -117,7 +117,7 @@ public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
 
         foreach (var title in anime.GetTitles())
         {
-            if (title.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Official) continue;
+            if (title.TitleType != TitleType.Official) continue;
 
             if (string.Equals(searchCriteria, title.Title, StringComparison.InvariantCultureIgnoreCase)) continue;
 
@@ -156,14 +156,8 @@ public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
         CommandID = $"CommandRequest_TraktSearchAnime{AnimeID}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -176,21 +170,6 @@ public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
             bool.Parse(TryGetProperty(docCreator, "CommandRequest_TraktSearchAnime", "ForceRefresh"));
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_TraktSearchAnime(ILoggerFactory loggerFactory, TraktTVHelper helper, ISettingsProvider settingsProvider) : base(loggerFactory)

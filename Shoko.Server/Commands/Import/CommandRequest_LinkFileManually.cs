@@ -22,9 +22,9 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
 {
     private readonly ICommandRequestFactory _commandFactory;
     private readonly IServerSettings _settings;
-    public int VideoLocalID { get; set; }
-    public int EpisodeID { get; set; }
-    public int Percentage { get; set; }
+    public virtual int VideoLocalID { get; set; }
+    public virtual int EpisodeID { get; set; }
+    public virtual int Percentage { get; set; }
 
     private SVR_AnimeEpisode _episode;
     private SVR_VideoLocal _vlocal;
@@ -127,14 +127,8 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
         CommandID = $"CommandRequest_LinkFileManually_{VideoLocalID}_{EpisodeID}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -160,21 +154,6 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
         }
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_LinkFileManually(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) :

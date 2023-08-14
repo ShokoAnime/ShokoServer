@@ -1015,7 +1015,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
             {
                 // uncomment this for SQL output
                 //prop.LogSqlInConsole = true;
-            }))
+            }).SetInterceptor(new NHibernateDependencyInjector(Utils.ServiceContainer)))
             .BuildSessionFactory();
     }
 

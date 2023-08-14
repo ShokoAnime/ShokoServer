@@ -3,7 +3,6 @@ using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Models.Server;
 using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
@@ -17,9 +16,9 @@ namespace Shoko.Server.Commands.TvDB;
 public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation
 {
     private readonly TvDBApiHelper _helper;
-    public int AnimeID;
-    public int TvDBID;
-    public bool AdditiveLink;
+    public virtual int AnimeID { get; set; }
+    public virtual int TvDBID { get; set; }
+    public virtual bool AdditiveLink { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
@@ -43,14 +42,8 @@ public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation
             $"CommandRequest_LinkAniDBTvDB_{AnimeID}_{TvDBID}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -64,21 +57,6 @@ public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation
             TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "additiveLink"));
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_LinkAniDBTvDB(ILoggerFactory loggerFactory, TvDBApiHelper helper) : base(loggerFactory)

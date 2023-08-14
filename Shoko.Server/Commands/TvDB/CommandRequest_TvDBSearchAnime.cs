@@ -26,8 +26,8 @@ public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TvDBApiHelper _helper;
-    public int AnimeID { get; set; }
-    public bool ForceRefresh { get; set; }
+    public virtual int AnimeID { get; set; }
+    public virtual bool ForceRefresh { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -163,14 +163,8 @@ public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
         CommandID = $"CommandRequest_TvDBSearchAnime{AnimeID}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -183,21 +177,6 @@ public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
             bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBSearchAnime", "ForceRefresh"));
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_TvDBSearchAnime(ILoggerFactory loggerFactory, TvDBApiHelper helper, ISettingsProvider settingsProvider) : base(loggerFactory)

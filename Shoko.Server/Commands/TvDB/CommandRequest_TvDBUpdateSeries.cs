@@ -19,11 +19,11 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation
 {
     private readonly TvDBApiHelper _helper;
-    public int TvDBSeriesID { get; set; }
-    public bool ForceRefresh { get; set; }
-    public string SeriesTitle { get; set; }
+    public virtual int TvDBSeriesID { get; set; }
+    public virtual bool ForceRefresh { get; set; }
+    public virtual string SeriesTitle { get; set; }
 
-    [XmlIgnore][JsonIgnore] public TvDB_Series Result { get; set; }
+    [XmlIgnore][JsonIgnore] public virtual TvDB_Series Result { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -51,14 +51,8 @@ public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation
         CommandID = $"CommandRequest_TvDBUpdateSeries{TvDBSeriesID}";
     }
 
-    public override bool LoadFromDBCommand(CommandRequest cq)
+    public override bool LoadFromCommandDetails()
     {
-        CommandID = cq.CommandID;
-        CommandRequestID = cq.CommandRequestID;
-        Priority = cq.Priority;
-        CommandDetails = cq.CommandDetails;
-        DateTimeUpdated = cq.DateTimeUpdated;
-
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
 
@@ -74,28 +68,8 @@ public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation
         SeriesTitle =
             TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries",
                 "SeriesTitle");
-        if (string.IsNullOrEmpty(SeriesTitle))
-        {
-            SeriesTitle = RepoFactory.TvDB_Series.GetByTvDBID(TvDBSeriesID)?.SeriesName ??
-                          string.Intern("Name not Available");
-        }
 
         return true;
-    }
-
-    public override CommandRequest ToDatabaseObject()
-    {
-        GenerateCommandID();
-
-        var cq = new CommandRequest
-        {
-            CommandID = CommandID,
-            CommandType = CommandType,
-            Priority = Priority,
-            CommandDetails = ToXML(),
-            DateTimeUpdated = DateTime.Now
-        };
-        return cq;
     }
 
     public CommandRequest_TvDBUpdateSeries(ILoggerFactory loggerFactory, TvDBApiHelper helper) : base(loggerFactory)
