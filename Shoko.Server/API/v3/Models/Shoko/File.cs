@@ -296,11 +296,6 @@ public class File
         public long FileSize { get; set; }
 
         /// <summary>
-        /// The reported duration of the file
-        /// </summary>
-        public TimeSpan Duration { get; set; }
-
-        /// <summary>
         /// Any comments that were added to the file, such as something wrong with it.
         /// </summary>
         public string Description { get; set; }
