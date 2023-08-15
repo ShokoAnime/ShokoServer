@@ -57,23 +57,53 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
         {
             var httpHandler = HttpContext.RequestServices.GetRequiredService<IHttpConnectionHandler>();
             var udpHandler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
+            var hasherQueueState = !ShokoService.CmdProcessorHasher.Paused ? (
+                ShokoService.CmdProcessorHasher.QueueState
+            ) : (
+                new()
+                {
+                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
+                    message = "Paused",
+                    extraParams = new string[0],
+                }
+            );
             contract.HashQueueCount = ShokoService.CmdProcessorHasher.QueueCount;
-            contract.HashQueueState =
-                ShokoService.CmdProcessorHasher.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-            contract.HashQueueStateId = (int)ShokoService.CmdProcessorHasher.QueueState.queueState;
-            contract.HashQueueStateParams = ShokoService.CmdProcessorHasher.QueueState.extraParams;
+            contract.HashQueueMessage = hasherQueueState.formatMessage();
+            contract.HashQueueState = hasherQueueState.formatMessage(); // Deprecated since 3.6.0.0
+            contract.HashQueueStateId = (int)hasherQueueState.queueState;
+            contract.HashQueueStateParams = hasherQueueState.extraParams;
 
+            var generalQueueState = !ShokoService.CmdProcessorGeneral.Paused ? (
+                ShokoService.CmdProcessorGeneral.QueueState
+            ) : (
+                new()
+                {
+                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
+                    message = "Paused",
+                    extraParams = new string[0],
+                }
+            );
             contract.GeneralQueueCount = ShokoService.CmdProcessorGeneral.QueueCount;
-            contract.GeneralQueueState =
-                ShokoService.CmdProcessorGeneral.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-            contract.GeneralQueueStateId = (int)ShokoService.CmdProcessorGeneral.QueueState.queueState;
-            contract.GeneralQueueStateParams = ShokoService.CmdProcessorGeneral.QueueState.extraParams;
+            contract.GeneralQueueMessage = generalQueueState.formatMessage();
+            contract.GeneralQueueState = generalQueueState.formatMessage(); // Deprecated since 3.6.0.0
+            contract.GeneralQueueStateId = (int)generalQueueState.queueState;
+            contract.GeneralQueueStateParams = generalQueueState.extraParams;
 
+            var imagesQueueState = !ShokoService.CmdProcessorImages.Paused ? (
+                ShokoService.CmdProcessorImages.QueueState
+            ) : (
+                new()
+                {
+                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
+                    message = "Paused",
+                    extraParams = new string[0],
+                }
+            );
             contract.ImagesQueueCount = ShokoService.CmdProcessorImages.QueueCount;
-            contract.ImagesQueueState =
-                ShokoService.CmdProcessorImages.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-            contract.ImagesQueueStateId = (int)ShokoService.CmdProcessorImages.QueueState.queueState;
-            contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
+            contract.ImagesQueueMessage = imagesQueueState.formatMessage();
+            contract.ImagesQueueState = imagesQueueState.formatMessage(); // Deprecated since 3.6.0.0
+            contract.ImagesQueueStateId = (int)imagesQueueState.queueState;
+            contract.ImagesQueueStateParams = imagesQueueState.extraParams;
 
             contract.IsBanned = httpHandler.IsBanned || udpHandler.IsBanned;
             contract.BanReason = (httpHandler.IsBanned ? httpHandler.BanTime : udpHandler.BanTime).ToString();
