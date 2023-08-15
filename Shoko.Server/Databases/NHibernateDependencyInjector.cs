@@ -12,7 +12,8 @@ public class NHibernateDependencyInjector : EmptyInterceptor
     private readonly IServiceProvider _provider;
     private ISession _session;
     private static readonly Dictionary<Type, Func<object, (string name, object value)[], bool>> s_postInitializationCallbacks = new();
-    private static Type[] s_allTypes = null;
+    private static Dictionary<string, Type> s_allTypes;
+    private static readonly Dictionary<string, bool> s_typeHasValidConstructors = new();
 
     public NHibernateDependencyInjector(IServiceProvider provider)
     {
@@ -36,10 +37,16 @@ public class NHibernateDependencyInjector : EmptyInterceptor
 
     public override object Instantiate(string clazz, object id)
     {
-        s_allTypes ??= AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).ToArray();
-        var type = s_allTypes.FirstOrDefault(x => x.FullName == clazz);
-        var hasParameters = type?.GetConstructors().Any(x => x.GetParameters().Any()) ?? false;
-        if (type == null || !hasParameters) return base.Instantiate(clazz, id);
+        // return null -> use default NHibernate entity creation
+        s_allTypes ??= AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).DistinctBy(a => a.FullName).ToDictionary(a => a.FullName, a => a);
+        if (!s_allTypes.TryGetValue(clazz, out var type)) return null;
+        if (!s_typeHasValidConstructors.TryGetValue(clazz, out var hasParameters))
+        {
+            hasParameters = type.GetConstructors().Any(x => x.GetParameters().Any());
+            s_typeHasValidConstructors.Add(clazz, hasParameters);
+        }
+
+        if (!hasParameters) return null;
 
         var instance = ActivatorUtilities.CreateInstance(_provider, type);
         var md = _session?.SessionFactory?.GetClassMetadata(type);
