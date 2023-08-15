@@ -274,7 +274,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
     {
         try
         {
-            var types = showAll ? CommandTypesGeneralArray : GetExecutableCommands(CommandTypesGeneralArray, connectivityService);
+            var types = showAll ? CommandTypesImagesArray : GetExecutableCommands(CommandTypesImagesArray, connectivityService);
             return Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
