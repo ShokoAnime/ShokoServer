@@ -203,7 +203,6 @@ public abstract class CommandProcessor : IDisposable, ICommandProcessor
                         Logger.LogWarning("No command returned from repo, but there are {QueueCount} commands left", QueueCount);
                     return;
                 }
-                
 
                 // Only continue with running the command if a cancellation is
                 // not pending.

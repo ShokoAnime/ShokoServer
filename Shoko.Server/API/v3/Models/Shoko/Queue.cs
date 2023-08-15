@@ -83,7 +83,10 @@ public class Queue
         /// </summary>
         [JsonConverter(typeof(StringEnumConverter))]
         public CommandRequestType Type { get; }
-        
+
+        /// <summary>
+        /// The current description for the queue item.
+        /// </summary>
         public string Description { get; }
 
         /// <summary>
