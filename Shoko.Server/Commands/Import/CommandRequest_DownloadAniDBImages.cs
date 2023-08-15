@@ -113,10 +113,10 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
         for (var index = 0; index < requests.Count; index++)
         {
             // Update the queue state.
-            if (index == characterOffset)
-                ShokoService.CmdProcessorImages.QueueState = PrettyDescriptionCharacters;
-            else if (index == creatorOffset)
-                ShokoService.CmdProcessorImages.QueueState = PrettyDescriptionCreators;
+            if (index == characterOffset && Processor != null)
+                Processor.QueueState = PrettyDescriptionCharacters;
+            else if (index == creatorOffset && Processor != null)
+                Processor.QueueState = PrettyDescriptionCreators;
 
             // Process the
             var req = requests[index];

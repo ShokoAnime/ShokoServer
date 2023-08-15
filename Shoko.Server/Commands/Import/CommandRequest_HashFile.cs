@@ -363,7 +363,8 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         needSHA1 = string.IsNullOrEmpty(vlocal.SHA1) && hasherSettings.SHA1 || hasherSettings.ForceGeneratesAllHashes && force;
         if (!needEd2k && !needCRC32 && !needMD5 && !needSHA1) return false;
 
-        ShokoService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
+        if (Processor != null)
+            Processor.QueueState = PrettyDescriptionHashing;
         var start = DateTime.Now;
         var tp = new List<string>();
         if (needSHA1) tp.Add("SHA1");
