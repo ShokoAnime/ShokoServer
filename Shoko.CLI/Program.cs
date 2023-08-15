@@ -60,7 +60,7 @@ public static class Program
         var message = ev.QueueState.formatMessage();
         if (!string.Equals(LastGeneralQueueMessage, message))
         {
-            message = LastGeneralQueueMessage;
+            LastGeneralQueueMessage = message;
             Console.WriteLine($@"General Queue state change: {message}");
         }
     }
@@ -72,7 +72,7 @@ public static class Program
         var message = ev.QueueState.formatMessage();
         if (!string.Equals(LastImagesQueueMessage, message))
         {
-            message = LastImagesQueueMessage;
+            LastImagesQueueMessage = message;
             Console.WriteLine($@"Images Queue state change: {message}");
         }
     }
@@ -84,7 +84,7 @@ public static class Program
         var message = ev.QueueState.formatMessage();
         if (!string.Equals(LastHasherQueueMessage, message))
         {
-            message = LastHasherQueueMessage;
+            LastHasherQueueMessage = message; 
             Console.WriteLine($@"Hasher Queue state change: {message}");
         }
     }
