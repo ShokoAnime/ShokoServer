@@ -4,16 +4,20 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: Git reference for what to push
+        description: Git Reference
         default: master
         required: true
       tag:
-        description: Docker tag to push
+        description: Docker Tag
         default: daily
         required: true
       release:
         description: Release Channel
         default: dev
+        required: true
+      version:
+        description: Application Version
+        default: "0.0.0.0"
         required: true
 
 jobs:
@@ -42,14 +46,6 @@ jobs:
           ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
-      - name: Get release info
-        id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
-        with:
-          tag: "${{ github.event.inputs.ref }}"
-          prefix: v
-          prefixRegex: "[vV]?"
-
       - uses: docker/setup-qemu-action@v2
         name: Set up QEMU
         with:
@@ -66,7 +62,7 @@ jobs:
         # The manifest list produced by the new feature is incompatible with the
         # expected format used in the docker manifest create command.
       - name: Build and Push the Docker image
-        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ steps.release_info.outputs.version }}-${{ github.event.inputs.release }} --build-arg channel=${{ github.event.inputs.release }} --build-arg commit=${{ github.sha }} --build-arg tag=${{ steps.release_info.outputs.tag }} --build-arg date=${{ steps.release_info.outputs.date }} --push --provenance=false
+        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ steps.event.inputs.version }} --build-arg channel=${{ github.event.inputs.release }} --build-arg commit=${{ github.sha }} --build-arg date=$(git log -1 --format="%aI") --push --provenance=false
 
   docker-manual-push_manifest:
     needs: docker-manual-build
