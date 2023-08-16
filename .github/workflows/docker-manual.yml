@@ -62,7 +62,7 @@ jobs:
         # The manifest list produced by the new feature is incompatible with the
         # expected format used in the docker manifest create command.
       - name: Build and Push the Docker image
-        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ steps.event.inputs.version }} --build-arg channel=${{ github.event.inputs.release }} --build-arg commit=${{ github.sha }} --build-arg date=$(git log -1 --format="%aI") --push --provenance=false
+        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ github.event.inputs.version }} --build-arg channel=${{ github.event.inputs.release }} --build-arg commit=${{ github.sha }} --build-arg date=$(git log -1 --format="%aI") --push --provenance=false
 
   docker-manual-push_manifest:
     needs: docker-manual-build
