@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - ghcr-testing
 
 jobs:
   current_info:
