@@ -55,25 +55,63 @@ jobs:
       - uses: docker/setup-buildx-action@v2
         name: Set up Docker Buildx
 
-      - name: Log into docker hub
-        run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+      - uses: docker/login-action@v2
+        name: Log into GitHub Container Registry
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-        # Disabled provenance for now, until it works with docker manifest create.
-        # The manifest list produced by the new feature is incompatible with the
-        # expected format used in the docker manifest create command.
-      - name: Build and Push the Docker image
-        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ github.event.inputs.version }} --build-arg channel=${{ github.event.inputs.release }} --build-arg commit=${{ github.sha }} --build-arg date=$(git log -1 --format="%aI") --push --provenance=false
+      - uses: docker/login-action@v2
+        name: Log into Docker Hub
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Disabled provenance for now, until it works with docker manifest create.
+      # The manifest list produced by the new feature is incompatible with the
+      # expected format used in the docker manifest create command.
+      - uses: docker/build-push-action@v4
+        name: Build and Push the Docker image
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }-${{ matrix.arch }}
+            ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }-${{ matrix.arch }}
+          platforms: linux/${{ matrix.arch }}
+          build-args: |
+            version=${{ github.event.inputs.version }}
+            channel=${{ github.event.inputs.release }}
+            commit=${{ github.sha }}
+            date=$(git log -1 --format="%aI")
+          provenance: false
 
   docker-manual-push_manifest:
     needs: docker-manual-build
     name: Push combined tag for both images
     runs-on: ubuntu-latest
     steps:
-      - name: Log into docker hub
-        run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+      - uses: docker/login-action@v2
+        name: Log into GitHub Container Registry
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/login-action@v2
+        name: Log into Docker Hub
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Create manifest
-        run: docker manifest create ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }} --amend ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-amd64 --amend ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-arm64
+        run: |
+          docker manifest create ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }} --amend ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-amd64 --amend ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-arm64
+          docker manifest create ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }} --amend ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-amd64 --amend ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-arm64
 
       - name: Push manifest
-        run: docker manifest push ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}
+        run: |
+          docker manifest push ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}
+          docker manifest push ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}
