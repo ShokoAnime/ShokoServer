@@ -229,6 +229,7 @@ jobs:
             channel=dev
             commit=${{ needs.current_info.outputs.sha }}
             date=${{ needs.current_info.outputs.date }}
+          provenance: false
 
   docker-daily-push_manifest:
     runs-on: ubuntu-latest
