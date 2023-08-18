@@ -195,14 +195,38 @@ jobs:
       - uses: docker/setup-buildx-action@v2
         name: Set up Docker Buildx
 
-      - name: Log into docker hub
-        run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+      - uses: docker/login-action@v2
+        name: Log into GitHub Container Registry
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-        # Disabled provenance for now, until it works with docker manifest create.
-        # The manifest list produced by the new feature is incompatible with the
-        # expected format used in the docker manifest create command.
-      - name: Build and Push the Docker image
-        run: docker buildx build . --file ${{ matrix.dockerfile }} --tag ${{ secrets.DOCKER_REPO }}:daily-${{ matrix.arch }} --platform linux/${{ matrix.arch }} --build-arg version=${{ needs.current_info.outputs.version }} --build-arg channel=dev --build-arg commit=${{ needs.current_info.outputs.sha }} --build-arg date=${{ needs.current_info.outputs.date }} --push --provenance=false
+      - uses: docker/login-action@v2
+        name: Log into Docker Hub
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Disabled provenance for now, until it works with docker manifest create.
+      # The manifest list produced by the new feature is incompatible with the
+      # expected format used in the docker manifest create command.
+      - uses: docker/build-push-action@v4
+        name: Build and Push the Docker image
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ghcr.io/${{ secrets.DOCKER_REPO }}:daily-${{ matrix.arch }}
+            ${{ secrets.DOCKER_REPO }}:daily-${{ matrix.arch }}
+          platforms: linux/${{ matrix.arch }}
+          build-args: |
+            version=${{ needs.current_info.outputs.version }}
+            channel=dev
+            commit=${{ needs.current_info.outputs.sha }}
+            date=${{ needs.current_info.outputs.date }}
+          provenance: false
 
   docker-daily-push_manifest:
     runs-on: ubuntu-latest
@@ -213,14 +237,28 @@ jobs:
       - docker-daily-build
 
     steps:
-      - name: Log into Docker Hub
-        run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+      - uses: docker/login-action@v2
+        name: Log into GitHub Container Registry
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/login-action@v2
+        name: Log into Docker Hub
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Create manifest
-        run: docker manifest create ${{ secrets.DOCKER_REPO }}:daily --amend ${{ secrets.DOCKER_REPO }}:daily-amd64 --amend ${{ secrets.DOCKER_REPO }}:daily-arm64
+        run: |
+          docker manifest create ghcr.io/${{ secrets.DOCKER_REPO }}:daily --amend ghcr.io/${{ secrets.DOCKER_REPO }}:daily-amd64 --amend ghcr.io/${{ secrets.DOCKER_REPO }}:daily-arm64
+          docker manifest create ${{ secrets.DOCKER_REPO }}:daily --amend ${{ secrets.DOCKER_REPO }}:daily-amd64 --amend ${{ secrets.DOCKER_REPO }}:daily-arm64
 
       - name: Push manifest
-        run: docker manifest push ${{ secrets.DOCKER_REPO }}:daily
+        run: |
+          docker manifest push ghcr.io/${{ secrets.DOCKER_REPO }}:daily
+          docker manifest push ${{ secrets.DOCKER_REPO }}:daily
 
   sentry-upload:
     runs-on: ubuntu-latest
