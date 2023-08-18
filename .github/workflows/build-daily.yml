@@ -221,7 +221,6 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-#            shokoanime/server:daily-${{ matrix.arch }}
             ghcr.io/shokoanime/server:daily-${{ matrix.arch }}
           platforms: linux/${{ matrix.arch }}
           build-args: version=${{ needs.current_info.outputs.version }},channel=dev,commit=${{ needs.current_info.outputs.sha }},date=${{ needs.current_info.outputs.date }}
