@@ -202,6 +202,9 @@ public class Series : BaseModel
         int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
         bool cacheOnly = false)
     {
+        if (force)
+            return QueueForcedAniDBRefresh(commandFactory, handler, animeID, downloadRelations, createSeriesEntry, immediate);
+
         var command = commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
         {
             c.AnimeID = animeID;
@@ -211,7 +214,7 @@ public class Series : BaseModel
             c.CreateSeriesEntry = createSeriesEntry;
             c.BubbleExceptions = immediate;
         });
-        if (immediate && (command.CacheOnly || !handler.IsBanned))
+        if (immediate)
         {
             try
             {
@@ -228,7 +231,35 @@ public class Series : BaseModel
         command.Save();
         return false;
     }
-    
+
+    private static bool QueueForcedAniDBRefresh(ICommandRequestFactory commandFactory, IHttpConnectionHandler handler,
+        int animeID, bool downloadRelations, bool createSeriesEntry, bool immediate = false)
+    {
+        var command = commandFactory.Create<CommandRequest_GetAnimeHTTP_Force>(c =>
+        {
+            c.AnimeID = animeID;
+            c.DownloadRelations = downloadRelations;
+            c.CreateSeriesEntry = createSeriesEntry;
+            c.BubbleExceptions = immediate;
+        });
+        if (immediate && !handler.IsBanned)
+        {
+            try
+            {
+                command.ProcessCommand();
+            }
+            catch
+            {
+                return false;
+            }
+
+            return command.Result != null;
+        }
+
+        command.Save();
+        return false;
+    }
+
     public static bool QueueTvDBRefresh(ICommandRequestFactory commandFactory, int tvdbID, bool force, bool immediate = false)
     {
         var command = commandFactory.Create<CommandRequest_TvDBUpdateSeries>(c =>

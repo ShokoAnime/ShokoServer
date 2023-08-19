@@ -242,7 +242,7 @@ public class ActionController : BaseController
     public ActionResult UpdateMissingAniDBXML()
     {
         // Check existing anime.
-        int index = 0;
+        var index = 0;
         var queuedAnimeSet = new HashSet<int>();
         var localAnimeSet = RepoFactory.AniDB_Anime.GetAll()
             .Select(a => a.AnimeID)
@@ -280,7 +280,7 @@ public class ActionController : BaseController
             if (++index % 10 == 1)
                 _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
 
-            Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, true, true, true);
+            Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, false, true, true);
             queuedAnimeSet.Add(animeID);
         }
 
