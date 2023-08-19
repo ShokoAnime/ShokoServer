@@ -1001,10 +1001,9 @@ public class DatabaseFixes
         // the faulty episodes after the update.
         foreach (var animeID in animeToUpdateSet)
         {
-            commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(c =>
+            commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP_Force>(c =>
             {
                 c.AnimeID = animeID;
-                c.ForceRefresh = true;
                 c.DownloadRelations = false;
             });
         }

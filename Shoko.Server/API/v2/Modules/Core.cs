@@ -293,11 +293,10 @@ public class Core : BaseController
                     continue;
                 }
 
-                _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(
+                _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP_Force>(
                     c =>
                     {
                         c.AnimeID = animeID;
-                        c.ForceRefresh = true;
                     }
                 );
                 updatedAnime++;

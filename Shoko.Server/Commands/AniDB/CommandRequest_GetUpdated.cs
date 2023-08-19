@@ -122,11 +122,10 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
             var ts = DateTime.Now - (update?.UpdatedAt ?? DateTime.UnixEpoch);
             if (ts.TotalHours > 4)
             {
-                _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(
+                _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP_Force>(
                     c =>
                     {
                         c.AnimeID = animeID;
-                        c.ForceRefresh = true;
                         c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
                     }
                 );

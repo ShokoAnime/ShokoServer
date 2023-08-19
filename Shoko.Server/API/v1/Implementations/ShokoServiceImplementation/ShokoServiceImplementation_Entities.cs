@@ -2432,10 +2432,9 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(c =>
+            _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP_Force>(c =>
             {
                 c.AnimeID = animeID;
-                c.ForceRefresh = true;
                 c.DownloadRelations = false;
             });
         }
