@@ -739,14 +739,13 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             RemoveXRefsForFile(videoLocalID);
-            var com = _commandFactory.Create<CommandRequest_LinkFileManually>(
+            _commandFactory.CreateAndSave<CommandRequest_LinkFileManually>(
                 c =>
                 {
                     c.VideoLocalID = videoLocalID;
                     c.EpisodeID = animeEpisodeID;
                 }
             );
-            com.Save();
             return string.Empty;
         }
         catch (Exception ex)
@@ -797,14 +796,13 @@ public partial class ShokoServiceImplementation : IShokoServer
                     return "Could not find episode record";
                 }
 
-                var com = _commandFactory.Create<CommandRequest_LinkFileManually>(
+                _commandFactory.CreateAndSave<CommandRequest_LinkFileManually>(
                     c =>
                     {
                         c.VideoLocalID = videoLocalID;
                         c.EpisodeID = ep.AnimeEpisodeID;
                     }
                 );
-                com.Save();
             }
 
             return string.Empty;
@@ -903,7 +901,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     com.Percentage = (int)Math.Round((double)count / total * 100);
                 }
 
-                com.Save();
+                _commandFactory.Save(com);
 
                 count++;
                 if (!singleEpisode)
@@ -945,14 +943,13 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "File could not be found";
             }
 
-            var cmd = _commandFactory.Create<CommandRequest_GetFile>(
+            _commandFactory.CreateAndSave<CommandRequest_GetFile>(
                 c =>
                 {
                     c.VideoLocalID = vid.VideoLocalID;
                     c.ForceAniDB = true;
                 }
             );
-            cmd.Save();
         }
         catch (Exception ex)
         {
@@ -979,14 +976,13 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not Update a cloud file without hash, hash it locally first";
             }
 
-            var cmd = _commandFactory.Create<CommandRequest_ProcessFile>(
+            _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
                 c =>
                 {
                     c.VideoLocalID = vid.VideoLocalID;
                     c.ForceAniDB = true;
                 }
             );
-            cmd.Save();
         }
         catch (Exception ex)
         {
@@ -1011,14 +1007,13 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return;
             }
 
-            var cr_hashfile = _commandFactory.Create<CommandRequest_HashFile>(
+            _commandFactory.CreateAndSave<CommandRequest_HashFile>(
                 c =>
                 {
                     c.FileName = pl.FullServerPath;
                     c.ForceHash = true;
                 }
             );
-            cr_hashfile.Save();
         }
     }
 
@@ -1215,14 +1210,13 @@ public partial class ShokoServiceImplementation : IShokoServer
             return;
         }
 
-        var cmd = _commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+        _commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(
             c =>
             {
                 c.Hash = vl.Hash;
                 c.FileSize = vl.FileSize;
             }
         );
-        cmd.Save();
     }
 
     [HttpPost("AniDB/MyList/{hash}")]
@@ -1230,8 +1224,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var cmdAddFile = _commandFactory.Create<CommandRequest_AddFileToMyList>(c => c.Hash = hash);
-            cmdAddFile.Save();
+            _commandFactory.CreateAndSave<CommandRequest_AddFileToMyList>(c => c.Hash = hash);
         }
         catch (Exception ex)
         {
@@ -1743,7 +1736,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         thisVote.VoteValue = iVoteValue;
         RepoFactory.AniDB_Vote.Save(thisVote);
 
-        var cmdVote = _commandFactory.Create<CommandRequest_VoteAnime>(
+        _commandFactory.CreateAndSave<CommandRequest_VoteAnime>(
             c =>
             {
                 c.AnimeID = animeID;
@@ -1751,7 +1744,6 @@ public partial class ShokoServiceImplementation : IShokoServer
                 c.VoteValue = voteValue;
             }
         );
-        cmdVote.Save();
     }
 
     [HttpDelete("AniDB/Vote/{animeID}")]
@@ -1776,7 +1768,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             return;
         }
 
-        var cmdVote = _commandFactory.Create<CommandRequest_VoteAnime>(
+        _commandFactory.CreateAndSave<CommandRequest_VoteAnime>(
             c =>
             {
                 c.AnimeID = animeID;
@@ -1784,7 +1776,6 @@ public partial class ShokoServiceImplementation : IShokoServer
                 c.VoteValue = -1;
             }
         );
-        cmdVote.Save();
 
         RepoFactory.AniDB_Vote.Delete(thisVote.AniDB_VoteID);
     }
@@ -2421,9 +2412,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             // if not we will download it now
             if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
             {
-                var cmdStatus =
-                    _commandFactory.Create<CommandRequest_GetReleaseGroupStatus>(c => c.AnimeID = anime.AnimeID);
-                cmdStatus.Save();
+                _commandFactory.CreateAndSave<CommandRequest_GetReleaseGroupStatus>(c => c.AnimeID = anime.AnimeID);
             }
 
             response.Result = ser.GetUserContract(userID);
@@ -2443,13 +2432,12 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+            _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(c =>
             {
                 c.AnimeID = animeID;
                 c.ForceRefresh = true;
                 c.DownloadRelations = false;
             });
-            command.Save();
         }
         catch (Exception ex)
         {
@@ -2475,14 +2463,13 @@ public partial class ShokoServiceImplementation : IShokoServer
             var anime = command.Result;
 
             // update group status information
-            var cmdStatus = _commandFactory.Create<CommandRequest_GetReleaseGroupStatus>(
+            _commandFactory.CreateAndSave<CommandRequest_GetReleaseGroupStatus>(
                 c =>
                 {
                     c.AnimeID = animeID;
                     c.ForceRefresh = true;
                 }
             );
-            cmdStatus.Save();
 
             return anime?.Contract;
         }

@@ -85,12 +85,11 @@ public class CommandRequest_SyncMyVotes : CommandRequestImplementation
             }
 
             // download the anime info if the user doesn't already have it
-            var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+            _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(c =>
             {
                 c.AnimeID = thisVote.EntityID;
                 c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
             });
-            cmdAnime.Save();
         }
 
         Logger.LogInformation("Processed Votes: {Count} Items", response.Response.Count);

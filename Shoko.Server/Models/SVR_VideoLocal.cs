@@ -270,7 +270,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
                 if ((watched && settings.AniDb.MyList_SetWatched) ||
                     (!watched && settings.AniDb.MyList_SetUnwatched))
                 {
-                    var cmd = commandFactory.Create<CommandRequest_UpdateMyListFileStatus>(
+                    commandFactory.CreateAndSave<CommandRequest_UpdateMyListFileStatus>(
                         c =>
                         {
                             c.Hash = Hash;
@@ -279,7 +279,6 @@ public class SVR_VideoLocal : VideoLocal, IHash
                             c.WatchedDateAsSecs = AniDB.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime());
                         }
                     );
-                    cmd.Save();
                 }
         }
 
@@ -333,14 +332,13 @@ public class SVR_VideoLocal : VideoLocal, IHash
                     if (syncTrakt && settings.TraktTv.Enabled &&
                         !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
                     {
-                        var cmdSyncTrakt = commandFactory.Create<CommandRequest_TraktHistoryEpisode>(
+                        commandFactory.CreateAndSave<CommandRequest_TraktHistoryEpisode>(
                             c =>
                             {
                                 c.AnimeEpisodeID = ep.AnimeEpisodeID;
                                 c.Action = (int)TraktSyncAction.Add;
                             }
                         );
-                        cmdSyncTrakt.Save();
                     }
                 }
             }
@@ -384,14 +382,13 @@ public class SVR_VideoLocal : VideoLocal, IHash
                     if (syncTrakt && settings.TraktTv.Enabled &&
                         !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
                     {
-                        var cmdSyncTrakt = commandFactory.Create<CommandRequest_TraktHistoryEpisode>(
+                        commandFactory.CreateAndSave<CommandRequest_TraktHistoryEpisode>(
                             c =>
                             {
                                 c.AnimeEpisodeID = ep.AnimeEpisodeID;
                                 c.Action = (int)TraktSyncAction.Remove;
                             }
                         );
-                        cmdSyncTrakt.Save();
                     }
                 }
             }

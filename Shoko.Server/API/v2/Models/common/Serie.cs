@@ -78,14 +78,13 @@ public class Serie : BaseDirectory, IComparable
         if (aniDB_Anime == null)
         {
             var commandFactory = ctx.RequestServices.GetRequiredService<ICommandRequestFactory>();
-            var cr_anime = commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+            commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(
                 c =>
                 {
                     c.AnimeID = bookmark.AnimeID;
                     c.ForceRefresh = true;
                 }
             );
-            cr_anime.Save();
 
             var empty_serie = new Serie { id = -1, name = "GetAnimeInfoHTTP", aid = bookmark.AnimeID };
             return empty_serie;

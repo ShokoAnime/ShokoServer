@@ -207,14 +207,13 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
         {
             foreach (var aep in _videoLocal.GetAnimeEpisodes())
             {
-                var cmdSyncTrakt = _commandFactory.Create<CommandRequest_TraktCollectionEpisode>(
+                _commandFactory.CreateAndSave<CommandRequest_TraktCollectionEpisode>(
                     c =>
                     {
                         c.AnimeEpisodeID = aep.AnimeEpisodeID;
                         c.Action = (int)TraktSyncAction.Add;
                     }
                 );
-                cmdSyncTrakt.Save();
             }
         }
     }

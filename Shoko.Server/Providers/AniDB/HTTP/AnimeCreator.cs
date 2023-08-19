@@ -380,13 +380,12 @@ public class AnimeCreator
         // try and fetch that.
         foreach (var video in videosToRefetch)
         {
-            var command = _commandFactory.Create<CommandRequest_ProcessFile>(c =>
+            _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(c =>
             {
                 c.VideoLocalID = video.VideoLocalID;
                 c.SkipMyList = true;
                 c.ForceAniDB = true;
             });
-            command.Save();
         }
 
         var episodeCount = episodeCountSpecial + episodeCountNormal;

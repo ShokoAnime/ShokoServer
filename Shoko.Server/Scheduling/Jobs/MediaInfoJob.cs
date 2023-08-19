@@ -32,8 +32,7 @@ internal class MediaInfoJob : IJob
             var filesAll = RepoFactory.VideoLocal.GetAll();
             foreach (var vl in filesAll)
             {
-                var cr = _commandRequestFactory.Create<CommandRequest_ReadMediaInfo>(c => c.VideoLocalID = vl.VideoLocalID);
-                cr.Save();
+                _commandRequestFactory.CreateAndSave<CommandRequest_ReadMediaInfo>(c => c.VideoLocalID = vl.VideoLocalID);
             }
         }
         catch (Exception ex)

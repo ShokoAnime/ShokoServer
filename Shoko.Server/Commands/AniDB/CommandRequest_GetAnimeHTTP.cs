@@ -119,7 +119,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                 {
                     Logger.LogTrace("We're HTTP Banned and unable to find a cached AnimeDoc_{AnimeID}.xml file.", AnimeID);
                     // Queue the command to get the data when we're no longer banned if there is no anime record.
-                    var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP_Force>(
+                    _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP_Force>(
                         c =>
                         {
                             c.AnimeID = AnimeID;
@@ -128,7 +128,6 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                             c.CreateSeriesEntry = CreateSeriesEntry;
                         }
                     );
-                    command.Save();
                     throw;
                 }
 
@@ -140,7 +139,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                 {
                     Logger.LogTrace("Failed to parse the cached AnimeDoc_{AnimeID}.xml file.", AnimeID);
                     // Queue the command to get the data when we're no longer banned if there is no anime record.
-                    var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP_Force>(
+                    _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP_Force>(
                         c =>
                         {
                             c.AnimeID = AnimeID;
@@ -149,7 +148,6 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                             c.CreateSeriesEntry = CreateSeriesEntry;
                         }
                     );
-                    command.Save();
                     throw;
                 }
 
@@ -172,7 +170,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                 if (!CacheOnly)
                 {
                     // Queue the command to get the data when we're no longer banned if there is no anime record.
-                    var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP_Force>(
+                    _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP_Force>(
                         c =>
                         {
                             c.AnimeID = AnimeID;
@@ -181,7 +179,6 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                             c.CreateSeriesEntry = CreateSeriesEntry;
                         }
                     );
-                    command.Save();
                 }
                 return;
             }
@@ -196,7 +193,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                 if (!CacheOnly)
                 {
                     // Queue the command to get the data when we're no longer banned if there is no anime record.
-                    var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP_Force>(
+                    _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP_Force>(
                         c =>
                         {
                             c.AnimeID = AnimeID;
@@ -205,7 +202,6 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                             c.CreateSeriesEntry = CreateSeriesEntry;
                         }
                     );
-                    command.Save();
                 }
                 throw;
             }
@@ -237,7 +233,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
         ProcessRelations(response);
 
         // Request an image download
-        _commandFactory.Create<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = anime.AnimeID).Save();
+        _commandFactory.CreateAndSave<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = anime.AnimeID);
     }
 
     private void ProcessRelations(ResponseGetAnime response)
@@ -291,7 +287,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
             {
                 // Append the command to the queue.
                 if (ForceRefresh) {
-                    var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP_Force>(
+                    _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP_Force>(
                         c =>
                         {
                             c.AnimeID = relation.RelatedAnimeID;
@@ -300,10 +296,9 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                             c.CreateSeriesEntry = CreateSeriesEntry && _settings.AniDb.AutomaticallyImportSeries;
                         }
                     );
-                    command.Save();
                 }
                 else {
-                    var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                    _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(
                         c =>
                         {
                             c.AnimeID = relation.RelatedAnimeID;
@@ -314,7 +309,6 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
                             c.CreateSeriesEntry = CreateSeriesEntry && _settings.AniDb.AutomaticallyImportSeries;
                         }
                     );
-                    command.Save();
                 }
             }
             catch (AniDBBannedException)

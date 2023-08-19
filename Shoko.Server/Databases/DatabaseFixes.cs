@@ -1001,13 +1001,12 @@ public class DatabaseFixes
         // the faulty episodes after the update.
         foreach (var animeID in animeToUpdateSet)
         {
-            var command = commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+            commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(c =>
             {
                 c.AnimeID = animeID;
                 c.ForceRefresh = true;
                 c.DownloadRelations = false;
             });
-            command.Save();
         }
 
         logger.Info($"Done updating last updated episode timestamps for {anidbAnimeIDs.Count} local anidb anime entries. Updated {updatedCount} episodes, reset {resetCount} episodes and queued anime {animeToUpdateSet.Count} updates for {faultyCount} faulty episodes.");
@@ -1115,13 +1114,12 @@ public class DatabaseFixes
         logger.Trace($"Scheduling {videosToRefetch.Count} videos for a re-fetch.");
         foreach (var video in videosToRefetch)
         {
-            var command = commandFactory.Create<CommandRequest_ProcessFile>(c =>
+            commandFactory.CreateAndSave<CommandRequest_ProcessFile>(c =>
             {
                 c.VideoLocalID = video.VideoLocalID;
                 c.SkipMyList = true;
                 c.ForceAniDB = true;
             });
-            command.Save();
         }
 
         logger.Trace($"Deleting {shokoEpisodesToRemove.Count} orphaned shoko episodes.");

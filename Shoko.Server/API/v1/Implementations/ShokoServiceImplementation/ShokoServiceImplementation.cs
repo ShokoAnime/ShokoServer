@@ -757,8 +757,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     [HttpPost("AniDB/Vote/Sync")]
     public void SyncVotes()
     {
-        var cmdVotes = _commandFactory.Create<CommandRequest_SyncMyVotes>();
-        cmdVotes.Save();
+        _commandFactory.CreateAndSave<CommandRequest_SyncMyVotes>();
     }
 
     #endregion

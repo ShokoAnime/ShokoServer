@@ -215,8 +215,7 @@ public class TvDBApiHelper
         {
             // download and update series info, episode info and episode images
             // will also download fanart, posters and wide banners
-            var cmdSeriesEps = _commandFactory.Create<CommandRequest_TvDBUpdateSeries>(c => c.TvDBSeriesID = tvDBID);
-            cmdSeriesEps.Save();
+            _commandFactory.CreateAndSave<CommandRequest_TvDBUpdateSeries>(c => c.TvDBSeriesID = tvDBID);
         }
         else
         {
@@ -254,8 +253,7 @@ public class TvDBApiHelper
                 }
             }
 
-            var cmd2 = _commandFactory.Create<CommandRequest_TraktSearchAnime>(c => c.AnimeID = animeID);
-            cmd2.Save();
+            _commandFactory.CreateAndSave<CommandRequest_TraktSearchAnime>(c => c.AnimeID = animeID);
         }
     }
 
@@ -700,7 +698,7 @@ public class TvDBApiHelper
                 var fileExists = File.Exists(img.GetFullImagePath());
                 if (fileExists && !forceDownload) continue;
 
-                var cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
                     c =>
                     {
                         c.EntityID = img.TvDB_ImageFanartID;
@@ -708,7 +706,6 @@ public class TvDBApiHelper
                         c.ForceDownload = forceDownload;
                     }
                 );
-                cmd.Save();
                 imageCount++;
             }
             else
@@ -739,7 +736,7 @@ public class TvDBApiHelper
                 var fileExists = File.Exists(img.GetFullImagePath());
                 if (fileExists && !forceDownload) continue;
 
-                var cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
                     c =>
                     {
                         c.EntityID = img.TvDB_ImagePosterID;
@@ -747,7 +744,6 @@ public class TvDBApiHelper
                         c.ForceDownload = forceDownload;
                     }
                 );
-                cmd.Save();
                 imageCount++;
             }
             else
@@ -777,7 +773,7 @@ public class TvDBApiHelper
             {
                 var fileExists = File.Exists(img.GetFullImagePath());
                 if (fileExists && !forceDownload) continue;
-                var cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
                     c =>
                     {
                         c.EntityID = img.TvDB_ImageWideBannerID;
@@ -785,7 +781,6 @@ public class TvDBApiHelper
                         c.ForceDownload = forceDownload;
                     }
                 );
-                cmd.Save();
                 imageCount++;
             }
             else
@@ -913,7 +908,7 @@ public class TvDBApiHelper
                     continue;
                 }
 
-                var cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
                     c =>
                     {
                         c.EntityID = ep.TvDB_EpisodeID;
@@ -921,7 +916,6 @@ public class TvDBApiHelper
                         c.ForceDownload = forceRefresh;
                     }
                 );
-                cmd.Save();
             }
 
             // get all the existing tvdb episodes, to see if any have been deleted
@@ -1013,8 +1007,7 @@ public class TvDBApiHelper
 
             _logger.LogTrace("Found anime without TvDB association: {MaintTitle}", anime.MainTitle);
 
-            var cmd = _commandFactory.Create<CommandRequest_TvDBSearchAnime>(c => c.AnimeID = ser.AniDB_ID);
-            cmd.Save();
+            _commandFactory.CreateAndSave<CommandRequest_TvDBSearchAnime>(c => c.AnimeID = ser.AniDB_ID);
         }
     }
 
@@ -1023,14 +1016,13 @@ public class TvDBApiHelper
         var allCrossRefs = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
         foreach (var xref in allCrossRefs)
         {
-            var cmd = _commandFactory.Create<CommandRequest_TvDBUpdateSeries>(
+            _commandFactory.CreateAndSave<CommandRequest_TvDBUpdateSeries>(
                 c =>
                 {
                     c.TvDBSeriesID = xref.TvDBID;
                     c.ForceRefresh = force;
                 }
             );
-            cmd.Save();
         }
     }
 

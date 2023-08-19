@@ -92,14 +92,13 @@ public class MovieDBHelper
                         continue;
                     }
 
-                    var cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                    _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
                         c =>
                         {
                             c.EntityID = poster.MovieDB_PosterID;
                             c.EntityType = (int)ImageEntityType.MovieDB_Poster;
                         }
                     );
-                    cmd.Save();
                     numPostersDownloaded++;
                 }
                 else
@@ -128,14 +127,13 @@ public class MovieDBHelper
                         continue;
                     }
 
-                    var cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+                    _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
                         c =>
                         {
                             c.EntityID = fanart.MovieDB_FanartID;
                             c.EntityType = (int)ImageEntityType.MovieDB_FanArt;
                         }
                     );
-                    cmd.Save();
                     numFanartDownloaded++;
                 }
                 else
@@ -310,8 +308,7 @@ public class MovieDBHelper
 
             _logger.LogTrace("Found anime movie without MovieDB association: {MainTitle}", anime.MainTitle);
 
-            var cmd = _commandFactory.Create<CommandRequest_MovieDBSearchAnime>(c => c.AnimeID = ser.AniDB_ID);
-            cmd.Save();
+            _commandFactory.CreateAndSave<CommandRequest_MovieDBSearchAnime>(c => c.AnimeID = ser.AniDB_ID);
         }
     }
 }

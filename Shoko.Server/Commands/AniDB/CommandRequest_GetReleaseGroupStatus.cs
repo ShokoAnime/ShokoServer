@@ -92,13 +92,12 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
             var eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(AnimeID, maxEpisode);
             if (eps.Count == 0)
             {
-                var crAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+                _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(c =>
                 {
                     c.AnimeID = AnimeID;
                     c.ForceRefresh = true;
                     c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
                 });
-                crAnime.Save();
             }
 
             // update the missing episode stats on groups and children
@@ -108,9 +107,8 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
         if (settings.AniDb.DownloadReleaseGroups && response is { Response.Count: > 0 })
         {
             // shouldn't need the where, but better safe than sorry.
-            response.Response.DistinctBy(a => a.GroupID).Where(a => a.GroupID != 0).Select(a =>
-                    _commandFactory.Create<CommandRequest_GetReleaseGroup>(c => c.GroupID = a.GroupID))
-                .ForEach(a => a.Save());
+            response.Response.DistinctBy(a => a.GroupID).Where(a => a.GroupID != 0).ForEach(a =>
+                _commandFactory.CreateAndSave<CommandRequest_GetReleaseGroup>(c => c.GroupID = a.GroupID));
         }
     }
 

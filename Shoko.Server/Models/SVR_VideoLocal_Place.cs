@@ -237,7 +237,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                             var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                             if (ep == null) continue;
 
-                            var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+                            commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(
                                 c =>
                                 {
                                     c.AnimeID = xref.AnimeID;
@@ -245,19 +245,17 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                                     c.EpisodeNumber = ep.EpisodeNumber;
                                 }
                             );
-                            cmdDel.Save();
                         }
                     }
                     else
                     {
-                        var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+                        commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(
                             c =>
                             {
                                 c.Hash = v.Hash;
                                 c.FileSize = v.FileSize;
                             }
                         );
-                        cmdDel.Save();
                     }
                 }
 
@@ -339,25 +337,23 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                             continue;
                         }
 
-                        var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(c =>
+                        commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(c =>
                         {
                             c.AnimeID = xref.AnimeID;
                             c.EpisodeType = ep.GetEpisodeTypeEnum();
                             c.EpisodeNumber = ep.EpisodeNumber;
                         });
-                        cmdDel.Save();
                     }
                 }
                 else
                 {
-                    var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+                    commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(
                         c =>
                         {
                             c.Hash = v.Hash;
                             c.FileSize = v.FileSize;
                         }
                     );
-                    cmdDel.Save();
                 }
             }
 

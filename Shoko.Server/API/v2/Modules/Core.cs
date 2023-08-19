@@ -242,8 +242,7 @@ public class Core : BaseController
     public ActionResult SyncAniDBVotes()
     {
         //TODO APIv2: Command should be split into AniDb/MAL sepereate
-        var cmdVotes = _commandFactory.Create<CommandRequest_SyncMyVotes>();
-        cmdVotes.Save();
+        _commandFactory.CreateAndSave<CommandRequest_SyncMyVotes>();
         return APIStatus.OK();
     }
 
@@ -294,14 +293,13 @@ public class Core : BaseController
                     continue;
                 }
 
-                var cmd = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(
                     c =>
                     {
                         c.AnimeID = animeID;
                         c.ForceRefresh = true;
                     }
                 );
-                cmd.Save();
                 updatedAnime++;
             }
 
@@ -362,8 +360,7 @@ public class Core : BaseController
     {
         if (_settings.TraktTv.Enabled && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken))
         {
-            var cmd = _commandFactory.Create<CommandRequest_TraktSyncCollection>(c => c.ForceRefresh = true);
-            cmd.Save();
+            _commandFactory.CreateAndSave<CommandRequest_TraktSyncCollection>(c => c.ForceRefresh = true);
             return APIStatus.OK();
         }
 

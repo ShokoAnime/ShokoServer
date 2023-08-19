@@ -106,7 +106,7 @@ public class AVDumpController : BaseController
         );
         if (body.Priority)
             command.Priority = (int)CommandRequestPriority.Priority1;
-        command.Save();
+        _commandFactory.Save(command);
 
         return Ok();
     }

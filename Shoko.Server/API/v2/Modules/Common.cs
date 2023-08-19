@@ -258,14 +258,13 @@ public class Common : BaseController
                 return BadRequest("Could not Update a cloud file without hash, hash it locally first");
             }
 
-            var cmd = _commandFactory.Create<CommandRequest_ProcessFile>(
+            _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
                 c =>
                 {
                     c.VideoLocalID = vid.VideoLocalID;
                     c.ForceAniDB = true;
                 }
             );
-            cmd.Save();
             return Ok();
         }
         catch (Exception ex)
@@ -288,14 +287,13 @@ public class Common : BaseController
 
             foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
-                var cmd = _commandFactory.Create<CommandRequest_ProcessFile>(
+                _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
                         c.ForceAniDB = true;
                     }
                 );
-                cmd.Save();
             }
 
             return Ok();
@@ -320,14 +318,13 @@ public class Common : BaseController
 
             foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
-                var cmd = _commandFactory.Create<CommandRequest_ProcessFile>(
+                _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
                         c.ForceAniDB = true;
                     }
                 );
-                cmd.Save();
             }
 
             return Ok();
@@ -363,14 +360,13 @@ public class Common : BaseController
             return NotFound("videolocal_place not found");
         }
 
-        var crHashfile = _commandFactory.Create<CommandRequest_HashFile>(
+        _commandFactory.CreateAndSave<CommandRequest_HashFile>(
             c =>
             {
                 c.FileName = pl.FullServerPath;
                 c.ForceHash = true;
             }
         );
-        crHashfile.Save();
 
         return Ok();
     }
@@ -393,14 +389,13 @@ public class Common : BaseController
                     continue;
                 }
 
-                var crHashfile = _commandFactory.Create<CommandRequest_HashFile>(
+                _commandFactory.CreateAndSave<CommandRequest_HashFile>(
                     c =>
                     {
                         c.FileName = pl.FullServerPath;
                         c.ForceHash = true;
                     }
                 );
-                crHashfile.Save();
             }
         }
         catch (Exception ex)
@@ -429,14 +424,13 @@ public class Common : BaseController
                     continue;
                 }
 
-                var crHashfile = _commandFactory.Create<CommandRequest_HashFile>(
+                _commandFactory.CreateAndSave<CommandRequest_HashFile>(
                     c =>
                     {
                         c.FileName = pl.FullServerPath;
                         c.ForceHash = true;
                     }
                 );
-                crHashfile.Save();
             }
         }
         catch (Exception ex)
@@ -868,10 +862,9 @@ public class Common : BaseController
 
             foreach (var obj in list)
             {
-                var command = _commandFactory.Create<CommandRequest_AVDumpFile>(
+                _commandFactory.CreateAndSave<CommandRequest_AVDumpFile>(
                     c => c.Videos = new() { { obj.Video.VideoLocalID, obj.Path } }
                 );
-                command.Save();
             }
 
             logger.Info($"Queued {list.Count} files for avdumping.");
@@ -2644,7 +2637,7 @@ public class Common : BaseController
 
         RepoFactory.AniDB_Vote.Save(thisVote);
 
-        var cmdVote = _commandFactory.Create<CommandRequest_VoteAnime>(
+        _commandFactory.CreateAndSave<CommandRequest_VoteAnime>(
             c =>
             {
                 c.AnimeID = ser.AniDB_ID;
@@ -2652,7 +2645,6 @@ public class Common : BaseController
                 c.VoteValue = Convert.ToDecimal(score / 100);
             }
         );
-        cmdVote.Save();
         return Ok();
     }
 

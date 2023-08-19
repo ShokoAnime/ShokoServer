@@ -122,8 +122,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             list.ForEach(
                 a =>
                 {
-                    var cmd = commandFactory.Create<CommandRequest_ReadMediaInfo>(c => c.VideoLocalID = a.VideoLocalID);
-                    cmd.Save();
+                    commandFactory.CreateAndSave<CommandRequest_ReadMediaInfo>(c => c.VideoLocalID = a.VideoLocalID);
                     count++;
                     ServerState.Instance.ServerStartingStatus = string.Format(
                         Resources.Database_Validating, nameof(VideoLocal),

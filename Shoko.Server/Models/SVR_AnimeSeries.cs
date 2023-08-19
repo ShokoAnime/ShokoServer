@@ -827,8 +827,7 @@ public class SVR_AnimeSeries : AnimeSeries
         // remove existing xrefs
         RepoFactory.CrossRef_File_Episode.Delete(filesToUpdate);
         // queue rescan for the files
-        vlIDsToUpdate.Select(id => requestFactory.Create<CommandRequest_ProcessFile>(a => a.VideoLocalID = id))
-            .ForEach(a => a.Save());
+        vlIDsToUpdate.ForEach(id => requestFactory.CreateAndSave<CommandRequest_ProcessFile>(a => a.VideoLocalID = id));
         RepoFactory.AnimeEpisode.Delete(epsToRemove);
 
         var one_forth = (int)Math.Round(eps.Count / 4D, 0, MidpointRounding.AwayFromZero);
@@ -1642,8 +1641,7 @@ public class SVR_AnimeSeries : AnimeSeries
     public void QueueUpdateStats()
     {
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        var cmdRefreshAnime = commandFactory.Create<CommandRequest_RefreshAnime>(c => c.AnimeID = AniDB_ID);
-        cmdRefreshAnime.Save();
+        commandFactory.CreateAndSave<CommandRequest_RefreshAnime>(c => c.AnimeID = AniDB_ID);
     }
 
     public void UpdateStats(bool watchedStats, bool missingEpsStats)

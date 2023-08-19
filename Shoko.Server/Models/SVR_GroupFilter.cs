@@ -2104,9 +2104,7 @@ public class SVR_GroupFilter : GroupFilter
     public void QueueUpdate()
     {
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        var cmdRefreshGroupFilter =
-            commandFactory.Create<CommandRequest_RefreshGroupFilter>(c => c.GroupFilterID = GroupFilterID);
-        cmdRefreshGroupFilter.Save();
+        commandFactory.CreateAndSave<CommandRequest_RefreshGroupFilter>(c => c.GroupFilterID = GroupFilterID);
     }
 
     public override bool Equals(object obj)

@@ -974,14 +974,13 @@ public partial class ShokoServiceImplementation
         {
             var vl = RepoFactory.VideoLocal.GetByMyListID(missingFile.FileID);
             if (vl == null) continue;
-            var cmd = _commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+            _commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(
                 c =>
                 {
                     c.Hash = vl.Hash;
                     c.FileSize = vl.FileSize;
                 }
             );
-            cmd.Save();
 
             // For deletion of files from Trakt, we will rely on the Daily sync
             // lets also try removing from the users trakt collection
@@ -1094,14 +1093,13 @@ public partial class ShokoServiceImplementation
 
             foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
-                var cmd = _commandFactory.Create<CommandRequest_ProcessFile>(
+                _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
                         c.ForceAniDB = true;
                     }
                 );
-                cmd.Save();
             }
         }
         catch (Exception ex)
@@ -1120,14 +1118,13 @@ public partial class ShokoServiceImplementation
 
             foreach (var vl in files.Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
-                var cmd = _commandFactory.Create<CommandRequest_ProcessFile>(
+                _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
                         c.ForceAniDB = true;
                     }
                 );
-                cmd.Save();
             }
         }
         catch (Exception ex)

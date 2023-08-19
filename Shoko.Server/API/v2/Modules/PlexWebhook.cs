@@ -250,7 +250,7 @@ public class PlexWebhook : BaseController
     [HttpGet("sync")]
     public ActionResult Sync()
     {
-        _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser()).Save();
+        _commandFactory.CreateAndSave<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser());
         return APIStatus.OK();
     }
 
@@ -263,11 +263,16 @@ public class PlexWebhook : BaseController
     }
 
     [Authorize("admin")]
-    [HttpGet("sync/{id}")]
-    public ActionResult SyncForUser(int uid)
+    [HttpGet("sync/{id:int}")]
+    public ActionResult SyncForUser(int id)
     {
-        JMMUser user = HttpContext.GetUser();
-        Utils.ShokoServer.SyncPlex();
+        var user = RepoFactory.JMMUser.GetByID(id);
+        if (string.IsNullOrEmpty(user.PlexToken))
+        {
+            return APIStatus.BadRequest("Invalid User ID");
+        }
+
+        _commandFactory.CreateAndSave<CommandRequest_PlexSyncWatched>(c => c.User = user);
         return APIStatus.OK();
     }
 

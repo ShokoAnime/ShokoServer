@@ -122,7 +122,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
             var ts = DateTime.Now - (update?.UpdatedAt ?? DateTime.UnixEpoch);
             if (ts.TotalHours > 4)
             {
-                var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(
                     c =>
                     {
                         c.AnimeID = animeID;
@@ -130,7 +130,6 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
                         c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
                     }
                 );
-                cmdAnime.Save();
                 countAnime++;
             }
 
@@ -140,12 +139,11 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
             var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
             if (ser == null) continue;
 
-            var cmdStatus = _commandFactory.Create<CommandRequest_GetReleaseGroupStatus>(c =>
+            _commandFactory.CreateAndSave<CommandRequest_GetReleaseGroupStatus>(c =>
             {
                 c.AnimeID = animeID;
                 c.ForceRefresh = true;
             });
-            cmdStatus.Save();
             countSeries++;
         }
 

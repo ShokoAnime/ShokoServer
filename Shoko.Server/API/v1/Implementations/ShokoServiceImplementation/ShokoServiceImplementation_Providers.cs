@@ -14,7 +14,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
-using Shoko.Server.Settings;
 
 namespace Shoko.Server;
 
@@ -239,14 +238,13 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var updateseries = _commandFactory.Create<CommandRequest_TvDBUpdateSeries>(
+            _commandFactory.CreateAndSave<CommandRequest_TvDBUpdateSeries>(
                 c =>
                 {
                     c.TvDBSeriesID = seriesID;
                     c.ForceRefresh = true;
                 }
             );
-            updateseries.Save();
         }
         catch (Exception ex)
         {
@@ -374,7 +372,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
-            var cmdRequest = _commandFactory.Create<CommandRequest_LinkAniDBTvDB>(
+            _commandFactory.CreateAndSave<CommandRequest_LinkAniDBTvDB>(
                 c =>
                 {
                     c.AnimeID = link.AnimeID;
@@ -382,7 +380,6 @@ public partial class ShokoServiceImplementation : IShokoServer
                     c.AdditiveLink = link.IsAdditive;
                 }
             );
-            cmdRequest.Save();
 
             return string.Empty;
         }
@@ -843,7 +840,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             // refresh show info including season numbers from trakt
-            var tvshow = _traktHelper.GetShowInfoV2(traktID);
+            _traktHelper.GetShowInfoV2(traktID);
 
             var show = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
             if (show == null)
@@ -978,14 +975,13 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not find Anime Series";
             }
 
-            var cmd = _commandFactory.Create<CommandRequest_TraktSyncCollectionSeries>(
+            _commandFactory.CreateAndSave<CommandRequest_TraktSyncCollectionSeries>(
                 c =>
                 {
                     c.AnimeSeriesID = ser.AnimeSeriesID;
                     c.SeriesName = ser.GetSeriesName();
                 }
             );
-            cmd.Save();
 
             return string.Empty;
         }

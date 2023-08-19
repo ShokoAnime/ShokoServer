@@ -131,9 +131,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         {
             foreach (var id in filesToRemove)
             {
-                var deleteCommand =
-                    _commandFactory.Create<CommandRequest_DeleteFileFromMyList>(a => a.FileID = id);
-                deleteCommand.Save();
+                _commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(a => a.FileID = id);
             }
         }
 
@@ -203,15 +201,13 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
 
         if (!shouldUpdate) return modifiedItems;
 
-        var updateCommand =
-            _commandFactory.Create<CommandRequest_UpdateMyListFileStatus>(a =>
-            {
-                a.Hash = vl.Hash;
-                a.Watched = updateDate != null;
-                a.WatchedDateAsSecs = Commons.Utils.AniDB.GetAniDBDateAsSeconds(updateDate);
-                a.UpdateSeriesStats = false;
-            });
-        updateCommand.Save();
+        _commandFactory.CreateAndSave<CommandRequest_UpdateMyListFileStatus>(a =>
+        {
+            a.Hash = vl.Hash;
+            a.Watched = updateDate != null;
+            a.WatchedDateAsSecs = Commons.Utils.AniDB.GetAniDBDateAsSeconds(updateDate);
+            a.UpdateSeriesStats = false;
+        });
 
         return modifiedItems;
     }
@@ -264,8 +260,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
             }
             else continue;
 
-            var cmdAddFile = _commandFactory.Create<CommandRequest_AddFileToMyList>(a => a.Hash = vid.Hash);
-            cmdAddFile.Save();
+            _commandFactory.CreateAndSave<CommandRequest_AddFileToMyList>(a => a.Hash = vid.Hash);
         }
 
         Logger.LogInformation(

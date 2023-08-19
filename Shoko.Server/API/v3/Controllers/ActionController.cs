@@ -93,7 +93,7 @@ public class ActionController : BaseController
     [HttpGet("SyncVotes")]
     public ActionResult SyncVotes()
     {
-        _commandFactory.Create<CommandRequest_SyncMyVotes>().Save();
+        _commandFactory.CreateAndSave<CommandRequest_SyncMyVotes>();
         return Ok();
     }
 
@@ -111,7 +111,7 @@ public class ActionController : BaseController
             return BadRequest();
         }
 
-        _commandFactory.Create<CommandRequest_TraktSyncCollection>(c => c.ForceRefresh = true).Save();
+        _commandFactory.CreateAndSave<CommandRequest_TraktSyncCollection>(c => c.ForceRefresh = true);
 
         return Ok();
     }
@@ -185,7 +185,7 @@ public class ActionController : BaseController
     [HttpGet("ValidateAllImages")]
     public ActionResult ValidateAllImages()
     {
-        _commandFactory.Create<CommandRequest_ValidateAllImages>().Save();
+        _commandFactory.CreateAndSave<CommandRequest_ValidateAllImages>();
         return Ok();
     }
 
@@ -218,10 +218,7 @@ public class ActionController : BaseController
 
             foreach (var obj in list)
             {
-                var command = _commandFactory.Create<CommandRequest_AVDumpFile>(
-                    c => c.Videos = new() { { obj.Video.VideoLocalID, obj.Path } }
-                );
-                command.Save();
+                _commandFactory.CreateAndSave<CommandRequest_AVDumpFile>(c => c.Videos = new() { { obj.Video.VideoLocalID, obj.Path } });
             }
 
             _logger.LogInformation("Queued {QueuedAnimeCount} files for avdumping.", list.Count);
@@ -428,7 +425,7 @@ public class ActionController : BaseController
     [HttpGet("PlexSyncAll")]
     public ActionResult PlexSyncAll()
     {
-        _commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser()).Save();
+        Utils.ShokoServer.SyncPlex();
         return Ok();
     }
     
@@ -441,7 +438,7 @@ public class ActionController : BaseController
     public ActionResult AddAllManualLinksToMyList()
     {
         var cmds = RepoFactory.VideoLocal.GetManuallyLinkedVideos().Select(a => _commandFactory.Create<CommandRequest_AddFileToMyList>(c => c.Hash = a.Hash)).ToList();
-        cmds.ForEach(a => a.Save());
+        cmds.ForEach(a => _commandFactory.Save(a));
         return Ok($"Saved {cmds.Count} AddToMyList Commands");
     }
 

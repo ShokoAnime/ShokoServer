@@ -94,7 +94,7 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
             var ts = DateTime.Now - update.UpdatedAt;
             if (ts.TotalDays >= 2)
             {
-                var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(
                     c =>
                     {
                         c.AnimeID = cal.AnimeID;
@@ -102,7 +102,6 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
                         c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
                     }
                 );
-                cmdAnime.Save();
             }
             else
             {
@@ -123,7 +122,7 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
         }
         else
         {
-            var cmdAnime = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+            _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(
                 c =>
                 {
                     c.AnimeID = cal.AnimeID;
@@ -131,7 +130,6 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
                     c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
                 }
             );
-            cmdAnime.Save();
         }
     }
 

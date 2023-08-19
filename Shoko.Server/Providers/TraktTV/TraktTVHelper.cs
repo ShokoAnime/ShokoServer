@@ -544,8 +544,7 @@ public class TraktTVHelper
 
             _logger.LogTrace("Found anime without Trakt association: {MaintTitle}", anime.MainTitle);
 
-            var cmd = _commandFactory.Create<CommandRequest_TraktSearchAnime>(c => c.AnimeID = ser.AniDB_ID);
-            cmd.Save();
+            _commandFactory.CreateAndSave<CommandRequest_TraktSearchAnime>(c => c.AnimeID = ser.AniDB_ID);
         }
     }
 
@@ -1449,8 +1448,7 @@ public class TraktTVHelper
         var allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
         foreach (var xref in allCrossRefs)
         {
-            var cmd = _commandFactory.Create<CommandRequest_TraktUpdateInfo>(c => c.TraktID = xref.TraktID);
-            cmd.Save();
+            _commandFactory.CreateAndSave<CommandRequest_TraktUpdateInfo>(c => c.TraktID = xref.TraktID);
         }
     }
 

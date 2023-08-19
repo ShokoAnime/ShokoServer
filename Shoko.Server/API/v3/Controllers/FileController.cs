@@ -666,7 +666,7 @@ public class FileController : BaseController
         if (priority)
             command.Priority = (int) CommandRequestPriority.Priority1;
 
-        command.Save();
+        _commandFactory.Save(command);
         return Ok();
     }
 
@@ -695,7 +695,7 @@ public class FileController : BaseController
             }
         );
         if (priority) command.Priority = (int) CommandRequestPriority.Priority1;
-        command.Save();
+        _commandFactory.Save(command);
         return Ok();
     }
 
@@ -715,14 +715,13 @@ public class FileController : BaseController
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
-        var command = _commandFactory.Create<CommandRequest_HashFile>(
+        _commandFactory.CreateAndSave<CommandRequest_HashFile>(
             c =>
             {
                 c.FileName = filePath;
                 c.ForceHash = true;
             }
         );
-        command.Save();
 
         return Ok();
     }
@@ -763,14 +762,13 @@ public class FileController : BaseController
         RemoveXRefsForFile(file);
         foreach (var episode in episodeList)
         {
-            var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
+            _commandFactory.CreateAndSave<CommandRequest_LinkFileManually>(
                 c =>
                 {
                     c.VideoLocalID = fileID;
                     c.EpisodeID = episode.AnimeEpisodeID;
                 }
             );
-            command.Save();
         }
 
         return Ok();
@@ -859,14 +857,13 @@ public class FileController : BaseController
         RemoveXRefsForFile(file);
         foreach (var episode in episodeList)
         {
-            var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
+            _commandFactory.CreateAndSave<CommandRequest_LinkFileManually>(
                 c =>
                 {
                     c.VideoLocalID = fileID;
                     c.EpisodeID = episode.AnimeEpisodeID;
                 }
             );
-            command.Save();
         }
 
         return Ok();
@@ -1027,7 +1024,7 @@ public class FileController : BaseController
                 episodeNumber++;
 
             fileCount++;
-            command.Save();
+            _commandFactory.Save(command);
         }
 
         return Ok();
@@ -1082,10 +1079,10 @@ public class FileController : BaseController
                     c.EpisodeID = episode.AnimeEpisodeID;
                 }
             );
-            command.Percentage = (int)Math.Round((double)(fileCount / files.Count * 100));
+            command.Percentage = (int)Math.Round((double)fileCount / files.Count * 100);
 
             fileCount++;
-            command.Save();
+            _commandFactory.Save(command);
         }
 
         return Ok();

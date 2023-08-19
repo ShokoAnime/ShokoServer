@@ -113,7 +113,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
                     c.ForceAniDB = false;
                 }
             );
-            crProcfile3.Save();
+            _commandFactory.Save(crProcfile3);
             return;
         }
 
@@ -130,13 +130,12 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         ShokoEventHandler.Instance.OnFileHashed(folder, vlocalplace);
 
         // now add a command to process the file
-        var crProcFile = _commandFactory.Create<CommandRequest_ProcessFile>(c =>
+        _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(c =>
         {
             c.VideoLocalID = vlocal.VideoLocalID;
             c.ForceAniDB = ForceHash;
             c.SkipMyList = SkipMyList;
         });
-        crProcFile.Save();
     }
 
     //Added size return, since symbolic links return 0, we use this function also to return the size of the file.

@@ -3,7 +3,6 @@ using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
-using Shoko.Server.Commands.Interfaces;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
@@ -14,7 +13,7 @@ public static class CommandStartup
     public static IServiceCollection AddCommands(this IServiceCollection services)
     {
         // Register Requests
-        var requestType = typeof(ICommandRequest);
+        var requestType = typeof(CommandRequest);
         var types = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(s => s.GetTypes())
             .Where(p => requestType.IsAssignableFrom(p) && !p.IsAbstract && p.IsClass);

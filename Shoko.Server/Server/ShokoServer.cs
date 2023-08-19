@@ -612,8 +612,7 @@ public class ShokoServer
         logger.LogInformation("Found file {0}", path);
         var tup = VideoLocal_PlaceRepository.GetFromFullPath(path);
         ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
-        var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = path);
-        cmd.Save();
+        commandFactory.CreateAndSave<CommandRequest_HashFile>(c => c.FileName = path);
     }
 
     public void AddFileWatcherExclusion(string path)
@@ -725,7 +724,7 @@ public class ShokoServer
             }
 
             flag = true;
-            commandFactory.Create<CommandRequest_PlexSyncWatched>(c => c.User = user).Save();
+            commandFactory.CreateAndSave<CommandRequest_PlexSyncWatched>(c => c.User = user);
         }
 
         return flag;

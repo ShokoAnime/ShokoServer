@@ -978,7 +978,7 @@ public class CommonImplementation
                 thisVote.VoteValue = iVoteValue;
                 RepoFactory.AniDB_Vote.Save(thisVote);
 
-                var cmdVote = commandFactory.Create<CommandRequest_VoteAnime>(
+                commandFactory.CreateAndSave<CommandRequest_VoteAnime>(
                     c =>
                     {
                         c.AnimeID = anime.AnimeID;
@@ -986,7 +986,6 @@ public class CommonImplementation
                         c.VoteValue = Convert.ToDecimal(vvalue);
                     }
                 );
-                cmdVote.Save();
             }
 
             if (vt == (int)AniDBVoteType.Anime)
@@ -1029,7 +1028,7 @@ public class CommonImplementation
                 _logger.LogInformation(msg);
                 thisVote.VoteValue = iVoteValue;
                 RepoFactory.AniDB_Vote.Save(thisVote);
-                var cmdVote = commandFactory.Create<CommandRequest_VoteAnime>(
+                commandFactory.CreateAndSave<CommandRequest_VoteAnime>(
                     c =>
                     {
                         c.AnimeID = anime.AnimeID;
@@ -1037,7 +1036,6 @@ public class CommonImplementation
                         c.VoteValue = Convert.ToDecimal(vvalue);
                     }
                 );
-                cmdVote.Save();
             }
 
             rsp.Code = "200";

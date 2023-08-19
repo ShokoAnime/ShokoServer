@@ -176,11 +176,11 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
         // Add this file to the users list
         if (_settings.AniDb.MyList_AddFiles && !SkipMyList && vidLocal.MyListID <= 0)
         {
-            _commandFactory.Create<CommandRequest_AddFileToMyList>(c =>
+            _commandFactory.CreateAndSave<CommandRequest_AddFileToMyList>(c =>
             {
                 c.Hash = vidLocal.ED2KHash;
                 c.ReadStates = true;
-            }).Save();
+            });
         }
 
         return aniFile;
@@ -306,7 +306,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
             {
                 Logger.LogWarning($"Unable to create AniDB_Anime for file: {vidLocal.FileName}");
                 Logger.LogWarning("Queuing GET for AniDB_Anime: {AnimeID}", animeID);
-                var animeCommand = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(
                     c =>
                     {
                         c.AnimeID = animeID;
@@ -315,7 +315,6 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
                         c.CreateSeriesEntry = true;
                     }
                 );
-                animeCommand.Save();
                 return;
             }
 
@@ -352,7 +351,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
             // if not we will download it now
             if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
             {
-                _commandFactory.Create<CommandRequest_GetReleaseGroupStatus>(c => c.AnimeID = anime.AnimeID).Save();
+                _commandFactory.CreateAndSave<CommandRequest_GetReleaseGroupStatus>(c => c.AnimeID = anime.AnimeID);
             }
 
             // Only save the date, we'll update GroupFilters and stats in one pass
@@ -397,14 +396,12 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
             {
                 // We're banned, so queue it for later
                 Logger.LogError("We are banned. Re-queuing {CommandID} for later", CommandID);
-                var fileCommand = _commandFactory.Create<CommandRequest_ProcessFile>(
+                _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
                     c =>
                     {
                         c.VideoLocalID = vlocal.VideoLocalID;
                         c.ForceAniDB = true;
-                    }
-                );
-                fileCommand.Save(true);
+                    }, true);
             }
         }
 

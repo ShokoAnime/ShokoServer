@@ -52,8 +52,7 @@ public static class Importer
                 continue;
             }
 
-            var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = p.FullServerPath);
-            cmd.Save();
+            commandFactory.CreateAndSave<CommandRequest_HashFile>(c => c.FileName = p.FullServerPath);
         }
 
         foreach (var vl in filesToHash)
@@ -69,8 +68,7 @@ public static class Importer
                 var p = vl.GetBestVideoLocalPlace(true);
                 if (p != null)
                 {
-                    var cmd = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = p.FullServerPath);
-                    cmd.Save();
+                    commandFactory.CreateAndSave<CommandRequest_HashFile>(c => c.FileName = p.FullServerPath);
                 }
             }
             catch (Exception ex)
@@ -92,14 +90,13 @@ public static class Importer
                     continue;
             }
 
-            var cmd = commandFactory.Create<CommandRequest_ProcessFile>(
+            commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
                 c =>
                 {
                     c.VideoLocalID = vl.VideoLocalID;
                     c.ForceAniDB = true;
                 }
             );
-            cmd.Save();
         }
 
 
@@ -117,8 +114,7 @@ public static class Importer
 
                 if (aniFile == null)
                 {
-                    var cmd = commandFactory.Create<CommandRequest_ProcessFile>(c => c.VideoLocalID = vl.VideoLocalID);
-                    cmd.Save();
+                    commandFactory.CreateAndSave<CommandRequest_ProcessFile>(c => c.VideoLocalID = vl.VideoLocalID);
                 }
             }
 
@@ -142,8 +138,7 @@ public static class Importer
             if (missingEpisodes)
             {
                 // this will then download the anime etc
-                var cmd = commandFactory.Create<CommandRequest_ProcessFile>(c => c.VideoLocalID = vl.VideoLocalID);
-                cmd.Save();
+                commandFactory.CreateAndSave<CommandRequest_ProcessFile>(c => c.VideoLocalID = vl.VideoLocalID);
             }
         }
     }
@@ -222,12 +217,12 @@ public static class Importer
 
                 videosFound++;
 
-                commandFactory.Create<CommandRequest_HashFile>(c =>
+                commandFactory.CreateAndSave<CommandRequest_HashFile>(c =>
                     {
                         c.FileName = fileName;
                         c.SkipMyList = skipMyList;
                     }
-                ).Save();
+                );
             }
 
             Logger.Debug("Found {0} new files", filesFound);
@@ -287,8 +282,7 @@ public static class Importer
 
             videosFound++;
 
-            var cr_hashfile = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = fileName);
-            cr_hashfile.Save();
+            commandFactory.CreateAndSave<CommandRequest_HashFile>(c => c.FileName = fileName);
         }
 
         Logger.Debug("Found {0} files", filesFound);
@@ -383,8 +377,7 @@ public static class Importer
             var tup = VideoLocal_PlaceRepository.GetFromFullPath(fileName);
             ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(fileName));
 
-            var cr_hashfile = commandFactory.Create<CommandRequest_HashFile>(c => c.FileName = fileName);
-            cr_hashfile.Save();
+            commandFactory.CreateAndSave<CommandRequest_HashFile>(c => c.FileName = fileName);
         }
 
         Logger.Debug("Found {0} files", filesFound);
@@ -409,8 +402,7 @@ public static class Importer
                 continue;
             }
 
-            var cmd = commandFactory.Create<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = anime.AnimeID);
-            cmd.Save();
+            commandFactory.CreateAndSave<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = anime.AnimeID);
         }
 
         // TvDB Posters
@@ -464,14 +456,13 @@ public static class Importer
                     continue;
                 }
 
-                var cmd = commandFactory.Create<CommandRequest_DownloadImage>(
+                commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
                     c =>
                     {
                         c.EntityID = tvPoster.TvDB_ImagePosterID;
                         c.EntityType = (int)ImageEntityType.TvDB_Cover;
                     }
                 );
-                cmd.Save();
 
                 if (postersCount.ContainsKey(tvPoster.SeriesID))
                 {
@@ -534,14 +525,13 @@ public static class Importer
                     continue;
                 }
 
-                var cmd = commandFactory.Create<CommandRequest_DownloadImage>(
+                commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
                     c =>
                     {
                         c.EntityID = tvFanart.TvDB_ImageFanartID;
                         c.EntityType = (int)ImageEntityType.TvDB_FanArt;
                     }
                 );
-                cmd.Save();
 
                 if (fanartCount.ContainsKey(tvFanart.SeriesID))
                 {
@@ -605,14 +595,13 @@ public static class Importer
                     continue;
                 }
 
-                var cmd = commandFactory.Create<CommandRequest_DownloadImage>(
+                commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
                     c =>
                     {
                         c.EntityID = tvBanner.TvDB_ImageWideBannerID;
                         c.EntityType = (int)ImageEntityType.TvDB_Banner;
                     }
                 );
-                cmd.Save();
 
                 if (fanartCount.ContainsKey(tvBanner.SeriesID))
                 {
@@ -640,14 +629,13 @@ public static class Importer
                 continue;
             }
 
-            var cmd = commandFactory.Create<CommandRequest_DownloadImage>(
+            commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
                 c =>
                 {
                     c.EntityID = tvEpisode.TvDB_EpisodeID;
                     c.EntityType = (int)ImageEntityType.TvDB_Episode;
                 }
             );
-            cmd.Save();
         }
 
         // MovieDB Posters
@@ -701,14 +689,13 @@ public static class Importer
                     continue;
                 }
 
-                var cmd = commandFactory.Create<CommandRequest_DownloadImage>(
+                commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
                     c =>
                     {
                         c.EntityID = moviePoster.MovieDB_PosterID;
                         c.EntityType = (int)ImageEntityType.MovieDB_Poster;
                     }
                 );
-                cmd.Save();
 
                 if (postersCount.ContainsKey(moviePoster.MovieId))
                 {
@@ -772,14 +759,13 @@ public static class Importer
                     continue;
                 }
 
-                var cmd = commandFactory.Create<CommandRequest_DownloadImage>(
+                commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
                     c =>
                     {
                         c.EntityID = movieFanart.MovieDB_FanartID;
                         c.EntityType = (int)ImageEntityType.MovieDB_FanArt;
                     }
                 );
-                cmd.Save();
 
                 if (fanartCount.ContainsKey(movieFanart.MovieId))
                 {
@@ -815,8 +801,7 @@ public static class Importer
                     continue;
                 }
 
-                var cmd = commandFactory.Create<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = AnimeID);
-                cmd.Save();
+                commandFactory.CreateAndSave<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = AnimeID);
             }
         }
 
@@ -849,8 +834,7 @@ public static class Importer
                     continue;
                 }
 
-                var cmd = commandFactory.Create<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = AnimeID);
-                cmd.Save();
+                commandFactory.CreateAndSave<CommandRequest_DownloadAniDBImages>(c => c.AnimeID = AnimeID);
             }
         }
     }
@@ -858,8 +842,7 @@ public static class Importer
     public static void ValidateAllImages()
     {
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        var cmd = commandFactory.Create<CommandRequest_ValidateAllImages>();
-        cmd.Save();
+        commandFactory.CreateAndSave<CommandRequest_ValidateAllImages>();
     }
 
     public static void RunImport_ScanTvDB()
@@ -899,14 +882,13 @@ public static class Importer
 
         foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
         {
-            var cmd = commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+            commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(
                 c =>
                 {
                     c.AnimeID = anime.AnimeID;
                     c.ForceRefresh = true;
                 }
             );
-            cmd.Save();
         }
     }
 
@@ -1052,25 +1034,23 @@ public static class Importer
                             continue;
                         }
 
-                        var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(c =>
+                        commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(c =>
                         {
                             c.AnimeID = xref.AnimeID;
                             c.EpisodeType = ep.GetEpisodeTypeEnum();
                             c.EpisodeNumber = ep.EpisodeNumber;
                         });
-                        cmdDel.Save();
                     }
                 }
                 else
                 {
-                    var cmdDel = commandFactory.Create<CommandRequest_DeleteFileFromMyList>(
+                    commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(
                         c =>
                         {
                             c.Hash = v.Hash;
                             c.FileSize = v.FileSize;
                         }
                     );
-                    cmdDel.Save();
                 }
             }
 
@@ -1164,8 +1144,7 @@ public static class Importer
             gf.QueueUpdate();
         }
 
-        var cmd = commandFactory.Create<CommandRequest_RefreshGroupFilter>(c => c.GroupFilterID = 0);
-        cmd.Save();
+        commandFactory.CreateAndSave<CommandRequest_RefreshGroupFilter>(c => c.GroupFilterID = 0);
     }
 
 
@@ -1205,16 +1184,16 @@ public static class Importer
         if (!dryRun)
         {
             Logger.Info("Queuing {0} GetFile commands", vidsToUpdate.Count);
-            vidsToUpdate.Select(id => commandFactory.Create<CommandRequest_GetFile>(
+            vidsToUpdate.ForEach(id => commandFactory.CreateAndSave<CommandRequest_GetFile>(
                 c =>
                 {
                     c.VideoLocalID = id;
                     c.ForceAniDB = true;
                 }
-            )).ForEach(a => a.Save());
+            ));
 
             Logger.Info("Queuing {0} GetReleaseGroup commands", groupsToUpdate.Count);
-            groupsToUpdate.Select(a => commandFactory.Create<CommandRequest_GetReleaseGroup>(c => c.GroupID = a)).ForEach(a => a.Save());
+            groupsToUpdate.ForEach(a => commandFactory.CreateAndSave<CommandRequest_GetReleaseGroup>(c => c.GroupID = a));
         }
 
         return vidsToUpdate.Count;
@@ -1304,14 +1283,13 @@ public static class Importer
             {
                 // download and update series info, episode info and episode images
                 // will also download fanart, posters and wide banners
-                var cmdSeriesEps = commandFactory.Create<CommandRequest_TvDBUpdateSeries>(
+                commandFactory.CreateAndSave<CommandRequest_TvDBUpdateSeries>(
                     c =>
                     {
                         c.TvDBSeriesID = tvid;
                         c.ForceRefresh = true;
                     }
                 );
-                cmdSeriesEps.Save();
             }
         }
 
@@ -1357,8 +1335,7 @@ public static class Importer
             }
         }
 
-        var cmd = commandFactory.Create<CommandRequest_GetCalendar>(c => c.ForceRefresh = forceRefresh);
-        cmd.Save();
+        commandFactory.CreateAndSave<CommandRequest_GetCalendar>(c => c.ForceRefresh = forceRefresh);
     }
 
     public static void CheckForAnimeUpdate(bool forceRefresh)
@@ -1388,8 +1365,7 @@ public static class Importer
             }
         }
 
-        var cmd = commandFactory.Create<CommandRequest_GetUpdated>(c => c.ForceRefresh = true);
-        cmd.Save();
+        commandFactory.CreateAndSave<CommandRequest_GetUpdated>(c => c.ForceRefresh = true);
     }
 
     public static void CheckForMyListStatsUpdate(bool forceRefresh)
@@ -1426,8 +1402,7 @@ public static class Importer
             }
         }
 
-        var cmd = commandFactory.Create<CommandRequest_SyncMyList>(c => c.ForceRefresh = forceRefresh);
-        cmd.Save();
+        commandFactory.CreateAndSave<CommandRequest_SyncMyList>(c => c.ForceRefresh = forceRefresh);
     }
 
     public static void CheckForTraktSyncUpdate(bool forceRefresh)
@@ -1465,8 +1440,7 @@ public static class Importer
 
         if (settings.TraktTv.Enabled && !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
         {
-            var cmd = commandFactory.Create<CommandRequest_TraktSyncCollection>();
-            cmd.Save();
+            commandFactory.CreateAndSave<CommandRequest_TraktSyncCollection>();
         }
     }
 
@@ -1502,8 +1476,7 @@ public static class Importer
             }
         }
 
-        var cmd = commandFactory.Create<CommandRequest_TraktUpdateAllSeries>();
-        cmd.Save();
+        commandFactory.CreateAndSave<CommandRequest_TraktUpdateAllSeries>();
     }
 
     public static void CheckForTraktTokenUpdate(bool forceRefresh)
@@ -1587,14 +1560,13 @@ public static class Importer
                     continue;
             }
 
-            var cmd = commandFactory.Create<CommandRequest_ProcessFile>(
+            commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
                 c =>
                 {
                     c.VideoLocalID = vl.VideoLocalID;
                     c.ForceAniDB = true;
                 }
             );
-            cmd.Save();
         }
 
         // now check for any files which have been manually linked and are less than 30 days old

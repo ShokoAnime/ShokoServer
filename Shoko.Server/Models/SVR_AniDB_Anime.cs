@@ -685,8 +685,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
             var settings = Utils.SettingsProvider.GetSettings();
             if (settings.TvDB.AutoLink && !series.IsTvDBAutoMatchingDisabled)
             {
-                var cmd = commandFactory.Create<CommandRequest_TvDBSearchAnime>(c => c.AnimeID = AnimeID);
-                cmd.Save();
+                commandFactory.CreateAndSave<CommandRequest_TvDBSearchAnime>(c => c.AnimeID = AnimeID);
             }
 
             // check for Trakt associations
@@ -694,14 +693,12 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
                 !string.IsNullOrEmpty(settings.TraktTv.AuthToken) &&
                 !series.IsTraktAutoMatchingDisabled)
             {
-                var cmd = commandFactory.Create<CommandRequest_TraktSearchAnime>(c => c.AnimeID = AnimeID);
-                cmd.Save();
+                commandFactory.CreateAndSave<CommandRequest_TraktSearchAnime>(c => c.AnimeID = AnimeID);
             }
 
             if (AnimeType == (int)Shoko.Models.Enums.AnimeType.Movie && !series.IsTMDBAutoMatchingDisabled)
             {
-                var cmd = commandFactory.Create<CommandRequest_MovieDBSearchAnime>(c => c.AnimeID = AnimeID);
-                cmd.Save();
+                commandFactory.CreateAndSave<CommandRequest_MovieDBSearchAnime>(c => c.AnimeID = AnimeID);
             }
         }
 

@@ -261,7 +261,7 @@ public class CommandRequest_ValidateAllImages : CommandRequestImplementation
             Logger.LogError("Unable to delete {FullImagePath} - {Message}", fullPath, e.Message);
         }
 
-        var cmd = _commandFactory.Create<CommandRequest_DownloadImage>(
+        _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
             c =>
             {
                 c.EntityID = entityID;
@@ -269,7 +269,6 @@ public class CommandRequest_ValidateAllImages : CommandRequestImplementation
                 c.ForceDownload = true;
             }
         );
-        cmd.Save();
     }
 
     private void UpdateProgress(string progressText)

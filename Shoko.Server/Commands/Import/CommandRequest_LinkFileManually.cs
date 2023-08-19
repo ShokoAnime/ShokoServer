@@ -95,8 +95,7 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
 
         if (_settings.AniDb.MyList_AddFiles)
         {
-            var cmdAddFile = _commandFactory.Create<CommandRequest_AddFileToMyList>(c => c.Hash = _vlocal.Hash);
-            cmdAddFile.Save();
+            _commandFactory.CreateAndSave<CommandRequest_AddFileToMyList>(c => c.Hash = _vlocal.Hash);
         }
     }
 

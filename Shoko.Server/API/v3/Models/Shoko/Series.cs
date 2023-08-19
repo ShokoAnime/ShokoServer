@@ -228,7 +228,7 @@ public class Series : BaseModel
             return command.Result != null;
         }
 
-        command.Save();
+        commandFactory.Save(command);
         return false;
     }
 
@@ -256,7 +256,7 @@ public class Series : BaseModel
             return command.Result != null;
         }
 
-        command.Save();
+        commandFactory.Save(command);
         return false;
     }
 
@@ -282,7 +282,7 @@ public class Series : BaseModel
             return command.Result != null;
         }
 
-        command.Save();
+        commandFactory.Save(command);
         return false;
     }
 
@@ -524,7 +524,7 @@ public class Series : BaseModel
 
         RepoFactory.AniDB_Vote.Save(dbVote);
 
-        var cmdVote = commandFactory.Create<CommandRequest_VoteAnime>(
+        commandFactory.CreateAndSave<CommandRequest_VoteAnime>(
             c =>
             {
                 c.AnimeID = ser.AniDB_ID;
@@ -532,7 +532,6 @@ public class Series : BaseModel
                 c.VoteValue = vote.GetRating();
             }
         );
-        cmdVote.Save();
     }
 
     public static Images GetArt(HttpContext ctx, int animeID, bool includeDisabled = false)
