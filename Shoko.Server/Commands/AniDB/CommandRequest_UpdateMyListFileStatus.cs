@@ -14,6 +14,7 @@ using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands.AniDB;
 
@@ -151,7 +152,7 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
         CommandID = $"CommandRequest_UpdateMyListFileStatus_{Hash}_{Guid.NewGuid().ToString()}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -160,11 +161,10 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        Hash = TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "Hash");
-        Watched = bool.Parse(
-            TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "Watched"));
+        Hash = docCreator.TryGetProperty("CommandRequest_UpdateMyListFileStatus", "Hash");
+        Watched = bool.Parse(docCreator.TryGetProperty("CommandRequest_UpdateMyListFileStatus", "Watched"));
 
-        var sUpStats = TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus",
+        var sUpStats = docCreator.TryGetProperty("CommandRequest_UpdateMyListFileStatus",
             "UpdateSeriesStats");
         if (bool.TryParse(sUpStats, out var upStats))
         {
@@ -172,8 +172,7 @@ public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementatio
         }
 
         if (
-            int.TryParse(
-                TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "WatchedDateAsSecs"),
+            int.TryParse(docCreator.TryGetProperty("CommandRequest_UpdateMyListFileStatus", "WatchedDateAsSecs"),
                 out var dateSecs))
         {
             WatchedDateAsSecs = dateSecs;

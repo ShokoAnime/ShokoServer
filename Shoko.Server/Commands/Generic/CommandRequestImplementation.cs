@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -58,18 +57,22 @@ public abstract class CommandRequestImplementation : CommandRequest
 
     public override CommandConflict ConflictBehavior => CommandConflict.Ignore;
 
-
-    public override string CommandDetails
-    {
-        get
-        {
-            return GetCommandDetails();
-        }
-    }
-
     protected virtual string GetCommandDetails()
     {
         return ToXML();
+    }
+
+    public override bool LoadFromCommandDetails(string commandDetails)
+    {
+        CommandDetails = commandDetails;
+        return Load();
+    }
+
+    protected abstract bool Load();
+
+    public override void UpdateCommandDetails()
+    {
+        CommandDetails = GetCommandDetails();
     }
 
     private string ToXML()
@@ -97,109 +100,4 @@ public abstract class CommandRequestImplementation : CommandRequest
         });
     }
 
-    
-
-    protected static string TryGetProperty(XmlDocument doc, string keyName, string propertyName)
-    {
-        try
-        {
-            var keyTemp = keyName.ToLowerInvariant().Replace("_", "");
-            var parent = doc?.Cast<XmlNode>()
-                .FirstOrDefault(a => a.Name.ToLowerInvariant().Replace("_", "").Equals(keyTemp));
-            if (parent == null)
-            {
-                return string.Empty;
-            }
-
-            var propName = propertyName.ToLowerInvariant().Replace("_", "");
-            var prop = parent.Cast<XmlNode>()
-                .FirstOrDefault(a => a.Name.ToLowerInvariant().Replace("_", "").Equals(propName))?.InnerText.Trim();
-            return string.IsNullOrEmpty(prop) ? string.Empty : prop;
-        }
-        catch
-        {
-            //BaseConfig.MyAnimeLog.Write("---------------------------------------------------------------");
-            //BaseConfig.MyAnimeLog.Write("Error in XMLService.TryGetProperty: {0}-{1}", Utils.GetParentMethodName(), ex.ToString());
-            //BaseConfig.MyAnimeLog.Write("keyName: {0}, propertyName: {1}", keyName, propertyName);
-            //BaseConfig.MyAnimeLog.Write("---------------------------------------------------------------");
-        }
-
-        return string.Empty;
-    }
-
-    protected static string TryGetProperty(XmlDocument doc, string keyName, params string[] propertyNames)
-    {
-        try
-        {
-            var keyTemp = keyName.ToLowerInvariant().Replace("_", "");
-            var parent = doc?.Cast<XmlNode>()
-                .FirstOrDefault(a => a.Name.ToLowerInvariant().Replace("_", "").Equals(keyTemp));
-            if (parent == null)
-            {
-                return string.Empty;
-            }
-
-            foreach (var propertyName in propertyNames)
-            {
-                var propName = propertyName.ToLowerInvariant().Replace("_", "");
-                var prop = parent.Cast<XmlNode>()
-                    .FirstOrDefault(a => a.Name.ToLowerInvariant().Replace("_", "").Equals(propName))?.InnerText.Trim();
-                if (string.IsNullOrEmpty(prop))
-                {
-                    continue;
-                }
-
-                return prop;
-            }
-        }
-        catch
-        {
-            //BaseConfig.MyAnimeLog.Write("---------------------------------------------------------------");
-            //BaseConfig.MyAnimeLog.Write("Error in XMLService.TryGetProperty: {0}-{1}", Utils.GetParentMethodName(), ex.ToString());
-            //BaseConfig.MyAnimeLog.Write("keyName: {0}, propertyName: {1}", keyName, propertyName);
-            //BaseConfig.MyAnimeLog.Write("---------------------------------------------------------------");
-        }
-
-        return string.Empty;
-    }
-
-    protected static string TryGetProperty(XmlDocument doc, string[] keyNames, params string[] propertyNames)
-    {
-        try
-        {
-            foreach (var keyName in keyNames)
-            {
-                var keyTemp = keyName.ToLowerInvariant().Replace("_", "");
-                var parent = doc?.Cast<XmlNode>()
-                    .FirstOrDefault(a => a.Name.ToLowerInvariant().Replace("_", "").Equals(keyTemp));
-                if (parent == null)
-                {
-                    continue;
-                }
-
-                foreach (var propertyName in propertyNames)
-                {
-                    var propName = propertyName.ToLowerInvariant().Replace("_", "");
-                    var prop = parent.Cast<XmlNode>()
-                        .FirstOrDefault(a => a.Name.ToLowerInvariant().Replace("_", "").Equals(propName))?.InnerText
-                        .Trim();
-                    if (string.IsNullOrEmpty(prop))
-                    {
-                        continue;
-                    }
-
-                    return prop;
-                }
-            }
-        }
-        catch
-        {
-            //BaseConfig.MyAnimeLog.Write("---------------------------------------------------------------");
-            //BaseConfig.MyAnimeLog.Write("Error in XMLService.TryGetProperty: {0}-{1}", Utils.GetParentMethodName(), ex.ToString());
-            //BaseConfig.MyAnimeLog.Write("keyName: {0}, propertyName: {1}", keyName, propertyName);
-            //BaseConfig.MyAnimeLog.Write("---------------------------------------------------------------");
-        }
-
-        return string.Empty;
-    }
 }

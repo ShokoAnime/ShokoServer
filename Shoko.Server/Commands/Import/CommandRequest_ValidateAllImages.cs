@@ -286,7 +286,7 @@ public class CommandRequest_ValidateAllImages : CommandRequestImplementation
         CommandID = "CommandRequest_ValidateAllImages";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
 
         return true;

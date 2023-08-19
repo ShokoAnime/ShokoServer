@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -33,10 +34,10 @@ public class CommandRequest_GetAniDBTitles : CommandRequestImplementation
     /// </summary>
     public override void GenerateCommandID()
     {
-        CommandID = $"CommandRequest_GetAniDBTitles_{DateTime.Now.ToString()}";
+        CommandID = $"CommandRequest_GetAniDBTitles_{DateTime.Now.ToString(CultureInfo.InvariantCulture)}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         return true;
     }

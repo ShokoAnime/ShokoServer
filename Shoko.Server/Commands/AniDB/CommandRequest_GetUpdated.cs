@@ -154,7 +154,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
         CommandID = "CommandRequest_GetUpdated";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -163,7 +163,7 @@ public class CommandRequest_GetUpdated : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetUpdated", "ForceRefresh"));
+        ForceRefresh = bool.Parse(docCreator.TryGetProperty("CommandRequest_GetUpdated", "ForceRefresh"));
 
         return true;
     }

@@ -14,6 +14,7 @@ using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands.AniDB;
 
@@ -145,7 +146,7 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
         CommandID = $"CommandRequest_GetReleaseGroupStatus_{AnimeID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -154,9 +155,9 @@ public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroupStatus", "AnimeID"));
+        AnimeID = int.Parse(docCreator.TryGetProperty("CommandRequest_GetReleaseGroupStatus", "AnimeID"));
         ForceRefresh =
-            bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroupStatus", "ForceRefresh"));
+            bool.Parse(docCreator.TryGetProperty("CommandRequest_GetReleaseGroupStatus", "ForceRefresh"));
 
         return true;
     }

@@ -15,6 +15,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
 
@@ -156,7 +157,7 @@ public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
         CommandID = $"CommandRequest_TraktSearchAnime{AnimeID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -165,9 +166,9 @@ public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktSearchAnime", "AnimeID"));
+        AnimeID = int.Parse(docCreator.TryGetProperty("CommandRequest_TraktSearchAnime", "AnimeID"));
         ForceRefresh =
-            bool.Parse(TryGetProperty(docCreator, "CommandRequest_TraktSearchAnime", "ForceRefresh"));
+            bool.Parse(docCreator.TryGetProperty("CommandRequest_TraktSearchAnime", "ForceRefresh"));
 
         return true;
     }

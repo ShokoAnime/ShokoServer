@@ -15,6 +15,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands.AniDB;
 
@@ -328,7 +329,7 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
         return $"CommandRequest_GetAnimeHTTP_{animeID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -337,36 +338,34 @@ public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        AnimeID = int.Parse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(AnimeID)));
+        AnimeID = int.Parse(docCreator.TryGetProperty(nameof(CommandRequest_GetAnimeHTTP), nameof(AnimeID)));
         if (RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID) == null) Priority = (int)CommandRequestPriority.Priority1;
 
-        if (bool.TryParse(
-                TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(DownloadRelations)),
+        if (bool.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_GetAnimeHTTP), nameof(DownloadRelations)),
                 out var dlRelations))
         {
             DownloadRelations = dlRelations;
         }
 
-        if (bool.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(ForceRefresh)),
+        if (bool.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_GetAnimeHTTP), nameof(ForceRefresh)),
                 out var force))
         {
             ForceRefresh = force;
         }
 
-        if (int.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(RelDepth)),
+        if (int.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_GetAnimeHTTP), nameof(RelDepth)),
                 out var depth))
         {
             RelDepth = depth;
         }
 
-        if (bool.TryParse(
-                TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(CreateSeriesEntry)),
+        if (bool.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_GetAnimeHTTP), nameof(CreateSeriesEntry)),
                 out var create))
         {
             CreateSeriesEntry = create;
         }
 
-        if (bool.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(CacheOnly)),
+        if (bool.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_GetAnimeHTTP), nameof(CacheOnly)),
                 out var cache))
         {
             CacheOnly = cache;

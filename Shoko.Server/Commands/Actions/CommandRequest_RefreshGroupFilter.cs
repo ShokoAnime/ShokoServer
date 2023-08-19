@@ -45,7 +45,7 @@ public class CommandRequest_RefreshGroupFilter : CommandRequestImplementation
         CommandID = $"CommandRequest_RefreshGroupFilter_{GroupFilterID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         GroupFilterID = int.Parse(CommandDetails);
         return true;

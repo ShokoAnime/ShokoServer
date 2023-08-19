@@ -585,7 +585,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         CommandID = $"CommandRequest_HashFile_{FileName}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -594,9 +594,9 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        FileName = TryGetProperty(docCreator, "CommandRequest_HashFile", "FileName");
-        ForceHash = bool.Parse(TryGetProperty(docCreator, "CommandRequest_HashFile", "ForceHash"));
-        SkipMyList = bool.Parse(TryGetProperty(docCreator, "CommandRequest_HashFile", "SkipMyList"));
+        FileName = docCreator.TryGetProperty("CommandRequest_HashFile", "FileName");
+        ForceHash = bool.Parse(docCreator.TryGetProperty("CommandRequest_HashFile", "ForceHash"));
+        SkipMyList = bool.Parse(docCreator.TryGetProperty("CommandRequest_HashFile", "SkipMyList"));
 
         return FileName.Trim().Length > 0;
     }

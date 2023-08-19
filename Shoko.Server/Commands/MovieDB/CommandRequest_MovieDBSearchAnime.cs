@@ -11,6 +11,7 @@ using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands;
 
@@ -109,7 +110,7 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
         CommandID = $"CommandRequest_MovieDBSearchAnime{AnimeID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -118,9 +119,9 @@ public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_MovieDBSearchAnime", "AnimeID"));
+        AnimeID = int.Parse(docCreator.TryGetProperty("CommandRequest_MovieDBSearchAnime", "AnimeID"));
         ForceRefresh =
-            bool.Parse(TryGetProperty(docCreator, "CommandRequest_MovieDBSearchAnime", "ForceRefresh"));
+            bool.Parse(docCreator.TryGetProperty("CommandRequest_MovieDBSearchAnime", "ForceRefresh"));
 
         return true;
     }

@@ -130,7 +130,7 @@ public class CommandRequest_AVDumpFile : CommandRequestImplementation
         CommandID = $"CommandRequest_AVDumpFile_{string.Join(",", Videos.Keys.OrderBy(videoId => videoId))}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;

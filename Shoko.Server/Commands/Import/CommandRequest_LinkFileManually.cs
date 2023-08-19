@@ -13,6 +13,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands;
 
@@ -126,7 +127,7 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
         CommandID = $"CommandRequest_LinkFileManually_{VideoLocalID}_{EpisodeID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -135,9 +136,9 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "VideoLocalID"));
-        EpisodeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "EpisodeID"));
-        Percentage = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "Percentage"));
+        VideoLocalID = int.Parse(docCreator.TryGetProperty("CommandRequest_LinkFileManually", "VideoLocalID"));
+        EpisodeID = int.Parse(docCreator.TryGetProperty("CommandRequest_LinkFileManually", "EpisodeID"));
+        Percentage = int.Parse(docCreator.TryGetProperty("CommandRequest_LinkFileManually", "Percentage"));
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null)
         {

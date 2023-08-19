@@ -8,6 +8,7 @@ using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands.TvDB;
 
@@ -42,7 +43,7 @@ public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation
             $"CommandRequest_LinkAniDBTvDB_{AnimeID}_{TvDBID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -51,10 +52,9 @@ public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "animeID"));
-        TvDBID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvDBID"));
-        AdditiveLink = bool.Parse(
-            TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "additiveLink"));
+        AnimeID = int.Parse(docCreator.TryGetProperty("CommandRequest_LinkAniDBTvDB", "animeID"));
+        TvDBID = int.Parse(docCreator.TryGetProperty("CommandRequest_LinkAniDBTvDB", "tvDBID"));
+        AdditiveLink = bool.Parse(docCreator.TryGetProperty("CommandRequest_LinkAniDBTvDB", "additiveLink"));
 
         return true;
     }

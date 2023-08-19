@@ -136,7 +136,7 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
         CommandID = "CommandRequest_GetCalendar";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -145,8 +145,7 @@ public class CommandRequest_GetCalendar : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        ForceRefresh = bool.Parse(
-            TryGetProperty(docCreator, "CommandRequest_GetCalendar", "ForceRefresh"));
+        ForceRefresh = bool.Parse(docCreator.TryGetProperty("CommandRequest_GetCalendar", "ForceRefresh"));
 
         return true;
     }

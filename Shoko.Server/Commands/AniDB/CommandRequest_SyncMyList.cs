@@ -285,7 +285,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         CommandID = "CommandRequest_SyncMyList";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -294,7 +294,7 @@ public class CommandRequest_SyncMyList : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        ForceRefresh = bool.Parse(TryGetProperty(docCreator, "CommandRequest_SyncMyList", "ForceRefresh"));
+        ForceRefresh = bool.Parse(docCreator.TryGetProperty("CommandRequest_SyncMyList", "ForceRefresh"));
 
         return true;
     }

@@ -10,6 +10,7 @@ using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands.AniDB;
 
@@ -73,7 +74,7 @@ public class CommandRequest_GetAnimeHTTP_Force : CommandRequestImplementation
         return $"CommandRequest_GetAnimeHTTP_Force_{animeID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -82,24 +83,22 @@ public class CommandRequest_GetAnimeHTTP_Force : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        AnimeID = int.Parse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP_Force), nameof(AnimeID)));
+        AnimeID = int.Parse(docCreator.TryGetProperty(nameof(CommandRequest_GetAnimeHTTP_Force), nameof(AnimeID)));
         if (RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID) == null) Priority = (int)CommandRequestPriority.Priority1;
 
-        if (bool.TryParse(
-                TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP_Force), nameof(DownloadRelations)),
+        if (bool.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_GetAnimeHTTP_Force), nameof(DownloadRelations)),
                 out var dlRelations))
         {
             DownloadRelations = dlRelations;
         }
 
-        if (int.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP_Force), nameof(RelDepth)),
+        if (int.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_GetAnimeHTTP_Force), nameof(RelDepth)),
                 out var depth))
         {
             RelDepth = depth;
         }
 
-        if (bool.TryParse(
-                TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP_Force), nameof(CreateSeriesEntry)),
+        if (bool.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_GetAnimeHTTP_Force), nameof(CreateSeriesEntry)),
                 out var create))
         {
             CreateSeriesEntry = create;

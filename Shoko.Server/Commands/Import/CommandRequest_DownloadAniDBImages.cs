@@ -14,6 +14,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands.Import;
 
@@ -170,7 +171,7 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
         CommandID = $"CommandRequest_DownloadImage_{AnimeID}_{ForceDownload}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -179,9 +180,9 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadAniDBImages", "AnimeID"));
+        AnimeID = int.Parse(docCreator.TryGetProperty("CommandRequest_DownloadAniDBImages", "AnimeID"));
         ForceDownload =
-            bool.Parse(TryGetProperty(docCreator, "CommandRequest_DownloadAniDBImages", "ForceDownload"));
+            bool.Parse(docCreator.TryGetProperty("CommandRequest_DownloadAniDBImages", "ForceDownload"));
 
         return true;
     }

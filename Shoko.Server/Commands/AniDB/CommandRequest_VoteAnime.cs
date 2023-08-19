@@ -10,6 +10,7 @@ using Shoko.Server.Commands.Generic;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands.AniDB;
 
@@ -28,7 +29,7 @@ public class CommandRequest_VoteAnime : CommandRequestImplementation
     {
         message = "Voting: {0} - {1}",
         queueState = QueueStateEnum.VoteAnime,
-        extraParams = new[] { AnimeID.ToString(), VoteValue.ToString() }
+        extraParams = new[] { AnimeID.ToString(), VoteValue.ToString(CultureInfo.InvariantCulture) }
     };
 
     protected override void Process()
@@ -55,7 +56,7 @@ public class CommandRequest_VoteAnime : CommandRequestImplementation
         CommandID = $"CommandRequest_Vote_{AnimeID}_{VoteType}_{VoteValue}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -66,9 +67,9 @@ public class CommandRequest_VoteAnime : CommandRequestImplementation
         var style = NumberStyles.Number;
         var culture = CultureInfo.CreateSpecificCulture("en-GB");
         // populate the fields
-        AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_VoteAnime", "AnimeID"));
-        VoteType = int.Parse(TryGetProperty(docCreator, "CommandRequest_VoteAnime", "VoteType"));
-        VoteValue = decimal.Parse(TryGetProperty(docCreator, "CommandRequest_VoteAnime", "VoteValue"),
+        AnimeID = int.Parse(docCreator.TryGetProperty("CommandRequest_VoteAnime", "AnimeID"));
+        VoteType = int.Parse(docCreator.TryGetProperty("CommandRequest_VoteAnime", "VoteType"));
+        VoteValue = decimal.Parse(docCreator.TryGetProperty("CommandRequest_VoteAnime", "VoteValue"),
             style, culture);
 
         return true;

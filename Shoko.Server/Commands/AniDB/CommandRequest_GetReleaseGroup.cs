@@ -10,6 +10,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands.AniDB;
 
@@ -68,7 +69,7 @@ public class CommandRequest_GetReleaseGroup : CommandRequestImplementation
         CommandID = $"CommandRequest_GetReleaseGroup_{GroupID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -77,9 +78,9 @@ public class CommandRequest_GetReleaseGroup : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        GroupID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroup", "GroupID"));
+        GroupID = int.Parse(docCreator.TryGetProperty("CommandRequest_GetReleaseGroup", "GroupID"));
         ForceRefresh =
-            bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetReleaseGroup", "ForceRefresh"));
+            bool.Parse(docCreator.TryGetProperty("CommandRequest_GetReleaseGroup", "ForceRefresh"));
 
         return true;
     }

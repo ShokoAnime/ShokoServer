@@ -14,6 +14,7 @@ using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands.AniDB;
 
@@ -227,7 +228,7 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
         CommandID = $"CommandRequest_AddFileToMyList_{Hash}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0)
@@ -237,8 +238,8 @@ public class CommandRequest_AddFileToMyList : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        Hash = TryGetProperty(docCreator, "CommandRequest_AddFileToMyList", "Hash");
-        var read = TryGetProperty(docCreator, "CommandRequest_AddFileToMyList", "ReadStates");
+        Hash = docCreator.TryGetProperty("CommandRequest_AddFileToMyList", "Hash");
+        var read = docCreator.TryGetProperty("CommandRequest_AddFileToMyList", "ReadStates");
         if (!bool.TryParse(read, out var readStates)) readStates = true;
 
         ReadStates = readStates;

@@ -7,6 +7,7 @@ using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands;
 
@@ -38,7 +39,7 @@ public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation
         CommandID = $"CommandRequest_TvDBDownloadImages_{TvDBSeriesID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -48,9 +49,9 @@ public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation
 
         // populate the fields
         TvDBSeriesID =
-            int.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBDownloadImages", "TvDBSeriesID"));
+            int.Parse(docCreator.TryGetProperty("CommandRequest_TvDBDownloadImages", "TvDBSeriesID"));
         ForceRefresh =
-            bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBDownloadImages", "ForceRefresh"));
+            bool.Parse(docCreator.TryGetProperty("CommandRequest_TvDBDownloadImages", "ForceRefresh"));
 
         return true;
     }

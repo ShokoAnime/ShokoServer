@@ -13,6 +13,7 @@ using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Void;
 
@@ -214,7 +215,7 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
         CommandID = $"CommandRequest_DeleteFileFromMyList_{Hash}_{this.FileID}_{MyListID}_{AnimeID}_{EpisodeType}{EpisodeNumber}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -222,7 +223,7 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
         var docCreator = new XmlDocument();
         docCreator.LoadXml(CommandDetails);
 
-        if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "MyListID"),
+        if (int.TryParse(docCreator.TryGetProperty("CommandRequest_DeleteFileFromMyList", "MyListID"),
                 out var mylistID) && mylistID != 0)
         {
             var vid = RepoFactory.VideoLocal.GetByMyListID(mylistID);
@@ -234,24 +235,21 @@ public class CommandRequest_DeleteFileFromMyList : CommandRequestImplementation
         }
 
         // populate the fields
-        Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(Hash));
-        FileSize = long.Parse(
-            TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(FileSize))
+        Hash = docCreator.TryGetProperty("CommandRequest_DeleteFileFromMyList", nameof(Hash));
+        FileSize = long.Parse(docCreator.TryGetProperty("CommandRequest_DeleteFileFromMyList", nameof(FileSize))
         );
 
-        if (Enum.TryParse<EpisodeType>(
-                TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeType)),
+        if (Enum.TryParse<EpisodeType>(docCreator.TryGetProperty("CommandRequest_DeleteFileFromMyList", nameof(EpisodeType)),
                 out var episodeType))
             EpisodeType = episodeType;
-        if (int.TryParse(
-                TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(EpisodeNumber)),
+        if (int.TryParse(docCreator.TryGetProperty("CommandRequest_DeleteFileFromMyList", nameof(EpisodeNumber)),
                 out var epNum))
             EpisodeNumber = epNum;
-        if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(AnimeID)),
+        if (int.TryParse(docCreator.TryGetProperty("CommandRequest_DeleteFileFromMyList", nameof(AnimeID)),
                 out var animeID))
             AnimeID = animeID;
             
-        if (int.TryParse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", nameof(FileID)),
+        if (int.TryParse(docCreator.TryGetProperty("CommandRequest_DeleteFileFromMyList", nameof(FileID)),
                 out var fileID))
             FileID = fileID;
 

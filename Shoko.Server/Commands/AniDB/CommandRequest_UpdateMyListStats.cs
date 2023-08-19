@@ -33,7 +33,7 @@ public class CommandRequest_UpdateMyListStats : CommandRequestImplementation
         CommandID = "CommandRequest_UpdateMyListStats";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;

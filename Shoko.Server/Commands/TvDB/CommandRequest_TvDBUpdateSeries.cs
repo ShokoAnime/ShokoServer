@@ -11,6 +11,7 @@ using Shoko.Server.Commands.Generic;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands;
 
@@ -51,7 +52,7 @@ public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation
         CommandID = $"CommandRequest_TvDBUpdateSeries{TvDBSeriesID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -61,12 +62,11 @@ public class CommandRequest_TvDBUpdateSeries : CommandRequestImplementation
 
         // populate the fields
         TvDBSeriesID =
-            int.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries", "TvDBSeriesID"));
+            int.Parse(docCreator.TryGetProperty("CommandRequest_TvDBUpdateSeries", "TvDBSeriesID"));
         ForceRefresh =
-            bool.Parse(TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries",
+            bool.Parse(docCreator.TryGetProperty("CommandRequest_TvDBUpdateSeries",
                 "ForceRefresh"));
-        SeriesTitle =
-            TryGetProperty(docCreator, "CommandRequest_TvDBUpdateSeries",
+        SeriesTitle = docCreator.TryGetProperty("CommandRequest_TvDBUpdateSeries",
                 "SeriesTitle");
 
         return true;

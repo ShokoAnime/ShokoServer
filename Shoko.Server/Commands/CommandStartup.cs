@@ -39,8 +39,7 @@ public static class CommandStartup
     {
         try
         {
-            request.CommandDetails = values.FirstOrDefault(a => a.name == "CommandDetails").value as string;
-            request.LoadFromCommandDetails();
+            request.LoadFromCommandDetails(values.FirstOrDefault(a => a.name == "CommandDetails").value as string);
             request.PostInit();
             return true;
         }

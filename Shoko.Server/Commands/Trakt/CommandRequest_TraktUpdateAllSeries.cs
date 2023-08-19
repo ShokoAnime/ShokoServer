@@ -29,7 +29,7 @@ public class CommandRequest_TraktUpdateAllSeries : CommandRequestImplementation
     {
         message = "Updating all Trakt series info added to queue",
         queueState = QueueStateEnum.UpdateTrakt,
-        extraParams = new string[0]
+        extraParams = Array.Empty<string>()
     };
 
     protected override void Process()
@@ -74,7 +74,7 @@ public class CommandRequest_TraktUpdateAllSeries : CommandRequestImplementation
         CommandID = "CommandRequest_TraktUpdateAllSeries";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -84,7 +84,7 @@ public class CommandRequest_TraktUpdateAllSeries : CommandRequestImplementation
 
         // populate the fields
         ForceRefresh =
-            bool.Parse(TryGetProperty(docCreator, "CommandRequest_TraktUpdateAllSeries", "ForceRefresh"));
+            bool.Parse(docCreator.TryGetProperty("CommandRequest_TraktUpdateAllSeries", "ForceRefresh"));
 
         return true;
     }

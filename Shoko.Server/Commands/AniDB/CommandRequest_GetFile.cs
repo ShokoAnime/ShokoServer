@@ -18,6 +18,7 @@ using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands.AniDB;
 
@@ -279,7 +280,7 @@ public class CommandRequest_GetFile : CommandRequestImplementation
         CommandID = $"CommandRequest_GetFile_{VideoLocalID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -288,8 +289,8 @@ public class CommandRequest_GetFile : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", nameof(VideoLocalID)));
-        ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", nameof(ForceAniDB)));
+        VideoLocalID = int.Parse(docCreator.TryGetProperty("CommandRequest_GetFile", nameof(VideoLocalID)));
+        ForceAniDB = bool.Parse(docCreator.TryGetProperty("CommandRequest_GetFile", nameof(ForceAniDB)));
         vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
         return true;

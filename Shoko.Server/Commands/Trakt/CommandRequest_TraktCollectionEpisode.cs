@@ -9,6 +9,7 @@ using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands;
 
@@ -66,7 +67,7 @@ public class CommandRequest_TraktCollectionEpisode : CommandRequestImplementatio
         CommandID = $"CommandRequest_TraktCollectionEpisode{AnimeEpisodeID}-{Action}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -76,8 +77,8 @@ public class CommandRequest_TraktCollectionEpisode : CommandRequestImplementatio
 
         // populate the fields
         AnimeEpisodeID =
-            int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktCollectionEpisode", "AnimeEpisodeID"));
-        Action = int.Parse(TryGetProperty(docCreator, "CommandRequest_TraktCollectionEpisode", "Action"));
+            int.Parse(docCreator.TryGetProperty("CommandRequest_TraktCollectionEpisode", "AnimeEpisodeID"));
+        Action = int.Parse(docCreator.TryGetProperty("CommandRequest_TraktCollectionEpisode", "Action"));
 
         return true;
     }

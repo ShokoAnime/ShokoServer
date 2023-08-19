@@ -33,7 +33,7 @@ public class CommandRequest_RefreshAnime : CommandRequestImplementation
         CommandID = $"CommandRequest_RefreshAnime_{AnimeID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         AnimeID = int.Parse(CommandDetails);
         return true;

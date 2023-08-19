@@ -44,7 +44,9 @@ public abstract class CommandRequest
 
     public abstract void ProcessCommand();
 
-    public abstract bool LoadFromCommandDetails();
+    public abstract bool LoadFromCommandDetails(string commandDetails);
+
+    public abstract void UpdateCommandDetails();
 
     public abstract void GenerateCommandID();
 }

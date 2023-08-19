@@ -16,6 +16,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands;
 
@@ -435,7 +436,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
         CommandID = $"CommandRequest_ProcessFile_{VideoLocalID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -444,9 +445,9 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "VideoLocalID"));
-        ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "ForceAniDB"));
-        SkipMyList = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "SkipMyList"));
+        VideoLocalID = int.Parse(docCreator.TryGetProperty("CommandRequest_ProcessFile", "VideoLocalID"));
+        ForceAniDB = bool.Parse(docCreator.TryGetProperty("CommandRequest_ProcessFile", "ForceAniDB"));
+        SkipMyList = bool.Parse(docCreator.TryGetProperty("CommandRequest_ProcessFile", "SkipMyList"));
         vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
         return true;

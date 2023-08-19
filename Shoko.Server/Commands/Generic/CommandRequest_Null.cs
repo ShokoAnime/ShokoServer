@@ -13,7 +13,7 @@ public class CommandRequest_Null : CommandRequestImplementation
     {
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         return true;
     }

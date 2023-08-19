@@ -26,7 +26,7 @@ public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
 
     public override QueueStateStruct PrettyDescription => new()
     {
-        message = "Syncing Trakt collection", queueState = QueueStateEnum.SyncTrakt, extraParams = new string[0]
+        message = "Syncing Trakt collection", queueState = QueueStateEnum.SyncTrakt, extraParams = Array.Empty<string>()
     };
 
     protected override void Process()
@@ -69,7 +69,7 @@ public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
         CommandID = "CommandRequest_TraktSyncCollection";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -79,7 +79,7 @@ public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
 
         // populate the fields
         ForceRefresh =
-            bool.Parse(TryGetProperty(docCreator, "CommandRequest_TraktSyncCollection", "ForceRefresh"));
+            bool.Parse(docCreator.TryGetProperty("CommandRequest_TraktSyncCollection", "ForceRefresh"));
 
         return true;
     }

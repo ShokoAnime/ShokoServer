@@ -53,6 +53,7 @@ public class CommandRequestFactory : ICommandRequestFactory
         }
 
         request.DateTimeUpdated = DateTime.Now;
+        request.UpdateCommandDetails();
         request.GenerateCommandID();
         _logger.LogTrace("Saving new CommandRequest: {CommandType} {CommandID}", (CommandRequestType)request.CommandType, request.CommandID);
         try

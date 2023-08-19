@@ -109,7 +109,7 @@ public class CommandRequest_PlexSyncWatched : CommandRequestImplementation
         extraParams = new[] { User.Username }
     };
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         User = RepoFactory.JMMUser.GetByID(Convert.ToInt32(CommandDetails));
         return true;

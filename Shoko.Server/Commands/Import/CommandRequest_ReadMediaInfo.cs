@@ -7,6 +7,7 @@ using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands;
 
@@ -53,7 +54,7 @@ public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
         CommandID = $"CommandRequest_ReadMediaInfo_{VideoLocalID}";
     }
 
-    public override bool LoadFromCommandDetails()
+    protected override bool Load()
     {
         // read xml to get parameters
         if (CommandDetails.Trim().Length <= 0) return false;
@@ -62,8 +63,7 @@ public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
         docCreator.LoadXml(CommandDetails);
 
         // populate the fields
-        VideoLocalID = int.Parse(
-            TryGetProperty(docCreator, "CommandRequest_ReadMediaInfo", "VideoLocalID"));
+        VideoLocalID = int.Parse(docCreator.TryGetProperty("CommandRequest_ReadMediaInfo", "VideoLocalID"));
 
         return true;
     }
