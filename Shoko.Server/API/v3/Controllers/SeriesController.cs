@@ -8,6 +8,8 @@ using System.Web;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
@@ -18,6 +20,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -817,7 +820,57 @@ public class SeriesController : BaseController
 
         return Series.GetTvDBInfo(HttpContext, series);
     }
-    
+
+    /// <summary>
+    /// Add a TvDB link to a series.
+    /// </summary>
+    /// <param name="seriesID">Series ID</param>
+    /// <param name="body">Body containing the information about the link to be made</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/TvDB")]
+    public ActionResult LinkTvDB([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkCommonBody body)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(TvdbNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(TvdbForbiddenForUser);
+
+        var tvdbHelper = Utils.ServiceContainer.GetService<TvDBApiHelper>();
+        tvdbHelper.LinkAniDBTvDB(series.AniDB_ID, body.ID, !body.Replace);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Remove one or all TvDB links from a series.
+    /// </summary>
+    /// <param name="seriesID">Series ID</param>
+    /// <param name="body">Optional. Body containing information about the link to be removed</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpDelete("{seriesID}/TvDB")]
+    public ActionResult UnlinkTvDB([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkCommonBody body)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(TvdbNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(TvdbForbiddenForUser);
+
+        var tvdbHelper = Utils.ServiceContainer.GetService<TvDBApiHelper>();
+        if (body != null && body.ID > 0)
+            tvdbHelper.RemoveLinkAniDBTvDB(series.AniDB_ID, body.ID);
+        else
+            foreach (var xref in RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(series.AniDB_ID))
+                tvdbHelper.RemoveLinkAniDBTvDB(series.AniDB_ID, xref.TvDBID);
+
+        return Ok();
+    }
+
     /// <summary>
     /// Queue a refresh of the all the <see cref="Series.TvDB"/> linked to the
     /// <see cref="Series"/> using the <paramref name="seriesID"/>.
@@ -825,7 +878,7 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko ID</param>
     /// <param name="force">Forcefully retrive updated data from TvDB</param>
     /// <returns></returns>
-    [HttpPost("{seriesID}/{tvdbID}/Refresh")]
+    [HttpPost("{seriesID}/TvDB/Refresh")]
     public ActionResult RefreshSeriesTvdbBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -879,7 +932,7 @@ public class SeriesController : BaseController
 
         return new Series.TvDB(HttpContext, tvdb, series);
     }
-    
+
     /// <summary>
     /// Directly queue a refresh of the the <see cref="Series.TvDB"/> data using
     /// the <paramref name="tvdbID"/>.

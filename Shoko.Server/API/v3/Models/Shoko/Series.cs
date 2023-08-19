@@ -1167,6 +1167,33 @@ public class Series : BaseModel
         [Required]
         public string URL { get; set; }
     }
+
+    #region Inputs
+
+    public static class Input
+    {
+        public class LinkCommonBody
+        {
+            /// <summary>
+            /// Provider ID to add.
+            /// </summary>
+            [Required]
+            public int ID;
+
+            public bool Replace = false;
+        }
+
+        public class UnlinkCommonBody
+        {
+            /// <summary>
+            /// Provider ID to remove.
+            /// </summary>
+            [Required]
+            public int ID;
+        }
+    }
+
+    #endregion
 }
 
 public class SeriesIDs : IDs
