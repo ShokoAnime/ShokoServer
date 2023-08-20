@@ -267,7 +267,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
 
     public FileInfo GetBestFileLink()
     {
-        return Places.OrderBy(a => a.ImportFolderType).Select(p => p.GetFile()).FirstOrDefault(file => file != null);
+        return Places.OrderBy(a => a.ImportFolderType).Select(p => p.GetFileInfo()).FirstOrDefault(file => file != null);
     }
 
     public SVR_VideoLocal_Place GetBestVideoLocalPlace(bool resolve = false)
