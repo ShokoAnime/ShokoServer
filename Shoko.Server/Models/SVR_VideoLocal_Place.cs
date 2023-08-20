@@ -339,7 +339,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             }
         }
 
-        var sourceFile = new FileInfo(oldRelativePath);
+        var sourceFile = new FileInfo(oldFullPath);
         if (File.Exists(newFullPath))
         {
             // A file with the same name exists at the destination.

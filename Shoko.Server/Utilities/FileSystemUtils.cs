@@ -105,6 +105,7 @@ public static class FileSystemUtils
         Utils.ShokoServer.AddFileWatcherExclusion(targetPath);
         try
         {
+            EnsureDirectoryExists(targetPath);
             var sourceInfo = new FileInfo(path);
             switch (Environment.OSVersion.Platform)
             {
@@ -118,8 +119,10 @@ public static class FileSystemUtils
                         if (unixCopyInfo == null)
                             return null;
                     }
-                    catch
+                    catch (UnixIOException ex)
                     {
+                        if (ex.ErrorCode != Mono.Unix.Native.Errno.EXDEV)
+                            throw;
                         sourceInfo.CopyTo(targetPath);
                     }
                     break;
@@ -135,7 +138,8 @@ public static class FileSystemUtils
 
             // Create a new file-name-hash entry if none exists.
             var fileName = Path.GetFileName(relativePath);
-            if (fileName != Path.GetFileName(currentLocation.FileName))
+            if (fileName != Path.GetFileName(currentLocation.FileName) &&
+                RepoFactory.FileNameHash.GetByFileNameAndSize(fileName, file.FileSize) == null)
             {
                 var fileNameHash = new FileNameHash()
                 {
@@ -150,6 +154,7 @@ public static class FileSystemUtils
             var newLocation = new SVR_VideoLocal_Place
             {
                 FilePath = relativePath,
+                VideoLocalID = currentLocation.VideoLocalID,
                 ImportFolderID = nextImportFolder.ImportFolderID,
                 ImportFolderType = nextImportFolder.ImportFolderType,
                 AllowAutoDelete = false,
@@ -164,5 +169,12 @@ public static class FileSystemUtils
         {
             Utils.ShokoServer.RemoveFileWatcherExclusion(targetPath);
         }
+    }
+    
+    private static void EnsureDirectoryExists(string path)
+    {
+        var dirName = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(dirName) && !Directory.Exists(dirName))
+            Directory.CreateDirectory(dirName);
     }
 }
