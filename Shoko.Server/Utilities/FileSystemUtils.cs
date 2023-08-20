@@ -11,7 +11,6 @@ namespace Shoko.Server.Utilities;
 
 public static class FileSystemUtils
 {
-    
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetFileInformationByHandle(IntPtr hFile, out BY_HANDLE_FILE_INFORMATION lpFileInformation);
 
@@ -94,7 +93,6 @@ public static class FileSystemUtils
         if (file == null)
             return null;
 
-        var currentImportFolder  = currentLocation.ImportFolder;
         var path = currentLocation.FullServerPath;
         if (!File.Exists(path))
             return null;
@@ -107,8 +105,7 @@ public static class FileSystemUtils
         Utils.ShokoServer.AddFileWatcherExclusion(targetPath);
         try
         {
-            FileInfo sourceInfo = new FileInfo(path);
-            FileInfo targetInfo;
+            var sourceInfo = new FileInfo(path);
             switch (Environment.OSVersion.Platform)
             {
                 // We're running on Unix, so use the Mono.Unix nuget to create a hard-link.
@@ -120,19 +117,16 @@ public static class FileSystemUtils
                         var unixCopyInfo = unixFileInfo.CreateLink(targetPath);
                         if (unixCopyInfo == null)
                             return null;
-                        targetInfo = new FileInfo(targetPath);
                     }
                     catch
                     {
-                        targetInfo = sourceInfo.CopyTo(targetPath);
+                        sourceInfo.CopyTo(targetPath);
                     }
                     break;
                 // We're running on Windows, so use a dll-import of the kernel call to create a hard-link.
                 case PlatformID.Win32NT:
-                    if (CreateHardLink(targetPath, path, IntPtr.Zero))
-                        targetInfo = new FileInfo(targetPath);
-                    else
-                        targetInfo = sourceInfo.CopyTo(targetPath);
+                    if (!CreateHardLink(targetPath, path, IntPtr.Zero))
+                        sourceInfo.CopyTo(targetPath);
                     break;
                 // Just ignore any other platforms.
                 default:
@@ -166,7 +160,8 @@ public static class FileSystemUtils
 
             return newLocation;
         }
-        finally {
+        finally
+        {
             Utils.ShokoServer.RemoveFileWatcherExclusion(targetPath);
         }
     }
