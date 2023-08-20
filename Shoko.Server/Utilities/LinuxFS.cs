@@ -35,12 +35,21 @@ public static class LinuxFS
         // mode is valid and different
         var shouldChangePermissions = mode > 0 && file.FileAccessPermissions != newMode;
 
-        if (shouldChangeOwner) file.SetOwner(uid, gid);
-        if (shouldChangePermissions) file.FileAccessPermissions = newMode;
         // if we didn't change anything, then return
         if (!shouldChangeOwner && !shouldChangePermissions) return;
 
-        // guarantee immediate flush
-        file.Refresh();
+        Utils.ShokoServer.AddFileWatcherExclusion(path);
+        try
+        {
+            if (shouldChangeOwner) file.SetOwner(uid, gid);
+            if (shouldChangePermissions) file.FileAccessPermissions = newMode;
+
+            // guarantee immediate flush
+            file.Refresh();
+        }
+        finally
+        {
+            Utils.ShokoServer.RemoveFileWatcherExclusion(path);
+        }
     }
 }
