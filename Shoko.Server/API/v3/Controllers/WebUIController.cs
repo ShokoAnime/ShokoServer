@@ -339,6 +339,16 @@ public class WebUIController : BaseController
 
         return NoContent();
     }
+    
+    /// <inheritdoc cref="UpdateWebUI"/>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("Update")]
+    [Obsolete("Post is correct, but we want old versions of the webui to be able to update. We can remove this later")]
+    public ActionResult UpdateWebUIOld([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable)
+    {
+        return UpdateWebUI(channel);
+    }
 
     /// <summary>
     /// Check for latest version for the selected <paramref name="channel"/> and
