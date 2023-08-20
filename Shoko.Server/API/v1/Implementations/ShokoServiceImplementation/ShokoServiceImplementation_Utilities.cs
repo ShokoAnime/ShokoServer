@@ -107,7 +107,7 @@ public partial class ShokoServiceImplementation
         var dice = new SorensenDice();
         var languages = new HashSet<string> {"en", "x-jat"};
         languages.UnionWith(languagePreference.Select(b => b.ToLower()));
-            
+
         foreach (var title in RepoFactory.AniDB_Anime_Title.GetByAnimeID(a.AniDB_ID)
                      .Where(b => b.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Short && languages.Contains(b.LanguageCode))
                      .Select(b => b.Title?.ToLowerInvariant()).ToList())
@@ -197,7 +197,7 @@ public partial class ShokoServiceImplementation
                     {
                         logger.Error(ex, ex.ToString());
                         return false;
-                        
+
                     }
                 });
             }
@@ -380,7 +380,7 @@ public partial class ShokoServiceImplementation
         => RenameAndMoveFile(videoLocalID, scriptName, move, preview: false);
 
     [NonAction]
-    private CL_VideoLocal_Renamed RenameAndMoveFile(int videoLocalID, string scriptName, bool move, bool preview)
+    private static CL_VideoLocal_Renamed RenameAndMoveFile(int videoLocalID, string scriptName, bool move, bool preview)
     {
         var ret = new CL_VideoLocal_Renamed
         {
@@ -1157,12 +1157,21 @@ public partial class ShokoServiceImplementation
     private readonly Dictionary<(int, int), int> ReverseLookup = new();
 
     [NonAction]
+    private int GenerateFakeDuplicateID()
+    {
+        if (IDCounter == int.MaxValue)
+            IDCounter = 1;
+        return IDCounter++;
+    }
+
+    [NonAction]
     private int GetFakeDuplicteID(int fileLocationID1, int fileLocationID2)
     {
         var tuple = (fileLocationID1, fileLocationID2);
         if (!ReverseLookup.TryGetValue(tuple, out var fakeDuplicateID))
         {
-            ReverseLookup.Add(tuple, fakeDuplicateID = IDCounter++);
+            fakeDuplicateID = GenerateFakeDuplicateID();
+            ReverseLookup.Add(tuple, fakeDuplicateID);
             Lookup.Add(fakeDuplicateID, tuple);
         }
         return fakeDuplicateID;
@@ -1173,7 +1182,7 @@ public partial class ShokoServiceImplementation
     {
         if (Lookup.TryGetValue(fakeDuplicateID, out var tuple))
             return tuple;
-        return (0, 0);
+        return default;
     }
 
     [NonAction]
@@ -1281,10 +1290,10 @@ public partial class ShokoServiceImplementation
                 var thisBitDepth = 8;
 
                 if (vid.Media?.VideoStream?.BitDepth != null) thisBitDepth = vid.Media.VideoStream.BitDepth;
-                
+
                 // Sometimes, especially with older files, the info doesn't quite match for resolution
                 var vidResInfo = vid.VideoResolution;
-                
+
                 logger.Trace($"GetFilesByGroupAndResolution -- thisBitDepth: {thisBitDepth}");
                 logger.Trace($"GetFilesByGroupAndResolution -- videoBitDepth: {videoBitDepth}");
 
@@ -1300,7 +1309,7 @@ public partial class ShokoServiceImplementation
                 var groupMatches = Constants.NO_GROUP_INFO.EqualsInvariantIgnoreCase(relGroupName);
                 logger.Trace($"GetFilesByGroupAndResolution -- sourceMatches (manual/unkown): {sourceMatches}");
                 logger.Trace($"GetFilesByGroupAndResolution -- groupMatches (NO GROUP INFO): {groupMatches}");
-                
+
                 // get the anidb file info
                 var aniFile = vid.GetAniDBFile();
                 if (aniFile != null)
