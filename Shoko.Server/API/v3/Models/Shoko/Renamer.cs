@@ -39,7 +39,7 @@ public class Renamer : BaseModel
     /// </summary>
     [Required]
     public int? Priority { get; set; }
-    
+
     public class ModifyRenamerBody
     {
         /// <summary>
@@ -51,9 +51,9 @@ public class Renamer : BaseModel
         /// Lower numbers mean higher priority. Will be null if a priority is not set yet.
         /// </summary>
         public int? Priority { get; set; } = null;
-        
+
         public ModifyRenamerBody() { }
-        
+
         public ModifyRenamerBody(string name)
         {
             var settings = Utils.SettingsProvider.GetSettings();
@@ -90,7 +90,7 @@ public class Renamer : BaseModel
         {
             ID = script.RenameScriptID;
             Name = script.ScriptName;
-            RenamerName  =  script.RenamerType;
+            RenamerName = script.RenamerType;
             RenamerIsAvailable = RenameFileHelper.Renamers.ContainsKey(script.RenamerType);
             EnabledOnImport = script.IsEnabledOnImport == 1;
             Body = !string.IsNullOrWhiteSpace(script.Script) ? script.Script : null;
@@ -177,6 +177,23 @@ public class Renamer : BaseModel
             script.RenamerType = RenamerName;
             script.IsEnabledOnImport = EnabledOnImport ? 1 : 0;
             script.Script = Body ?? "";
+
+            // Check to make sure we multiple scripts enable on import, since
+            // only one can be selected.
+            if (EnabledOnImport)
+            {
+                var allScripts = RepoFactory.RenameScript.GetAll();
+                foreach (var s in allScripts)
+                {
+                    if (s.IsEnabledOnImport == 1 &&
+                        (script.RenameScriptID == 0 || (script.RenameScriptID != s.RenameScriptID)))
+                    {
+                        s.IsEnabledOnImport = 0;
+                        RepoFactory.RenameScript.Save(s);
+                    }
+                }
+            }
+
             RepoFactory.RenameScript.Save(script);
             return new Script(script);
         }

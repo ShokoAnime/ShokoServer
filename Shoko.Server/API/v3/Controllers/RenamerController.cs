@@ -6,7 +6,6 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -103,7 +102,7 @@ public class RenamerController : BaseController
         var modifyRenamer = new Models.Shoko.Renamer.ModifyRenamerBody(renamerName);
         patchDocument.ApplyTo(modifyRenamer, ModelState);
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
 
         return modifyRenamer.MergeWithExisting(renamerName, value);
     }
