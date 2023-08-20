@@ -227,7 +227,7 @@ public class File
         /// is nullable, meaning it can have a value of null if the unique
         /// identifier cannot be obtained or the file does not exist.
         /// </remarks>
-        public long? FileUID { get; set; }
+        public long? OnDiskUniqueID { get; set; }
 
         /// <summary>
         /// The relative path from the <see cref="ImportFolder"/>'s path on the
@@ -273,7 +273,7 @@ public class File
         {
             ID = location.VideoLocal_Place_ID;
             FileID = location.VideoLocalID;
-            FileUID = FileSystemUtils.GetFileUniqueIdentifier(location.FullServerPath);
+            OnDiskUniqueID = location.OnDiskUniqueID;
             ImportFolderID = location.ImportFolderID;
             RelativePath = location.FilePath;
             AbsolutePath = includeAbsolutePaths ? location.FullServerPath : null;
