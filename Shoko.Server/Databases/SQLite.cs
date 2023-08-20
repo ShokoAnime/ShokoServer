@@ -673,6 +673,8 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(104, 1, DatabaseFixes.FixAnimeSourceLinks),
         new(104, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
         new(105, 1, "DROP TABLE DuplicateFile"),
+        new(105, 2, "ALTER TABLE VideoLocal_Place ADD AllowAutoRelocation INT NOT NULL DEFAULT 1;"),
+        new(105, 3, "ALTER TABLE VideoLocal_Place ADD AllowAutoDelete INT NOT NULL DEFAULT 1;"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

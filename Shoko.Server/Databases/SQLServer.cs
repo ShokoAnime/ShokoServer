@@ -681,6 +681,8 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(111, 1, DatabaseFixes.FixAnimeSourceLinks),
         new DatabaseCommand(111, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
         new DatabaseCommand(112, 1, "DROP TABLE DuplicateFile"),
+        new DatabaseCommand(112, 2, "ALTER TABLE VideoLocal_Place ADD AllowAutoRelocation INT NOT NULL DEFAULT 1;"),
+        new DatabaseCommand(112, 3, "ALTER TABLE VideoLocal_Place ADD AllowAutoDelete INT NOT NULL DEFAULT 1;"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

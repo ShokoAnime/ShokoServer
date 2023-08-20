@@ -738,6 +738,8 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(118, 1, DatabaseFixes.FixAnimeSourceLinks),
         new(118, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
         new(119, 1, "DROP TABLE DuplicateFile"),
+        new(119, 2, "ALTER TABLE VideoLocal_Place ADD AllowAutoRelocation INT NOT NULL DEFAULT 1;"),
+        new(119, 3, "ALTER TABLE VideoLocal_Place ADD AllowAutoDelete INT NOT NULL DEFAULT 1;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
