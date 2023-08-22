@@ -145,13 +145,22 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
             return array;
 
         if (udpBanned || udpUnavailable || networkUnavailable)
+        {
+            _logger.Trace($"Filtering UDP commands. {nameof(udpBanned)}: {udpBanned}, {nameof(udpUnavailable)}: {udpUnavailable}, {nameof(networkUnavailable)}: {networkUnavailable}");
             commands = commands.Except(AniDbUdpCommands);
+        }
 
         if (httpBanned || networkUnavailable)
+        {
+            _logger.Trace($"Filtering HTTP commands. {nameof(httpBanned)}: {httpBanned}, {nameof(networkUnavailable)}: {networkUnavailable}");
             commands = commands.Except(AniDbHttpCommands);
+        }
 
         if (networkUnavailable)
+        {
+            _logger.Trace($"Filtering Web commands. {nameof(networkUnavailable)}: {networkUnavailable}");
             commands = commands.Except(HttpNetworkCommands);
+        }
 
         array = commands as int[] ?? commands.ToArray();
         CommandConditionMap.TryAdd(key, array);
