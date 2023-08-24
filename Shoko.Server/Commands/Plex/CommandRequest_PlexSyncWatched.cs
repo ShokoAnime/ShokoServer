@@ -58,7 +58,7 @@ public class CommandRequest_PlexSyncWatched : CommandRequestImplementation
                         var animeEpisode = episode.AnimeEpisode;
 
 
-                        Logger.LogTrace("Processing episode {title} of {seriesName}", episode.Title, series.Title);
+                        Logger.LogInformation("Processing episode {title} of {seriesName}", episode.Title, series.Title);
                         if (animeEpisode == null)
                         {
                             var filePath = episode.Media[0].Part[0].File;
@@ -69,7 +69,7 @@ public class CommandRequest_PlexSyncWatched : CommandRequestImplementation
                         var userRecord = animeEpisode.GetUserRecord(User.JMMUserID);
                         var isWatched = episode.ViewCount is > 0;
                         var lastWatched = userRecord?.WatchedDate;
-                        if (userRecord?.WatchedCount == 0 && isWatched && episode.LastViewedAt != null)
+                        if ((userRecord?.WatchedCount ?? 0) == 0 && isWatched && episode.LastViewedAt != null)
                         {
                             lastWatched = FromUnixTime((long)episode.LastViewedAt);
                             Logger.LogTrace("Last watched date is {lastWatched}", lastWatched);
@@ -102,7 +102,7 @@ public class CommandRequest_PlexSyncWatched : CommandRequestImplementation
                         if (isWatched && !alreadyWatched)
                         {
                             Logger.LogInformation("Marking episode watched in Shoko");
-                            video.ToggleWatchedStatus(true, true, lastWatched, true, User.JMMUserID, true, true);
+                            video.ToggleWatchedStatus(true, true, lastWatched ?? DateTime.Now, true, User.JMMUserID, true, true);
                         }
                     }
                 }
