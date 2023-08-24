@@ -15,10 +15,7 @@ public class VobSubSubtitles : ISubtitles
 
         var m = MediaInfo.GetMediaInfo(file.FullName);
         var tStreams = m?.TextStreams;
-        if (tStreams == null || tStreams.Count <= 0)
-        {
-            return streams;
-        }
+        if (tStreams == null || tStreams.Count == 0) tStreams = new List<TextStream> { new() };
 
         tStreams.ForEach(a =>
         {
