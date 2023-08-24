@@ -16,11 +16,13 @@ using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+using AnimeType = Shoko.Models.Enums.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Models;
@@ -1867,15 +1869,18 @@ public class SVR_AnimeSeries : AnimeSeries
                 var epReleasedGroup = false;
                 foreach (var gs in grpStatuses)
                 {
-                    if (gs.LastEpisodeNumber >= thisEpNum)
+                    // if it's complete, then assume the episode is included
+                    if (gs.CompletionState is (int)Group_CompletionStatus.Complete or (int)Group_CompletionStatus.Finished)
                     {
                         epReleased = true;
+                        if (userReleaseGroups.Contains(gs.GroupID)) epReleasedGroup = true;
+                        continue;
                     }
 
-                    if (userReleaseGroups.Contains(gs.GroupID) && gs.HasGroupReleasedEpisode(thisEpNum))
-                    {
-                        epReleasedGroup = true;
-                    }
+                    if (!gs.HasGroupReleasedEpisode(thisEpNum)) continue;
+
+                    epReleased = true;
+                    if (userReleaseGroups.Contains(gs.GroupID)) epReleasedGroup = true;
                 }
 
                 try
