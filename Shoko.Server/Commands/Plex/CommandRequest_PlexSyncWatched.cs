@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using NLog.Fluent;
@@ -60,7 +61,8 @@ public class CommandRequest_PlexSyncWatched : CommandRequestImplementation
                         Logger.LogTrace("Processing episode {title} of {seriesName}", episode.Title, series.Title);
                         if (animeEpisode == null)
                         {
-                            Logger.LogTrace("Episode not found in Shoko, skipping");
+                            var filePath = episode.Media[0].Part[0].File;
+                            Logger.LogTrace("Episode not found in Shoko, skipping - {filename} ({filePath})", Path.GetFileName(filePath), filePath);
                             continue;
                         }
 
