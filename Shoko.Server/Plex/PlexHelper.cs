@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -106,6 +106,7 @@ public class PlexHelper
         private set
         {
             _mediaDevice = value;
+            _cachedConnection = null;
             _lastMediaCacheTime = DateTime.Now;
         }
     }
@@ -402,7 +403,7 @@ public class PlexHelper
         configureRequest?.Invoke(req);
 
         var client = new HttpClient();
-        SetupHttpClient(client, TimeSpan.FromSeconds(60));
+        SetupHttpClient(client, TimeSpan.FromSeconds(10));
         var resp = await client.SendAsync(req).ConfigureAwait(false);
         Logger.Trace($"Got response: {resp.StatusCode}");
         return (resp.StatusCode, await resp.Content.ReadAsStringAsync().ConfigureAwait(false));
@@ -464,6 +465,7 @@ public class PlexHelper
 
         settings.Plex.Server = server.ClientIdentifier;
         ServerCache = server;
+        Utils.SettingsProvider.SaveSettings();
     }
 
     public User GetAccount()

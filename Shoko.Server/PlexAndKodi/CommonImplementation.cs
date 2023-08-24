@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -1450,6 +1450,7 @@ public class CommonImplementation
         }
 
         settings.Plex.Libraries = directories.Select(s => s.Key).ToList();
+        _settingsProvider.SaveSettings();
     }
 
     public Directory[] Directories(int userId)

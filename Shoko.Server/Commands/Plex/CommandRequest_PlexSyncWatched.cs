@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using NLog.Fluent;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -49,46 +50,58 @@ public class CommandRequest_PlexSyncWatched : CommandRequestImplementation
 
                 foreach (var ep in episodes)
                 {
-                    var episode = (SVR_Episode)ep;
-
-                    var animeEpisode = episode.AnimeEpisode;
-                    if (animeEpisode == null)
+                    using (Logger.BeginScope(ep.Key))
                     {
-                        continue;
-                    }
+                        var episode = (SVR_Episode)ep;
 
-                    var userRecord = animeEpisode.GetUserRecord(User.JMMUserID);
-                    var isWatched = episode.ViewCount is > 0;
-                    var lastWatched = userRecord?.WatchedDate;
-                    if (userRecord?.WatchedCount == 0 && isWatched && episode.LastViewedAt != null)
-                    {
-                        lastWatched = FromUnixTime((long)episode.LastViewedAt);
-                    }
+                        var animeEpisode = episode.AnimeEpisode;
 
-                    var video = animeEpisode.GetVideoLocals()?.FirstOrDefault();
-                    if (video == null)
-                    {
-                        continue;
-                    }
 
-                    var alreadyWatched = animeEpisode.GetVideoLocals()
-                        .Select(a => a.GetUserRecord(User.JMMUserID))
-                        .Where(a => a != null)
-                        .Any(x => x.WatchedDate is not null || x.WatchedCount > 0);
+                        Logger.LogTrace("Processing episode {title} of {seriesName}", episode.Title, series.Title);
+                        if (animeEpisode == null)
+                        {
+                            Logger.LogTrace("Episode not found in Shoko, skipping");
+                            continue;
+                        }
 
-                    if (!alreadyWatched && userRecord != null)
-                    {
-                        alreadyWatched = userRecord.IsWatched();
-                    }
+                        var userRecord = animeEpisode.GetUserRecord(User.JMMUserID);
+                        var isWatched = episode.ViewCount is > 0;
+                        var lastWatched = userRecord?.WatchedDate;
+                        if (userRecord?.WatchedCount == 0 && isWatched && episode.LastViewedAt != null)
+                        {
+                            lastWatched = FromUnixTime((long)episode.LastViewedAt);
+                            Logger.LogTrace("Last watched date is {lastWatched}", lastWatched);
+                        }
 
-                    if (alreadyWatched && !isWatched)
-                    {
-                        episode.Scrobble();
-                    }
+                        var video = animeEpisode.GetVideoLocals()?.FirstOrDefault();
+                        if (video == null)
+                        {
+                            continue;
+                        }
 
-                    if (isWatched && !alreadyWatched)
-                    {
-                        video.ToggleWatchedStatus(true, true, lastWatched, true, User.JMMUserID, true, true);
+                        var alreadyWatched = animeEpisode.GetVideoLocals()
+                            .Select(a => a.GetUserRecord(User.JMMUserID))
+                            .Where(a => a != null)
+                            .Any(x => x.WatchedDate is not null || x.WatchedCount > 0);
+
+                        if (!alreadyWatched && userRecord != null)
+                        {
+                            alreadyWatched = userRecord.IsWatched();
+                        }
+
+                        Logger.LogTrace("Already watched in shoko? {alreadyWatched} Has been watched in plex? {isWatched}", alreadyWatched, isWatched);
+
+                        if (alreadyWatched && !isWatched)
+                        {
+                            Logger.LogInformation("Marking episode watched in plex");
+                            episode.Scrobble();
+                        }
+
+                        if (isWatched && !alreadyWatched)
+                        {
+                            Logger.LogInformation("Marking episode watched in Shoko");
+                            video.ToggleWatchedStatus(true, true, lastWatched, true, User.JMMUserID, true, true);
+                        }
                     }
                 }
             }
