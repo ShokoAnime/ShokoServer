@@ -237,7 +237,7 @@ namespace Shoko.Models.Enums
         Complete = 2
     }
 
-    public enum ImageEntityType
+    public enum CL_ImageEntityType
     {
         None = 0, // The lack of a type. Should generally not be used, except as a null/default check
         AniDB_Cover = 1, // use AnimeID
