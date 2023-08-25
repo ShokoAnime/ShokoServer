@@ -91,9 +91,9 @@ public interface IFilterable
     bool HasVotes { get; }
 
     /// <summary>
-    /// Missing any user votes
+    /// Has permanent (after finishing) user votes
     /// </summary>
-    bool MissingVotes { get; }
+    bool HasPermanentVotes { get; }
 
     /// <summary>
     /// First Air Date
