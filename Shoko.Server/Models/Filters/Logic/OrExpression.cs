@@ -1,3 +1,5 @@
+using Shoko.Server.Models.Filters.Interfaces;
+
 namespace Shoko.Server.Models.Filters.Logic;
 
 public class OrExpression : FilterExpression

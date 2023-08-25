@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Shoko.Server.Models.Filters;
+namespace Shoko.Server.Models.Filters.Interfaces;
 
 public interface IFilterable
 {
