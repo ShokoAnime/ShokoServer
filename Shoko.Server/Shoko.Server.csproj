@@ -114,4 +114,7 @@
     <PackageReference Include="Trinet.Core.IO.Ntfs" Version="4.1.1" />
     <PackageReference Include="TvDbSharper" Version="3.2.0" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Models\Filters\MediaInfo\" />
+  </ItemGroup>
 </Project>
