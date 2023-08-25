@@ -91,6 +91,11 @@ namespace Shoko.Models.Enums
         /// Shoko.
         /// </summary>
         Shoko = 1024,
+
+        /// <summary>
+        /// User.
+        /// </summary>
+        User = 2048,
     }
 
     public enum EpisodeDisplayStyle
