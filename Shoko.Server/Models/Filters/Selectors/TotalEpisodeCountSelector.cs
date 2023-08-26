@@ -1,10 +1,10 @@
-using System;
 using Shoko.Server.Models.Filters.Interfaces;
 
 namespace Shoko.Server.Models.Filters.Selectors;
 
-public class TotalEpisodeCountSelector : INumberSelector
+public class TotalEpisodeCountSelector : FilterExpression<double>
 {
-    public bool UserDependent => false;
-    public Func<IFilterable, double> Selector => f => f.TotalEpisodeCount;
+    public override bool TimeDependent => false;
+    public override bool UserDependent => false;
+    public override double Evaluate(IFilterable f) => f.TotalEpisodeCount;
 }

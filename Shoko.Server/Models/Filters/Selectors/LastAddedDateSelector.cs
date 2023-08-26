@@ -3,8 +3,9 @@ using Shoko.Server.Models.Filters.Interfaces;
 
 namespace Shoko.Server.Models.Filters.Selectors;
 
-public class LastAddedDateSelector : IDateTimeSelector
+public class LastAddedDateSelector : FilterExpression<DateTime?>
 {
-    public bool UserDependent => false;
-    public Func<IFilterable, DateTime?> Selector => f => f.LastAddedDate;
+    public override bool TimeDependent => false;
+    public override bool UserDependent => false;
+    public override DateTime? Evaluate(IFilterable f) => f.LastAddedDate;
 }

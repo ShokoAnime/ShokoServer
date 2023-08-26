@@ -3,8 +3,9 @@ using Shoko.Server.Models.Filters.Interfaces;
 
 namespace Shoko.Server.Models.Filters.Selectors;
 
-public class LowestAniDBRatingSelector : INumberSelector
+public class LowestAniDBRatingSelector : FilterExpression<double>
 {
-    public bool UserDependent => false;
-    public Func<IFilterable, double> Selector => f => Convert.ToDouble(f.LowestAniDBRating);
+    public override bool TimeDependent => false;
+    public override bool UserDependent => false;
+    public override double Evaluate(IFilterable f) => Convert.ToDouble(f.LowestAniDBRating);
 }

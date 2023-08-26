@@ -3,12 +3,13 @@ using Shoko.Server.Models.Filters.Interfaces;
 
 namespace Shoko.Server.Models.Filters.Logic.Strings;
 
-public class EqualExpression : FilterExpression
+public class EqualExpression : FilterExpression<bool>
 {
-    public IStringSelector Selector { get; set; }
+    public FilterExpression<string> Selector { get; set; }
     public string Parameter { get; set; }
+    public override bool TimeDependent => Selector.TimeDependent;
     public override bool UserDependent => Selector.UserDependent;
 
     public override bool Evaluate(IFilterable filterable) =>
-        string.Equals(Selector.Selector(filterable), Parameter, StringComparison.InvariantCultureIgnoreCase);
+        string.Equals(Selector.Evaluate(filterable), Parameter, StringComparison.InvariantCultureIgnoreCase);
 }

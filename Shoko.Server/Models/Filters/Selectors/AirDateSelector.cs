@@ -3,8 +3,9 @@ using Shoko.Server.Models.Filters.Interfaces;
 
 namespace Shoko.Server.Models.Filters.Selectors;
 
-public class AirDateSelector : IDateTimeSelector
+public class AirDateSelector : FilterExpression<DateTime?>
 {
-    public bool UserDependent => false;
-    public Func<IFilterable, DateTime?> Selector => f => f.AirDate;
+    public override bool TimeDependent => false;
+    public override bool UserDependent => false;
+    public override DateTime? Evaluate(IFilterable f) => f.AirDate;
 }

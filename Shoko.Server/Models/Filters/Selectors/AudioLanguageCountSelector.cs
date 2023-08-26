@@ -1,10 +1,10 @@
-using System;
 using Shoko.Server.Models.Filters.Interfaces;
 
 namespace Shoko.Server.Models.Filters.Selectors;
 
-public class AudioLanguageCountSelector : INumberSelector
+public class AudioLanguageCountSelector : FilterExpression<double>
 {
-    public bool UserDependent => false;
-    public Func<IFilterable, double> Selector => f => f.AudioLanguages.Count;
+    public override bool TimeDependent => false;
+    public override bool UserDependent => false;
+    public override double Evaluate(IFilterable f) => f.AudioLanguages.Count;
 }
