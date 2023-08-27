@@ -2,8 +2,11 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Shoko.Server.Models.Filters;
+using Shoko.Server.Models.Filters.Functions;
 using Shoko.Server.Models.Filters.Info;
 using Shoko.Server.Models.Filters.Logic;
+using Shoko.Server.Models.Filters.Logic.DateTimes;
+using Shoko.Server.Models.Filters.Selectors;
 using Shoko.Server.Models.Filters.User;
 using Xunit;
 
@@ -26,7 +29,7 @@ public class FilterTests
     public static readonly IEnumerable<object[]> SeriesUserFilterable = new[] { new[] { JsonConvert.DeserializeObject<UserDependentFilterable>(SeriesUserFilterableString) }};
 
     [Theory, MemberData(nameof(GroupFilterable))]
-    public void GroupFilterable_WithUserFilter(Filterable group)
+    public void GroupFilterable_WithUserFilter_ExpectsException(Filterable group)
     {
         var top = new AndExpression
         {
@@ -52,7 +55,7 @@ public class FilterTests
     }
 
     [Theory, MemberData(nameof(GroupFilterable))]
-    public void GroupFilterable_WithoutUserFilter(Filterable group)
+    public void GroupFilterable_WithoutUserFilter_ExpectsTrue(Filterable group)
     {
         var top = new AndExpression
         {
@@ -80,8 +83,82 @@ public class FilterTests
         Assert.True(top.Evaluate(group));
     }
     
+    [Theory, MemberData(nameof(GroupFilterable))]
+    public void GroupFilterable_WithDateFunctionFilter_ExpectsFalse(Filterable group)
+    {
+        var top = new AndExpression
+        {
+            Left = new AndExpression
+            {
+                Left = new HasTagExpression
+                {
+                    Parameter = "comedy"
+                },
+                Right = new NotExpression
+                {
+                    Left = new HasTagExpression
+                    {
+                        Parameter = "18 restricted"
+                    }
+                }
+            },
+            Right = new GreaterThanEqualExpression
+            {
+                Left = new LastAddedDateSelector(),
+                Right = new DateDiffFunction
+                {
+                    Selector = new DateAddFunction
+                    {
+                        Selector = new TodayFunction(), Parameter = TimeSpan.FromDays(1) - TimeSpan.FromMilliseconds(1)
+                    },
+                    Parameter = TimeSpan.FromDays(30)
+                },
+            }
+        };
+
+        Assert.False(top.UserDependent);
+        Assert.False(top.Evaluate(group));
+    }
+    
+    [Theory, MemberData(nameof(GroupFilterable))]
+    public void GroupFilterable_WithDateFunctionFilter_ExpectsTrue(Filterable group)
+    {
+        var top = new AndExpression
+        {
+            Left = new AndExpression
+            {
+                Left = new HasTagExpression
+                {
+                    Parameter = "comedy"
+                },
+                Right = new NotExpression
+                {
+                    Left = new HasTagExpression
+                    {
+                        Parameter = "18 restricted"
+                    }
+                }
+            },
+            Right = new GreaterThanEqualExpression
+            {
+                Left = new LastAddedDateSelector(),
+                Right = new DateDiffFunction
+                {
+                    Selector = new DateAddFunction
+                    {
+                        Selector = new TodayFunction(), Parameter = TimeSpan.FromDays(1) - TimeSpan.FromMilliseconds(1)
+                    },
+                    Parameter = TimeSpan.FromDays(120)
+                },
+            }
+        };
+
+        Assert.False(top.UserDependent);
+        Assert.True(top.Evaluate(group));
+    }
+
     [Theory, MemberData(nameof(GroupUserFilterable))]
-    public void GroupUserFilterable_WithUserFilter(UserDependentFilterable group)
+    public void GroupUserFilterable_WithUserFilter_ExpectsTrue(UserDependentFilterable group)
     {
         var top = new AndExpression
         {
@@ -107,7 +184,7 @@ public class FilterTests
     }
 
     [Theory, MemberData(nameof(SeriesFilterable))]
-    public void SeriesFilterable_WithUserFilter(Filterable series)
+    public void SeriesFilterable_WithUserFilter_ExpectsException(Filterable series)
     {
         var top = new AndExpression
         {
@@ -133,7 +210,7 @@ public class FilterTests
     }
 
     [Theory, MemberData(nameof(SeriesUserFilterable))]
-    public void SeriesUserFilterable_WithUserFilter(UserDependentFilterable series)
+    public void SeriesUserFilterable_WithUserFilter_ExpectsTrue(UserDependentFilterable series)
     {
         var top = new AndExpression
         {

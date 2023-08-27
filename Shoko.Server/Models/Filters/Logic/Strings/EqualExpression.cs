@@ -5,11 +5,16 @@ namespace Shoko.Server.Models.Filters.Logic.Strings;
 
 public class EqualExpression : FilterExpression<bool>
 {
-    public FilterExpression<string> Selector { get; set; }
+    public FilterExpression<string> Left { get; set; }
+    public FilterExpression<string> Right { get; set; }
     public string Parameter { get; set; }
-    public override bool TimeDependent => Selector.TimeDependent;
-    public override bool UserDependent => Selector.UserDependent;
+    public override bool TimeDependent => Left.TimeDependent || (Right?.TimeDependent ?? false);
+    public override bool UserDependent => Left.UserDependent || (Right?.UserDependent ?? false);
 
-    public override bool Evaluate(IFilterable filterable) =>
-        string.Equals(Selector.Evaluate(filterable), Parameter, StringComparison.InvariantCultureIgnoreCase);
+    public override bool Evaluate(IFilterable filterable)
+    {
+        var left = Left.Evaluate(filterable);
+        var right = Parameter ?? Right?.Evaluate(filterable);
+        return string.Equals(left, right, StringComparison.InvariantCultureIgnoreCase);
+    }
 }

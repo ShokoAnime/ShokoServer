@@ -5,9 +5,16 @@ namespace Shoko.Server.Models.Filters.Logic.Numbers;
 
 public class NotEqualExpression : FilterExpression<bool>
 {
-    public FilterExpression<double> Selector { get; set; }
-    public double Parameter { get; set; }
-    public override bool TimeDependent => Selector.TimeDependent;
-    public override bool UserDependent => Selector.UserDependent;
-    public override bool Evaluate(IFilterable filterable) => Math.Abs(Selector.Evaluate(filterable) - Parameter) >= 0.001D;
+    public FilterExpression<double> Left { get; set; }
+    public FilterExpression<double> Right { get; set; }
+    public double? Parameter { get; set; }
+    public override bool TimeDependent => Left.TimeDependent || (Right?.TimeDependent ?? false);
+    public override bool UserDependent => Left.UserDependent || (Right?.UserDependent ?? false);
+
+    public override bool Evaluate(IFilterable filterable)
+    {
+        var left = Left.Evaluate(filterable);
+        var right = Parameter ?? Right.Evaluate(filterable);
+        return Math.Abs(left - right) >= 0.001D;
+    }
 }
