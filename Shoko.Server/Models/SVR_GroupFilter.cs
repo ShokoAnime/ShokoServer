@@ -1680,8 +1680,7 @@ public class SVR_GroupFilter : GroupFilter
                 break;
 
             case GroupFilterConditionType.UserVoted:
-                var voted = contractSerie.AniDBAnime.UserVote != null &&
-                            contractSerie.AniDBAnime.UserVote.VoteType == (int)AniDBVoteType.Anime;
+                var voted = contractSerie.AniDBAnime.UserVote is { VoteType: (int)AniDBVoteType.Anime };
                 if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && !voted)
                 {
                     return false;

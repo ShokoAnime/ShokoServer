@@ -6,7 +6,12 @@ public interface IFilterExpression
     bool UserDependent { get; }
 }
 
-public interface IFilterExpression<out T> : IFilterExpression
+public interface IFilterExpression<out T>
 {
     T Evaluate(IFilterable f);
+}
+
+public interface IUserDependentFilterExpression<out T>
+{
+    T Evaluate(IUserDependentFilterable f);
 }

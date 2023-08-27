@@ -1,6 +1,6 @@
 using Shoko.Server.Models.Filters.Interfaces;
 
-namespace Shoko.Server.Models.Filters.User;
+namespace Shoko.Server.Models.Filters.Info;
 
 public class HasCustomTagExpression : FilterExpression<bool>
 {
