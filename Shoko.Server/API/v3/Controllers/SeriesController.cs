@@ -22,6 +22,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -978,6 +979,74 @@ public class SeriesController : BaseController
     }
 
     #endregion
+
+    #endregion
+
+    #region File
+
+    /// <summary>
+    /// Rescan all files for a series.
+    /// </summary>
+    /// <param name="seriesID">Series ID.</param>
+    /// <param name="priority">Increase the priority to the max for the queued commands.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/File/Rescan")]
+    public ActionResult RescanSeriesFiles([FromRoute] int seriesID, [FromQuery] bool priority = false)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        foreach (var file in series.GetVideoLocals())
+            _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
+                c =>
+                {
+                    c.VideoLocalID = file.VideoLocalID;
+                    c.ForceAniDB = true;
+                    if (priority) c.Priority = (int)CommandRequestPriority.Priority1;
+                }
+            );
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Rehash all files for a series.
+    /// </summary>
+    /// <param name="seriesID">Series ID.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/File/Rehash")]
+    public ActionResult RehashSeriesFiles([FromRoute] int seriesID)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        foreach (var file in series.GetVideoLocals())
+        {
+            var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
+            if (string.IsNullOrEmpty(filePath))
+                continue;
+
+            _commandFactory.CreateAndSave<CommandRequest_HashFile>(
+                c =>
+                {
+                    c.FileName = filePath;
+                    c.ForceHash = true;
+                }
+            );
+        }
+
+        return Ok();
+    }
 
     #endregion
 
