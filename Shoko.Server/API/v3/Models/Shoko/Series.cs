@@ -8,6 +8,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
@@ -786,7 +787,7 @@ public class Series : BaseModel
             Poster = GetAniDBPoster(relation.RelatedAnimeID);
             Rating = null;
             UserApproval = null;
-            Relation = SeriesRelation.GetRelationTypeFromAnidbRelationType(relation.RelationType);
+            Relation = ((IRelatedAnime)relation).RelationType;
         }
 
         private void SetTitles(AniDB_Anime_Relation relation, SVR_AnimeSeries series, bool includeTitles)

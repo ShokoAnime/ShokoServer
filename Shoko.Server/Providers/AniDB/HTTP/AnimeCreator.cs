@@ -1092,6 +1092,7 @@ public class AnimeCreator
                 RelationType.Summary => "summary",
                 RelationType.Other => "other",
                 RelationType.AlternativeSetting => "alternative setting",
+                RelationType.AlternativeVersion => "alternative version",
                 RelationType.SameSetting => "same setting",
                 RelationType.SharedCharacters => "character",
                 _ => "other"
