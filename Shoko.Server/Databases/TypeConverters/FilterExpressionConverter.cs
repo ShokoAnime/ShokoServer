@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using NHibernate.SqlTypes;
@@ -28,11 +29,12 @@ public class FilterExpressionConverter : TypeConverter, IUserType
         object value)
     {
         var s = value as string ?? throw new ArgumentException("Can only convert from string");
-        var baseFilter = JsonConvert.DeserializeObject<FilterExpression>(s, new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Ignore });
-        if (string.IsNullOrEmpty(baseFilter.Type)) throw new ValidationException("Type deserialized as empty");
-        var type = Type.GetType(baseFilter.Type);
-        if (type == null) throw new NullReferenceException("Type not found");
-        return JsonConvert.DeserializeObject(s, type);
+        return JsonConvert.DeserializeObject(s, new JsonSerializerSettings
+        {
+            MissingMemberHandling = MissingMemberHandling.Ignore,
+            TypeNameHandling = TypeNameHandling.Objects
+            //Converters = new List<JsonConverter> { new FilterExpressionJsonConverter() },
+        });
     }
 
     /// <summary>
@@ -51,7 +53,11 @@ public class FilterExpressionConverter : TypeConverter, IUserType
         object value, Type destinationType)
     {
         if (value == null) return null;
-        return JsonConvert.SerializeObject(value);
+        return JsonConvert.SerializeObject(value, new JsonSerializerSettings
+        {
+            MissingMemberHandling = MissingMemberHandling.Ignore,
+            TypeNameHandling = TypeNameHandling.Objects
+        });
     }
 
 

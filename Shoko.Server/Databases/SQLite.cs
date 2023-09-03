@@ -22,7 +22,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name { get; } = "SQLite";
 
-    public override int RequiredVersion { get; } = 104;
+    public override int RequiredVersion { get; } = 105;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -672,6 +672,10 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(103, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion text;"),
         new(104, 1, DatabaseFixes.FixAnimeSourceLinks),
         new(104, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
+        new DatabaseCommand(105, 1,
+            "CREATE TABLE Filter( FilterID INTEGER PRIMARY KEY AUTOINCREMENT, ParentFilterID int, Name text NOT NULL, FilterType int NOT NULL, Locked int NOT NULL, Hidden int NOT NULL, ApplyAtSeriesLevel int NOT NULL, Expression text, SortingExpression text ); "),
+        new DatabaseCommand(105, 2,
+            "CREATE INDEX IX_Filter_ParentFilterID ON Filter(ParentFilterID); CREATE INDEX IX_Filter_Name ON Filter(Name); CREATE INDEX IX_Filter_FilterType ON Filter(FilterType); CREATE INDEX IX_Filter_LockedHidden ON Filter(Locked, Hidden);"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

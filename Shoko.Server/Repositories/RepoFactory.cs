@@ -124,7 +124,7 @@ public static class RepoFactory
         CleanUpMemory();
     }
 
-    public static async Task Init()
+    public static void Init()
     {
         try
         {

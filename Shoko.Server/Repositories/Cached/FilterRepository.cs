@@ -11,8 +11,11 @@ using Shoko.Models.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.Filters;
+using Shoko.Server.Models.Filters.Functions;
 using Shoko.Server.Models.Filters.Info;
 using Shoko.Server.Models.Filters.Logic;
+using Shoko.Server.Models.Filters.Logic.DateTimes;
+using Shoko.Server.Models.Filters.Selectors;
 using Shoko.Server.Models.Filters.SortingSelectors;
 using Shoko.Server.Models.Filters.User;
 using Shoko.Server.Repositories.NHibernate;
@@ -94,9 +97,9 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
                 Name = Constants.GroupFilterName.ContinueWatching,
                 Locked = true,
                 ApplyAtSeriesLevel = false,
-                FilterType = GroupFilterType.ContinueWatching,
+                FilterType = GroupFilterType.None,
                 Expression = new AndExpression{ Left = new HasWatchedEpisodesExpression(), Right = new HasUnwatchedEpisodesExpression() },
-                SortingExpressions = new List<SortingExpression> { new LastWatchedDateSortingSelector { Descending = true } }
+                SortingExpression = new LastWatchedDateSortingSelector { Descending = true }
             };
             Save(gf);
         }
@@ -109,7 +112,7 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
                 Name = Constants.GroupFilterName.All,
                 Locked = true,
                 FilterType = GroupFilterType.All,
-                SortingExpressions = new List<SortingExpression> { new NameSortingSelector() }
+                SortingExpression = new NameSortingSelector()
             };
             Save(gf);
         }
@@ -120,8 +123,7 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
             {
                 Name = Constants.GroupFilterName.Tags,
                 FilterType = (GroupFilterType.Directory | GroupFilterType.Tag),
-                Locked = true,
-                SortingExpressions = new List<SortingExpression> { new NameSortingSelector() }
+                Locked = true
             };
             Save(gf);
         }
@@ -132,8 +134,7 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
             {
                 Name = Constants.GroupFilterName.Years,
                 FilterType = (GroupFilterType.Directory | GroupFilterType.Year),
-                Locked = true,
-                SortingExpressions = new List<SortingExpression> { new NameSortingSelector() }
+                Locked = true
             };
             Save(gf);
         }
@@ -144,8 +145,7 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
             {
                 Name = Constants.GroupFilterName.Seasons,
                 FilterType = (GroupFilterType.Directory | GroupFilterType.Season),
-                Locked = true,
-                SortingExpressions = new List<SortingExpression> { new NameSortingSelector() }
+                Locked = true
             };
             Save(gf);
         }
@@ -205,7 +205,7 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
                     Name = tinfo.ToTitleCase(s),
                     Locked = true,
                     Expression = new HasTagExpression { Parameter = s },
-                    SortingExpressions = new List<SortingExpression> { new NameSortingSelector() }
+                    SortingExpression = new NameSortingSelector()
                 };
                 Save(yf);
             }
@@ -258,7 +258,7 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
                     Locked = true,
                     ApplyAtSeriesLevel = true,
                     Expression = new InYearExpression { Parameter = s },
-                    SortingExpressions = new List<SortingExpression> { new NameSortingSelector() }
+                    SortingExpression = new NameSortingSelector()
                 };
                 Save(yf);
             }
@@ -311,13 +311,139 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
                     FilterType = GroupFilterType.Season,
                     ApplyAtSeriesLevel = true,
                     Expression = new InSeasonExpression { Season = season.Season, Year = season.Year },
-                    SortingExpressions = new List<SortingExpression> { new NameSortingSelector() }
+                    SortingExpression = new NameSortingSelector()
                 };
                 Save(yf);
             }
         }
 
         CleanUpEmptyDirectoryFilters();
+    }
+    
+    public void CreateInitialFilters()
+    {
+        // group filters
+        // Do to DatabaseFixes, some filters may be made, namely directory filters
+        // All, Continue Watching, Years, Seasons, Tags... 6 seems to be enough to tell for now
+        // We can't just check the existence of anything specific, as the user can delete most of these
+        if (GetTopLevel().Count > 6) return;
+
+        // Favorites
+        var gf = new Filter
+        {
+            Name = Constants.GroupFilterName.Favorites,
+            FilterType = GroupFilterType.UserDefined,
+            Expression = new IsFavoriteExpression(),
+            SortingExpression = new NameSortingSelector()
+        };
+        Save(gf);
+
+        // Missing Episodes
+        gf = new Filter
+        {
+            Name = Constants.GroupFilterName.MissingEpisodes,
+            FilterType = GroupFilterType.UserDefined,
+            Expression = new HasMissingEpisodesCollectingExpression(),
+            SortingExpression = new MissingEpisodeCollectingCountSortingSelector{ Descending = true}
+        };
+        Save(gf);
+
+
+        // Newly Added Series
+        gf = new Filter
+        {
+            Name = Constants.GroupFilterName.NewlyAddedSeries,
+            FilterType = GroupFilterType.UserDefined,
+            Expression = new GreaterThanEqualExpression
+            {
+                Left = new DateAddFunction { Selector = new LastAddedDateSelector(), Parameter = TimeSpan.FromDays(10) },
+                Right = new TodayFunction()
+            },
+            SortingExpression = new LastAddedDateSortingSelector { Descending = true}
+        };
+        Save(gf);
+
+        // Newly Airing Series
+        gf = new Filter
+        {
+            Name = Constants.GroupFilterName.NewlyAiringSeries,
+            FilterType = GroupFilterType.UserDefined,
+            Expression = new GreaterThanEqualExpression
+            {
+                Left = new DateAddFunction { Selector = new LastAirDateSelector(), Parameter = TimeSpan.FromDays(30) },
+                Right = new TodayFunction()
+            },
+            SortingExpression = new LastAirDateSortingSelector { Descending = true}
+        };
+        Save(gf);
+
+        // Votes Needed
+        gf = new Filter
+        {
+            Name = Constants.GroupFilterName.MissingVotes,
+            ApplyAtSeriesLevel = true,
+            FilterType = GroupFilterType.UserDefined,
+            Expression = new AndExpression
+            {
+                // all watched and none missing
+                Left = new AndExpression
+                {
+                    // all watched, aka no episodes unwatched
+                    Left = new NotExpression
+                    {
+                        Left = new HasUnwatchedEpisodesExpression()
+                    },
+                    // no missing episodes
+                    Right = new NotExpression
+                    {
+                        Left = new HasMissingEpisodesExpression()
+                    }
+                },
+                // does not have votes
+                Right = new NotExpression
+                {
+                    Left = new HasUserVotesExpression()
+                }
+            },
+            SortingExpression = new NameSortingSelector()
+        };
+        Save(gf);
+
+        // Recently Watched
+        gf = new Filter
+        {
+            Name = Constants.GroupFilterName.RecentlyWatched,
+            FilterType = GroupFilterType.UserDefined,
+            Expression = new AndExpression
+            {
+                Left = new HasWatchedEpisodesExpression(),
+                Right = new GreaterThanEqualExpression
+                {
+                    Left = new DateAddFunction { Selector = new LastWatchedDateSelector(), Parameter = TimeSpan.FromDays(10) },
+                    Right = new TodayFunction()
+                },
+            },
+            SortingExpression = new LastWatchedDateSortingSelector
+            {
+                Descending = true
+            }
+        };
+        Save(gf);
+
+        // TvDB/MovieDB Link Missing
+        gf = new Filter
+        {
+            Name = Constants.GroupFilterName.MissingLinks,
+            ApplyAtSeriesLevel = true,
+            FilterType = GroupFilterType.UserDefined,
+            Expression = new OrExpression
+            {
+                Left = new MissingTvDBLinkExpression(),
+                Right = new MissingTMDbLinkExpression()
+            },
+            SortingExpression = new NameSortingSelector()
+        };
+        Save(gf);
     }
 
     public override void Save(Filter obj)
@@ -530,7 +656,7 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
                 Locked = true,
                 FilterType = GroupFilterType.Tag,
                 Expression = new HasTagExpression { Parameter = s },
-                SortingExpressions = new List<SortingExpression> { new NameSortingSelector() }
+                SortingExpression = new NameSortingSelector()
             };
 
             Lock(() =>

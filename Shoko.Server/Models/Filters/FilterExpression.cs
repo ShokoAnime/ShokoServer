@@ -1,13 +1,15 @@
+using System.Runtime.Serialization;
 using Shoko.Server.Models.Filters.Interfaces;
 
 namespace Shoko.Server.Models.Filters;
 
-public abstract class FilterExpression
+public class FilterExpression : IFilterExpression
 {
     public int FilterExpressionID { get; set; }
-    public string Type { get; set; }
-    public abstract bool TimeDependent { get; }
-    public abstract bool UserDependent { get; }
+    [IgnoreDataMember]
+    public virtual bool TimeDependent => false;
+    [IgnoreDataMember]
+    public virtual bool UserDependent => false;
 }
 
 public abstract class FilterExpression<T> : FilterExpression, IFilterExpression<T>
