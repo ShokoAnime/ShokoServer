@@ -8,6 +8,9 @@ namespace Shoko.Server.Models.Filters;
 public class Filterable : IFilterable
 {
     // The explicit implementations of IReadOnlySet make it easier to deserialize into
+    public string Name { get; init; }
+    public string SortingName { get; init; }
+    public int SeriesCount { get; init; }
     public int MissingEpisodes { get; init; }
     public int MissingEpisodesCollecting { get; init; }
     public HashSet<string> Tags { get; init; }

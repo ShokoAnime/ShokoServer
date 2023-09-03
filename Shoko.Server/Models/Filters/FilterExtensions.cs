@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models.Filters.Interfaces;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
@@ -15,9 +16,13 @@ public static class FilterExtensions
     public static IFilterable ToFilterable(this SVR_AnimeSeries series)
     {
         var anime = series.GetAnime();
+        var name = series.GetSeriesName();
         // TODO optimize this a bunch. Lots of duplicate calls. Contract should be severely trimmed
         var filterable = new Filterable
         {
+            Name = name,
+            SortingName = name.GetSortName(),
+            SeriesCount = 1,
             AirDate = anime?.AirDate,
             MissingEpisodes = series.Contract?.MissingEpisodeCount ?? 0,
             MissingEpisodesCollecting = series.Contract?.MissingEpisodeCountGroups ?? 0,
@@ -54,8 +59,12 @@ public static class FilterExtensions
         var user = series.GetUserRecord(userID);
         var vote = anime?.UserVote;
         var watchedDates = series.GetVideoLocals().Select(a => a.GetUserRecord(userID)?.WatchedDate).Where(a => a != null).OrderBy(a => a).ToList();
+        var name = series.GetSeriesName();
         var filterable = new UserDependentFilterable
         {
+            Name = name,
+            SortingName = name.GetSortName(),
+            SeriesCount = 1,
             AirDate = anime?.AirDate,
             MissingEpisodes = series.Contract?.MissingEpisodeCount ?? 0,
             MissingEpisodesCollecting = series.Contract?.MissingEpisodeCountGroups ?? 0,
@@ -134,6 +143,9 @@ public static class FilterExtensions
         // TODO optimize this a bunch. Lots of duplicate calls. Contract should be severely trimmed
         var filterable = new Filterable
         {
+            Name = group.GroupName,
+            SortingName = group.GroupName.GetSortName(),
+            SeriesCount = series.Count,
             AirDate = group.Contract.Stat_AirDate_Min,
             LastAirDate = group.Contract?.Stat_EndDate ?? group.GetAllSeries().SelectMany(a => a.GetAnimeEpisodes()).Select(a => 
                 a.AniDB_Episode?.GetAirDateAsDate()).Where(a => a != null).DefaultIfEmpty().Max(),
@@ -184,6 +196,9 @@ public static class FilterExtensions
         // TODO optimize this a bunch. Lots of duplicate calls. Contract should be severely trimmed
         var filterable = new UserDependentFilterable
         {
+            Name = group.GroupName,
+            SortingName = group.GroupName.GetSortName(),
+            SeriesCount = series.Count,
             AirDate = group.Contract.Stat_AirDate_Min,
             LastAirDate = group.Contract?.Stat_EndDate ?? group.GetAllSeries().SelectMany(a => a.GetAnimeEpisodes()).Select(a => 
                 a.AniDB_Episode?.GetAirDateAsDate()).Where(a => a != null).DefaultIfEmpty().Max(),

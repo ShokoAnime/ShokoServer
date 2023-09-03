@@ -1,8 +1,8 @@
 using Shoko.Server.Models.Filters.Interfaces;
 
-namespace Shoko.Server.Models.Filters.Selectors;
+namespace Shoko.Server.Models.Filters.SortingSelectors;
 
-public class SubtitleLanguageCountSelector : FilterExpression<int>
+public class SubtitleLanguageCountSortingSelector : SortingExpression<int>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;

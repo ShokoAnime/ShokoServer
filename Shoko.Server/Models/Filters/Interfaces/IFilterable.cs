@@ -7,6 +7,21 @@ namespace Shoko.Server.Models.Filters.Interfaces;
 public interface IFilterable
 {
     /// <summary>
+    /// Name
+    /// </summary>
+    string Name { get; }
+
+    /// <summary>
+    /// Sorting Name
+    /// </summary>
+    string SortingName { get; }
+    
+    /// <summary>
+    /// The number of series in a group
+    /// </summary>
+    int SeriesCount { get; }
+
+    /// <summary>
     /// Number of Missing Episodes
     /// </summary>
     int MissingEpisodes { get; }

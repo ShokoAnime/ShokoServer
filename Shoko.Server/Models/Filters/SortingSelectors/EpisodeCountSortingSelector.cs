@@ -1,8 +1,8 @@
 using Shoko.Server.Models.Filters.Interfaces;
 
-namespace Shoko.Server.Models.Filters.Selectors;
+namespace Shoko.Server.Models.Filters.SortingSelectors;
 
-public class EpisodeCountSelector : FilterExpression<int>
+public class EpisodeCountSortingSelector : SortingExpression<int>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;

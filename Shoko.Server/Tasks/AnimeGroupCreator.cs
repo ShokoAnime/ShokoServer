@@ -417,7 +417,10 @@ internal class AnimeGroupCreator
                 {
                     // Override the group name if the group is not manually named.
                     if (animeGroup.IsManuallyNamed == 0)
-                        animeGroup.GroupName = animeGroup.SortName = series.GetSeriesName();
+                    {
+                        animeGroup.GroupName = series.GetSeriesName();
+                        animeGroup.SortName = animeGroup.GroupName.GetSortName();
+                    }
                     // Override the group desc. if the group doesn't have an override.
                     if (animeGroup.OverrideDescription == 0)
                         animeGroup.Description = series.GetAnime().Description;
