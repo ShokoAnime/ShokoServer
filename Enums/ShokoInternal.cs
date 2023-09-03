@@ -215,6 +215,7 @@ namespace Shoko.Models.Enums
     [Flags]
     public enum GroupFilterType
     {
+        None = 0,
         UserDefined = 1,
         ContinueWatching = 2,
         All = 4,
