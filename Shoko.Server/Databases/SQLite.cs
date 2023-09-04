@@ -11,7 +11,6 @@ using Shoko.Commons.Properties;
 using Shoko.Server.Databases.SqliteFixes;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming

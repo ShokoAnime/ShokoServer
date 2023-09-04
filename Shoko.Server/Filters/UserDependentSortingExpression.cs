@@ -5,13 +5,15 @@ namespace Shoko.Server.Filters;
 
 public abstract class UserDependentSortingExpression : SortingExpression, IUserDependentSortingExpression
 {
-    public override object Evaluate(IFilterable f)
+    public override object Evaluate(Filterable f)
     {
-        if (UserDependent && f is not IUserDependentFilterable)
-            throw new ArgumentException("User Dependent Filter was given an IFilterable, rather than an IUserDependentFilterable");
+        if (UserDependent && f is not UserDependentFilterable)
+        {
+            throw new ArgumentException("User Dependent Filter was given an Filterable, rather than an UserDependentFilterable");
+        }
 
-        return Evaluate((IUserDependentFilterable)f);
+        return Evaluate((UserDependentFilterable)f);
     }
 
-    public abstract object Evaluate(IUserDependentFilterable f);
+    public abstract object Evaluate(UserDependentFilterable f);
 }

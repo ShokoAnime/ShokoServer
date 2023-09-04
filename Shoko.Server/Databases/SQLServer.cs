@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 111;
+    public override int RequiredVersion { get; } = 112;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -680,6 +680,10 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(110, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion nvarchar(128);"),
         new DatabaseCommand(111, 1, DatabaseFixes.FixAnimeSourceLinks),
         new DatabaseCommand(111, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
+        new DatabaseCommand(112, 1,
+            "CREATE TABLE Filter( FilterID INT IDENTITY(1,1), ParentFilterID int, Name nvarchar(max) NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression nvarchar(max), SortingExpression nvarchar(max) ); "),
+        new DatabaseCommand(112, 2,
+            "CREATE INDEX IX_Filter_ParentFilterID ON Filter(ParentFilterID); CREATE INDEX IX_Filter_Name ON Filter(Name); CREATE INDEX IX_Filter_FilterType ON Filter(FilterType); CREATE INDEX IX_Filter_LockedHidden ON Filter(Locked, Hidden);"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

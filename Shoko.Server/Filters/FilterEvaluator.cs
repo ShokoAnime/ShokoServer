@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Filters.SortingSelectors;
 using Shoko.Server.Models.Filters;
 using Shoko.Server.Repositories;
@@ -12,20 +11,12 @@ namespace Shoko.Server.Filters;
 
 public class FilterEvaluator
 {
-    private record FilterableWithID(int SeriesID, int GroupID, IFilterable Filterable);
-
-    private record Grouping(int GroupID, int[] SeriesIDs) : IGrouping<int, int>
-    {
-        public IEnumerator<int> GetEnumerator() => ((IEnumerable<int>)SeriesIDs).GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-        public int Key => GroupID;
-    }
-
-    private readonly AnimeSeriesRepository _series = RepoFactory.AnimeSeries;
     private readonly AnimeGroupRepository _groups = RepoFactory.AnimeGroup;
 
+    private readonly AnimeSeriesRepository _series = RepoFactory.AnimeSeries;
+
     /// <summary>
-    /// Evaluate the given filter, applying the necessary logic
+    ///     Evaluate the given filter, applying the necessary logic
     /// </summary>
     /// <param name="filter"></param>
     /// <param name="userID"></param>
@@ -35,13 +26,17 @@ public class FilterEvaluator
     {
         ArgumentNullException.ThrowIfNull(filter);
         var user = filter.Expression?.UserDependent ?? false;
-        if (user && userID == null) throw new ArgumentNullException(nameof(userID));
+        if (user && userID == null)
+        {
+            throw new ArgumentNullException(nameof(userID));
+        }
+
         var filterables = filter.ApplyAtSeriesLevel switch
         {
             true when user => _series.GetAll().Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
             true => _series.GetAll().Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable())),
             false when user => _groups.GetAll().Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
-            false => _groups.GetAll().Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable())),
+            false => _groups.GetAll().Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable()))
         };
 
         // Filtering
@@ -52,7 +47,9 @@ public class FilterEvaluator
 
         var result = ordered.GroupBy(a => a.GroupID, a => a.SeriesID);
         if (!filter.ApplyAtSeriesLevel)
+        {
             result = result.Select(a => new Grouping(a.Key, _series.GetByGroupID(a.Key).Select(ser => ser.AnimeSeriesID).ToArray()));
+        }
 
         return result;
     }
@@ -73,5 +70,22 @@ public class FilterEvaluator
         }
 
         return ordered;
+    }
+
+    private record FilterableWithID(int SeriesID, int GroupID, Filterable Filterable);
+
+    private record Grouping(int GroupID, int[] SeriesIDs) : IGrouping<int, int>
+    {
+        public IEnumerator<int> GetEnumerator()
+        {
+            return ((IEnumerable<int>)SeriesIDs).GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public int Key => GroupID;
     }
 }

@@ -11,7 +11,6 @@ using NHibernate;
 using NHibernate.Engine;
 using NLog;
 using Shoko.Server.Filters;
-using Shoko.Server.Models.Filters;
 
 namespace Shoko.Server.Databases.TypeConverters;
 

@@ -8,10 +8,10 @@ public interface IFilterExpression
 
 public interface IFilterExpression<out T>
 {
-    T Evaluate(IFilterable f);
+    T Evaluate(Filterable f);
 }
 
 public interface IUserDependentFilterExpression<out T>
 {
-    T Evaluate(IUserDependentFilterable f);
+    T Evaluate(UserDependentFilterable f);
 }

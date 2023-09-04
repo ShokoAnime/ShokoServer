@@ -356,7 +356,7 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
             FilterType = GroupFilterType.UserDefined,
             Expression = new GreaterThanEqualExpression
             {
-                Left = new DateAddFunction { Selector = new LastAddedDateSelector(), Parameter = TimeSpan.FromDays(10) },
+                Left = new DateAddFunction(new LastAddedDateSelector(), TimeSpan.FromDays(10)),
                 Right = new TodayFunction()
             },
             SortingExpression = new LastAddedDateSortingSelector { Descending = true}
@@ -368,12 +368,8 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
         {
             Name = Constants.GroupFilterName.NewlyAiringSeries,
             FilterType = GroupFilterType.UserDefined,
-            Expression = new GreaterThanEqualExpression
-            {
-                Left = new DateAddFunction { Selector = new LastAirDateSelector(), Parameter = TimeSpan.FromDays(30) },
-                Right = new TodayFunction()
-            },
-            SortingExpression = new LastAirDateSortingSelector { Descending = true}
+            Expression = new GreaterThanEqualExpression(new DateAddFunction(new LastAirDateSelector(), TimeSpan.FromDays(30)), new TodayFunction()),
+            SortingExpression = new LastAirDateSortingSelector { Descending = true }
         };
         Save(gf);
 
@@ -414,15 +410,8 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
         {
             Name = Constants.GroupFilterName.RecentlyWatched,
             FilterType = GroupFilterType.UserDefined,
-            Expression = new AndExpression
-            {
-                Left = new HasWatchedEpisodesExpression(),
-                Right = new GreaterThanEqualExpression
-                {
-                    Left = new DateAddFunction { Selector = new LastWatchedDateSelector(), Parameter = TimeSpan.FromDays(10) },
-                    Right = new TodayFunction()
-                },
-            },
+            Expression = new AndExpression(new HasWatchedEpisodesExpression(), new 
+                GreaterThanEqualExpression(new DateAddFunction(new LastWatchedDateSelector(), TimeSpan.FromDays(10)), new TodayFunction())),
             SortingExpression = new LastWatchedDateSortingSelector
             {
                 Descending = true
@@ -436,11 +425,7 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
             Name = Constants.GroupFilterName.MissingLinks,
             ApplyAtSeriesLevel = true,
             FilterType = GroupFilterType.UserDefined,
-            Expression = new OrExpression
-            {
-                Left = new MissingTvDBLinkExpression(),
-                Right = new MissingTMDbLinkExpression()
-            },
+            Expression = new OrExpression(new MissingTvDBLinkExpression(), new MissingTMDbLinkExpression()),
             SortingExpression = new NameSortingSelector()
         };
         Save(gf);
@@ -680,12 +665,7 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
 
     public List<Filter> GetTimeDependentFilters()
     {
-        return ReadLock(
-            () =>
-            {
-                return GetAll().Where(a => a.Expression.TimeDependent).ToList();
-            }
-        );
+        return ReadLock(() => GetAll().Where(a => a.Expression.TimeDependent).ToList());
     }
 
     public ChangeTracker<int> GetChangeTracker()

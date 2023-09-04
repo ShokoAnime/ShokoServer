@@ -20,7 +20,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 118;
+    public override int RequiredVersion { get; } = 119;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -737,6 +737,10 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(117, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion nvarchar(128);"),
         new(118, 1, DatabaseFixes.FixAnimeSourceLinks),
         new(118, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
+        new DatabaseCommand(119, 1,
+            "CREATE TABLE Filter( FilterID INT NOT NULL AUTO_INCREMENT, ParentFilterID int, Name text NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression longtext, SortingExpression longtext, PRIMARY KEY (`FilterID`) ); "),
+        new DatabaseCommand(119, 2,
+            "ALTER TABLE Filter ADD INDEX IX_Filter_ParentFilterID (ParentFilterID); ALTER TABLE Filter ADD INDEX IX_Filter_Name (Name); ALTER TABLE Filter ADD INDEX IX_Filter_FilterType (FilterType); ALTER TABLE Filter ADD INDEX IX_Filter_LockedHidden (Locked, Hidden);"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
