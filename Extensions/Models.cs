@@ -176,6 +176,15 @@ namespace Shoko.Commons.Extensions
             }
         }
 
+        public static SortedSet<(int Year, AnimeSeason Season)> GetSeasons(this CL_AnimeGroup_User group)
+        {
+            return new SortedSet<(int Year, AnimeSeason Season)>(group.Stat_AllSeasons.Select(a =>
+            {
+                var parts = a.Split(' ');
+                return (int.Parse(parts[1]), (AnimeSeason)Enum.Parse(typeof(AnimeSeason), parts[0]));
+            }));
+        }
+
         public static int GetAirDateAsSeconds(this AniDB_Anime anime) => AniDB.GetAniDBDateAsSeconds(anime.AirDate);
 
         public static string GetAirDateFormatted(this AniDB_Anime anime) => AniDB.GetAniDBDate(anime.GetAirDateAsSeconds());
