@@ -13,6 +13,7 @@ using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API;
 using Shoko.Server.Commands;
+using Shoko.Server.Filters;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
@@ -53,6 +54,7 @@ public class Startup
             services.AddSingleton<TraktTVHelper>();
             services.AddSingleton<TvDBApiHelper>();
             services.AddSingleton<MovieDBHelper>();
+            services.AddSingleton<FilterEvaluator>();
             services.AddScoped<CommonImplementation>();
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
             services.AddSingleton<ICommandRequestFactory, CommandRequestFactory>();

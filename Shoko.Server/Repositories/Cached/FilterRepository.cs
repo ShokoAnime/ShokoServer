@@ -9,15 +9,15 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Server.Extensions;
+using Shoko.Server.Filters.Functions;
+using Shoko.Server.Filters.Info;
+using Shoko.Server.Filters.Logic;
+using Shoko.Server.Filters.Logic.DateTimes;
+using Shoko.Server.Filters.Selectors;
+using Shoko.Server.Filters.SortingSelectors;
+using Shoko.Server.Filters.User;
 using Shoko.Server.Models;
 using Shoko.Server.Models.Filters;
-using Shoko.Server.Models.Filters.Functions;
-using Shoko.Server.Models.Filters.Info;
-using Shoko.Server.Models.Filters.Logic;
-using Shoko.Server.Models.Filters.Logic.DateTimes;
-using Shoko.Server.Models.Filters.Selectors;
-using Shoko.Server.Models.Filters.SortingSelectors;
-using Shoko.Server.Models.Filters.User;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Constants = Shoko.Server.Server.Constants;
@@ -153,8 +153,8 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
         CreateOrVerifyDirectoryFilters(true);
     }
 
-    public void CreateOrVerifyDirectoryFilters(bool frominit = false, HashSet<string> tags = null,
-        HashSet<int> airdate = null, SortedSet<(int Year, AnimeSeason Season)> seasons = null)
+    public void CreateOrVerifyDirectoryFilters(bool frominit = false, ISet<string> tags = null,
+        ISet<int> airdate = null, ISet<(int Year, AnimeSeason Season)> seasons = null)
     {
         const string t = "GroupFilter";
 
@@ -267,7 +267,7 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
         var seasonsdirectory = lockedGFs.FirstOrDefault(a => a.FilterType == (GroupFilterType.Directory | GroupFilterType.Season));
         if (seasonsdirectory != null)
         {
-            SortedSet<(int Year, AnimeSeason Season)> allseasons;
+            ISet<(int Year, AnimeSeason Season)> allseasons;
             if (seasons == null)
             {
                 var grps = RepoFactory.AnimeSeries.GetAll().ToList();

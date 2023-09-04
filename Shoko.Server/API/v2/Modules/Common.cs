@@ -15,7 +15,6 @@ using NLog;
 using Quartz;
 using QuartzJobFactory;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.common;
@@ -29,6 +28,7 @@ using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+using APIFilters = Shoko.Server.API.v2.Models.common.Filters;
 
 namespace Shoko.Server.API.v2.Modules;
 
@@ -2727,7 +2727,7 @@ public class Common : BaseController
     internal object GetAllFilters(int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic,
         TagFilter.Filter tagfilter)
     {
-        var filters = new Filters
+        var filters = new APIFilters
         {
             id = 0, name = "Filters", viewed = 0, url = APIV2Helper.ConstructFilterUrl(HttpContext)
         };
@@ -2736,11 +2736,11 @@ public class Common : BaseController
                         ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
                          a.IsDirectory))
             .ToList();
-        var _filters = new List<Filters>();
+        var _filters = new List<APIFilters>();
 
         foreach (var gf in allGfs)
         {
-            Filters filter;
+            APIFilters filter;
             if (!gf.IsDirectory)
             {
                 filter = Filter.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
@@ -2748,7 +2748,7 @@ public class Common : BaseController
             }
             else
             {
-                filter = Filters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
+                filter = APIFilters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
                     tagfilter);
             }
 
@@ -2796,7 +2796,7 @@ public class Common : BaseController
         if (gf.IsDirectory)
         {
             // if it's a directory, it IS a filter-inception;
-            var fgs = Filters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
+            var fgs = APIFilters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
                 tagfilter);
             return fgs;
         }

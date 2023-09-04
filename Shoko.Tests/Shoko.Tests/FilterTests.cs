@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using Shoko.Server.Filters;
+using Shoko.Server.Filters.Functions;
+using Shoko.Server.Filters.Info;
+using Shoko.Server.Filters.Logic;
+using Shoko.Server.Filters.Logic.DateTimes;
+using Shoko.Server.Filters.Selectors;
+using Shoko.Server.Filters.User;
 using Shoko.Server.Models.Filters;
-using Shoko.Server.Models.Filters.Functions;
-using Shoko.Server.Models.Filters.Info;
-using Shoko.Server.Models.Filters.Logic;
-using Shoko.Server.Models.Filters.Logic.DateTimes;
-using Shoko.Server.Models.Filters.Selectors;
-using Shoko.Server.Models.Filters.User;
 using Xunit;
 
 namespace Shoko.Tests;

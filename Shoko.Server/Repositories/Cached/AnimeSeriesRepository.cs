@@ -285,6 +285,8 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             $"Saving Series {animeID} | Updating Group Filters for Years ({string.Join(",", (IEnumerable<int>)allyears?.OrderBy(a => a) ?? Array.Empty<int>())}) and Seasons ({string.Join(",", (IEnumerable<string>)seasons ?? Array.Empty<string>())})");
         RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false,
             obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears, seasons);
+        RepoFactory.Filter.CreateOrVerifyDirectoryFilters(false,
+            obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears, obj.Contract?.AniDBAnime?.AniDBAnime?.GetSeasons().ToHashSet());
 
         // Update other existing filters
         obj.UpdateGroupFilters(types);

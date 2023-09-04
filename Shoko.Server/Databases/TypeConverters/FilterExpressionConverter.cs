@@ -9,6 +9,8 @@ using System.Data.Common;
 using Newtonsoft.Json;
 using NHibernate;
 using NHibernate.Engine;
+using NLog;
+using Shoko.Server.Filters;
 using Shoko.Server.Models.Filters;
 
 namespace Shoko.Server.Databases.TypeConverters;
@@ -32,7 +34,12 @@ public class FilterExpressionConverter : TypeConverter, IUserType
         return JsonConvert.DeserializeObject(s, new JsonSerializerSettings
         {
             MissingMemberHandling = MissingMemberHandling.Ignore,
-            TypeNameHandling = TypeNameHandling.Objects
+            TypeNameHandling = TypeNameHandling.Objects,
+            Error = (sender, args) =>
+            {
+                LogManager.GetCurrentClassLogger().Error(args.ErrorContext.Error);
+                args.ErrorContext.Handled = true;
+            }
             //Converters = new List<JsonConverter> { new FilterExpressionJsonConverter() },
         });
     }
