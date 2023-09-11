@@ -17,7 +17,6 @@ using Shoko.Server.Filters.Selectors;
 using Shoko.Server.Filters.SortingSelectors;
 using Shoko.Server.Filters.User;
 using Shoko.Server.Models;
-using Shoko.Server.Models.Filters;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Constants = Shoko.Server.Server.Constants;
@@ -217,13 +216,13 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
             HashSet<int> allyears;
             if (airdate == null || airdate.Count == 0)
             {
-                var grps = RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
+                var grps = RepoFactory.AnimeSeries.GetAll().Select(a => a.GetAnime());
 
                 allyears = new HashSet<int>();
-                foreach (var ser in grps)
+                foreach (var anime in grps)
                 {
-                    var endyear = ser.AniDBAnime.AniDBAnime.EndYear;
-                    var startyear = ser.AniDBAnime.AniDBAnime.BeginYear;
+                    var endyear = anime.EndYear;
+                    var startyear = anime.BeginYear;
                     if (endyear <= 0) endyear = DateTime.Today.Year;
                     if (endyear < startyear || endyear - startyear + 1 >= int.MaxValue) endyear = startyear;
                     if (startyear != 0) allyears.UnionWith(Enumerable.Range(startyear, endyear - startyear + 1).Select(a => a));
@@ -452,35 +451,6 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
         }
     }
 
-    /// <summary>
-    /// Updates a batch of <see cref="Filter"/>s.
-    /// </summary>
-    /// <remarks>
-    /// This method ONLY updates existing <see cref="Filter"/>s. It will not insert any that don't already exist.
-    /// </remarks>
-    /// <param name="session">The NHibernate session.</param>
-    /// <param name="groupFilters">The batch of <see cref="Filter"/>s to update.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupFilters"/> is <c>null</c>.</exception>
-    public void BatchUpdate(ISessionWrapper session, IEnumerable<Filter> groupFilters)
-    {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
-
-        if (groupFilters == null)
-        {
-            throw new ArgumentNullException(nameof(groupFilters));
-        }
-
-        foreach (var groupFilter in groupFilters)
-        {
-            session.Update(groupFilter);
-            UpdateCache(groupFilter);
-            Changes.AddOrUpdate(groupFilter.FilterID);
-        }
-    }
-
     public List<Filter> GetByParentID(int parentid)
     {
         return ReadLock(() => Parents.GetMultiple(parentid));
@@ -489,173 +459,6 @@ public class FilterRepository : BaseCachedRepository<Filter, int>
     public List<Filter> GetTopLevel()
     {
         return GetByParentID(0);
-    }
-
-    /// <summary>
-    /// Calculates what groups should belong to tag related group filters.
-    /// </summary>
-    /// <param name="session">The NHibernate session.</param>
-    /// <returns>A <see cref="ILookup{TKey,TElement}"/> that maps group filter ID to anime group IDs.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-    public void CalculateAnimeSeriesPerTagGroupFilter(ISessionWrapper session)
-    {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
-
-        var tagsdirec = GetAll(session).FirstOrDefault(a => a.FilterType == (GroupFilterType.Directory | GroupFilterType.Tag));
-
-        DropAllTagFilters(session);
-
-        // user -> tag -> series
-        var somethingDictionary =
-            new ConcurrentDictionary<int, ConcurrentDictionary<string, HashSet<int>>>();
-        var users = new List<SVR_JMMUser> { null };
-        users.AddRange(RepoFactory.JMMUser.GetAll());
-        var tags = RepoFactory.AniDB_Tag.GetAll().ToLookup(a => a?.TagName?.ToLowerInvariant());
-
-        Parallel.ForEach(tags, tag =>
-        {
-            foreach (var series in tag.ToList().SelectMany(a => RepoFactory.AniDB_Anime_Tag.GetAnimeWithTag(a.TagID)))
-            {
-                var seriesTags = series.GetAnime()?.GetAllTags();
-                foreach (var user in users)
-                {
-                    if (user?.GetHideCategories().FindInEnumerable(seriesTags) ?? false) continue;
-
-                    if (somethingDictionary.ContainsKey(user?.JMMUserID ?? 0))
-                    {
-                        if (somethingDictionary[user?.JMMUserID ?? 0].ContainsKey(tag.Key))
-                        {
-                            somethingDictionary[user?.JMMUserID ?? 0][tag.Key]
-                                .Add(series.AnimeSeriesID);
-                        }
-                        else
-                        {
-                            somethingDictionary[user?.JMMUserID ?? 0].AddOrUpdate(tag.Key,
-                                new HashSet<int> { series.AnimeSeriesID }, (oldTag, oldIDs) =>
-                                {
-                                    lock (oldIDs)
-                                    {
-                                        oldIDs.Add(series.AnimeSeriesID);
-                                    }
-
-                                    return oldIDs;
-                                });
-                        }
-                    }
-                    else
-                    {
-                        somethingDictionary.AddOrUpdate(user?.JMMUserID ?? 0, id =>
-                            {
-                                var newdict = new ConcurrentDictionary<string, HashSet<int>>();
-                                newdict.AddOrUpdate(tag.Key, new HashSet<int> { series.AnimeSeriesID },
-                                    (oldTag, oldIDs) =>
-                                    {
-                                        lock (oldIDs)
-                                        {
-                                            oldIDs.Add(series.AnimeSeriesID);
-                                        }
-
-                                        return oldIDs;
-                                    });
-                                return newdict;
-                            },
-                            (i, value) =>
-                            {
-                                if (value.ContainsKey(tag.Key))
-                                {
-                                    value[tag.Key]
-                                        .Add(series.AnimeSeriesID);
-                                }
-                                else
-                                {
-                                    value.AddOrUpdate(tag.Key,
-                                        new HashSet<int> { series.AnimeSeriesID }, (oldTag, oldIDs) =>
-                                        {
-                                            lock (oldIDs)
-                                            {
-                                                oldIDs.Add(series.AnimeSeriesID);
-                                            }
-
-                                            return oldIDs;
-                                        });
-                                }
-
-                                return value;
-                            });
-                    }
-                }
-            }
-        });
-
-        var lookup = somethingDictionary.Keys.Where(a => somethingDictionary[a] != null).ToDictionary(key => key, key =>
-            somethingDictionary[key].Where(a => a.Value != null)
-                .SelectMany(p => p.Value.Select(a => Tuple.Create(p.Key, a)))
-                .ToLookup(p => p.Item1, p => p.Item2));
-
-        CreateAllTagFilters(session, tagsdirec, lookup);
-    }
-
-    private void DropAllTagFilters(ISessionWrapper session)
-    {
-        ClearCache();
-        Lock(() =>
-        {
-            using var trans = session.BeginTransaction();
-            session.CreateQuery($"DELETE FROM {nameof(Filter)} WHERE FilterType = {(int)GroupFilterType.Tag};")
-                .ExecuteUpdate();
-            trans.Commit();
-        });
-    }
-
-    private void CreateAllTagFilters(ISessionWrapper session, Filter tagsdirec,
-        Dictionary<int, ILookup<string, int>> lookup)
-    {
-        if (tagsdirec == null)
-        {
-            return;
-        }
-
-        var alltags = new HashSet<string>(
-            RepoFactory.AniDB_Tag.GetAllForLocalSeries().Select(a => a.TagName.Replace('`', '\'')),
-            StringComparer.InvariantCultureIgnoreCase);
-        var toAdd = new List<Filter>(alltags.Count);
-
-        var users = RepoFactory.JMMUser.GetAll().ToList();
-
-        //AniDB Tags are in english so we use en-us culture
-        var tinfo = new CultureInfo("en-US", false).TextInfo;
-        foreach (var s in alltags)
-        {
-            // this is creating new tag filters, so locking isn't completely necessary.
-            // Ideally, we would create a blank filter to ensure an ID exists, but then it would be empty,
-            // and would have data inconsistencies, anyway
-            var yf = new Filter
-            {
-                ParentFilterID = tagsdirec.FilterID,
-                Hidden = false,
-                ApplyAtSeriesLevel = true,
-                Name = tinfo.ToTitleCase(s),
-                Locked = true,
-                FilterType = GroupFilterType.Tag,
-                Expression = new HasTagExpression { Parameter = s },
-                SortingExpression = new NameSortingSelector()
-            };
-
-            Lock(() =>
-            {
-                using var trans = session.BeginTransaction();
-                // get an ID
-                session.Insert(yf);
-                trans.Commit();
-            });
-
-            toAdd.Add(yf);
-        }
-
-        Populate(session, false);
     }
 
     public List<Filter> GetLockedGroupFilters()

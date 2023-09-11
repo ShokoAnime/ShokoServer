@@ -1,16 +1,19 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Filters;
+using Shoko.Server.Filters.Logic;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using FilterPreset = Shoko.Server.Models.Filter;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -73,27 +76,25 @@ public class Filter : BaseModel
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public List<SortingCriteria>? Sorting { get; set; }
 
-    public Filter(HttpContext ctx, SVR_GroupFilter groupFilter, bool fullModel = false)
+    public Filter(HttpContext ctx, FilterPreset groupFilter, bool fullModel = false)
     {
         var user = ctx.GetUser();
 
-        IDs = new FilterIDs { ID = groupFilter.GroupFilterID, ParentFilter = groupFilter.ParentGroupFilterID };
-        Name = groupFilter.GroupFilterName;
-        IsLocked = groupFilter.IsLocked;
-        IsDirectory = groupFilter.IsDirectory;
-        IsInverted = groupFilter.BaseCondition == (int)GroupFilterBaseCondition.Exclude;
-        IsHidden = groupFilter.IsHidden;
-        ApplyAtSeriesLevel = groupFilter.ApplyToSeries == 1;
+        IDs = new FilterIDs { ID = groupFilter.FilterID, ParentFilter = groupFilter.ParentFilterID };
+        Name = groupFilter.Name;
+        IsLocked = groupFilter.Locked;
+        IsDirectory = groupFilter.IsDirectory();
+        IsInverted = groupFilter.Expression is NotExpression;
+        IsHidden = groupFilter.Hidden;
+        ApplyAtSeriesLevel = groupFilter.ApplyAtSeriesLevel;
         if (fullModel)
         {
             Conditions = groupFilter.Conditions.Select(condition => new FilterCondition(condition)).ToList();
             Sorting = groupFilter.SortCriteriaList.Select(sort => new SortingCriteria(sort)).ToList();
         }
-        Size = IsDirectory ? (
-            RepoFactory.GroupFilter.GetByParentID(groupFilter.GroupFilterID).Count
-        ) : (
-            groupFilter.GroupsIds.TryGetValue(user.JMMUserID, out var groupSet) ? groupSet.Count : 0
-        );
+
+        var evaluator = ctx.RequestServices.GetRequiredService<FilterEvaluator>();
+        Size = IsDirectory ? RepoFactory.Filter.GetByParentID(groupFilter.FilterID).Count : evaluator.EvaluateFilter(groupFilter, user?.JMMUserID).Count();
     }
 
     /// <summary>
@@ -233,14 +234,13 @@ public class Filter : BaseModel
 
             public CreateOrUpdateFilterBody() { }
 
-            public CreateOrUpdateFilterBody(SVR_GroupFilter groupFilter)
+            public CreateOrUpdateFilterBody(FilterPreset groupFilter)
             {
-                Name = groupFilter.GroupFilterName;
-                ParentID = groupFilter.ParentGroupFilterID;
-                IsDirectory = groupFilter.IsDirectory;
-                IsInverted = groupFilter.BaseCondition == (int)GroupFilterBaseCondition.Exclude;
-                IsHidden = groupFilter.IsHidden;
-                ApplyAtSeriesLevel = groupFilter.ApplyToSeries == 1;
+                Name = groupFilter.Name;
+                ParentID = groupFilter.ParentFilterID;
+                IsDirectory = groupFilter.IsDirectory();
+                IsHidden = groupFilter.Hidden;
+                ApplyAtSeriesLevel = groupFilter.ApplyAtSeriesLevel;
                 if (!IsDirectory)
                 {
                     Conditions = groupFilter.Conditions.Select(condition => new FilterCondition(condition)).ToList();
@@ -248,9 +248,9 @@ public class Filter : BaseModel
                 }
             }
 
-            public Filter? MergeWithExisting(HttpContext ctx, SVR_GroupFilter groupFilter, ModelStateDictionary modelState, bool skipSave = false)
+            public Filter? MergeWithExisting(HttpContext ctx, FilterPreset groupFilter, ModelStateDictionary modelState, bool skipSave = false)
             {
-                if (groupFilter.IsLocked)
+                if (groupFilter.Locked)
                     modelState.AddModelError("IsLocked", "Filter is locked.");
 
                 // Defer to `null` if the id is `0`.
@@ -259,17 +259,17 @@ public class Filter : BaseModel
 
                 if (ParentID.HasValue)
                 {
-                    var parentFilter = RepoFactory.GroupFilter.GetByID(ParentID.Value);
+                    var parentFilter = RepoFactory.Filter.GetByID(ParentID.Value);
                     if (parentFilter == null)
                     {
                         modelState.AddModelError(nameof(ParentID), $"Unable to find parent filter with id {ParentID.Value}");
                     }
                     else
                     {
-                        if (parentFilter.IsLocked)
+                        if (parentFilter.Locked)
                             modelState.AddModelError(nameof(ParentID), $"Unable to add a sub-filter to a filter that is locked.");
 
-                        if (!parentFilter.IsDirectory)
+                        if (!parentFilter.IsDirectory())
                             modelState.AddModelError(nameof(ParentID), $"Unable to add a sub-filter to a filter that is not a directorty filter.");
                     }
                 }
@@ -287,7 +287,7 @@ public class Filter : BaseModel
                 }
                 else
                 {
-                    var subFilters = groupFilter.GroupFilterID != 0 ? RepoFactory.GroupFilter.GetByParentID(groupFilter.GroupFilterID) : new();
+                    var subFilters = groupFilter.FilterID != 0 ? RepoFactory.Filter.GetByParentID(groupFilter.FilterID) : new();
                     if (subFilters.Count > 0)
                         modelState.AddModelError(nameof(IsDirectory), "Cannot turn a directory filter with sub-filters into a normal filter without first removing the sub-filters");
                 }
@@ -296,15 +296,13 @@ public class Filter : BaseModel
                 if (!modelState.IsValid)
                     return null;
 
-                groupFilter.ParentGroupFilterID = ParentID;
-                groupFilter.FilterType = (int)(IsDirectory ? GroupFilterType.UserDefined | GroupFilterType.Directory : GroupFilterType.UserDefined);
-                groupFilter.GroupFilterName = Name ?? string.Empty;
-                groupFilter.IsHidden = IsHidden;
-                groupFilter.ApplyToSeries = ApplyAtSeriesLevel ? 1 : 0;
+                groupFilter.ParentFilterID = ParentID;
+                groupFilter.FilterType = IsDirectory ? GroupFilterType.UserDefined | GroupFilterType.Directory : GroupFilterType.UserDefined;
+                groupFilter.Name = Name;
+                groupFilter.Hidden = IsHidden;
+                groupFilter.ApplyAtSeriesLevel = ApplyAtSeriesLevel;
                 if (IsDirectory)
                 {
-                    groupFilter.BaseCondition = (int)GroupFilterBaseCondition.Include;
-                    groupFilter.Conditions = new();
                     groupFilter.SortCriteriaList = new()
                     {
                         new GroupFilterSortingCriteria()
@@ -316,7 +314,6 @@ public class Filter : BaseModel
                 }
                 else
                 {
-                    groupFilter.BaseCondition = (int)(IsInverted ? GroupFilterBaseCondition.Exclude : GroupFilterBaseCondition.Include);
                     if (Conditions != null)
                     {
                         groupFilter.Conditions = Conditions
@@ -340,12 +337,9 @@ public class Filter : BaseModel
                     }
                 }
 
-                // Re-calculate the groups and series that belong to the group filter.
-                groupFilter.CalculateGroupsAndSeries();
-
                 // Skip saving if we're just going to preview a group filter.
                 if (!skipSave)
-                    RepoFactory.GroupFilter.Save(groupFilter);
+                    RepoFactory.Filter.Save(groupFilter);
 
                 return new Filter(ctx, groupFilter, true);
             }

@@ -1,7 +1,7 @@
 ﻿using FluentNHibernate.Mapping;
 using Shoko.Models.Enums;
 using Shoko.Server.Databases.TypeConverters;
-using Shoko.Server.Models.Filters;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings;
 

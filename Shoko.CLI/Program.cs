@@ -43,7 +43,7 @@ public static class Program
             startup.Start();
             AddEventHandlers();
             // TODO Remove this after filter merge
-            Utils.ShokoServer.DBSetupCompleted += OnShokoServerOnDBSetupCompleted;
+            //Utils.ShokoServer.DBSetupCompleted += OnShokoServerOnDBSetupCompleted;
             startup.WaitForShutdown();
         }
         catch (Exception e)
@@ -54,22 +54,30 @@ public static class Program
     
     private static void OnShokoServerOnDBSetupCompleted(object? o, EventArgs eventArgs)
     {
-        var comedyFilter = RepoFactory.Filter.GetAll().FirstOrDefault(a => a.Name.Equals("comedy", StringComparison.InvariantCultureIgnoreCase));
-        if (comedyFilter == null) return;
+        
         var filterEvaluator = Utils.ServiceContainer.GetRequiredService<FilterEvaluator>();
         var s = Stopwatch.StartNew();
-        var result = filterEvaluator.EvaluateFilter(comedyFilter, null);
+        RepoFactory.Filter.CreateOrVerifyDirectoryFilters();
         s.Stop();
-        _logger.LogInformation("Filtering took {Time}ms", s.ElapsedMilliseconds);
-        s.Restart();
-        var groups = result.SelectMany(a => a.Select(b => new
-            {
-                Group = RepoFactory.AnimeGroup.GetByID(a.Key), Series = RepoFactory.AnimeSeries.GetByID(b)
-            }))
-            .GroupBy(a => a.Group, a => a.Series)
-            .ToDictionary(a => a.Key, a => a.ToList());
-        s.Stop();
-        _logger.LogInformation("Projecting results took {Time}ms", s.ElapsedMilliseconds);
+        _logger.LogInformation("Generating Directories took {Time}ms", s.ElapsedMilliseconds);
+        var comedyFilter = RepoFactory.Filter.GetAll().FirstOrDefault(a => a.Name.Equals("comedy", StringComparison.InvariantCultureIgnoreCase));
+        if (comedyFilter != null)
+        {
+            s.Restart();
+            var result = filterEvaluator.EvaluateFilter(comedyFilter, null);
+            s.Stop();
+            _logger.LogInformation("Filtering took {Time}ms", s.ElapsedMilliseconds);
+            s.Restart();
+            var groups = result.SelectMany(a => a.Select(b => new
+                {
+                    Group = RepoFactory.AnimeGroup.GetByID(a.Key), Series = RepoFactory.AnimeSeries.GetByID(b)
+                }))
+                .GroupBy(a => a.Group, a => a.Series)
+                .ToDictionary(a => a.Key, a => a.ToList());
+            s.Stop();
+            _logger.LogInformation("Projecting results took {Time}ms", s.ElapsedMilliseconds);
+        }
+
         _logger.LogInformation("Finished");
     }
 

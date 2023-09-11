@@ -14,7 +14,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Tasks;
@@ -30,6 +29,7 @@ internal class AnimeGroupCreator
     private readonly AnimeGroupRepository _animeGroupRepo = RepoFactory.AnimeGroup;
     private readonly AnimeGroup_UserRepository _animeGroupUserRepo = RepoFactory.AnimeGroup_User;
     private readonly GroupFilterRepository _groupFilterRepo = RepoFactory.GroupFilter;
+    private readonly FilterRepository _filterRepo = RepoFactory.Filter;
     private readonly JMMUserRepository _userRepo = RepoFactory.JMMUser;
     private readonly bool _autoGroupSeries;
 
@@ -200,35 +200,13 @@ internal class AnimeGroupCreator
     /// <remarks>
     /// Assumes that all caches are up to date.
     /// </remarks>
-    private void UpdateGroupFilters(ISessionWrapper session)
+    private void UpdateGroupFilters()
     {
         _log.Info("Updating Group Filters");
         _log.Info("Calculating Tag Filters");
         ServerState.Instance.DatabaseBlocked =
             new ServerState.DatabaseBlockedInfo { Blocked = true, Status = "Calculating Tag Filters" };
-        _groupFilterRepo.CalculateAnimeSeriesPerTagGroupFilter(session);
-        _log.Info("Calculating All Other Filters");
-        ServerState.Instance.DatabaseBlocked =
-            new ServerState.DatabaseBlockedInfo { Blocked = true, Status = "Calculating Non-Tag Filters" };
-        IEnumerable<SVR_GroupFilter> grpFilters = _groupFilterRepo.GetAll(session).Where(a =>
-            a.FilterType != (int)GroupFilterType.Tag && !a.IsDirectory).ToList();
-
-        // The main reason for doing this in parallel is because UpdateEntityReferenceStrings does JSON encoding
-        // and is enough work that it can benefit from running in parallel
-        Parallel.ForEach(
-            grpFilters, filter =>
-            {
-                filter.SeriesIds.Clear();
-                filter.CalculateGroupsAndSeries();
-                filter.UpdateEntityReferenceStrings();
-            });
-
-        BaseRepository.Lock(() =>
-        {
-            using var trans = session.BeginTransaction();
-            _groupFilterRepo.BatchUpdate(session, grpFilters);
-            trans.Commit();
-        });
+        _filterRepo.CreateOrVerifyDirectoryFilters();
 
         _log.Info("Group Filters updated");
     }
@@ -510,7 +488,7 @@ internal class AnimeGroupCreator
             _animeGroupUserRepo.Populate(session, false);
             _groupFilterRepo.Populate(session, false);
 
-            UpdateGroupFilters(session);
+            UpdateGroupFilters();
 
             _log.Info("Successfuly completed re-creating all groups");
         }
@@ -584,7 +562,7 @@ internal class AnimeGroupCreator
 
             // update filters
             _log.Info($"Recalculating Filters for Group: {group.GroupName} ({group.AnimeGroupID})");
-            UpdateGroupFilters(session);
+            UpdateGroupFilters();
 
             _log.Info($"Done Recalculating Stats and Contracts for Group: {group.GroupName} ({group.AnimeGroupID})");
         }

@@ -214,10 +214,11 @@ public class WebUI
                 return null;
 
             var seasonName = $"{season} {year}";
-            var seasonsFilterID = RepoFactory.GroupFilter.GetTopLevel()
-                .FirstOrDefault(f => f.GroupFilterName == "Seasons").GroupFilterID;
-            var firstAirSeason = RepoFactory.GroupFilter.GetByParentID(seasonsFilterID)
-                .FirstOrDefault(f => f.GroupFilterName == seasonName);
+            var seasonsFilterID = RepoFactory.Filter.GetTopLevel()
+                .FirstOrDefault(f => f.FilterType == (GroupFilterType.Directory | GroupFilterType.Season))?.FilterID;
+            if (seasonsFilterID == null) return null;
+            var firstAirSeason = RepoFactory.Filter.GetByParentID(seasonsFilterID.Value)
+                .FirstOrDefault(f => f.Name == seasonName);
             if (firstAirSeason == null)
                 return null;
 

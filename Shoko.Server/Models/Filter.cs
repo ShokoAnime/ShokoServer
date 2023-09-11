@@ -1,8 +1,7 @@
-using System;
 using Shoko.Models.Enums;
 using Shoko.Server.Filters;
 
-namespace Shoko.Server.Models.Filters;
+namespace Shoko.Server.Models;
 
 public class Filter
 {
