@@ -210,9 +210,7 @@ public class ActionController : BaseController
         Task.Factory.StartNew(() =>
         {
             var list = allvids.Keys.Select(vid => new { Video = vid, AniDB = allvids[vid] })
-                .Where(_tuple => _tuple.AniDB != null)
-                .Where(_tuple => !_tuple.AniDB.IsDeprecated)
-                .Where(_tuple => _tuple.Video.Media?.MenuStreams.Any() != _tuple.AniDB.IsChaptered)
+                .Where(_tuple => _tuple.AniDB is { IsDeprecated: false } && _tuple.Video.Media?.MenuStreams.Any() != _tuple.AniDB.IsChaptered)
                 .Select(_tuple => new { Path = _tuple.Video.GetBestVideoLocalPlace(true)?.FullServerPath, Video = _tuple.Video })
                 .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToList();
 
