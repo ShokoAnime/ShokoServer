@@ -2,24 +2,24 @@ using System;
 
 namespace Shoko.Server.Filters.Info;
 
-public class InYearExpression : FilterExpression<bool>
+public class HasNameExpression : FilterExpression<bool>
 {
-    public InYearExpression(int parameter)
+    public HasNameExpression(string parameter)
     {
         Parameter = parameter;
     }
-    public InYearExpression() { }
+    public HasNameExpression() { }
 
-    public int Parameter { get; set; }
-    public override bool TimeDependent => true;
+    public string Parameter { get; set; }
+    public override bool TimeDependent => false;
     public override bool UserDependent => false;
 
     public override bool Evaluate(Filterable filterable)
     {
-        return filterable.Years.Contains(Parameter);
+        return filterable.Name.Equals(Parameter, StringComparison.InvariantCultureIgnoreCase);
     }
 
-    protected bool Equals(InYearExpression other)
+    protected bool Equals(HasAnimeTypeExpression other)
     {
         return base.Equals(other) && Parameter == other.Parameter;
     }
@@ -41,7 +41,7 @@ public class InYearExpression : FilterExpression<bool>
             return false;
         }
 
-        return Equals((InYearExpression)obj);
+        return Equals((HasAnimeTypeExpression)obj);
     }
 
     public override int GetHashCode()
@@ -49,12 +49,12 @@ public class InYearExpression : FilterExpression<bool>
         return HashCode.Combine(base.GetHashCode(), Parameter);
     }
 
-    public static bool operator ==(InYearExpression left, InYearExpression right)
+    public static bool operator ==(HasNameExpression left, HasNameExpression right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(InYearExpression left, InYearExpression right)
+    public static bool operator !=(HasNameExpression left, HasNameExpression right)
     {
         return !Equals(left, right);
     }

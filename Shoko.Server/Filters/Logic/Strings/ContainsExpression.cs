@@ -35,4 +35,44 @@ public class ContainsExpression : FilterExpression<bool>
 
         return left.Contains(right, StringComparison.InvariantCultureIgnoreCase);
     }
+
+    protected bool Equals(ContainsExpression other)
+    {
+        return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Parameter == other.Parameter;
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (ReferenceEquals(null, obj))
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
+
+        if (obj.GetType() != this.GetType())
+        {
+            return false;
+        }
+
+        return Equals((ContainsExpression)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(base.GetHashCode(), Left, Right, Parameter);
+    }
+
+    public static bool operator ==(ContainsExpression left, ContainsExpression right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(ContainsExpression left, ContainsExpression right)
+    {
+        return !Equals(left, right);
+    }
 }

@@ -54,9 +54,16 @@ public static class FilterExtensions
                 {
                     ((AnimeType)anime.AnimeType).ToString()
                 },
-            VideoSources = series.Contract?.AniDBAnime?.Stat_AllVideoQuality_Episodes ?? new HashSet<string>(),
+            VideoSources = series.Contract?.AniDBAnime?.Stat_AllVideoQuality ?? new HashSet<string>(),
+            SharedVideoSources = series.Contract?.AniDBAnime?.Stat_AllVideoQuality_Episodes ?? new HashSet<string>(),
             AudioLanguages = series.Contract?.AniDBAnime?.Stat_AudioLanguages ?? new HashSet<string>(),
-            SubtitleLanguages = series.Contract?.AniDBAnime?.Stat_SubtitleLanguages ?? new HashSet<string>()
+            SharedAudioLanguages =
+                series.GetVideoLocals().Select(b => b.GetAniDBFile()).Where(a => a != null).Select(a => a.Languages.Select(b => b.LanguageName))
+                    .Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet(),
+            SubtitleLanguages = series.Contract?.AniDBAnime?.Stat_SubtitleLanguages ?? new HashSet<string>(),
+            SharedSubtitleLanguages =
+                series.GetVideoLocals().Select(b => b.GetAniDBFile()).Where(a => a != null).Select(a => a.Subtitles.Select(b => b.LanguageName))
+                    .Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet(),
         };
 
         return filterable;
@@ -103,9 +110,16 @@ public static class FilterExtensions
                 {
                     ((AnimeType)anime.AnimeType).ToString()
                 },
-            VideoSources = series.Contract?.AniDBAnime?.Stat_AllVideoQuality_Episodes ?? new HashSet<string>(),
+            VideoSources = series.Contract?.AniDBAnime?.Stat_AllVideoQuality ?? new HashSet<string>(),
+            SharedVideoSources = series.Contract?.AniDBAnime?.Stat_AllVideoQuality_Episodes ?? new HashSet<string>(),
             AudioLanguages = series.Contract?.AniDBAnime?.Stat_AudioLanguages ?? new HashSet<string>(),
+            SharedAudioLanguages =
+                series.GetVideoLocals().Select(b => b.GetAniDBFile()).Where(a => a != null).Select(a => a.Languages.Select(b => b.LanguageName))
+                    .Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet(),
             SubtitleLanguages = series.Contract?.AniDBAnime?.Stat_SubtitleLanguages ?? new HashSet<string>(),
+            SharedSubtitleLanguages =
+                series.GetVideoLocals().Select(b => b.GetAniDBFile()).Where(a => a != null).Select(a => a.Subtitles.Select(b => b.LanguageName))
+                    .Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet(),
             IsFavorite = false,
             WatchedEpisodes = user?.WatchedCount ?? 0,
             UnwatchedEpisodes = (anime?.EpisodeCount ?? 0) - (user?.WatchedCount ?? 0),
@@ -234,9 +248,18 @@ public static class FilterExtensions
             HighestAniDBRating =
                 group.Anime.DefaultIfEmpty().Max(anime => decimal.Round(Convert.ToDecimal(anime?.Rating ?? 00) / 100, 1, MidpointRounding.AwayFromZero)),
             AnimeTypes = new HashSet<string>(group.Anime.Select(a => ((AnimeType)a.AnimeType).ToString()), StringComparer.InvariantCultureIgnoreCase),
-            VideoSources = group.Contract?.Stat_AllVideoQuality_Episodes ?? new HashSet<string>(),
+            VideoSources = group.Contract?.Stat_AllVideoQuality ?? new HashSet<string>(),
+            SharedVideoSources = group.Contract?.Stat_AllVideoQuality_Episodes ?? new HashSet<string>(),
             AudioLanguages = group.Contract?.Stat_AudioLanguages ?? new HashSet<string>(),
-            SubtitleLanguages = group.Contract?.Stat_SubtitleLanguages ?? new HashSet<string>()
+            SharedAudioLanguages =
+                series.SelectMany(a => a.GetVideoLocals().Select(b => b.GetAniDBFile())).Where(a => a != null)
+                    .Select(a => a.Languages.Select(b => b.LanguageName)).Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase))
+                    .ToHashSet(),
+            SubtitleLanguages = group.Contract?.Stat_SubtitleLanguages ?? new HashSet<string>(),
+            SharedSubtitleLanguages =
+                series.SelectMany(a => a.GetVideoLocals().Select(b => b.GetAniDBFile())).Where(a => a != null)
+                    .Select(a => a.Subtitles.Select(b => b.LanguageName)).Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase))
+                    .ToHashSet(),
         };
 
         return filterable;
@@ -244,7 +267,7 @@ public static class FilterExtensions
 
     public static Filterable ToUserDependentFilterable(this SVR_AnimeGroup group, int userID)
     {
-        var series = group.GetAllSeries();
+        var series = group.GetAllSeries(true);
         var hasTrakt = series.All(a => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(a.AniDB_ID).Any());
         var user = group.GetUserRecord(userID);
         var vote = group.Anime.Select(a => a.UserVote).Where(a => a is { VoteType: (int)VoteType.AnimePermanent or (int)VoteType.AnimeTemporary })
@@ -289,9 +312,18 @@ public static class FilterExtensions
             HighestAniDBRating =
                 group.Anime.DefaultIfEmpty().Max(anime => decimal.Round(Convert.ToDecimal(anime?.Rating ?? 00) / 100, 1, MidpointRounding.AwayFromZero)),
             AnimeTypes = new HashSet<string>(group.Anime.Select(a => ((AnimeType)a.AnimeType).ToString()), StringComparer.InvariantCultureIgnoreCase),
-            VideoSources = group.Contract?.Stat_AllVideoQuality_Episodes ?? new HashSet<string>(),
+            VideoSources = group.Contract?.Stat_AllVideoQuality ?? new HashSet<string>(),
+            SharedVideoSources = group.Contract?.Stat_AllVideoQuality_Episodes ?? new HashSet<string>(),
             AudioLanguages = group.Contract?.Stat_AudioLanguages ?? new HashSet<string>(),
+            SharedAudioLanguages =
+                series.SelectMany(a => a.GetVideoLocals().Select(b => b.GetAniDBFile())).Where(a => a != null)
+                    .Select(a => a.Languages.Select(b => b.LanguageName)).Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase))
+                    .ToHashSet(),
             SubtitleLanguages = group.Contract?.Stat_SubtitleLanguages ?? new HashSet<string>(),
+            SharedSubtitleLanguages =
+                series.SelectMany(a => a.GetVideoLocals().Select(b => b.GetAniDBFile())).Where(a => a != null)
+                    .Select(a => a.Subtitles.Select(b => b.LanguageName)).Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase))
+                    .ToHashSet(),
             IsFavorite = user?.IsFave == 1,
             WatchedEpisodes = user?.WatchedCount ?? 0,
             UnwatchedEpisodes = user?.UnwatchedEpisodeCount ?? 0,

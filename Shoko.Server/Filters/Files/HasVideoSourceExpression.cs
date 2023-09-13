@@ -1,25 +1,25 @@
 using System;
 
-namespace Shoko.Server.Filters.Info;
+namespace Shoko.Server.Filters.Files;
 
-public class InYearExpression : FilterExpression<bool>
+public class HasVideoSourceExpression : FilterExpression<bool>
 {
-    public InYearExpression(int parameter)
+    public HasVideoSourceExpression(string parameter)
     {
         Parameter = parameter;
     }
-    public InYearExpression() { }
+    public HasVideoSourceExpression() { }
 
-    public int Parameter { get; set; }
-    public override bool TimeDependent => true;
+    public string Parameter { get; set; }
+    public override bool TimeDependent => false;
     public override bool UserDependent => false;
 
     public override bool Evaluate(Filterable filterable)
     {
-        return filterable.Years.Contains(Parameter);
+        return filterable.VideoSources.Contains(Parameter);
     }
 
-    protected bool Equals(InYearExpression other)
+    protected bool Equals(HasVideoSourceExpression other)
     {
         return base.Equals(other) && Parameter == other.Parameter;
     }
@@ -41,7 +41,7 @@ public class InYearExpression : FilterExpression<bool>
             return false;
         }
 
-        return Equals((InYearExpression)obj);
+        return Equals((HasVideoSourceExpression)obj);
     }
 
     public override int GetHashCode()
@@ -49,12 +49,12 @@ public class InYearExpression : FilterExpression<bool>
         return HashCode.Combine(base.GetHashCode(), Parameter);
     }
 
-    public static bool operator ==(InYearExpression left, InYearExpression right)
+    public static bool operator ==(HasVideoSourceExpression left, HasVideoSourceExpression right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(InYearExpression left, InYearExpression right)
+    public static bool operator !=(HasVideoSourceExpression left, HasVideoSourceExpression right)
     {
         return !Equals(left, right);
     }

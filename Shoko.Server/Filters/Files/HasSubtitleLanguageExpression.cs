@@ -1,3 +1,5 @@
+using System;
+
 namespace Shoko.Server.Filters.Files;
 
 public class HasSubtitleLanguageExpression : FilterExpression<bool>
@@ -15,5 +17,45 @@ public class HasSubtitleLanguageExpression : FilterExpression<bool>
     public override bool Evaluate(Filterable filterable)
     {
         return filterable.SubtitleLanguages.Contains(Parameter);
+    }
+
+    protected bool Equals(HasSubtitleLanguageExpression other)
+    {
+        return base.Equals(other) && Parameter == other.Parameter;
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (ReferenceEquals(null, obj))
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
+
+        if (obj.GetType() != this.GetType())
+        {
+            return false;
+        }
+
+        return Equals((HasSubtitleLanguageExpression)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(base.GetHashCode(), Parameter);
+    }
+
+    public static bool operator ==(HasSubtitleLanguageExpression left, HasSubtitleLanguageExpression right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(HasSubtitleLanguageExpression left, HasSubtitleLanguageExpression right)
+    {
+        return !Equals(left, right);
     }
 }

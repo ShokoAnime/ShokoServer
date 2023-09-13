@@ -1,16 +1,16 @@
-namespace Shoko.Server.Filters.Info;
+namespace Shoko.Server.Filters.Selectors;
 
-public class HasMissingEpisodesExpression : FilterExpression<bool>
+public class SeriesCountSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
 
-    public override bool Evaluate(Filterable filterable)
+    public override double Evaluate(Filterable f)
     {
-        return filterable.MissingEpisodes > 0;
+        return f.SeriesCount;
     }
 
-    protected bool Equals(HasMissingEpisodesExpression other)
+    protected bool Equals(SeriesCountSelector other)
     {
         return base.Equals(other);
     }
@@ -32,7 +32,7 @@ public class HasMissingEpisodesExpression : FilterExpression<bool>
             return false;
         }
 
-        return Equals((HasMissingEpisodesExpression)obj);
+        return Equals((SeriesCountSelector)obj);
     }
 
     public override int GetHashCode()
@@ -40,12 +40,12 @@ public class HasMissingEpisodesExpression : FilterExpression<bool>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(HasMissingEpisodesExpression left, HasMissingEpisodesExpression right)
+    public static bool operator ==(SeriesCountSelector left, SeriesCountSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(HasMissingEpisodesExpression left, HasMissingEpisodesExpression right)
+    public static bool operator !=(SeriesCountSelector left, SeriesCountSelector right)
     {
         return !Equals(left, right);
     }

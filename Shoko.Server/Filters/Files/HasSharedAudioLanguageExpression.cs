@@ -2,13 +2,13 @@ using System;
 
 namespace Shoko.Server.Filters.Files;
 
-public class HasAudioLanguageExpression : FilterExpression<bool>
+public class HasSharedAudioLanguageExpression : FilterExpression<bool>
 {
-    public HasAudioLanguageExpression(string parameter)
+    public HasSharedAudioLanguageExpression(string parameter)
     {
         Parameter = parameter;
     }
-    public HasAudioLanguageExpression() { }
+    public HasSharedAudioLanguageExpression() { }
 
     public string Parameter { get; set; }
     public override bool TimeDependent => false;
@@ -16,10 +16,10 @@ public class HasAudioLanguageExpression : FilterExpression<bool>
 
     public override bool Evaluate(Filterable filterable)
     {
-        return filterable.AudioLanguages.Contains(Parameter);
+        return filterable.SharedAudioLanguages.Contains(Parameter);
     }
 
-    protected bool Equals(HasAudioLanguageExpression other)
+    protected bool Equals(HasSharedAudioLanguageExpression other)
     {
         return base.Equals(other) && string.Equals(Parameter, other.Parameter, StringComparison.InvariantCultureIgnoreCase);
     }
@@ -41,7 +41,7 @@ public class HasAudioLanguageExpression : FilterExpression<bool>
             return false;
         }
 
-        return Equals((HasAudioLanguageExpression)obj);
+        return Equals((HasSharedAudioLanguageExpression)obj);
     }
 
     public override int GetHashCode()
@@ -52,12 +52,12 @@ public class HasAudioLanguageExpression : FilterExpression<bool>
         return hashCode.ToHashCode();
     }
 
-    public static bool operator ==(HasAudioLanguageExpression left, HasAudioLanguageExpression right)
+    public static bool operator ==(HasSharedAudioLanguageExpression left, HasSharedAudioLanguageExpression right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(HasAudioLanguageExpression left, HasAudioLanguageExpression right)
+    public static bool operator !=(HasSharedAudioLanguageExpression left, HasSharedAudioLanguageExpression right)
     {
         return !Equals(left, right);
     }

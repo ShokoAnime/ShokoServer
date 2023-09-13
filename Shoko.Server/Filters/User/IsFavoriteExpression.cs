@@ -9,4 +9,44 @@ public class IsFavoriteExpression : UserDependentFilterExpression<bool>
     {
         return filterable.IsFavorite;
     }
+
+    protected bool Equals(IsFavoriteExpression other)
+    {
+        return base.Equals(other);
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (ReferenceEquals(null, obj))
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
+
+        if (obj.GetType() != this.GetType())
+        {
+            return false;
+        }
+
+        return Equals((IsFavoriteExpression)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return GetType().FullName!.GetHashCode();
+    }
+
+    public static bool operator ==(IsFavoriteExpression left, IsFavoriteExpression right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(IsFavoriteExpression left, IsFavoriteExpression right)
+    {
+        return !Equals(left, right);
+    }
 }

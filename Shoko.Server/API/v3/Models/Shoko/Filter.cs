@@ -89,8 +89,9 @@ public class Filter : BaseModel
         ApplyAtSeriesLevel = groupFilter.ApplyAtSeriesLevel;
         if (fullModel)
         {
-            Conditions = groupFilter.Conditions.Select(condition => new FilterCondition(condition)).ToList();
-            Sorting = groupFilter.SortCriteriaList.Select(sort => new SortingCriteria(sort)).ToList();
+            var legacyConverter = ctx.RequestServices.GetRequiredService<LegacyFilterConverter>();
+            Conditions = legacyConverter.GetConditions(groupFilter).Select(condition => new FilterCondition(condition)).ToList();
+            Sorting = legacyConverter.GetSortingCriteria(groupFilter).Select(sort => new SortingCriteria(sort)).ToList();
         }
 
         var evaluator = ctx.RequestServices.GetRequiredService<FilterEvaluator>();
@@ -301,40 +302,30 @@ public class Filter : BaseModel
                 groupFilter.Name = Name;
                 groupFilter.Hidden = IsHidden;
                 groupFilter.ApplyAtSeriesLevel = ApplyAtSeriesLevel;
-                if (IsDirectory)
-                {
-                    groupFilter.SortCriteriaList = new()
-                    {
-                        new GroupFilterSortingCriteria()
-                        {
-                            SortType = GroupFilterSorting.GroupFilterName,
-                            SortDirection = GroupFilterSortDirection.Asc,
-                        },
-                    };
-                }
-                else
+                if (!IsDirectory)
                 {
                     if (Conditions != null)
                     {
                         groupFilter.Conditions = Conditions
                             .Select(c => new GroupFilterCondition()
                             {
-                                ConditionOperator = (int)c.Operator,
-                                ConditionParameter = c.Parameter,
-                                ConditionType = (int)c.Type,
+                                ConditionOperator = (int)c.Operator, ConditionParameter = c.Parameter, ConditionType = (int)c.Type,
                             })
                             .ToList();
                     }
+
                     if (Sorting != null)
                     {
                         groupFilter.SortCriteriaList = Sorting
                             .Select(s => new GroupFilterSortingCriteria
                             {
-                                SortType = s.Type,
-                                SortDirection = s.IsInverted ? GroupFilterSortDirection.Desc : GroupFilterSortDirection.Asc
+                                SortType = s.Type, SortDirection = s.IsInverted ? GroupFilterSortDirection.Desc : GroupFilterSortDirection.Asc
                             })
                             .ToList();
                     }
+                }
+                else
+                {
                 }
 
                 // Skip saving if we're just going to preview a group filter.

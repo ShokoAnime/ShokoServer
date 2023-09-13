@@ -28,4 +28,44 @@ public class GreaterThanEqualExpression : FilterExpression<bool>
         var right = Parameter ?? Right.Evaluate(filterable);
         return Math.Abs(left - right) < 0.001D || left > right;
     }
+
+    protected bool Equals(GreaterThanEqualExpression other)
+    {
+        return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Nullable.Equals(Parameter, other.Parameter);
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (ReferenceEquals(null, obj))
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
+
+        if (obj.GetType() != this.GetType())
+        {
+            return false;
+        }
+
+        return Equals((GreaterThanEqualExpression)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(base.GetHashCode(), Left, Right, Parameter);
+    }
+
+    public static bool operator ==(GreaterThanEqualExpression left, GreaterThanEqualExpression right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(GreaterThanEqualExpression left, GreaterThanEqualExpression right)
+    {
+        return !Equals(left, right);
+    }
 }

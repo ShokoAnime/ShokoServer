@@ -12,4 +12,44 @@ public class MissingTraktLinkExpression : FilterExpression<bool>
     {
         return filterable.HasMissingTraktLink;
     }
+
+    protected bool Equals(MissingTraktLinkExpression other)
+    {
+        return base.Equals(other);
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (ReferenceEquals(null, obj))
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
+
+        if (obj.GetType() != this.GetType())
+        {
+            return false;
+        }
+
+        return Equals((MissingTraktLinkExpression)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return GetType().FullName!.GetHashCode();
+    }
+
+    public static bool operator ==(MissingTraktLinkExpression left, MissingTraktLinkExpression right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(MissingTraktLinkExpression left, MissingTraktLinkExpression right)
+    {
+        return !Equals(left, right);
+    }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Shoko.Server.Filters;
+using Shoko.Server.Filters.Files;
 using Shoko.Server.Filters.Functions;
 using Shoko.Server.Filters.Info;
 using Shoko.Server.Filters.Logic;

@@ -1,3 +1,5 @@
+using System;
+
 namespace Shoko.Server.Filters.Logic.Numbers;
 
 public class LessThanExpression : FilterExpression<bool>
@@ -25,5 +27,45 @@ public class LessThanExpression : FilterExpression<bool>
         var left = Left.Evaluate(filterable);
         var right = Parameter ?? Right.Evaluate(filterable);
         return left < right;
+    }
+
+    protected bool Equals(LessThanExpression other)
+    {
+        return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Nullable.Equals(Parameter, other.Parameter);
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (ReferenceEquals(null, obj))
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
+
+        if (obj.GetType() != this.GetType())
+        {
+            return false;
+        }
+
+        return Equals((LessThanExpression)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(base.GetHashCode(), Left, Right, Parameter);
+    }
+
+    public static bool operator ==(LessThanExpression left, LessThanExpression right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(LessThanExpression left, LessThanExpression right)
+    {
+        return !Equals(left, right);
     }
 }

@@ -45,4 +45,44 @@ public class GreaterThanEqualExpression : FilterExpression<bool>
 
         return date >= operand;
     }
+
+    protected bool Equals(GreaterThanEqualExpression other)
+    {
+        return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Parameter.Equals(other.Parameter);
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (ReferenceEquals(null, obj))
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
+
+        if (obj.GetType() != this.GetType())
+        {
+            return false;
+        }
+
+        return Equals((GreaterThanEqualExpression)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(base.GetHashCode(), Left, Right, Parameter);
+    }
+
+    public static bool operator ==(GreaterThanEqualExpression left, GreaterThanEqualExpression right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(GreaterThanEqualExpression left, GreaterThanEqualExpression right)
+    {
+        return !Equals(left, right);
+    }
 }

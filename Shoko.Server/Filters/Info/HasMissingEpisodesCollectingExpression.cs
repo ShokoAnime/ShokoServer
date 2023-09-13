@@ -9,4 +9,44 @@ public class HasMissingEpisodesCollectingExpression : FilterExpression<bool>
     {
         return filterable.MissingEpisodesCollecting > 0;
     }
+
+    protected bool Equals(HasMissingEpisodesCollectingExpression other)
+    {
+        return base.Equals(other);
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (ReferenceEquals(null, obj))
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
+
+        if (obj.GetType() != this.GetType())
+        {
+            return false;
+        }
+
+        return Equals((HasMissingEpisodesCollectingExpression)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return GetType().FullName!.GetHashCode();
+    }
+
+    public static bool operator ==(HasMissingEpisodesCollectingExpression left, HasMissingEpisodesCollectingExpression right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(HasMissingEpisodesCollectingExpression left, HasMissingEpisodesCollectingExpression right)
+    {
+        return !Equals(left, right);
+    }
 }
