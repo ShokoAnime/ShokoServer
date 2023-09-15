@@ -644,20 +644,18 @@ public class TraktTVHelper
                         if (dictTraktSeasons != null && dictTraktSeasons.TryGetValue(xrefBase.TraktSeasonNumber, out var traktSeason))
                         {
                             int episodeNumber;
+                            
+                            if (xrefBase.TraktStartEpisodeNumber == xrefBase.AniDBStartEpisodeNumber)
                             {
-                                if (xrefBase.TraktStartEpisodeNumber == xrefBase.AniDBStartEpisodeNumber)
-                                {
-                                    // The Trakt and AniDB start episode numbers match
-                                    episodeNumber = (traktSeason - xrefBase.TraktStartEpisodeNumber ) + ep.EpisodeNumber;
-                                }
-                                
-                                else
-                                {
-                                    // The Trakt and AniDB start episode numbers don't match
-                                    episodeNumber = traktSeason +
-                                                    (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) -
-                                                    (xrefBase.AniDBStartEpisodeNumber - 1);
-                                }
+                                // The Trakt and AniDB start episode numbers match
+                                episodeNumber = (traktSeason - xrefBase.TraktStartEpisodeNumber ) + ep.EpisodeNumber;
+                            }
+                            else
+                            {
+                                // The Trakt and AniDB start episode numbers don't match
+                                episodeNumber = traktSeason +
+                                                (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) -
+                                                (xrefBase.AniDBStartEpisodeNumber - 1);
                             }
                             
                             if (dictTraktEpisodes.TryGetValue(episodeNumber, out var traktep))
@@ -724,20 +722,18 @@ public class TraktTVHelper
                     if (dictTraktSeasons != null && dictTraktSeasons.TryGetValue(xrefBase.TraktSeasonNumber, out var traktSeason))
                     {
                         int episodeNumber;
+                        
+                        if (xrefBase.TraktStartEpisodeNumber == xrefBase.AniDBStartEpisodeNumber)
+                        { 
+                            // The Trakt and AniDB start episode numbers match
+                            episodeNumber = (traktSeason - xrefBase.TraktStartEpisodeNumber ) + ep.EpisodeNumber;
+                        }
+                        else
                         {
-                            if (xrefBase.TraktStartEpisodeNumber == xrefBase.AniDBStartEpisodeNumber)
-                            {
-                                // The Trakt and AniDB start episode numbers match
-                                episodeNumber = (traktSeason - xrefBase.TraktStartEpisodeNumber ) + ep.EpisodeNumber;
-                            }
-                            
-                            else
-                            {
-                                // The Trakt and AniDB start episode numbers don't match
-                                episodeNumber = traktSeason +
-                                                (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) -
-                                                (xrefBase.AniDBStartEpisodeNumber - 1);
-                            }
+                            // The Trakt and AniDB start episode numbers don't match
+                            episodeNumber = traktSeason +
+                                            (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) -
+                                            (xrefBase.AniDBStartEpisodeNumber - 1);
                         }
                         
                         if (dictTraktEpisodes != null && dictTraktEpisodes.TryGetValue(episodeNumber, out var traktep))
@@ -1848,7 +1844,6 @@ public class TraktTVHelper
                 TraktTVRateLimiter.Instance.EnsureRate();
                 SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
             }
-            
         }
         catch (Exception ex)
         {
