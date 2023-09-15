@@ -1,22 +1,23 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Strings;
 
-public class ContainsExpression : FilterExpression<bool>
+public class StringContainsExpression : FilterExpression<bool>, IWithStringSelectorParameter, IWithSecondStringSelectorParameter, IWithStringParameter
 {
-    public ContainsExpression(FilterExpression<string> left, FilterExpression<string> right)
+    public StringContainsExpression(FilterExpression<string> left, FilterExpression<string> right)
     {
         Left = left;
         Right = right;
     }
 
-    public ContainsExpression(FilterExpression<string> left, string parameter)
+    public StringContainsExpression(FilterExpression<string> left, string parameter)
     {
         Left = left;
         Parameter = parameter;
     }
 
-    public ContainsExpression() { }
+    public StringContainsExpression() { }
 
     public FilterExpression<string> Left { get; set; }
     public FilterExpression<string> Right { get; set; }
@@ -36,7 +37,7 @@ public class ContainsExpression : FilterExpression<bool>
         return left.Contains(right, StringComparison.InvariantCultureIgnoreCase);
     }
 
-    protected bool Equals(ContainsExpression other)
+    protected bool Equals(StringContainsExpression other)
     {
         return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Parameter == other.Parameter;
     }
@@ -58,7 +59,7 @@ public class ContainsExpression : FilterExpression<bool>
             return false;
         }
 
-        return Equals((ContainsExpression)obj);
+        return Equals((StringContainsExpression)obj);
     }
 
     public override int GetHashCode()
@@ -66,12 +67,12 @@ public class ContainsExpression : FilterExpression<bool>
         return HashCode.Combine(base.GetHashCode(), Left, Right, Parameter);
     }
 
-    public static bool operator ==(ContainsExpression left, ContainsExpression right)
+    public static bool operator ==(StringContainsExpression left, StringContainsExpression right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(ContainsExpression left, ContainsExpression right)
+    public static bool operator !=(StringContainsExpression left, StringContainsExpression right)
     {
         return !Equals(left, right);
     }

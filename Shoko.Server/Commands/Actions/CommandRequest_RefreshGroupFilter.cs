@@ -27,7 +27,7 @@ public class CommandRequest_RefreshGroupFilter : CommandRequestImplementation
         if (GroupFilterID == 0)
         {
             RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
-            RepoFactory.Filter.CreateOrVerifyLockedFilters();
+            RepoFactory.FilterPreset.CreateOrVerifyLockedFilters();
             return;
         }
 

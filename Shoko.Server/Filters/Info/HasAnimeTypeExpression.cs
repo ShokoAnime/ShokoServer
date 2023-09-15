@@ -1,8 +1,9 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Info;
 
-public class HasAnimeTypeExpression : FilterExpression<bool>
+public class HasAnimeTypeExpression : FilterExpression<bool>, IWithStringParameter
 {
     public HasAnimeTypeExpression(string parameter)
     {

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using QuartzJobFactory;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
@@ -257,7 +258,7 @@ public class ActionController : BaseController
             if (rawXml != null)
                 continue;
 
-            Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, true, false, false);
+            SeriesFactory.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, true, false, false);
             queuedAnimeSet.Add(animeID);
         }
 
@@ -277,7 +278,7 @@ public class ActionController : BaseController
             if (++index % 10 == 1)
                 _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
 
-            Series.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, false, true, true);
+            SeriesFactory.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, false, true, true);
             queuedAnimeSet.Add(animeID);
         }
 

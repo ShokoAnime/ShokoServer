@@ -1,8 +1,9 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Files;
 
-public class HasSharedVideoSourceExpression : FilterExpression<bool>
+public class HasSharedVideoSourceExpression : FilterExpression<bool>, IWithStringParameter
 {
     public HasSharedVideoSourceExpression(string parameter)
     {

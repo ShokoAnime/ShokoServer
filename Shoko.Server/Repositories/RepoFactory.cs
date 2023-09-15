@@ -94,7 +94,7 @@ public static class RepoFactory
     public static AnimeStaffRepository AnimeStaff { get; } = new();
     public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; } = new();
     public static GroupFilterRepository GroupFilter { get; } = new();
-    public static FilterRepository Filter { get; } = new();
+    public static FilterPresetRepository FilterPreset { get; } = new();
 
     /************** DEPRECATED **************/
     /* We need to delete them at some point */

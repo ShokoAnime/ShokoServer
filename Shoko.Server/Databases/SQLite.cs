@@ -672,9 +672,9 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(104, 1, DatabaseFixes.FixAnimeSourceLinks),
         new(104, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
         new DatabaseCommand(105, 1,
-            "CREATE TABLE Filter( FilterID INTEGER PRIMARY KEY AUTOINCREMENT, ParentFilterID int, Name text NOT NULL, FilterType int NOT NULL, Locked int NOT NULL, Hidden int NOT NULL, ApplyAtSeriesLevel int NOT NULL, Expression text, SortingExpression text ); "),
+            "CREATE TABLE FilterPreset( FilterPresetID INTEGER PRIMARY KEY AUTOINCREMENT, ParentFilterPresetID int, Name text NOT NULL, FilterType int NOT NULL, Locked int NOT NULL, Hidden int NOT NULL, ApplyAtSeriesLevel int NOT NULL, Expression text, SortingExpression text ); "),
         new DatabaseCommand(105, 2,
-            "CREATE INDEX IX_Filter_ParentFilterID ON Filter(ParentFilterID); CREATE INDEX IX_Filter_Name ON Filter(Name); CREATE INDEX IX_Filter_FilterType ON Filter(FilterType); CREATE INDEX IX_Filter_LockedHidden ON Filter(Locked, Hidden);"),
+            "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

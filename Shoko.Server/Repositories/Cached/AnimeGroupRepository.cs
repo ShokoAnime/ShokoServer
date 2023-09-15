@@ -125,7 +125,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         {
             RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false, grp.Contract?.Stat_AllTags,
                 grp.Contract?.Stat_AllYears, grp.Contract?.Stat_AllSeasons);
-            RepoFactory.Filter.CreateOrVerifyDirectoryFilters(false, grp.Contract?.Stat_AllTags,
+            RepoFactory.FilterPreset.CreateOrVerifyDirectoryFilters(false, grp.Contract?.Stat_AllTags,
                 grp.Contract?.Stat_AllYears, grp.Contract?.GetSeasons());
             //This call will create extra years or tags if the Group have a new year or tag
             grp.UpdateGroupFilters(types);

@@ -1,8 +1,9 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic;
 
-public class NotExpression : FilterExpression<bool>
+public class NotExpression : FilterExpression<bool>, IWithExpressionParameter
 {
     public NotExpression(FilterExpression<bool> left)
     {

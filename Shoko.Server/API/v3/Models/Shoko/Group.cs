@@ -92,11 +92,13 @@ public class Group : BaseModel
         SortName = group.SortName;
         Description = group.Description;
         Sizes = ModelHelper.GenerateGroupSizes(allSeries, episodes, subGroupCount, userID);
-        Size = allSeries.Where(series => series.AnimeGroupID == group.AnimeGroupID).Count();
+        Size = allSeries.Count(series => series.AnimeGroupID == group.AnimeGroupID);
         HasCustomName = group.IsManuallyNamed == 1;
         HasCustomDescription = group.OverrideDescription == 1;
 
-        Images = mainSeries == null ? new Images() : Series.GetDefaultImages(ctx, mainSeries, randomiseImages);
+        // TODO make a factory for this file. Not feeling it rn
+        var factory = new SeriesFactory(ctx);
+        Images = mainSeries == null ? new Images() : factory.GetDefaultImages(mainSeries, randomiseImages);
     }
 
     #endregion

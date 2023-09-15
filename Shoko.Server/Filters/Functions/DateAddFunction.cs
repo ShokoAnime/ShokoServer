@@ -1,8 +1,9 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Functions;
 
-public class DateAddFunction : FilterExpression<DateTime?>
+public class DateAddFunction : FilterExpression<DateTime?>, IWithDateSelectorParameter, IWithTimeSpanParameter
 {
     public DateAddFunction()
     {
@@ -19,6 +20,12 @@ public class DateAddFunction : FilterExpression<DateTime?>
 
     public override bool TimeDependent => Selector.TimeDependent;
     public override bool UserDependent => Selector.UserDependent;
+
+    public FilterExpression<DateTime?> Left
+    {
+        get => Selector;
+        set => Selector = value;
+    }
 
     public override DateTime? Evaluate(Filterable f)
     {

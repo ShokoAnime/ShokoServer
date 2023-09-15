@@ -738,9 +738,9 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(118, 1, DatabaseFixes.FixAnimeSourceLinks),
         new(118, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
         new DatabaseCommand(119, 1,
-            "CREATE TABLE Filter( FilterID INT NOT NULL AUTO_INCREMENT, ParentFilterID int, Name text NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression longtext, SortingExpression longtext, PRIMARY KEY (`FilterID`) ); "),
+            "CREATE TABLE FilterPreset( FilterPresetID INT NOT NULL AUTO_INCREMENT, ParentFilterPresetID int, Name text NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression longtext, SortingExpression longtext, PRIMARY KEY (`FilterID`) ); "),
         new DatabaseCommand(119, 2,
-            "ALTER TABLE Filter ADD INDEX IX_Filter_ParentFilterID (ParentFilterID); ALTER TABLE Filter ADD INDEX IX_Filter_Name (Name); ALTER TABLE Filter ADD INDEX IX_Filter_FilterType (FilterType); ALTER TABLE Filter ADD INDEX IX_Filter_LockedHidden (Locked, Hidden);"),
+            "ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_ParentFilterPresetID (ParentFilterPresetID); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_Name (Name); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_FilterType (FilterType); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_LockedHidden (Locked, Hidden);"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

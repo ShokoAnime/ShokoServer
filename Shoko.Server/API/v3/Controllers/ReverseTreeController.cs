@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
@@ -21,6 +22,9 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class ReverseTreeController : BaseController
 {
+    private readonly FilterFactory _filterFactory;
+    private readonly SeriesFactory _seriesFactory;
+    
     /// <summary>
     /// Get the parent <see cref="Filter"/> for the <see cref="Filter"/> with the given <paramref name="filterID"/>.
     /// </summary>
@@ -35,26 +39,26 @@ public class ReverseTreeController : BaseController
     /// <param name="topLevel">Always get the top-level <see cref="Filter"/></param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Parent")]
-    public ActionResult<Filter> GetFilterFromFilter([FromRoute] int filterID, [FromQuery] bool topLevel = false)
+    public ActionResult<Filter> GetParentFromFilter([FromRoute] int filterID, [FromQuery] bool topLevel = false)
     {
-        var filter = RepoFactory.GroupFilter.GetByID(filterID);
+        var filter = RepoFactory.FilterPreset.GetByID(filterID);
         if (filter == null)
         {
             return NotFound(FilterController.FilterNotFound);
         }
 
-        if (!filter.ParentGroupFilterID.HasValue || filter.ParentGroupFilterID.Value == 0)
+        if (filter.ParentFilterPresetID is null or 0)
         {
             return ValidationProblem("Unable to get parent Filter for a top-level Filter", "filterID");
         }
 
-        var parentGroup = topLevel ? filter.TopLevelGroupFilter : filter.Parent;
+        var parentGroup = topLevel ? RepoFactory.FilterPreset.GetTopLevelFilter(filter.ParentFilterPresetID.Value) : RepoFactory.FilterPreset.GetByID(filter.ParentFilterPresetID.Value);
         if (parentGroup == null)
         {
             return InternalError("No parent Filter entry for the given filterID");
         }
 
-        return new Filter(HttpContext, parentGroup);
+        return _filterFactory.GetFilter(parentGroup);
     }
 
     /// <summary>
@@ -71,7 +75,7 @@ public class ReverseTreeController : BaseController
     /// <param name="topLevel">Always get the top-level <see cref="Group"/></param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/Parent")]
-    public ActionResult<Group> GetGroupFromGroup([FromRoute] int groupID, [FromQuery] bool topLevel = false)
+    public ActionResult<Group> GetParentFromGroup([FromRoute] int groupID, [FromQuery] bool topLevel = false)
     {
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
@@ -160,7 +164,7 @@ public class ReverseTreeController : BaseController
             return Forbid(EpisodeController.EpisodeForbiddenForUser);
         }
 
-        return new Series(HttpContext, series, randomImages, includeDataFrom);
+        return _seriesFactory.GetSeries(series, randomImages, includeDataFrom);
     }
 
     /// <summary>
@@ -190,7 +194,9 @@ public class ReverseTreeController : BaseController
             .ToList();
     }
 
-    public ReverseTreeController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    public ReverseTreeController(ISettingsProvider settingsProvider, FilterFactory filterFactory, SeriesFactory seriesFactory) : base(settingsProvider)
     {
+        _filterFactory = filterFactory;
+        _seriesFactory = seriesFactory;
     }
 }

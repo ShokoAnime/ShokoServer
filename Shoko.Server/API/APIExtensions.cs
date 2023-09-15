@@ -21,6 +21,7 @@ using Shoko.Server.API.SignalR;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.SignalR.Legacy;
 using Shoko.Server.API.Swagger;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.WebUI;
 using Shoko.Server.Plugin;
@@ -50,6 +51,9 @@ public static class APIExtensions
         services.AddSingleton<AVDumpEmitter>();
         services.AddSingleton<NetworkEmitter>();
         services.AddSingleton<QueueEmitter>();
+        services.AddScoped<FilterFactory>();
+        services.AddScoped<SeriesFactory>();
+        services.AddScoped<WebUIFactory>();
 
         services.AddAuthentication(options =>
         {

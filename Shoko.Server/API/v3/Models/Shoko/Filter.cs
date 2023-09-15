@@ -1,19 +1,6 @@
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Shoko.Models.Enums;
-using Shoko.Models.Server;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Filters;
-using Shoko.Server.Filters.Logic;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-using FilterPreset = Shoko.Server.Models.Filter;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -47,66 +34,27 @@ public class Filter : BaseModel
     public bool IsDirectory { get; set; }
 
     /// <summary>
-    /// Indicates that the filter is inverted and all conditions applied
-    /// to it will be used to exclude groups and series instead of
-    /// include them.
-    /// </summary>
-    public bool IsInverted { get; set; }
-
-    /// <summary>
-    /// Indicates the filter should be hidden unless explictly requested. This will hide the filter from the normal UIs.
+    /// Indicates the filter should be hidden unless explicitly requested. This will hide the filter from the normal UIs.
     /// </summary>
     public bool IsHidden { get; set; }
 
     /// <summary>
-    /// Inidcates the filter should be applied at the series level.
+    /// Indicates the filter should be applied at the series level.
     /// Filter conditions like like Seasons, Years, Tags, etc only count series individually, rather than by group.
     /// </summary>
     public bool ApplyAtSeriesLevel { get; set; }
 
     /// <summary>
-    /// List of Conditions. Order doesn't matter.
+    /// The FilterExpression tree
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public List<FilterCondition>? Conditions { get; set; }
+    public FilterCondition? Expression { get; set; }
 
     /// <summary>
-    /// The sorting criteria. Order matters.
+    /// The sorting criteria
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public List<SortingCriteria>? Sorting { get; set; }
-
-    public Filter(HttpContext ctx, FilterPreset groupFilter, bool fullModel = false)
-    {
-        var user = ctx.GetUser();
-
-        IDs = new FilterIDs { ID = groupFilter.FilterID, ParentFilter = groupFilter.ParentFilterID };
-        Name = groupFilter.Name;
-        IsLocked = groupFilter.Locked;
-        IsDirectory = groupFilter.IsDirectory();
-        IsInverted = groupFilter.Expression is NotExpression;
-        IsHidden = groupFilter.Hidden;
-        ApplyAtSeriesLevel = groupFilter.ApplyAtSeriesLevel;
-        if (fullModel)
-        {
-            var legacyConverter = ctx.RequestServices.GetRequiredService<LegacyFilterConverter>();
-            Conditions = legacyConverter.GetConditions(groupFilter).Select(condition => new FilterCondition(condition)).ToList();
-            Sorting = legacyConverter.GetSortingCriteria(groupFilter).Select(sort => new SortingCriteria(sort)).ToList();
-        }
-
-        var evaluator = ctx.RequestServices.GetRequiredService<FilterEvaluator>();
-        Size = IsDirectory ? RepoFactory.Filter.GetByParentID(groupFilter.FilterID).Count : evaluator.EvaluateFilter(groupFilter, user?.JMMUserID).Count();
-    }
-
-    /// <summary>
-    /// Get the Sorting Criteria for the Group Filter. ORDER DOES MATTER
-    /// </summary>
-    /// <param name="gf"></param>
-    /// <returns></returns>
-    public static List<SortingCriteria> GetSortingCriteria(SVR_GroupFilter gf)
-    {
-        return gf.SortCriteriaList.Select(a => new SortingCriteria(a)).ToList();
-    }
+    public SortingCriteria? Sorting { get; set; }
 
     public class FilterIDs : IDs
     {
@@ -119,32 +67,43 @@ public class Filter : BaseModel
     public class FilterCondition
     {
         /// <summary>
-        /// Condition Type. What it does
+        /// Condition Type. What it does.
+        /// This is not the GroupFilterConditionType, but the type of the FilterExpression, with 'Expression' removed.
+        /// ex. And, Or, Not, HasAudioLanguage
         /// </summary>
         [Required]
-        [JsonConverter(typeof(StringEnumConverter))]
-        public GroupFilterConditionType Type { get; set; }
+        public string Type { get; set; }
 
         /// <summary>
-        /// Condition Operator, how it applies
+        /// The first, or left, child expression.
+        /// This might be another logic operator like And, a selector for data like Today's Date, or an expression like HasAudioLanguage.
+        /// Whether this is included depends on the expression.
         /// </summary>
-        [Required]
-        [JsonConverter(typeof(StringEnumConverter))]
-        public GroupFilterOperator Operator { get; set; }
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public FilterCondition? Left { get; set; }
 
         /// <summary>
-        /// The actual value to compare
+        /// The second, or right, child expression.
+        /// This might be another logic operator like And, a selector for data like Today's Date, or an expression like HasAudioLanguage.
+        /// Whether this is included depends on the expression.
         /// </summary>
-        public string Parameter { get; set; } = string.Empty;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public FilterCondition? Right { get; set; }
 
-        public FilterCondition() { }
+        /// <summary>
+        /// The actual value to compare. Dependent on the expression type.
+        /// Coerced this to string to make things easier.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? Parameter { get; set; }
 
-        public FilterCondition(GroupFilterCondition condition)
-        {
-            Type = (GroupFilterConditionType)condition.ConditionType;
-            Operator = (GroupFilterOperator)condition.ConditionOperator;
-            Parameter = condition.ConditionParameter ?? string.Empty;
-        }
+        /// <summary>
+        /// The actual value to compare. Dependent on the expression type.
+        /// Very few things have a second parameter. Seasons are one of them
+        /// Coerced this to string to make things easier.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? SecondParameter { get; set; }
     }
 
     /// <summary>
@@ -155,25 +114,23 @@ public class Filter : BaseModel
     public class SortingCriteria
     {
         /// <summary>
-        /// The sorting type. What it is sorted on
+        /// The sorting type. What it is sorted on.
+        /// This is not the GroupFilterSorting, but the type of the SortingExpression, with 'Expression' removed.
+        /// ex. And, Or, Not, HasAudioLanguage
         /// </summary>
         [Required]
-        [JsonConverter(typeof(StringEnumConverter))]
-        public GroupFilterSorting Type { get; set; }
+        public string Type { get; set; }
+
+        /// <summary>
+        /// The next expression to fall back on when the SortingExpression is equal or invalid, for example, sort by Episode Count descending then by Name
+        /// </summary>
+        public SortingCriteria? Next { get; set; }
 
         /// <summary>
         /// Assumed Ascending unless this is specified. You must set this if you want highest rating, for example
         /// </summary>
         [Required]
         public bool IsInverted { get; set; }
-
-        public SortingCriteria() { }
-
-        public SortingCriteria(GroupFilterSortingCriteria criteria)
-        {
-            Type = criteria.SortType;
-            IsInverted = criteria.SortDirection == GroupFilterSortDirection.Desc;
-        }
     }
 
     public class Input
@@ -206,13 +163,6 @@ public class Filter : BaseModel
             public bool IsDirectory { get; set; }
 
             /// <summary>
-            /// Indicates that the filter is inverted and all conditions applied
-            /// to it will be used to exclude groups and series instead of
-            /// include them.
-            /// </summary>
-            public bool IsInverted { get; set; }
-
-            /// <summary>
             /// Indicates the filter should be hidden unless explictly requested. This will hide the filter from the normal UIs.
             /// </summary>
             public bool IsHidden { get; set; }
@@ -224,116 +174,16 @@ public class Filter : BaseModel
             public bool ApplyAtSeriesLevel { get; set; }
 
             /// <summary>
-            /// List of Conditions. Order doesn't matter.
+            /// The FilterExpression tree
             /// </summary>
-            public List<FilterCondition>? Conditions { get; set; }
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public FilterCondition? Expression { get; set; }
 
             /// <summary>
-            /// The sorting criteria. Order matters.
+            /// The sorting criteria
             /// </summary>
-            public List<SortingCriteria>? Sorting { get; set; }
-
-            public CreateOrUpdateFilterBody() { }
-
-            public CreateOrUpdateFilterBody(FilterPreset groupFilter)
-            {
-                Name = groupFilter.Name;
-                ParentID = groupFilter.ParentFilterID;
-                IsDirectory = groupFilter.IsDirectory();
-                IsHidden = groupFilter.Hidden;
-                ApplyAtSeriesLevel = groupFilter.ApplyAtSeriesLevel;
-                if (!IsDirectory)
-                {
-                    Conditions = groupFilter.Conditions.Select(condition => new FilterCondition(condition)).ToList();
-                    Sorting = groupFilter.SortCriteriaList.Select(sort => new SortingCriteria(sort)).ToList();
-                }
-            }
-
-            public Filter? MergeWithExisting(HttpContext ctx, FilterPreset groupFilter, ModelStateDictionary modelState, bool skipSave = false)
-            {
-                if (groupFilter.Locked)
-                    modelState.AddModelError("IsLocked", "Filter is locked.");
-
-                // Defer to `null` if the id is `0`.
-                if (ParentID.HasValue && ParentID.Value == 0)
-                    ParentID = null;
-
-                if (ParentID.HasValue)
-                {
-                    var parentFilter = RepoFactory.Filter.GetByID(ParentID.Value);
-                    if (parentFilter == null)
-                    {
-                        modelState.AddModelError(nameof(ParentID), $"Unable to find parent filter with id {ParentID.Value}");
-                    }
-                    else
-                    {
-                        if (parentFilter.Locked)
-                            modelState.AddModelError(nameof(ParentID), $"Unable to add a sub-filter to a filter that is locked.");
-
-                        if (!parentFilter.IsDirectory())
-                            modelState.AddModelError(nameof(ParentID), $"Unable to add a sub-filter to a filter that is not a directorty filter.");
-                    }
-                }
-
-                if (IsDirectory)
-                {
-                    if (IsInverted)
-                        modelState.AddModelError(nameof(IsInverted), "Cannot invert the filter conditions for a directory filter.");
-
-                    if (Conditions != null && Conditions.Count > 0)
-                        modelState.AddModelError(nameof(Conditions), "Directory filters cannot have any conditions applied to them.");
-
-                    if (Sorting != null && Sorting.Count > 0)
-                        modelState.AddModelError(nameof(Sorting), "Directory filters cannot have custom sorting applied to them.");
-                }
-                else
-                {
-                    var subFilters = groupFilter.FilterID != 0 ? RepoFactory.Filter.GetByParentID(groupFilter.FilterID) : new();
-                    if (subFilters.Count > 0)
-                        modelState.AddModelError(nameof(IsDirectory), "Cannot turn a directory filter with sub-filters into a normal filter without first removing the sub-filters");
-                }
-
-                // Return now if we encountered any validation errors.
-                if (!modelState.IsValid)
-                    return null;
-
-                groupFilter.ParentFilterID = ParentID;
-                groupFilter.FilterType = IsDirectory ? GroupFilterType.UserDefined | GroupFilterType.Directory : GroupFilterType.UserDefined;
-                groupFilter.Name = Name;
-                groupFilter.Hidden = IsHidden;
-                groupFilter.ApplyAtSeriesLevel = ApplyAtSeriesLevel;
-                if (!IsDirectory)
-                {
-                    if (Conditions != null)
-                    {
-                        groupFilter.Conditions = Conditions
-                            .Select(c => new GroupFilterCondition()
-                            {
-                                ConditionOperator = (int)c.Operator, ConditionParameter = c.Parameter, ConditionType = (int)c.Type,
-                            })
-                            .ToList();
-                    }
-
-                    if (Sorting != null)
-                    {
-                        groupFilter.SortCriteriaList = Sorting
-                            .Select(s => new GroupFilterSortingCriteria
-                            {
-                                SortType = s.Type, SortDirection = s.IsInverted ? GroupFilterSortDirection.Desc : GroupFilterSortDirection.Asc
-                            })
-                            .ToList();
-                    }
-                }
-                else
-                {
-                }
-
-                // Skip saving if we're just going to preview a group filter.
-                if (!skipSave)
-                    RepoFactory.Filter.Save(groupFilter);
-
-                return new Filter(ctx, groupFilter, true);
-            }
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public SortingCriteria? Sorting { get; set; }
         }
     }
 }

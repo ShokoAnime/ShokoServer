@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Enums;
@@ -13,20 +12,20 @@ namespace Shoko.Server.Filters;
 
 public class LegacyFilterConverter
 {
-    public List<GroupFilterCondition> GetConditions(Filter filter)
+    public List<GroupFilterCondition> GetConditions(FilterPreset filter)
     {
         // TODO traverse the tree and replace with pre-set mappings
         return new List<GroupFilterCondition>();
     }
 
-    public List<GroupFilterSortingCriteria> GetSortingCriteria(Filter filter)
+    public List<GroupFilterSortingCriteria> GetSortingCriteria(FilterPreset filter)
     {
         // TODO traverse the tree and replace with pre-set mappings
         return new List<GroupFilterSortingCriteria>
         {
             new()
             {
-                GroupFilterID = filter.FilterID, SortType = GroupFilterSorting.SortName, SortDirection = GroupFilterSortDirection.Asc
+                GroupFilterID = filter.FilterPresetID, SortType = GroupFilterSorting.SortName, SortDirection = GroupFilterSortDirection.Asc
             }
         };
     }

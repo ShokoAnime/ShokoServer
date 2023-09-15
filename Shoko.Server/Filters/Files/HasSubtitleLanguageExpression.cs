@@ -1,8 +1,9 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Files;
 
-public class HasSubtitleLanguageExpression : FilterExpression<bool>
+public class HasSubtitleLanguageExpression : FilterExpression<bool>, IWithStringParameter
 {
     public HasSubtitleLanguageExpression(string parameter)
     {

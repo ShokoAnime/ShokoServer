@@ -5,7 +5,6 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
@@ -13,6 +12,7 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -34,6 +34,9 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class TreeController : BaseController
 {
+    private readonly FilterFactory _filterFactory;
+    private readonly SeriesFactory _seriesFactory;
+    private readonly FilterEvaluator _filterEvaluator;
     #region Import Folder
 
     /// <summary>
@@ -84,17 +87,17 @@ public class TreeController : BaseController
         [FromQuery] [Range(0, 100)] int pageSize = 50, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool showHidden = false)
     {
-        var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
-        if (groupFilter == null)
+        var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
+        if (filterPreset == null)
             return NotFound(FilterController.FilterNotFound);
 
-        if (!groupFilter.IsDirectory)
+        if (!filterPreset.IsDirectory())
             return new ListResult<Filter>();
 
-        return RepoFactory.GroupFilter.GetByParentID(filterID)
-            .Where(filter => showHidden || !filter.IsHidden)
-            .OrderBy(filter => filter.GroupFilterName)
-            .ToListResult(filter => new Filter(HttpContext, filter), page, pageSize);
+        return RepoFactory.FilterPreset.GetByParentID(filterID)
+            .Where(filter => showHidden || !filter.Hidden)
+            .OrderBy(filter => filter.Name)
+            .ToListResult(filter => _filterFactory.GetFilter(filter), page, pageSize);
     }
 
     /// <summary>
@@ -137,30 +140,29 @@ public class TreeController : BaseController
         }
         else
         {
-            var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
-            if (groupFilter == null)
+            var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
+            if (filterPreset == null)
                 return NotFound(FilterController.FilterNotFound);
 
             // Directories should only contain sub-filters, not groups and series.
-            if (groupFilter.IsDirectory)
+            if (filterPreset.IsDirectory())
                 return new ListResult<Group>();
 
-            // Fast path when user is not in the filter
-            if (!groupFilter.GroupsIds.TryGetValue(User.JMMUserID, out var groupIds))
-                return new ListResult<Group>();
+            // Gets Group and Series IDs in a filter, already sorted by the filter
+            var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID);
+            if (!results.Any()) return new ListResult<Group>();
 
-            groups = groupIds
-                .Select(group => RepoFactory.AnimeGroup.GetByID(group))
+            groups = results
+                .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key))
                 .Where(group =>
                 {
+                    // not top level groups
                     if (group == null || group.AnimeGroupParentID.HasValue)
                         return false;
 
                     return includeEmpty || group.GetAllSeries()
                         .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
                 });
-            groups = orderByName ? groups.OrderBy(group => group.GetSortName()) :
-                groups.OrderByGroupFilter(groupFilter);
         }
 
         return groups
@@ -186,23 +188,24 @@ public class TreeController : BaseController
         var user = User;
         if (filterID.HasValue && filterID > 0)
         {
-            var groupFilter = RepoFactory.GroupFilter.GetByID(filterID.Value);
-            if (groupFilter == null)
+            var filterPreset = RepoFactory.FilterPreset.GetByID(filterID.Value);
+            if (filterPreset == null)
                 return NotFound(FilterController.FilterNotFound);
 
             // Directories should only contain sub-filters, not groups and series.
-            if (groupFilter.IsDirectory)
+            if (filterPreset.IsDirectory())
                 return new Dictionary<char, int>();
 
             // Fast path when user is not in the filter
-            if (!groupFilter.GroupsIds.TryGetValue(user.JMMUserID, out var groupIds))
+            var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
+            if (results.Length == 0)
                 return new Dictionary<char, int>();
 
-            return groupIds
-                .Select(group => RepoFactory.AnimeGroup.GetByID(group))
+            return results
+                .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key))
                 .Where(group =>
                 {
-                    if (group == null || group.AnimeGroupParentID.HasValue)
+                    if (group is not { AnimeGroupParentID: null })
                         return false;
 
                     return includeEmpty || group.GetAllSeries()
@@ -257,32 +260,26 @@ public class TreeController : BaseController
             return RepoFactory.AnimeSeries.GetAll()
                 .Where(series => user.AllowedSeries(series) && (includeMissing || series.GetVideoLocals().Count > 0))
                 .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
-                .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
+                .ToListResult(series => _seriesFactory.GetSeries(series, randomImages), page, pageSize);
 
         // Check if the group filter exists.
-        var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
-        if (groupFilter == null)
+        var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
+        if (filterPreset == null)
             return NotFound(FilterController.FilterNotFound);
 
         // Directories should only contain sub-filters, not groups and series.
-        if (groupFilter.IsDirectory)
+        if (filterPreset.IsDirectory())
             return new ListResult<Series>();
 
-        // Return all series if group filter is not applied to series.
-        if (groupFilter.ApplyToSeries != 1)
-            return RepoFactory.AnimeSeries.GetAll()
-                .Where(series => user.AllowedSeries(series) && (includeMissing || series.GetVideoLocals().Count > 0))
-                .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
-                .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
-
-        // Return early if every series will be filtered out.
-        if (!groupFilter.SeriesIds.TryGetValue(user.JMMUserID, out var seriesIDs))
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
+        if (results.Length == 0)
             return new ListResult<Series>();
 
-        return seriesIDs.Select(id => RepoFactory.AnimeSeries.GetByID(id))
+        // We don't need separate logic for ApplyAtSeriesLevel, as the FilterEvaluator handles that
+        return results.SelectMany(a => a.Select(id => RepoFactory.AnimeSeries.GetByID(id)))
             .Where(series => series != null && user.AllowedSeries(series) && (includeMissing || series.GetVideoLocals().Count > 0))
             .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
-            .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
+            .ToListResult(series => _seriesFactory.GetSeries(series, randomImages), page, pageSize);
     }
 
     /// <summary>
@@ -305,8 +302,8 @@ public class TreeController : BaseController
         if (filterID == 0)
             return GetSubGroups(groupID, randomImages, includeEmpty);
 
-        var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
-        if (groupFilter == null)
+        var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
+        if (filterPreset == null)
             return NotFound(FilterController.FilterNotFound);
 
         // Check if the group exists.
@@ -319,13 +316,19 @@ public class TreeController : BaseController
             return Forbid(GroupController.GroupForbiddenForUser);
 
         // Directories should only contain sub-filters, not groups and series.
-        if (groupFilter.IsDirectory)
+        if (filterPreset.IsDirectory())
             return new List<Group>();
 
         // Just return early because the every group will be filtered out.
-        if (!groupFilter.SeriesIds.TryGetValue(user.JMMUserID, out var seriesIDs))
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
+        if (results.Length == 0)
             return new List<Group>();
-
+        
+        // Subgroups are weird. We'll take the group, build a set of all subgroup IDs, and use that to determine if a group should be included
+        // This should maintain the order of results, but have every group in the tree for those results
+        var orderedGroups = results.SelectMany(a => RepoFactory.AnimeGroup.GetByID(a.Key).TopLevelAnimeGroup.GetAllChildGroups().Select(b => b.AnimeGroupID)).ToArray();
+        var groups = orderedGroups.ToHashSet();
+        
         return group.GetChildGroups()
             .Where(subGroup =>
             {
@@ -339,13 +342,10 @@ public class TreeController : BaseController
                         .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0)))
                     return false;
 
-                if (groupFilter.ApplyToSeries != 1)
-                    return true;
-
-                return subGroup.GetAllSeries().Any(series => seriesIDs.Contains(series.AnimeSeriesID));
+                return groups.Contains(subGroup.AnimeGroupID);
             })
-            .OrderByGroupFilter(groupFilter)
-            .Select(group => new Group(HttpContext, group, randomImages))
+            .OrderBy(a => Array.IndexOf(orderedGroups, a.AnimeGroupID))
+            .Select(g => new Group(HttpContext, g, randomImages))
             .ToList();
     }
 
@@ -375,11 +375,11 @@ public class TreeController : BaseController
             return GetSeriesInGroup(groupID, recursive, includeMissing, randomImages, includeDataFrom);
 
         // Check if the group filter exists.
-        var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
-        if (groupFilter == null)
+        var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
+        if (filterPreset == null)
             return NotFound(FilterController.FilterNotFound);
 
-        if (groupFilter.ApplyToSeries != 1)
+        if (!filterPreset.ApplyAtSeriesLevel)
             return GetSeriesInGroup(groupID, recursive, includeMissing, randomImages);
 
         // Check if the group exists.
@@ -392,18 +392,23 @@ public class TreeController : BaseController
             return Forbid(GroupController.GroupForbiddenForUser);
 
         // Directories should only contain sub-filters, not groups and series.
-        if (groupFilter.IsDirectory)
+        if (filterPreset.IsDirectory())
             return new List<Series>();
 
         // Just return early because the every series will be filtered out.
-        if (!groupFilter.SeriesIds.TryGetValue(user.JMMUserID, out var seriesIDs))
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
+        if (results.Length == 0)
             return new List<Series>();
 
-        return (recursive ? group.GetAllSeries() : group.GetSeries())
-            .Where(series => seriesIDs.Contains(series.AnimeSeriesID))
-            .OrderBy(series => series.GetAnime()?.AirDate ?? DateTime.MaxValue)
-            .Select(series => new Series(HttpContext, series, randomImages, includeDataFrom))
-            .Where(series => series.Size > 0 || includeMissing)
+        var seriesIDs = recursive
+            ? group.GetAllChildGroups().SelectMany(a => results.FirstOrDefault(b => b.Key == a.AnimeGroupID))
+            : results.FirstOrDefault(a => a.Key == groupID);
+
+        var series = seriesIDs?.Select(a => RepoFactory.AnimeSeries.GetByID(a)).Where(a => a.GetVideoLocals().Any() || includeMissing) ??
+                     Array.Empty<SVR_AnimeSeries>();
+
+        return series
+            .Select(a => _seriesFactory.GetSeries(a, randomImages, includeDataFrom))
             .ToList();
     }
 
@@ -485,7 +490,7 @@ public class TreeController : BaseController
         return (recursive ? group.GetAllSeries() : group.GetSeries())
             .Where(a => user.AllowedSeries(a))
             .OrderBy(series => series.GetAnime()?.AirDate ?? DateTime.MaxValue)
-            .Select(series => new Series(HttpContext, series, randomImages, includeDataFrom))
+            .Select(series => _seriesFactory.GetSeries(series, randomImages, includeDataFrom))
             .Where(series => series.Size > 0 || includeMissing)
             .ToList();
     }
@@ -525,7 +530,7 @@ public class TreeController : BaseController
             return InternalError("Unable to find main series for group.");
         }
 
-        return new Series(HttpContext, mainSeries, randomImages, includeDataFrom);
+        return _seriesFactory.GetSeries(mainSeries, randomImages, includeDataFrom);
     }
 
     #endregion
@@ -905,7 +910,10 @@ public class TreeController : BaseController
 
     #endregion
 
-    public TreeController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    public TreeController(ISettingsProvider settingsProvider, FilterFactory filterFactory, FilterEvaluator filterEvaluator, SeriesFactory seriesFactory) : base(settingsProvider)
     {
+        _filterFactory = filterFactory;
+        _filterEvaluator = filterEvaluator;
+        _seriesFactory = seriesFactory;
     }
 }

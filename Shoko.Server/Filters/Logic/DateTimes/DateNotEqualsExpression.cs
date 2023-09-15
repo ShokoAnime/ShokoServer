@@ -1,21 +1,22 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.DateTimes;
 
-public class GreaterThanEqualExpression : FilterExpression<bool>
+public class DateNotEqualsExpression : FilterExpression<bool>, IWithDateSelectorParameter, IWithSecondDateSelectorParameter, IWithDateParameter
 {
-    public GreaterThanEqualExpression(FilterExpression<DateTime?> left, FilterExpression<DateTime?> right)
+    public DateNotEqualsExpression(FilterExpression<DateTime?> left, FilterExpression<DateTime?> right)
     {
         Left = left;
         Right = right;
     }
-    public GreaterThanEqualExpression(FilterExpression<DateTime?> left, DateTime parameter)
+    public DateNotEqualsExpression(FilterExpression<DateTime?> left, DateTime parameter)
     {
         Left = left;
         Parameter = parameter;
     }
-    public GreaterThanEqualExpression() { }
-
+    public DateNotEqualsExpression() { }
+    
     public FilterExpression<DateTime?> Left { get; set; }
     public FilterExpression<DateTime?> Right { get; set; }
     public DateTime Parameter { get; set; }
@@ -30,23 +31,23 @@ public class GreaterThanEqualExpression : FilterExpression<bool>
         var operandIsNull = operand == null || operand.Value == DateTime.MinValue || operand.Value == DateTime.MaxValue || operand.Value == DateTime.UnixEpoch;
         if (dateIsNull && operandIsNull)
         {
-            return true;
+            return false;
         }
 
         if (dateIsNull)
         {
-            return false;
+            return true;
         }
 
         if (operandIsNull)
         {
-            return false;
+            return true;
         }
 
-        return date >= operand;
+        return (date > operand ? date - operand : operand - date).Value.TotalDays >= 1;
     }
 
-    protected bool Equals(GreaterThanEqualExpression other)
+    protected bool Equals(DateNotEqualsExpression other)
     {
         return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Parameter.Equals(other.Parameter);
     }
@@ -68,7 +69,7 @@ public class GreaterThanEqualExpression : FilterExpression<bool>
             return false;
         }
 
-        return Equals((GreaterThanEqualExpression)obj);
+        return Equals((DateNotEqualsExpression)obj);
     }
 
     public override int GetHashCode()
@@ -76,12 +77,12 @@ public class GreaterThanEqualExpression : FilterExpression<bool>
         return HashCode.Combine(base.GetHashCode(), Left, Right, Parameter);
     }
 
-    public static bool operator ==(GreaterThanEqualExpression left, GreaterThanEqualExpression right)
+    public static bool operator ==(DateNotEqualsExpression left, DateNotEqualsExpression right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(GreaterThanEqualExpression left, GreaterThanEqualExpression right)
+    public static bool operator !=(DateNotEqualsExpression left, DateNotEqualsExpression right)
     {
         return !Equals(left, right);
     }

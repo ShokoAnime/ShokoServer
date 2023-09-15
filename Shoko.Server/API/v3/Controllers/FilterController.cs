@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Caching.Memory;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
@@ -14,6 +12,7 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -26,11 +25,15 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class FilterController : BaseController
 {
-    private static IMemoryCache PreviewCache = new MemoryCache(new MemoryCacheOptions() {
+    private static readonly IMemoryCache PreviewCache = new MemoryCache(new MemoryCacheOptions() {
         ExpirationScanFrequency = TimeSpan.FromMinutes(50),
     });
 
     internal const string FilterNotFound = "No Filter entry for the given filterID";
+
+    private readonly FilterFactory _factory;
+    private readonly SeriesFactory _seriesFactory;
+    private readonly FilterEvaluator _filterEvaluator;
 
     #region Existing Filters
 
@@ -49,25 +52,21 @@ public class FilterController : BaseController
         [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool withConditions = false)
     {
         var user = User;
-        return RepoFactory.GroupFilter.GetTopLevel()
+        return RepoFactory.FilterPreset.GetTopLevel()
             .Where(filter =>
             {
-                if (!showHidden && filter.IsHidden)
+                if (!showHidden && filter.Hidden)
                     return false;
 
-                if (includeEmpty || (filter.IsDirectory ? (
-                        // Check if the directory filter have any sub-directories
-                        RepoFactory.GroupFilter.GetByParentID(filter.GroupFilterID).Count > 0
-                    ) : (
-                        // Check if the filter have any groups for the current user.
-                        filter.GroupsIds.ContainsKey(user.JMMUserID) && filter.GroupsIds[user.JMMUserID].Count > 0
-                    )))
+                if (includeEmpty || (filter.IsDirectory()
+                        ? RepoFactory.FilterPreset.GetByParentID(filter.FilterPresetID).Count > 0
+                        : _filterEvaluator.EvaluateFilter(filter, user.JMMUserID).Any()))
                     return true;
 
                 return false;
             })
-            .OrderBy(filter => filter.GroupFilterName)
-            .ToListResult(filter => new Filter(HttpContext, filter, withConditions), page, pageSize);
+            .OrderBy(filter => filter.Name)
+            .ToListResult(filter => _factory.GetFilter(filter, withConditions), page, pageSize);
     }
 
     /// <summary>
@@ -79,8 +78,8 @@ public class FilterController : BaseController
     [HttpPost]
     public ActionResult<Filter> AddNewFilter(Filter.Input.CreateOrUpdateFilterBody body)
     {
-        var groupFilter = new SVR_GroupFilter { FilterType = (int)GroupFilterType.UserDefined };
-        var filter = body.MergeWithExisting(HttpContext, groupFilter, ModelState);
+        var filterPreset = new FilterPreset { FilterType = GroupFilterType.UserDefined };
+        var filter = _factory.MergeWithExisting(body, filterPreset, ModelState);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -96,11 +95,11 @@ public class FilterController : BaseController
     [HttpGet("{filterID}")]
     public ActionResult<Filter> GetFilter([FromRoute] int filterID, [FromQuery] bool withConditions = false)
     {
-        var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
-        if (groupFilter == null)
+        var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
+        if (filterPreset == null)
             return NotFound(FilterNotFound);
 
-        return new Filter(HttpContext, groupFilter, withConditions);
+        return _factory.GetFilter(filterPreset, withConditions);
     }
 
     /// <summary>
@@ -114,16 +113,16 @@ public class FilterController : BaseController
     [HttpPatch("{filterID}")]
     public ActionResult<Filter> PatchFilter([FromRoute] int filterID, JsonPatchDocument<Filter.Input.CreateOrUpdateFilterBody> document)
     {
-        var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
-        if (groupFilter == null)
+        var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
+        if (filterPreset == null)
             return NotFound(FilterNotFound);
 
-        var body = new Filter.Input.CreateOrUpdateFilterBody(groupFilter);
+        var body = _factory.CreateOrUpdateFilterBody(filterPreset);
         document.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var filter = body.MergeWithExisting(HttpContext, groupFilter, ModelState);
+        var filter = _factory.MergeWithExisting(body, filterPreset, ModelState);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -140,11 +139,11 @@ public class FilterController : BaseController
     [HttpPut("{filterID}")]
     public ActionResult<Filter> PutFilter([FromRoute] int filterID, Filter.Input.CreateOrUpdateFilterBody body)
     {
-        var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
-        if (groupFilter == null)
+        var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
+        if (filterPreset == null)
             return NotFound(FilterNotFound);
 
-        var filter = body.MergeWithExisting(HttpContext, groupFilter, ModelState);
+        var filter = _factory.MergeWithExisting(body, filterPreset, ModelState);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -160,11 +159,11 @@ public class FilterController : BaseController
     [HttpDelete("{filterID}")]
     public ActionResult DeleteFilter(int filterID)
     {
-        var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
-        if (groupFilter == null)
+        var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
+        if (filterPreset == null)
             return NotFound(FilterNotFound);
 
-        RepoFactory.GroupFilter.Delete(groupFilter);
+        RepoFactory.FilterPreset.Delete(filterPreset);
 
         return NoContent();
     }
@@ -175,34 +174,29 @@ public class FilterController : BaseController
     #region Preview/On-the-fly Filter
 
     [NonAction]
-    internal static SVR_GroupFilter GetDefaultFilterForUser(SVR_JMMUser user)
+    internal static FilterPreset GetDefaultFilterForUser(SVR_JMMUser user)
     {
 
-        var groupFilter = new SVR_GroupFilter
+        var filterPreset = new FilterPreset
         {
-            FilterType = (int)GroupFilterType.UserDefined,
-            GroupFilterName = "Live Filtering",
-            InvisibleInClients = 0,
-            ApplyToSeries = 0,
-            BaseCondition = (int)GroupFilterBaseCondition.Include,
-            Conditions = new(),
-            SortCriteriaList = new(),
+            FilterType = GroupFilterType.UserDefined,
+            Name = "Live Filtering",
         };
 
         // TODO: Update default filter for user here.
 
-        return groupFilter;
+        return filterPreset;
     }
 
     [NonAction]
-    internal static SVR_GroupFilter GetPreviewFilterForUser(SVR_JMMUser user)
+    internal static FilterPreset GetPreviewFilterForUser(SVR_JMMUser user)
     {
         var userId = user.JMMUserID;
         var key = $"User={userId}";
-        if (!PreviewCache.TryGetValue(key, out SVR_GroupFilter groupFilter))
-            groupFilter = PreviewCache.Set(key, GetDefaultFilterForUser(user), new MemoryCacheEntryOptions() { SlidingExpiration = TimeSpan.FromHours(1) });
+        if (!PreviewCache.TryGetValue(key, out FilterPreset filterPreset))
+            filterPreset = PreviewCache.Set(key, GetDefaultFilterForUser(user), new MemoryCacheEntryOptions() { SlidingExpiration = TimeSpan.FromHours(1) });
 
-        return groupFilter;
+        return filterPreset;
     }
 
     [NonAction]
@@ -210,7 +204,7 @@ public class FilterController : BaseController
     {
         var userId = user.JMMUserID;
         var key = $"User={userId}";
-        if (!PreviewCache.TryGetValue(key, out SVR_GroupFilter groupFilter))
+        if (!PreviewCache.TryGetValue(key, out FilterPreset _))
             return false;
 
         PreviewCache.Remove(key);
@@ -225,8 +219,8 @@ public class FilterController : BaseController
     [HttpGet("Preview")]
     public ActionResult<Filter.Input.CreateOrUpdateFilterBody> GetPreviewFilter()
     {
-        var groupFilter = GetPreviewFilterForUser(User);
-        return new Filter.Input.CreateOrUpdateFilterBody(groupFilter);
+        var filterPreset = GetPreviewFilterForUser(User);
+        return _factory.CreateOrUpdateFilterBody(filterPreset);
     }
 
     /// <summary>
@@ -238,18 +232,18 @@ public class FilterController : BaseController
     [HttpPatch("Preview")]
     public ActionResult<Filter.Input.CreateOrUpdateFilterBody> PatchPreviewFilter([FromBody] JsonPatchDocument<Filter.Input.CreateOrUpdateFilterBody> document)
     {
-        var groupFilter = GetPreviewFilterForUser(User);
+        var filterPreset = GetPreviewFilterForUser(User);
 
-        var body = new Filter.Input.CreateOrUpdateFilterBody(groupFilter);
+        var body = _factory.CreateOrUpdateFilterBody(filterPreset);
         document.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var filter = body.MergeWithExisting(HttpContext, groupFilter, ModelState, true);
+        var filter = _factory.MergeWithExisting(body, filterPreset, ModelState, true);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        return new Filter.Input.CreateOrUpdateFilterBody(groupFilter);
+        return _factory.CreateOrUpdateFilterBody(filterPreset);
     }
 
     /// <summary>
@@ -260,12 +254,12 @@ public class FilterController : BaseController
     [HttpPut("Preview")]
     public ActionResult<Filter.Input.CreateOrUpdateFilterBody> PutPreviewFilter([FromBody] Filter.Input.CreateOrUpdateFilterBody body)
     {
-        var groupFilter = GetPreviewFilterForUser(User);
-        var filter = body.MergeWithExisting(HttpContext, groupFilter, ModelState, true);
+        var filterPreset = GetPreviewFilterForUser(User);
+        var filter = _factory.MergeWithExisting(body, filterPreset, ModelState, true);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        return new Filter.Input.CreateOrUpdateFilterBody(groupFilter);
+        return _factory.CreateOrUpdateFilterBody(filterPreset);
     }
 
     /// <summary>
@@ -294,30 +288,25 @@ public class FilterController : BaseController
         [FromQuery] bool includeEmpty = false, [FromQuery] bool randomImages = false, [FromQuery] bool orderByName = false)
     {
         // Directories should only contain sub-filters, not groups and series.
-        var groupFilter = GetPreviewFilterForUser(User);
-        if (groupFilter.IsDirectory)
+        var filterPreset = GetPreviewFilterForUser(User);
+        if (filterPreset.IsDirectory())
             return new ListResult<Group>();
 
         // Fast path when user is not in the filter.
-        if (!groupFilter.GroupsIds.TryGetValue(User.JMMUserID, out var groupIds))
-            return new ListResult<Group>();
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID);
+        if (!results.Any()) return new ListResult<Group>();
 
-        var groups = groupIds
-            .Select(group => RepoFactory.AnimeGroup.GetByID(group))
+        var groups = results
+            .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key))
             .Where(group =>
             {
+                // not top level groups
                 if (group == null || group.AnimeGroupParentID.HasValue)
-                {
                     return false;
-                }
 
                 return includeEmpty || group.GetAllSeries()
                     .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
             });
-
-        groups = orderByName ? groups.OrderBy(group => group.GetSortName()) :
-            groups.OrderByGroupFilter(groupFilter);
-
         return groups
             .ToListResult(group => new Group(HttpContext, group, randomImages), page, pageSize);
     }
@@ -334,19 +323,20 @@ public class FilterController : BaseController
     {
         // Directories should only contain sub-filters, not groups and series.
         var user = User;
-        var groupFilter = GetPreviewFilterForUser(user);
-        if (groupFilter.IsDirectory)
+        var filterPreset = GetPreviewFilterForUser(user);
+        if (filterPreset.IsDirectory())
             return new Dictionary<char, int>();
 
         // Fast path when user is not in the filter
-        if (!groupFilter.GroupsIds.TryGetValue(user.JMMUserID, out var groupIds))
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
+        if (results.Length == 0)
             return new Dictionary<char, int>();
 
-        return groupIds
-            .Select(group => RepoFactory.AnimeGroup.GetByID(group))
+        return results
+            .Select(group => RepoFactory.AnimeGroup.GetByID(group.Key))
             .Where(group =>
             {
-                if (group == null || group.AnimeGroupParentID.HasValue)
+                if (group is not { AnimeGroupParentID: null })
                     return false;
 
                 return includeEmpty || group.GetAllSeries()
@@ -373,25 +363,20 @@ public class FilterController : BaseController
     {
         // Directories should only contain sub-filters, not groups and series.
         var user = User;
-        var groupFilter = GetPreviewFilterForUser(user);
-        if (groupFilter.IsDirectory)
+        var filterPreset = GetPreviewFilterForUser(user);
+        if (filterPreset.IsDirectory())
             return new ListResult<Series>();
-
-        // Return all series if group filter is not applied to series.
-        if (groupFilter.ApplyToSeries != 1)
-            return RepoFactory.AnimeSeries.GetAll()
-                .Where(series => user.AllowedSeries(series) && (includeMissing || series.GetVideoLocals().Count > 0))
-                .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
-                .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
 
         // Return early if every series will be filtered out.
-        if (!groupFilter.SeriesIds.TryGetValue(user.JMMUserID, out var seriesIDs))
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
+        if (results.Length == 0)
             return new ListResult<Series>();
 
-        return seriesIDs.Select(id => RepoFactory.AnimeSeries.GetByID(id))
+        // We don't need separate logic for ApplyAtSeriesLevel, as the FilterEvaluator handles that
+        return results.SelectMany(a => a.Select(id => RepoFactory.AnimeSeries.GetByID(id)))
             .Where(series => series != null && user.AllowedSeries(series) && (includeMissing || series.GetVideoLocals().Count > 0))
             .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
-            .ToListResult(series => new Series(HttpContext, series, randomImages), page, pageSize);
+            .ToListResult(series => _seriesFactory.GetSeries(series, randomImages), page, pageSize);
     }
 
     /// <summary>
@@ -406,7 +391,7 @@ public class FilterController : BaseController
         [FromQuery] bool randomImages = false, [FromQuery] bool includeEmpty = false)
     {
         var user = User;
-        var groupFilter = GetPreviewFilterForUser(user);
+        var filterPreset = GetPreviewFilterForUser(user);
 
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -417,13 +402,19 @@ public class FilterController : BaseController
             return Forbid(GroupController.GroupForbiddenForUser);
 
         // Directories should only contain sub-filters, not groups and series.
-        if (groupFilter.IsDirectory)
+        if (filterPreset.IsDirectory())
             return new List<Group>();
 
         // Just return early because the every group will be filtered out.
-        if (!groupFilter.SeriesIds.TryGetValue(user.JMMUserID, out var seriesIDs))
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
+        if (results.Length == 0)
             return new List<Group>();
-
+        
+        // Subgroups are weird. We'll take the group, build a set of all subgroup IDs, and use that to determine if a group should be included
+        // This should maintain the order of results, but have every group in the tree for those results
+        var orderedGroups = results.SelectMany(a => RepoFactory.AnimeGroup.GetByID(a.Key).TopLevelAnimeGroup.GetAllChildGroups().Select(b => b.AnimeGroupID)).ToArray();
+        var groups = orderedGroups.ToHashSet();
+        
         return group.GetChildGroups()
             .Where(subGroup =>
             {
@@ -437,13 +428,10 @@ public class FilterController : BaseController
                         .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0)))
                     return false;
 
-                if (groupFilter.ApplyToSeries != 1)
-                    return true;
-
-                return subGroup.GetAllSeries().Any(series => seriesIDs.Contains(series.AnimeSeriesID));
+                return groups.Contains(subGroup.AnimeGroupID);
             })
-            .OrderByGroupFilter(groupFilter)
-            .Select(group => new Group(HttpContext, group, randomImages))
+            .OrderBy(a => Array.IndexOf(orderedGroups, a.AnimeGroupID))
+            .Select(g => new Group(HttpContext, g, randomImages))
             .ToList();
     }
 
@@ -462,7 +450,7 @@ public class FilterController : BaseController
         [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var user = User;
-        var groupFilter = GetPreviewFilterForUser(user);
+        var filterPreset = GetPreviewFilterForUser(user);
 
         // Check if the group exists.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -473,32 +461,40 @@ public class FilterController : BaseController
             return Forbid(GroupController.GroupForbiddenForUser);
 
         // Directories should only contain sub-filters, not groups and series.
-        if (groupFilter.IsDirectory)
+        if (filterPreset.IsDirectory())
             return new List<Series>();
 
-        if (groupFilter.ApplyToSeries != 1)
+        if (!filterPreset.ApplyAtSeriesLevel)
             return (recursive ? group.GetAllSeries() : group.GetSeries())
                 .Where(a => user.AllowedSeries(a))
                 .OrderBy(series => series.GetAnime()?.AirDate ?? DateTime.MaxValue)
-                .Select(series => new Series(HttpContext, series, randomImages, includeDataFrom))
+                .Select(series => _seriesFactory.GetSeries(series, randomImages, includeDataFrom))
                 .Where(series => series.Size > 0 || includeMissing)
                 .ToList();
 
         // Just return early because the every series will be filtered out.
-        if (!groupFilter.SeriesIds.TryGetValue(user.JMMUserID, out var seriesIDs))
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
+        if (results.Length == 0)
             return new List<Series>();
 
-        return (recursive ? group.GetAllSeries() : group.GetSeries())
-            .Where(series => seriesIDs.Contains(series.AnimeSeriesID))
-            .OrderBy(series => series.GetAnime()?.AirDate ?? DateTime.MaxValue)
-            .Select(series => new Series(HttpContext, series, randomImages, includeDataFrom))
-            .Where(series => series.Size > 0 || includeMissing)
+        var seriesIDs = recursive
+            ? group.GetAllChildGroups().SelectMany(a => results.FirstOrDefault(b => b.Key == a.AnimeGroupID))
+            : results.FirstOrDefault(a => a.Key == groupID);
+
+        var series = seriesIDs?.Select(a => RepoFactory.AnimeSeries.GetByID(a)).Where(a => a.GetVideoLocals().Any() || includeMissing) ??
+                     Array.Empty<SVR_AnimeSeries>();
+
+        return series
+            .Select(a => _seriesFactory.GetSeries(a, randomImages, includeDataFrom))
             .ToList();
     }
 
     #endregion
 
-    public FilterController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    public FilterController(ISettingsProvider settingsProvider, FilterFactory factory, SeriesFactory seriesFactory, FilterEvaluator filterEvaluator) : base(settingsProvider)
     {
+        _factory = factory;
+        _seriesFactory = seriesFactory;
+        _filterEvaluator = filterEvaluator;
     }
 }

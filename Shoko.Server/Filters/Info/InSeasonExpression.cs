@@ -1,9 +1,10 @@
 using System;
 using Shoko.Models.Enums;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Info;
 
-public class InSeasonExpression : FilterExpression<bool>
+public class InSeasonExpression : FilterExpression<bool>, IWithNumberParameter, IWithSecondStringParameter
 {
     public InSeasonExpression(int year, AnimeSeason season)
     {
@@ -16,6 +17,18 @@ public class InSeasonExpression : FilterExpression<bool>
     public AnimeSeason Season { get; set; }
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
+    
+    double? IWithNumberParameter.Parameter
+    {
+        get => Year;
+        set => Year = value.HasValue ? (int)value.Value : 0;
+    }
+
+    string IWithSecondStringParameter.SecondParameter
+    {
+        get => Season.ToString();
+        set => Season = Enum.Parse<AnimeSeason>(value);
+    }
 
     public override bool Evaluate(Filterable filterable)
     {

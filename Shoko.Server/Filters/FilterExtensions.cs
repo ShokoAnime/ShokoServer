@@ -13,7 +13,7 @@ namespace Shoko.Server.Filters;
 
 public static class FilterExtensions
 {
-    public static bool IsDirectory(this Filter filter) => (filter.FilterType & GroupFilterType.Directory) != 0;
+    public static bool IsDirectory(this FilterPreset filter) => (filter.FilterType & GroupFilterType.Directory) != 0;
     
     public static Filterable ToFilterable(this SVR_AnimeSeries series)
     {

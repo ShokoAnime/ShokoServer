@@ -339,7 +339,7 @@ public static class ModelHelper
         foreach (var series in seriesList)
         {
             var anime = series.GetAnime();
-            switch (Series.GetAniDBSeriesType(anime?.AnimeType))
+            switch (SeriesFactory.GetAniDBSeriesType(anime?.AnimeType))
             {
                 case SeriesType.Unknown:
                     sizes.SeriesTypes.Unknown++;

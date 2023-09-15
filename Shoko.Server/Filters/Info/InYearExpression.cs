@@ -1,8 +1,9 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Info;
 
-public class InYearExpression : FilterExpression<bool>
+public class InYearExpression : FilterExpression<bool>, IWithNumberParameter
 {
     public InYearExpression(int parameter)
     {
@@ -13,6 +14,12 @@ public class InYearExpression : FilterExpression<bool>
     public int Parameter { get; set; }
     public override bool TimeDependent => true;
     public override bool UserDependent => false;
+
+    double? IWithNumberParameter.Parameter
+    {
+        get => Parameter;
+        set => Parameter = value.HasValue ? (int)value.Value : 0;
+    }
 
     public override bool Evaluate(Filterable filterable)
     {

@@ -1,20 +1,21 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Numbers;
 
-public class GreaterThanExpression : FilterExpression<bool>
+public class NumberEqualsExpression : FilterExpression<bool>, IWithNumberSelectorParameter, IWithSecondNumberSelectorParameter, IWithNumberParameter
 {
-    public GreaterThanExpression(FilterExpression<double> left, FilterExpression<double> right)
+    public NumberEqualsExpression(FilterExpression<double> left, FilterExpression<double> right)
     {
         Left = left;
         Right = right;
     }
-    public GreaterThanExpression(FilterExpression<double> left, double parameter)
+    public NumberEqualsExpression(FilterExpression<double> left, double parameter)
     {
         Left = left;
         Parameter = parameter;
     }
-    public GreaterThanExpression() { }
+    public NumberEqualsExpression() { }
     
     public FilterExpression<double> Left { get; set; }
     public FilterExpression<double> Right { get; set; }
@@ -26,10 +27,10 @@ public class GreaterThanExpression : FilterExpression<bool>
     {
         var left = Left.Evaluate(filterable);
         var right = Parameter ?? Right.Evaluate(filterable);
-        return left > right;
+        return Math.Abs(left - right) < 0.001D;
     }
 
-    protected bool Equals(GreaterThanExpression other)
+    protected bool Equals(NumberEqualsExpression other)
     {
         return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Nullable.Equals(Parameter, other.Parameter);
     }
@@ -51,7 +52,7 @@ public class GreaterThanExpression : FilterExpression<bool>
             return false;
         }
 
-        return Equals((GreaterThanExpression)obj);
+        return Equals((NumberEqualsExpression)obj);
     }
 
     public override int GetHashCode()
@@ -59,12 +60,12 @@ public class GreaterThanExpression : FilterExpression<bool>
         return HashCode.Combine(base.GetHashCode(), Left, Right, Parameter);
     }
 
-    public static bool operator ==(GreaterThanExpression left, GreaterThanExpression right)
+    public static bool operator ==(NumberEqualsExpression left, NumberEqualsExpression right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(GreaterThanExpression left, GreaterThanExpression right)
+    public static bool operator !=(NumberEqualsExpression left, NumberEqualsExpression right)
     {
         return !Equals(left, right);
     }

@@ -1,20 +1,21 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.DateTimes;
 
-public class LessThanExpression : FilterExpression<bool>
+public class DateLessThanEqualsExpression : FilterExpression<bool>, IWithDateSelectorParameter, IWithSecondDateSelectorParameter, IWithDateParameter
 {
-    public LessThanExpression(FilterExpression<DateTime?> left, FilterExpression<DateTime?> right)
+    public DateLessThanEqualsExpression(FilterExpression<DateTime?> left, FilterExpression<DateTime?> right)
     {
         Left = left;
         Right = right;
     }
-    public LessThanExpression(FilterExpression<DateTime?> left, DateTime parameter)
+    public DateLessThanEqualsExpression(FilterExpression<DateTime?> left, DateTime parameter)
     {
         Left = left;
         Parameter = parameter;
     }
-    public LessThanExpression() { }
+    public DateLessThanEqualsExpression() { }
     
     public FilterExpression<DateTime?> Left { get; set; }
     public FilterExpression<DateTime?> Right { get; set; }
@@ -25,28 +26,21 @@ public class LessThanExpression : FilterExpression<bool>
     public override bool Evaluate(Filterable filterable)
     {
         var date = Left.Evaluate(filterable);
-        var dateIsNull = date == null || date.Value == DateTime.MinValue || date.Value == DateTime.MaxValue || date.Value == DateTime.UnixEpoch;
+        if (date == null || date.Value == DateTime.MinValue || date.Value == DateTime.MaxValue || date.Value == DateTime.UnixEpoch)
+        {
+            return false;
+        }
+
         var operand = Right == null ? Parameter : Right.Evaluate(filterable);
-        var operandIsNull = operand == null || operand.Value == DateTime.MinValue || operand.Value == DateTime.MaxValue || operand.Value == DateTime.UnixEpoch;
-        if (dateIsNull && operandIsNull)
-        {
-            return true;
-        }
-
-        if (dateIsNull)
+        if (operand == null || operand.Value == DateTime.MinValue || operand.Value == DateTime.MaxValue || operand.Value == DateTime.UnixEpoch)
         {
             return false;
         }
 
-        if (operandIsNull)
-        {
-            return false;
-        }
-
-        return date < operand;
+        return date <= operand;
     }
 
-    protected bool Equals(LessThanExpression other)
+    protected bool Equals(DateLessThanEqualsExpression other)
     {
         return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Parameter.Equals(other.Parameter);
     }
@@ -68,7 +62,7 @@ public class LessThanExpression : FilterExpression<bool>
             return false;
         }
 
-        return Equals((LessThanExpression)obj);
+        return Equals((DateLessThanEqualsExpression)obj);
     }
 
     public override int GetHashCode()
@@ -76,12 +70,12 @@ public class LessThanExpression : FilterExpression<bool>
         return HashCode.Combine(base.GetHashCode(), Left, Right, Parameter);
     }
 
-    public static bool operator ==(LessThanExpression left, LessThanExpression right)
+    public static bool operator ==(DateLessThanEqualsExpression left, DateLessThanEqualsExpression right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(LessThanExpression left, LessThanExpression right)
+    public static bool operator !=(DateLessThanEqualsExpression left, DateLessThanEqualsExpression right)
     {
         return !Equals(left, right);
     }

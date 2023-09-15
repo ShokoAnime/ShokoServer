@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
@@ -23,6 +24,8 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class DashboardController : BaseController
 {
+    private readonly SeriesFactory _seriesFactory;
+    
     /// <summary>
     /// Get the counters of various collection stats
     /// </summary>
@@ -327,14 +330,14 @@ public class DashboardController : BaseController
         if (pageSize <= 0)
         {
             return seriesList
-                .Select(a => new Series(HttpContext, a))
+                .Select(a => _seriesFactory.GetSeries(a))
                 .ToList();
         }
 
         return seriesList
             .Skip(pageSize * (page - 1))
             .Take(pageSize)
-            .Select(a => new Series(HttpContext, a))
+            .Select(a => _seriesFactory.GetSeries(a))
             .ToList();
     }
 
@@ -499,7 +502,8 @@ public class DashboardController : BaseController
             .ToList();
     }
 
-    public DashboardController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    public DashboardController(ISettingsProvider settingsProvider, SeriesFactory seriesFactory) : base(settingsProvider)
     {
+        _seriesFactory = seriesFactory;
     }
 }

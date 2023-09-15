@@ -1,8 +1,9 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Info;
 
-public class HasCustomTagExpression : FilterExpression<bool>
+public class HasCustomTagExpression : FilterExpression<bool>, IWithStringParameter
 {
     public HasCustomTagExpression(string parameter)
     {

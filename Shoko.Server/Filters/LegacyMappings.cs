@@ -8,12 +8,6 @@ using Shoko.Server.Filters.Logic.Numbers;
 using Shoko.Server.Filters.Logic.DateTimes;
 using Shoko.Server.Filters.Selectors;
 
-using DateGreaterEqual = Shoko.Server.Filters.Logic.DateTimes.GreaterThanEqualExpression;
-using DateGreater = Shoko.Server.Filters.Logic.DateTimes.GreaterThanExpression;
-using DateLess = Shoko.Server.Filters.Logic.DateTimes.LessThanExpression;
-using NumberGreater = Shoko.Server.Filters.Logic.Numbers.GreaterThanExpression;
-using NumberLess = Shoko.Server.Filters.Logic.Numbers.LessThanExpression;
-
 namespace Shoko.Server.Filters;
 
 public class LegacyMappings
@@ -109,7 +103,7 @@ public class LegacyMappings
                 {
                     if (!int.TryParse(parameter, out var lastX))
                         return suppressErrors ? null : throw new ArgumentException(@"Parameter is not a number", nameof(parameter));
-                    return new DateGreaterEqual(selector,
+                    return new DateGreaterThanEqualsExpression(selector,
                         new DateDiffFunction(new DateAddFunction(new TodayFunction(), TimeSpan.FromDays(1) - TimeSpan.FromMilliseconds(1)),
                             TimeSpan.FromDays(lastX)));
                 }
@@ -119,7 +113,7 @@ public class LegacyMappings
                         return suppressErrors
                             ? null
                             : throw new ArgumentException($@"Parameter {parameter} was not a date in format of yyyyMMdd", nameof(parameter));
-                    return new DateGreater(selector, date);
+                    return new DateGreaterThanExpression(selector, date);
                 }
             case GroupFilterOperator.LessThan:
                 {
@@ -127,7 +121,7 @@ public class LegacyMappings
                         return suppressErrors
                             ? null
                             : throw new ArgumentException($@"Parameter {parameter} was not a date in format of yyyyMMdd", nameof(parameter));
-                    return new DateGreater(selector, date);
+                    return new DateGreaterThanExpression(selector, date);
                 }
             default:
                 return suppressErrors
@@ -214,9 +208,9 @@ public class LegacyMappings
         {
             // These are reversed because we would consider that parameter is greater than the rating, but the expression takes a constant as the second operand
             case GroupFilterOperator.GreaterThan:
-                return new NumberLess(new HighestAniDBRatingSelector(), rating);
+                return new NumberLessThanExpression(new HighestAniDBRatingSelector(), rating);
             case GroupFilterOperator.LessThan:
-                return new NumberGreater(new HighestAniDBRatingSelector(), rating);
+                return new NumberGreaterThanExpression(new HighestAniDBRatingSelector(), rating);
             default:
                 return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Rating");
         }
@@ -230,9 +224,9 @@ public class LegacyMappings
         {
             // These are reversed because we would consider that parameter is greater than the rating, but the expression takes a constant as the second operand
             case GroupFilterOperator.GreaterThan:
-                return new NumberLess(new HighestUserRatingSelector(), rating);
+                return new NumberLessThanExpression(new HighestUserRatingSelector(), rating);
             case GroupFilterOperator.LessThan:
-                return new NumberGreater(new HighestUserRatingSelector(), rating);
+                return new NumberGreaterThanExpression(new HighestUserRatingSelector(), rating);
             default:
                 return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for User Rating");
         }
@@ -246,9 +240,9 @@ public class LegacyMappings
         {
             // These are reversed because we would consider that parameter is greater than the rating, but the expression takes a constant as the second operand
             case GroupFilterOperator.GreaterThan:
-                return new NumberLess(new EpisodeCountSelector(), count);
+                return new NumberLessThanExpression(new EpisodeCountSelector(), count);
             case GroupFilterOperator.LessThan:
-                return new NumberGreater(new HighestUserRatingSelector(), count);
+                return new NumberGreaterThanExpression(new HighestUserRatingSelector(), count);
             default:
                 return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Episode Count");
         }

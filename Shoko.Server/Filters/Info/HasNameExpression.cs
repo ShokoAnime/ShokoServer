@@ -1,8 +1,9 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Info;
 
-public class HasNameExpression : FilterExpression<bool>
+public class HasNameExpression : FilterExpression<bool>, IWithStringParameter
 {
     public HasNameExpression(string parameter)
     {

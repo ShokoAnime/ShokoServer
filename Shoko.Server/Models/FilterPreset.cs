@@ -3,11 +3,11 @@ using Shoko.Server.Filters;
 
 namespace Shoko.Server.Models;
 
-public class Filter
+public class FilterPreset
 {
-    public int FilterID { get; set; }
+    public int FilterPresetID { get; set; }
     //public virtual Filter Parent { get; set; }
-    public int? ParentFilterID { get; set; }
+    public int? ParentFilterPresetID { get; set; }
     public string Name { get; set; }
     public bool ApplyAtSeriesLevel { get; set; }
     public bool Locked { get; set; }

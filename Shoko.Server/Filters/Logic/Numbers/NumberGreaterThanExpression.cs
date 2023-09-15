@@ -1,20 +1,21 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Numbers;
 
-public class GreaterThanEqualExpression : FilterExpression<bool>
+public class NumberGreaterThanExpression : FilterExpression<bool>, IWithNumberSelectorParameter, IWithSecondNumberSelectorParameter, IWithNumberParameter
 {
-    public GreaterThanEqualExpression(FilterExpression<double> left, FilterExpression<double> right)
+    public NumberGreaterThanExpression(FilterExpression<double> left, FilterExpression<double> right)
     {
         Left = left;
         Right = right;
     }
-    public GreaterThanEqualExpression(FilterExpression<double> left, double parameter)
+    public NumberGreaterThanExpression(FilterExpression<double> left, double parameter)
     {
         Left = left;
         Parameter = parameter;
     }
-    public GreaterThanEqualExpression() { }
+    public NumberGreaterThanExpression() { }
     
     public FilterExpression<double> Left { get; set; }
     public FilterExpression<double> Right { get; set; }
@@ -26,10 +27,10 @@ public class GreaterThanEqualExpression : FilterExpression<bool>
     {
         var left = Left.Evaluate(filterable);
         var right = Parameter ?? Right.Evaluate(filterable);
-        return Math.Abs(left - right) < 0.001D || left > right;
+        return left > right;
     }
 
-    protected bool Equals(GreaterThanEqualExpression other)
+    protected bool Equals(NumberGreaterThanExpression other)
     {
         return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Nullable.Equals(Parameter, other.Parameter);
     }
@@ -51,7 +52,7 @@ public class GreaterThanEqualExpression : FilterExpression<bool>
             return false;
         }
 
-        return Equals((GreaterThanEqualExpression)obj);
+        return Equals((NumberGreaterThanExpression)obj);
     }
 
     public override int GetHashCode()
@@ -59,12 +60,12 @@ public class GreaterThanEqualExpression : FilterExpression<bool>
         return HashCode.Combine(base.GetHashCode(), Left, Right, Parameter);
     }
 
-    public static bool operator ==(GreaterThanEqualExpression left, GreaterThanEqualExpression right)
+    public static bool operator ==(NumberGreaterThanExpression left, NumberGreaterThanExpression right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(GreaterThanEqualExpression left, GreaterThanEqualExpression right)
+    public static bool operator !=(NumberGreaterThanExpression left, NumberGreaterThanExpression right)
     {
         return !Equals(left, right);
     }

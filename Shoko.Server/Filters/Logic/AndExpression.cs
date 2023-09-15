@@ -1,8 +1,9 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic;
 
-public class AndExpression : FilterExpression<bool>
+public class AndExpression : FilterExpression<bool>, IWithExpressionParameter, IWithSecondExpressionParameter
 {
     public AndExpression(FilterExpression<bool> left, FilterExpression<bool> right)
     {

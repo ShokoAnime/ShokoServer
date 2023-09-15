@@ -5,14 +5,14 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings;
 
-public class FilterMap : ClassMap<Filter>
+public class FilterPresetMap : ClassMap<FilterPreset>
 {
-    public FilterMap()
+    public FilterPresetMap()
     {
-        Table("Filter");
+        Table("FilterPreset");
         Not.LazyLoad();
-        Id(x => x.FilterID);
-        Map(x => x.ParentFilterID).Nullable();
+        Id(x => x.FilterPresetID);
+        Map(x => x.ParentFilterPresetID).Nullable();
         //References(x => x.Parent).Nullable().PropertyRef(x => x.ParentFilterID);
         Map(x => x.Name).Not.Nullable();
         Map(x => x.FilterType).Not.Nullable().CustomType<GroupFilterType>();

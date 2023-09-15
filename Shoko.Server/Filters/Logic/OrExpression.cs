@@ -1,8 +1,9 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic;
 
-public class OrExpression : FilterExpression<bool>
+public class OrExpression : FilterExpression<bool>, IWithExpressionParameter, IWithSecondExpressionParameter
 {
     public OrExpression(FilterExpression<bool> left, FilterExpression<bool> right)
     {

@@ -681,9 +681,9 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(111, 1, DatabaseFixes.FixAnimeSourceLinks),
         new DatabaseCommand(111, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
         new DatabaseCommand(112, 1,
-            "CREATE TABLE Filter( FilterID INT IDENTITY(1,1), ParentFilterID int, Name nvarchar(max) NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression nvarchar(max), SortingExpression nvarchar(max) ); "),
+            "CREATE TABLE FilterPreset( FilterPresetID INT IDENTITY(1,1), ParentFilterPresetID int, Name nvarchar(max) NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression nvarchar(max), SortingExpression nvarchar(max) ); "),
         new DatabaseCommand(112, 2,
-            "CREATE INDEX IX_Filter_ParentFilterID ON Filter(ParentFilterID); CREATE INDEX IX_Filter_Name ON Filter(Name); CREATE INDEX IX_Filter_FilterType ON Filter(FilterType); CREATE INDEX IX_Filter_LockedHidden ON Filter(Locked, Hidden);"),
+            "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

@@ -281,13 +281,13 @@ public abstract class BaseDatabase<T> : IDatabase
     public void CreateOrVerifyLockedFilters()
     {
         RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
-        RepoFactory.Filter.CreateOrVerifyLockedFilters();
+        RepoFactory.FilterPreset.CreateOrVerifyLockedFilters();
     }
 
     private void CreateInitialGroupFilters()
     {
         RepoFactory.GroupFilter.CreateInitialGroupFilters();
-        RepoFactory.Filter.CreateInitialFilters();
+        RepoFactory.FilterPreset.CreateInitialFilters();
     }
 
     private void CreateInitialUsers()

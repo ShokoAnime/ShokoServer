@@ -57,10 +57,10 @@ public static class Program
         
         var filterEvaluator = Utils.ServiceContainer.GetRequiredService<FilterEvaluator>();
         var s = Stopwatch.StartNew();
-        RepoFactory.Filter.CreateOrVerifyDirectoryFilters();
+        RepoFactory.FilterPreset.CreateOrVerifyDirectoryFilters();
         s.Stop();
         _logger.LogInformation("Generating Directories took {Time}ms", s.ElapsedMilliseconds);
-        var comedyFilter = RepoFactory.Filter.GetAll().FirstOrDefault(a => a.Name.Equals("comedy", StringComparison.InvariantCultureIgnoreCase));
+        var comedyFilter = RepoFactory.FilterPreset.GetAll().FirstOrDefault(a => a.Name.Equals("comedy", StringComparison.InvariantCultureIgnoreCase));
         if (comedyFilter != null)
         {
             s.Restart();

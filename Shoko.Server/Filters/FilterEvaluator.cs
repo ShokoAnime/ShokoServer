@@ -16,13 +16,13 @@ public class FilterEvaluator
     private readonly AnimeSeriesRepository _series = RepoFactory.AnimeSeries;
 
     /// <summary>
-    ///     Evaluate the given filter, applying the necessary logic
+    /// Evaluate the given filter, applying the necessary logic
     /// </summary>
     /// <param name="filter"></param>
     /// <param name="userID"></param>
-    /// <returns>SeriesIDs, grouped by GroupID</returns>
+    /// <returns>SeriesIDs, grouped by the direct parent GroupID</returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public IEnumerable<IGrouping<int, int>> EvaluateFilter(Filter filter, int? userID)
+    public IEnumerable<IGrouping<int, int>> EvaluateFilter(FilterPreset filter, int? userID)
     {
         ArgumentNullException.ThrowIfNull(filter);
         var user = filter.Expression?.UserDependent ?? false;
@@ -54,7 +54,7 @@ public class FilterEvaluator
         return result;
     }
 
-    private static IOrderedEnumerable<FilterableWithID> OrderFilterables(Filter filter, IEnumerable<FilterableWithID> filtered)
+    private static IOrderedEnumerable<FilterableWithID> OrderFilterables(FilterPreset filter, IEnumerable<FilterableWithID> filtered)
     {
         var nameSorter = new NameSortingSelector();
         var ordered = filter.SortingExpression == null ? filtered.OrderBy(a => nameSorter.Evaluate(a.Filterable)) :

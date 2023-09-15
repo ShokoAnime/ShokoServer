@@ -15,6 +15,7 @@ namespace Shoko.Tests;
 
 public class FilterTests
 {
+    #region TestData
     private const string GroupFilterableString =
         "{\"MissingEpisodes\":0,\"MissingEpisodesCollecting\":0,\"Tags\":[\"Earth\",\"Japan\",\"Asia\",\"friendship\",\"daily life\",\"high school\",\"school life\",\"comedy\",\"Kyoto\",\"dynamic\",\"themes\",\"source material\",\"setting\",\"elements\",\"place\",\"manga\",\"funny expressions\",\"storytelling\",\"character driven\",\"facial distortion\",\"narration\",\"origin\",\"episodic\",\"Japanese production\"],\"CustomTags\":[],\"Years\":[2022],\"Seasons\":[{\"Item1\":2022,\"Item2\":1}],\"HasTvDBLink\":true,\"HasMissingTvDbLink\":false,\"HasTMDbLink\":true,\"HasMissingTMDbLink\":false,\"HasTraktLink\":false,\"HasMissingTraktLink\":true,\"IsFinished\":true,\"AirDate\":\"2022-04-06T20:00:00\",\"LastAirDate\":\"2022-06-22T20:00:00\",\"AddedDate\":\"2023-05-05T14:42:24.4477733\",\"LastAddedDate\":\"2023-05-05T13:37:50.32298\",\"EpisodeCount\":12,\"TotalEpisodeCount\":12,\"LowestAniDBRating\":7.4,\"HighestAniDBRating\":7.4,\"VideoSources\":[\"Web\"],\"AnimeTypes\":[\"TVSeries\"],\"AudioLanguages\":[\"japanese\"],\"SubtitleLanguages\":[\"english\"]}";
     private const string GroupUserFilterableString =
@@ -23,6 +24,9 @@ public class FilterTests
         "{\"MissingEpisodes\":0,\"MissingEpisodesCollecting\":0,\"Tags\":[\"high school\",\"dynamic\",\"themes\",\"source material\",\"setting\",\"elements\",\"place\",\"Earth\",\"Japan\",\"Kyoto\",\"manga\",\"Asia\",\"comedy\",\"friendship\",\"daily life\",\"school life\",\"funny expressions\",\"storytelling\",\"character driven\",\"facial distortion\",\"narration\",\"origin\",\"episodic\",\"Japanese production\"],\"CustomTags\":[],\"Years\":[2022],\"Seasons\":[{\"Item1\":2022,\"Item2\":1}],\"HasTvDBLink\":true,\"HasMissingTvDbLink\":false,\"HasTMDbLink\":false,\"HasMissingTMDbLink\":false,\"HasTraktLink\":false,\"HasMissingTraktLink\":true,\"IsFinished\":true,\"AirDate\":\"2022-04-06T20:00:00\",\"LastAirDate\":\"2022-06-22T20:00:00\",\"AddedDate\":\"2023-05-05T14:42:24.3131538\",\"LastAddedDate\":\"2023-05-05T13:37:50.32298\",\"EpisodeCount\":12,\"TotalEpisodeCount\":12,\"LowestAniDBRating\":7.4,\"HighestAniDBRating\":7.4,\"VideoSources\":[\"Web\"],\"AnimeTypes\":[\"TVSeries\"],\"AudioLanguages\":[\"japanese\"],\"SubtitleLanguages\":[\"english\"]}";
     private const string SeriesUserFilterableString =
         "{\"IsFavorite\":false,\"WatchedEpisodes\":12,\"UnwatchedEpisodes\":0,\"HasVotes\":false,\"HasPermanentVotes\":false,\"MissingPermanentVotes\":false,\"WatchedDate\":\"2023-05-05T13:42:13.3933582\",\"LastWatchedDate\":\"2023-05-05T13:43:21.3729042\",\"LowestUserRating\":0.0,\"HighestUserRating\":0.0,\"MissingEpisodes\":0,\"MissingEpisodesCollecting\":0,\"Tags\":[\"high school\",\"dynamic\",\"themes\",\"source material\",\"setting\",\"elements\",\"place\",\"Earth\",\"Japan\",\"Kyoto\",\"manga\",\"Asia\",\"comedy\",\"friendship\",\"daily life\",\"school life\",\"funny expressions\",\"storytelling\",\"character driven\",\"facial distortion\",\"narration\",\"origin\",\"episodic\",\"Japanese production\"],\"CustomTags\":[],\"Years\":[2022],\"Seasons\":[{\"Item1\":2022,\"Item2\":1}],\"HasTvDBLink\":true,\"HasMissingTvDbLink\":false,\"HasTMDbLink\":false,\"HasMissingTMDbLink\":false,\"HasTraktLink\":false,\"HasMissingTraktLink\":true,\"IsFinished\":true,\"AirDate\":\"2022-04-06T20:00:00\",\"LastAirDate\":\"2022-06-22T20:00:00\",\"AddedDate\":\"2023-05-05T14:42:24.3131538\",\"LastAddedDate\":\"2023-05-05T13:37:50.32298\",\"EpisodeCount\":12,\"TotalEpisodeCount\":12,\"LowestAniDBRating\":7.4,\"HighestAniDBRating\":7.4,\"VideoSources\":[\"Web\"],\"AnimeTypes\":[\"TVSeries\"],\"AudioLanguages\":[\"japanese\"],\"SubtitleLanguages\":[\"english\"]}";
+    private const string AllSeries =
+        "";
+    #endregion
 
     public static readonly IEnumerable<object[]> GroupFilterable = new[] { new[] { JsonConvert.DeserializeObject<Filterable>(GroupFilterableString, new IReadOnlySetConverter()) }};
     public static readonly IEnumerable<object[]> GroupUserFilterable = new[] { new[] { JsonConvert.DeserializeObject<UserDependentFilterable>(GroupUserFilterableString, new IReadOnlySetConverter()) }};
@@ -54,7 +58,7 @@ public class FilterTests
     public void GroupFilterable_WithDateFunctionFilter_ExpectsFalse(Filterable group)
     {
         var top = new AndExpression(new AndExpression(new HasTagExpression("comedy"), new NotExpression(new HasTagExpression("18 restricted"))),
-            new GreaterThanEqualExpression(new LastAddedDateSelector(),
+            new DateGreaterThanEqualsExpression(new LastAddedDateSelector(),
                 new DateDiffFunction(new DateAddFunction(new TodayFunction(), TimeSpan.FromDays(1) - TimeSpan.FromMilliseconds(1)), TimeSpan.FromDays(30))));
 
         Assert.False(top.UserDependent);
@@ -65,7 +69,7 @@ public class FilterTests
     public void GroupFilterable_WithDateFunctionFilter_ExpectsTrue(Filterable group)
     {
         var top = new AndExpression(new AndExpression(new HasTagExpression("comedy"), new NotExpression(new HasTagExpression("18 restricted"))),
-            new GreaterThanEqualExpression(new LastAddedDateSelector(), new DateDiffFunction(
+            new DateGreaterThanEqualsExpression(new LastAddedDateSelector(), new DateDiffFunction(
                 new DateAddFunction(new TodayFunction(), TimeSpan.FromDays(1) - TimeSpan.FromMilliseconds(1)), TimeSpan.FromDays(120))));
 
         Assert.False(top.UserDependent);

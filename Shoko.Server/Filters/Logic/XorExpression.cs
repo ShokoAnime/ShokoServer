@@ -1,8 +1,9 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic;
 
-public class XorExpression : FilterExpression<bool>
+public class XorExpression : FilterExpression<bool>, IWithExpressionParameter, IWithSecondExpressionParameter
 {
     public XorExpression(FilterExpression<bool> left, FilterExpression<bool> right)
     {

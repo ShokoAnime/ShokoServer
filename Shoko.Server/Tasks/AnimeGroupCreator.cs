@@ -29,7 +29,7 @@ internal class AnimeGroupCreator
     private readonly AnimeGroupRepository _animeGroupRepo = RepoFactory.AnimeGroup;
     private readonly AnimeGroup_UserRepository _animeGroupUserRepo = RepoFactory.AnimeGroup_User;
     private readonly GroupFilterRepository _groupFilterRepo = RepoFactory.GroupFilter;
-    private readonly FilterRepository _filterRepo = RepoFactory.Filter;
+    private readonly FilterPresetRepository _filterRepo = RepoFactory.FilterPreset;
     private readonly JMMUserRepository _userRepo = RepoFactory.JMMUser;
     private readonly bool _autoGroupSeries;
 

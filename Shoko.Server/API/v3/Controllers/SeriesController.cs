@@ -36,12 +36,14 @@ namespace Shoko.Server.API.v3.Controllers;
 public class SeriesController : BaseController
 {
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly SeriesFactory _seriesFactory;
     private readonly IHttpConnectionHandler _httpHandler;
 
-    public SeriesController(ICommandRequestFactory commandFactory, IHttpConnectionHandler httpHandler, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public SeriesController(ICommandRequestFactory commandFactory, IHttpConnectionHandler httpHandler, ISettingsProvider settingsProvider, SeriesFactory seriesFactory) : base(settingsProvider)
     {
         _commandFactory = commandFactory;
         _httpHandler = httpHandler;
+        _seriesFactory = seriesFactory;
     }
 
     #region Return messages
@@ -96,7 +98,7 @@ public class SeriesController : BaseController
                 return user.AllowedSeries(series);
             })
             .OrderBy(a => a.seriesName)
-            .ToListResult(tuple => new Series(HttpContext, tuple.series), page, pageSize);
+            .ToListResult(tuple => _seriesFactory.GetSeries(tuple.series), page, pageSize);
     }
 
     /// <summary>
@@ -121,7 +123,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return new Series(HttpContext, series, randomImages, includeDataFrom);
+        return _seriesFactory.GetSeries(series, randomImages, includeDataFrom);
     }
 
     /// <summary>
@@ -256,7 +258,7 @@ public class SeriesController : BaseController
         return RepoFactory.AnimeSeries.GetAll()
             .Where(series => user.AllowedSeries(series) && series.GetVideoLocals().Count == 0)
             .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
-            .ToListResult(series => new Series(HttpContext, series), page, pageSize);
+            .ToListResult(series => _seriesFactory.GetSeries(series), page, pageSize);
     }
 
     /// <summary>
@@ -273,7 +275,7 @@ public class SeriesController : BaseController
         return RepoFactory.AnimeSeries.GetAll()
             .Where(series => user.AllowedSeries(series) && series.GetVideoLocals(CrossRefSource.User).Count() != 0)
             .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
-            .ToListResult(series => new Series(HttpContext, series), page, pageSize);
+            .ToListResult(series => _seriesFactory.GetSeries(series), page, pageSize);
     }
 
     #endregion
@@ -288,7 +290,7 @@ public class SeriesController : BaseController
     /// <param name="startsWith">Search only for anime with a main title that start with the given query.</param>
     /// <returns></returns>
     [HttpGet("AniDB")]
-    public ActionResult<ListResult<Series.AniDBWithDate>> GetAllAnime([FromQuery] [Range(0, 100)] int pageSize = 50,
+    public ActionResult<ListResult<Series.AniDB>> GetAllAnime([FromQuery] [Range(0, 100)] int pageSize = 50,
         [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] string startsWith = "")
     {
         startsWith = startsWith.ToLowerInvariant();
@@ -306,7 +308,7 @@ public class SeriesController : BaseController
                 return user.AllowedAnime(anime);
             })
             .OrderBy(a => a.animeTitle)
-            .ToListResult(tuple => new Series.AniDBWithDate(tuple.anime), page, pageSize);
+            .ToListResult(tuple => _seriesFactory.GetAniDB(tuple.anime), page, pageSize);
     }
 
     /// <summary>
@@ -332,7 +334,7 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko ID</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/AniDB")]
-    public ActionResult<Series.AniDBWithDate> GetSeriesAnidbBySeriesID([FromRoute] int seriesID)
+    public ActionResult<Series.AniDB> GetSeriesAnidbBySeriesID([FromRoute] int seriesID)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -351,7 +353,7 @@ public class SeriesController : BaseController
             return InternalError(AnidbNotFoundForSeriesID);
         }
 
-        return new Series.AniDBWithDate(anidb, series);
+        return _seriesFactory.GetAniDB(anidb, series);
     }
 
     /// <summary>
@@ -380,7 +382,7 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(anidb.AnimeID)
-            .Select(similar => new Series.AniDB(similar))
+            .Select(similar => _seriesFactory.GetAniDB(similar))
             .ToList();
     }
 
@@ -410,7 +412,7 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidb.AnimeID)
-            .Select(relation => new Series.AniDB(relation))
+            .Select(relation => _seriesFactory.GetAniDB(relation))
             .ToList();
     }
 
@@ -510,7 +512,7 @@ public class SeriesController : BaseController
                 var similarToCount = similarTo.Count();
                 return new Series.AniDBRecommendedForYou()
                 {
-                    Anime = new Series.AniDBWithDate(anime, series), SimilarTo = similarToCount
+                    Anime = _seriesFactory.GetAniDB(anime, series), SimilarTo = similarToCount
                 };
             })
             .OrderByDescending(e => e.SimilarTo)
@@ -597,7 +599,7 @@ public class SeriesController : BaseController
     /// <param name="anidbID">AniDB ID</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbID}")]
-    public ActionResult<Series.AniDBWithDate> GetSeriesAnidbByAnidbID([FromRoute] int anidbID)
+    public ActionResult<Series.AniDB> GetSeriesAnidbByAnidbID([FromRoute] int anidbID)
     {
         var anidb = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
         if (anidb == null)
@@ -610,7 +612,7 @@ public class SeriesController : BaseController
             return Forbid(AnidbForbiddenForUser);
         }
 
-        return new Series.AniDBWithDate(anidb);
+        return _seriesFactory.GetAniDB(anidb);
     }
 
     /// <summary>
@@ -633,7 +635,7 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Similar.GetByAnimeID(anidbID)
-            .Select(similar => new Series.AniDB(similar))
+            .Select(similar => _seriesFactory.GetAniDB(similar))
             .ToList();
     }
 
@@ -657,7 +659,7 @@ public class SeriesController : BaseController
         }
 
         return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(anidbID)
-            .Select(relation => new Series.AniDB(relation))
+            .Select(relation => _seriesFactory.GetAniDB(relation))
             .ToList();
     }
 
@@ -707,7 +709,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return new Series(HttpContext, series, randomImages, includeDataFrom);
+        return _seriesFactory.GetSeries(series, randomImages, includeDataFrom);
     }
 
     /// <summary>
@@ -735,7 +737,8 @@ public class SeriesController : BaseController
             createSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
         }
 
-        return Series.QueueAniDBRefresh(_commandFactory, _httpHandler, anidbID, force, downloadRelations,
+        // TODO No
+        return SeriesFactory.QueueAniDBRefresh(_commandFactory, _httpHandler, anidbID, force, downloadRelations,
             createSeriesEntry.Value, immediate, cacheOnly);
     }
 
@@ -781,7 +784,8 @@ public class SeriesController : BaseController
             return InternalError(AnidbNotFoundForSeriesID);
         }
 
-        return Series.QueueAniDBRefresh(_commandFactory, _httpHandler, anidb.AnimeID, force, downloadRelations,
+        // TODO No
+        return SeriesFactory.QueueAniDBRefresh(_commandFactory, _httpHandler, anidb.AnimeID, force, downloadRelations,
             createSeriesEntry.Value, immediate, cacheOnly);
     }
 
@@ -818,7 +822,7 @@ public class SeriesController : BaseController
             return Forbid(TvdbForbiddenForUser);
         }
 
-        return Series.GetTvDBInfo(HttpContext, series);
+        return _seriesFactory.GetTvDBInfo(series);
     }
 
     /// <summary>
@@ -893,8 +897,9 @@ public class SeriesController : BaseController
         }
 
         var tvSeriesList = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(series.AniDB_ID);
+        // TODO No
         foreach (var crossRef in tvSeriesList)
-            Series.QueueTvDBRefresh(_commandFactory, crossRef.TvDBID, force);
+            SeriesFactory.QueueTvDBRefresh(_commandFactory, crossRef.TvDBID, force);
 
         return Ok();
     }
@@ -930,7 +935,7 @@ public class SeriesController : BaseController
             return Forbid(TvdbForbiddenForUser);
         }
 
-        return new Series.TvDB(HttpContext, tvdb, series);
+        return _seriesFactory.GetTvDB(tvdb, series);
     }
 
     /// <summary>
@@ -944,7 +949,8 @@ public class SeriesController : BaseController
     [HttpPost("TvDB/{tvdbID}/Refresh")]
     public ActionResult<bool> RefreshSeriesTvdbByTvdbId([FromRoute] int tvdbID, [FromQuery] bool force = false, [FromQuery] bool immediate = false)
     {
-        return Series.QueueTvDBRefresh(_commandFactory, tvdbID,force, immediate);
+        // TODO No
+        return SeriesFactory.QueueTvDBRefresh(_commandFactory, tvdbID,force, immediate);
     }
 
     /// <summary>
@@ -973,7 +979,7 @@ public class SeriesController : BaseController
         }
 
         return seriesList
-            .Select(series => new Series(HttpContext, series))
+            .Select(series => _seriesFactory.GetSeries(series))
             .ToList();
     }
 
@@ -1002,7 +1008,7 @@ public class SeriesController : BaseController
         if (vote.Value > vote.MaxValue)
             return ValidationProblem($"Value must be less than or equal to the set max value ({vote.MaxValue}).", nameof(vote.Value));
 
-        Series.AddSeriesVote(_commandFactory, series, User.JMMUserID, vote);
+        SeriesFactory.AddSeriesVote(_commandFactory, series, User.JMMUserID, vote);
 
         return NoContent();
     }
@@ -1042,7 +1048,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return Series.GetArt(HttpContext, series.AniDB_ID, includeDisabled);
+        return SeriesFactory.GetArt(series.AniDB_ID, includeDisabled);
     }
 
     #endregion
@@ -1070,13 +1076,13 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
-        var defaultBanner = Series.GetDefaultImage(series.AniDB_ID, imageSizeType);
+        var defaultBanner = SeriesFactory.GetDefaultImage(series.AniDB_ID, imageSizeType);
         if (defaultBanner != null)
         {
             return defaultBanner;
         }
 
-        var images = Series.GetArt(HttpContext, series.AniDB_ID);
+        var images = SeriesFactory.GetArt(series.AniDB_ID);
         return imageSizeType switch
         {
             ImageSizeType.Poster => images.Posters.FirstOrDefault(),
@@ -1295,7 +1301,7 @@ public class SeriesController : BaseController
             return new List<Tag>();
         }
 
-        return Series.GetTags(anidb, filter, excludeDescriptions, orderByName, onlyVerified);
+        return _seriesFactory.GetTags(anidb, filter, excludeDescriptions, orderByName, onlyVerified);
     }
 
     /// <summary>
@@ -1339,7 +1345,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return Series.GetCast(series.AniDB_ID, roleType);
+        return _seriesFactory.GetCast(series.AniDB_ID, roleType);
     }
 
     #endregion
@@ -1413,7 +1419,7 @@ public class SeriesController : BaseController
             flags |= SeriesSearch.SearchFlags.Fuzzy;
 
         return SeriesSearch.SearchSeries(User, query, limit, flags)
-            .Select(result => new SeriesSearchResult(HttpContext, result))
+            .Select(result => _seriesFactory.GetSeriesSearchResult(result))
             .ToList();
     }
 
@@ -1463,7 +1469,7 @@ public class SeriesController : BaseController
             if (anime != null)
             {
                 return new ListResult<Series.AniDB>(1,
-                    new List<Series.AniDB> { new Series.AniDB(anime, includeTitles) });
+                    new List<Series.AniDB> { _seriesFactory.GetAniDB(anime, includeTitles: includeTitles) });
             }
 
             // Check the title cache for a match.
@@ -1471,7 +1477,7 @@ public class SeriesController : BaseController
             if (result != null)
             {
                 return new ListResult<Series.AniDB>(1,
-                    new List<Series.AniDB> { new Series.AniDB(result, includeTitles) });
+                    new List<Series.AniDB> { _seriesFactory.GetAniDB(result, includeTitles: includeTitles) });
             }
 
             return new ListResult<Series.AniDB>();
@@ -1489,7 +1495,7 @@ public class SeriesController : BaseController
                         return null;
                     }
 
-                    return new Series.AniDB(result, series, includeTitles);
+                    return _seriesFactory.GetAniDB(result, series, includeTitles);
                 })
                 .Where(result => result != null)
                 .ToListResult(page, pageSize);
@@ -1504,7 +1510,7 @@ public class SeriesController : BaseController
                     return null;
                 }
 
-                return new Series.AniDB(result, series, includeTitles);
+                return _seriesFactory.GetAniDB(result, series, includeTitles);
             })
             .Where(result => result != null)
             .ToListResult(page, pageSize);
@@ -1537,7 +1543,7 @@ public class SeriesController : BaseController
 
         foreach (var (ser, match) in series)
         {
-            seriesList.Add(new SeriesSearchResult(HttpContext, new() { Result = ser, Match = match }));
+            seriesList.Add(_seriesFactory.GetSeriesSearchResult(new() { Result = ser, Match = match }));
             if (seriesList.Count >= limit)
             {
                 break;
@@ -1580,7 +1586,7 @@ public class SeriesController : BaseController
             })
             .SelectMany(a => a.VideoLocal?.GetAnimeEpisodes() ?? Enumerable.Empty<SVR_AnimeEpisode>()).Select(a => a.GetAnimeSeries())
             .Distinct()
-            .Where(ser => ser != null && user.AllowedSeries(ser)).Select(a => new Series(HttpContext, a)).ToList();
+            .Where(ser => ser != null && user.AllowedSeries(ser)).Select(a => _seriesFactory.GetSeries(a)).ToList();
     }
 
     #region Helpers

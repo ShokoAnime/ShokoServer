@@ -1,8 +1,9 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Files;
 
-public class HasAudioLanguageExpression : FilterExpression<bool>
+public class HasAudioLanguageExpression : FilterExpression<bool>, IWithStringParameter
 {
     public HasAudioLanguageExpression(string parameter)
     {

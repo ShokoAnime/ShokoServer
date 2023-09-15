@@ -1,20 +1,21 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Numbers;
 
-public class LessThanEqualExpression : FilterExpression<bool>
+public class NumberNotEqualsExpression : FilterExpression<bool>, IWithNumberSelectorParameter, IWithSecondNumberSelectorParameter, IWithNumberParameter
 {
-    public LessThanEqualExpression(FilterExpression<double> left, FilterExpression<double> right)
+    public NumberNotEqualsExpression(FilterExpression<double> left, FilterExpression<double> right)
     {
         Left = left;
         Right = right;
     }
-    public LessThanEqualExpression(FilterExpression<double> left, double parameter)
+    public NumberNotEqualsExpression(FilterExpression<double> left, double parameter)
     {
         Left = left;
         Parameter = parameter;
     }
-    public LessThanEqualExpression() { }
+    public NumberNotEqualsExpression() { }
     
     public FilterExpression<double> Left { get; set; }
     public FilterExpression<double> Right { get; set; }
@@ -26,10 +27,10 @@ public class LessThanEqualExpression : FilterExpression<bool>
     {
         var left = Left.Evaluate(filterable);
         var right = Parameter ?? Right.Evaluate(filterable);
-        return Math.Abs(left - right) < 0.001D || left < right;
+        return Math.Abs(left - right) >= 0.001D;
     }
 
-    protected bool Equals(LessThanEqualExpression other)
+    protected bool Equals(NumberNotEqualsExpression other)
     {
         return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Nullable.Equals(Parameter, other.Parameter);
     }
@@ -51,7 +52,7 @@ public class LessThanEqualExpression : FilterExpression<bool>
             return false;
         }
 
-        return Equals((LessThanEqualExpression)obj);
+        return Equals((NumberNotEqualsExpression)obj);
     }
 
     public override int GetHashCode()
@@ -59,12 +60,12 @@ public class LessThanEqualExpression : FilterExpression<bool>
         return HashCode.Combine(base.GetHashCode(), Left, Right, Parameter);
     }
 
-    public static bool operator ==(LessThanEqualExpression left, LessThanEqualExpression right)
+    public static bool operator ==(NumberNotEqualsExpression left, NumberNotEqualsExpression right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(LessThanEqualExpression left, LessThanEqualExpression right)
+    public static bool operator !=(NumberNotEqualsExpression left, NumberNotEqualsExpression right)
     {
         return !Equals(left, right);
     }

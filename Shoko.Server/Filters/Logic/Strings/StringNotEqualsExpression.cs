@@ -1,20 +1,21 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Strings;
 
-public class EqualExpression : FilterExpression<bool>
+public class StringNotEqualsExpression : FilterExpression<bool>, IWithStringSelectorParameter, IWithSecondStringSelectorParameter, IWithStringParameter
 {
-    public EqualExpression(FilterExpression<string> left, FilterExpression<string> right)
+    public StringNotEqualsExpression(FilterExpression<string> left, FilterExpression<string> right)
     {
         Left = left;
         Right = right;
     }
-    public EqualExpression(FilterExpression<string> left, string parameter)
+    public StringNotEqualsExpression(FilterExpression<string> left, string parameter)
     {
         Left = left;
         Parameter = parameter;
     }
-    public EqualExpression() { }
+    public StringNotEqualsExpression() { }
 
     public FilterExpression<string> Left { get; set; }
     public FilterExpression<string> Right { get; set; }
@@ -26,10 +27,10 @@ public class EqualExpression : FilterExpression<bool>
     {
         var left = Left.Evaluate(filterable);
         var right = Parameter ?? Right?.Evaluate(filterable);
-        return string.Equals(left, right, StringComparison.InvariantCultureIgnoreCase);
+        return !string.Equals(left, right, StringComparison.InvariantCultureIgnoreCase);
     }
 
-    protected bool Equals(EqualExpression other)
+    protected bool Equals(StringNotEqualsExpression other)
     {
         return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Parameter == other.Parameter;
     }
@@ -51,7 +52,7 @@ public class EqualExpression : FilterExpression<bool>
             return false;
         }
 
-        return Equals((EqualExpression)obj);
+        return Equals((StringNotEqualsExpression)obj);
     }
 
     public override int GetHashCode()
@@ -59,12 +60,12 @@ public class EqualExpression : FilterExpression<bool>
         return HashCode.Combine(base.GetHashCode(), Left, Right, Parameter);
     }
 
-    public static bool operator ==(EqualExpression left, EqualExpression right)
+    public static bool operator ==(StringNotEqualsExpression left, StringNotEqualsExpression right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(EqualExpression left, EqualExpression right)
+    public static bool operator !=(StringNotEqualsExpression left, StringNotEqualsExpression right)
     {
         return !Equals(left, right);
     }

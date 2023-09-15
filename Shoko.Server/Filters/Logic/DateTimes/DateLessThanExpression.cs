@@ -1,20 +1,21 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.DateTimes;
 
-public class GreaterThanExpression : FilterExpression<bool>
+public class DateLessThanExpression : FilterExpression<bool>, IWithDateSelectorParameter, IWithSecondDateSelectorParameter, IWithDateParameter
 {
-    public GreaterThanExpression(FilterExpression<DateTime?> left, FilterExpression<DateTime?> right)
+    public DateLessThanExpression(FilterExpression<DateTime?> left, FilterExpression<DateTime?> right)
     {
         Left = left;
         Right = right;
     }
-    public GreaterThanExpression(FilterExpression<DateTime?> left, DateTime parameter)
+    public DateLessThanExpression(FilterExpression<DateTime?> left, DateTime parameter)
     {
         Left = left;
         Parameter = parameter;
     }
-    public GreaterThanExpression() { }
+    public DateLessThanExpression() { }
     
     public FilterExpression<DateTime?> Left { get; set; }
     public FilterExpression<DateTime?> Right { get; set; }
@@ -30,23 +31,23 @@ public class GreaterThanExpression : FilterExpression<bool>
         var operandIsNull = operand == null || operand.Value == DateTime.MinValue || operand.Value == DateTime.MaxValue || operand.Value == DateTime.UnixEpoch;
         if (dateIsNull && operandIsNull)
         {
-            return false;
+            return true;
         }
 
         if (dateIsNull)
         {
-            return true;
+            return false;
         }
 
         if (operandIsNull)
         {
-            return true;
+            return false;
         }
 
-        return date > operand;
+        return date < operand;
     }
 
-    protected bool Equals(GreaterThanExpression other)
+    protected bool Equals(DateLessThanExpression other)
     {
         return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Parameter.Equals(other.Parameter);
     }
@@ -68,7 +69,7 @@ public class GreaterThanExpression : FilterExpression<bool>
             return false;
         }
 
-        return Equals((GreaterThanExpression)obj);
+        return Equals((DateLessThanExpression)obj);
     }
 
     public override int GetHashCode()
@@ -76,12 +77,12 @@ public class GreaterThanExpression : FilterExpression<bool>
         return HashCode.Combine(base.GetHashCode(), Left, Right, Parameter);
     }
 
-    public static bool operator ==(GreaterThanExpression left, GreaterThanExpression right)
+    public static bool operator ==(DateLessThanExpression left, DateLessThanExpression right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(GreaterThanExpression left, GreaterThanExpression right)
+    public static bool operator !=(DateLessThanExpression left, DateLessThanExpression right)
     {
         return !Equals(left, right);
     }
