@@ -604,7 +604,7 @@ public class TraktTVHelper
                     traktSummary.CrossRefTraktV2.Count > 0)
                 {
                     // find the xref that is right
-                    // relies on the xref's being sorted by season number and then episode number (desc)
+                    // relies on the xrefs being sorted by season number and then episode number (desc)
                     var traktCrossRef =
                         traktSummary.CrossRefTraktV2.OrderByDescending(a => a.AniDBStartEpisodeNumber).ToList();
 
@@ -625,7 +625,7 @@ public class TraktTVHelper
                         }
                     }
 
-                    // we have found the starting epiosde numbder from AniDB
+                    // we have found the starting episode number from AniDB
                     // now let's check that the Trakt Season and Episode Number exist
                     if (foundStartingPoint)
                     {
@@ -641,14 +641,27 @@ public class TraktTVHelper
                             }
                         }
 
-                        if (dictTraktSeasons != null && dictTraktSeasons.ContainsKey(xrefBase.TraktSeasonNumber))
+                        if (dictTraktSeasons != null && dictTraktSeasons.TryGetValue(xrefBase.TraktSeasonNumber, out var traktSeason))
                         {
-                            var episodeNumber = dictTraktSeasons[xrefBase.TraktSeasonNumber] +
-                                                (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) -
-                                                (xrefBase.AniDBStartEpisodeNumber - 1);
-                            if (dictTraktEpisodes.ContainsKey(episodeNumber))
+                            int episodeNumber;
                             {
-                                var traktep = dictTraktEpisodes[episodeNumber];
+                                if (xrefBase.TraktStartEpisodeNumber == xrefBase.AniDBStartEpisodeNumber)
+                                {
+                                    // The Trakt and AniDB start episode numbers match
+                                    episodeNumber = (traktSeason - xrefBase.TraktStartEpisodeNumber ) + ep.EpisodeNumber;
+                                }
+                                
+                                else
+                                {
+                                    // The Trakt and AniDB start episode numbers don't match
+                                    episodeNumber = traktSeason +
+                                                    (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) -
+                                                    (xrefBase.AniDBStartEpisodeNumber - 1);
+                                }
+                            }
+                            
+                            if (dictTraktEpisodes.TryGetValue(episodeNumber, out var traktep))
+                            {
                                 traktID = xrefBase.TraktID;
                                 season = traktep.Season;
                                 epNumber = traktep.EpisodeNumber;
@@ -666,7 +679,7 @@ public class TraktTVHelper
             if (ep.GetEpisodeTypeEnum() == EpisodeType.Special)
             {
                 // find the xref that is right
-                // relies on the xref's being sorted by season number and then episode number (desc)
+                // relies on the xrefs being sorted by season number and then episode number (desc)
                 var traktCrossRef =
                     traktSummary.CrossRefTraktV2?.OrderByDescending(a => a.AniDBStartEpisodeNumber).ToList();
 
@@ -692,7 +705,7 @@ public class TraktTVHelper
                     }
                 }
 
-                // we have found the starting epiosde numbder from AniDB
+                // we have found the starting episode number from AniDB
                 // now let's check that the Trakt Season and Episode Number exist
                 if (foundStartingPoint)
                 {
@@ -708,14 +721,27 @@ public class TraktTVHelper
                         }
                     }
 
-                    if (dictTraktSeasons != null && dictTraktSeasons.ContainsKey(xrefBase.TraktSeasonNumber))
+                    if (dictTraktSeasons != null && dictTraktSeasons.TryGetValue(xrefBase.TraktSeasonNumber, out var traktSeason))
                     {
-                        var episodeNumber = dictTraktSeasons[xrefBase.TraktSeasonNumber] +
-                                            (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) -
-                                            (xrefBase.AniDBStartEpisodeNumber - 1);
-                        if (dictTraktEpisodes != null && dictTraktEpisodes.ContainsKey(episodeNumber))
+                        int episodeNumber;
                         {
-                            var traktep = dictTraktEpisodes[episodeNumber];
+                            if (xrefBase.TraktStartEpisodeNumber == xrefBase.AniDBStartEpisodeNumber)
+                            {
+                                // The Trakt and AniDB start episode numbers match
+                                episodeNumber = (traktSeason - xrefBase.TraktStartEpisodeNumber ) + ep.EpisodeNumber;
+                            }
+                            
+                            else
+                            {
+                                // The Trakt and AniDB start episode numbers don't match
+                                episodeNumber = traktSeason +
+                                                (ep.EpisodeNumber + xrefBase.TraktStartEpisodeNumber - 2) -
+                                                (xrefBase.AniDBStartEpisodeNumber - 1);
+                            }
+                        }
+                        
+                        if (dictTraktEpisodes != null && dictTraktEpisodes.TryGetValue(episodeNumber, out var traktep))
+                        {
                             traktID = xrefBase.TraktID;
                             season = traktep.Season;
                             epNumber = traktep.EpisodeNumber;
@@ -1689,7 +1715,7 @@ public class TraktTVHelper
 
             #endregion
 
-            // refresh online info, just in case it was chnaged by the last operations
+            // refresh online info, just in case it was changed by the last operations
             if (!GetTraktCollectionInfo(ref collected, ref watched))
             {
                 return;
@@ -1822,9 +1848,7 @@ public class TraktTVHelper
                 TraktTVRateLimiter.Instance.EnsureRate();
                 SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
             }
-
-
-            _logger.LogTrace("Test");
+            
         }
         catch (Exception ex)
         {
