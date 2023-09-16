@@ -24,21 +24,8 @@ public class CommandRequest_RefreshGroupFilter : CommandRequestImplementation
 
     protected override void Process()
     {
-        if (GroupFilterID == 0)
-        {
-            RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
-            RepoFactory.FilterPreset.CreateOrVerifyLockedFilters();
-            return;
-        }
-
-        var gf = RepoFactory.GroupFilter.GetByID(GroupFilterID);
-        if (gf == null)
-        {
-            return;
-        }
-
-        gf.CalculateGroupsAndSeries();
-        RepoFactory.GroupFilter.Save(gf);
+        // TODO Remove this
+        RepoFactory.FilterPreset.CreateOrVerifyLockedFilters();
     }
 
     public override void GenerateCommandID()

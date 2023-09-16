@@ -2657,28 +2657,24 @@ public class Common : BaseController
     [HttpGet("cloud/list")]
     public ActionResult GetCloudAccounts()
     {
-        // TODO APIv2: Cloud
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
     [HttpGet("cloud/count")]
     public ActionResult GetCloudAccountsCount()
     {
-        // TODO APIv2: Cloud
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
     [HttpPost("cloud/add")]
     public ActionResult AddCloudAccount()
     {
-        // TODO APIv2: Cloud
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
     [HttpPost("cloud/delete")]
     public ActionResult DeleteCloudAccount()
     {
-        // TODO APIv2: Cloud
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 

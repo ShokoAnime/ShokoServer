@@ -3672,7 +3672,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             jmmUser.Password = Digest.Hash(newPassword);
-            RepoFactory.JMMUser.Save(jmmUser, false);
+            RepoFactory.JMMUser.Save(jmmUser);
             if (revokeapikey)
             {
                 RepoFactory.AuthTokens.DeleteAllWithUserID(jmmUser.JMMUserID);
@@ -3780,7 +3780,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
             }
 
-            RepoFactory.JMMUser.Save(jmmUser, updateGf);
+            RepoFactory.JMMUser.Save(jmmUser);
 
             // update stats
             if (updateStats)

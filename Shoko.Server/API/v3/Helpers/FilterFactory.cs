@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+using System;
+using System.Globalization;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -17,9 +18,9 @@ public class FilterFactory
     private readonly HttpContext _context;
     private readonly FilterEvaluator _evaluator;
 
-    public FilterFactory(HttpContext context, FilterEvaluator evaluator)
+    public FilterFactory(IHttpContextAccessor context, FilterEvaluator evaluator)
     {
-        _context = context;
+        _context = context.HttpContext;
         _evaluator = evaluator;
     }
 
@@ -115,6 +116,69 @@ public class FilterFactory
 
         return result;
     }
+    
+    public FilterExpression<T> GetExpressionTree<T>(Filter.FilterCondition condition)
+    {
+        var type = Type.GetType(condition.Type + "Expression");
+        if (type == null) throw new ArgumentException($"FilterCondition type {condition.Type}Expression was not found");
+        var result = (FilterExpression<T>)Activator.CreateInstance(type);
+
+        // Left/First
+        switch (result)
+        {
+            case IWithExpressionParameter left:
+                left.Left = GetExpressionTree<bool>(condition.Left);
+                break;
+            case IWithDateSelectorParameter left:
+                left.Left = GetExpressionTree<DateTime?>(condition.Left);
+                break;
+            case IWithNumberSelectorParameter left:
+                left.Left = GetExpressionTree<double>(condition.Left);
+                break;
+            case IWithStringSelectorParameter left:
+                left.Left = GetExpressionTree<string>(condition.Left);
+                break;
+        }
+
+        // Parameters
+        switch (result)
+        {
+            case IWithStringParameter parameter:
+                parameter.Parameter = parameter.Parameter;
+                break;
+            case IWithNumberParameter parameter:
+                parameter.Parameter = double.Parse(condition.Parameter!);
+                break;
+            case IWithDateParameter parameter:
+                parameter.Parameter = DateTime.ParseExact(condition.Parameter!, "yyyy-MM-dd", CultureInfo.InvariantCulture.DateTimeFormat);
+                break;
+            case IWithTimeSpanParameter parameter:
+                parameter.Parameter = TimeSpan.ParseExact(condition.Parameter!, "G", CultureInfo.InvariantCulture.DateTimeFormat);
+                break;
+        }
+
+        // Right/Second
+        switch (result)
+        {
+            case IWithSecondExpressionParameter right:
+                right.Right = GetExpressionTree<bool>(condition.Right);
+                break;
+            case IWithSecondDateSelectorParameter right:
+                right.Right = GetExpressionTree<DateTime?>(condition.Right);
+                break;
+            case IWithSecondStringSelectorParameter right:
+                right.Right = GetExpressionTree<string>(condition.Right);
+                break;
+            case IWithSecondNumberSelectorParameter right:
+                right.Right = GetExpressionTree<double>(condition.Right);
+                break;
+            case IWithSecondStringParameter right:
+                right.SecondParameter = condition.SecondParameter;
+                break;
+        }
+
+        return result;
+    }
 
     public static Filter.SortingCriteria GetSortingCriteria(SortingExpression expression)
     {
@@ -136,6 +200,18 @@ public class FilterFactory
             currentCriteria = currentCriteria.Next;
             currentExpression = currentExpression.Next;
         }
+
+        return result;
+    }
+    
+    public static SortingExpression GetSortingCriteria(Filter.SortingCriteria criteria)
+    {
+        var type = Type.GetType(criteria.Type + "Selector");
+        if (type == null) throw new ArgumentException($"SortingExpression type {criteria.Type}Selector was not found");
+        var result = (SortingExpression)Activator.CreateInstance(type)!;
+        result.Descending = criteria.IsInverted;
+
+        if (criteria.Next != null) result.Next = GetSortingCriteria(criteria.Next);
 
         return result;
     }
@@ -212,16 +288,8 @@ public class FilterFactory
         groupFilter.ApplyAtSeriesLevel = body.ApplyAtSeriesLevel;
         if (!body.IsDirectory)
         {
-            if (body.Expression != null)
-            {
-                // TODO convert back from API model
-                //groupFilter.Expression = body.Expression
-            }
-
-            if (body.Sorting != null)
-            {
-                // TODO Convert back from API model
-            }
+            if (body.Expression != null) groupFilter.Expression = GetExpressionTree<bool>(body.Expression);
+            if (body.Sorting != null) groupFilter.SortingExpression = GetSortingCriteria(body.Sorting);
         }
 
         // Skip saving if we're just going to preview a group filter.

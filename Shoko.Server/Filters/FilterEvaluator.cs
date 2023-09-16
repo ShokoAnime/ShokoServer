@@ -33,10 +33,10 @@ public class FilterEvaluator
 
         var filterables = filter.ApplyAtSeriesLevel switch
         {
-            true when user => _series.GetAll().Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
-            true => _series.GetAll().Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable())),
-            false when user => _groups.GetAll().Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
-            false => _groups.GetAll().Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable()))
+            true when user => _series.GetAll().AsParallel().Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
+            true => _series.GetAll().AsParallel().Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable())),
+            false when user => _groups.GetAll().AsParallel().Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
+            false => _groups.GetAll().AsParallel().Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable()))
         };
 
         // Filtering
@@ -52,6 +52,50 @@ public class FilterEvaluator
         }
 
         return result;
+    }
+    
+    /// <summary>
+    /// Evaluate the given filter, applying the necessary logic
+    /// </summary>
+    /// <param name="filters"></param>
+    /// <param name="userID"></param>
+    /// <returns>SeriesIDs, grouped by the direct parent GroupID</returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    public Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>> BatchEvaluateFilters(List<FilterPreset> filters, int? userID)
+    {
+        ArgumentNullException.ThrowIfNull(filters);
+        if (!filters.Any()) return new Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>>();
+        var user = filters.Any(a => a.Expression?.UserDependent ?? false);
+        if (user && userID == null) throw new ArgumentNullException(nameof(userID));
+
+        var filterables = filters.Any(a => a.ApplyAtSeriesLevel) switch
+        {
+            true when user => _series.GetAll().AsParallel().Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
+            true => _series.GetAll().AsParallel().Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable())),
+            false when user => _groups.GetAll().AsParallel().Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
+            false => _groups.GetAll().AsParallel().Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable()))
+        };
+
+        // Filtering
+        var filtered = filterables.SelectMany(a => filters.Select(f => (Filter: f, FilterableWithID: a)))
+            .Where(a => a.Filter.Expression?.Evaluate(a.FilterableWithID.Filterable) ?? true);
+
+        // ordering
+        var grouped = filtered.GroupBy(a => a.Filter).ToDictionary(a => a.Key, f =>
+        {
+            var ordered = OrderFilterables(f.Key, f.Select(a => a.FilterableWithID));
+
+            var result = ordered.GroupBy(a => a.GroupID, a => a.SeriesID);
+            if (!f.Key.ApplyAtSeriesLevel)
+                result = result.Select(a => new Grouping(a.Key, _series.GetByGroupID(a.Key).Select(ser => ser.AnimeSeriesID).ToArray()));
+
+            return result;
+        });
+
+        foreach (var filter in filters.Where(filter => !grouped.ContainsKey(filter)))
+            grouped.Add(filter, Array.Empty<IGrouping<int, int>>());
+
+        return grouped;
     }
 
     private static IOrderedEnumerable<FilterableWithID> OrderFilterables(FilterPreset filter, IEnumerable<FilterableWithID> filtered)

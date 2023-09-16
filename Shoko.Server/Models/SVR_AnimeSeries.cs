@@ -377,7 +377,7 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2(ISession session)
     {
-        return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, AniDB_ID);
+        return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AniDB_ID);
     }
 
     public List<Trakt_Show> GetTraktShow()
@@ -707,44 +707,31 @@ public class SVR_AnimeSeries : AnimeSeries
         return RepoFactory.AniDB_Anime.GetByAnimeID(AniDB_ID);
     }
 
+    private DateTime? _airDate;
     public DateTime? AirDate
     {
         get
         {
+            if (_airDate != null) return _airDate;
             var anime = GetAnime();
             if (anime?.AirDate != null)
-            {
-                return anime.AirDate.Value;
-            }
+                return _airDate = anime.AirDate.Value;
 
             // This will be slower, but hopefully more accurate
-            var ep = GetAnimeEpisodes()
-                .Select(a => a.AniDB_Episode)
-                .Where(a => (a.EpisodeType == (int)EpisodeType.Episode) && a.LengthSeconds > 0)
-                .Select(a => a.GetAirDateAsDate())
-                .Where(a => a != null)
-                .OrderBy(a => a)
-                .FirstOrDefault();
-            if (ep != null)
-            {
-                return ep.Value;
-            }
-
-            return null;
+            var ep = RepoFactory.AniDB_Episode.GetByAnimeID(AniDB_ID)
+                .Where(a => a.EpisodeType == (int)EpisodeType.Episode && a.LengthSeconds > 0 && a.AirDate != 0)
+                .MinBy(a => a.AirDate);
+            return _airDate = ep?.GetAirDateAsDate();
         }
     }
 
+    private DateTime? _endDate;
     public DateTime? EndDate
     {
         get
         {
-            var anime = GetAnime();
-            if (anime?.EndDate != null)
-            {
-                return anime.EndDate.Value;
-            }
-
-            return null;
+            if (_endDate != null) return _endDate;
+            return _endDate = GetAnime()?.EndDate;
         }
     }
 
@@ -932,67 +919,6 @@ public class SVR_AnimeSeries : AnimeSeries
             }
 
             return grps;
-        }
-    }
-
-    public void UpdateGroupFilters(HashSet<GroupFilterConditionType> types, SVR_JMMUser user = null)
-    {
-        IReadOnlyList<SVR_JMMUser> users = new List<SVR_JMMUser> { user };
-        if (user == null)
-        {
-            users = RepoFactory.JMMUser.GetAll();
-        }
-
-        var tosave = new List<SVR_GroupFilter>();
-
-        var n = new HashSet<GroupFilterConditionType>(types);
-        var gfs = RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n);
-        logger.Trace($"Updating {gfs.Count} Group Filters from Series {GetAnime().MainTitle}");
-        foreach (var gf in gfs)
-        {
-            if (gf.UpdateGroupFilterFromSeries(Contract, null))
-            {
-                if (!tosave.Contains(gf))
-                {
-                    tosave.Add(gf);
-                }
-            }
-
-            foreach (var u in users)
-            {
-                var cgrp = GetUserContract(u.JMMUserID, n);
-
-                if (gf.UpdateGroupFilterFromSeries(cgrp, u))
-                {
-                    if (!tosave.Contains(gf))
-                    {
-                        tosave.Add(gf);
-                    }
-                }
-            }
-        }
-
-        RepoFactory.GroupFilter.Save(tosave);
-    }
-
-    public void DeleteFromFilters()
-    {
-        foreach (var gf in RepoFactory.GroupFilter.GetAll())
-        {
-            var change = false;
-            foreach (var k in gf.SeriesIds.Keys)
-            {
-                if (gf.SeriesIds[k].Contains(AnimeSeriesID))
-                {
-                    gf.SeriesIds[k].Remove(AnimeSeriesID);
-                    change = true;
-                }
-            }
-
-            if (change)
-            {
-                RepoFactory.GroupFilter.Save(gf);
-            }
         }
     }
 

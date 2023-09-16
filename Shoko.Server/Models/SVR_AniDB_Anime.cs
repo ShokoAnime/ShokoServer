@@ -115,7 +115,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
     public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2(ISession session)
     {
-        return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, AnimeID);
+        return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
     }
 
     public List<CrossRef_AniDB_MAL> GetCrossRefMAL()

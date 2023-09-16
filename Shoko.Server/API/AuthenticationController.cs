@@ -58,7 +58,7 @@ public class AuthenticationController : BaseController
         try
         {
             User.Password = Digest.Hash(newPassword.Trim());
-            RepoFactory.JMMUser.Save(User, false);
+            RepoFactory.JMMUser.Save(User);
             RepoFactory.AuthTokens.DeleteAllWithUserID(User.JMMUserID);
             return Ok();
         }

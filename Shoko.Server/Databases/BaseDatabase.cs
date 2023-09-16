@@ -280,13 +280,11 @@ public abstract class BaseDatabase<T> : IDatabase
 
     public void CreateOrVerifyLockedFilters()
     {
-        RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
         RepoFactory.FilterPreset.CreateOrVerifyLockedFilters();
     }
 
     private void CreateInitialGroupFilters()
     {
-        RepoFactory.GroupFilter.CreateInitialGroupFilters();
         RepoFactory.FilterPreset.CreateInitialFilters();
     }
 
@@ -312,7 +310,7 @@ public abstract class BaseDatabase<T> : IDatabase
             Password = defaultPassword,
             Username = settings.Database.DefaultUserUsername
         };
-        RepoFactory.JMMUser.Save(defaultUser, true);
+        RepoFactory.JMMUser.Save(defaultUser);
 
         var familyUser = new SVR_JMMUser
         {
@@ -324,7 +322,7 @@ public abstract class BaseDatabase<T> : IDatabase
             Password = string.Empty,
             Username = "Family Friendly"
         };
-        RepoFactory.JMMUser.Save(familyUser, true);
+        RepoFactory.JMMUser.Save(familyUser);
     }
 
     private void CreateInitialRenameScript()

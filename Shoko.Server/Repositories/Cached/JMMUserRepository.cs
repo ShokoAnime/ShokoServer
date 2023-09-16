@@ -25,43 +25,6 @@ public class JMMUserRepository : BaseCachedRepository<SVR_JMMUser, int>
     {
     }
 
-    public override void Save(SVR_JMMUser obj)
-    {
-        Save(obj, true);
-    }
-
-    public void Save(SVR_JMMUser obj, bool updateGroupFilters)
-    {
-        var isNew = false;
-        if (obj.JMMUserID == 0)
-        {
-            isNew = true;
-            base.Save(obj);
-        }
-
-        if (updateGroupFilters)
-        {
-            SVR_JMMUser old = null;
-            if (!isNew)
-            {
-                old = Lock(() =>
-                {
-                    using var session = DatabaseFactory.SessionFactory.OpenSession();
-                    return session.Get<SVR_JMMUser>(obj.JMMUserID);
-                });
-            }
-
-            updateGroupFilters = SVR_JMMUser.CompareUser(old, obj);
-        }
-
-        base.Save(obj);
-        if (updateGroupFilters)
-        {
-            logger.Trace("Updating group filter stats by user from JMMUserRepository.Save: {0}", obj.JMMUserID);
-            obj.UpdateGroupFilters();
-        }
-    }
-
     public SVR_JMMUser GetByUsername(string username)
     {
         if (string.IsNullOrWhiteSpace(username))
@@ -101,9 +64,6 @@ public class JMMUserRepository : BaseCachedRepository<SVR_JMMUser, int>
                 return false;
             }
         }
-
-        var toSave = RepoFactory.GroupFilter.GetAll().AsParallel().Where(a => a.RemoveUser(userID)).ToList();
-        RepoFactory.GroupFilter.Save(toSave);
 
         RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetByUserID(userID));
         RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByUserID(userID));

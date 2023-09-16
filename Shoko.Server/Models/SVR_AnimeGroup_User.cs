@@ -60,24 +60,6 @@ public class SVR_AnimeGroup_User : AnimeGroup_User
         StoppedCount = 0;
     }
 
-
-    public void UpdateGroupFilters(HashSet<GroupFilterConditionType> types)
-    {
-        var grp = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
-        var usr = RepoFactory.JMMUser.GetByID(JMMUserID);
-        if (grp != null && usr != null)
-        {
-            grp.UpdateGroupFilters(types, usr);
-        }
-    }
-
-    public void DeleteFromFilters()
-    {
-        var toSave = RepoFactory.GroupFilter.GetAll().AsParallel()
-            .Where(gf => gf.DeleteGroupFromFilters(JMMUserID, AnimeGroupID)).ToList();
-        RepoFactory.GroupFilter.Save(toSave);
-    }
-
     public void UpdatePlexKodiContracts()
     {
         var grp = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);

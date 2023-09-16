@@ -267,7 +267,6 @@ public class PlexHelper
         {
             var existingUser = false;
             var updateStats = false;
-            var updateGf = false;
             SVR_JMMUser jmmUser = null;
             if (user.JMMUserID != 0)
             {
@@ -283,7 +282,6 @@ public class PlexHelper
             {
                 jmmUser = new SVR_JMMUser();
                 updateStats = true;
-                updateGf = true;
             }
 
             if (existingUser && jmmUser.IsAniDBUser != user.IsAniDBUser)
@@ -292,10 +290,6 @@ public class PlexHelper
             }
 
             var hcat = string.Join(",", user.HideCategories);
-            if (jmmUser.HideCategories != hcat)
-            {
-                updateGf = true;
-            }
 
             jmmUser.HideCategories = hcat;
             jmmUser.IsAniDBUser = user.IsAniDBUser;
@@ -348,7 +342,7 @@ public class PlexHelper
                 }
             }
 
-            RepoFactory.JMMUser.Save(jmmUser, updateGf);
+            RepoFactory.JMMUser.Save(jmmUser);
 
             // update stats
             if (!updateStats)

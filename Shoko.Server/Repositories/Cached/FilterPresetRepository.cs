@@ -1,14 +1,13 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
-using Shoko.Server.Extensions;
+using Shoko.Server.Filters;
 using Shoko.Server.Filters.Functions;
 using Shoko.Server.Filters.Info;
 using Shoko.Server.Filters.Logic;
@@ -17,8 +16,8 @@ using Shoko.Server.Filters.Selectors;
 using Shoko.Server.Filters.SortingSelectors;
 using Shoko.Server.Filters.User;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 using Constants = Shoko.Server.Server.Constants;
 
 namespace Shoko.Server.Repositories.Cached;
@@ -70,13 +69,15 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
 
     public void CleanUpEmptyDirectoryFilters()
     {
-        var toremove = GetAll().Where(a => (a.FilterType & GroupFilterType.Directory) != 0)
-            .Where(gf => // TODO evaluate
-                         false).ToList();
-        if (toremove.Count > 0)
-        {
-            Delete(toremove);
-        }
+        var evaluator = Utils.ServiceContainer.GetRequiredService<FilterEvaluator>();
+        var users = RepoFactory.JMMUser.GetAll();
+        var toRemove = GetAll().Where(a => (a.FilterType & GroupFilterType.Directory) != 0)
+            .Where(gf => gf.Expression?.UserDependent ?? false
+                ? !users.Any(u => evaluator.EvaluateFilter(gf, u.JMMUserID).Any())
+                : !evaluator.EvaluateFilter(gf, null).Any()).ToList();
+        if (toRemove.Count <= 0) return;
+
+        Delete(toRemove);
     }
 
     public void CreateOrVerifyLockedFilters()

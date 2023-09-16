@@ -12,9 +12,9 @@ public class WebUIFactory
     private readonly FilterFactory _filterFactory;
     private readonly SeriesFactory _seriesFactory;
 
-    public WebUIFactory(HttpContext context, FilterFactory filterFactory, SeriesFactory seriesFactory)
+    public WebUIFactory(IHttpContextAccessor context, FilterFactory filterFactory, SeriesFactory seriesFactory)
     {
-        _context = context;
+        _context = context.HttpContext;
         _filterFactory = filterFactory;
         _seriesFactory = seriesFactory;
     }

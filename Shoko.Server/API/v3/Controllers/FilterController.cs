@@ -52,19 +52,20 @@ public class FilterController : BaseController
         [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool withConditions = false)
     {
         var user = User;
-        return RepoFactory.FilterPreset.GetTopLevel()
-            .Where(filter =>
+        
+        return _filterEvaluator.BatchEvaluateFilters(RepoFactory.FilterPreset.GetTopLevel(), user.JMMUserID)
+            .Where(kv =>
             {
+                var filter = kv.Key;
                 if (!showHidden && filter.Hidden)
                     return false;
 
-                if (includeEmpty || (filter.IsDirectory()
-                        ? RepoFactory.FilterPreset.GetByParentID(filter.FilterPresetID).Count > 0
-                        : _filterEvaluator.EvaluateFilter(filter, user.JMMUserID).Any()))
+                if (includeEmpty || (filter.IsDirectory() ? RepoFactory.FilterPreset.GetByParentID(filter.FilterPresetID).Count > 0 : kv.Value.Any()))
                     return true;
 
                 return false;
             })
+            .Select(a => a.Key)
             .OrderBy(filter => filter.Name)
             .ToListResult(filter => _factory.GetFilter(filter, withConditions), page, pageSize);
     }
@@ -239,7 +240,7 @@ public class FilterController : BaseController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var filter = _factory.MergeWithExisting(body, filterPreset, ModelState, true);
+        _factory.MergeWithExisting(body, filterPreset, ModelState, true);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -255,7 +256,7 @@ public class FilterController : BaseController
     public ActionResult<Filter.Input.CreateOrUpdateFilterBody> PutPreviewFilter([FromBody] Filter.Input.CreateOrUpdateFilterBody body)
     {
         var filterPreset = GetPreviewFilterForUser(User);
-        var filter = _factory.MergeWithExisting(body, filterPreset, ModelState, true);
+        _factory.MergeWithExisting(body, filterPreset, ModelState, true);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 

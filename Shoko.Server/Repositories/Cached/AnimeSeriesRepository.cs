@@ -33,7 +33,6 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         };
         EndDeleteCallback = cr =>
         {
-            cr.DeleteFromFilters();
             if (cr.AnimeGroupID <= 0)
             {
                 return;
@@ -212,7 +211,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
 
         if (updateGroups && !isMigrating) UpdateGroups(obj, animeID, sw, oldGroup);
 
-        if (!skipgroupfilters && !isMigrating) UpdateGroupFilters(obj, sw, animeID, types);
+        if (false && !skipgroupfilters && !isMigrating) UpdateGroupFilters(obj, sw, animeID, types);
 
         Changes.AddOrUpdate(obj.AnimeSeriesID);
 
@@ -283,13 +282,8 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         //This call will create extra years or tags if the Group have a new year or tag
         logger.Trace(
             $"Saving Series {animeID} | Updating Group Filters for Years ({string.Join(",", (IEnumerable<int>)allyears?.OrderBy(a => a) ?? Array.Empty<int>())}) and Seasons ({string.Join(",", (IEnumerable<string>)seasons ?? Array.Empty<string>())})");
-        RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false,
-            obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears, seasons);
         RepoFactory.FilterPreset.CreateOrVerifyDirectoryFilters(false,
             obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears, obj.Contract?.AniDBAnime?.AniDBAnime?.GetSeasons().ToHashSet());
-
-        // Update other existing filters
-        obj.UpdateGroupFilters(types);
         sw.Stop();
         logger.Trace($"Saving Series {animeID} | Updated Group Filters in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();

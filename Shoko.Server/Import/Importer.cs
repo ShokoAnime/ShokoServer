@@ -1139,11 +1139,6 @@ public static class Importer
             ser.QueueUpdateStats();
         }
 
-        foreach (var gf in RepoFactory.GroupFilter.GetAll())
-        {
-            gf.QueueUpdate();
-        }
-
         commandFactory.CreateAndSave<CommandRequest_RefreshGroupFilter>(c => c.GroupFilterID = 0);
     }
 

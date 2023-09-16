@@ -23,8 +23,6 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
         {
             Changes.TryAdd(cr.JMMUserID, new ChangeTracker<int>());
             Changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
-
-            cr.DeleteFromFilters();
         };
     }
 
@@ -52,49 +50,11 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
 
     public override void Save(SVR_AnimeGroup_User obj)
     {
-        // Get The previous AnimeGroup_User from db for comparison;
-        var old = Lock(() =>
-        {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return session.Get<SVR_AnimeGroup_User>(obj.AnimeGroup_UserID);
-        });
-
         obj.UpdatePlexKodiContracts();
-        var types = GetConditionTypesChanged(old, obj);
         base.Save(obj);
         Changes.TryAdd(obj.JMMUserID, new ChangeTracker<int>());
 
         Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeGroupID);
-        obj.UpdateGroupFilters(types);
-    }
-
-    private static HashSet<GroupFilterConditionType> GetConditionTypesChanged(SVR_AnimeGroup_User oldcontract,
-        SVR_AnimeGroup_User newcontract)
-    {
-        var h = new HashSet<GroupFilterConditionType>();
-
-        if (oldcontract == null ||
-            oldcontract.UnwatchedEpisodeCount > 0 != newcontract.UnwatchedEpisodeCount > 0)
-        {
-            h.Add(GroupFilterConditionType.HasUnwatchedEpisodes);
-        }
-
-        if (oldcontract == null || oldcontract.IsFave != newcontract.IsFave)
-        {
-            h.Add(GroupFilterConditionType.Favourite);
-        }
-
-        if (oldcontract == null || oldcontract.WatchedDate != newcontract.WatchedDate)
-        {
-            h.Add(GroupFilterConditionType.EpisodeWatchedDate);
-        }
-
-        if (oldcontract == null || oldcontract.WatchedEpisodeCount > 0 != newcontract.WatchedEpisodeCount > 0)
-        {
-            h.Add(GroupFilterConditionType.HasWatchedEpisodes);
-        }
-
-        return h;
     }
 
     /// <summary>

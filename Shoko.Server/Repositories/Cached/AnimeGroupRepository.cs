@@ -26,7 +26,6 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         BeginDeleteCallback = cr =>
         {
             RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByGroupID(cr.AnimeGroupID));
-            cr.DeleteFromFilters();
         };
         EndDeleteCallback = cr =>
         {
@@ -123,12 +122,8 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
 
         if (verifylockedFilters)
         {
-            RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false, grp.Contract?.Stat_AllTags,
-                grp.Contract?.Stat_AllYears, grp.Contract?.Stat_AllSeasons);
             RepoFactory.FilterPreset.CreateOrVerifyDirectoryFilters(false, grp.Contract?.Stat_AllTags,
                 grp.Contract?.Stat_AllYears, grp.Contract?.GetSeasons());
-            //This call will create extra years or tags if the Group have a new year or tag
-            grp.UpdateGroupFilters(types);
         }
 
         if (grp.AnimeGroupParentID.HasValue && recursive)

@@ -28,9 +28,7 @@ internal class AnimeGroupCreator
     private readonly AnimeSeriesRepository _animeSeriesRepo = RepoFactory.AnimeSeries;
     private readonly AnimeGroupRepository _animeGroupRepo = RepoFactory.AnimeGroup;
     private readonly AnimeGroup_UserRepository _animeGroupUserRepo = RepoFactory.AnimeGroup_User;
-    private readonly GroupFilterRepository _groupFilterRepo = RepoFactory.GroupFilter;
     private readonly FilterPresetRepository _filterRepo = RepoFactory.FilterPreset;
-    private readonly JMMUserRepository _userRepo = RepoFactory.JMMUser;
     private readonly bool _autoGroupSeries;
 
     /// <summary>
@@ -108,7 +106,6 @@ internal class AnimeGroupCreator
 
         // We've deleted/modified all AnimeSeries/GroupFilter records, so update caches to reflect that
         _animeSeriesRepo.ClearCache();
-        _groupFilterRepo.ClearCache();
         _log.Info("AnimeGroups have been removed and GroupFilters have been reset");
     }
 
@@ -486,7 +483,6 @@ internal class AnimeGroupCreator
             // (Otherwise updating Group Filters won't get the correct results)
             _animeGroupRepo.Populate(session, false);
             _animeGroupUserRepo.Populate(session, false);
-            _groupFilterRepo.Populate(session, false);
 
             UpdateGroupFilters();
 
@@ -501,7 +497,6 @@ internal class AnimeGroupCreator
                 // If an error occurs then chances are the caches are in an inconsistent state. So re-populate them
                 _animeSeriesRepo.Populate();
                 _animeGroupRepo.Populate();
-                _groupFilterRepo.Populate();
                 _animeGroupUserRepo.Populate();
             }
             catch (Exception ie)

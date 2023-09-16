@@ -4,10 +4,12 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -97,7 +99,7 @@ public class Group : BaseModel
         HasCustomDescription = group.OverrideDescription == 1;
 
         // TODO make a factory for this file. Not feeling it rn
-        var factory = new SeriesFactory(ctx);
+        var factory = ctx.RequestServices.GetRequiredService<SeriesFactory>();
         Images = mainSeries == null ? new Images() : factory.GetDefaultImages(mainSeries, randomiseImages);
     }
 

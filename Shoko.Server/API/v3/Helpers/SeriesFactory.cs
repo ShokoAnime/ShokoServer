@@ -32,9 +32,9 @@ public class SeriesFactory
     private readonly AniDB_TagRepository _aniDBTagRepository;
     private readonly AniDB_Anime_TagRepository _aniDBAnimeTagRepository;
 
-    public SeriesFactory(HttpContext context)
+    public SeriesFactory(IHttpContextAccessor context)
     {
-        _context = context;
+        _context = context.HttpContext;
         _crossRefAnimeStaffRepository = RepoFactory.CrossRef_Anime_Staff;
         _animeCharacterRepository = RepoFactory.AnimeCharacter;
         _animeStaffRepository = RepoFactory.AnimeStaff;

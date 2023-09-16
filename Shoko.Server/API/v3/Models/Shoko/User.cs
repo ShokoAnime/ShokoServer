@@ -231,7 +231,7 @@ public class User
                 }
 
                 // Save the model now.
-                RepoFactory.JMMUser.Save(user, false);
+                RepoFactory.JMMUser.Save(user);
 
                 return new User(user);
             }
