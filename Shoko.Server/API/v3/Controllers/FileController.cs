@@ -720,7 +720,7 @@ public class FileController : BaseController
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
-        _commandFactory.Create<CommandRequest_ProcessFile>(
+        _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
             c =>
             {
                 c.VideoLocalID = file.VideoLocalID;
