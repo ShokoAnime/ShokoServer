@@ -55,7 +55,7 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
 
     public override void PostProcess()
     {
-        const string t = "Filter";
+        const string t = "FilterPreset";
 
         // Clean up. This will populate empty conditions and remove duplicate filters
         ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
@@ -70,11 +70,9 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
     public void CleanUpEmptyDirectoryFilters()
     {
         var evaluator = Utils.ServiceContainer.GetRequiredService<FilterEvaluator>();
-        var users = RepoFactory.JMMUser.GetAll();
-        var toRemove = GetAll().Where(a => (a.FilterType & GroupFilterType.Directory) != 0)
-            .Where(gf => gf.Expression?.UserDependent ?? false
-                ? !users.Any(u => evaluator.EvaluateFilter(gf, u.JMMUserID).Any())
-                : !evaluator.EvaluateFilter(gf, null).Any()).ToList();
+        var filters = GetAll().Where(a => (a.FilterType & GroupFilterType.Directory) != 0)
+            .Where(gf => gf.Expression is not null && gf.Expression.UserDependent).ToList();
+        var toRemove = evaluator.BatchEvaluateFilters(filters, null).Where(a => !a.Value.Any()).Select(a => a.Key).ToList();
         if (toRemove.Count <= 0) return;
 
         Delete(toRemove);
@@ -82,7 +80,7 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
 
     public void CreateOrVerifyLockedFilters()
     {
-        const string t = "GroupFilter";
+        const string t = "FilterPreset";
 
         var lockedGFs = GetLockedGroupFilters();
 
@@ -156,10 +154,9 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
     public void CreateOrVerifyDirectoryFilters(bool frominit = false, ISet<string> tags = null,
         ISet<int> airdate = null, ISet<(int Year, AnimeSeason Season)> seasons = null)
     {
-        const string t = "GroupFilter";
+        const string t = "FilterPreset";
 
         var lockedGFs = GetLockedGroupFilters();
-
 
         var tagsdirec = lockedGFs.FirstOrDefault(a => a.FilterType == (GroupFilterType.Directory | GroupFilterType.Tag));
         if (tagsdirec != null)
@@ -275,8 +272,7 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
                 allseasons = new SortedSet<(int Year, AnimeSeason Season)>();
                 foreach (var ser in grps)
                 {
-                    var seriesSeasons = ser?.Contract?.AniDBAnime?.AniDBAnime?.GetSeasons().ToList();
-                    if ((seriesSeasons?.Count ?? 0) == 0) ser?.UpdateContract();
+                    var seriesSeasons = ser?.GetAnime()?.GetSeasons().ToList();
                     if ((seriesSeasons?.Count ?? 0) == 0) continue;
                     allseasons.UnionWith(seriesSeasons);
                 }
