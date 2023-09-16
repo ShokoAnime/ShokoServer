@@ -168,11 +168,10 @@ namespace Shoko.Commons.Extensions
             var endYear = anime.EndDate?.Year ?? DateTime.Today.Year;
             for (var year = beginYear; year <= endYear; year++)
             {
-                foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))
-                {
-                    if (!anime.IsInSeason(season, year)) continue;
-                    yield return (year, season);
-                }
+                if (anime.IsInSeason(AnimeSeason.Winter, year)) yield return (year, AnimeSeason.Winter);
+                if (anime.IsInSeason(AnimeSeason.Spring, year)) yield return (year, AnimeSeason.Spring);
+                if (anime.IsInSeason(AnimeSeason.Summer, year)) yield return (year, AnimeSeason.Summer);
+                if (anime.IsInSeason(AnimeSeason.Fall, year)) yield return (year, AnimeSeason.Fall);
             }
         }
 
