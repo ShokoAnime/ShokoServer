@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Models.Enums;
 using Shoko.Server.Filters.SortingSelectors;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -53,15 +54,16 @@ public class FilterEvaluator
 
         return result;
     }
-    
+
     /// <summary>
     /// Evaluate the given filter, applying the necessary logic
     /// </summary>
     /// <param name="filters"></param>
     /// <param name="userID"></param>
+    /// <param name="skipSorting"></param>
     /// <returns>SeriesIDs, grouped by the direct parent GroupID</returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>> BatchEvaluateFilters(List<FilterPreset> filters, int? userID)
+    public Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>> BatchEvaluateFilters(List<FilterPreset> filters, int? userID, bool skipSorting=false)
     {
         ArgumentNullException.ThrowIfNull(filters);
         if (!filters.Any()) return new Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>>();
@@ -78,12 +80,12 @@ public class FilterEvaluator
 
         // Filtering
         var filtered = filterables.SelectMany(a => filters.Select(f => (Filter: f, FilterableWithID: a)))
-            .Where(a => a.Filter.Expression?.Evaluate(a.FilterableWithID.Filterable) ?? true);
+            .Where(a => (a.Filter.FilterType & GroupFilterType.Directory) == 0 && (a.Filter.Expression?.Evaluate(a.FilterableWithID.Filterable) ?? true));
 
         // ordering
         var grouped = filtered.GroupBy(a => a.Filter).ToDictionary(a => a.Key, f =>
         {
-            var ordered = OrderFilterables(f.Key, f.Select(a => a.FilterableWithID));
+            var ordered = skipSorting ? f.Select(a => a.FilterableWithID) : OrderFilterables(f.Key, f.Select(a => a.FilterableWithID));
 
             var result = ordered.GroupBy(a => a.GroupID, a => a.SeriesID);
             if (!f.Key.ApplyAtSeriesLevel)

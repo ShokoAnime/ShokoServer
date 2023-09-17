@@ -10,6 +10,7 @@ using System.Web;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NLog;
 using Quartz;
@@ -22,6 +23,7 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
+using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs;
@@ -2694,7 +2696,7 @@ public class Common : BaseController
     /// Handle /api/filter
     /// Using if without ?id consider using ?level as it will scan resursive for object from Filter to RawFile
     /// </summary>
-    /// <returns>Filter or List<Filter></returns>
+    /// <returns><see cref="Filter"/> or <see cref="List{Filter}"/></returns>
     [HttpGet("filter")]
     public object GetFilters([FromQuery] API_Call_Parameters para)
     {
@@ -2727,25 +2729,26 @@ public class Common : BaseController
         {
             id = 0, name = "Filters", viewed = 0, url = APIV2Helper.ConstructFilterUrl(HttpContext)
         };
-        var allGfs = RepoFactory.GroupFilter.GetTopLevel()
-            .Where(a => !a.IsHidden &&
-                        ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
-                         a.IsDirectory))
-            .ToList();
+        var allGfs = RepoFactory.FilterPreset.GetTopLevel().Where(a => !a.Hidden).ToList();
         var _filters = new List<APIFilters>();
+        var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
+        var user = HttpContext.GetUser();
+        var hideCategories = user.GetHideCategories();
+        var filtersToEvaluate = level > 1
+            ? RepoFactory.FilterPreset.GetAll().Where(a => (a.FilterType & GroupFilterType.Tag) == 0 || !hideCategories.Contains(a.Name)).ToList()
+            : allGfs;
+        var result = evaluator.BatchEvaluateFilters(filtersToEvaluate, user.JMMUserID);
 
         foreach (var gf in allGfs)
         {
             APIFilters filter;
-            if (!gf.IsDirectory)
+            if (!gf.IsDirectory())
             {
-                filter = Filter.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
-                    tagfilter);
+                filter = Filter.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic, tagfilter, result[gf].ToList());
             }
             else
             {
-                filter = APIFilters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
-                    tagfilter);
+                filter = APIFilters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic, tagfilter, result);
             }
 
             _filters.Add(filter);
@@ -2787,9 +2790,9 @@ public class Common : BaseController
     internal object GetFilter(int id, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic,
         TagFilter.Filter tagfilter)
     {
-        var gf = RepoFactory.GroupFilter.GetByID(id);
+        var gf = RepoFactory.FilterPreset.GetByID(id);
 
-        if (gf.IsDirectory)
+        if (gf.IsDirectory())
         {
             // if it's a directory, it IS a filter-inception;
             var fgs = APIFilters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,

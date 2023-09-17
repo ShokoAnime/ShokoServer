@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
@@ -94,10 +95,11 @@ public class TreeController : BaseController
         if (!filterPreset.IsDirectory())
             return new ListResult<Filter>();
 
-        return RepoFactory.FilterPreset.GetByParentID(filterID)
-            .Where(filter => showHidden || !filter.Hidden)
-            .OrderBy(filter => filter.Name)
-            .ToListResult(filter => _filterFactory.GetFilter(filter), page, pageSize);
+        var hideCategories = HttpContext.GetUser().GetHideCategories();
+
+        return _filterFactory.GetFilters(RepoFactory.FilterPreset.GetByParentID(filterID)
+                .Where(filter => (showHidden || !filter.Hidden) && !hideCategories.Contains(filter.Name)).OrderBy(a => a.Name).ToList())
+            .ToListResult(page, pageSize);
     }
 
     /// <summary>

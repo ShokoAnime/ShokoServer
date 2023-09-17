@@ -4,8 +4,10 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
+using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
@@ -31,7 +33,7 @@ public class Group : BaseDirectory
 
     public static Group GenerateFromAnimeGroup(HttpContext ctx, SVR_AnimeGroup ag, int uid, bool nocast, bool notag,
         int level,
-        bool all, int filterid, bool allpic, int pic, TagFilter.Filter tagfilter)
+        bool all, int filterid, bool allpic, int pic, TagFilter.Filter tagfilter, List<int> evaluatedSeriesIDs = null)
     {
         var g = new Group
         {
@@ -43,124 +45,106 @@ public class Group : BaseDirectory
             edited = ag.DateTimeUpdated
         };
 
-        SVR_GroupFilter filter = null;
-        if (filterid > 0)
+        if (filterid > 0 && evaluatedSeriesIDs == null)
         {
-            filter = RepoFactory.GroupFilter.GetByID(filterid);
-            if (filter?.ApplyToSeries == 0)
-            {
-                filter = null;
-            }
+            var filter = RepoFactory.FilterPreset.GetByID(filterid);
+            var evaluator = ctx.RequestServices.GetRequiredService<FilterEvaluator>();
+            evaluatedSeriesIDs = evaluator.EvaluateFilter(filter, ctx.GetUser().JMMUserID).FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList();
         }
 
-        List<SVR_AniDB_Anime> animes;
-        if (filter != null)
+        var animes = evaluatedSeriesIDs != null
+            ? evaluatedSeriesIDs.Select(id => RepoFactory.AnimeSeries.GetByID(id)).Select(ser => ser.GetAnime()).Where(a => a != null).ToList()
+            : ag.Anime?.OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue).ToList();
+
+        if (animes is not { Count: > 0 }) return g;
+
+        var anime = animes.FirstOrDefault();
+        if (anime == null) return g;
+
+        PopulateArtFromAniDBAnime(ctx, animes, g, allpic, pic);
+
+        List<SVR_AnimeEpisode> ael;
+        if (evaluatedSeriesIDs != null)
         {
-            animes = filter.SeriesIds[uid].Select(id => RepoFactory.AnimeSeries.GetByID(id))
-                .Where(ser => ser?.AnimeGroupID == ag.AnimeGroupID).Select(ser => ser.GetAnime())
-                .Where(a => a != null).OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue)
-                .ToList();
+            var series = evaluatedSeriesIDs.Select(id => RepoFactory.AnimeSeries.GetByID(id)).ToList();
+            ael = series.SelectMany(ser => ser?.GetAnimeEpisodes()).Where(a => a != null).ToList();
+            g.size = series.Count;
         }
         else
         {
-            animes = ag.Anime?.OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue).ToList();
+            var series = ag.GetAllSeries();
+            ael = series.SelectMany(a => a?.GetAnimeEpisodes()).Where(a => a != null).ToList();
+            g.size = series.Count;
         }
 
-        if (animes != null && animes.Count > 0)
+        GenerateSizes(g, ael, uid);
+
+        g.air = anime.AirDate?.ToPlexDate() ?? string.Empty;
+
+        g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
+        g.summary = anime.Description ?? string.Empty;
+        g.titles = anime.GetTitles().Select(s => new AnimeTitle
         {
-            var anime = animes.FirstOrDefault(a => a != null);
-            if (anime == null)
+            Type = s.TitleType.ToString().ToLower(), Language = s.LanguageCode, Title = s.Title
+        }).ToList();
+        g.year = anime.BeginYear.ToString();
+
+        if (!notag && ag.Contract.Stat_AllTags != null)
+        {
+            g.tags = TagFilter.String.ProcessTags(tagfilter, ag.Contract.Stat_AllTags.ToList());
+        }
+
+        if (!nocast)
+        {
+            var xref_animestaff =
+                RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID, StaffRoleType.Seiyuu);
+            foreach (var xref in xref_animestaff)
             {
-                return g;
-            }
-
-            PopulateArtFromAniDBAnime(ctx, animes, g, allpic, pic);
-
-            List<SVR_AnimeEpisode> ael;
-            if (filter != null && filter.SeriesIds.ContainsKey(uid))
-            {
-                var series = filter.SeriesIds[uid].Select(id => RepoFactory.AnimeSeries.GetByID(id))
-                    .Where(ser => (ser?.AnimeGroupID ?? 0) == ag.AnimeGroupID).ToList();
-                ael = series.SelectMany(ser => ser?.GetAnimeEpisodes()).Where(a => a != null)
-                    .ToList();
-                g.size = series.Count;
-            }
-            else
-            {
-                var series = ag.GetAllSeries();
-                ael = series.SelectMany(a => a?.GetAnimeEpisodes()).Where(a => a != null).ToList();
-                g.size = series.Count;
-            }
-
-            GenerateSizes(g, ael, uid);
-
-            g.air = anime.AirDate?.ToPlexDate() ?? string.Empty;
-
-            g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
-            g.summary = anime.Description ?? string.Empty;
-            g.titles = anime.GetTitles().Select(s => new AnimeTitle
-            {
-                Type = s.TitleType.ToString().ToLower(), Language = s.LanguageCode, Title = s.Title
-            }).ToList();
-            g.year = anime.BeginYear.ToString();
-
-            if (!notag && ag.Contract.Stat_AllTags != null)
-            {
-                g.tags = TagFilter.String.ProcessTags(tagfilter, ag.Contract.Stat_AllTags.ToList());
-            }
-
-            if (!nocast)
-            {
-                var xref_animestaff =
-                    RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID, StaffRoleType.Seiyuu);
-                foreach (var xref in xref_animestaff)
+                if (xref.RoleID == null)
                 {
-                    if (xref.RoleID == null)
-                    {
-                        continue;
-                    }
-
-                    var character = RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value);
-                    if (character == null)
-                    {
-                        continue;
-                    }
-
-                    var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
-                    if (staff == null)
-                    {
-                        continue;
-                    }
-
-                    var role = new Role
-                    {
-                        character = character.Name,
-                        character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Character,
-                            xref.RoleID.Value),
-                        staff = staff.Name,
-                        staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Staff,
-                            xref.StaffID),
-                        role = xref.Role,
-                        type = ((StaffRoleType)xref.RoleType).ToString()
-                    };
-                    if (g.roles == null)
-                    {
-                        g.roles = new List<Role>();
-                    }
-
-                    g.roles.Add(role);
+                    continue;
                 }
-            }
 
-            if (level > 0)
-            {
-                foreach (var ada in animes.Select(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID)))
+                var character = RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value);
+                if (character == null)
                 {
-                    g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, nocast, notag, level - 1, all, allpic,
-                        pic, tagfilter));
+                    continue;
                 }
-                // we already sorted animes, so no need to sort
+
+                var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
+                if (staff == null)
+                {
+                    continue;
+                }
+
+                var role = new Role
+                {
+                    character = character.Name,
+                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Character,
+                        xref.RoleID.Value),
+                    staff = staff.Name,
+                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Staff,
+                        xref.StaffID),
+                    role = xref.Role,
+                    type = ((StaffRoleType)xref.RoleType).ToString()
+                };
+                if (g.roles == null)
+                {
+                    g.roles = new List<Role>();
+                }
+
+                g.roles.Add(role);
             }
+        }
+
+        if (level > 0)
+        {
+            foreach (var ada in animes.Select(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID)))
+            {
+                g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, nocast, notag, level - 1, all, allpic,
+                    pic, tagfilter));
+            }
+            // we already sorted animes, so no need to sort
         }
 
         return g;

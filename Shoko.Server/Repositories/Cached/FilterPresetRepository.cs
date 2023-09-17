@@ -72,7 +72,7 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
         var evaluator = Utils.ServiceContainer.GetRequiredService<FilterEvaluator>();
         var filters = GetAll().Where(a => (a.FilterType & GroupFilterType.Directory) != 0)
             .Where(gf => gf.Expression is not null && gf.Expression.UserDependent).ToList();
-        var toRemove = evaluator.BatchEvaluateFilters(filters, null).Where(a => !a.Value.Any()).Select(a => a.Key).ToList();
+        var toRemove = evaluator.BatchEvaluateFilters(filters, null, true).Where(a => !a.Value.Any()).Select(a => a.Key).ToList();
         if (toRemove.Count <= 0) return;
 
         Delete(toRemove);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
@@ -50,6 +51,39 @@ public class FilterFactory
             ? RepoFactory.FilterPreset.GetByParentID(groupFilter.FilterPresetID).Count
             : _evaluator.EvaluateFilter(groupFilter, user?.JMMUserID).Count();
         return filter;
+    }
+
+    public IEnumerable<Filter> GetFilters(List<FilterPreset> groupFilters, bool fullModel = false)
+    {
+        var user = _context.GetUser();
+        var evaluate = groupFilters.Any(a => !a.IsDirectory());
+        var results = evaluate ? _evaluator.BatchEvaluateFilters(groupFilters, user.JMMUserID, true) : null;
+        var filters = groupFilters.Select(groupFilter =>
+        {
+            var filter = new Filter
+            {
+                IDs = new Filter.FilterIDs
+                {
+                    ID = groupFilter.FilterPresetID, ParentFilter = groupFilter.ParentFilterPresetID
+                },
+                Name = groupFilter.Name,
+                IsLocked = groupFilter.Locked,
+                IsDirectory = groupFilter.IsDirectory(),
+                IsHidden = groupFilter.Hidden,
+                ApplyAtSeriesLevel = groupFilter.ApplyAtSeriesLevel,
+            };
+
+            if (fullModel)
+            {
+                filter.Expression = GetExpressionTree(groupFilter.Expression);
+                filter.Sorting = GetSortingCriteria(groupFilter.SortingExpression);
+            }
+
+            filter.Size = filter.IsDirectory ? RepoFactory.FilterPreset.GetByParentID(groupFilter.FilterPresetID).Count : results?[groupFilter].Count() ?? 0;
+            return filter;
+        });
+
+        return filters;
     }
 
     public static Filter.FilterCondition GetExpressionTree(FilterExpression expression)

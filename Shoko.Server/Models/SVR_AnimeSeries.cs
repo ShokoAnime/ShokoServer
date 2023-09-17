@@ -191,15 +191,15 @@ public class SVR_AnimeSeries : AnimeSeries
         if (!string.IsNullOrEmpty(SeriesNameOverride))
             return SeriesNameOverride;
 
+        if (Utils.SettingsProvider.GetSettings().SeriesNameSource == DataSourceType.AniDB)
+            return GetAnime().PreferredTitle;
+
         // Try to find the TvDB title if we prefer TvDB titles.
-        if (Utils.SettingsProvider.GetSettings().SeriesNameSource == DataSourceType.TvDB)
-        {
-            var tvdbShows = GetTvDBSeries();
-            var tvdbShowTitle = tvdbShows
-                .FirstOrDefault(show => show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.SeriesName;
-            if (!string.IsNullOrEmpty(tvdbShowTitle))
-                return tvdbShowTitle;
-        }
+        var tvdbShows = GetTvDBSeries();
+        var tvdbShowTitle = tvdbShows
+            .FirstOrDefault(show => !show.SeriesName.Contains("**DUPLICATE", StringComparison.InvariantCultureIgnoreCase))?.SeriesName;
+        if (!string.IsNullOrEmpty(tvdbShowTitle))
+            return tvdbShowTitle;
 
         // Otherwise just return the anidb title.
         return GetAnime().PreferredTitle;

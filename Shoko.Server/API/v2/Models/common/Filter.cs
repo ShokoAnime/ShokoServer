@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
-using Shoko.Models.Client;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -33,107 +34,88 @@ public class Filter : Filters
         groups = new List<Group>();
     }
 
-    internal new static Filter GenerateFromGroupFilter(HttpContext ctx, SVR_GroupFilter gf, int uid, bool nocast,
+    internal static Filter GenerateFromGroupFilter(HttpContext ctx, FilterPreset gf, int uid, bool nocast,
         bool notag, int level,
-        bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
+        bool all, bool allpic, int pic, TagFilter.Filter tagfilter, List<IGrouping<int, int>> evaluatedResults = null)
     {
         var groups = new List<Group>();
-        var filter = new Filter { name = gf.GroupFilterName, id = gf.GroupFilterID, size = 0 };
-        if (gf.GroupsIds.ContainsKey(uid))
+        var filter = new Filter { name = gf.Name, id = gf.FilterPresetID, size = 0 };
+        if (evaluatedResults == null)
         {
-            var groupsh = gf.GroupsIds[uid];
-            if (groupsh.Count != 0)
+            var evaluator = ctx.RequestServices.GetRequiredService<FilterEvaluator>();
+            evaluatedResults = evaluator.EvaluateFilter(gf, ctx.GetUser().JMMUserID).ToList();
+        }
+
+        if (evaluatedResults.Count != 0)
+        {
+            filter.size = evaluatedResults.Count;
+
+            // Populate Random Art
+
+            List<SVR_AnimeSeries> arts = null;
+            var seriesList = evaluatedResults.SelectMany(a => a).Select(RepoFactory.AnimeSeries.GetByID).ToList();
+            var groupsList = evaluatedResults.Select(r => RepoFactory.AnimeGroup.GetByID(r.Key)).ToList();
+            if (pic == 1)
             {
-                filter.size = groupsh.Count;
-
-                // Populate Random Art
-                List<SVR_AnimeGroup> groupsList;
-
-                List<SVR_AnimeSeries> arts = null;
-                if (gf.SeriesIds.ContainsKey(uid))
+                arts = seriesList.Where(SeriesHasCompleteArt).Where(a => a != null).ToList();
+                if (arts.Count == 0)
                 {
-                    var seriesList = gf.SeriesIds[uid].Select(RepoFactory.AnimeSeries.GetByID).ToList();
-                    groupsList = seriesList.Select(a => a.AnimeGroupID).Distinct()
-                        .Select(RepoFactory.AnimeGroup.GetByID).ToList();
-                    if (pic == 1)
-                    {
-                        arts = seriesList.Where(SeriesHasCompleteArt).Where(a => a != null).ToList();
-                        if (arts.Count == 0)
-                        {
-                            arts = seriesList.Where(SeriesHasMostlyCompleteArt).Where(a => a != null).ToList();
-                        }
-
-                        if (arts.Count == 0)
-                        {
-                            arts = seriesList;
-                        }
-                    }
-                }
-                else
-                {
-                    groupsList = new List<SVR_AnimeGroup>();
+                    arts = seriesList.Where(SeriesHasMostlyCompleteArt).Where(a => a != null).ToList();
                 }
 
-                if (arts?.Count > 0)
+                if (arts.Count == 0)
                 {
-                    var rand = new Random();
-                    var anime = arts[rand.Next(arts.Count)];
+                    arts = seriesList;
+                }
+            }
 
-                    var fanarts = GetFanartFromSeries(anime);
-                    if (fanarts.Any())
-                    {
-                        var fanart = fanarts[rand.Next(fanarts.Count)];
-                        filter.art.fanart.Add(new Art
-                        {
-                            index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_FanArt,
-                                fanart.TvDB_ImageFanartID)
-                        });
-                    }
+            if (arts?.Count > 0)
+            {
+                var rand = new Random();
+                var anime = arts[rand.Next(arts.Count)];
 
-                    var banners = GetBannersFromSeries(anime);
-                    if (banners.Any())
+                var fanarts = GetFanartFromSeries(anime);
+                if (fanarts.Any())
+                {
+                    var fanart = fanarts[rand.Next(fanarts.Count)];
+                    filter.art.fanart.Add(new Art
                     {
-                        var banner = banners[rand.Next(banners.Count)];
-                        filter.art.banner.Add(new Art
-                        {
-                            index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_Banner,
-                                banner.TvDB_ImageWideBannerID)
-                        });
-                    }
-
-                    filter.art.thumb.Add(new Art
-                    {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.AniDB_Cover,
-                            anime.AniDB_ID),
-                        index = 0
+                        index = 0,
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_FanArt,
+                            fanart.TvDB_ImageFanartID)
                     });
                 }
 
-                var order = new Dictionary<CL_AnimeGroup_User, Group>();
-                if (level > 0)
+                var banners = GetBannersFromSeries(anime);
+                if (banners.Any())
                 {
-                    foreach (var ag in groupsList)
+                    var banner = banners[rand.Next(banners.Count)];
+                    filter.art.banner.Add(new Art
                     {
-                        var group =
-                            Group.GenerateFromAnimeGroup(ctx, ag, uid, nocast, notag, level - 1, all,
-                                filter.id, allpic, pic, tagfilter);
-                        groups.Add(group);
-                        order.Add(ag.GetUserContract(uid), group);
-                    }
+                        index = 0,
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_Banner,
+                            banner.TvDB_ImageWideBannerID)
+                    });
                 }
 
-                if (groups.Count > 0)
+                filter.art.thumb.Add(new Art
                 {
-                    // Proper Sorting!
-                    IEnumerable<CL_AnimeGroup_User> grps = order.Keys;
-                    grps = gf.SortCriteriaList.Count != 0
-                        ? GroupFilterHelper.Sort(grps, gf)
-                        : grps.OrderBy(a => a.GroupName);
-                    groups = grps.Select(a => order[a]).ToList();
-                    filter.groups = groups;
-                }
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.AniDB_Cover,
+                        anime.AniDB_ID),
+                    index = 0
+                });
+            }
+
+            if (level > 0)
+            {
+                groups.AddRange(groupsList.Select(ag =>
+                    Group.GenerateFromAnimeGroup(ctx, ag, uid, nocast, notag, level - 1, all, filter.id, allpic, pic, tagfilter,
+                        evaluatedResults.FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList())));
+            }
+
+            if (groups.Count > 0)
+            {
+                filter.groups = groups;
             }
         }
 

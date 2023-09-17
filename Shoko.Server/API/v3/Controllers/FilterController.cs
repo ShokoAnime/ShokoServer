@@ -53,7 +53,7 @@ public class FilterController : BaseController
     {
         var user = User;
         
-        return _filterEvaluator.BatchEvaluateFilters(RepoFactory.FilterPreset.GetTopLevel(), user.JMMUserID)
+        return _filterEvaluator.BatchEvaluateFilters(RepoFactory.FilterPreset.GetTopLevel(), user.JMMUserID, true)
             .Where(kv =>
             {
                 var filter = kv.Key;

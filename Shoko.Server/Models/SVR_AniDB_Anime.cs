@@ -598,20 +598,20 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         titles ??= GetTitles();
 
         // Check each preferred language in order.
-        foreach (var thisLanguage in Languages.PreferredNamingLanguages.Select(a => a.Language))
+        foreach (var thisLanguage in Languages.PreferredNamingLanguageNames)
         {
             // First check the main title.
-            var title = titles.FirstOrDefault(title => title.TitleType == TitleType.Main && title.Language == thisLanguage);
+            var title = titles.FirstOrDefault(t => t.TitleType == TitleType.Main && t.Language == thisLanguage);
             if (title != null) return title.Title;
 
             // Then check for an official title.
-            title = titles.FirstOrDefault(title => title.TitleType == TitleType.Official && title.Language == thisLanguage);
+            title = titles.FirstOrDefault(t => t.TitleType == TitleType.Official && t.Language == thisLanguage);
             if (title != null) return title.Title;
 
             // Then check for _any_ title at all, if there is no main or official title in the langugage.
             if (Utils.SettingsProvider.GetSettings().LanguageUseSynonyms)
             {
-                title = titles.FirstOrDefault(title => title.Language == thisLanguage);
+                title = titles.FirstOrDefault(t => t.Language == thisLanguage);
                 if (title != null) return title.Title;
             }
         }
@@ -637,7 +637,8 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         }
     }
 
-    public string PreferredTitle => GetFormattedTitle();
+    private string _cachedTitle;
+    public string PreferredTitle => _cachedTitle == null ? (_cachedTitle = GetFormattedTitle()) : _cachedTitle;
 
 
     [XmlIgnore] public List<AniDB_Episode> AniDBEpisodes => RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID);
