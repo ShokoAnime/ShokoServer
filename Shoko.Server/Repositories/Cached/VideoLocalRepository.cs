@@ -42,6 +42,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         return entity.VideoLocalID;
     }
 
+#pragma warning disable 618
     public override void PopulateIndexes()
     {
         //Fix null hashes
@@ -77,6 +78,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         _md5 = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.MD5);
         _ignored = new PocoIndex<int, SVR_VideoLocal, bool>(Cache, a => a.IsIgnored);
     }
+#pragma warning restore 618
 
     public override void RegenerateDb()
     {
@@ -86,7 +88,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         var count = 0;
         int max;
 
-        var list = Cache.Values.Where(a => a is { MediaVersion: 4, MediaBlob: { Length: > 0 } }).ToList();
+        var list = Cache.Values.Where(a => a is { MediaVersion: 4, MediaBlob.Length: > 0 }).ToList();
         max = list.Count;
 
         foreach (var batch in list.Batch(50))
@@ -233,8 +235,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             return;
         }
 
-        var place = obj.GetBestVideoLocalPlace(true);
-        place?.RefreshMediaInfo();
+        obj.RefreshMediaInfo();
     }
 
     public override void Delete(SVR_VideoLocal obj)
@@ -493,7 +494,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     {
         return ReadLock(
             () => Cache.Values
-                .Where( a =>
+                .Where(a =>
                 {
                     if (a.IsIgnored)
                         return false;
@@ -522,7 +523,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
     {
         return ReadLock(
             () => Cache.Values
-                .Where( a =>
+                .Where(a =>
                 {
                     if (a.IsIgnored)
                         return false;
@@ -571,14 +572,12 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     public List<SVR_VideoLocal> GetExactDuplicateVideos()
     {
-        return
-            RepoFactory.VideoLocalPlace.GetAll()
-                .GroupBy(a => a.VideoLocalID)
-                .Select(a => a.ToArray())
-                .Where(a => a.Length > 1)
-                .Select(a => GetByID(a[0].VideoLocalID))
-                .Where(a => a != null)
-                .ToList();
+        return RepoFactory.VideoLocalPlace.GetAll()
+            .GroupBy(a => a.VideoLocalID)
+            .Where(a => a.Count() > 1)
+            .Select(a => GetByID(a.Key))
+            .Where(a => a != null)
+            .ToList();
     }
 
     public List<SVR_VideoLocal> GetIgnoredVideos()

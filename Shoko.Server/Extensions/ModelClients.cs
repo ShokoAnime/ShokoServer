@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
@@ -14,8 +13,6 @@ namespace Shoko.Server.Extensions;
 
 public static class ModelClients
 {
-    private static Logger logger = LogManager.GetCurrentClassLogger();
-
     public static CL_ServerSettings ToContract(this IServerSettings settings)
     {
         return new CL_ServerSettings
@@ -146,7 +143,9 @@ public static class ModelClients
             TempVoteCount = anime.TempVoteCount,
             AvgReviewRating = anime.AvgReviewRating,
             ReviewCount = anime.ReviewCount,
+#pragma warning disable 618
             DateTimeUpdated = anime.GetDateTimeUpdated(),
+#pragma warning restore 618
             DateTimeDescUpdated = anime.DateTimeDescUpdated,
             ImageEnabled = anime.ImageEnabled,
             Restricted = anime.Restricted,
@@ -257,7 +256,10 @@ public static class ModelClients
     {
         var c = new CL_IgnoreAnime
         {
-            IgnoreAnimeID = i.IgnoreAnimeID, JMMUserID = i.JMMUserID, AnimeID = i.AnimeID, IgnoreType = i.IgnoreType
+            IgnoreAnimeID = i.IgnoreAnimeID,
+            JMMUserID = i.JMMUserID,
+            AnimeID = i.AnimeID,
+            IgnoreType = i.IgnoreType,
         };
         c.Anime = RepoFactory.AniDB_Anime.GetByAnimeID(i.AnimeID).ToClient();
         return c;
@@ -402,40 +404,6 @@ public static class ModelClients
         if (an != null)
         {
             cl.Anime = an.Contract.AniDBAnime;
-        }
-
-        return cl;
-    }
-
-    public static CL_DuplicateFile ToClient(this DuplicateFile duplicatefile)
-    {
-        var cl = new CL_DuplicateFile
-        {
-            DuplicateFileID = duplicatefile.DuplicateFileID,
-            FilePathFile1 = duplicatefile.FilePathFile1,
-            FilePathFile2 = duplicatefile.FilePathFile2,
-            Hash = duplicatefile.Hash,
-            ImportFolderIDFile1 = duplicatefile.ImportFolderIDFile1,
-            ImportFolderIDFile2 = duplicatefile.ImportFolderIDFile2,
-            ImportFolder1 = RepoFactory.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile1),
-            ImportFolder2 = RepoFactory.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile2),
-            DateTimeUpdated = duplicatefile.DateTimeUpdated
-        };
-        if (duplicatefile.GetAniDBFile() != null)
-        {
-            var eps = duplicatefile.GetAniDBFile().Episodes;
-            if (eps.Count > 0)
-            {
-                cl.EpisodeNumber = eps[0].EpisodeNumber;
-                cl.EpisodeType = eps[0].EpisodeType;
-                cl.EpisodeName = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(eps[0].EpisodeID)?.Title;
-                cl.AnimeID = eps[0].AnimeID;
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(eps[0].AnimeID);
-                if (anime != null)
-                {
-                    cl.AnimeName = anime.MainTitle;
-                }
-            }
         }
 
         return cl;

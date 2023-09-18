@@ -1033,7 +1033,8 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Database entry does not exist";
             }
 
-            return place.RemoveAndDeleteFile().Item2;
+            place.RemoveRecordAndDeletePhysicalFile();
+            return string.Empty;
         }
         catch (Exception ex)
         {
@@ -1057,8 +1058,9 @@ public partial class ShokoServiceImplementation : IShokoServer
             {
                 return "Database entry does not exist";
             }
-
-            return place.RemoveAndDeleteFile(false).Item2;
+            
+            place.RemoveRecordAndDeletePhysicalFile(false);
+            return string.Empty;
         }
         catch (Exception ex)
         {
@@ -2672,6 +2674,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     /// </summary>
     /// <param name="animeSeriesID"></param>
     /// <param name="deleteFiles">also delete the physical files</param>
+    /// <param name="deleteParentGroup">We don't allow empty groups to exist anymore, so it's now automatic regardless of what the client asks for.</param>
     /// <returns></returns>
     [HttpDelete("Series/{animeSeriesID}/{deleteFiles}/{deleteParentGroup}")]
     public string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup)
@@ -2696,20 +2699,14 @@ public partial class ShokoServiceImplementation : IShokoServer
                         var place = places[index];
                         if (deleteFiles)
                         {
-                            bool success;
-                            string result;
-                            if (index < places.Count - 1)
+                            try
                             {
-                                (success, result) = place.RemoveAndDeleteFile(false);
+                                place.RemoveRecordAndDeletePhysicalFile(index >= places.Count - 1);
                             }
-                            else
+                            catch (Exception ex)
                             {
-                                (success, result) = place.RemoveAndDeleteFile();
-                            }
-
-                            if (!success)
-                            {
-                                return result;
+                                logger.Error(ex, ex.Message);
+                                return ex.Message;
                             }
                         }
                         else

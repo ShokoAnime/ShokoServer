@@ -140,7 +140,7 @@ public class ImportFolderController : BaseController
     /// Delete an Import Folder
     /// </summary>
     /// <param name="folderID">Import Folder ID</param>
-    /// <param name="removeRecords">If this is false, then VideoLocals, DuplicateFiles, and several other things will be left intact. This is for migration of files to new locations.</param>
+    /// <param name="removeRecords">If this is false, then VideoLocals and several other things will be left intact. This is for migration of files to new locations.</param>
     /// <param name="updateMyList">Pretty self explanatory. If this is true, and <paramref name="removeRecords"/> is true, then it will update the list status</param>
     /// <returns></returns>
     [Authorize("admin")]
@@ -155,9 +155,6 @@ public class ImportFolderController : BaseController
 
         if (!removeRecords)
         {
-            // These are annoying to clean up later, so do it now. We can easily recreate them.
-            RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder1(folderID));
-            RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder2(folderID));
             RepoFactory.ImportFolder.Delete(folderID);
             return Ok();
         }

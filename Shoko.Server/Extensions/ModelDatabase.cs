@@ -70,7 +70,7 @@ public static class ModelDatabase
         var old = existingEp.DeepClone();
         existingEp.Populate(episode);
         existingEp.AnimeSeriesID = animeSeriesID;
-        
+
         if (!old.Equals(existingEp))
             RepoFactory.AnimeEpisode.Save(existingEp);
 
@@ -154,36 +154,6 @@ public static class ModelDatabase
     public static SVR_VideoLocal_User GetVideoLocalUserRecord(this CrossRef_File_Episode cross, int userID)
     {
         return RepoFactory.VideoLocal.GetByHash(cross.Hash)?.GetUserRecord(userID);
-    }
-
-    public static SVR_ImportFolder GetImportFolder1(this DuplicateFile duplicatefile)
-    {
-        return RepoFactory.ImportFolder
-            .GetByID(duplicatefile.ImportFolderIDFile1);
-    }
-
-    public static string GetFullServerPath1(this DuplicateFile duplicatefile)
-    {
-        return Path.Combine(
-            duplicatefile.GetImportFolder1().ImportFolderLocation, duplicatefile.FilePathFile1);
-    }
-
-    public static SVR_ImportFolder GetImportFolder2(this DuplicateFile duplicatefile)
-    {
-        return RepoFactory.ImportFolder
-            .GetByID(duplicatefile.ImportFolderIDFile2);
-    }
-
-    public static string GetFullServerPath2(this DuplicateFile duplicatefile)
-    {
-        return Path.Combine(
-            duplicatefile.GetImportFolder2().ImportFolderLocation, duplicatefile.FilePathFile2);
-    }
-
-    public static SVR_AniDB_File GetAniDBFile(this DuplicateFile duplicatefile)
-    {
-        return RepoFactory.AniDB_File.GetByHash(
-            duplicatefile.Hash);
     }
 
     public static string GetEnglishTitle(this AniDB_Episode ep)

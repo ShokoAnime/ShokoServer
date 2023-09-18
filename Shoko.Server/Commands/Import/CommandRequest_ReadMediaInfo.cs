@@ -38,10 +38,7 @@ public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
             return;
         }
 
-        if (place.RefreshMediaInfo())
-        {
-            RepoFactory.VideoLocal.Save(place.VideoLocal, true);
-        }
+        vlocal.RefreshMediaInfo(place);
     }
 
 

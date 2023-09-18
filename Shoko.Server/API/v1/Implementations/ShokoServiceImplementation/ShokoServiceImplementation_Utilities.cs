@@ -107,7 +107,7 @@ public partial class ShokoServiceImplementation
         var dice = new SorensenDice();
         var languages = new HashSet<string> {"en", "x-jat"};
         languages.UnionWith(languagePreference.Select(b => b.ToLower()));
-            
+
         foreach (var title in RepoFactory.AniDB_Anime_Title.GetByAnimeID(a.AniDB_ID)
                      .Where(b => b.TitleType != Shoko.Plugin.Abstractions.DataModels.TitleType.Short && languages.Contains(b.LanguageCode))
                      .Select(b => b.Title?.ToLowerInvariant()).ToList())
@@ -186,7 +186,20 @@ public partial class ShokoServiceImplementation
             var result = true;
             foreach (var toDelete in videosToDelete)
             {
-                result &= toDelete.Places.All(a => a.RemoveAndDeleteFile().Item1);
+                result &= toDelete.Places.All(a =>
+                {
+                    try
+                    {
+                        a.RemoveRecordAndDeletePhysicalFile();
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, ex.ToString());
+                        return false;
+
+                    }
+                });
             }
             return result;
         }
@@ -356,161 +369,81 @@ public partial class ShokoServiceImplementation
 
     [HttpGet("File/Rename/Preview/{videoLocalID}")]
     public CL_VideoLocal_Renamed RenameFilePreview(int videoLocalID)
-    {
-        var ret = new CL_VideoLocal_Renamed
-        {
-            VideoLocalID = videoLocalID,
-            Success = true
-        };
-        try
-        {
-            var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
-            {
-                ret.VideoLocal = null;
-                ret.NewFileName = "ERROR: Could not find file record";
-                ret.Success = false;
-            }
-            else
-            {
-                ret.VideoLocal = null;
-                if (string.IsNullOrEmpty(vid?.GetBestVideoLocalPlace(true)?.FullServerPath))
-                {
-                    ret.VideoLocal = null;
-                    ret.Success = false;
-                    ret.NewFileName = "ERROR: The file could not be found.";
-                    return ret;
-                }
-                ret.NewFileName = RenameFileHelper.GetFilename(vid?.GetBestVideoLocalPlace(), Shoko.Models.Constants.Renamer.TempFileName);
-
-                if (string.IsNullOrEmpty(ret.NewFileName))
-                {
-                    ret.VideoLocal = null;
-                    ret.Success = false;
-                    ret.NewFileName = "ERROR: The file renamer returned a null or empty value.";
-                    return ret;
-                }
-
-                if (ret.NewFileName.StartsWith("*Error: "))
-                {
-                    ret.VideoLocal = null;
-                    ret.Success = false;
-                    ret.NewFileName = "ERROR: " + ret.NewFileName.Substring(7);
-                    return ret;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-            ret.VideoLocal = null;
-            ret.NewFileName = $"ERROR: {ex.Message}";
-            ret.Success = false;
-        }
-        return ret;
-    }
+        => RenameAndMoveFile(videoLocalID, null, false, true);
 
     [HttpGet("File/Rename/{videoLocalID}/{scriptName}")]
     public CL_VideoLocal_Renamed RenameFile(int videoLocalID, string scriptName)
-    {
-        return RenameAndMoveFile(videoLocalID, scriptName, false);
-    }
+        => RenameAndMoveFile(videoLocalID, scriptName, move: false, preview: false);
 
     [HttpGet("File/Rename/{videoLocalID}/{scriptName}/{move}")]
     public CL_VideoLocal_Renamed RenameAndMoveFile(int videoLocalID, string scriptName, bool move)
+        => RenameAndMoveFile(videoLocalID, scriptName, move, preview: false);
+
+    [NonAction]
+    private static CL_VideoLocal_Renamed RenameAndMoveFile(int videoLocalID, string scriptName, bool move, bool preview)
     {
         var ret = new CL_VideoLocal_Renamed
         {
             VideoLocalID = videoLocalID,
-            Success = true
+            VideoLocal = null,
+            Success = false,
         };
-        if (scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
+        if (scriptName != null && scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
         {
-            ret.VideoLocal = null;
             ret.NewFileName = "ERROR: Do not attempt to use a temp file to rename.";
-            ret.Success = false;
             return ret;
         }
         try
         {
-            var vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
-            if (vid == null)
+            var file = RepoFactory.VideoLocal.GetByID(videoLocalID);
+            if (file == null)
             {
-                ret.VideoLocal = null;
-                ret.NewFileName = "ERROR: Could not find file record";
-                ret.Success = false;
+                ret.NewFileName = "ERROR: Could not find file.";
                 return ret;
             }
 
-            ret.NewFileName = RenameFileHelper.GetFilename(vid?.GetBestVideoLocalPlace(), scriptName);
-
-            if (string.IsNullOrEmpty(ret.NewFileName))
+            var allLocations = file.Places;
+            if (allLocations.Count <= 0)
             {
-                ret.VideoLocal = null;
-                ret.Success = false;
-                ret.NewFileName = "ERROR: The file renamer returned a null or empty value.";
+                ret.NewFileName = "ERROR: No locations were found for the file. Run the \"Remove Missing Files\" action to remove the file.";
                 return ret;
             }
 
-            if (ret.NewFileName.StartsWith("*Error: ", StringComparison.OrdinalIgnoreCase))
+            // First do a dry-run on the best location.
+            var bestLocation = file.GetBestVideoLocalPlace();
+            var previewResult = bestLocation.AutoRelocateFile(new() { Preview = true, ScriptName = scriptName, SkipMove = !move });
+            if (!previewResult.Success)
             {
-                ret.VideoLocal = null;
-                ret.Success = false;
-                ret.NewFileName = "ERROR: " + ret.NewFileName.Substring(7);
+                ret.NewFileName = $"ERROR: {previewResult.ErrorMessage}";
                 return ret;
             }
 
-            if (vid.Places.Count <= 0)
-            {
-                ret.VideoLocal = null;
-                ret.Success = false;
-                ret.NewFileName = "ERROR: No Places were found for the VideoLocal. Run Remove Missing Files.";
-                return ret;
-            }
-
-            var errorCount = 0;
+            // Relocate the file locations.
+            var fullPath = string.Empty;
             var errorString = string.Empty;
-            var name = Path.GetFileName(vid.GetBestVideoLocalPlace().FilePath);
-
-            foreach (var place in vid.Places)
+            foreach (var place in allLocations)
             {
-                if (move)
-                {
-                    var resultString = place.MoveWithResultString(scriptName);
-                    if (!string.IsNullOrEmpty(resultString.Item2))
-                    {
-                        errorCount++;
-                        errorString = resultString.Item2;
-                        continue;
-                    }
-                    ret.NewDestination = resultString.Item1;
-                }
-
-                var output = place.RenameFile(false, scriptName);
-                var error = output.Item3;
-                if (string.IsNullOrEmpty(error)) name = output.Item2;
+                var result = place.AutoRelocateFile(new() { Preview = preview, ScriptName = scriptName, SkipMove = !move });
+                if (result.Success)
+                    fullPath = result.FullServerPath;
                 else
-                {
-                    errorCount++;
-                    errorString = error;
-                }
+                    errorString = result.ErrorMessage;
             }
-            if (errorCount >= vid.Places.Count) // should never be greater but shit happens
+            if (!string.IsNullOrEmpty(errorString))
             {
-                ret.VideoLocal = null;
-                ret.Success = false;
                 ret.NewFileName = errorString;
                 return ret;
             }
-            if (ret.VideoLocal == null)
-                ret.VideoLocal = new CL_VideoLocal {VideoLocalID = videoLocalID };
+
+            // Return the full path if we moved, otherwise return the file name.
+            ret.Success = true;
+            ret.VideoLocal = new CL_VideoLocal { VideoLocalID = videoLocalID };
+            ret.NewFileName = fullPath;
         }
         catch (Exception ex)
         {
             logger.Error(ex, ex.ToString());
-            ret.VideoLocal = null;
             ret.NewFileName = $"ERROR: {ex.Message}";
-            ret.Success = false;
         }
         return ret;
     }
@@ -1136,15 +1069,50 @@ public partial class ShokoServiceImplementation
     [HttpGet("File/Duplicated")]
     public List<CL_DuplicateFile> GetAllDuplicateFiles()
     {
-        var dupFiles = new List<CL_DuplicateFile>();
         try
         {
-            return RepoFactory.DuplicateFile.GetAll().Select(a => a.ToClient()).ToList();
+            return RepoFactory.VideoLocal.GetExactDuplicateVideos()
+                .SelectMany(file =>
+                {
+                    var episode = file.GetAnimeEpisodes()
+                        .FirstOrDefault();
+                    var anidbEpisode = episode?.AniDB_Episode;
+                    var seriesName = episode?.GetAnimeSeries()?.GetSeriesName();
+                    var allLocations = file.Places;
+                    var bestLocation = file.GetBestVideoLocalPlace();
+                    return allLocations
+                        .Where(location => location.VideoLocal_Place_ID != bestLocation.VideoLocal_Place_ID)
+                        .Select(location =>
+                        {
+                            var duplicateFile = new CL_DuplicateFile()
+                            {
+                                DuplicateFileID = GetFakeDuplicteID(bestLocation.VideoLocal_Place_ID, location.VideoLocal_Place_ID),
+                                FilePathFile2 = location.FilePath,
+                                FilePathFile1 = bestLocation.FilePath,
+                                Hash = file.Hash,
+                                ImportFolderIDFile1 = bestLocation.ImportFolderID,
+                                ImportFolderIDFile2 = location.ImportFolderID,
+                                ImportFolder1 = bestLocation.ImportFolder,
+                                ImportFolder2 = location.ImportFolder,
+                                DateTimeUpdated = file.DateTimeUpdated,
+                            };
+                            if (episode != null && anidbEpisode != null)
+                            {
+                                duplicateFile.EpisodeName = episode.Title;
+                                duplicateFile.EpisodeNumber = anidbEpisode.EpisodeNumber;
+                                duplicateFile.EpisodeType = anidbEpisode.EpisodeType;
+                                duplicateFile.AnimeID = anidbEpisode.AnimeID;
+                                duplicateFile.AnimeName = seriesName;
+                            }
+                            return duplicateFile;
+                        });
+                })
+                .ToList();
         }
         catch (Exception ex)
         {
             logger.Error(ex, ex.ToString());
-            return dupFiles;
+            return new();
         }
     }
 
@@ -1159,36 +1127,70 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            var df = RepoFactory.DuplicateFile.GetByID(duplicateFileID);
-            if (df == null) return "Database entry does not exist";
-
-            if (fileNumber != 1 && fileNumber != 2) return string.Empty;
-            SVR_VideoLocal_Place place;
-            switch (fileNumber)
+            var (placeID1, placeID2) = GetLocationIDsFromFakeDuplicateID(duplicateFileID);
+            if (placeID1 == 0 || placeID2 == 0)
+                return "Unable to get VideoLocal_Place ids, refresh the view to fix.";
+            var place = (fileNumber) switch
             {
-                case 1:
-                    place =
-                        RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(df.FilePathFile1,
-                            df.ImportFolderIDFile1);
-                    break;
-                case 2:
-                    place =
-                        RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(df.FilePathFile2,
-                            df.ImportFolderIDFile2);
-                    break;
-                default:
-                    place = null;
-                    break;
-            }
-            if (place == null) return "Unable to get VideoLocal_Place";
+                1 => RepoFactory.VideoLocalPlace.GetByID(placeID1),
+                2 => RepoFactory.VideoLocalPlace.GetByID(placeID2),
+                _ => null,
+            };
+            if (place == null)
+                return "Unable to get VideoLocal_Place";
 
-            return place.RemoveAndDeleteFile().Item2;
+            RemoveFakeDuplicateID(duplicateFileID);
+            place.RemoveRecordAndDeletePhysicalFile();
+            return string.Empty;
         }
         catch (Exception ex)
         {
             logger.Error(ex, ex.ToString());
             return ex.Message;
         }
+    }
+
+    private int IDCounter = 1;
+
+    private readonly Dictionary<int, (int, int)> Lookup = new();
+
+    private readonly Dictionary<(int, int), int> ReverseLookup = new();
+
+    [NonAction]
+    private int GenerateFakeDuplicateID()
+    {
+        if (IDCounter == int.MaxValue)
+            IDCounter = 1;
+        return IDCounter++;
+    }
+
+    [NonAction]
+    private int GetFakeDuplicteID(int fileLocationID1, int fileLocationID2)
+    {
+        var tuple = (fileLocationID1, fileLocationID2);
+        if (!ReverseLookup.TryGetValue(tuple, out var fakeDuplicateID))
+        {
+            fakeDuplicateID = GenerateFakeDuplicateID();
+            ReverseLookup.Add(tuple, fakeDuplicateID);
+            Lookup.Add(fakeDuplicateID, tuple);
+        }
+        return fakeDuplicateID;
+    }
+
+    [NonAction]
+    private (int location1, int location2) GetLocationIDsFromFakeDuplicateID(int fakeDuplicateID)
+    {
+        if (Lookup.TryGetValue(fakeDuplicateID, out var tuple))
+            return tuple;
+        return default;
+    }
+
+    [NonAction]
+    private void RemoveFakeDuplicateID(int fakeDuplicateID)
+    {
+        var tuple = Lookup[fakeDuplicateID];
+        ReverseLookup.Remove(tuple);
+        Lookup.Remove(fakeDuplicateID);
     }
 
     [HttpGet("File/ManuallyLinked/{userID}")]
@@ -1264,52 +1266,7 @@ public partial class ShokoServiceImplementation
     }
 
     [HttpPost("File/Duplicated/Reevaluate")]
-    public void ReevaluateDuplicateFiles()
-    {
-        try
-        {
-            foreach (var df in RepoFactory.DuplicateFile.GetAll())
-            {
-                if (df.GetImportFolder1() == null || df.GetImportFolder2() == null)
-                {
-                    var msg =
-                        string.Format(
-                            "Deleting duplicate file record as one of the import folders can't be found: {0} --- {1}",
-                            df.FilePathFile1, df.FilePathFile2);
-                    logger.Info(msg);
-                    RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
-                    continue;
-                }
-
-                // make sure that they are not actually the same file
-                if (df.GetFullServerPath1()
-                    .Equals(df.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                {
-                    var msg =
-                        string.Format(
-                            "Deleting duplicate file record as they are actually point to the same file: {0}",
-                            df.GetFullServerPath1());
-                    logger.Info(msg);
-                    RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
-                }
-
-                // check if both files still exist
-                if (!System.IO.File.Exists(df.GetFullServerPath1()) || !System.IO.File.Exists(df.GetFullServerPath2()))
-                {
-                    var msg =
-                        string.Format(
-                            "Deleting duplicate file record as one of the files can't be found: {0} --- {1}",
-                            df.GetFullServerPath1(), df.GetFullServerPath2());
-                    logger.Info(msg);
-                    RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-        }
-    }
+    public void ReevaluateDuplicateFiles() { }
 
     [HttpGet("File/Detailed/{animeID}/{relGroupName}/{resolution}/{videoSource}/{videoBitDepth}/{userID}")]
     public List<CL_VideoDetailed> GetFilesByGroupAndResolution(int animeID, string relGroupName,
@@ -1333,10 +1290,10 @@ public partial class ShokoServiceImplementation
                 var thisBitDepth = 8;
 
                 if (vid.Media?.VideoStream?.BitDepth != null) thisBitDepth = vid.Media.VideoStream.BitDepth;
-                
+
                 // Sometimes, especially with older files, the info doesn't quite match for resolution
                 var vidResInfo = vid.VideoResolution;
-                
+
                 logger.Trace($"GetFilesByGroupAndResolution -- thisBitDepth: {thisBitDepth}");
                 logger.Trace($"GetFilesByGroupAndResolution -- videoBitDepth: {videoBitDepth}");
 
@@ -1352,7 +1309,7 @@ public partial class ShokoServiceImplementation
                 var groupMatches = Constants.NO_GROUP_INFO.EqualsInvariantIgnoreCase(relGroupName);
                 logger.Trace($"GetFilesByGroupAndResolution -- sourceMatches (manual/unkown): {sourceMatches}");
                 logger.Trace($"GetFilesByGroupAndResolution -- groupMatches (NO GROUP INFO): {groupMatches}");
-                
+
                 // get the anidb file info
                 var aniFile = vid.GetAniDBFile();
                 if (aniFile != null)

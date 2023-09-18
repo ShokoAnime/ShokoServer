@@ -18,19 +18,6 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
     private PocoIndex<int, SVR_VideoLocal_Place, int> ImportFolders;
     private PocoIndex<int, SVR_VideoLocal_Place, string> Paths;
 
-    public VideoLocal_PlaceRepository()
-    {
-        BeginDeleteCallback = place =>
-        {
-            // Remove associated duplicate file records
-            var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(place.FilePath, place.ImportFolderID);
-            if (dups is { Count: > 0 })
-            {
-                dups.ForEach(RepoFactory.DuplicateFile.Delete);
-            }
-        };
-    }
-
     protected override int SelectKey(SVR_VideoLocal_Place entity)
     {
         return entity.VideoLocal_Place_ID;

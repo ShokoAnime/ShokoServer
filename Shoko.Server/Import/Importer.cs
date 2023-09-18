@@ -22,7 +22,6 @@ using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Server;
-using Shoko.Server.Utilities;
 using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server;
@@ -982,7 +981,9 @@ public static class Importer
                     using var transaction = s.BeginTransaction();
                     foreach (var place in ps.Where(place => string.IsNullOrWhiteSpace(place?.FullServerPath)))
                     {
+#pragma warning disable 618
                         Logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
+#pragma warning restore 618
                         seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                             .DistinctBy(a => a.AnimeSeriesID));
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
@@ -1017,7 +1018,9 @@ public static class Importer
             if (v.Places?.Count > 0) continue;
 
             // delete video local record
+#pragma warning disable 618
             Logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
+#pragma warning restore 618
             seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                 .DistinctBy(a => a.AnimeSeriesID));
 
@@ -1078,7 +1081,7 @@ public static class Importer
 
             transaction.Commit();
         });
-        
+
         // clean up orphaned video local places
         var placesToRemove = RepoFactory.VideoLocalPlace.GetAll().Where(a => a.VideoLocal == null).ToList();
         BaseRepository.Lock(session, s =>
@@ -1110,11 +1113,8 @@ public static class Importer
             var vids = RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID);
             Logger.Info($"Deleting {vids.Count} video local records");
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            vids.ForEach(vid => vid.RemoveRecordWithOpenTransaction(session, affectedSeries, removeFromMyList, false));
-
-            // delete any duplicate file records which reference this folder
-            RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder1(importFolderID));
-            RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder2(importFolderID));
+            vids.ForEach(vid =>
+                vid.RemoveRecordWithOpenTransaction(session, affectedSeries, removeFromMyList));
 
             // delete the import folder
             RepoFactory.ImportFolder.Delete(importFolderID);
@@ -1236,7 +1236,8 @@ public static class Importer
         {
             sched = new ScheduledUpdate
             {
-                UpdateDetails = string.Empty, UpdateType = (int)ScheduledUpdateType.DayFiltersUpdate
+                UpdateDetails = string.Empty,
+                UpdateType = (int)ScheduledUpdateType.DayFiltersUpdate
             };
         }
 
@@ -1514,7 +1515,8 @@ public static class Importer
             {
                 sched = new ScheduledUpdate
                 {
-                    UpdateType = (int)ScheduledUpdateType.TraktToken, UpdateDetails = string.Empty
+                    UpdateType = (int)ScheduledUpdateType.TraktToken,
+                    UpdateDetails = string.Empty
                 };
             }
 
@@ -1576,7 +1578,8 @@ public static class Importer
         {
             sched = new ScheduledUpdate
             {
-                UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates, UpdateDetails = string.Empty
+                UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates,
+                UpdateDetails = string.Empty
             };
         }
 
