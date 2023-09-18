@@ -610,8 +610,20 @@ public class Core : BaseController
     [HttpGet("user/list")]
     public ActionResult<Dictionary<int, string>> GetUsers()
     {
-        var common = HttpContext.RequestServices.GetRequiredService<CommonImplementation>();
-        return common.GetUsers();
+        var users = new Dictionary<int, string>();
+        try
+        {
+            foreach (var us in RepoFactory.JMMUser.GetAll())
+            {
+                users.Add(us.JMMUserID, us.Username);
+            }
+
+            return users;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>

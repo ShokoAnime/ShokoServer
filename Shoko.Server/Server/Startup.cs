@@ -56,7 +56,6 @@ public class Startup
             services.AddSingleton<MovieDBHelper>();
             services.AddSingleton<FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
-            services.AddScoped<CommonImplementation>();
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
             services.AddSingleton<ICommandRequestFactory, CommandRequestFactory>();
             services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();

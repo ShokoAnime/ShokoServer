@@ -121,26 +121,7 @@ public class DatabaseFixes
     }
 
 
-    public static void FixContinueWatchingGroupFilter_20160406()
-    {
-        // group filters
-
-        // check if it already exists
-        var lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
-
-        if (lockedGFs != null)
-        {
-            foreach (var gf in lockedGFs)
-            {
-                if (gf.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching,
-                        StringComparison.InvariantCultureIgnoreCase))
-                {
-                    gf.FilterType = (int)GroupFilterType.ContinueWatching;
-                    RepoFactory.GroupFilter.Save(gf);
-                }
-            }
-        }
-    }
+    public static void FixContinueWatchingGroupFilter_20160406() { }
 
     public static void MigrateTraktLinks_V1_to_V2()
     {
@@ -523,59 +504,9 @@ public class DatabaseFixes
         RepoFactory.AniDB_FileUpdate.Save(tosave);
     }
 
-    public static void FixDuplicateTagFiltersAndUpdateSeasons()
-    {
-        var filters = RepoFactory.GroupFilter.GetAll();
-        var seasons = filters.Where(a => a.FilterType == (int)GroupFilterType.Season).ToList();
-        var tags = filters.Where(a => a.FilterType == (int)GroupFilterType.Tag).ToList();
+    public static void FixDuplicateTagFiltersAndUpdateSeasons() { }
 
-        var tagsGrouping = tags.GroupBy(a => a.GroupFilterName).SelectMany(a => a.Skip(1)).ToList();
-
-        tagsGrouping.ForEach(RepoFactory.GroupFilter.Delete);
-
-        tags = filters.Where(a => a.FilterType == (int)GroupFilterType.Tag).ToList();
-
-        foreach (var filter in tags.Where(a => a.GroupConditions.Contains("`")))
-        {
-            filter.GroupConditions = filter.GroupConditions.Replace("`", "'");
-            RepoFactory.GroupFilter.Save(filter);
-        }
-
-        foreach (var seasonFilter in seasons)
-        {
-            seasonFilter.CalculateGroupsAndSeries();
-            RepoFactory.GroupFilter.Save(seasonFilter);
-        }
-    }
-
-    public static void RecalculateYears()
-    {
-        try
-        {
-            var filters = RepoFactory.GroupFilter.GetAll();
-            if (filters.Count == 0)
-            {
-                return;
-            }
-
-            foreach (var gf in filters)
-            {
-                if (gf.FilterType != (int)GroupFilterType.Year)
-                {
-                    continue;
-                }
-
-                gf.CalculateGroupsAndSeries();
-                RepoFactory.GroupFilter.Save(gf);
-            }
-
-            RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
-        }
-        catch (Exception e)
-        {
-            logger.Error(e);
-        }
-    }
+    public static void RecalculateYears() { }
 
     public static void PopulateResourceLinks()
     {
@@ -598,107 +529,11 @@ public class DatabaseFixes
         }
     }
 
-    public static void FixTagsWithInclude()
-    {
-        try
-        {
-            foreach (var gf in RepoFactory.GroupFilter.GetAll())
-            {
-                if (gf.FilterType != (int)GroupFilterType.Tag)
-                {
-                    continue;
-                }
+    public static void FixTagsWithInclude() { }
 
-                foreach (var gfc in gf.Conditions)
-                {
-                    if (gfc.ConditionType != (int)GroupFilterConditionType.Tag)
-                    {
-                        continue;
-                    }
+    public static void MakeTagsApplyToSeries() { }
 
-                    if (gfc.ConditionOperator == (int)GroupFilterOperator.Include)
-                    {
-                        gfc.ConditionOperator = (int)GroupFilterOperator.In;
-                        RepoFactory.GroupFilterCondition.Save(gfc);
-                        continue;
-                    }
-
-                    if (gfc.ConditionOperator == (int)GroupFilterOperator.Exclude)
-                    {
-                        gfc.ConditionOperator = (int)GroupFilterOperator.NotIn;
-                        RepoFactory.GroupFilterCondition.Save(gfc);
-                    }
-                }
-
-                gf.CalculateGroupsAndSeries();
-                RepoFactory.GroupFilter.Save(gf);
-            }
-        }
-        catch (Exception e)
-        {
-            logger.Error(e);
-        }
-    }
-
-    public static void MakeTagsApplyToSeries()
-    {
-        try
-        {
-            var filters = RepoFactory.GroupFilter.GetAll();
-            if (filters.Count == 0)
-            {
-                return;
-            }
-
-            foreach (var gf in filters)
-            {
-                if (gf.FilterType != (int)GroupFilterType.Tag)
-                {
-                    continue;
-                }
-
-                gf.ApplyToSeries = 1;
-                gf.CalculateGroupsAndSeries();
-                RepoFactory.GroupFilter.Save(gf);
-            }
-
-            RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
-        }
-        catch (Exception e)
-        {
-            logger.Error(e);
-        }
-    }
-
-    public static void MakeYearsApplyToSeries()
-    {
-        try
-        {
-            var filters = RepoFactory.GroupFilter.GetAll();
-            if (filters.Count == 0)
-            {
-                return;
-            }
-
-            foreach (var gf in filters)
-            {
-                if (gf.FilterType != (int)GroupFilterType.Year)
-                {
-                    continue;
-                }
-
-                gf.ApplyToSeries = 1;
-                gf.CalculateGroupsAndSeries();
-                RepoFactory.GroupFilter.Save(gf);
-            }
-
-            RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
-        }
-        catch (Exception e)
-        {
-            logger.Error(e);
-        }
-    }
+    public static void MakeYearsApplyToSeries() { }
 
     public static void UpdateAllTvDBSeries()
     {
