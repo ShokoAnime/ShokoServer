@@ -24,7 +24,7 @@ public class DateDiffFunction : FilterExpression<DateTime?>, IWithDateSelectorPa
         set => Selector = value;
     }
 
-    public override DateTime? Evaluate(Filterable f)
+    public override DateTime? Evaluate(IFilterable f)
     {
         return Selector.Evaluate(f) - Parameter;
     }
@@ -67,5 +67,10 @@ public class DateDiffFunction : FilterExpression<DateTime?>, IWithDateSelectorPa
     public static bool operator !=(DateDiffFunction left, DateDiffFunction right)
     {
         return !Equals(left, right);
+    }
+
+    public override bool IsType(FilterExpression expression)
+    {
+        return expression is DateDiffFunction exp && Left.IsType(exp.Left) && Selector.IsType(exp.Selector);
     }
 }

@@ -18,6 +18,8 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
+using Shoko.Server.Filters;
+using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -175,16 +177,17 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             var changes = ChangeTracker<int>.GetChainedChanges(
                 new List<ChangeTracker<int>>
                 {
-                    RepoFactory.GroupFilter.GetChangeTracker(),
+                    RepoFactory.FilterPreset.GetChangeTracker(),
                     RepoFactory.AnimeGroup.GetChangeTracker(),
                     RepoFactory.AnimeGroup_User.GetChangeTracker(userID),
                     RepoFactory.AnimeSeries.GetChangeTracker(),
                     RepoFactory.AnimeSeries_User.GetChangeTracker(userID)
                 }, date);
+            var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             c.Filters = new CL_Changes<CL_GroupFilter>
             {
-                ChangedItems = changes[0]
-                    .ChangedItems.Select(a => RepoFactory.GroupFilter.GetByID(a)?.ToClient())
+                ChangedItems = legacyConverter.ToClient(changes[0].ChangedItems.Select(a => RepoFactory.FilterPreset.GetByID(a)).ToList())
+                    .Select(a => a.Value)
                     .Where(a => a != null)
                     .ToList(),
                 RemovedItems = changes[0].RemovedItems.ToList(),
@@ -203,8 +206,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                     if (!c.Filters.ChangedItems.Any(a => a.GroupFilterID == ag.ParentGroupFilterID.Value))
                     {
                         end = false;
-                        var cag = RepoFactory.GroupFilter.GetByID(ag.ParentGroupFilterID.Value)?
-                            .ToClient();
+                        var cag = legacyConverter.ToClient(RepoFactory.FilterPreset.GetByID(ag.ParentGroupFilterID.Value));
                         if (cag != null)
                         {
                             c.Filters.ChangedItems.Add(cag);
@@ -270,8 +272,10 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         var c = new CL_Changes<CL_GroupFilter>();
         try
         {
-            var changes = RepoFactory.GroupFilter.GetChangeTracker().GetChanges(date);
-            c.ChangedItems = changes.ChangedItems.Select(a => RepoFactory.GroupFilter.GetByID(a).ToClient())
+            var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
+            var changes = RepoFactory.FilterPreset.GetChangeTracker().GetChanges(date);
+            c.ChangedItems = legacyConverter.ToClient(changes.ChangedItems.Select(a => RepoFactory.FilterPreset.GetByID(a)).ToList())
+                .Select(a => a.Value)
                 .Where(a => a != null)
                 .ToList();
             c.RemovedItems = changes.RemovedItems.ToList();

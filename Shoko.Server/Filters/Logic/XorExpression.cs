@@ -19,7 +19,7 @@ public class XorExpression : FilterExpression<bool>, IWithExpressionParameter, I
     public FilterExpression<bool> Left { get; set; }
     public FilterExpression<bool> Right { get; set; }
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         return Left.Evaluate(filterable) ^ Right.Evaluate(filterable);
     }
@@ -62,5 +62,10 @@ public class XorExpression : FilterExpression<bool>, IWithExpressionParameter, I
     public static bool operator !=(XorExpression left, XorExpression right)
     {
         return !Equals(left, right);
+    }
+
+    public override bool IsType(FilterExpression expression)
+    {
+        return expression is XorExpression exp && Left.IsType(exp.Left) && (Right?.IsType(exp.Right) ?? true);
     }
 }

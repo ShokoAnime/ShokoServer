@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Shoko.Models.Enums;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters;
 
-public class Filterable
+public class Filterable : IFilterable
 {
 
     private readonly Lazy<DateTime> _addedDate;
@@ -101,10 +102,11 @@ public class Filterable
     private readonly Lazy<IReadOnlySet<int>> _years;
     private readonly Func<IReadOnlySet<int>> _yearsDelegate;
 
-    /// <summary>
-    /// Name
-    /// </summary>
-    public string Name => _name.Value;
+    public string Name
+    {
+        get => _name.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<string> NameDelegate
     {
@@ -116,10 +118,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Sorting Name
-    /// </summary>
-    public string SortingName => _sortingName.Value;
+    public string SortingName
+    {
+        get => _sortingName.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<string> SortingNameDelegate
     {
@@ -131,10 +134,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// The number of series in a group
-    /// </summary>
-    public int SeriesCount => _seriesCount.Value;
+    public int SeriesCount
+    {
+        get => _seriesCount.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<int> SeriesCountDelegate
     {
@@ -146,10 +150,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Number of Missing Episodes
-    /// </summary>
-    public int MissingEpisodes => _missingEpisodes.Value;
+    public int MissingEpisodes
+    {
+        get => _missingEpisodes.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<int> MissingEpisodesDelegate
     {
@@ -161,10 +166,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Number of Missing Episodes from Groups that you have
-    /// </summary>
-    public int MissingEpisodesCollecting => _missingEpisodesCollecting.Value;
+    public int MissingEpisodesCollecting
+    {
+        get => _missingEpisodesCollecting.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<int> MissingEpisodesCollectingDelegate
     {
@@ -176,10 +182,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// All of the tags
-    /// </summary>
-    public IReadOnlySet<string> Tags => _tags.Value;
+    public IReadOnlySet<string> Tags
+    {
+        get => _tags.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<IReadOnlySet<string>> TagsDelegate
     {
@@ -191,10 +198,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// All of the custom tags
-    /// </summary>
-    public IReadOnlySet<string> CustomTags => _customTags.Value;
+    public IReadOnlySet<string> CustomTags
+    {
+        get => _customTags.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<IReadOnlySet<string>> CustomTagsDelegate
     {
@@ -206,10 +214,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// The years this aired in
-    /// </summary>
-    public IReadOnlySet<int> Years => _years.Value;
+    public IReadOnlySet<int> Years
+    {
+        get => _years.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<IReadOnlySet<int>> YearsDelegate
     {
@@ -221,10 +230,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// The seasons this aired in
-    /// </summary>
-    public IReadOnlySet<(int year, AnimeSeason season)> Seasons => _seasons.Value;
+    public IReadOnlySet<(int year, AnimeSeason season)> Seasons
+    {
+        get => _seasons.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<IReadOnlySet<(int year, AnimeSeason season)>> SeasonsDelegate
     {
@@ -236,10 +246,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Has at least one TvDB Link
-    /// </summary>
-    public bool HasTvDBLink => _hasTvDBLink.Value;
+    public bool HasTvDBLink
+    {
+        get => _hasTvDBLink.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<bool> HasTvDBLinkDelegate
     {
@@ -251,10 +262,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Missing at least one TvDB Link
-    /// </summary>
-    public bool HasMissingTvDbLink => _hasMissingTvDBLink.Value;
+    public bool HasMissingTvDbLink
+    {
+        get => _hasMissingTvDBLink.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<bool> HasMissingTvDbLinkDelegate
     {
@@ -266,10 +278,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Has at least one TMDb Link
-    /// </summary>
-    public bool HasTMDbLink => _hasTMDbLink.Value;
+    public bool HasTMDbLink
+    {
+        get => _hasTMDbLink.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<bool> HasTMDbLinkDelegate
     {
@@ -281,10 +294,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Missing at least one TMDb Link
-    /// </summary>
-    public bool HasMissingTMDbLink => _hasMissingTMDbLink.Value;
+    public bool HasMissingTMDbLink
+    {
+        get => _hasMissingTMDbLink.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<bool> HasMissingTMDbLinkDelegate
     {
@@ -296,10 +310,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Has at least one Trakt Link
-    /// </summary>
-    public bool HasTraktLink => _hasTraktLink.Value;
+    public bool HasTraktLink
+    {
+        get => _hasTraktLink.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<bool> HasTraktLinkDelegate
     {
@@ -311,10 +326,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Missing at least one Trakt Link
-    /// </summary>
-    public bool HasMissingTraktLink => _hasMissingTraktLink.Value;
+    public bool HasMissingTraktLink
+    {
+        get => _hasMissingTraktLink.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<bool> HasMissingTraktLinkDelegate
     {
@@ -326,10 +342,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Has Finished airing
-    /// </summary>
-    public bool IsFinished => _isFinished.Value;
+    public bool IsFinished
+    {
+        get => _isFinished.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<bool> IsFinishedDelegate
     {
@@ -341,10 +358,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// First Air Date
-    /// </summary>
-    public DateTime? AirDate => _airDate.Value;
+    public DateTime? AirDate
+    {
+        get => _airDate.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<DateTime?> AirDateDelegate
     {
@@ -356,10 +374,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Latest Air Date
-    /// </summary>
-    public DateTime? LastAirDate => _lastAirDate.Value;
+    public DateTime? LastAirDate
+    {
+        get => _lastAirDate.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<DateTime?> LastAirDateDelegate
     {
@@ -371,10 +390,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// When it was first added to the collection
-    /// </summary>
-    public DateTime AddedDate => _addedDate.Value;
+    public DateTime AddedDate
+    {
+        get => _addedDate.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<DateTime> AddedDateDelegate
     {
@@ -386,10 +406,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// When it was most recently added to the collection
-    /// </summary>
-    public DateTime LastAddedDate => _lastAddedDate.Value;
+    public DateTime LastAddedDate
+    {
+        get => _lastAddedDate.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<DateTime> LastAddedDateDelegate
     {
@@ -401,10 +422,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Highest Episode Count
-    /// </summary>
-    public int EpisodeCount => _episodeCount.Value;
+    public int EpisodeCount
+    {
+        get => _episodeCount.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<int> EpisodeCountDelegate
     {
@@ -416,10 +438,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Total Episode Count
-    /// </summary>
-    public int TotalEpisodeCount => _totalEpisodeCount.Value;
+    public int TotalEpisodeCount
+    {
+        get => _totalEpisodeCount.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<int> TotalEpisodeCountDelegate
     {
@@ -431,10 +454,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Lowest AniDB Rating (0-10)
-    /// </summary>
-    public decimal LowestAniDBRating => _lowestAniDBRating.Value;
+    public decimal LowestAniDBRating
+    {
+        get => _lowestAniDBRating.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<decimal> LowestAniDBRatingDelegate
     {
@@ -446,10 +470,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Highest AniDB Rating (0-10)
-    /// </summary>
-    public decimal HighestAniDBRating => _highestAniDBRating.Value;
+    public decimal HighestAniDBRating
+    {
+        get => _highestAniDBRating.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<decimal> HighestAniDBRatingDelegate
     {
@@ -461,10 +486,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// The sources that the video came from, such as TV, Web, DVD, Blu-ray, etc.
-    /// </summary>
-    public IReadOnlySet<string> VideoSources => _videoSources.Value;
+    public IReadOnlySet<string> VideoSources
+    {
+        get => _videoSources.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<IReadOnlySet<string>> VideoSourcesDelegate
     {
@@ -476,10 +502,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// The sources that the video came from, such as TV, Web, DVD, Blu-ray, etc. (only sources that are in every file)
-    /// </summary>
-    public IReadOnlySet<string> SharedVideoSources => _sharedVideoSources.Value;
+    public IReadOnlySet<string> SharedVideoSources
+    {
+        get => _sharedVideoSources.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<IReadOnlySet<string>> SharedVideoSourcesDelegate
     {
@@ -491,10 +518,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// The anime types (movie, series, ova, etc)
-    /// </summary>
-    public IReadOnlySet<string> AnimeTypes => _animeTypes.Value;
+    public IReadOnlySet<string> AnimeTypes
+    {
+        get => _animeTypes.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<IReadOnlySet<string>> AnimeTypesDelegate
     {
@@ -506,10 +534,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Audio Languages
-    /// </summary>
-    public IReadOnlySet<string> AudioLanguages => _audioLanguages.Value;
+    public IReadOnlySet<string> AudioLanguages
+    {
+        get => _audioLanguages.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<IReadOnlySet<string>> AudioLanguagesDelegate
     {
@@ -521,10 +550,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Audio Languages (only languages that are in every file)
-    /// </summary>
-    public IReadOnlySet<string> SharedAudioLanguages => _sharedAudioLanguages.Value;
+    public IReadOnlySet<string> SharedAudioLanguages
+    {
+        get => _sharedAudioLanguages.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<IReadOnlySet<string>> SharedAudioLanguagesDelegate
     {
@@ -536,10 +566,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Subtitle Languages
-    /// </summary>
-    public IReadOnlySet<string> SubtitleLanguages => _subtitleLanguages.Value;
+    public IReadOnlySet<string> SubtitleLanguages
+    {
+        get => _subtitleLanguages.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<IReadOnlySet<string>> SubtitleLanguagesDelegate
     {
@@ -551,10 +582,11 @@ public class Filterable
         }
     }
 
-    /// <summary>
-    /// Subtitle Languages (only languages that are in every file)
-    /// </summary>
-    public IReadOnlySet<string> SharedSubtitleLanguages => _sharedSubtitleLanguages.Value;
+    public IReadOnlySet<string> SharedSubtitleLanguages
+    {
+        get => _sharedSubtitleLanguages.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<IReadOnlySet<string>> SharedSubtitleLanguagesDelegate
     {

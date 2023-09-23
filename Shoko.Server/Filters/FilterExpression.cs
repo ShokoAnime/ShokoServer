@@ -48,9 +48,14 @@ public class FilterExpression : IFilterExpression
     {
         return !Equals(left, right);
     }
+
+    public virtual bool IsType(FilterExpression expression)
+    {
+        return expression.GetType() == GetType();
+    }
 }
 
 public abstract class FilterExpression<T> : FilterExpression, IFilterExpression<T>
 {
-    public abstract T Evaluate(Filterable f);
+    public abstract T Evaluate(IFilterable f);
 }

@@ -18,10 +18,10 @@ public class InSeasonExpression : FilterExpression<bool>, IWithNumberParameter, 
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
     
-    double? IWithNumberParameter.Parameter
+    double IWithNumberParameter.Parameter
     {
         get => Year;
-        set => Year = value.HasValue ? (int)value.Value : 0;
+        set => Year = (int)value;
     }
 
     string IWithSecondStringParameter.SecondParameter
@@ -30,7 +30,7 @@ public class InSeasonExpression : FilterExpression<bool>, IWithNumberParameter, 
         set => Season = Enum.Parse<AnimeSeason>(value);
     }
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         return filterable.Seasons.Contains((Year, Season));
     }

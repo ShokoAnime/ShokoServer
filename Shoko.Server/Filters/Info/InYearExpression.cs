@@ -15,13 +15,13 @@ public class InYearExpression : FilterExpression<bool>, IWithNumberParameter
     public override bool TimeDependent => true;
     public override bool UserDependent => false;
 
-    double? IWithNumberParameter.Parameter
+    double IWithNumberParameter.Parameter
     {
         get => Parameter;
-        set => Parameter = value.HasValue ? (int)value.Value : 0;
+        set => Parameter = (int)value;
     }
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         return filterable.Years.Contains(Parameter);
     }

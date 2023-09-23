@@ -1,3 +1,5 @@
+using Shoko.Server.Filters.Interfaces;
+
 namespace Shoko.Server.Filters.User;
 
 public class HasPermanentUserVotesExpression : UserDependentFilterExpression<bool>
@@ -5,7 +7,7 @@ public class HasPermanentUserVotesExpression : UserDependentFilterExpression<boo
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
 
-    public override bool Evaluate(UserDependentFilterable filterable)
+    public override bool Evaluate(IUserDependentFilterable filterable)
     {
         return filterable.HasPermanentVotes;
     }

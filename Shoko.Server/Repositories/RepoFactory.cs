@@ -1,14 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime;
-using System.Threading.Tasks;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 
 // ReSharper disable InconsistentNaming
 
@@ -93,7 +91,6 @@ public static class RepoFactory
     public static AnimeCharacterRepository AnimeCharacter { get; } = new();
     public static AnimeStaffRepository AnimeStaff { get; } = new();
     public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; } = new();
-    public static GroupFilterRepository GroupFilter { get; } = new();
     public static FilterPresetRepository FilterPreset { get; } = new();
 
     /************** DEPRECATED **************/

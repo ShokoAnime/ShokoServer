@@ -15,7 +15,7 @@ public class HasAudioLanguageExpression : FilterExpression<bool>, IWithStringPar
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         return filterable.AudioLanguages.Contains(Parameter);
     }

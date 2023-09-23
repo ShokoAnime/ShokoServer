@@ -15,7 +15,7 @@ public class HasAnimeTypeExpression : FilterExpression<bool>, IWithStringParamet
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         return filterable.AnimeTypes.Contains(Parameter);
     }

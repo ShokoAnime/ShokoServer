@@ -27,7 +27,7 @@ public class DateAddFunction : FilterExpression<DateTime?>, IWithDateSelectorPar
         set => Selector = value;
     }
 
-    public override DateTime? Evaluate(Filterable f)
+    public override DateTime? Evaluate(IFilterable f)
     {
         return Selector.Evaluate(f) + Parameter;
     }
@@ -70,5 +70,10 @@ public class DateAddFunction : FilterExpression<DateTime?>, IWithDateSelectorPar
     public static bool operator !=(DateAddFunction left, DateAddFunction right)
     {
         return !Equals(left, right);
+    }
+
+    public override bool IsType(FilterExpression expression)
+    {
+        return expression is DateAddFunction exp && Left.IsType(exp.Left) && Selector.IsType(exp.Selector);
     }
 }

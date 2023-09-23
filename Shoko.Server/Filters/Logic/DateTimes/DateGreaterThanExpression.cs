@@ -23,7 +23,7 @@ public class DateGreaterThanExpression : FilterExpression<bool>, IWithDateSelect
     public override bool TimeDependent => Left.TimeDependent || (Right?.TimeDependent ?? false);
     public override bool UserDependent => Left.UserDependent || (Right?.UserDependent ?? false);
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         var date = Left.Evaluate(filterable);
         var dateIsNull = date == null || date.Value == DateTime.MinValue || date.Value == DateTime.MaxValue || date.Value == DateTime.UnixEpoch;
@@ -85,5 +85,10 @@ public class DateGreaterThanExpression : FilterExpression<bool>, IWithDateSelect
     public static bool operator !=(DateGreaterThanExpression left, DateGreaterThanExpression right)
     {
         return !Equals(left, right);
+    }
+
+    public override bool IsType(FilterExpression expression)
+    {
+        return expression is DateGreaterThanExpression exp && Left.IsType(exp.Left) && (Right?.IsType(exp.Right) ?? true);
     }
 }

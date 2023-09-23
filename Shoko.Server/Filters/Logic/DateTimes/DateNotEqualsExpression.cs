@@ -23,7 +23,7 @@ public class DateNotEqualsExpression : FilterExpression<bool>, IWithDateSelector
     public override bool TimeDependent => Left.TimeDependent || (Right?.TimeDependent ?? false);
     public override bool UserDependent => Left.UserDependent || (Right?.UserDependent ?? false);
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         var date = Left.Evaluate(filterable);
         var dateIsNull = date == null || date.Value == DateTime.MinValue || date.Value == DateTime.MaxValue || date.Value == DateTime.UnixEpoch;
@@ -85,5 +85,10 @@ public class DateNotEqualsExpression : FilterExpression<bool>, IWithDateSelector
     public static bool operator !=(DateNotEqualsExpression left, DateNotEqualsExpression right)
     {
         return !Equals(left, right);
+    }
+
+    public override bool IsType(FilterExpression expression)
+    {
+        return expression is DateNotEqualsExpression exp && Left.IsType(exp.Left) && (Right?.IsType(exp.Right) ?? true);
     }
 }

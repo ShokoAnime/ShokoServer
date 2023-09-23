@@ -19,7 +19,7 @@ public class OrExpression : FilterExpression<bool>, IWithExpressionParameter, IW
     public FilterExpression<bool> Left { get; set; }
     public FilterExpression<bool> Right { get; set; }
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         return Left.Evaluate(filterable) || Right.Evaluate(filterable);
     }
@@ -62,5 +62,10 @@ public class OrExpression : FilterExpression<bool>, IWithExpressionParameter, IW
     public static bool operator !=(OrExpression left, OrExpression right)
     {
         return !Equals(left, right);
+    }
+
+    public override bool IsType(FilterExpression expression)
+    {
+        return expression is OrExpression exp && Left.IsType(exp.Left) && (Right?.IsType(exp.Right) ?? true);
     }
 }

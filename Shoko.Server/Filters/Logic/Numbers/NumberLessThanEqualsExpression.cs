@@ -19,14 +19,14 @@ public class NumberLessThanEqualsExpression : FilterExpression<bool>, IWithNumbe
     
     public FilterExpression<double> Left { get; set; }
     public FilterExpression<double> Right { get; set; }
-    public double? Parameter { get; set; }
+    public double Parameter { get; set; }
     public override bool TimeDependent => Left.TimeDependent || (Right?.TimeDependent ?? false);
     public override bool UserDependent => Left.UserDependent || (Right?.UserDependent ?? false);
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         var left = Left.Evaluate(filterable);
-        var right = Parameter ?? Right.Evaluate(filterable);
+        var right = Right?.Evaluate(filterable) ?? Parameter;
         return Math.Abs(left - right) < 0.001D || left < right;
     }
 
@@ -68,5 +68,10 @@ public class NumberLessThanEqualsExpression : FilterExpression<bool>, IWithNumbe
     public static bool operator !=(NumberLessThanEqualsExpression left, NumberLessThanEqualsExpression right)
     {
         return !Equals(left, right);
+    }
+
+    public override bool IsType(FilterExpression expression)
+    {
+        return expression is NumberLessThanEqualsExpression exp && Left.IsType(exp.Left) && (Right?.IsType(exp.Right) ?? true);
     }
 }

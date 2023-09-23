@@ -14,7 +14,7 @@ using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API;
 using Shoko.Server.Commands;
 using Shoko.Server.Filters;
-using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.MovieDB;

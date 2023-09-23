@@ -16,7 +16,7 @@ public class NotExpression : FilterExpression<bool>, IWithExpressionParameter
 
     public FilterExpression<bool> Left { get; set; }
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         return !Left.Evaluate(filterable);
     }
@@ -59,5 +59,10 @@ public class NotExpression : FilterExpression<bool>, IWithExpressionParameter
     public static bool operator !=(NotExpression left, NotExpression right)
     {
         return !Equals(left, right);
+    }
+
+    public override bool IsType(FilterExpression expression)
+    {
+        return expression is NotExpression exp && Left.IsType(exp.Left);
     }
 }

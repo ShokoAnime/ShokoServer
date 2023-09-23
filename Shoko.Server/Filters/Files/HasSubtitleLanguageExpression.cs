@@ -15,7 +15,7 @@ public class HasSubtitleLanguageExpression : FilterExpression<bool>, IWithString
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         return filterable.SubtitleLanguages.Contains(Parameter);
     }

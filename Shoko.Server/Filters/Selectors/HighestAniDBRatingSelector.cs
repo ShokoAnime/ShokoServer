@@ -1,4 +1,5 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Selectors;
 
@@ -7,7 +8,7 @@ public class HighestAniDBRatingSelector : FilterExpression<double>
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
 
-    public override double Evaluate(Filterable f)
+    public override double Evaluate(IFilterable f)
     {
         return Convert.ToDouble(f.HighestAniDBRating);
     }

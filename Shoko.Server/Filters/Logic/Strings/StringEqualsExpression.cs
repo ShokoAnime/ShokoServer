@@ -23,7 +23,7 @@ public class StringEqualsExpression : FilterExpression<bool>, IWithStringSelecto
     public override bool TimeDependent => Left.TimeDependent || (Right?.TimeDependent ?? false);
     public override bool UserDependent => Left.UserDependent || (Right?.UserDependent ?? false);
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         var left = Left.Evaluate(filterable);
         var right = Parameter ?? Right?.Evaluate(filterable);
@@ -68,5 +68,10 @@ public class StringEqualsExpression : FilterExpression<bool>, IWithStringSelecto
     public static bool operator !=(StringEqualsExpression left, StringEqualsExpression right)
     {
         return !Equals(left, right);
+    }
+
+    public override bool IsType(FilterExpression expression)
+    {
+        return expression is StringEqualsExpression exp && Left.IsType(exp.Left) && (Right?.IsType(exp.Right) ?? true);
     }
 }

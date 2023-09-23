@@ -1,4 +1,5 @@
 using System;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Selectors;
 
@@ -7,7 +8,7 @@ public class HighestUserRatingSelector : UserDependentFilterExpression<double>
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
 
-    public override double Evaluate(UserDependentFilterable f)
+    public override double Evaluate(IUserDependentFilterable f)
     {
         return Convert.ToDouble(f.HighestUserRating);
     }

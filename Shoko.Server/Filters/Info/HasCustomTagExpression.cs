@@ -15,7 +15,7 @@ public class HasCustomTagExpression : FilterExpression<bool>, IWithStringParamet
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         return filterable.CustomTags.Contains(Parameter);
     }

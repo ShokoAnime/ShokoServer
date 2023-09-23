@@ -15,7 +15,7 @@ public class HasSharedSubtitleLanguageExpression : FilterExpression<bool>, IWith
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         return filterable.SharedSubtitleLanguages.Contains(Parameter);
     }

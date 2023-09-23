@@ -1,9 +1,10 @@
 using System;
 using System.Threading;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters;
 
-public class UserDependentFilterable : Filterable
+public class UserDependentFilterable : Filterable, IUserDependentFilterable
 {
     private readonly Lazy<bool> _hasPermanentVotes;
     private readonly Func<bool> _hasPermanentVotesDelegate;
@@ -35,10 +36,11 @@ public class UserDependentFilterable : Filterable
     private readonly Lazy<int> _watchedEpisodes;
     private readonly Func<int> _watchedEpisodesDelegate;
 
-    /// <summary>
-    ///     Probably will be removed in the future. Custom Tags would handle this better
-    /// </summary>
-    public bool IsFavorite => _isFavorite.Value;
+    public bool IsFavorite
+    {
+        get => _isFavorite.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<bool> IsFavoriteDelegate
     {
@@ -50,10 +52,11 @@ public class UserDependentFilterable : Filterable
         }
     }
 
-    /// <summary>
-    ///     The number of episodes watched
-    /// </summary>
-    public int WatchedEpisodes => _watchedEpisodes.Value;
+    public int WatchedEpisodes
+    {
+        get => _watchedEpisodes.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<int> WatchedEpisodesDelegate
     {
@@ -65,10 +68,11 @@ public class UserDependentFilterable : Filterable
         }
     }
 
-    /// <summary>
-    ///     The number of episodes that have not been watched
-    /// </summary>
-    public int UnwatchedEpisodes => _unwatchedEpisodes.Value;
+    public int UnwatchedEpisodes
+    {
+        get => _unwatchedEpisodes.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<int> UnwatchedEpisodesDelegate
     {
@@ -80,10 +84,11 @@ public class UserDependentFilterable : Filterable
         }
     }
 
-    /// <summary>
-    ///     Has any user votes
-    /// </summary>
-    public bool HasVotes => _hasVotes.Value;
+    public bool HasVotes
+    {
+        get => _hasVotes.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<bool> HasVotesDelegate
     {
@@ -95,10 +100,11 @@ public class UserDependentFilterable : Filterable
         }
     }
 
-    /// <summary>
-    ///     Has permanent (after finishing) user votes
-    /// </summary>
-    public bool HasPermanentVotes => _hasPermanentVotes.Value;
+    public bool HasPermanentVotes
+    {
+        get => _hasPermanentVotes.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<bool> HasPermanentVotesDelegate
     {
@@ -110,10 +116,11 @@ public class UserDependentFilterable : Filterable
         }
     }
 
-    /// <summary>
-    ///     Has permanent (after finishing) user votes
-    /// </summary>
-    public bool MissingPermanentVotes => _missingPermanentVotes.Value;
+    public bool MissingPermanentVotes
+    {
+        get => _missingPermanentVotes.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<bool> MissingPermanentVotesDelegate
     {
@@ -125,10 +132,11 @@ public class UserDependentFilterable : Filterable
         }
     }
 
-    /// <summary>
-    ///     First Watched Date
-    /// </summary>
-    public DateTime? WatchedDate => _watchedDate.Value;
+    public DateTime? WatchedDate
+    {
+        get => _watchedDate.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<DateTime?> WatchedDateDelegate
     {
@@ -140,10 +148,11 @@ public class UserDependentFilterable : Filterable
         }
     }
 
-    /// <summary>
-    ///     Latest Watched Date
-    /// </summary>
-    public DateTime? LastWatchedDate => _lastWatchedDate.Value;
+    public DateTime? LastWatchedDate
+    {
+        get => _lastWatchedDate.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<DateTime?> LastWatchedDateDelegate
     {
@@ -155,10 +164,11 @@ public class UserDependentFilterable : Filterable
         }
     }
 
-    /// <summary>
-    ///     Lowest User Rating (0-10)
-    /// </summary>
-    public decimal LowestUserRating => _lowestUserRating.Value;
+    public decimal LowestUserRating
+    {
+        get => _lowestUserRating.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<decimal> LowestUserRatingDelegate
     {
@@ -170,10 +180,11 @@ public class UserDependentFilterable : Filterable
         }
     }
 
-    /// <summary>
-    ///     Highest User Rating (0-10)
-    /// </summary>
-    public decimal HighestUserRating => _highestUserRating.Value;
+    public decimal HighestUserRating
+    {
+        get => _highestUserRating.Value;
+        init => throw new NotSupportedException();
+    }
 
     public Func<decimal> HighestUserRatingDelegate
     {

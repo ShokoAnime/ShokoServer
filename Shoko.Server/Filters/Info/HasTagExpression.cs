@@ -15,7 +15,7 @@ public class HasTagExpression : FilterExpression<bool>, IWithStringParameter
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         return filterable.Tags.Contains(Parameter);
     }

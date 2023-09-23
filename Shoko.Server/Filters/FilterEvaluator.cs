@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Enums;
+using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Filters.SortingSelectors;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -12,9 +13,21 @@ namespace Shoko.Server.Filters;
 
 public class FilterEvaluator
 {
-    private readonly AnimeGroupRepository _groups = RepoFactory.AnimeGroup;
+    private readonly AnimeGroupRepository _groups;
 
-    private readonly AnimeSeriesRepository _series = RepoFactory.AnimeSeries;
+    private readonly AnimeSeriesRepository _series;
+
+    public FilterEvaluator()
+    {
+        _series = RepoFactory.AnimeSeries;
+        _groups = RepoFactory.AnimeGroup;
+    }
+
+    public FilterEvaluator(AnimeGroupRepository groups, AnimeSeriesRepository series)
+    {
+        _groups = groups;
+        _series = series;
+    }
 
     /// <summary>
     /// Evaluate the given filter, applying the necessary logic
@@ -34,10 +47,10 @@ public class FilterEvaluator
 
         var filterables = filter.ApplyAtSeriesLevel switch
         {
-            true when user => _series.GetAll().AsParallel().Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
-            true => _series.GetAll().AsParallel().Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable())),
-            false when user => _groups.GetAll().AsParallel().Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
-            false => _groups.GetAll().AsParallel().Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable()))
+            true when user => _series?.GetAll().AsParallel().Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))) ?? Array.Empty<FilterableWithID>().AsParallel(),
+            true => _series?.GetAll().AsParallel().Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable())) ?? Array.Empty<FilterableWithID>().AsParallel(),
+            false when user => _groups?.GetAll().AsParallel().Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))) ?? Array.Empty<FilterableWithID>().AsParallel(),
+            false => _groups?.GetAll().AsParallel().Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable())) ?? Array.Empty<FilterableWithID>().AsParallel()
         };
 
         // Filtering
@@ -118,7 +131,8 @@ public class FilterEvaluator
         return ordered;
     }
 
-    private record FilterableWithID(int SeriesID, int GroupID, Filterable Filterable);
+    private record FilterableWithID(int SeriesID, int GroupID, IFilterable Filterable);
+    private record UserFilterableWithID(int UserID, int SeriesID, int GroupID, IFilterable Filterable) : FilterableWithID(SeriesID, GroupID, Filterable);
 
     private record Grouping(int GroupID, int[] SeriesIDs) : IGrouping<int, int>
     {

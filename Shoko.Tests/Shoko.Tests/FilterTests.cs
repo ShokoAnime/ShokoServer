@@ -28,13 +28,13 @@ public class FilterTests
         "";
     #endregion
 
-    public static readonly IEnumerable<object[]> GroupFilterable = new[] { new[] { JsonConvert.DeserializeObject<Filterable>(GroupFilterableString, new IReadOnlySetConverter()) }};
-    public static readonly IEnumerable<object[]> GroupUserFilterable = new[] { new[] { JsonConvert.DeserializeObject<UserDependentFilterable>(GroupUserFilterableString, new IReadOnlySetConverter()) }};
-    public static readonly IEnumerable<object[]> SeriesFilterable = new[] { new[] { JsonConvert.DeserializeObject<Filterable>(SeriesFilterableString, new IReadOnlySetConverter()) }};
-    public static readonly IEnumerable<object[]> SeriesUserFilterable = new[] { new[] { JsonConvert.DeserializeObject<UserDependentFilterable>(SeriesUserFilterableString, new IReadOnlySetConverter()) }};
+    public static readonly IEnumerable<object[]> GroupFilterable = new[] { new[] { JsonConvert.DeserializeObject<TestFilterable>(GroupFilterableString, new IReadOnlySetConverter()) }};
+    public static readonly IEnumerable<object[]> GroupUserFilterable = new[] { new[] { JsonConvert.DeserializeObject<TestUserDependentFilterable>(GroupUserFilterableString, new IReadOnlySetConverter()) }};
+    public static readonly IEnumerable<object[]> SeriesFilterable = new[] { new[] { JsonConvert.DeserializeObject<TestFilterable>(SeriesFilterableString, new IReadOnlySetConverter()) }};
+    public static readonly IEnumerable<object[]> SeriesUserFilterable = new[] { new[] { JsonConvert.DeserializeObject<TestUserDependentFilterable>(SeriesUserFilterableString, new IReadOnlySetConverter()) }};
 
     [Theory, MemberData(nameof(GroupFilterable))]
-    public void GroupFilterable_WithUserFilter_ExpectsException(Filterable group)
+    public void GroupFilterable_WithUserFilter_ExpectsException(TestFilterable group)
     {
         var top = new AndExpression(new AndExpression(new HasTagExpression("comedy"), 
                 new NotExpression(new HasTagExpression("18 restricted"))),
@@ -45,7 +45,7 @@ public class FilterTests
     }
 
     [Theory, MemberData(nameof(GroupFilterable))]
-    public void GroupFilterable_WithoutUserFilter_ExpectsTrue(Filterable group)
+    public void GroupFilterable_WithoutUserFilter_ExpectsTrue(TestFilterable group)
     {
         var top = new AndExpression(new AndExpression(new HasTagExpression("comedy"), new NotExpression(new HasTagExpression("18 restricted"))),
             new HasVideoSourceExpression("Web"));
@@ -55,7 +55,7 @@ public class FilterTests
     }
     
     [Theory, MemberData(nameof(GroupFilterable))]
-    public void GroupFilterable_WithDateFunctionFilter_ExpectsFalse(Filterable group)
+    public void GroupFilterable_WithDateFunctionFilter_ExpectsFalse(TestFilterable group)
     {
         var top = new AndExpression(new AndExpression(new HasTagExpression("comedy"), new NotExpression(new HasTagExpression("18 restricted"))),
             new DateGreaterThanEqualsExpression(new LastAddedDateSelector(),
@@ -66,18 +66,17 @@ public class FilterTests
     }
     
     [Theory, MemberData(nameof(GroupFilterable))]
-    public void GroupFilterable_WithDateFunctionFilter_ExpectsTrue(Filterable group)
+    public void GroupFilterable_WithDateFunctionFilter_ExpectsTrue(TestFilterable group)
     {
         var top = new AndExpression(new AndExpression(new HasTagExpression("comedy"), new NotExpression(new HasTagExpression("18 restricted"))),
-            new DateGreaterThanEqualsExpression(new LastAddedDateSelector(), new DateDiffFunction(
-                new DateAddFunction(new TodayFunction(), TimeSpan.FromDays(1) - TimeSpan.FromMilliseconds(1)), TimeSpan.FromDays(120))));
+            new DateGreaterThanEqualsExpression(new LastAddedDateSelector(), DateTime.Parse("2023-4-15")));
 
         Assert.False(top.UserDependent);
         Assert.True(top.Evaluate(group));
     }
 
     [Theory, MemberData(nameof(GroupUserFilterable))]
-    public void GroupUserFilterable_WithUserFilter_ExpectsTrue(UserDependentFilterable group)
+    public void GroupUserFilterable_WithUserFilter_ExpectsTrue(TestUserDependentFilterable group)
     {
         var top = new AndExpression(new AndExpression(new HasTagExpression("comedy"), new NotExpression(new HasTagExpression("18 restricted"))),
             new HasWatchedEpisodesExpression());
@@ -87,7 +86,7 @@ public class FilterTests
     }
 
     [Theory, MemberData(nameof(SeriesFilterable))]
-    public void SeriesFilterable_WithUserFilter_ExpectsException(Filterable series)
+    public void SeriesFilterable_WithUserFilter_ExpectsException(TestFilterable series)
     {
         var top = new AndExpression(new AndExpression(new HasTagExpression("comedy"), new NotExpression(new HasTagExpression("18 restricted"))),
             new HasWatchedEpisodesExpression());
@@ -97,7 +96,7 @@ public class FilterTests
     }
 
     [Theory, MemberData(nameof(SeriesUserFilterable))]
-    public void SeriesUserFilterable_WithUserFilter_ExpectsTrue(UserDependentFilterable series)
+    public void SeriesUserFilterable_WithUserFilter_ExpectsTrue(TestUserDependentFilterable series)
     {
         var top = new AndExpression(new AndExpression(new HasTagExpression("comedy"), new NotExpression(new HasTagExpression("18 restricted"))),
             new HasWatchedEpisodesExpression());

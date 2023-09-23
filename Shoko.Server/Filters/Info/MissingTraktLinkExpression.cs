@@ -1,3 +1,5 @@
+using Shoko.Server.Filters.Interfaces;
+
 namespace Shoko.Server.Filters.Info;
 
 /// <summary>
@@ -8,7 +10,7 @@ public class MissingTraktLinkExpression : FilterExpression<bool>
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
 
-    public override bool Evaluate(Filterable filterable)
+    public override bool Evaluate(IFilterable filterable)
     {
         return filterable.HasMissingTraktLink;
     }
