@@ -278,7 +278,6 @@ public class SVR_AnimeSeries : AnimeSeries
     {
         if (orderList)
         {
-            // TODO: Convert to a LINQ query once we've switched to EF Core.
             return RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
                 .Where(episode => includeHidden || !episode.IsHidden)
                 .Select(episode => (episode, anidbEpisode: episode.AniDB_Episode))
@@ -289,7 +288,6 @@ public class SVR_AnimeSeries : AnimeSeries
         }
         if (!includeHidden)
         {
-            // TODO: Convert to a LINQ query once we've switched to EF Core.
             return RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
                 .Where(episode => !episode.IsHidden)
                 .ToList();

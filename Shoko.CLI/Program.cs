@@ -42,8 +42,6 @@ public static class Program
             var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
             startup.Start();
             AddEventHandlers();
-            // TODO Remove this after filter merge
-            //Utils.ShokoServer.DBSetupCompleted += OnShokoServerOnDBSetupCompleted;
             startup.WaitForShutdown();
         }
         catch (Exception e)
@@ -51,36 +49,6 @@ public static class Program
             _logger.LogCritical(e, "The server failed to start");
         }
     }
-    
-    private static void OnShokoServerOnDBSetupCompleted(object? o, EventArgs eventArgs)
-    {
-        
-        var filterEvaluator = Utils.ServiceContainer.GetRequiredService<FilterEvaluator>();
-        var s = Stopwatch.StartNew();
-        RepoFactory.FilterPreset.CreateOrVerifyDirectoryFilters();
-        s.Stop();
-        _logger.LogInformation("Generating Directories took {Time}ms", s.ElapsedMilliseconds);
-        var comedyFilter = RepoFactory.FilterPreset.GetAll().FirstOrDefault(a => a.Name.Equals("comedy", StringComparison.InvariantCultureIgnoreCase));
-        if (comedyFilter != null)
-        {
-            s.Restart();
-            var result = filterEvaluator.EvaluateFilter(comedyFilter, null);
-            s.Stop();
-            _logger.LogInformation("Filtering took {Time}ms", s.ElapsedMilliseconds);
-            s.Restart();
-            var groups = result.SelectMany(a => a.Select(b => new
-                {
-                    Group = RepoFactory.AnimeGroup.GetByID(a.Key), Series = RepoFactory.AnimeSeries.GetByID(b)
-                }))
-                .GroupBy(a => a.Group, a => a.Series)
-                .ToDictionary(a => a.Key, a => a.ToList());
-            s.Stop();
-            _logger.LogInformation("Projecting results took {Time}ms", s.ElapsedMilliseconds);
-        }
-
-        _logger.LogInformation("Finished");
-    }
-
     
     private static void AddEventHandlers()
     {

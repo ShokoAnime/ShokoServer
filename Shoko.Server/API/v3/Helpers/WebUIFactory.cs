@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using Microsoft.AspNetCore.Http;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 
@@ -8,18 +7,15 @@ namespace Shoko.Server.API.v3.Helpers;
 
 public class WebUIFactory
 {
-    private readonly HttpContext _context;
     private readonly FilterFactory _filterFactory;
     private readonly SeriesFactory _seriesFactory;
 
-    public WebUIFactory(IHttpContextAccessor context, FilterFactory filterFactory, SeriesFactory seriesFactory)
+    public WebUIFactory(FilterFactory filterFactory, SeriesFactory seriesFactory)
     {
-        _context = context.HttpContext;
         _filterFactory = filterFactory;
         _seriesFactory = seriesFactory;
     }
 
-    // TODO the rest of this
     public Models.Shoko.WebUI.WebUISeriesExtra GetWebUISeriesExtra(SVR_AnimeSeries series)
     {
         var anime = series.GetAnime();

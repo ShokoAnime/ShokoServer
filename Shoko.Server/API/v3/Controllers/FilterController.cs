@@ -184,8 +184,6 @@ public class FilterController : BaseController
             Name = "Live Filtering",
         };
 
-        // TODO: Update default filter for user here.
-
         return filterPreset;
     }
 

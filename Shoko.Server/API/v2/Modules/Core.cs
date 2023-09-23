@@ -241,7 +241,7 @@ public class Core : BaseController
     [HttpGet("anidb/votes/sync")]
     public ActionResult SyncAniDBVotes()
     {
-        //TODO APIv2: Command should be split into AniDb/MAL sepereate
+        //TODO APIv2: Command should be split into AniDb/MAL separate
         _commandFactory.CreateAndSave<CommandRequest_SyncMyVotes>();
         return APIStatus.OK();
     }
