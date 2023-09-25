@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NHibernate.Type;
 
-namespace Shoko.Server.Databases;
+namespace Shoko.Server.Databases.NHIbernate;
 
 public class NHibernateDependencyInjector : EmptyInterceptor
 {

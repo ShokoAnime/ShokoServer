@@ -51,12 +51,13 @@ public class LegacyMappings
         {
             '|', ','
         }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (tags.Length == 0) return suppressErrors ? null : throw new ArgumentException(@$"Parameter {parameter} was invalid", nameof(parameter));
         switch (op)
         {
             case GroupFilterOperator.Include:
             case GroupFilterOperator.In:
                 {
-                    if (tags.Length <= 1) return new HasTagExpression(tags[0]);
+                    if (tags.Length == 1) return new HasTagExpression(tags[0]);
 
                     FilterExpression<bool> first = new HasTagExpression(tags[0]);
                     return tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasTagExpression(b)));
@@ -64,7 +65,7 @@ public class LegacyMappings
             case GroupFilterOperator.Exclude:
             case GroupFilterOperator.NotIn:
                 {
-                    if (tags.Length <= 1) return new NotExpression(new HasTagExpression(tags[0]));
+                    if (tags.Length == 1) return new NotExpression(new HasTagExpression(tags[0]));
 
                     FilterExpression<bool> first = new HasTagExpression(tags[0]);
                     return new NotExpression(tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasTagExpression(b))));
@@ -222,6 +223,7 @@ public class LegacyMappings
         switch (op)
         {
             case GroupFilterOperator.In:
+            case GroupFilterOperator.Include:
                 {
                     if (tags.Length <= 1) return new HasAudioLanguageExpression(tags[0]);
 
@@ -229,6 +231,7 @@ public class LegacyMappings
                     return tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasAudioLanguageExpression(b)));
                 }
             case GroupFilterOperator.NotIn:
+            case GroupFilterOperator.Exclude:
                 {
                     if (tags.Length <= 1) return new NotExpression(new HasAudioLanguageExpression(tags[0]));
 
@@ -250,6 +253,7 @@ public class LegacyMappings
         switch (op)
         {
             case GroupFilterOperator.In:
+            case GroupFilterOperator.Include:
                 {
                     if (tags.Length <= 1) return new HasSubtitleLanguageExpression(tags[0]);
 
@@ -257,6 +261,7 @@ public class LegacyMappings
                     return tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasSubtitleLanguageExpression(b)));
                 }
             case GroupFilterOperator.NotIn:
+            case GroupFilterOperator.Exclude:
                 {
                     if (tags.Length <= 1) return new NotExpression(new HasSubtitleLanguageExpression(tags[0]));
 
@@ -278,6 +283,7 @@ public class LegacyMappings
         switch (op)
         {
             case GroupFilterOperator.In:
+            case GroupFilterOperator.Include:
                 {
                     if (tags.Length <= 1) return new HasAnimeTypeExpression(tags[0]);
 
@@ -285,6 +291,7 @@ public class LegacyMappings
                     return tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasAnimeTypeExpression(b)));
                 }
             case GroupFilterOperator.NotIn:
+            case GroupFilterOperator.Exclude:
                 {
                     if (tags.Length <= 1) return new NotExpression(new HasAnimeTypeExpression(tags[0]));
 
@@ -306,6 +313,7 @@ public class LegacyMappings
         switch (op)
         {
             case GroupFilterOperator.In:
+            case GroupFilterOperator.Include:
                 {
                     if (tags.Length <= 1) return new HasNameExpression(tags[0]);
 
@@ -313,6 +321,7 @@ public class LegacyMappings
                     return tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasNameExpression(b)));
                 }
             case GroupFilterOperator.NotIn:
+            case GroupFilterOperator.Exclude:
                 {
                     if (tags.Length <= 1) return new NotExpression(new HasNameExpression(tags[0]));
 
@@ -382,6 +391,7 @@ public class LegacyMappings
         switch (op)
         {
             case GroupFilterOperator.In:
+            case GroupFilterOperator.Include:
                 {
                     if (!int.TryParse(tags[0], out var firstYear))
                         return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
@@ -396,6 +406,7 @@ public class LegacyMappings
                     });
                 }
             case GroupFilterOperator.NotIn:
+            case GroupFilterOperator.Exclude:
                 {
                     if (!int.TryParse(tags[0], out var firstYear))
                         return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));

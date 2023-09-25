@@ -1,15 +1,15 @@
 using System;
 using System.ComponentModel;
-using NHibernate.SqlTypes;
-using NHibernate.UserTypes;
 using System.Data;
 using System.Data.Common;
 using NHibernate;
 using NHibernate.Engine;
+using NHibernate.SqlTypes;
+using NHibernate.UserTypes;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
 
-namespace Shoko.Server.Databases.TypeConverters;
+namespace Shoko.Server.Databases.NHIbernate;
 
 public class TitleTypeConverter : TypeConverter, IUserType
 {

@@ -3249,8 +3249,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
-            var expression = LegacyConditionConverter.GetExpression(contract);
+            var expression = LegacyConditionConverter.GetExpression(contract.FilterConditions, (GroupFilterBaseCondition)contract.BaseCondition);
 
             var filter = new FilterPreset
             {

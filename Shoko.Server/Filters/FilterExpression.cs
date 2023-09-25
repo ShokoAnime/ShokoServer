@@ -5,7 +5,6 @@ namespace Shoko.Server.Filters;
 
 public class FilterExpression : IFilterExpression
 {
-    public int FilterExpressionID { get; set; }
     [IgnoreDataMember] public virtual bool TimeDependent => false;
     [IgnoreDataMember] public virtual bool UserDependent => false;
 

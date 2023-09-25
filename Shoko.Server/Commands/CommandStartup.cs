@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using Shoko.Server.Databases;
+using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Commands;

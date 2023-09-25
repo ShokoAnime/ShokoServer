@@ -8,6 +8,7 @@ using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using NHibernate;
 using Shoko.Commons.Properties;
+using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Databases.SqliteFixes;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -675,6 +676,9 @@ public class SQLite : BaseDatabase<SqliteConnection>
             "CREATE TABLE FilterPreset( FilterPresetID INTEGER PRIMARY KEY AUTOINCREMENT, ParentFilterPresetID int, Name text NOT NULL, FilterType int NOT NULL, Locked int NOT NULL, Hidden int NOT NULL, ApplyAtSeriesLevel int NOT NULL, Expression text, SortingExpression text ); "),
         new DatabaseCommand(105, 2,
             "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
+        new DatabaseCommand(105, 3, "DELETE FROM GroupFilter WHERE FilterType = 2"),
+        new DatabaseCommand(105, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
+        new DatabaseCommand(105, 5, "DROP TABLE GroupFilter; DROP TABLE GroupFilterCondition"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

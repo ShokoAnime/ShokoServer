@@ -10,6 +10,7 @@ using NHibernate;
 using NHibernate.AdoNet;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
+using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -684,6 +685,9 @@ public class SQLServer : BaseDatabase<SqlConnection>
             "CREATE TABLE FilterPreset( FilterPresetID INT IDENTITY(1,1), ParentFilterPresetID int, Name nvarchar(max) NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression nvarchar(max), SortingExpression nvarchar(max) ); "),
         new DatabaseCommand(112, 2,
             "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
+        new DatabaseCommand(112, 3, "DELETE FROM GroupFilter WHERE FilterType = 2"),
+        new DatabaseCommand(112, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
+        new DatabaseCommand(112, 5, "DROP TABLE GroupFilter; DROP TABLE GroupFilterCondition"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

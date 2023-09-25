@@ -8,6 +8,7 @@ using MySqlConnector;
 using NHibernate;
 using NHibernate.Driver.MySqlConnector;
 using Shoko.Commons.Properties;
+using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -741,6 +742,9 @@ public class MySQL : BaseDatabase<MySqlConnection>
             "CREATE TABLE FilterPreset( FilterPresetID INT NOT NULL AUTO_INCREMENT, ParentFilterPresetID int, Name text NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression longtext, SortingExpression longtext, PRIMARY KEY (`FilterID`) ); "),
         new DatabaseCommand(119, 2,
             "ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_ParentFilterPresetID (ParentFilterPresetID); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_Name (Name); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_FilterType (FilterType); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_LockedHidden (Locked, Hidden);"),
+        new DatabaseCommand(119, 3, "DELETE FROM GroupFilter WHERE FilterType = 2"),
+        new DatabaseCommand(119, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
+        new DatabaseCommand(119, 5, "DROP TABLE GroupFilter; DROP TABLE GroupFilterCondition"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

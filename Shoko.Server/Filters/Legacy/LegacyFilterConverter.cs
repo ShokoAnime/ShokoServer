@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.Filters.Logic;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -19,11 +20,27 @@ public class LegacyFilterConverter
 
     public FilterPreset FromClient(CL_GroupFilter model)
     {
-        var expression = LegacyConditionConverter.GetExpression(model);
+        var expression = LegacyConditionConverter.GetExpression(model.FilterConditions, (GroupFilterBaseCondition)model.BaseCondition);
         var filter = new FilterPreset
         {
             FilterPresetID = model.GroupFilterID,
             ParentFilterPresetID = model.ParentGroupFilterID,
+            Name = model.GroupFilterName,
+            FilterType = (GroupFilterType)model.FilterType,
+            Hidden = model.InvisibleInClients == 1,
+            Locked = model.Locked == 1,
+            ApplyAtSeriesLevel = model.ApplyToSeries == 1,
+            SortingExpression = LegacyConditionConverter.GetSortingExpression(model.SortingCriteria),
+            Expression = expression == null ? null : model.BaseCondition == (int)GroupFilterBaseCondition.Exclude ? new NotExpression(expression) : expression
+        };
+        return filter;
+    }
+
+    public FilterPreset FromLegacy(GroupFilter model, List<GroupFilterCondition> conditions)
+    {
+        var expression = LegacyConditionConverter.GetExpression(conditions, (GroupFilterBaseCondition)model.BaseCondition);
+        var filter = new FilterPreset
+        {
             Name = model.GroupFilterName,
             FilterType = (GroupFilterType)model.FilterType,
             Hidden = model.InvisibleInClients == 1,
@@ -129,7 +146,7 @@ public class LegacyFilterConverter
 
         if (otherFilters.Count > 0)
         {
-            var results = _evaluator.BatchEvaluateFilters(userFilters, null);
+            var results = _evaluator.BatchEvaluateFilters(otherFilters, null);
             var models = results.Select(kv =>
             {
                 var filter = kv.Key;

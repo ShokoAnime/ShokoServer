@@ -80,7 +80,8 @@ public class FilterEvaluator
     {
         ArgumentNullException.ThrowIfNull(filters);
         if (!filters.Any()) return new Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>>();
-        var user = filters.Any(a => a.Expression?.UserDependent ?? false);
+        // count it as a user filter if it needs to sort using a user-dependent expression
+        var user = filters.Any(a => (a?.Expression?.UserDependent ?? false) || skipSorting && (a?.SortingExpression?.UserDependent ?? false));
         if (user && userID == null) throw new ArgumentNullException(nameof(userID));
 
         var filterables = filters.Any(a => a.ApplyAtSeriesLevel) switch
