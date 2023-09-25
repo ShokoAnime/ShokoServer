@@ -394,6 +394,39 @@ public class FileController : BaseController
     }
 
     /// <summary>
+    /// Rescan a file on AniDB using the <paramref name="anidbFileID"/>.
+    /// </summary>
+    /// <param name="anidbFileID">AniDB File ID</param>
+    /// <param name="priority">Increase the priority to the max for the queued command.</param>
+    /// <returns></returns>
+    [HttpPost("AniDB/{anidbFileID}/Rescan")]
+    public ActionResult RescanFileByAniDBFileID([FromRoute] int anidbFileID, [FromQuery] bool priority = false)
+    {
+        var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
+        if (anidb == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        var file = RepoFactory.VideoLocal.GetByHash(anidb.Hash);
+        if (file == null)
+            return NotFound(AnidbNotFoundForFileID);
+
+        var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
+        if (string.IsNullOrEmpty(filePath))
+            return ValidationProblem(FileNoPath, "File");
+
+        _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
+            c =>
+            {
+                c.VideoLocalID = file.VideoLocalID;
+                c.ForceAniDB = true;
+                if (priority)
+                    c.Priority = (int)CommandRequestPriority.Priority1;
+            }
+        );
+        return Ok();
+    }
+
+    /// <summary>
     /// Returns a file stream for the specified file ID.
     /// </summary>
     /// <param name="fileID">Shoko ID</param>
@@ -687,15 +720,15 @@ public class FileController : BaseController
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
-        var command = _commandFactory.Create<CommandRequest_ProcessFile>(
+        _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
             c =>
             {
                 c.VideoLocalID = file.VideoLocalID;
                 c.ForceAniDB = true;
+                if (priority)
+                    c.Priority = (int)CommandRequestPriority.Priority1;
             }
         );
-        if (priority) command.Priority = (int) CommandRequestPriority.Priority1;
-        _commandFactory.Save(command);
         return Ok();
     }
 

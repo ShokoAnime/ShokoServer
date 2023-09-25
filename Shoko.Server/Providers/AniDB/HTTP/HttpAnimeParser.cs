@@ -695,6 +695,7 @@ public class HttpAnimeParser
                     "summary" => RelationType.Summary,
                     "other" => RelationType.Other,
                     "alternative setting" => RelationType.AlternativeSetting,
+                    "alternative version" => RelationType.AlternativeVersion,
                     "same setting" => RelationType.SameSetting,
                     "character" => RelationType.SharedCharacters,
                     _ => RelationType.Other

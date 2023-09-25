@@ -93,7 +93,7 @@ public class ConnectivityMonitorJob : IJob
         var currentlyDisabledMonitors = _settingsProvider.GetSettings().Connectivity.DisabledMonitorServices
             .ToHashSet();
         var monitors = _connectivityMonitors
-            .Where(monitor => !currentlyDisabledMonitors.Contains(monitor.Service.ToLowerInvariant()))
+            .Where(monitor => !currentlyDisabledMonitors.Contains(monitor.Service, StringComparer.InvariantCultureIgnoreCase))
             .ToList();
         if (monitors.Count == 0)
         {

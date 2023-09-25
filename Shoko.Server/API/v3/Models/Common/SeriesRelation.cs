@@ -52,28 +52,8 @@ public class SeriesRelation
 
         IDs = new RelationIDs { AniDB = relation.AnimeID, Shoko = series?.AnimeSeriesID };
         RelatedIDs = new RelationIDs { AniDB = relation.RelatedAnimeID, Shoko = relatedSeries?.AnimeSeriesID };
-        Type = GetRelationTypeFromAnidbRelationType(relation.RelationType);
+        Type = ((IRelatedAnime)relation).RelationType;
         Source = "AniDB";
-    }
-
-    internal static RelationType GetRelationTypeFromAnidbRelationType(string anidbType)
-    {
-        return anidbType.ToLowerInvariant() switch
-        {
-            "prequel" => RelationType.Prequel,
-            "sequel" => RelationType.Sequel,
-            "parent story" => RelationType.MainStory,
-            "side story" => RelationType.SideStory,
-            "full story" => RelationType.FullStory,
-            "summary" => RelationType.Summary,
-            "other" => RelationType.Other,
-            "alternative setting" => RelationType.AlternativeSetting,
-            "alternative version" => RelationType.AlternativeVersion,
-            "same setting" => RelationType.SameSetting,
-            "character" => RelationType.SharedCharacters,
-
-            _ => RelationType.Other
-        };
     }
 
     /// <summary>
