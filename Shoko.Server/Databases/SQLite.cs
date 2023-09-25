@@ -678,7 +678,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
         new DatabaseCommand(105, 3, "DELETE FROM GroupFilter WHERE FilterType = 2"),
         new DatabaseCommand(105, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
-        new DatabaseCommand(105, 5, "DROP TABLE GroupFilter; DROP TABLE GroupFilterCondition"),
+        new DatabaseCommand(105, 5, DatabaseFixes.DropGroupFilter),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

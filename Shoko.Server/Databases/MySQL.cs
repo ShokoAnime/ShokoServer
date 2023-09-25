@@ -744,7 +744,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
             "ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_ParentFilterPresetID (ParentFilterPresetID); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_Name (Name); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_FilterType (FilterType); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_LockedHidden (Locked, Hidden);"),
         new DatabaseCommand(119, 3, "DELETE FROM GroupFilter WHERE FilterType = 2"),
         new DatabaseCommand(119, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
-        new DatabaseCommand(119, 5, "DROP TABLE GroupFilter; DROP TABLE GroupFilterCondition"),
+        new DatabaseCommand(119, 5, DatabaseFixes.DropGroupFilter),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

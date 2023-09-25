@@ -101,6 +101,12 @@ public class DatabaseFixes
                 .ToList();
         }
     }
+
+    public static void DropGroupFilter()
+    {
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        session.CreateSQLQuery("DROP TABLE GroupFilter; DROP TABLE GroupFilterCondition").ExecuteUpdate();
+    }
     
     public static void MigrateAniDBToNet()
     {
