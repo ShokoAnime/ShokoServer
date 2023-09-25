@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
@@ -545,7 +546,7 @@ public class SeriesFactory
             Poster = GetAniDBPoster(relation.RelatedAnimeID),
             Rating = null,
             UserApproval = null,
-            Relation = SeriesRelation.GetRelationTypeFromAnidbRelationType(relation.RelationType),
+            Relation = ((IRelatedAnime)relation).RelationType,
         };
         SetAniDBTitles(result, relation, series, includeTitles);
         return result;
