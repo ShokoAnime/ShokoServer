@@ -373,7 +373,7 @@ public class FilterController : BaseController
 
         // We don't need separate logic for ApplyAtSeriesLevel, as the FilterEvaluator handles that
         return results.SelectMany(a => a.Select(id => RepoFactory.AnimeSeries.GetByID(id)))
-            .Where(series => series != null && user.AllowedSeries(series) && (includeMissing || series.GetVideoLocals().Count > 0))
+            .Where(series => series != null && (includeMissing || series.GetVideoLocals().Count > 0))
             .OrderBy(series => series.GetSeriesName().ToLowerInvariant())
             .ToListResult(series => _seriesFactory.GetSeries(series, randomImages), page, pageSize);
     }
