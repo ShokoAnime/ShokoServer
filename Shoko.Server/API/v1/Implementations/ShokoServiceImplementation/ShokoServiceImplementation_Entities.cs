@@ -184,10 +184,9 @@ public partial class ShokoServiceImplementation : IShokoServer
                     if (!user.AllowedSeries(ser)) continue;
 
                     var anime = ser.GetAnime();
-                    var useSeries = seriesWatching.Count > 0 && anime.AnimeType == (int)AnimeType.TVSeries && !anime.GetRelatedAnime().Any(a =>
+                    var useSeries = seriesWatching.Count == 0 || anime.AnimeType != (int)AnimeType.TVSeries || !anime.GetRelatedAnime().Any(a =>
                         a.RelationType.ToLower().Trim().Equals("sequel") || a.RelationType.ToLower().Trim().Equals("prequel"));
                     if (!useSeries) continue;
-
 
                     var ep = GetNextUnwatchedEpisode(ser.AnimeSeriesID, userID);
                     if (ep == null) continue;
@@ -349,30 +348,20 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             // We will deal with a large list, don't perform ops on the whole thing!
-            var vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords, userID);
+            var vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords*5, userID);
             foreach (var vid in vids)
             {
-                if (string.IsNullOrEmpty(vid.Hash))
-                {
-                    continue;
-                }
+                if (string.IsNullOrEmpty(vid.Hash)) continue;
 
                 foreach (var ep in vid.GetAnimeEpisodes())
                 {
                     var epContract = ep.GetUserContract(userID);
-                    if (user.AllowedSeries(ep.GetAnimeSeries()))
-                    {
-                        if (epContract != null)
-                        {
-                            retEps.Add(epContract);
+                    if (!user.AllowedSeries(ep.GetAnimeSeries()) || epContract == null) continue;
+                    retEps.Add(epContract);
 
-                            // Lets only return the specified amount
-                            if (retEps.Count >= maxRecords)
-                            {
-                                return retEps;
-                            }
-                        }
-                    }
+                    // Lets only return the specified amount
+                    if (retEps.Count < maxRecords) continue;
+                    return retEps;
                 }
             }
         }

@@ -107,41 +107,43 @@ public class LegacyFilterConverter
         var otherFilters = filters.Except(userFilters).ToList();
 
         // batch evaluate each list, then build the mappings
-        foreach (var userID in RepoFactory.JMMUser.GetAll().Select(a => a.JMMUserID))
+        var userResults = RepoFactory.JMMUser.GetAll()
+            .SelectMany(user => _evaluator.BatchEvaluateFilters(userFilters, user.JMMUserID).Select(a => (a.Key, user.JMMUserID, a.Value)))
+            .GroupBy(a => a.Key, a => (a.JMMUserID, a.Value));
+        var userModels = userResults.Select(group =>
         {
-            var results = _evaluator.BatchEvaluateFilters(userFilters, userID);
-            var models = results.Select(kv =>
+            var filter = group.Key;
+            var groupIds = new Dictionary<int, HashSet<int>>();
+            var seriesIds = new Dictionary<int, HashSet<int>>();
+            foreach (var kv in group)
             {
-                var filter = kv.Key;
-                var groupIds = new Dictionary<int, HashSet<int>>();
-                var seriesIds = new Dictionary<int, HashSet<int>>();
-                groupIds[userID] = kv.Value.Select(a => a.Key).ToHashSet();
-                seriesIds[userID] = kv.Value.SelectMany(a => a).ToHashSet();
-                LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
-                return (Filter: filter, new CL_GroupFilter
-                {
-                    GroupFilterID = filter.FilterPresetID,
-                    GroupFilterName = filter.Name,
-                    ApplyToSeries = filter.ApplyAtSeriesLevel ? 1 : 0,
-                    Locked = filter.Locked ? 1 : 0,
-                    FilterType = (int)filter.FilterType,
-                    ParentGroupFilterID = filter.ParentFilterPresetID,
-                    InvisibleInClients = filter.Hidden ? 1 : 0,
-                    BaseCondition = (int)baseCondition,
-                    FilterConditions = conditions,
-                    SortingCriteria = LegacyConditionConverter.GetSortingCriteria(filter),
-                    Groups = groupIds,
-                    Series = seriesIds,
-                    Childs = filter.FilterPresetID == 0
-                        ? new HashSet<int>()
-                        : RepoFactory.FilterPreset.GetByParentID(filter.FilterPresetID).Select(a => a.FilterPresetID).ToHashSet()
-                });
-            });
-
-            foreach (var (filter, model) in models)
-            {
-                result[filter] = model;
+                groupIds[kv.JMMUserID] = kv.Value.Select(a => a.Key).ToHashSet();
+                seriesIds[kv.JMMUserID] = kv.Value.SelectMany(a => a).ToHashSet();
             }
+            LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
+            return (Filter: filter, new CL_GroupFilter
+            {
+                GroupFilterID = filter.FilterPresetID,
+                GroupFilterName = filter.Name,
+                ApplyToSeries = filter.ApplyAtSeriesLevel ? 1 : 0,
+                Locked = filter.Locked ? 1 : 0,
+                FilterType = (int)filter.FilterType,
+                ParentGroupFilterID = filter.ParentFilterPresetID,
+                InvisibleInClients = filter.Hidden ? 1 : 0,
+                BaseCondition = (int)baseCondition,
+                FilterConditions = conditions,
+                SortingCriteria = LegacyConditionConverter.GetSortingCriteria(filter),
+                Groups = groupIds,
+                Series = seriesIds,
+                Childs = filter.FilterPresetID == 0
+                    ? new HashSet<int>()
+                    : RepoFactory.FilterPreset.GetByParentID(filter.FilterPresetID).Select(a => a.FilterPresetID).ToHashSet()
+            });
+        });
+
+        foreach (var (filter, model) in userModels)
+        {
+            result[filter] = model;
         }
 
         if (otherFilters.Count > 0)
@@ -154,10 +156,10 @@ public class LegacyFilterConverter
                 var seriesIds = new Dictionary<int, HashSet<int>>();
                 var groupIdSet = kv.Value.Select(a => a.Key).ToHashSet();
                 var seriesIdSet = kv.Value.SelectMany(a => a).ToHashSet();
-                foreach (var userID in RepoFactory.JMMUser.GetAll().Select(a => a.JMMUserID))
+                foreach (var user in RepoFactory.JMMUser.GetAll())
                 {
-                    groupIds[userID] = groupIdSet;
-                    seriesIds[userID] = seriesIdSet;
+                    groupIds[user.JMMUserID] = groupIdSet.Where(a => user.AllowedGroup(RepoFactory.AnimeGroup.GetByID(a))).ToHashSet();
+                    seriesIds[user.JMMUserID] = seriesIdSet.Where(a => user.AllowedSeries(RepoFactory.AnimeSeries.GetByID(a))).ToHashSet();
                 }
 
                 LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);

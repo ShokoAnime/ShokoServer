@@ -240,7 +240,7 @@ public static class LegacyConditionConverter
             {
                 ConditionOperator = inverted ? (int)GroupFilterOperator.NotIn : (int)GroupFilterOperator.In,
                 ConditionType = (int)GroupFilterConditionType.AnimeType,
-                ConditionParameter = string.Join(",", animeType)
+                ConditionParameter = string.Join(",", animeType).Replace(" ", "")
             };
             return true;
         }
@@ -613,10 +613,11 @@ public static class LegacyConditionConverter
         parameter = null;
         switch (expression)
         {
+            // These are inverted because the parameter is second, as compared to the Legacy method, which evaluated as parameter operator selector
             case DateGreaterThanExpression dateGreater when dateGreater.Left?.GetType() != type:
                 return false;
             case DateGreaterThanExpression dateGreater:
-                gfOperator = GroupFilterOperator.GreaterThan;
+                gfOperator = GroupFilterOperator.LessThan;
                 parameter = dateGreater.Parameter;
                 return true;
             case DateGreaterThanEqualsExpression dateGreaterEquals when dateGreaterEquals.Left?.GetType() != type:
@@ -634,19 +635,19 @@ public static class LegacyConditionConverter
             case NumberGreaterThanExpression numberGreater when numberGreater.Left?.GetType() != type:
                 return false;
             case NumberGreaterThanExpression numberGreater:
-                gfOperator = GroupFilterOperator.GreaterThan;
+                gfOperator = GroupFilterOperator.LessThan;
                 parameter = numberGreater.Parameter;
                 return true;
             case DateLessThanExpression dateLess when dateLess.Left?.GetType() != type:
                 return false;
             case DateLessThanExpression dateLess:
-                gfOperator = GroupFilterOperator.LessThan;
+                gfOperator = GroupFilterOperator.GreaterThan;
                 parameter = dateLess.Parameter;
                 return true;
             case NumberLessThanExpression numberLess when numberLess.Left?.GetType() != type:
                 return false;
             case NumberLessThanExpression numberLess:
-                gfOperator = GroupFilterOperator.LessThan;
+                gfOperator = GroupFilterOperator.GreaterThan;
                 parameter = numberLess.Parameter;
                 return true;
             default:

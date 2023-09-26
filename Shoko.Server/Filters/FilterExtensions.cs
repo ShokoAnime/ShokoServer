@@ -139,8 +139,8 @@ public static class FilterExtensions
                 return subtitles;
             },
             IsFavoriteDelegate = () => false,
-            WatchedEpisodesDelegate = () => user?.WatchedCount ?? 0,
-            UnwatchedEpisodesDelegate = () => (anime?.EpisodeCount ?? 0) - (user?.WatchedCount ?? 0),
+            WatchedEpisodesDelegate = () => user?.WatchedEpisodeCount ?? 0,
+            UnwatchedEpisodesDelegate = () => user?.UnwatchedEpisodeCount ?? 0,
             LowestUserRatingDelegate = () => vote?.VoteValue ?? 0,
             HighestUserRatingDelegate = () => vote?.VoteValue ?? 0,
             HasVotesDelegate = () => vote != null,
@@ -362,7 +362,7 @@ public static class FilterExtensions
                 return subtitles;
             },
             IsFavoriteDelegate = () => user?.IsFave == 1,
-            WatchedEpisodesDelegate = () => user?.WatchedCount ?? 0,
+            WatchedEpisodesDelegate = () => user?.WatchedEpisodeCount ?? 0,
             UnwatchedEpisodesDelegate = () => user?.UnwatchedEpisodeCount ?? 0,
             LowestUserRatingDelegate = () => vote.FirstOrDefault(),
             HighestUserRatingDelegate = () => vote.LastOrDefault(),
