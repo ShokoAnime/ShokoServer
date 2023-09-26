@@ -524,7 +524,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             if (lockedGFs != null)
             {
                 // if it already exists we can leave
-                foreach (var gfTemp in lockedGFs.Where(gfTemp => gfTemp.FilterType == GroupFilterType.ContinueWatching))
+                foreach (var gfTemp in lockedGFs.Where(gfTemp => gfTemp.Name == "Continue Watching"))
                 {
                     gf = gfTemp;
                     break;

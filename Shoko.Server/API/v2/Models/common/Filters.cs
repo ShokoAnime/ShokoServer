@@ -37,14 +37,15 @@ public class Filters : BaseDirectory
                                (!hideCategories.Contains(a.Name) || TagFilter.IsTagBlackListed(a.Name, tagfilter))))
             .ToList();
 
+        if (evaluatedResults == null)
+        {
+            var evaluator = ctx.RequestServices.GetRequiredService<FilterEvaluator>();
+            evaluatedResults = evaluator.BatchEvaluateFilters(gfs, ctx.GetUser().JMMUserID);
+            gfs = gfs.Where(a => evaluatedResults[a].Any()).ToList();
+        }
+
         if (level > 0)
         {
-            if (evaluatedResults == null)
-            {
-                var evaluator = ctx.RequestServices.GetRequiredService<FilterEvaluator>();
-                evaluatedResults = evaluator.BatchEvaluateFilters(gfs, ctx.GetUser().JMMUserID);
-            }
-
             var filters = gfs.Select(cgf =>
                 Filter.GenerateFromGroupFilter(ctx, cgf, uid, nocast, notag, level - 1, all, allpic, pic, tagfilter, evaluatedResults[cgf].ToList())).ToList();
 

@@ -166,7 +166,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             // find the locked Continue Watching Filter
             var lockedGFs = RepoFactory.FilterPreset.GetLockedGroupFilters();
-            var gf = lockedGFs?.FirstOrDefault(a => a.FilterType == GroupFilterType.ContinueWatching);
+            var gf = lockedGFs?.FirstOrDefault(a => a.Name == "Continue Watching");
             if (gf == null) return retEps;
 
             var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
@@ -3293,8 +3293,8 @@ public partial class ShokoServiceImplementation : IShokoServer
                 ParentGroupFilterID = filter.ParentFilterPresetID,
                 InvisibleInClients = filter.Hidden ? 1 : 0,
                 BaseCondition = 0,
-                FilterConditions = null,
-                SortingCriteria = LegacyConditionConverter.GetSortingCriteria(filter),
+                FilterConditions = contract.FilterConditions,
+                SortingCriteria = contract.SortingCriteria,
                 Groups = groupIds,
                 Series = seriesIds,
                 Childs = filter.FilterPresetID == 0
