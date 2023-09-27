@@ -3,7 +3,6 @@ using System.Linq;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Filters.Logic;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -31,7 +30,7 @@ public class LegacyFilterConverter
             Locked = model.Locked == 1,
             ApplyAtSeriesLevel = model.ApplyToSeries == 1,
             SortingExpression = LegacyConditionConverter.GetSortingExpression(model.SortingCriteria),
-            Expression = expression == null ? null : model.BaseCondition == (int)GroupFilterBaseCondition.Exclude ? new NotExpression(expression) : expression
+            Expression = expression
         };
         return filter;
     }
@@ -47,7 +46,7 @@ public class LegacyFilterConverter
             Locked = model.Locked == 1,
             ApplyAtSeriesLevel = model.ApplyToSeries == 1,
             SortingExpression = LegacyConditionConverter.GetSortingExpression(model.SortingCriteria),
-            Expression = expression == null ? null : model.BaseCondition == (int)GroupFilterBaseCondition.Exclude ? new NotExpression(expression) : expression
+            Expression = expression
         };
         return filter;
     }
@@ -79,6 +78,7 @@ public class LegacyFilterConverter
         }
 
         LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
+        foreach (var condition in conditions) condition.GroupFilterID = filter.FilterPresetID;
         var contract = new CL_GroupFilter
         {
             GroupFilterID = filter.FilterPresetID,
@@ -121,6 +121,7 @@ public class LegacyFilterConverter
                 seriesIds[kv.JMMUserID] = kv.Value.SelectMany(a => a).ToHashSet();
             }
             LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
+            foreach (var condition in conditions) condition.GroupFilterID = filter.FilterPresetID;
             return (Filter: filter, new CL_GroupFilter
             {
                 GroupFilterID = filter.FilterPresetID,
@@ -163,6 +164,7 @@ public class LegacyFilterConverter
                 }
 
                 LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
+                foreach (var condition in conditions) condition.GroupFilterID = filter.FilterPresetID;
                 return (Filter: filter, new CL_GroupFilter
                 {
                     GroupFilterID = filter.FilterPresetID,

@@ -3238,58 +3238,9 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var expression = LegacyConditionConverter.GetExpression(contract.FilterConditions, (GroupFilterBaseCondition)contract.BaseCondition);
-
-            var filter = new FilterPreset
-            {
-                Expression = expression,
-                ApplyAtSeriesLevel = contract.ApplyToSeries == 1,
-                Name = contract.GroupFilterName,
-                SortingExpression = LegacyConditionConverter.GetSortingExpression(contract.SortingCriteria)
-            };
-
-            var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
-            var groupIds = new Dictionary<int, HashSet<int>>();
-            var seriesIds = new Dictionary<int, HashSet<int>>();
-            if ((filter.Expression?.UserDependent ?? false) || (filter.SortingExpression?.UserDependent ?? false))
-            {
-                foreach (var userID in RepoFactory.JMMUser.GetAll().Select(a => a.JMMUserID))
-                {
-                    var results = evaluator.EvaluateFilter(filter, userID).ToList();
-                    groupIds[userID] = results.Select(a => a.Key).ToHashSet();
-                    seriesIds[userID] = results.SelectMany(a => a).ToHashSet();
-                }
-            }
-            else
-            {
-                var results = evaluator.EvaluateFilter(filter, null).ToList();
-                var groupIdSet = results.Select(a => a.Key).ToHashSet();
-                var seriesIdSet = results.SelectMany(a => a).ToHashSet();
-                foreach (var userID in RepoFactory.JMMUser.GetAll().Select(a => a.JMMUserID))
-                {
-                    groupIds[userID] = groupIdSet;
-                    seriesIds[userID] = seriesIdSet;
-                }
-            }
-
-            var model = new CL_GroupFilter
-            {
-                GroupFilterID = filter.FilterPresetID,
-                GroupFilterName = filter.Name,
-                ApplyToSeries = filter.ApplyAtSeriesLevel ? 1 : 0,
-                Locked = filter.Locked ? 1 : 0,
-                FilterType = (int)filter.FilterType,
-                ParentGroupFilterID = filter.ParentFilterPresetID,
-                InvisibleInClients = filter.Hidden ? 1 : 0,
-                BaseCondition = 0,
-                FilterConditions = contract.FilterConditions,
-                SortingCriteria = contract.SortingCriteria,
-                Groups = groupIds,
-                Series = seriesIds,
-                Childs = filter.FilterPresetID == 0
-                    ? new HashSet<int>()
-                    : RepoFactory.FilterPreset.GetByParentID(filter.FilterPresetID).Select(a => a.FilterPresetID).ToHashSet()
-            };
+            var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
+            var filter = legacyConverter.FromClient(contract);
+            var model = legacyConverter.ToClient(filter);
             return model;
         }
         catch (Exception ex)

@@ -37,6 +37,14 @@ public static class LegacyConditionConverter
 
         conditions = null;
         var results = new List<GroupFilterCondition>();
+        // single condition
+        if (TryGetIncludeCondition(expression, out var condition))
+        {
+            results.Add(condition);
+            baseCondition = GroupFilterBaseCondition.Include;
+            return true;
+        }
+
         if (expression is NotExpression not)
         {
             baseCondition = GroupFilterBaseCondition.Exclude;
@@ -52,11 +60,18 @@ public static class LegacyConditionConverter
         return true;
     }
 
-    public static bool TryGetConditionsRecursive(FilterExpression expression, List<GroupFilterCondition> conditions)
+    private static bool TryGetConditionsRecursive(FilterExpression expression, List<GroupFilterCondition> conditions)
     {
+        // Do this first, as compound expressions can throw off the following logic
+        if (TryGetIncludeCondition(expression, out var condition))
+        {
+            conditions.Add(condition);
+            return true;
+        }
+
         if (expression is AndExpression and) return TryGetConditionsRecursive(and.Left, conditions) && TryGetConditionsRecursive(and.Right, conditions);
 
-        if (!TryGetCondition(expression, out var condition)) return false;
+        if (!TryGetCondition(expression, out condition)) return false;
         conditions.Add(condition);
         return true;
     }
@@ -69,7 +84,7 @@ public static class LegacyConditionConverter
             return true;
         }
 
-        if (TryGetIncludeCondition(expression, out condition)) return true;
+        
         if (TryGetInCondition(expression, out condition)) return true;
         if (TryGetComparatorCondition(expression, out condition)) return true;
         return false;
@@ -240,7 +255,7 @@ public static class LegacyConditionConverter
             {
                 ConditionOperator = inverted ? (int)GroupFilterOperator.NotIn : (int)GroupFilterOperator.In,
                 ConditionType = (int)GroupFilterConditionType.AnimeType,
-                ConditionParameter = string.Join(",", animeType).Replace(" ", "")
+                ConditionParameter = string.Join(",", animeType)
             };
             return true;
         }
@@ -455,7 +470,7 @@ public static class LegacyConditionConverter
     private static bool IsInCustomTag(FilterExpression expression, out List<string> parameters, out bool inverted)
     {
         parameters = new List<string>();
-        return TryParseIn(expression, typeof(HasTagExpression), parameters, out inverted);
+        return TryParseIn(expression, typeof(HasCustomTagExpression), parameters, out inverted);
     }
 
     private static bool IsInAnimeType(FilterExpression expression, out List<string> parameters, out bool inverted)

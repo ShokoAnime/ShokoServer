@@ -285,18 +285,18 @@ public class LegacyMappings
             case GroupFilterOperator.In:
             case GroupFilterOperator.Include:
                 {
-                    if (tags.Length <= 1) return new HasAnimeTypeExpression(tags[0]);
+                    if (tags.Length <= 1) return new HasAnimeTypeExpression(tags[0].Replace(" ", ""));
 
-                    FilterExpression<bool> first = new HasAnimeTypeExpression(tags[0]);
-                    return tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasAnimeTypeExpression(b)));
+                    FilterExpression<bool> first = new HasAnimeTypeExpression(tags[0].Replace(" ", ""));
+                    return tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasAnimeTypeExpression(b.Replace(" ", ""))));
                 }
             case GroupFilterOperator.NotIn:
             case GroupFilterOperator.Exclude:
                 {
-                    if (tags.Length <= 1) return new NotExpression(new HasAnimeTypeExpression(tags[0]));
+                    if (tags.Length <= 1) return new NotExpression(new HasAnimeTypeExpression(tags[0].Replace(" ", "")));
 
-                    FilterExpression<bool> first = new HasAnimeTypeExpression(tags[0]);
-                    return new NotExpression(tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasAnimeTypeExpression(b))));
+                    FilterExpression<bool> first = new HasAnimeTypeExpression(tags[0].Replace(" ", ""));
+                    return new NotExpression(tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasAnimeTypeExpression(b.Replace(" ", "")))));
                 }
             default:
                 return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Anime Type");
