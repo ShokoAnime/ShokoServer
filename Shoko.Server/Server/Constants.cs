@@ -24,7 +24,18 @@ public static class Constants
 
     public struct GroupFilterName
     {
-        public static readonly string ContinueWatching = Resources.Filter_Continue;
+        public const string All = "All";
+        public const string ContinueWatching = "Continue Watching";
+        public const string Favorites = "Favorites";
+        public const string MissingEpisodes = "Missing Episodes";
+        public const string NewlyAddedSeries = "Newly Added Series";
+        public const string NewlyAiringSeries = "Newly Airing Series";
+        public const string MissingVotes = "Missing Votes";
+        public const string MissingLinks = "Missing Links";
+        public const string RecentlyWatched = "Recently Watched";
+        public const string Tags = "Tags";
+        public const string Seasons = "Seasons";
+        public const string Years = "Years";
     }
 
     public struct DatabaseType

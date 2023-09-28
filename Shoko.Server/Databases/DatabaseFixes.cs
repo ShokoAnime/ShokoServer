@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Properties;
@@ -12,6 +13,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
+using Shoko.Server.Filters.Legacy;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
@@ -27,6 +29,85 @@ public class DatabaseFixes
 {
     private static Logger logger = LogManager.GetCurrentClassLogger();
 
+    public static void MigrateGroupFilterToFilterPreset()
+    {
+        var legacyConverter = Utils.ServiceContainer.GetRequiredService<LegacyFilterConverter>();
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        var groupFilters = session.CreateSQLQuery(
+                "SELECT GroupFilterID, " +
+                "ParentGroupFilterID, " +
+                "GroupFilterName, " +
+                "ApplyToSeries, " +
+                "BaseCondition, " +
+                "Locked, " +
+                "FilterType, " +
+                "InvisibleInClients, " +
+                "GroupConditions, " +
+                "SortingCriteria " +
+                "FROM GroupFilter")
+            .AddScalar("GroupFilterID", NHibernateUtil.Int32)
+            .AddScalar("ParentGroupFilterID", NHibernateUtil.Int32)
+            .AddScalar("GroupFilterName", NHibernateUtil.String)
+            .AddScalar("ApplyToSeries", NHibernateUtil.Int32)
+            .AddScalar("BaseCondition", NHibernateUtil.Int32)
+            .AddScalar("Locked", NHibernateUtil.Int32)
+            .AddScalar("FilterType", NHibernateUtil.Int32)
+            .AddScalar("InvisibleInClients", NHibernateUtil.Int32)
+            .AddScalar("GroupConditions", NHibernateUtil.StringClob)
+            .AddScalar("SortingCriteria", NHibernateUtil.String)
+            .List();
+
+        var filters = new Dictionary<GroupFilter, List<GroupFilterCondition>>();
+        foreach (var item in groupFilters)
+        {
+            var fields = (object[])item;
+            var filter = new GroupFilter
+            {
+                GroupFilterID = (int)fields[0],
+                ParentGroupFilterID = (int?)fields[1],
+                GroupFilterName = (string)fields[2],
+                ApplyToSeries = (int)fields[3],
+                BaseCondition = (int)fields[4],
+                Locked = (int)fields[5],
+                FilterType = (int)fields[6],
+                InvisibleInClients = (int)fields[7]
+            };
+            var conditions = JsonConvert.DeserializeObject<List<GroupFilterCondition>>((string)fields[8]);
+            filters[filter] = conditions;
+        }
+
+        var idMappings = new Dictionary<int, int>();
+        // first, do the ones with no parent
+        foreach (var key in filters.Keys.Where(a => a.ParentGroupFilterID == null).OrderBy(a => a.GroupFilterID))
+        {
+            var filter = legacyConverter.FromLegacy(key, filters[key]);
+            RepoFactory.FilterPreset.Save(filter);
+            idMappings[key.GroupFilterID] = filter.FilterPresetID;
+        }
+
+        var filtersToProcess = filters.Keys.Where(a => !idMappings.ContainsKey(a.GroupFilterID) && idMappings.ContainsKey(a.ParentGroupFilterID.Value))
+            .ToList();
+        while (filtersToProcess.Count > 0)
+        {
+            foreach (var key in filtersToProcess)
+            {
+                var filter = legacyConverter.FromLegacy(key, filters[key]);
+                filter.ParentFilterPresetID = idMappings[key.ParentGroupFilterID.Value];
+                RepoFactory.FilterPreset.Save(filter);
+                idMappings[key.GroupFilterID] = filter.FilterPresetID;
+            }
+
+            filtersToProcess = filters.Keys.Where(a => !idMappings.ContainsKey(a.GroupFilterID) && idMappings.ContainsKey(a.ParentGroupFilterID.Value))
+                .ToList();
+        }
+    }
+
+    public static void DropGroupFilter()
+    {
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        session.CreateSQLQuery("DROP TABLE GroupFilter; DROP TABLE GroupFilterCondition").ExecuteUpdate();
+    }
+    
     public static void MigrateAniDBToNet()
     {
         var settings = Utils.SettingsProvider.GetSettings();
@@ -121,26 +202,7 @@ public class DatabaseFixes
     }
 
 
-    public static void FixContinueWatchingGroupFilter_20160406()
-    {
-        // group filters
-
-        // check if it already exists
-        var lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
-
-        if (lockedGFs != null)
-        {
-            foreach (var gf in lockedGFs)
-            {
-                if (gf.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching,
-                        StringComparison.InvariantCultureIgnoreCase))
-                {
-                    gf.FilterType = (int)GroupFilterType.ContinueWatching;
-                    RepoFactory.GroupFilter.Save(gf);
-                }
-            }
-        }
-    }
+    public static void FixContinueWatchingGroupFilter_20160406() { }
 
     public static void MigrateTraktLinks_V1_to_V2()
     {
@@ -523,59 +585,9 @@ public class DatabaseFixes
         RepoFactory.AniDB_FileUpdate.Save(tosave);
     }
 
-    public static void FixDuplicateTagFiltersAndUpdateSeasons()
-    {
-        var filters = RepoFactory.GroupFilter.GetAll();
-        var seasons = filters.Where(a => a.FilterType == (int)GroupFilterType.Season).ToList();
-        var tags = filters.Where(a => a.FilterType == (int)GroupFilterType.Tag).ToList();
+    public static void FixDuplicateTagFiltersAndUpdateSeasons() { }
 
-        var tagsGrouping = tags.GroupBy(a => a.GroupFilterName).SelectMany(a => a.Skip(1)).ToList();
-
-        tagsGrouping.ForEach(RepoFactory.GroupFilter.Delete);
-
-        tags = filters.Where(a => a.FilterType == (int)GroupFilterType.Tag).ToList();
-
-        foreach (var filter in tags.Where(a => a.GroupConditions.Contains("`")))
-        {
-            filter.GroupConditions = filter.GroupConditions.Replace("`", "'");
-            RepoFactory.GroupFilter.Save(filter);
-        }
-
-        foreach (var seasonFilter in seasons)
-        {
-            seasonFilter.CalculateGroupsAndSeries();
-            RepoFactory.GroupFilter.Save(seasonFilter);
-        }
-    }
-
-    public static void RecalculateYears()
-    {
-        try
-        {
-            var filters = RepoFactory.GroupFilter.GetAll();
-            if (filters.Count == 0)
-            {
-                return;
-            }
-
-            foreach (var gf in filters)
-            {
-                if (gf.FilterType != (int)GroupFilterType.Year)
-                {
-                    continue;
-                }
-
-                gf.CalculateGroupsAndSeries();
-                RepoFactory.GroupFilter.Save(gf);
-            }
-
-            RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
-        }
-        catch (Exception e)
-        {
-            logger.Error(e);
-        }
-    }
+    public static void RecalculateYears() { }
 
     public static void PopulateResourceLinks()
     {
@@ -598,107 +610,11 @@ public class DatabaseFixes
         }
     }
 
-    public static void FixTagsWithInclude()
-    {
-        try
-        {
-            foreach (var gf in RepoFactory.GroupFilter.GetAll())
-            {
-                if (gf.FilterType != (int)GroupFilterType.Tag)
-                {
-                    continue;
-                }
+    public static void FixTagsWithInclude() { }
 
-                foreach (var gfc in gf.Conditions)
-                {
-                    if (gfc.ConditionType != (int)GroupFilterConditionType.Tag)
-                    {
-                        continue;
-                    }
+    public static void MakeTagsApplyToSeries() { }
 
-                    if (gfc.ConditionOperator == (int)GroupFilterOperator.Include)
-                    {
-                        gfc.ConditionOperator = (int)GroupFilterOperator.In;
-                        RepoFactory.GroupFilterCondition.Save(gfc);
-                        continue;
-                    }
-
-                    if (gfc.ConditionOperator == (int)GroupFilterOperator.Exclude)
-                    {
-                        gfc.ConditionOperator = (int)GroupFilterOperator.NotIn;
-                        RepoFactory.GroupFilterCondition.Save(gfc);
-                    }
-                }
-
-                gf.CalculateGroupsAndSeries();
-                RepoFactory.GroupFilter.Save(gf);
-            }
-        }
-        catch (Exception e)
-        {
-            logger.Error(e);
-        }
-    }
-
-    public static void MakeTagsApplyToSeries()
-    {
-        try
-        {
-            var filters = RepoFactory.GroupFilter.GetAll();
-            if (filters.Count == 0)
-            {
-                return;
-            }
-
-            foreach (var gf in filters)
-            {
-                if (gf.FilterType != (int)GroupFilterType.Tag)
-                {
-                    continue;
-                }
-
-                gf.ApplyToSeries = 1;
-                gf.CalculateGroupsAndSeries();
-                RepoFactory.GroupFilter.Save(gf);
-            }
-
-            RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
-        }
-        catch (Exception e)
-        {
-            logger.Error(e);
-        }
-    }
-
-    public static void MakeYearsApplyToSeries()
-    {
-        try
-        {
-            var filters = RepoFactory.GroupFilter.GetAll();
-            if (filters.Count == 0)
-            {
-                return;
-            }
-
-            foreach (var gf in filters)
-            {
-                if (gf.FilterType != (int)GroupFilterType.Year)
-                {
-                    continue;
-                }
-
-                gf.ApplyToSeries = 1;
-                gf.CalculateGroupsAndSeries();
-                RepoFactory.GroupFilter.Save(gf);
-            }
-
-            RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
-        }
-        catch (Exception e)
-        {
-            logger.Error(e);
-        }
-    }
+    public static void MakeYearsApplyToSeries() { }
 
     public static void UpdateAllTvDBSeries()
     {

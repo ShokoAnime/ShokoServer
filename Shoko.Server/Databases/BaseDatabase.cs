@@ -280,167 +280,12 @@ public abstract class BaseDatabase<T> : IDatabase
 
     public void CreateOrVerifyLockedFilters()
     {
-        RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
+        RepoFactory.FilterPreset.CreateOrVerifyLockedFilters();
     }
 
     private void CreateInitialGroupFilters()
     {
-        // group filters
-        // Do to DatabaseFixes, some filters may be made, namely directory filters
-        // All, Continue Watching, Years, Seasons, Tags... 6 seems to be enough to tell for now
-        // We can't just check the existence of anything specific, as the user can delete most of these
-        if (RepoFactory.GroupFilter.GetTopLevel().Count() > 6)
-        {
-            return;
-        }
-
-        // Favorites
-        var gf = new SVR_GroupFilter
-        {
-            GroupFilterName = Resources.Filter_Favorites,
-            ApplyToSeries = 0,
-            BaseCondition = 1,
-            Locked = 0,
-            FilterType = (int)GroupFilterType.UserDefined
-        };
-        var gfc = new GroupFilterCondition
-        {
-            ConditionType = (int)GroupFilterConditionType.Favourite,
-            ConditionOperator = (int)GroupFilterOperator.Include,
-            ConditionParameter = string.Empty
-        };
-        gf.Conditions.Add(gfc);
-        gf.CalculateGroupsAndSeries();
-        RepoFactory.GroupFilter.Save(gf);
-
-        // Missing Episodes
-        gf = new SVR_GroupFilter
-        {
-            GroupFilterName = Resources.Filter_MissingEpisodes,
-            ApplyToSeries = 0,
-            BaseCondition = 1,
-            Locked = 0,
-            FilterType = (int)GroupFilterType.UserDefined
-        };
-        gfc = new GroupFilterCondition
-        {
-            ConditionType = (int)GroupFilterConditionType.MissingEpisodesCollecting,
-            ConditionOperator = (int)GroupFilterOperator.Include,
-            ConditionParameter = string.Empty
-        };
-        gf.Conditions.Add(gfc);
-        gf.CalculateGroupsAndSeries();
-        RepoFactory.GroupFilter.Save(gf);
-
-
-        // Newly Added Series
-        gf = new SVR_GroupFilter
-        {
-            GroupFilterName = Resources.Filter_Added,
-            ApplyToSeries = 0,
-            BaseCondition = 1,
-            Locked = 0,
-            FilterType = (int)GroupFilterType.UserDefined
-        };
-        gfc = new GroupFilterCondition
-        {
-            ConditionType = (int)GroupFilterConditionType.SeriesCreatedDate,
-            ConditionOperator = (int)GroupFilterOperator.LastXDays,
-            ConditionParameter = "10"
-        };
-        gf.Conditions.Add(gfc);
-        gf.CalculateGroupsAndSeries();
-        RepoFactory.GroupFilter.Save(gf);
-
-        // Newly Airing Series
-        gf = new SVR_GroupFilter
-        {
-            GroupFilterName = Resources.Filter_Airing,
-            ApplyToSeries = 0,
-            BaseCondition = 1,
-            Locked = 0,
-            FilterType = (int)GroupFilterType.UserDefined
-        };
-        gfc = new GroupFilterCondition
-        {
-            ConditionType = (int)GroupFilterConditionType.AirDate,
-            ConditionOperator = (int)GroupFilterOperator.LastXDays,
-            ConditionParameter = "30"
-        };
-        gf.Conditions.Add(gfc);
-        gf.CalculateGroupsAndSeries();
-        RepoFactory.GroupFilter.Save(gf);
-
-        // Votes Needed
-        gf = new SVR_GroupFilter
-        {
-            GroupFilterName = Resources.Filter_Votes,
-            ApplyToSeries = 1,
-            BaseCondition = 1,
-            Locked = 0,
-            FilterType = (int)GroupFilterType.UserDefined
-        };
-        gfc = new GroupFilterCondition
-        {
-            ConditionType = (int)GroupFilterConditionType.CompletedSeries,
-            ConditionOperator = (int)GroupFilterOperator.Include,
-            ConditionParameter = string.Empty
-        };
-        gf.Conditions.Add(gfc);
-        gfc = new GroupFilterCondition
-        {
-            ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes,
-            ConditionOperator = (int)GroupFilterOperator.Exclude,
-            ConditionParameter = string.Empty
-        };
-        gf.Conditions.Add(gfc);
-        gfc = new GroupFilterCondition
-        {
-            ConditionType = (int)GroupFilterConditionType.UserVotedAny,
-            ConditionOperator = (int)GroupFilterOperator.Exclude,
-            ConditionParameter = string.Empty
-        };
-        gf.Conditions.Add(gfc);
-        gf.CalculateGroupsAndSeries();
-        RepoFactory.GroupFilter.Save(gf);
-
-        // Recently Watched
-        gf = new SVR_GroupFilter
-        {
-            GroupFilterName = Resources.Filter_RecentlyWatched,
-            ApplyToSeries = 0,
-            BaseCondition = 1,
-            Locked = 0,
-            FilterType = (int)GroupFilterType.UserDefined
-        };
-        gfc = new GroupFilterCondition
-        {
-            ConditionType = (int)GroupFilterConditionType.EpisodeWatchedDate,
-            ConditionOperator = (int)GroupFilterOperator.LastXDays,
-            ConditionParameter = "10"
-        };
-        gf.Conditions.Add(gfc);
-        gf.CalculateGroupsAndSeries();
-        RepoFactory.GroupFilter.Save(gf);
-
-        // TvDB/MovieDB Link Missing
-        gf = new SVR_GroupFilter
-        {
-            GroupFilterName = Resources.Filter_LinkMissing,
-            ApplyToSeries = 1, // This makes far more sense as applied to series
-            BaseCondition = 1,
-            Locked = 0,
-            FilterType = (int)GroupFilterType.UserDefined
-        };
-        gfc = new GroupFilterCondition
-        {
-            ConditionType = (int)GroupFilterConditionType.AssignedTvDBOrMovieDBInfo,
-            ConditionOperator = (int)GroupFilterOperator.Exclude,
-            ConditionParameter = string.Empty
-        };
-        gf.Conditions.Add(gfc);
-        gf.CalculateGroupsAndSeries();
-        RepoFactory.GroupFilter.Save(gf);
+        RepoFactory.FilterPreset.CreateInitialFilters();
     }
 
     private void CreateInitialUsers()
@@ -465,7 +310,7 @@ public abstract class BaseDatabase<T> : IDatabase
             Password = defaultPassword,
             Username = settings.Database.DefaultUserUsername
         };
-        RepoFactory.JMMUser.Save(defaultUser, true);
+        RepoFactory.JMMUser.Save(defaultUser);
 
         var familyUser = new SVR_JMMUser
         {
@@ -477,7 +322,7 @@ public abstract class BaseDatabase<T> : IDatabase
             Password = string.Empty,
             Username = "Family Friendly"
         };
-        RepoFactory.JMMUser.Save(familyUser, true);
+        RepoFactory.JMMUser.Save(familyUser);
     }
 
     private void CreateInitialRenameScript()

@@ -17,6 +17,7 @@ using Shoko.Models.TvDB;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
+using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TraktTV;
@@ -518,43 +519,30 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             }
 
             // find the locked Continue Watching Filter
-            SVR_GroupFilter gf = null;
-            var lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
+            FilterPreset gf = null;
+            var lockedGFs = RepoFactory.FilterPreset.GetLockedGroupFilters();
             if (lockedGFs != null)
             {
                 // if it already exists we can leave
-                foreach (var gfTemp in lockedGFs)
+                foreach (var gfTemp in lockedGFs.Where(gfTemp => gfTemp.Name == "Continue Watching"))
                 {
-                    if (gfTemp.FilterType == (int)GroupFilterType.ContinueWatching)
-                    {
-                        gf = gfTemp;
-                        break;
-                    }
+                    gf = gfTemp;
+                    break;
                 }
             }
 
-            if (gf == null || !gf.GroupsIds.ContainsKey(jmmuserID))
-            {
-                return retAnime;
-            }
+            if (gf == null) return retAnime;
 
-            var comboGroups =
-                gf.GroupsIds[jmmuserID]
-                    .Select(a => RepoFactory.AnimeGroup.GetByID(a))
-                    .Where(a => a != null)
-                    .Select(a => a.GetUserContract(jmmuserID));
+            var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
+            var results = evaluator.EvaluateFilter(gf, user.JMMUserID);
 
-            // apply sorting
-            comboGroups = GroupFilterHelper.Sort(comboGroups, gf);
+            var comboGroups = results.Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).Where(a => a != null).Select(a => a.GetUserContract(jmmuserID));
 
             foreach (var grp in comboGroups)
             {
                 foreach (var ser in RepoFactory.AnimeSeries.GetByGroupID(grp.AnimeGroupID))
                 {
-                    if (!user.AllowedSeries(ser))
-                    {
-                        continue;
-                    }
+                    if (!user.AllowedSeries(ser)) continue;
 
                     var serUser = ser.GetUserRecord(jmmuserID);
 
@@ -587,7 +575,6 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                         summ.ImageID = imgDet.ImageID;
 
                         retAnime.Add(summ);
-
 
                         // Lets only return the specified amount
                         if (retAnime.Count == maxRecords)

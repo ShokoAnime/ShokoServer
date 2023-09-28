@@ -89,7 +89,7 @@ public class SVR_JMMUser : JMMUser, IIdentity
         }
 
         if (!skipSave)
-            RepoFactory.JMMUser.Save(this, false);
+            RepoFactory.JMMUser.Save(this);
 
         return true;
     }
@@ -100,7 +100,7 @@ public class SVR_JMMUser : JMMUser, IIdentity
         AvatarImageMetadata = null;
 
         if (!skipSave)
-            RepoFactory.JMMUser.Save(this, false);
+            RepoFactory.JMMUser.Save(this);
     }
 
     #endregion
@@ -146,23 +146,6 @@ public class SVR_JMMUser : JMMUser, IIdentity
         if (olduser == null || olduser.HideCategories == newuser.HideCategories)
             return true;
         return false;
-    }
-
-    public void UpdateGroupFilters()
-    {
-        IReadOnlyList<SVR_GroupFilter> gfs = RepoFactory.GroupFilter.GetAll();
-        List<SVR_AnimeGroup> allGrps = RepoFactory.AnimeGroup.GetAllTopLevelGroups(); // No Need of subgroups
-        foreach (SVR_GroupFilter gf in gfs)
-        {
-            bool change = false;
-            foreach (SVR_AnimeGroup grp in allGrps)
-            {
-                CL_AnimeGroup_User cgrp = grp.GetUserContract(JMMUserID);
-                change |= gf.UpdateGroupFilterFromGroup(cgrp, this);
-            }
-            if (change)
-                RepoFactory.GroupFilter.Save(gf);
-        }
     }
 
     // IUserIdentity implementation

@@ -82,35 +82,4 @@ public class SVR_AnimeSeries_User : AnimeSeries_User
 
         return h;
     }
-
-    public void UpdateGroupFilter(HashSet<GroupFilterConditionType> types)
-    {
-        var ser = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
-        var usr = RepoFactory.JMMUser.GetByID(JMMUserID);
-        if (ser != null && usr != null)
-        {
-            ser.UpdateGroupFilters(types, usr);
-        }
-    }
-
-    public void DeleteFromFilters()
-    {
-        foreach (var gf in RepoFactory.GroupFilter.GetAll())
-        {
-            var change = false;
-            if (gf.SeriesIds.ContainsKey(JMMUserID))
-            {
-                if (gf.SeriesIds[JMMUserID].Contains(AnimeSeriesID))
-                {
-                    gf.SeriesIds[JMMUserID].Remove(AnimeSeriesID);
-                    change = true;
-                }
-            }
-
-            if (change)
-            {
-                RepoFactory.GroupFilter.Save(gf);
-            }
-        }
-    }
 }

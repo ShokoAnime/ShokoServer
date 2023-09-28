@@ -2,9 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Enums;
+using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -24,43 +26,38 @@ public class Filters : BaseDirectory
         filters = new List<Filters>();
     }
 
-    internal static Filters GenerateFromGroupFilter(HttpContext ctx, SVR_GroupFilter gf, int uid, bool nocast,
+    internal static Filters GenerateFromGroupFilter(HttpContext ctx, FilterPreset gf, int uid, bool nocast,
         bool notag, int level,
-        bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
+        bool all, bool allpic, int pic, TagFilter.Filter tagfilter, Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>> evaluatedResults = null)
     {
-        var f = new Filters { id = gf.GroupFilterID, name = gf.GroupFilterName };
+        var f = new Filters { id = gf.FilterPresetID, name = gf.Name };
+        var hideCategories = ctx.GetUser().GetHideCategories();
+        var gfs = RepoFactory.FilterPreset.GetByParentID(f.id).AsParallel().Where(a =>
+                !a.Hidden && !((a.FilterType & GroupFilterType.Tag) != 0 &&
+                               (!hideCategories.Contains(a.Name) || TagFilter.IsTagBlackListed(a.Name, tagfilter))))
+            .ToList();
 
-        var _ = new List<string>();
-        var gfs = RepoFactory.GroupFilter.GetByParentID(f.id).AsParallel()
-            // Not invisible in clients
-            .Where(a => !a.IsHidden &&
-                        // and Has groups or is a directory
-                        ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
-                         a.IsDirectory) &&
-                        // and is not a blacklisted tag
-                        !((a.FilterType & (int)GroupFilterType.Tag) != 0 &&
-                          TagFilter.IsTagBlackListed(a.GroupFilterName, tagfilter)));
+        if (evaluatedResults == null)
+        {
+            var evaluator = ctx.RequestServices.GetRequiredService<FilterEvaluator>();
+            evaluatedResults = evaluator.BatchEvaluateFilters(gfs, ctx.GetUser().JMMUserID);
+            gfs = gfs.Where(a => evaluatedResults[a].Any()).ToList();
+        }
 
         if (level > 0)
         {
             var filters = gfs.Select(cgf =>
-                Filter.GenerateFromGroupFilter(ctx, cgf, uid, nocast, notag, level - 1, all, allpic, pic,
-                    tagfilter)).ToList();
+                Filter.GenerateFromGroupFilter(ctx, cgf, uid, nocast, notag, level - 1, all, allpic, pic, tagfilter, evaluatedResults[cgf].ToList())).ToList();
 
-            if (gf.FilterType == ((int)GroupFilterType.Season | (int)GroupFilterType.Directory))
-            {
-                f.filters = filters.OrderBy(a => a.name, new SeasonComparator()).Cast<Filters>().ToList();
-            }
-            else
-            {
-                f.filters = filters.OrderByNatural(a => a.name).Cast<Filters>().ToList();
-            }
+            f.filters = gf.FilterType == (GroupFilterType.Season | GroupFilterType.Directory)
+                ? filters.OrderBy(a => a.name, new SeasonComparator()).Cast<Filters>().ToList()
+                : filters.OrderByNatural(a => a.name).Cast<Filters>().ToList();
 
             f.size = filters.Count;
         }
         else
         {
-            f.size = gfs.Count();
+            f.size = gfs.Count;
         }
 
         f.url = APIV2Helper.ConstructFilterIdUrl(ctx, f.id);

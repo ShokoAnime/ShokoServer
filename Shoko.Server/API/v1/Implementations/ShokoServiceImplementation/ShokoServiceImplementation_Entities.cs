@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
@@ -10,6 +11,8 @@ using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
+using Shoko.Server.Filters;
+using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Tasks;
@@ -159,39 +162,16 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var user = RepoFactory.JMMUser.GetByID(userID);
-            if (user == null)
-            {
-                return retEps;
-            }
+            if (user == null) return retEps;
 
             // find the locked Continue Watching Filter
-            SVR_GroupFilter gf = null;
-            var lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
-            if (lockedGFs != null)
-            {
-                // if it already exists we can leave
-                foreach (var gfTemp in lockedGFs)
-                {
-                    if (gfTemp.FilterType == (int)GroupFilterType.ContinueWatching)
-                    {
-                        gf = gfTemp;
-                        break;
-                    }
-                }
-            }
+            var lockedGFs = RepoFactory.FilterPreset.GetLockedGroupFilters();
+            var gf = lockedGFs?.FirstOrDefault(a => a.Name == "Continue Watching");
+            if (gf == null) return retEps;
 
-            if (gf == null || !gf.GroupsIds.ContainsKey(userID))
-            {
-                return retEps;
-            }
-
-            var comboGroups = gf.GroupsIds[userID].Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null)
+            var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
+            var comboGroups = evaluator.EvaluateFilter(gf, userID).Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).Where(a => a != null)
                 .Select(a => a.GetUserContract(userID));
-
-
-            // apply sorting
-            comboGroups = GroupFilterHelper.Sort(comboGroups, gf);
-
 
             foreach (var grp in comboGroups)
             {
@@ -201,51 +181,22 @@ public partial class ShokoServiceImplementation : IShokoServer
 
                 foreach (var ser in sers)
                 {
-                    if (!user.AllowedSeries(ser))
-                    {
-                        continue;
-                    }
+                    if (!user.AllowedSeries(ser)) continue;
 
-                    var useSeries = true;
-
-                    if (seriesWatching.Count > 0)
-                    {
-                        if (ser.GetAnime().AnimeType == (int)AnimeType.TVSeries)
-                        {
-                            // make sure this series is not a sequel to an existing series we have already added
-                            foreach (AniDB_Anime_Relation rel in ser.GetAnime().GetRelatedAnime())
-                            {
-                                if (rel.RelationType.ToLower().Trim().Equals("sequel") ||
-                                    rel.RelationType.ToLower().Trim().Equals("prequel"))
-                                {
-                                    useSeries = false;
-                                }
-                            }
-                        }
-                    }
-
-                    if (!useSeries)
-                    {
-                        continue;
-                    }
-
+                    var anime = ser.GetAnime();
+                    var useSeries = seriesWatching.Count == 0 || anime.AnimeType != (int)AnimeType.TVSeries || !anime.GetRelatedAnime().Any(a =>
+                        a.RelationType.ToLower().Trim().Equals("sequel") || a.RelationType.ToLower().Trim().Equals("prequel"));
+                    if (!useSeries) continue;
 
                     var ep = GetNextUnwatchedEpisode(ser.AnimeSeriesID, userID);
-                    if (ep != null)
-                    {
-                        retEps.Add(ep);
+                    if (ep == null) continue;
 
-                        // Lets only return the specified amount
-                        if (retEps.Count == maxRecords)
-                        {
-                            return retEps;
-                        }
+                    retEps.Add(ep);
 
-                        if (ser.GetAnime().AnimeType == (int)AnimeType.TVSeries)
-                        {
-                            seriesWatching.Add(ser.AniDB_ID);
-                        }
-                    }
+                    // Lets only return the specified amount
+                    if (retEps.Count == maxRecords) return retEps;
+
+                    if (anime.AnimeType == (int)AnimeType.TVSeries) seriesWatching.Add(ser.AniDB_ID);
                 }
             }
         }
@@ -397,30 +348,20 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             // We will deal with a large list, don't perform ops on the whole thing!
-            var vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords, userID);
+            var vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords*5, userID);
             foreach (var vid in vids)
             {
-                if (string.IsNullOrEmpty(vid.Hash))
-                {
-                    continue;
-                }
+                if (string.IsNullOrEmpty(vid.Hash)) continue;
 
                 foreach (var ep in vid.GetAnimeEpisodes())
                 {
                     var epContract = ep.GetUserContract(userID);
-                    if (user.AllowedSeries(ep.GetAnimeSeries()))
-                    {
-                        if (epContract != null)
-                        {
-                            retEps.Add(epContract);
+                    if (!user.AllowedSeries(ep.GetAnimeSeries()) || epContract == null) continue;
+                    retEps.Add(epContract);
 
-                            // Lets only return the specified amount
-                            if (retEps.Count >= maxRecords)
-                            {
-                                return retEps;
-                            }
-                        }
-                    }
+                    // Lets only return the specified amount
+                    if (retEps.Count < maxRecords) continue;
+                    return retEps;
                 }
             }
         }
@@ -2084,48 +2025,39 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var user = RepoFactory.JMMUser.GetByID(userID);
-            if (user == null)
+            if (user == null) return retGroups;
+
+            var gf = RepoFactory.FilterPreset.GetByID(groupFilterID);
+
+            if (gf != null)
             {
-                return retGroups;
+                var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
+                var results = evaluator.EvaluateFilter(gf, userID);
+                retGroups = results.Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).Where(a => a != null).Select(a => a.GetUserContract(userID)).ToList();
             }
 
-            SVR_GroupFilter gf;
-            gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
-            if (gf != null && gf.GroupsIds.ContainsKey(userID))
-            {
-                retGroups = gf.GroupsIds[userID].Select(a => RepoFactory.AnimeGroup.GetByID(a))
-                    .Where(a => a != null).Select(a => a.GetUserContract(userID)).ToList();
-            }
+            if (!getSingleSeriesGroups) return retGroups;
 
-            if (getSingleSeriesGroups)
+            var nGroups = new List<CL_AnimeGroup_User>();
+            foreach (var cag in retGroups)
             {
-                var nGroups = new List<CL_AnimeGroup_User>();
-                foreach (var cag in retGroups)
+                var ng = cag.DeepCopy();
+                if (cag.Stat_SeriesCount == 1)
                 {
-                    var ng = cag.DeepCopy();
-                    if (cag.Stat_SeriesCount == 1)
+                    if (cag.DefaultAnimeSeriesID.HasValue)
                     {
-                        if (cag.DefaultAnimeSeriesID.HasValue)
-                        {
-                            ng.SeriesForNameOverride = RepoFactory.AnimeSeries.GetByGroupID(ng.AnimeGroupID)
-                                .FirstOrDefault(a => a.AnimeSeriesID == cag.DefaultAnimeSeriesID.Value)
-                                ?.GetUserContract(userID);
-                        }
-
-                        if (ng.SeriesForNameOverride == null)
-                        {
-                            ng.SeriesForNameOverride = RepoFactory.AnimeSeries.GetByGroupID(ng.AnimeGroupID)
-                                .FirstOrDefault()?.GetUserContract(userID);
-                        }
+                        ng.SeriesForNameOverride = RepoFactory.AnimeSeries.GetByGroupID(ng.AnimeGroupID)
+                            .FirstOrDefault(a => a.AnimeSeriesID == cag.DefaultAnimeSeriesID.Value)
+                            ?.GetUserContract(userID);
                     }
 
-                    nGroups.Add(ng);
+                    ng.SeriesForNameOverride ??= RepoFactory.AnimeSeries.GetByGroupID(ng.AnimeGroupID).FirstOrDefault()?.GetUserContract(userID);
                 }
 
-                retGroups = nGroups;
+                nGroups.Add(ng);
             }
 
-            return retGroups;
+            return nGroups;
         }
         catch (Exception ex)
         {
@@ -3091,12 +3023,11 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         var response = new CL_Response<CL_GroupFilter> { ErrorMessage = string.Empty, Result = null };
 
-
         // Process the group
-        SVR_GroupFilter gf;
+        FilterPreset gf = null;
         if (contract.GroupFilterID != 0)
         {
-            gf = RepoFactory.GroupFilter.GetByID(contract.GroupFilterID);
+            gf = RepoFactory.FilterPreset.GetByID(contract.GroupFilterID);
             if (gf == null)
             {
                 response.ErrorMessage = "Could not find existing Group Filter with ID: " +
@@ -3105,11 +3036,24 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
         }
 
-        gf = SVR_GroupFilter.FromClient(contract);
+        var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
+        var newFilter = legacyConverter.FromClient(contract);
+        if (gf == null)
+        {
+            gf = newFilter;
+        }
+        else
+        {
+            gf.Name = newFilter.Name;
+            gf.Hidden = newFilter.Hidden;
+            gf.ApplyAtSeriesLevel = newFilter.ApplyAtSeriesLevel;
+            gf.Expression = newFilter.Expression;
+            gf.SortingExpression = newFilter.SortingExpression;
+        }
 
-        gf.CalculateGroupsAndSeries();
-        RepoFactory.GroupFilter.Save(gf);
-        response.Result = gf.ToClient();
+        RepoFactory.FilterPreset.Save(gf);
+
+        response.Result = legacyConverter.ToClient(gf);
         return response;
     }
 
@@ -3118,13 +3062,10 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
-            if (gf == null)
-            {
-                return "Group Filter not found";
-            }
+            var gf = RepoFactory.FilterPreset.GetByID(groupFilterID);
+            if (gf == null) return "Group Filter not found";
 
-            RepoFactory.GroupFilter.Delete(groupFilterID);
+            RepoFactory.FilterPreset.Delete(groupFilterID);
 
             return string.Empty;
         }
@@ -3140,7 +3081,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var gf = RepoFactory.GroupFilter.GetByID(groupFilterID);
+            var gf = RepoFactory.FilterPreset.GetByID(groupFilterID);
             if (gf == null)
             {
                 return null;
@@ -3152,9 +3093,14 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return null;
             }
 
-            var contract = gf.ToClientExtended(user);
-
-            return contract;
+            var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
+            var model = legacyConverter.ToClient(gf);
+            return new CL_GroupFilterExtended
+            {
+                GroupFilter = model,
+                GroupCount = model.Groups[userID].Count,
+                SeriesCount = model.Series[userID].Count
+            };
         }
         catch (Exception ex)
         {
@@ -3176,21 +3122,12 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return gfs;
             }
 
-            var allGfs = RepoFactory.GroupFilter.GetAll();
-            foreach (var gf in allGfs)
+            var allGfs = RepoFactory.FilterPreset.GetAll();
+            var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
+            gfs = legacyConverter.ToClient(allGfs).Select(a => new CL_GroupFilterExtended
             {
-                var gfContract = gf.ToClient();
-                var gfeContract = new CL_GroupFilterExtended
-                {
-                    GroupFilter = gfContract, GroupCount = 0, SeriesCount = 0
-                };
-                if (gf.GroupsIds.ContainsKey(user.JMMUserID))
-                {
-                    gfeContract.GroupCount = gf.GroupsIds.Count;
-                }
-
-                gfs.Add(gfeContract);
-            }
+                GroupFilter = a.Value, GroupCount = a.Value.Groups[userID].Count
+            }).ToList();
         }
         catch (Exception ex)
         {
@@ -3213,22 +3150,13 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var allGfs = gfparentid == 0
-                ? RepoFactory.GroupFilter.GetTopLevel()
-                : RepoFactory.GroupFilter.GetByParentID(gfparentid);
-            foreach (var gf in allGfs)
+                ? RepoFactory.FilterPreset.GetTopLevel()
+                : RepoFactory.FilterPreset.GetByParentID(gfparentid);
+            var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
+            gfs = legacyConverter.ToClient(allGfs).Select(a => new CL_GroupFilterExtended
             {
-                var gfContract = gf.ToClient();
-                var gfeContract = new CL_GroupFilterExtended
-                {
-                    GroupFilter = gfContract, GroupCount = 0, SeriesCount = 0
-                };
-                if (gf.GroupsIds.ContainsKey(user.JMMUserID))
-                {
-                    gfeContract.GroupCount = gf.GroupsIds.Count;
-                }
-
-                gfs.Add(gfeContract);
-            }
+                GroupFilter = a.Value, GroupCount = a.Value.Groups.FirstOrDefault().Value.Count
+            }).ToList();
         }
         catch (Exception ex)
         {
@@ -3246,15 +3174,15 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             var start = DateTime.Now;
 
-            var allGfs = RepoFactory.GroupFilter.GetAll();
+            var allGfs = RepoFactory.FilterPreset.GetAll();
             var ts = DateTime.Now - start;
             logger.Info("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
 
-            start = DateTime.Now;
-            foreach (var gf in allGfs)
-            {
-                gfs.Add(gf.ToClient());
-            }
+            var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
+            gfs = legacyConverter.ToClient(allGfs)
+                .Select(a => a.Value)
+                .Where(a => a != null)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -3272,17 +3200,14 @@ public partial class ShokoServiceImplementation : IShokoServer
         {
             var start = DateTime.Now;
 
-            var allGfs = gfparentid == 0
-                ? RepoFactory.GroupFilter.GetTopLevel()
-                : RepoFactory.GroupFilter.GetByParentID(gfparentid);
+            var allGfs = gfparentid == 0 ? RepoFactory.FilterPreset.GetTopLevel() : RepoFactory.FilterPreset.GetByParentID(gfparentid);
             var ts = DateTime.Now - start;
             logger.Info("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
-
-            start = DateTime.Now;
-            foreach (var gf in allGfs)
-            {
-                gfs.Add(gf.ToClient());
-            }
+            var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
+            gfs = legacyConverter.ToClient(allGfs)
+                .Select(a => a.Value)
+                .Where(a => a != null)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -3297,7 +3222,8 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.GroupFilter.GetByID(gf)?.ToClient();
+            var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
+            return legacyConverter.ToClient(RepoFactory.FilterPreset.GetByID(gf));
         }
         catch (Exception ex)
         {
@@ -3312,7 +3238,10 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return SVR_GroupFilter.EvaluateContract(contract);
+            var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
+            var filter = legacyConverter.FromClient(contract);
+            var model = legacyConverter.ToClient(filter);
+            return model;
         }
         catch (Exception ex)
         {
@@ -3672,7 +3601,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             jmmUser.Password = Digest.Hash(newPassword);
-            RepoFactory.JMMUser.Save(jmmUser, false);
+            RepoFactory.JMMUser.Save(jmmUser);
             if (revokeapikey)
             {
                 RepoFactory.AuthTokens.DeleteAllWithUserID(jmmUser.JMMUserID);
@@ -3780,7 +3709,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
             }
 
-            RepoFactory.JMMUser.Save(jmmUser, updateGf);
+            RepoFactory.JMMUser.Save(jmmUser);
 
             // update stats
             if (updateStats)

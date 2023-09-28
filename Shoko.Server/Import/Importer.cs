@@ -1139,11 +1139,6 @@ public static class Importer
             ser.QueueUpdateStats();
         }
 
-        foreach (var gf in RepoFactory.GroupFilter.GetAll())
-        {
-            gf.QueueUpdate();
-        }
-
         commandFactory.CreateAndSave<CommandRequest_RefreshGroupFilter>(c => c.GroupFilterID = 0);
     }
 
@@ -1198,52 +1193,6 @@ public static class Importer
 
         return vidsToUpdate.Count;
     }
-
-    public static void CheckForDayFilters()
-    {
-        var sched =
-            RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.DayFiltersUpdate);
-        if (sched != null)
-        {
-            if (DateTime.Now.Day == sched.LastUpdate.Day)
-            {
-                return;
-            }
-        }
-        //Get GroupFiters that change daily
-
-        var conditions = new HashSet<GroupFilterConditionType>
-        {
-            GroupFilterConditionType.AirDate,
-            GroupFilterConditionType.LatestEpisodeAirDate,
-            GroupFilterConditionType.SeriesCreatedDate,
-            GroupFilterConditionType.EpisodeWatchedDate,
-            GroupFilterConditionType.EpisodeAddedDate
-        };
-        var evalfilters = RepoFactory.GroupFilter.GetWithConditionsTypes(conditions)
-            .Where(
-                a => a.Conditions.Any(b => conditions.Contains(b.GetConditionTypeEnum()) &&
-                                           b.GetConditionOperatorEnum() == GroupFilterOperator.LastXDays))
-            .ToList();
-        foreach (var g in evalfilters)
-        {
-            g.CalculateGroupsAndSeries();
-        }
-
-        RepoFactory.GroupFilter.Save(evalfilters);
-
-        if (sched == null)
-        {
-            sched = new ScheduledUpdate
-            {
-                UpdateDetails = string.Empty, UpdateType = (int)ScheduledUpdateType.DayFiltersUpdate
-            };
-        }
-
-        sched.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(sched);
-    }
-
 
     public static void CheckForTvDBUpdates(bool forceRefresh)
     {

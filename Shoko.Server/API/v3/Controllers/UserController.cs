@@ -230,7 +230,7 @@ public class UserController : BaseController
             return Forbid("User must be admin to change other's password.");
 
         user.Password = string.IsNullOrEmpty(body.Password) ? "" : Digest.Hash(body.Password);
-        RepoFactory.JMMUser.Save(user, false);
+        RepoFactory.JMMUser.Save(user);
         if (body.RevokeAPIKeys)
             RepoFactory.AuthTokens.DeleteAllWithUserID(user.JMMUserID);
 

@@ -545,7 +545,6 @@ public class ShokoServer
 
     private static void AutoUpdateTimer_Elapsed(object sender, ElapsedEventArgs e)
     {
-        Importer.CheckForDayFilters();
         Importer.CheckForCalendarUpdate(false);
         Importer.CheckForAnimeUpdate(false);
         Importer.CheckForTvDBUpdates(false);

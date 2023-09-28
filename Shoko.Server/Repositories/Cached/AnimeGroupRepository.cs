@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -25,7 +26,6 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         BeginDeleteCallback = cr =>
         {
             RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByGroupID(cr.AnimeGroupID));
-            cr.DeleteFromFilters();
         };
         EndDeleteCallback = cr =>
         {
@@ -122,10 +122,8 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
 
         if (verifylockedFilters)
         {
-            RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false, grp.Contract?.Stat_AllTags,
-                grp.Contract?.Stat_AllYears, grp.Contract?.Stat_AllSeasons);
-            //This call will create extra years or tags if the Group have a new year or tag
-            grp.UpdateGroupFilters(types);
+            RepoFactory.FilterPreset.CreateOrVerifyDirectoryFilters(false, grp.Contract?.Stat_AllTags,
+                grp.Contract?.Stat_AllYears, grp.Contract?.GetSeasons());
         }
 
         if (grp.AnimeGroupParentID.HasValue && recursive)

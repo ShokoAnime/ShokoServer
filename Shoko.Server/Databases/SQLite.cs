@@ -8,10 +8,10 @@ using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using NHibernate;
 using Shoko.Commons.Properties;
+using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Databases.SqliteFixes;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
@@ -22,7 +22,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name { get; } = "SQLite";
 
-    public override int RequiredVersion { get; } = 104;
+    public override int RequiredVersion { get; } = 105;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -672,6 +672,13 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(103, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion text;"),
         new(104, 1, DatabaseFixes.FixAnimeSourceLinks),
         new(104, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
+        new DatabaseCommand(105, 1,
+            "CREATE TABLE FilterPreset( FilterPresetID INTEGER PRIMARY KEY AUTOINCREMENT, ParentFilterPresetID int, Name text NOT NULL, FilterType int NOT NULL, Locked int NOT NULL, Hidden int NOT NULL, ApplyAtSeriesLevel int NOT NULL, Expression text, SortingExpression text ); "),
+        new DatabaseCommand(105, 2,
+            "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
+        new DatabaseCommand(105, 3, "DELETE FROM GroupFilter WHERE FilterType = 2"),
+        new DatabaseCommand(105, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
+        new DatabaseCommand(105, 5, DatabaseFixes.DropGroupFilter),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

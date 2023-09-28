@@ -14,7 +14,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Tasks;
@@ -29,8 +28,7 @@ internal class AnimeGroupCreator
     private readonly AnimeSeriesRepository _animeSeriesRepo = RepoFactory.AnimeSeries;
     private readonly AnimeGroupRepository _animeGroupRepo = RepoFactory.AnimeGroup;
     private readonly AnimeGroup_UserRepository _animeGroupUserRepo = RepoFactory.AnimeGroup_User;
-    private readonly GroupFilterRepository _groupFilterRepo = RepoFactory.GroupFilter;
-    private readonly JMMUserRepository _userRepo = RepoFactory.JMMUser;
+    private readonly FilterPresetRepository _filterRepo = RepoFactory.FilterPreset;
     private readonly bool _autoGroupSeries;
 
     /// <summary>
@@ -108,7 +106,6 @@ internal class AnimeGroupCreator
 
         // We've deleted/modified all AnimeSeries/GroupFilter records, so update caches to reflect that
         _animeSeriesRepo.ClearCache();
-        _groupFilterRepo.ClearCache();
         _log.Info("AnimeGroups have been removed and GroupFilters have been reset");
     }
 
@@ -200,35 +197,13 @@ internal class AnimeGroupCreator
     /// <remarks>
     /// Assumes that all caches are up to date.
     /// </remarks>
-    private void UpdateGroupFilters(ISessionWrapper session)
+    private void UpdateGroupFilters()
     {
         _log.Info("Updating Group Filters");
         _log.Info("Calculating Tag Filters");
         ServerState.Instance.DatabaseBlocked =
             new ServerState.DatabaseBlockedInfo { Blocked = true, Status = "Calculating Tag Filters" };
-        _groupFilterRepo.CalculateAnimeSeriesPerTagGroupFilter(session);
-        _log.Info("Calculating All Other Filters");
-        ServerState.Instance.DatabaseBlocked =
-            new ServerState.DatabaseBlockedInfo { Blocked = true, Status = "Calculating Non-Tag Filters" };
-        IEnumerable<SVR_GroupFilter> grpFilters = _groupFilterRepo.GetAll(session).Where(a =>
-            a.FilterType != (int)GroupFilterType.Tag && !a.IsDirectory).ToList();
-
-        // The main reason for doing this in parallel is because UpdateEntityReferenceStrings does JSON encoding
-        // and is enough work that it can benefit from running in parallel
-        Parallel.ForEach(
-            grpFilters, filter =>
-            {
-                filter.SeriesIds.Clear();
-                filter.CalculateGroupsAndSeries();
-                filter.UpdateEntityReferenceStrings();
-            });
-
-        BaseRepository.Lock(() =>
-        {
-            using var trans = session.BeginTransaction();
-            _groupFilterRepo.BatchUpdate(session, grpFilters);
-            trans.Commit();
-        });
+        _filterRepo.CreateOrVerifyDirectoryFilters();
 
         _log.Info("Group Filters updated");
     }
@@ -417,7 +392,10 @@ internal class AnimeGroupCreator
                 {
                     // Override the group name if the group is not manually named.
                     if (animeGroup.IsManuallyNamed == 0)
-                        animeGroup.GroupName = animeGroup.SortName = series.GetSeriesName();
+                    {
+                        animeGroup.GroupName = series.GetSeriesName();
+                        animeGroup.SortName = animeGroup.GroupName.GetSortName();
+                    }
                     // Override the group desc. if the group doesn't have an override.
                     if (animeGroup.OverrideDescription == 0)
                         animeGroup.Description = series.GetAnime().Description;
@@ -505,9 +483,8 @@ internal class AnimeGroupCreator
             // (Otherwise updating Group Filters won't get the correct results)
             _animeGroupRepo.Populate(session, false);
             _animeGroupUserRepo.Populate(session, false);
-            _groupFilterRepo.Populate(session, false);
 
-            UpdateGroupFilters(session);
+            UpdateGroupFilters();
 
             _log.Info("Successfuly completed re-creating all groups");
         }
@@ -520,7 +497,6 @@ internal class AnimeGroupCreator
                 // If an error occurs then chances are the caches are in an inconsistent state. So re-populate them
                 _animeSeriesRepo.Populate();
                 _animeGroupRepo.Populate();
-                _groupFilterRepo.Populate();
                 _animeGroupUserRepo.Populate();
             }
             catch (Exception ie)
@@ -581,7 +557,7 @@ internal class AnimeGroupCreator
 
             // update filters
             _log.Info($"Recalculating Filters for Group: {group.GroupName} ({group.AnimeGroupID})");
-            UpdateGroupFilters(session);
+            UpdateGroupFilters();
 
             _log.Info($"Done Recalculating Stats and Contracts for Group: {group.GroupName} ({group.AnimeGroupID})");
         }

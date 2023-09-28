@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.WebUI;
@@ -42,6 +43,7 @@ public class WebUIController : BaseController
     });
 
     private static readonly TimeSpan CacheTTL = TimeSpan.FromHours(1);
+    private readonly WebUIFactory _webUIFactory;
 
     /// <summary>
     /// Retrieves the list of available themes.
@@ -208,7 +210,7 @@ public class WebUIController : BaseController
                     return null;
                 }
 
-                return new WebUIGroupExtra(group, series, anime, body.TagFilter, body.OrderByName,
+                return _webUIFactory.GetWebUIGroupExtra(group, series, anime, body.TagFilter, body.OrderByName,
                     body.TagLimit);
             })
             .ToList();
@@ -234,7 +236,7 @@ public class WebUIController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        return new WebUISeriesExtra(HttpContext, series);
+        return _webUIFactory.GetWebUISeriesExtra(series);
     }
 
     /// <summary>
@@ -562,7 +564,8 @@ public class WebUIController : BaseController
     }
 
 
-    public WebUIController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    public WebUIController(ISettingsProvider settingsProvider, WebUIFactory webUIFactory) : base(settingsProvider)
     {
+        _webUIFactory = webUIFactory;
     }
 }

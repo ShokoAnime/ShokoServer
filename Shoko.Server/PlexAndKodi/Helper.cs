@@ -10,9 +10,6 @@ using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
-using Shoko.Models.Server;
-using Shoko.Server.Extensions;
-using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -127,36 +124,6 @@ public static class Helper
         return Convert.ToBase64String(plainTextBytes).Replace("+", "-").Replace("/", "_").Replace("=", ",");
     }
 
-    public static string Base64DecodeUrl(string url)
-    {
-        var data = Convert.FromBase64String(url.Replace("-", "+").Replace("_", "/").Replace(",", "="));
-        return Encoding.UTF8.GetString(data);
-    }
-
-    public static SVR_JMMUser GetUser(string userid)
-    {
-        var allusers = RepoFactory.JMMUser.GetAll();
-        foreach (var n in allusers)
-        {
-            if (userid.FindIn(n.GetPlexUsers()))
-            {
-                return n;
-            }
-        }
-
-        return allusers.FirstOrDefault(a => a.IsAdmin == 1) ??
-               allusers.FirstOrDefault(a => a.Username == "Default") ?? allusers.First();
-    }
-
-    public static SVR_JMMUser GetJMMUser(string userid)
-    {
-        var allusers = RepoFactory.JMMUser.GetAll();
-        int.TryParse(userid, out var id);
-        return allusers.FirstOrDefault(a => a.JMMUserID == id) ??
-               allusers.FirstOrDefault(a => a.IsAdmin == 1) ??
-               allusers.FirstOrDefault(a => a.Username == "Default") ?? allusers.First();
-    }
-
 
     public static void AddLinksToAnimeEpisodeVideo(IProvider prov, Video v, int userid)
     {
@@ -196,105 +163,6 @@ public static class Helper
                 }
             }
         }
-    }
-
-    public static Video VideoFromVideoLocal(IProvider prov, SVR_VideoLocal v, int userid)
-    {
-        var l = new Video
-        {
-            AnimeType = AnimeTypes.AnimeFile.ToString(),
-            Id = v.VideoLocalID,
-            Type = "episode",
-            Summary = "Episode Overview Not Available", //TODO Internationalization
-            Title = Path.GetFileNameWithoutExtension(v.FileName),
-            AddedAt = v.DateTimeCreated.ToUnixTime(),
-            UpdatedAt = v.DateTimeUpdated.ToUnixTime(),
-            OriginallyAvailableAt = v.DateTimeCreated.ToPlexDate(),
-            Year = v.DateTimeCreated.Year,
-            Medias = new List<Media>()
-        };
-        var vlr = v.GetUserRecord(userid);
-        if (vlr?.WatchedDate != null)
-        {
-            l.LastViewedAt = vlr.WatchedDate.Value.ToUnixTime();
-        }
-
-        if (vlr?.ResumePosition > 0)
-        {
-            l.ViewOffset = vlr.ResumePosition;
-        }
-
-        if (v.Media != null)
-        {
-            var m = new Media(v.VideoLocalID, v.Media);
-            l.Medias.Add(m);
-            l.Duration = m.Duration;
-        }
-
-        AddLinksToAnimeEpisodeVideo(prov, l, userid);
-        return l;
-    }
-
-
-    public static Video VideoFromAnimeEpisode(IProvider prov, List<CrossRef_AniDB_TvDBV2> cross,
-        KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> e, int userid)
-    {
-        var v = GenerateVideoFromAnimeEpisode(e.Key, e.Value.JMMUserID);
-        if (v?.Thumb != null)
-        {
-            v.Thumb = prov.ReplaceSchemeHost(v.Thumb);
-        }
-
-        if (v != null)
-        {
-            if (e.Key.AniDB_Episode == null)
-            {
-                return v;
-            }
-
-            if (e.Value != null)
-            {
-                v.ViewCount = e.Value.WatchedCount;
-                if (e.Value.WatchedDate.HasValue)
-                {
-                    v.LastViewedAt = e.Value.WatchedDate.Value.ToUnixTime();
-                }
-            }
-
-            v.ParentIndex = 1;
-            if (e.Key.EpisodeTypeEnum != EpisodeType.Episode)
-            {
-                v.ParentIndex = 0;
-            }
-
-            if (e.Key.EpisodeTypeEnum == EpisodeType.Episode)
-            {
-                var client = prov.GetPlexClient().Product;
-                if (client == "Plex for Windows" || client == "Plex Home Theater")
-                {
-                    v.Title = $"{v.EpisodeNumber}. {v.Title}";
-                }
-            }
-
-            if (cross != null && cross.Count > 0)
-            {
-                var c2 =
-                    cross.FirstOrDefault(
-                        a =>
-                            a.AniDBStartEpisodeType == v.EpisodeType &&
-                            a.AniDBStartEpisodeNumber <= v.EpisodeNumber);
-                if (c2?.TvDBSeasonNumber > 0)
-                {
-                    v.ParentIndex = c2.TvDBSeasonNumber;
-                }
-            }
-
-            AddLinksToAnimeEpisodeVideo(prov, v, userid);
-        }
-
-        v.AddResumePosition(prov, userid);
-
-        return v;
     }
 
     private static readonly Regex UrlSafe = new("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]",
@@ -428,102 +296,6 @@ public static class Helper
         return l;
     }
 
-    private static void GetValidVideoRecursive(IProvider prov, SVR_GroupFilter f, int userid, Directory pp)
-    {
-        var gfs = RepoFactory.GroupFilter.GetByParentID(f.GroupFilterID)
-            .Where(a => a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count > 0)
-            .ToList();
-
-        foreach (var gg in gfs.Where(a => !a.IsDirectory))
-        {
-            if (gg.GroupsIds.ContainsKey(userid))
-            {
-                var groups = gg.GroupsIds[userid];
-                if (groups.Count != 0)
-                {
-                    foreach (var grp in groups.Randomize(f.GroupFilterID))
-                    {
-                        var ag = RepoFactory.AnimeGroup.GetByID(grp);
-                        var v = ag.GetPlexContract(userid);
-                        if (v?.Art == null || v.Thumb == null)
-                        {
-                            continue;
-                        }
-
-                        pp.Art = prov.ReplaceSchemeHost(v.Art);
-                        pp.Thumb = prov.ReplaceSchemeHost(v.Thumb);
-                        break;
-                    }
-                }
-            }
-
-            if (pp.Art != null)
-            {
-                break;
-            }
-        }
-
-        if (pp.Art == null)
-        {
-            foreach (var gg in gfs
-                         .Where(a => a.IsDirectory && !a.IsHidden)
-                         .Randomize(f.GroupFilterID))
-            {
-                GetValidVideoRecursive(prov, gg, userid, pp);
-                if (pp.Art != null)
-                {
-                    break;
-                }
-            }
-        }
-
-        pp.LeafCount = gfs.Count;
-        pp.ViewedLeafCount = 0;
-    }
-
-    public static Directory DirectoryFromFilter(IProvider prov, SVR_GroupFilter gg,
-        int userid)
-    {
-        var pp = new Directory { Type = "show" };
-        pp.Key = prov.ConstructFilterIdUrl(userid, gg.GroupFilterID);
-        pp.Title = gg.GroupFilterName;
-        pp.Id = gg.GroupFilterID;
-        pp.AnimeType = AnimeTypes.AnimeGroupFilter.ToString();
-        if (gg.IsDirectory)
-        {
-            GetValidVideoRecursive(prov, gg, userid, pp);
-        }
-        else if (gg.GroupsIds.ContainsKey(userid))
-        {
-            var groups = gg.GroupsIds[userid];
-            if (groups.Count == 0)
-            {
-                return pp;
-            }
-
-            pp.LeafCount = groups.Count;
-            pp.ViewedLeafCount = 0;
-            foreach (var grp in groups.Randomize())
-            {
-                var ag = RepoFactory.AnimeGroup.GetByID(grp);
-                var v = ag.GetPlexContract(userid);
-                if (v?.Art == null || v.Thumb == null)
-                {
-                    continue;
-                }
-
-                pp.Art = prov.ReplaceSchemeHost(v.Art);
-                pp.Thumb = prov.ReplaceSchemeHost(v.Thumb);
-                break;
-            }
-
-            return pp;
-        }
-
-        return pp;
-    }
-
-
     public static void AddInformationFromMasterSeries(Video v, CL_AnimeSeries_User cserie, Video nv,
         bool omitExtraData = false)
     {
@@ -607,38 +379,6 @@ public static class Helper
     {
         var rnd = seed == -1 ? new Random() : new Random(seed);
         return source.OrderBy(item => rnd.Next());
-    }
-
-    public static string GetRandomFanartFromVideo(Video v, IProvider prov)
-    {
-        return GetRandomArtFromList(v.Fanarts, prov);
-    }
-
-    public static string GetRandomBannerFromVideo(Video v, IProvider prov)
-    {
-        return GetRandomArtFromList(v.Banners, prov);
-    }
-
-    public static string GetRandomArtFromList(List<Contract_ImageDetails> list, IProvider prov)
-    {
-        if (list == null || list.Count == 0)
-        {
-            return null;
-        }
-
-        Contract_ImageDetails art;
-        if (list.Count == 1)
-        {
-            art = list[0];
-        }
-        else
-        {
-            var rand = new Random();
-            art = list[rand.Next(0, list.Count)];
-        }
-
-        var details = new ImageDetails { ImageID = art.ImageID, ImageType = (ImageEntityType)art.ImageType };
-        return details.GenArt(prov);
     }
 
     public static Video GenerateFromAnimeGroup(SVR_AnimeGroup grp, int userid, List<SVR_AnimeSeries> allSeries)
@@ -758,29 +498,6 @@ public static class Helper
                     }));
             return v;
         }
-    }
-
-
-    public static List<Video> ConvertToDirectory(List<Video> n, IProvider prov)
-    {
-        var ks = new List<Video>();
-        foreach (var n1 in n)
-        {
-            Video m;
-            if (n1 is Directory)
-            {
-                m = n1;
-            }
-            else
-            {
-                m = n1.Clone<Directory>(prov);
-            }
-
-            m.ParentThumb = m.GrandparentThumb = null;
-            ks.Add(m);
-        }
-
-        return ks;
     }
 
     public static Video MayReplaceVideo(Video v1, SVR_AnimeSeries ser, CL_AnimeSeries_User cserie, int userid,

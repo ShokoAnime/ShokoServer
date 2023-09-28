@@ -10,12 +10,12 @@ using System.Web;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NLog;
 using Quartz;
 using QuartzJobFactory;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.common;
@@ -23,12 +23,14 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
+using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+using APIFilters = Shoko.Server.API.v2.Models.common.Filters;
 
 namespace Shoko.Server.API.v2.Modules;
 
@@ -2657,28 +2659,24 @@ public class Common : BaseController
     [HttpGet("cloud/list")]
     public ActionResult GetCloudAccounts()
     {
-        // TODO APIv2: Cloud
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
     [HttpGet("cloud/count")]
     public ActionResult GetCloudAccountsCount()
     {
-        // TODO APIv2: Cloud
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
     [HttpPost("cloud/add")]
     public ActionResult AddCloudAccount()
     {
-        // TODO APIv2: Cloud
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
     [HttpPost("cloud/delete")]
     public ActionResult DeleteCloudAccount()
     {
-        // TODO APIv2: Cloud
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
@@ -2698,7 +2696,7 @@ public class Common : BaseController
     /// Handle /api/filter
     /// Using if without ?id consider using ?level as it will scan resursive for object from Filter to RawFile
     /// </summary>
-    /// <returns>Filter or List<Filter></returns>
+    /// <returns><see cref="Filter"/> or <see cref="List{Filter}"/></returns>
     [HttpGet("filter")]
     public object GetFilters([FromQuery] API_Call_Parameters para)
     {
@@ -2727,29 +2725,31 @@ public class Common : BaseController
     internal object GetAllFilters(int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic,
         TagFilter.Filter tagfilter)
     {
-        var filters = new Filters
+        var filters = new APIFilters
         {
             id = 0, name = "Filters", viewed = 0, url = APIV2Helper.ConstructFilterUrl(HttpContext)
         };
-        var allGfs = RepoFactory.GroupFilter.GetTopLevel()
-            .Where(a => !a.IsHidden &&
-                        ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
-                         a.IsDirectory))
-            .ToList();
-        var _filters = new List<Filters>();
+        var allGfs = RepoFactory.FilterPreset.GetTopLevel().Where(a => !a.Hidden).ToList();
+        var _filters = new List<APIFilters>();
+        var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
+        var user = HttpContext.GetUser();
+        var hideCategories = user.GetHideCategories();
+        var filtersToEvaluate = level > 1
+            ? RepoFactory.FilterPreset.GetAll().Where(a => (a.FilterType & GroupFilterType.Tag) == 0 || !hideCategories.Contains(a.Name)).ToList()
+            : allGfs;
+        var result = evaluator.BatchEvaluateFilters(filtersToEvaluate, user.JMMUserID);
+        allGfs = allGfs.Where(a => result[a].Any()).ToList();
 
         foreach (var gf in allGfs)
         {
-            Filters filter;
-            if (!gf.IsDirectory)
+            APIFilters filter;
+            if (!gf.IsDirectory())
             {
-                filter = Filter.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
-                    tagfilter);
+                filter = Filter.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic, tagfilter, result[gf].ToList());
             }
             else
             {
-                filter = Filters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
-                    tagfilter);
+                filter = APIFilters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic, tagfilter, result);
             }
 
             _filters.Add(filter);
@@ -2791,12 +2791,12 @@ public class Common : BaseController
     internal object GetFilter(int id, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic,
         TagFilter.Filter tagfilter)
     {
-        var gf = RepoFactory.GroupFilter.GetByID(id);
+        var gf = RepoFactory.FilterPreset.GetByID(id);
 
-        if (gf.IsDirectory)
+        if (gf.IsDirectory())
         {
             // if it's a directory, it IS a filter-inception;
-            var fgs = Filters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
+            var fgs = APIFilters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
                 tagfilter);
             return fgs;
         }

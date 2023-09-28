@@ -429,10 +429,7 @@ public class TraktTVHelper
     public string LinkAniDBTrakt(ISession session, int animeID, EpisodeType aniEpType, int aniEpNumber,
         string traktID, int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
     {
-        var xrefTemps = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(
-            session, animeID,
-            (int)aniEpType,
-            aniEpNumber);
+        var xrefTemps = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(animeID, (int)aniEpType, aniEpNumber);
         if (xrefTemps is { Count: > 0 })
         {
             foreach (var xrefTemp in xrefTemps)
@@ -1321,7 +1318,7 @@ public class TraktTVHelper
             }
 
             var traktXRefs =
-                RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, animeID);
+                RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
             if (traktXRefs == null || traktXRefs.Count == 0)
             {
                 return null;

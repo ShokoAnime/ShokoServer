@@ -2,21 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
+using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories.Direct;
 
-public class CrossRef_Languages_AniDB_FileRepository : BaseDirectRepository<CrossRef_Languages_AniDB_File, int>
+public class CrossRef_Languages_AniDB_FileRepository : BaseCachedRepository<CrossRef_Languages_AniDB_File, int>
 {
+    private PocoIndex<int, CrossRef_Languages_AniDB_File, int> FileIDs;
+
     public List<CrossRef_Languages_AniDB_File> GetByFileID(int id)
     {
-        return Lock(() =>
-        {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return session.Query<CrossRef_Languages_AniDB_File>()
-                .Where(a => a.FileID == id).ToList();
-        });
+        return FileIDs.GetMultiple(id);
     }
     
     public Dictionary<int, HashSet<string>> GetLanguagesByAnime(IEnumerable<int> animeIds)
@@ -51,4 +49,13 @@ WHERE eps.AnimeID = :animeId")
                 .List<string>().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         });
     }
+
+    public override void PopulateIndexes()
+    {
+        FileIDs = Cache.CreateIndex(a => a.FileID);
+    }
+
+    public override void RegenerateDb() { }
+
+    protected override int SelectKey(CrossRef_Languages_AniDB_File entity) => entity.CrossRef_Languages_AniDB_FileID;
 }

@@ -29,6 +29,18 @@ public static class Languages
         set => _preferredNamingLanguages = value;
     }
 
+    private static List<TitleLanguage> _preferredNamingLanguageNames;
+    public static List<TitleLanguage> PreferredNamingLanguageNames
+    {
+        get
+        {
+            if (_preferredNamingLanguages != null) return _preferredNamingLanguageNames;
+            _preferredNamingLanguageNames = PreferredNamingLanguages.Select(a => a.Language).ToList();
+            return _preferredNamingLanguageNames;
+        }
+        set => _preferredNamingLanguageNames = value;
+    }
+
     private static List<NamingLanguage> _preferredEpisodeNamingLanguages;
 
     public static List<NamingLanguage> PreferredEpisodeNamingLanguages

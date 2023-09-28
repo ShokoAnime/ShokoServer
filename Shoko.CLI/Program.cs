@@ -1,9 +1,14 @@
 ﻿#region
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using Shoko.Server.Commands;
+using Shoko.Server.Filters;
+using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -13,6 +18,7 @@ namespace Shoko.CLI;
 
 public static class Program
 {
+    private static ILogger _logger;
     public static void Main()
     {
         try
@@ -26,7 +32,7 @@ public static class Program
         Utils.SetInstance();
         Utils.InitLogger();
         var logFactory = new LoggerFactory().AddNLog();
-        var logger = logFactory.CreateLogger("Main");
+        _logger = logFactory.CreateLogger("Main");
 
         try
         {
@@ -40,7 +46,7 @@ public static class Program
         }
         catch (Exception e)
         {
-            logger.LogCritical(e, "The server failed to start");
+            _logger.LogCritical(e, "The server failed to start");
         }
     }
     

@@ -197,7 +197,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
 
 
     public List<SVR_AniDB_Anime> Anime =>
-        GetSeries().Select(serie => serie.GetAnime()).Where(anime => anime != null).ToList();
+        RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID).Select(s => s.GetAnime()).Where(anime => anime != null).ToList();
 
     public decimal AniDBRating
     {
@@ -283,9 +283,9 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         if (series == null && (IsManuallyNamed == 0 || OverrideDescription == 0))
             series = GetMainSeries();
         if (IsManuallyNamed == 0)
-            GroupName = SortName = series.GetSeriesName();
+            GroupName = SortName = series!.GetSeriesName();
         if (OverrideDescription == 0)
-            Description = series.GetAnime().Description;
+            Description = series!.GetAnime().Description;
 
         // Save the changes for this group only.
         DateTimeUpdated = DateTime.Now;
@@ -294,29 +294,21 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
 
     public List<SVR_AnimeSeries> GetSeries()
     {
-        var seriesList = RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID)
-            .OrderBy(a => a.AirDate)
-            .ToList();
+        // Make sure the default/main series is the first, if it's directly within the group
+        if (DefaultAnimeSeriesID == null && MainAniDBAnimeID == null)
+            return RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID).OrderBy(a => a.AirDate).ToList();
 
-        // Make sure the default/main series is the first, if it's directly
-        // within the group.
-        if (DefaultAnimeSeriesID.HasValue || MainAniDBAnimeID.HasValue)
-        {
-            SVR_AnimeSeries mainSeries = null;
-            if (DefaultAnimeSeriesID.HasValue)
-                mainSeries = seriesList.FirstOrDefault(ser => ser.AnimeSeriesID == DefaultAnimeSeriesID.Value);
-            
-            if (mainSeries == null && MainAniDBAnimeID.HasValue)
-                mainSeries = seriesList.FirstOrDefault(ser => ser.AniDB_ID == MainAniDBAnimeID.Value);
+        SVR_AnimeSeries mainSeries = null;
+        if (DefaultAnimeSeriesID.HasValue) mainSeries = RepoFactory.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);
+        if (mainSeries == null && MainAniDBAnimeID.HasValue) mainSeries = RepoFactory.AnimeSeries.GetByAnimeID(MainAniDBAnimeID.Value);
 
-            if (mainSeries != null)
-            {
-                seriesList.Remove(mainSeries);
-                seriesList.Insert(0, mainSeries);
-            }
-        }
+        var seriesList = RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID).OrderBy(a => a.AirDate).ToList();
+        if (mainSeries == null) return seriesList;
 
+        seriesList.Remove(mainSeries);
+        seriesList.Insert(0, mainSeries);
         return seriesList;
+
     }
 
     public List<SVR_AnimeSeries> GetAllSeries(bool skipSorting = false)
@@ -1248,68 +1240,6 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                 .Distinct().Select(a => (GroupID: id, Source: a))).ToLookup(a => a.GroupID, a => a.Source);
     }
 
-    public void DeleteFromFilters()
-    {
-        foreach (var gf in RepoFactory.GroupFilter.GetAll())
-        {
-            var change = false;
-            foreach (var k in gf.GroupsIds.Keys)
-            {
-                if (gf.GroupsIds[k].Contains(AnimeGroupID))
-                {
-                    gf.GroupsIds[k].Remove(AnimeGroupID);
-                    change = true;
-                }
-            }
-
-            if (change)
-            {
-                RepoFactory.GroupFilter.Save(gf);
-            }
-        }
-    }
-
-    public void UpdateGroupFilters(HashSet<GroupFilterConditionType> types, SVR_JMMUser user = null)
-    {
-        IReadOnlyList<SVR_JMMUser> users = new List<SVR_JMMUser> { user };
-        if (user == null)
-        {
-            users = RepoFactory.JMMUser.GetAll();
-        }
-
-        var tosave = new List<SVR_GroupFilter>();
-
-        var n = new HashSet<GroupFilterConditionType>(types);
-        var gfs = RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n);
-        logger.Trace($"Updating {gfs.Count} Group Filters from Group {GroupName}");
-        foreach (var gf in gfs)
-        {
-            if (gf.UpdateGroupFilterFromGroup(Contract, null))
-            {
-                if (!tosave.Contains(gf))
-                {
-                    tosave.Add(gf);
-                }
-            }
-
-            foreach (var u in users)
-            {
-                var cgrp = GetUserContract(u.JMMUserID, n);
-
-                if (gf.UpdateGroupFilterFromGroup(cgrp, u))
-                {
-                    if (!tosave.Contains(gf))
-                    {
-                        tosave.Add(gf);
-                    }
-                }
-            }
-        }
-
-        RepoFactory.GroupFilter.Save(tosave);
-    }
-
-
     public static void GetAnimeGroupsRecursive(int animeGroupID, ref List<SVR_AnimeGroup> groupList)
     {
         var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
@@ -1351,43 +1281,6 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         foreach (var subGroup in GetAllChildGroups())
         {
             subGroup.DeleteGroup(false);
-        }
-
-        var gfs =
-            RepoFactory.GroupFilter.GetWithConditionsTypes(new HashSet<GroupFilterConditionType>
-            {
-                GroupFilterConditionType.AnimeGroup
-            });
-        foreach (var gf in gfs)
-        {
-            var c = gf.Conditions.RemoveAll(a =>
-            {
-                if (a.ConditionType != (int)GroupFilterConditionType.AnimeGroup)
-                {
-                    return false;
-                }
-
-                if (!int.TryParse(a.ConditionParameter, out var thisGrpID))
-                {
-                    return false;
-                }
-
-                if (thisGrpID != AnimeGroupID)
-                {
-                    return false;
-                }
-
-                return true;
-            });
-            if (gf.Conditions.Count <= 0)
-            {
-                RepoFactory.GroupFilter.Delete(gf.GroupFilterID);
-            }
-            else
-            {
-                gf.CalculateGroupsAndSeries();
-                RepoFactory.GroupFilter.Save(gf);
-            }
         }
 
         RepoFactory.AnimeGroup.Delete(this);

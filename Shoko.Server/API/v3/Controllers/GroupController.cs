@@ -280,7 +280,7 @@ public class GroupController : BaseController
             .Select(series => series.AniDB_ID)
             .ToHashSet();
 
-        // TODO: Replace with a more generic implementation capable of suplying relations from more than just AniDB.
+        // TODO: Replace with a more generic implementation capable of supplying relations from more than just AniDB.
         return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(animeIds)
             .Select(relation =>
                 (relation, relatedSeries: RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID)))

@@ -26,7 +26,6 @@ public class BreadCrumbs
     public string ParentIndex { get; set; }
 
     private static Dictionary<string, BreadCrumbs> Cache = new();
-    //TODO CACHE EVICTION?
 
     public BreadCrumbs Update(Video v, bool noart = false)
     {

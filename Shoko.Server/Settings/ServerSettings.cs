@@ -80,6 +80,7 @@ public class ServerSettings : IServerSettings
         {
             _languagePreference = value;
             Languages.PreferredNamingLanguages = null;
+            Languages.PreferredNamingLanguageNames = null;
         }
     }
 

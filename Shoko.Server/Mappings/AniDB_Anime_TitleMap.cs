@@ -1,6 +1,6 @@
 ﻿using FluentNHibernate.Mapping;
+using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Models;
-using Shoko.Server.Databases.TypeConverters;
 
 namespace Shoko.Server.Mappings;
 

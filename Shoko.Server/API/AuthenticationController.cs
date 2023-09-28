@@ -24,7 +24,7 @@ public class AuthenticationController : BaseController
     [ProducesResponseType(400)]
     [ProducesResponseType(401)]
     [ProducesResponseType(200)]
-    public ActionResult<dynamic> Login(AuthUser auth)
+    public ActionResult<object> Login(AuthUser auth)
     {
         if (!ModelState.IsValid || string.IsNullOrEmpty(auth.user?.Trim()))
         {
@@ -58,7 +58,7 @@ public class AuthenticationController : BaseController
         try
         {
             User.Password = Digest.Hash(newPassword.Trim());
-            RepoFactory.JMMUser.Save(User, false);
+            RepoFactory.JMMUser.Save(User);
             RepoFactory.AuthTokens.DeleteAllWithUserID(User.JMMUserID);
             return Ok();
         }

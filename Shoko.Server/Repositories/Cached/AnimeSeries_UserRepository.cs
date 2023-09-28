@@ -21,8 +21,6 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<SVR_AnimeSeries_U
             Changes.TryAdd(cr.JMMUserID, new ChangeTracker<int>());
 
             Changes[cr.JMMUserID].Remove(cr.AnimeSeriesID);
-
-            cr.DeleteFromFilters();
         };
     }
 
@@ -46,19 +44,9 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<SVR_AnimeSeries_U
     public override void Save(SVR_AnimeSeries_User obj)
     {
         UpdatePlexKodiContracts(obj);
-        SVR_AnimeSeries_User old;
-        old = Lock(() =>
-        {
-            using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return session.Get<SVR_AnimeSeries_User>(obj.AnimeSeries_UserID);
-        });
-
-        var types = SVR_AnimeSeries_User.GetConditionTypesChanged(old, obj);
         base.Save(obj);
         Changes.TryAdd(obj.JMMUserID, new ChangeTracker<int>());
         Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
-
-        obj.UpdateGroupFilter(types);
     }
 
     private void UpdatePlexKodiContracts(SVR_AnimeSeries_User ugrp)
