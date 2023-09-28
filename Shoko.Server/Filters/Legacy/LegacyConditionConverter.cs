@@ -734,12 +734,20 @@ public static class LegacyConditionConverter
         if (conditions == null || conditions.Count < 1) return null;
         var first = conditions.Select((a, index) => new {Expression= GetExpression(a, suppressErrors), Index=index}).FirstOrDefault(a => a.Expression != null);
         if (first == null) return null;
-        var condition = conditions.Count == 1 ? first.Expression : conditions.Skip(first.Index + 1).Aggregate(first.Expression, (a, b) =>
+        if (baseCondition == GroupFilterBaseCondition.Exclude)
+        {
+            return new NotExpression(conditions.Count == 1 ? first.Expression : conditions.Skip(first.Index + 1).Aggregate(first.Expression, (a, b) =>
+            {
+                var result = GetExpression(b, suppressErrors);
+                return result == null ? a : new OrExpression(a, result);
+            }));
+        }
+
+        return conditions.Count == 1 ? first.Expression : conditions.Skip(first.Index + 1).Aggregate(first.Expression, (a, b) =>
         {
             var result = GetExpression(b, suppressErrors);
             return result == null ? a : new AndExpression(a, result);
         });
-        return baseCondition == GroupFilterBaseCondition.Exclude ? new NotExpression(condition) : condition;
     }
 
     private static FilterExpression<bool> GetExpression(GroupFilterCondition condition, bool suppressErrors = false)
