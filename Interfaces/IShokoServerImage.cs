@@ -9,9 +9,6 @@ namespace Shoko.Models.Interfaces
         [Rest("{imageid}/{imageType}/{thumnbnailOnly?}", Verbs.Get)]
         object GetImage(int imageid, int imageType, bool? thumnbnailOnly);
 
-        [Rest("WithPath/{serverImagePath}", Verbs.Get)]
-        object GetImageUsingPath(string serverImagePath);
-
         [Rest("Blank", Verbs.Get)]
         object BlankImage();
 
