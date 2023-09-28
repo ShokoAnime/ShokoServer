@@ -31,8 +31,8 @@ internal class ImportJob : IJob
             // Trakt association checks
             Importer.RunImport_ScanTrakt();
 
-            // MovieDB association checks
-            Importer.RunImport_ScanMovieDB();
+            // TMDB association checks
+            Importer.RunImport_ScanTMDB();
 
             // Check for missing images
             Importer.RunImport_GetImages();

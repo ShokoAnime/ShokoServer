@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Web;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Azure;
 using Shoko.Models.Client;
@@ -12,6 +13,7 @@ using Shoko.Server.Commands;
 using Shoko.Server.Commands.TvDB;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 
@@ -24,20 +26,20 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         var result = new CL_AniDB_AnimeCrossRefs
         {
-            CrossRef_AniDB_TvDB = new List<CrossRef_AniDB_TvDBV2>(),
-            TvDBSeries = new List<TvDB_Series>(),
-            TvDBEpisodes = new List<TvDB_Episode>(),
-            TvDBImageFanarts = new List<TvDB_ImageFanart>(),
-            TvDBImagePosters = new List<TvDB_ImagePoster>(),
-            TvDBImageWideBanners = new List<TvDB_ImageWideBanner>(),
+            CrossRef_AniDB_TvDB = new(),
+            TvDBSeries = new(),
+            TvDBEpisodes = new(),
+            TvDBImageFanarts = new(),
+            TvDBImagePosters = new(),
+            TvDBImageWideBanners = new(),
             CrossRef_AniDB_MovieDB = null,
             MovieDBMovie = null,
-            MovieDBFanarts = new List<MovieDB_Fanart>(),
-            MovieDBPosters = new List<MovieDB_Poster>(),
+            MovieDBFanarts = new(),
+            MovieDBPosters = new(),
             CrossRef_AniDB_MAL = null,
-            CrossRef_AniDB_Trakt = new List<CrossRef_AniDB_TraktV2>(),
-            TraktShows = new List<CL_Trakt_Show>(),
-            AnimeID = animeID
+            CrossRef_AniDB_Trakt = new(),
+            TraktShows = new(),
+            AnimeID = animeID,
         };
 
         try
@@ -100,29 +102,21 @@ public partial class ShokoServiceImplementation : IShokoServer
 
 
             // MovieDB
-            var xrefMovie = anime.GetCrossRefMovieDB();
-            result.CrossRef_AniDB_MovieDB = xrefMovie;
+            var xrefMovie = anime.GetCrossRefTmdbMovies().FirstOrDefault();
+            result.CrossRef_AniDB_MovieDB = xrefMovie.ToClient();
 
 
-            result.MovieDBMovie = anime.GetMovieDBMovie();
+            result.MovieDBMovie = anime.GetTmdbMovie().FirstOrDefault();
 
 
-            foreach (var fanart in anime.GetMovieDBFanarts())
+            foreach (var fanart in anime.GetTmdbMovieFanarts())
             {
-                if (fanart.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
-                        StringComparison.InvariantCultureIgnoreCase))
-                {
-                    result.MovieDBFanarts.Add(fanart);
-                }
+                result.MovieDBFanarts.Add(fanart.ToClientFanart());
             }
 
-            foreach (var poster in anime.GetMovieDBPosters())
+            foreach (var poster in anime.GetTmdbMoviePosters())
             {
-                if (poster.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
-                        StringComparison.InvariantCultureIgnoreCase))
-                {
-                    result.MovieDBPosters.Add(poster);
-                }
+                result.MovieDBPosters.Add(poster.ToClientPoster());
             }
 
             // MAL
@@ -437,21 +431,6 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             foreach (var xref in xrefs)
             {
-                // check if there are default images used associated
-                var images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
-                foreach (var image in images)
-                {
-                    if (image.ImageParentType == (int)ImageEntityType.TvDB_Banner ||
-                        image.ImageParentType == (int)ImageEntityType.TvDB_Cover ||
-                        image.ImageParentType == (int)ImageEntityType.TvDB_FanArt)
-                    {
-                        if (image.ImageParentID == xref.TvDBID)
-                        {
-                            RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                        }
-                    }
-                }
-
                 _tvdbHelper.RemoveLinkAniDBTvDB(xref.AniDBID, xref.TvDBID);
             }
 
@@ -474,21 +453,6 @@ public partial class ShokoServiceImplementation : IShokoServer
             if (ser == null)
             {
                 return "Could not find Series for Anime!";
-            }
-
-            // check if there are default images used associated
-            var images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(link.AnimeID);
-            foreach (var image in images)
-            {
-                if (image.ImageParentType == (int)ImageEntityType.TvDB_Banner ||
-                    image.ImageParentType == (int)ImageEntityType.TvDB_Cover ||
-                    image.ImageParentType == (int)ImageEntityType.TvDB_FanArt)
-                {
-                    if (image.ImageParentID == link.TvDBID)
-                    {
-                        RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                    }
-                }
             }
 
             _tvdbHelper.RemoveLinkAniDBTvDB(link.AnimeID, link.TvDBID);
@@ -768,18 +732,6 @@ public partial class ShokoServiceImplementation : IShokoServer
             {
                 return "Could not find Series for Anime!";
             }
-
-            // check if there are default images used associated
-            var images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
-            foreach (var image in images)
-            {
-                if (image.ImageParentType == (int)ImageEntityType.Trakt_Fanart ||
-                    image.ImageParentType == (int)ImageEntityType.Trakt_Poster)
-                {
-                    RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                }
-            }
-
             foreach (var xref in RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID))
             {
                 _traktHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType)xref.AniDBStartEpisodeType,
@@ -808,17 +760,6 @@ public partial class ShokoServiceImplementation : IShokoServer
             if (ser == null)
             {
                 return "Could not find Series for Anime!";
-            }
-
-            // check if there are default images used associated
-            var images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
-            foreach (var image in images)
-            {
-                if (image.ImageParentType == (int)ImageEntityType.Trakt_Fanart ||
-                    image.ImageParentType == (int)ImageEntityType.Trakt_Poster)
-                {
-                    RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                }
             }
 
             _traktHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType)aniEpType, aniEpNumber,
@@ -1072,7 +1013,9 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, (CrossRefType)crossRefType);
+            if (crossRefType != (int)CrossRefType.MovieDB)
+                return null;
+            return RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(animeID).FirstOrDefault().ToClient();
         }
         catch (Exception ex)
         {
@@ -1091,7 +1034,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             switch (xrefType)
             {
                 case CrossRefType.MovieDB:
-                    _movieDBHelper.LinkAniDBMovieDB(animeID, id, false);
+                    _tmdbHelper.AddMovieLink(animeID, id);
                     break;
             }
 
@@ -1120,20 +1063,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             switch (xrefType)
             {
                 case CrossRefType.MovieDB:
-
-                    // check if there are default images used associated
-                    var images =
-                        RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
-                    foreach (var image in images)
-                    {
-                        if (image.ImageParentType == (int)ImageEntityType.MovieDB_FanArt ||
-                            image.ImageParentType == (int)ImageEntityType.MovieDB_Poster)
-                        {
-                            RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
-                        }
-                    }
-
-                    _movieDBHelper.RemoveLinkAniDBMovieDB(animeID);
+                    _tmdbHelper.RemoveAllMovieLinks(animeID);
                     break;
             }
 
@@ -1156,7 +1086,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         var results = new List<CL_MovieDBMovieSearch_Response>();
         try
         {
-            var movieResults = _movieDBHelper.Search(criteria);
+            var movieResults = _tmdbHelper.SearchMovies(HttpUtility.UrlDecode(criteria));
 
             foreach (var res in movieResults)
             {
@@ -1178,16 +1108,18 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             if (movieID.HasValue)
-            {
-                return RepoFactory.MovieDB_Poster.GetByMovieID(movieID.Value);
-            }
+                return RepoFactory.TMDB_Image.GetByTmdbMovieIDAndType(movieID.Value, Server.ImageEntityType.Poster)
+                    .Select(image => image.ToClientPoster())
+                    .ToList();
 
-            return RepoFactory.MovieDB_Poster.GetAllOriginal();
+            return RepoFactory.TMDB_Image.GetByType(Server.ImageEntityType.Poster)
+                .Select(image => image.ToClientPoster())
+                .ToList();
         }
         catch (Exception ex)
         {
             logger.Error(ex, ex.ToString());
-            return new List<MovieDB_Poster>();
+            return new();
         }
     }
 
@@ -1197,25 +1129,33 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             if (movieID.HasValue)
-            {
-                return RepoFactory.MovieDB_Fanart.GetByMovieID(movieID.Value);
-            }
+                return RepoFactory.TMDB_Image.GetByTmdbMovieIDAndType(movieID.Value, Server.ImageEntityType.Backdrop)
+                    .Select(image => image.ToClientFanart())
+                    .ToList();
 
-            return RepoFactory.MovieDB_Fanart.GetAllOriginal();
+            return RepoFactory.TMDB_Image.GetByType(Server.ImageEntityType.Backdrop)
+                .Select(image => image.ToClientFanart())
+                .ToList();
         }
         catch (Exception ex)
         {
             logger.Error(ex, ex.ToString());
-            return new List<MovieDB_Fanart>();
+            return new();
         }
     }
 
     [HttpPost("MovieDB/Refresh/{movieID}")]
-    public string UpdateMovieDBData(int movieD)
+    public string UpdateMovieDBData(int movieID)
     {
         try
         {
-            _movieDBHelper.UpdateMovieInfo(movieD, true);
+            _commandFactory.CreateAndSave<CommandRequest_TMDB_Movie_Update>(c =>
+            {
+                c.TmdbMovieID = movieID;
+                c.DownloadImages = true;
+                c.ForceRefresh = true;
+                c.BubbleExceptions = true;
+            });
         }
         catch (Exception ex)
         {

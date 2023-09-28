@@ -11,6 +11,7 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
@@ -160,10 +161,10 @@ public class Serie : BaseDirectory, IComparable
                 var role = new Role
                 {
                     character = character.Name,
-                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Character,
+                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)CL_ImageEntityType.Character,
                         xref.RoleID.Value),
                     staff = staff.Name,
-                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Staff,
+                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)CL_ImageEntityType.Staff,
                         xref.StaffID),
                     role = xref.Role,
                     type = ((StaffRoleType)xref.RoleType).ToString()
@@ -468,8 +469,8 @@ public class Serie : BaseDirectory, IComparable
                     {
                         sr.art.thumb.Add(new Art
                         {
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
-                                cont_image.AniDB_Anime_DefaultImageID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)cont_image.ImageType.ToClient(cont_image.ImageSource),
+                                    cont_image.AniDB_Anime_PreferredImageID),
                             index = pic_index
                         });
                         pic_index++;
@@ -488,7 +489,7 @@ public class Serie : BaseDirectory, IComparable
                 {
                     sr.art.fanart.Add(new Art
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_FanArt,
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)CL_ImageEntityType.TvDB_FanArt,
                             cont_image.TvDB_ImageFanartID),
                         index = pic_index
                     });
@@ -507,7 +508,7 @@ public class Serie : BaseDirectory, IComparable
                 {
                     sr.art.banner.Add(new Art
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_Banner,
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)CL_ImageEntityType.TvDB_Banner,
                             cont_image.TvDB_ImageWideBannerID),
                         index = pic_index
                     });
@@ -536,8 +537,8 @@ public class Serie : BaseDirectory, IComparable
                 {
                     sr.art.fanart.Add(new Art
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, default_fanart.ImageType,
-                            default_fanart.AniDB_Anime_DefaultImageID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)default_fanart.ImageType.ToClient(default_fanart.ImageSource),
+                            default_fanart.AniDB_Anime_PreferredImageID),
                         index = 0
                     });
                 }
@@ -546,7 +547,7 @@ public class Serie : BaseDirectory, IComparable
                     var tvdbart = fanarts[rand.Next(fanarts.Count)];
                     sr.art.fanart.Add(new Art
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_FanArt,
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)CL_ImageEntityType.TvDB_FanArt,
                             tvdbart.TvDB_ImageFanartID),
                         index = 0
                     });
@@ -561,8 +562,8 @@ public class Serie : BaseDirectory, IComparable
                 {
                     sr.art.banner.Add(new Art
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, default_fanart.ImageType,
-                            default_fanart.AniDB_Anime_DefaultImageID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)default_fanart.ImageType.ToClient(default_fanart.ImageSource),
+                            default_fanart.AniDB_Anime_PreferredImageID),
                         index = 0
                     });
                 }
@@ -571,7 +572,7 @@ public class Serie : BaseDirectory, IComparable
                     var tvdbart = banners[rand.Next(banners.Count)];
                     sr.art.banner.Add(new Art
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_Banner,
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)CL_ImageEntityType.TvDB_Banner,
                             tvdbart.TvDB_ImageWideBannerID),
                         index = 0
                     });

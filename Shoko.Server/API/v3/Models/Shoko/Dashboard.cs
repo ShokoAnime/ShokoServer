@@ -8,6 +8,7 @@ using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -71,7 +72,7 @@ public static class Dashboard
         public int UnrecognizedFiles { get; set; }
 
         /// <summary>
-        /// The number of series missing both the TvDB and MovieDB Links
+        /// The number of series missing both the TvDB and TMDB Links
         /// </summary>
         public int SeriesWithMissingLinks { get; set; }
 
@@ -150,7 +151,7 @@ public static class Dashboard
             ResumePosition = userRecord?.ResumePositionTimeSpan;
             Watched = userRecord?.WatchedDate?.ToUniversalTime();
             SeriesTitle = series?.GetSeriesName() ?? anime.PreferredTitle;
-            SeriesPoster = Series.GetDefaultImage(anime.AnimeID, ImageSizeType.Poster) ??
+            SeriesPoster = Series.GetDefaultImage(anime.AnimeID, ImageEntityType.Poster) ??
                            Series.GetAniDBPoster(anime.AnimeID);
         }
 

@@ -12,11 +12,10 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
-using Shoko.Server.Commands.Plex;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.MovieDB;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs;
@@ -36,17 +35,17 @@ public class ActionController : BaseController
     private readonly ILogger<ActionController> _logger;
     private readonly ICommandRequestFactory _commandFactory;
     private readonly TraktTVHelper _traktHelper;
-    private readonly MovieDBHelper _movieDBHelper;
+    private readonly TMDBHelper _tmdbHelper;
     private readonly IHttpConnectionHandler _httpHandler;
     private readonly ISchedulerFactory _schedulerFactory;
 
     public ActionController(ILogger<ActionController> logger, ICommandRequestFactory commandFactory,
-        TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, IHttpConnectionHandler httpHandler, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
+        TraktTVHelper traktHelper, TMDBHelper tmdbHelper, IHttpConnectionHandler httpHandler, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
         _logger = logger;
         _commandFactory = commandFactory;
         _traktHelper = traktHelper;
-        _movieDBHelper = movieDBHelper;
+        _tmdbHelper = tmdbHelper;
         _httpHandler = httpHandler;
         _schedulerFactory = schedulerFactory;
     }
@@ -54,7 +53,7 @@ public class ActionController : BaseController
     #region Common Actions
 
     /// <summary>
-    /// Run Import. This checks for new files, hashes them etc, scans Drop Folders, checks and scans for community site links (tvdb, trakt, moviedb, etc), and downloads missing images.
+    /// Run Import. This checks for new files, hashes them etc, scans Drop Folders, checks and scans for community site links (tvdb, trakt, tmdb, etc), and downloads missing images.
     /// </summary>
     /// <returns></returns>
     [HttpGet("RunImport")]
@@ -150,13 +149,25 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Updates All MovieDB Info
+    /// Updates All TMDB Movie Info.
     /// </summary>
     /// <returns></returns>
+    [Obsolete("Use 'UpdateAllTMDBMovieInfo' instead.")]
     [HttpGet("UpdateAllMovieDBInfo")]
     public ActionResult UpdateAllMovieDBInfo()
     {
-        Task.Factory.StartNew(() => _movieDBHelper.UpdateAllMovieInfo(true));
+        Task.Factory.StartNew(() => _tmdbHelper.UpdateAllMovies(true, true));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Updates All TMDB Movie Info.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("UpdateAllTMDBMovieInfo")]
+    public ActionResult UpdateAllTMDBMovieInfo()
+    {
+        Task.Factory.StartNew(() => _tmdbHelper.UpdateAllMovies(true, true));
         return Ok();
     }
 

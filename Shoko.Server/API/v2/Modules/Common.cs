@@ -3150,11 +3150,11 @@ public class Common : BaseController
             var role = new Role
             {
                 character = character.Name,
-                character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Character,
+                character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)CL_ImageEntityType.Character,
                     xref.RoleID.Value),
                 character_description = cdescription,
                 staff = staff.Name,
-                staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.Staff,
+                staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)CL_ImageEntityType.Staff,
                     xref.StaffID),
                 staff_description = sdescription,
                 role = xref.Role,
@@ -3265,10 +3265,10 @@ public class Common : BaseController
             links.Add("tvdb", tvdb.Select(x => x.SeriesID));
         }
 
-        var tmdb = serie.CrossRefMovieDB;
+        var tmdb = serie.CrossRefMovieDB.FirstOrDefault();
         if (tmdb != null)
         {
-            links.Add("tmdb", tmdb.CrossRefID); //not sure this will work.
+            links.Add("tmdb", tmdb.TmdbMovieID.ToString()); //not sure this will work.
         }
 
         return links;

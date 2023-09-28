@@ -3,10 +3,10 @@ using System.IO;
 using System.Linq;
 using Force.DeepCloner;
 using NHibernate;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 
@@ -110,22 +110,15 @@ public static class ModelDatabase
         }
     }
 
-    public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_Other cross)
+    public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_TMDB_Movie cross)
     {
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-        {
-            return cross.GetMovieDB_Movie(session.Wrap());
-        }
+        using var session = DatabaseFactory.SessionFactory.OpenSession();
+        return cross.GetMovieDB_Movie(session.Wrap());
     }
 
-    public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_Other cross, ISessionWrapper session)
+    public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_TMDB_Movie cross, ISessionWrapper session)
     {
-        if (cross.CrossRefType != (int)CrossRefType.MovieDB)
-        {
-            return null;
-        }
-
-        return RepoFactory.MovieDb_Movie.GetByOnlineID(session, int.Parse(cross.CrossRefID));
+        return RepoFactory.MovieDb_Movie.GetByOnlineID(session, cross.TmdbMovieID);
     }
 
     public static Trakt_Show GetByTraktShow(this CrossRef_AniDB_TraktV2 cross)

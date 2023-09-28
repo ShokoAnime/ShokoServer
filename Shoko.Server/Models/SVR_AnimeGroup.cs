@@ -10,13 +10,11 @@ using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Settings;
-using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -895,9 +893,10 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         var traktXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_TraktV2>>(
             () => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDs(allAnimeIds.Value), false);
         var allVidQualByGroup = new Lazy<ILookup<int, string>>(() => GetVideoQualities(allGroupIds.Value), false);
-        var movieDbXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_Other>>(
-            () => RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDsAndType(session, allAnimeIds.Value,
-                CrossRefType.MovieDB), false);
+        var tmdbMovieXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_TMDB_Movie>>(
+            () => RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnimeIDsAndType(allAnimeIds.Value));
+        var tmdbShowXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_TMDB_Show>>(
+            () => RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnimeIDsAndType(allAnimeIds.Value));
         var malXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_MAL>>(
             () => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeIDs(session, allAnimeIds.Value), false);
         var votesByGroup = BatchGetVotes(animeGroups);
@@ -953,7 +952,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                 var missingTvDBLink = false;
                 var missingTraktLink = false;
                 var missingMALLink = false;
-                var missingMovieDBLink = false;
+                var missingTMDBLink = false;
                 var missingTvDBAndMovieDBLink = false;
                 var seriesCount = 0;
                 var epCount = 0;
@@ -1117,7 +1116,8 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                     // we will consider the group as not having a tvdb link
                     var foundTvDBLink = tvDbXrefByAnime.Value[anime.AnimeID].Any();
                     var foundTraktLink = traktXrefByAnime.Value[anime.AnimeID].Any();
-                    var foundMovieDBLink = movieDbXRefByAnime.Value[anime.AnimeID].Any();
+                    var foundTMDBLink = tmdbShowXRefByAnime.Value[anime.AnimeID].Any() ||
+                        tmdbMovieXRefByAnime.Value[anime.AnimeID].Any();
                     var isMovie = anime.AnimeType == (int)AnimeType.Movie;
                     if (!foundTvDBLink)
                     {
@@ -1132,11 +1132,11 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                         missingTraktLink = true;
                     }
 
-                    if (!foundMovieDBLink)
+                    if (!foundTMDBLink)
                     {
-                        if (isMovie && !(anime.Restricted > 0))
+                        if (!(anime.Restricted > 0))
                         {
-                            missingMovieDBLink = true;
+                            missingTMDBLink = true;
                         }
                     }
 
@@ -1145,7 +1145,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                         missingMALLink = true;
                     }
 
-                    missingTvDBAndMovieDBLink |= !(anime.Restricted > 0) && !foundTvDBLink && !foundMovieDBLink;
+                    missingTvDBAndMovieDBLink |= !(anime.Restricted > 0) && !foundTvDBLink && !foundTMDBLink;
 
                     var endyear = anime.EndYear;
                     if (endyear == 0)
@@ -1201,7 +1201,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
                 contract.Stat_HasTvDBLink = !missingTvDBLink; // Has a link if it isn't missing
                 contract.Stat_HasTraktLink = !missingTraktLink; // Has a link if it isn't missing
                 contract.Stat_HasMALLink = !missingMALLink; // Has a link if it isn't missing
-                contract.Stat_HasMovieDBLink = !missingMovieDBLink; // Has a link if it isn't missing
+                contract.Stat_HasMovieDBLink = !missingTMDBLink; // Has a link if it isn't missing
                 contract.Stat_HasMovieDBOrTvDBLink = !missingTvDBAndMovieDBLink; // Has a link if it isn't missing
                 contract.Stat_SeriesCount = seriesCount;
                 contract.Stat_EpisodeCount = epCount;

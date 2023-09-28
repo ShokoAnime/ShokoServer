@@ -16,7 +16,7 @@ using Shoko.Server.Commands;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.MovieDB;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Scheduling.Jobs;
@@ -52,7 +52,7 @@ public class Startup
             services.AddSingleton<LogRotator>();
             services.AddSingleton<TraktTVHelper>();
             services.AddSingleton<TvDBApiHelper>();
-            services.AddSingleton<MovieDBHelper>();
+            services.AddSingleton<TMDBHelper>();
             services.AddScoped<CommonImplementation>();
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
             services.AddSingleton<ICommandRequestFactory, CommandRequestFactory>();

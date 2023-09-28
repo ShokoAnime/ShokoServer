@@ -101,7 +101,7 @@ public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
         }
 
         // Use TvDB setting due to similarity
-        if (!settings.TvDB.AutoLink) return;
+        if (!settings.TraktTv.AutoLink) return;
 
         // finally lets try searching Trakt directly
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);

@@ -1010,7 +1010,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             contract.EpisodeName = tvep.EpisodeName;
             contract.EpisodeOverview = tvep.Overview;
             contract.ImageID = tvep.Id;
-            contract.ImageType = (int)ImageEntityType.TvDB_Episode;
+            contract.ImageType = (int)CL_ImageEntityType.TvDB_Episode;
             return;
         }
 
@@ -1021,7 +1021,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             contract.EpisodeName = tvep.EpisodeName;
             contract.EpisodeOverview = tvep.Overview;
             contract.ImageID = tvep.Id;
-            contract.ImageType = (int)ImageEntityType.TvDB_Episode;
+            contract.ImageType = (int)CL_ImageEntityType.TvDB_Episode;
         }
     }
 

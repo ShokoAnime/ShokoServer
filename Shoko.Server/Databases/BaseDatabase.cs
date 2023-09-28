@@ -423,7 +423,7 @@ public abstract class BaseDatabase<T> : IDatabase
         gf.CalculateGroupsAndSeries();
         RepoFactory.GroupFilter.Save(gf);
 
-        // TvDB/MovieDB Link Missing
+        // TvDB/TMDB Link Missing
         gf = new SVR_GroupFilter
         {
             GroupFilterName = Resources.Filter_LinkMissing,

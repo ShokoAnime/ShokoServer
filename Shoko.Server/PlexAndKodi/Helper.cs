@@ -637,7 +637,7 @@ public static class Helper
             art = list[rand.Next(0, list.Count)];
         }
 
-        var details = new ImageDetails { ImageID = art.ImageID, ImageType = (ImageEntityType)art.ImageType };
+        var details = new ImageDetails { ImageID = art.ImageID, ImageType = (CL_ImageEntityType)art.ImageType };
         return details.GenArt(prov);
     }
 

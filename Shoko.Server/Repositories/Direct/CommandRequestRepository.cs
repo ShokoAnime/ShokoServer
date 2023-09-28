@@ -29,6 +29,8 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
     private static readonly HashSet<int> CommandTypesImages = new()
     {
         (int)CommandRequestType.TvDB_DownloadImages,
+        (int)CommandRequestType.TMDB_Movie_DownloadImages,
+        (int)CommandRequestType.TMDB_Show_DownloadImages,
         (int)CommandRequestType.ImageDownload,
         (int)CommandRequestType.ValidateAllImages,
         (int)CommandRequestType.DownloadAniDBImages,
@@ -76,10 +78,11 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         (int)CommandRequestType.AVDumpFile,
 
         // General commands
-        (int)CommandRequestType.TvDBSearch,
         (int)CommandRequestType.TvDB_UpdateSeries,
         (int)CommandRequestType.TvDB_SearchAnime,
-        (int)CommandRequestType.MovieDB_SearchAnime,
+        (int)CommandRequestType.TMDB_Search,
+        (int)CommandRequestType.TMDB_Show_Update,
+        (int)CommandRequestType.TMDB_Movie_Update,
         (int)CommandRequestType.Trakt_SearchAnime,
         (int)CommandRequestType.Trakt_UpdateInfo,
         (int)CommandRequestType.Trakt_EpisodeHistory,
@@ -92,6 +95,8 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
 
         // Image commands
         (int)CommandRequestType.TvDB_DownloadImages,
+        (int)CommandRequestType.TMDB_Show_DownloadImages,
+        (int)CommandRequestType.TMDB_Movie_DownloadImages,
         (int)CommandRequestType.ImageDownload,
         (int)CommandRequestType.ValidateAllImages,
         (int)CommandRequestType.DownloadAniDBImages,

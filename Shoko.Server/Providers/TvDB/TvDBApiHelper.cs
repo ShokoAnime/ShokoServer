@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -22,6 +22,7 @@ using TvDbSharper;
 using TvDbSharper.Dto;
 
 using SentrySdk = Sentry.SentrySdk;
+using Shoko.Plugin.Abstractions.Enums;
 
 namespace Shoko.Server.Providers.TvDB;
 
@@ -204,7 +205,7 @@ public class TvDBApiHelper
         {
             // remove all current links
             _logger.LogInformation("Removing All TvDB Links for: {AnimeID}", animeID);
-            RemoveAllAniDBTvDBLinks(animeID, false);
+            RemoveAllAniDBTvDBLinks(animeID);
         }
 
         // check if we have this information locally
@@ -239,7 +240,7 @@ public class TvDBApiHelper
 
         var settings = _settingsProvider.GetSettings();
         var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-        if (settings.TraktTv.Enabled &&
+        if (settings.TraktTv.Enabled && settings.TraktTv.AutoLink &&
             !string.IsNullOrEmpty(settings.TraktTv.AuthToken) &&
             !series.IsTraktAutoMatchingDisabled)
         {
@@ -257,33 +258,20 @@ public class TvDBApiHelper
         }
     }
 
-    private void RemoveAllAniDBTvDBLinks(int animeID, bool updateStats = true)
+    private void RemoveAllAniDBTvDBLinks(int animeID)
     {
         // check for Trakt associations
         var trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
         if (trakt.Count != 0)
-        {
             foreach (var a in trakt)
-            {
                 RepoFactory.CrossRef_AniDB_TraktV2.Delete(a);
-            }
-        }
 
         var xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
         if (xrefs == null || xrefs.Count == 0)
-        {
             return;
-        }
 
         foreach (var xref in xrefs)
-        {
             RepoFactory.CrossRef_AniDB_TvDB.Delete(xref);
-        }
-
-        if (updateStats)
-        {
-            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
-        }
     }
 
     public List<TvDB_Language> GetLanguages()
@@ -702,7 +690,8 @@ public class TvDBApiHelper
                     c =>
                     {
                         c.EntityID = img.TvDB_ImageFanartID;
-                        c.EntityType = (int)ImageEntityType.TvDB_FanArt;
+                        c.ImageTypeEnum = ImageEntityType.Backdrop;
+                        c.DataSourceEnum = DataSourceType.TvDB;
                         c.ForceDownload = forceDownload;
                     }
                 );
@@ -740,7 +729,8 @@ public class TvDBApiHelper
                     c =>
                     {
                         c.EntityID = img.TvDB_ImagePosterID;
-                        c.EntityType = (int)ImageEntityType.TvDB_Cover;
+                        c.ImageTypeEnum = ImageEntityType.Poster;
+                        c.DataSourceEnum = DataSourceType.TvDB;
                         c.ForceDownload = forceDownload;
                     }
                 );
@@ -777,7 +767,8 @@ public class TvDBApiHelper
                     c =>
                     {
                         c.EntityID = img.TvDB_ImageWideBannerID;
-                        c.EntityType = (int)ImageEntityType.TvDB_Banner;
+                        c.ImageTypeEnum = ImageEntityType.Banner;
+                        c.DataSourceEnum = DataSourceType.TvDB;
                         c.ForceDownload = forceDownload;
                     }
                 );
@@ -912,7 +903,8 @@ public class TvDBApiHelper
                     c =>
                     {
                         c.EntityID = ep.TvDB_EpisodeID;
-                        c.EntityType = (int)ImageEntityType.TvDB_Episode;
+                        c.ImageTypeEnum = ImageEntityType.Thumbnail;
+                        c.DataSourceEnum = DataSourceType.TvDB;
                         c.ForceDownload = forceRefresh;
                     }
                 );
@@ -961,12 +953,22 @@ public class TvDBApiHelper
     }
 
     // Removes all TVDB information from a series, bringing it back to a blank state.
-    public void RemoveLinkAniDBTvDB(int animeID, int tvDBID)
+    public void RemoveLinkAniDBTvDB(int animeID, int tvDBID, bool purge = false)
     {
         var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvDBID);
         if (xref == null)
         {
             return;
+        }
+
+        // check if there are default images used associated
+        var images = RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(animeID);
+        foreach (var image in images)
+        {
+            if (image.ImageSource == DataSourceType.TvDB && image.ImageID == xref.TvDBID)
+            {
+                RepoFactory.AniDB_Anime_PreferredImage.Delete(image);
+            }
         }
 
         RepoFactory.CrossRef_AniDB_TvDB.Delete(xref);

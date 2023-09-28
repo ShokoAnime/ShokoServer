@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
@@ -16,11 +15,10 @@ using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -205,57 +203,6 @@ public class SVR_AnimeSeries : AnimeSeries
         return GetAnime().PreferredTitle;
     }
 
-    public HashSet<string> GetAllTitles()
-    {
-        var titles = new HashSet<string>();
-
-        // Override
-        if (SeriesNameOverride != null)
-        {
-            titles.Add(SeriesNameOverride);
-        }
-
-        // AniDB
-        if (GetAnime() != null)
-        {
-            titles.UnionWith(GetAnime().GetAllTitles());
-        }
-        else
-        {
-            logger.Error($"A Series has a null AniDB_Anime. That is bad. The AniDB ID is {AniDB_ID}");
-        }
-
-        // TvDB
-        var tvdb = GetTvDBSeries();
-        if (tvdb != null)
-        {
-            titles.UnionWith(tvdb.Select(a => a?.SeriesName).Where(a => a != null));
-        }
-
-        // MovieDB
-        var movieDB = GetMovieDB();
-        if (movieDB != null)
-        {
-            titles.Add(movieDB.MovieName);
-            titles.Add(movieDB.OriginalName);
-        }
-
-        return titles;
-    }
-
-    public string GenresRaw
-    {
-        get
-        {
-            if (GetAnime() == null)
-            {
-                return string.Empty;
-            }
-
-            return GetAnime().TagsString;
-        }
-    }
-
     /// <summary>
     /// Get video locals for anime series.
     /// </summary>
@@ -329,19 +276,6 @@ public class SVR_AnimeSeries : AnimeSeries
             .Count();
     }
 
-    public MovieDB_Movie GetMovieDB()
-    {
-        var movieDBXRef = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(AniDB_ID, CrossRefType.MovieDB);
-        if (movieDBXRef?.CrossRefID == null || !int.TryParse(movieDBXRef.CrossRefID, out var movieID))
-        {
-            return null;
-        }
-
-        var movieDB = RepoFactory.MovieDb_Movie.GetByOnlineID(movieID);
-        return movieDB;
-    }
-
-
     #region TvDB
 
     public List<CrossRef_AniDB_TvDB> GetCrossRefTvDB()
@@ -406,10 +340,11 @@ public class SVR_AnimeSeries : AnimeSeries
 
     #endregion
 
-    public CrossRef_AniDB_Other CrossRefMovieDB =>
-        RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(AniDB_ID, CrossRefType.MovieDB);
+    public List<CrossRef_AniDB_TMDB_Movie> CrossRefMovieDB =>
+        RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(AniDB_ID);
 
-    public List<CrossRef_AniDB_MAL> CrossRefMAL => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(AniDB_ID);
+    public List<CrossRef_AniDB_MAL> CrossRefMAL =>
+        RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(AniDB_ID);
 
     public CL_AnimeSeries_User GetUserContract(int userid, HashSet<GroupFilterConditionType> types = null, bool cloned = true)
     {
@@ -1019,7 +954,7 @@ public class SVR_AnimeSeries : AnimeSeries
         var animeIds = new Lazy<int[]>(() => seriesBatch.Select(s => s.AniDB_ID).ToArray(), false);
         var tvDbByAnime = new Lazy<ILookup<int, Tuple<CrossRef_AniDB_TvDB, TvDB_Series>>>(
             () => RepoFactory.TvDB_Series.GetByAnimeIDs(session, animeIds.Value), false);
-        var movieByAnime = new Lazy<Dictionary<int, Tuple<CrossRef_AniDB_Other, MovieDB_Movie>>>(
+        var movieByAnime = new Lazy<Dictionary<int, Tuple<CrossRef_AniDB_TMDB_Movie, MovieDB_Movie>>>(
             () => RepoFactory.MovieDb_Movie.GetByAnimeIDs(session, animeIds.Value), false);
         var malXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_MAL>>(
             () => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeIDs(session, animeIds.Value), false);
@@ -1077,7 +1012,7 @@ public class SVR_AnimeSeries : AnimeSeries
 
                     aniDbAnime.DefaultImagePoster = defImages.GetPosterContractNoBlanks();
                     aniDbAnime.DefaultImageFanart = defImages.GetFanartContractNoBlanks(aniDbAnime);
-                    aniDbAnime.DefaultImageWideBanner = defImages.WideBanner?.ToContract();
+                    aniDbAnime.DefaultImageWideBanner = defImages.Banner;
                 }
 
                 // TvDB contracts
@@ -1095,12 +1030,12 @@ public class SVR_AnimeSeries : AnimeSeries
                     .Select(s => s.Item2)
                     .ToList();
 
-                // MovieDB contracts
+                // TMDB Movie contracts
 
-                if (movieByAnime.Value.TryGetValue(series.AniDB_ID, out var movieDbInfo))
+                if (movieByAnime.Value.TryGetValue(series.AniDB_ID, out var tmdbMovie))
                 {
-                    contract.CrossRefAniDBMovieDB = movieDbInfo.Item1;
-                    contract.MovieDB_Movie = movieDbInfo.Item2;
+                    contract.CrossRefAniDBMovieDB = tmdbMovie.Item1.ToClient();
+                    contract.MovieDB_Movie = tmdbMovie.Item2;
                 }
                 else
                 {
@@ -1170,12 +1105,8 @@ public class SVR_AnimeSeries : AnimeSeries
 
         var animeRec = GetAnime();
         var tvDBCrossRefs = GetCrossRefTvDB();
-        var movieDBCrossRef = CrossRefMovieDB;
-        MovieDB_Movie movie = null;
-        if (movieDBCrossRef != null)
-        {
-            movie = movieDBCrossRef.GetMovieDB_Movie();
-        }
+        var tmdbMovieXRef = CrossRefMovieDB.FirstOrDefault();
+        var tmdbMovie = tmdbMovieXRef?.GetMovieDB_Movie();
 
         var sers = new List<TvDB_Series>();
         foreach (var xref in tvDBCrossRefs)
@@ -1238,10 +1169,10 @@ public class SVR_AnimeSeries : AnimeSeries
 
         contract.TvDB_Series = sers;
         contract.CrossRefAniDBMovieDB = null;
-        if (movieDBCrossRef != null)
+        if (tmdbMovieXRef != null)
         {
-            contract.CrossRefAniDBMovieDB = movieDBCrossRef;
-            contract.MovieDB_Movie = movie;
+            contract.CrossRefAniDBMovieDB = tmdbMovieXRef.ToClient();
+            contract.MovieDB_Movie = tmdbMovie;
         }
 
         contract.CrossRefAniDBMAL = CrossRefMAL?.ToList() ?? new List<CrossRef_AniDB_MAL>();
@@ -2065,8 +1996,8 @@ public class SVR_AnimeSeries : AnimeSeries
         if (completelyRemove)
         {
             // episodes, anime, characters, images, staff relations, tag relations, titles
-            var images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(AniDB_ID);
-            RepoFactory.AniDB_Anime_DefaultImage.Delete(images);
+            var images = RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(AniDB_ID);
+            RepoFactory.AniDB_Anime_PreferredImage.Delete(images);
 
             var characterXrefs = RepoFactory.AniDB_Anime_Character.GetByAnimeID(AniDB_ID);
             var characters = characterXrefs.Select(a => RepoFactory.AniDB_Character.GetByCharID(a.CharID)).ToList();

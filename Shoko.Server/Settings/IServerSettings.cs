@@ -17,7 +17,7 @@ public interface IServerSettings
     AniDbSettings AniDb { get; set; }
     WebCacheSettings WebCache { get; set; }
     TvDBSettings TvDB { get; set; }
-    MovieDbSettings MovieDb { get; set; }
+    TMDBSettings TMDB { get; set; }
     ImportSettings Import { get; set; }
     PlexSettings Plex { get; set; }
     PluginSettings Plugins { get; set; }

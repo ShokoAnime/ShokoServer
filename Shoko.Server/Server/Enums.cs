@@ -1,4 +1,6 @@
-﻿namespace Shoko.Server.Server;
+﻿using System;
+
+namespace Shoko.Server.Server;
 
 public enum CommandRequestType
 {
@@ -7,7 +9,7 @@ public enum CommandRequestType
     AniDB_GetFileUDP = 4,
     AniDB_AddFileUDP = 5,
     AniDB_UpdateWatchedUDP = 6,
-    TvDBSearch = 7,
+    // TvDBSearch = 7,
     AniDB_GetCharsCreators = 8,
     AniDB_GetCharacter = 9,
     AniDB_GetCreator = 10,
@@ -27,7 +29,7 @@ public enum CommandRequestType
     TvDB_SearchAnime = 32,
     ImageDownload = 33,
     AniDB_DeleteFileUDP = 34,
-    MovieDB_SearchAnime = 37,
+    // MovieDB_SearchAnime = 37,
     Trakt_SearchAnime = 38,
     Trakt_UpdateInfo = 41,
     Trakt_EpisodeHistory = 42,
@@ -50,6 +52,15 @@ public enum CommandRequestType
     DownloadAniDBImages = 99,
     AVDumpFile = 100,
     AniDB_GetAnimeHTTP_Force = 101,
+    TMDB_Search = 102,
+    TMDB_Show_Update = 103,
+    TMDB_Show_DownloadImages = 104,
+    TMDB_Show_AddLink = 105,
+    TMDB_Show_Purge = 106,
+    TMDB_Movie_Update = 107,
+    TMDB_Movie_DownloadImages = 108,
+    TMDB_Movie_AddLink = 109,
+    TMDB_Movie_Purge = 110,
 }
 
 public enum CommandRequestPriority
@@ -122,4 +133,35 @@ public enum FileHashType
     MD5 = 1,
     SHA1 = 2,
     CRC32 = 3
+}
+
+public enum ImageEntityType
+{
+    None = 0,
+    Backdrop = 1,
+    Banner = 2,
+    Logo = 3,
+    Art = 4,
+    Disc = 5,
+    Poster = 6,
+    Thumbnail = 7,
+    Person = 8,
+    Character = 9,
+}
+
+[Flags]
+public enum ForeignEntityType
+{
+    None = 0,
+    Collection = 1,
+    Movie = 2,
+    Show = 4,
+    Season = 8,
+    Episode = 16,
+    Company = 32,
+    Studio = 64,
+    Network = 128,
+    Person = 256,
+    Character = 512,
+    All = Collection | Movie | Show | Season | Episode | Company | Studio | Network | Person | Character,
 }

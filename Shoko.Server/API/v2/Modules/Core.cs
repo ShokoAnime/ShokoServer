@@ -595,7 +595,7 @@ public class Core : BaseController
     [HttpGet("moviedb/update")]
     public ActionResult ScanMovieDB()
     {
-        Importer.RunImport_ScanMovieDB();
+        Importer.RunImport_ScanTMDB();
         return APIStatus.OK();
     }
 

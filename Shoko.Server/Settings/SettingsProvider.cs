@@ -138,13 +138,13 @@ public class SettingsProvider : ISettingsProvider
                     UpdateFrequency = legacy.TvDB_UpdateFrequency,
                     Language = legacy.TvDB_Language
                 },
-            MovieDb =
-                new MovieDbSettings
+            TMDB =
+                new TMDBSettings
                 {
-                    AutoFanart = legacy.MovieDB_AutoFanart,
-                    AutoFanartAmount = legacy.MovieDB_AutoFanartAmount,
-                    AutoPosters = legacy.MovieDB_AutoPosters,
-                    AutoPostersAmount = legacy.MovieDB_AutoPostersAmount
+                    AutoDownloadBackdrops = legacy.MovieDB_AutoFanart,
+                    MaxAutoBackdrops = legacy.MovieDB_AutoFanartAmount,
+                    AutoDownloadPosters = legacy.MovieDB_AutoPosters,
+                    MaxAutoPosters = legacy.MovieDB_AutoPostersAmount
                 },
             Import =
                 new ImportSettings

@@ -4,6 +4,6 @@ namespace Shoko.Server.ImageDownload;
 
 public class ImageDetails
 {
-    public ImageEntityType ImageType { get; set; }
+    public CL_ImageEntityType ImageType { get; set; }
     public int ImageID { get; set; }
 }

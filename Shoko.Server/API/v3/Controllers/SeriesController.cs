@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
@@ -18,8 +19,10 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -38,11 +41,13 @@ public class SeriesController : BaseController
 {
     private readonly ICommandRequestFactory _commandFactory;
     private readonly IHttpConnectionHandler _httpHandler;
+    private readonly TMDBHelper _tmdbHelper;
 
-    public SeriesController(ICommandRequestFactory commandFactory, IHttpConnectionHandler httpHandler, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public SeriesController(ICommandRequestFactory commandFactory, IHttpConnectionHandler httpHandler, ISettingsProvider settingsProvider, TMDBHelper tmdbHelper) : base(settingsProvider)
     {
         _commandFactory = commandFactory;
         _httpHandler = httpHandler;
+        _tmdbHelper = tmdbHelper;
     }
 
     #region Return messages
@@ -819,7 +824,7 @@ public class SeriesController : BaseController
             return Forbid(TvdbForbiddenForUser);
         }
 
-        return Series.GetTvDBInfo(HttpContext, series);
+        return Series.GetTvDBInfo(series);
     }
 
     /// <summary>
@@ -832,6 +837,12 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/TvDB")]
     public ActionResult LinkTvDB([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkCommonBody body)
     {
+        if (body.ProviderID <= 0)
+        {
+            ModelState.AddModelError(nameof(body.ProviderID), "The provider ID cannot be zero or a negative value.");
+            return ValidationProblem(ModelState);
+        }
+
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(TvdbNotFoundForSeriesID);
@@ -840,7 +851,7 @@ public class SeriesController : BaseController
             return Forbid(TvdbForbiddenForUser);
 
         var tvdbHelper = Utils.ServiceContainer.GetService<TvDBApiHelper>();
-        tvdbHelper.LinkAniDBTvDB(series.AniDB_ID, body.ID, !body.Replace);
+        tvdbHelper.LinkAniDBTvDB(series.AniDB_ID, body.ProviderID, !body.Replace);
 
         return Ok();
     }
@@ -863,11 +874,11 @@ public class SeriesController : BaseController
             return Forbid(TvdbForbiddenForUser);
 
         var tvdbHelper = Utils.ServiceContainer.GetService<TvDBApiHelper>();
-        if (body != null && body.ID > 0)
-            tvdbHelper.RemoveLinkAniDBTvDB(series.AniDB_ID, body.ID);
+        if (body != null && body.ProviderID > 0)
+            tvdbHelper.RemoveLinkAniDBTvDB(series.AniDB_ID, body.ProviderID, body.Purge);
         else
             foreach (var xref in RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(series.AniDB_ID))
-                tvdbHelper.RemoveLinkAniDBTvDB(series.AniDB_ID, xref.TvDBID);
+                tvdbHelper.RemoveLinkAniDBTvDB(series.AniDB_ID, xref.TvDBID, body.Purge);
 
         return Ok();
     }
@@ -931,7 +942,7 @@ public class SeriesController : BaseController
             return Forbid(TvdbForbiddenForUser);
         }
 
-        return new Series.TvDB(HttpContext, tvdb, series);
+        return new Series.TvDB(tvdb, series);
     }
 
     /// <summary>
@@ -976,6 +987,210 @@ public class SeriesController : BaseController
         return seriesList
             .Select(series => new Series(HttpContext, series))
             .ToList();
+    }
+
+    #endregion
+
+    #region TMDB
+
+    /// <summary>
+    /// Get all TMDB movies linked to a Shoko series.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <returns></returns>
+    [HttpGet("{seriesID}/TMDB/Movie")]
+    public ActionResult GetTMDBMoviesBySeriesID([FromRoute] int seriesID)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(TvdbNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(TvdbForbiddenForUser);
+
+        // TODO: Add this when the v3 TMDB Movie Model is made.
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Add a new TMDB Movie link to the series.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">Body containing the information about the link to be made</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/TMDB/Movie")]
+    public ActionResult AddLinkToTMDBMoviesBySeriesID([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkMovieBody body)
+    {
+        if (body.ProviderID <= 0)
+        {
+            ModelState.AddModelError(nameof(body.ProviderID), "The provider ID cannot be zero or a negative value.");
+            return ValidationProblem(ModelState);
+        }
+
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(TvdbNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(TvdbForbiddenForUser);
+
+        _tmdbHelper.AddMovieLink(series.AniDB_ID, body.ProviderID, body.EpisodeID, additiveLink: !body.Replace, forceRefresh: body.Refresh);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Refresh all TMDB movies linked to the series.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="force">Forcefully download an update even if we updated recently.</param>
+    /// <param name="downloadImages">Also download images.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/TMDB/Movie/Refresh")]
+    public ActionResult RefreshTMDBMoviesBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false, [FromQuery] bool downloadImages = true)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(TvdbNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(TvdbForbiddenForUser);
+
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID))
+            _commandFactory.CreateAndSave<CommandRequest_TMDB_Movie_Update>(c =>
+            {
+                c.TmdbMovieID = xref.TmdbMovieID;
+                c.ForceRefresh = force;
+                c.DownloadImages = downloadImages;
+            });
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Remove one or all TMDB Movie links from the series.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">Optional. Body containing information about the link to be removed.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpDelete("{seriesID}/TMDB/Movie")]
+    public ActionResult RemoveLinkToTMDBMoviesBySeriesID([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkCommonBody body)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(TvdbNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(TvdbForbiddenForUser);
+
+        if (body != null && body.ProviderID > 0)
+            _tmdbHelper.RemoveMovieLink(series.AniDB_ID, body.ProviderID, body.Purge);
+        else
+            _tmdbHelper.RemoveAllMovieLinks(series.AniDB_ID, body.Purge);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Get the local metadata for a TMDB movie.
+    /// </summary>
+    /// <param name="movieID">TMDB Movie ID.</param>
+    /// <returns></returns>
+    [HttpGet("TMDB/Movie/{movieID}")]
+    public ActionResult GetTMDBMovieByMovieID([FromRoute] int movieID)
+    {
+        var movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieID);
+        if (movie == null)
+            return NotFound("A Series.TMDB.Movie by the given movieID was not found.");
+
+        // TODO: Add this when the v3 TMDB Movie Model is made.
+        return Ok();
+    }
+
+    /// <summary>
+    /// Get all shoko series linked to a TMDB movie.
+    /// </summary>
+    /// <param name="movieID">TMDB Movie ID.</param>
+    /// <returns></returns>
+    [HttpGet("TMDB/Movie/{movieID}/Series")]
+    public ActionResult<List<Series>> GetSeriesByTMDBMovieID([FromRoute] int movieID)
+    {
+        var movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieID);
+        if (movie == null)
+            return NotFound("A Series.TMDB.Movie by the given movieID was not found.");
+
+        return RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(movieID)
+            .Select(xref => RepoFactory.AnimeSeries.GetByAnimeID(xref.AnidbAnimeID))
+            .Where(series => series != null)
+            .Select(series => new Series(HttpContext, series))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Refresh or download  the metadata for a TMDB movie.
+    /// </summary>
+    /// <param name="movieID">TMDB Movie ID.</param>
+    /// <param name="force">Forcefully download an update even if we updated recently.</param>
+    /// <param name="downloadImages">Also download images.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPost("TMDB/Movie/{movieID}/Refresh")]
+    public ActionResult RefreshTMDBMovieByMovieID([FromRoute] int movieID, [FromQuery] bool force = false, [FromQuery] bool downloadImages = true)
+    {
+        _commandFactory.CreateAndSave<CommandRequest_TMDB_Movie_Update>(c =>
+        {
+            c.TmdbMovieID = movieID;
+            c.ForceRefresh = force;
+            c.DownloadImages = downloadImages;
+        });
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Remove the local copy of the metadata for a TMDB movie.
+    /// </summary>
+    /// <param name="movieID">TMDB Movie ID.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpDelete("TMDB/Movie/{movieID}")]
+    public ActionResult RemoveTMDBMovieByMovieID([FromRoute] int movieID)
+    {
+        var movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieID);
+        if (movie == null)
+            return NotFound("A Series.TMDB.Movie by the given movieID was not found.");
+
+        _commandFactory.CreateAndSave<CommandRequest_TMDB_Movie_Purge>(c => c.TmdbMovieID = movieID);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Search TMDB for movies.
+    /// </summary>
+    /// <param name="query">Query to search for</param>
+    /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
+    /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
+    /// <param name="includeTitles">Include titles in the results.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("TMDB/Movie/Search")]
+    public ActionResult<ListResult<object>> SearchForTMDBMovies(
+        [FromRoute] string query,
+        [FromQuery] bool fuzzy = true,
+        [FromQuery] bool? local = null,
+        [FromQuery] bool includeTitles = true,
+        [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1)
+    {
+        // TODO: Add this once the tmdb movie search model is finalised.
+
+        return new ListResult<object>();
     }
 
     #endregion
@@ -1111,7 +1326,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return Series.GetArt(HttpContext, series.AniDB_ID, includeDisabled);
+        return Series.GetArt(series.AniDB_ID, includeDisabled);
     }
 
     #endregion
@@ -1138,19 +1353,19 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
-        var defaultBanner = Series.GetDefaultImage(series.AniDB_ID, imageSizeType);
+        var imageEntityType = imageType.ToServer();
+        var defaultBanner = Series.GetDefaultImage(series.AniDB_ID, imageEntityType);
         if (defaultBanner != null)
         {
             return defaultBanner;
         }
 
-        var images = Series.GetArt(HttpContext, series.AniDB_ID);
-        return imageSizeType switch
+        var images = Series.GetArt(series.AniDB_ID);
+        return imageEntityType switch
         {
-            ImageSizeType.Poster => images.Posters.FirstOrDefault(),
-            ImageSizeType.WideBanner => images.Banners.FirstOrDefault(),
-            ImageSizeType.Fanart => images.Fanarts.FirstOrDefault(),
+            ImageEntityType.Poster => images.Posters.FirstOrDefault(),
+            ImageEntityType.Banner => images.Banners.FirstOrDefault(),
+            ImageEntityType.Backdrop => images.Fanarts.FirstOrDefault(),
             _ => null
         };
     }
@@ -1177,95 +1392,60 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        var imageEntityType = Image.GetImageTypeFromSourceAndType(body.Source, imageType);
-        if (!imageEntityType.HasValue)
-            return ValidationProblem("Invalid body source");
-
-        // All dynamic ids are stringified ints, so extract the image id from the body.
-        if (!int.TryParse(body.ID, out var imageID))
-            return ValidationProblem("Invalid body id. Id must be a stringified int.");
+        var dataSource = body.Source.ToServer();
+        var imageEntityType = imageType.ToServer();
 
         // Check if the id is valid for the given type and source.
 
-        switch (imageEntityType.Value)
+        switch (imageEntityType.ToClient(dataSource))
         {
             // Posters
-            case ImageEntityType.AniDB_Cover:
-                if (imageID != series.AniDB_ID)
-                {
+            case CL_ImageEntityType.AniDB_Cover:
+                if (body.ID != series.AniDB_ID)
                     return ValidationProblem(InvalidIDForSource);
-                }
 
                 break;
-            case ImageEntityType.TvDB_Cover:
+            case CL_ImageEntityType.TvDB_Cover:
                 {
-                    var tvdbPoster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
+                    var tvdbPoster = RepoFactory.TvDB_ImagePoster.GetByID(body.ID);
                     if (tvdbPoster == null)
-                    {
                         return ValidationProblem(InvalidIDForSource);
-                    }
 
                     if (tvdbPoster.Enabled != 1)
-                    {
                         return ValidationProblem(InvalidImageIsDisabled);
-                    }
 
                     break;
                 }
-            case ImageEntityType.MovieDB_Poster:
-                var tmdbPoster = RepoFactory.MovieDB_Poster.GetByID(imageID);
-                if (tmdbPoster == null)
-                {
-                    return ValidationProblem(InvalidIDForSource);
-                }
-
-                if (tmdbPoster.Enabled != 1)
-                {
-                    return ValidationProblem(InvalidImageIsDisabled);
-                }
-
-                break;
 
             // Banners
-            case ImageEntityType.TvDB_Banner:
-                var tvdbBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
+            case CL_ImageEntityType.TvDB_Banner:
+                var tvdbBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(body.ID);
                 if (tvdbBanner == null)
-                {
                     return ValidationProblem(InvalidIDForSource);
-                }
 
                 if (tvdbBanner.Enabled != 1)
-                {
                     return ValidationProblem(InvalidImageIsDisabled);
-                }
 
                 break;
 
             // Fanart
-            case ImageEntityType.TvDB_FanArt:
-                var tvdbFanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
+            case CL_ImageEntityType.TvDB_FanArt:
+                var tvdbFanart = RepoFactory.TvDB_ImageFanart.GetByID(body.ID);
                 if (tvdbFanart == null)
-                {
                     return ValidationProblem(InvalidIDForSource);
-                }
 
                 if (tvdbFanart.Enabled != 1)
-                {
                     return ValidationProblem(InvalidImageIsDisabled);
-                }
 
                 break;
-            case ImageEntityType.MovieDB_FanArt:
-                var tmdbFanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
-                if (tmdbFanart == null)
-                {
+            case CL_ImageEntityType.MovieDB_Poster:
+            case CL_ImageEntityType.MovieDB_FanArt:
+                var tmdbImage = RepoFactory.TMDB_Image.GetByID(body.ID);
+                if (tmdbImage == null)
                     return ValidationProblem(InvalidIDForSource);
-                }
 
-                if (tmdbFanart.Enabled != 1)
-                {
+                if (!tmdbImage.IsEnabled)
                     return ValidationProblem(InvalidImageIsDisabled);
-                }
 
                 break;
 
@@ -1274,20 +1454,18 @@ public class SeriesController : BaseController
                 return ValidationProblem("Invalid source and/or type.");
         }
 
-        var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
-        var defaultImage =
-            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, imageSizeType) ??
-            new AniDB_Anime_DefaultImage { AnimeID = series.AniDB_ID, ImageType = (int)imageSizeType };
-        defaultImage.ImageParentID = imageID;
-        defaultImage.ImageParentType = (int)imageEntityType.Value;
+        var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(series.AniDB_ID, imageEntityType) ??
+            new() { AnidbAnimeID = series.AniDB_ID, ImageType = imageEntityType };
+        defaultImage.ImageID = body.ID;
+        defaultImage.ImageSource = dataSource;
 
         // Create or update the entry.
-        RepoFactory.AniDB_Anime_DefaultImage.Save(defaultImage);
+        RepoFactory.AniDB_Anime_PreferredImage.Save(defaultImage);
 
         // Update the contract data (used by Shoko Desktop).
         RepoFactory.AnimeSeries.Save(series, false);
 
-        return new Image(imageID, imageEntityType.Value, true);
+        return new Image(body.ID, imageEntityType, dataSource, true);
     }
 
     /// <summary>
@@ -1311,14 +1489,13 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         // Check if a default image is set.
-        var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
-        var defaultImage =
-            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, imageSizeType);
+        var imageEntityType = imageType.ToServer();
+        var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(series.AniDB_ID, imageEntityType);
         if (defaultImage == null)
             return ValidationProblem("No default banner.");
 
         // Delete the entry.
-        RepoFactory.AniDB_Anime_DefaultImage.Delete(defaultImage);
+        RepoFactory.AniDB_Anime_PreferredImage.Delete(defaultImage);
 
         // Update the contract data (used by Shoko Desktop).
         RepoFactory.AnimeSeries.Save(series, false);

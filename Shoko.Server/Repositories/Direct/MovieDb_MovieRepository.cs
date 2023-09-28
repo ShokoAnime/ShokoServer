@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using NHibernate.Criterion;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct;
@@ -34,7 +34,7 @@ public class MovieDb_MovieRepository : BaseDirectRepository<MovieDB_Movie, int>
         return cr;
     }
 
-    public Dictionary<int, Tuple<CrossRef_AniDB_Other, MovieDB_Movie>> GetByAnimeIDs(ISessionWrapper session,
+    public Dictionary<int, Tuple<CrossRef_AniDB_TMDB_Movie, MovieDB_Movie>> GetByAnimeIDs(ISessionWrapper session,
         int[] animeIds)
     {
         if (session == null)
@@ -49,7 +49,7 @@ public class MovieDb_MovieRepository : BaseDirectRepository<MovieDB_Movie, int>
 
         if (animeIds.Length == 0)
         {
-            return new Dictionary<int, Tuple<CrossRef_AniDB_Other, MovieDB_Movie>>();
+            return new Dictionary<int, Tuple<CrossRef_AniDB_TMDB_Movie, MovieDB_Movie>>();
         }
 
         return Lock(() =>
@@ -57,21 +57,19 @@ public class MovieDb_MovieRepository : BaseDirectRepository<MovieDB_Movie, int>
             var movieByAnime = session.CreateSQLQuery(
                     @"
                 SELECT {cr.*}, {movie.*}
-                    FROM CrossRef_AniDB_Other cr
+                    FROM CrossRef_AniDB_TMDB_Movie cr
                         INNER JOIN MovieDB_Movie movie
-                            ON cr.CrossRefType = :crossRefType
-                                AND movie.MovieId = cr.CrossRefID
-                    WHERE cr.AnimeID IN (:animeIds)"
+                            ON movie.MovieId = cr.TmdbMovieID
+                    WHERE cr.AnidbAnimeID IN (:animeIds)"
                 )
-                .AddEntity("cr", typeof(CrossRef_AniDB_Other))
+                .AddEntity("cr", typeof(CrossRef_AniDB_TMDB_Movie))
                 .AddEntity("movie", typeof(MovieDB_Movie))
-                .SetInt32("crossRefType", (int)CrossRefType.MovieDB)
                 .SetParameterList("animeIds", animeIds)
                 .List<object[]>()
                 .ToDictionary(
-                    r => ((CrossRef_AniDB_Other)r[0]).AnimeID,
-                    r => new Tuple<CrossRef_AniDB_Other, MovieDB_Movie>(
-                        (CrossRef_AniDB_Other)r[0],
+                    r => ((CrossRef_AniDB_TMDB_Movie)r[0]).AnidbAnimeID,
+                    r => new Tuple<CrossRef_AniDB_TMDB_Movie, MovieDB_Movie>(
+                        (CrossRef_AniDB_TMDB_Movie)r[0],
                         (MovieDB_Movie)r[1]
                     )
                 );

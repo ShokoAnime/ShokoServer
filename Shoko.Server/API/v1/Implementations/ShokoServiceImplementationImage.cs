@@ -8,9 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 using NLog;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
-using Shoko.Server.Extensions;
+using Shoko.Server.ImageDownload;
 using Shoko.Server.Properties;
-using Shoko.Server.Repositories;
 using Mime = MimeMapping.MimeUtility;
 
 namespace Shoko.Server;
@@ -225,176 +224,15 @@ public class ShokoServiceImplementationImage : Controller, IShokoServerImage, IH
     [HttpGet("Path/{imageId}/{imageType}/{thumnbnailOnly?}")]
     public string GetImagePath(int imageId, int imageType, bool? thumnbnailOnly)
     {
-        var it = (ImageEntityType)imageType;
-
-        switch (it)
+        try
         {
-            case ImageEntityType.AniDB_Cover:
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(imageId);
-                if (anime == null)
-                {
-                    return null;
-                }
-
-                if (System.IO.File.Exists(anime.PosterPath))
-                {
-                    return anime.PosterPath;
-                }
-                else
-                {
-                    logger.Trace("Could not find AniDB_Cover image: {0}", anime.PosterPath);
-                    return string.Empty;
-                }
-
-            case ImageEntityType.AniDB_Character:
-                var chr = RepoFactory.AniDB_Character.GetByID(imageId);
-                if (chr == null)
-                {
-                    return null;
-                }
-
-                if (System.IO.File.Exists(chr.GetPosterPath()))
-                {
-                    return chr.GetPosterPath();
-                }
-                else
-                {
-                    logger.Trace("Could not find AniDB_Character image: {0}", chr.GetPosterPath());
-                    return string.Empty;
-                }
-
-            case ImageEntityType.AniDB_Creator:
-                var creator = RepoFactory.AniDB_Seiyuu.GetByID(imageId);
-                if (creator == null)
-                {
-                    return string.Empty;
-                }
-
-                if (System.IO.File.Exists(creator.GetPosterPath()))
-                {
-                    return creator.GetPosterPath();
-                }
-                else
-                {
-                    logger.Trace("Could not find AniDB_Creator image: {0}", creator.GetPosterPath());
-                    return string.Empty;
-                }
-
-            case ImageEntityType.TvDB_Cover:
-                var poster = RepoFactory.TvDB_ImagePoster.GetByID(imageId);
-                if (poster == null)
-                {
-                    return null;
-                }
-
-                if (System.IO.File.Exists(poster.GetFullImagePath()))
-                {
-                    return poster.GetFullImagePath();
-                }
-                else
-                {
-                    logger.Trace("Could not find TvDB_Cover image: {0}", poster.GetFullImagePath());
-                    return string.Empty;
-                }
-
-            case ImageEntityType.TvDB_Banner:
-                var wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageId);
-                if (wideBanner == null)
-                {
-                    return null;
-                }
-
-                if (System.IO.File.Exists(wideBanner.GetFullImagePath()))
-                {
-                    return wideBanner.GetFullImagePath();
-                }
-                else
-                {
-                    logger.Trace("Could not find TvDB_Banner image: {0}", wideBanner.GetFullImagePath());
-                    return string.Empty;
-                }
-
-            case ImageEntityType.TvDB_Episode:
-                var ep = RepoFactory.TvDB_Episode.GetByID(imageId);
-                if (ep == null)
-                {
-                    return null;
-                }
-
-                if (System.IO.File.Exists(ep.GetFullImagePath()))
-                {
-                    return ep.GetFullImagePath();
-                }
-                else
-                {
-                    logger.Trace("Could not find TvDB_Episode image: {0}", ep.GetFullImagePath());
-                    return string.Empty;
-                }
-
-            case ImageEntityType.TvDB_FanArt:
-                var fanart = RepoFactory.TvDB_ImageFanart.GetByID(imageId);
-                if (fanart == null)
-                {
-                    return null;
-                }
-
-                if (System.IO.File.Exists(fanart.GetFullImagePath()))
-                {
-                    return fanart.GetFullImagePath();
-                }
-
-                logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
-                return string.Empty;
-
-            case ImageEntityType.MovieDB_Poster:
-                var mPoster = RepoFactory.MovieDB_Poster.GetByID(imageId);
-                if (mPoster == null)
-                {
-                    return null;
-                }
-
-                // now find only the original size
-                mPoster = RepoFactory.MovieDB_Poster.GetByOnlineID(mPoster.URL);
-                if (mPoster == null)
-                {
-                    return null;
-                }
-
-                if (System.IO.File.Exists(mPoster.GetFullImagePath()))
-                {
-                    return mPoster.GetFullImagePath();
-                }
-                else
-                {
-                    logger.Trace("Could not find MovieDB_Poster image: {0}", mPoster.GetFullImagePath());
-                    return string.Empty;
-                }
-
-            case ImageEntityType.MovieDB_FanArt:
-                var mFanart = RepoFactory.MovieDB_Fanart.GetByID(imageId);
-                if (mFanart == null)
-                {
-                    return null;
-                }
-
-                mFanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
-                if (mFanart == null)
-                {
-                    return null;
-                }
-
-                if (System.IO.File.Exists(mFanart.GetFullImagePath()))
-                {
-                    return mFanart.GetFullImagePath();
-                }
-                else
-                {
-                    logger.Trace("Could not find MovieDB_FanArt image: {0}", mFanart.GetFullImagePath());
-                    return string.Empty;
-                }
-
-            default:
-                return string.Empty;
+            var it = (CL_ImageEntityType)imageType;
+            return ImageUtils.GetLocalPath(it, imageId, true) ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, ex.ToString());
+            return string.Empty;
         }
     }
 }

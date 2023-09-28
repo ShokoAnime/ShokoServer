@@ -152,7 +152,7 @@ public static class Extensions
             return prov.ConstructSupportImageLink("plex_404.png");
         }
 
-        return prov.ConstructThumbLink((int)ImageEntityType.TvDB_Episode, ep.TvDB_EpisodeID);
+        return prov.ConstructThumbLink((int)CL_ImageEntityType.TvDB_Episode, ep.TvDB_EpisodeID);
     }
 
     public static string GenArt(this CL_AniDB_Anime_DefaultImage im, IProvider prov)

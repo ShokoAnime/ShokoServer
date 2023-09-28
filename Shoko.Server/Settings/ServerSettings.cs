@@ -47,7 +47,7 @@ public class ServerSettings : IServerSettings
 
     public TvDBSettings TvDB { get; set; } = new();
 
-    public MovieDbSettings MovieDb { get; set; } = new();
+    public TMDBSettings TMDB { get; set; } = new();
 
     public ImportSettings Import { get; set; } = new();
 
@@ -88,7 +88,8 @@ public class ServerSettings : IServerSettings
         "en",
     };
 
-    public List<string> EpisodeLanguagePreference {
+    public List<string> EpisodeLanguagePreference
+    {
         get => _episodeLanguagePreference;
         set
         {

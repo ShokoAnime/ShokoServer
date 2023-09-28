@@ -22,6 +22,8 @@ using Shoko.Server.Utilities;
 using Media = Shoko.Models.PlexAndKodi.Media;
 using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 
+using AniDBUtil = Shoko.Commons.Utils.AniDB;
+
 namespace Shoko.Server.Models;
 
 public class SVR_VideoLocal : VideoLocal, IHash
@@ -276,7 +278,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
                             c.Hash = Hash;
                             c.Watched = watched;
                             c.UpdateSeriesStats = false;
-                            c.WatchedDateAsSecs = AniDB.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime());
+                            c.WatchedDateAsSecs = AniDBUtil.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime());
                         }
                     );
                 }

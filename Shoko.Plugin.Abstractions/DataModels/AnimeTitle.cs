@@ -12,6 +12,7 @@ namespace Shoko.Plugin.Abstractions.DataModels
 
     public enum TitleLanguage
     {
+        None = -1,
         Unknown = 0,
         English = 1,
         Romaji,
@@ -122,6 +123,11 @@ namespace Shoko.Plugin.Abstractions.DataModels
         Yiddish,
         Yoruba,
         Zulu,
+        Hindi,
+        Filipino,
+        KoreanTranscription,
+        ThaiTranscription,
+        Urdu,
     }
 
     public enum TitleType

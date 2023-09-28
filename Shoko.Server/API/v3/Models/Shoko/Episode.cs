@@ -13,6 +13,7 @@ using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -283,7 +284,7 @@ public class Episode : BaseModel
             AirsAfterSeason = tvDBEpisode.AirsAfterSeason;
             AirsBeforeSeason = tvDBEpisode.AirsBeforeSeason;
             AirsBeforeEpisode = tvDBEpisode.AirsBeforeEpisode;
-            Thumbnail = new Image(tvDBEpisode.Id, ImageEntityType.TvDB_Episode, true);
+            Thumbnail = new Image(tvDBEpisode.Id, ImageEntityType.Thumbnail, DataSourceType.TvDB, true);
         }
 
         /// <summary>

@@ -519,7 +519,8 @@ public class TraktTVHelper
 
     public void ScanForMatches()
     {
-        if (!_settingsProvider.GetSettings().TraktTv.Enabled)
+        var settings = _settingsProvider.GetSettings();
+        if (!settings.TraktTv.Enabled || !settings.TvDB.AutoLink)
         {
             return;
         }

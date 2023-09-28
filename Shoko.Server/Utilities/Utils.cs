@@ -19,6 +19,7 @@ using NLog.Targets.Wrappers;
 using Shoko.Models.Enums;
 using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Providers.AniDB.Titles;
+using Shoko.Server.Providers.TMDB.Search;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
@@ -35,6 +36,7 @@ public static class Utils
     {
         get => s_aniDBTitleHelper ??= new AniDBTitleHelper(ServiceContainer.GetRequiredService<ISettingsProvider>());
     }
+
     private static string _applicationPath { get; set; } = null;
     public static string ApplicationPath
     {

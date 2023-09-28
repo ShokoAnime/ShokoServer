@@ -16,6 +16,7 @@ using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Tasks;
@@ -109,15 +110,7 @@ public class DatabaseFixes
 
     public static void RemoveOldMovieDBImageRecords()
     {
-        try
-        {
-            RepoFactory.MovieDB_Fanart.Delete(RepoFactory.MovieDB_Fanart.GetAll());
-            RepoFactory.MovieDB_Poster.Delete(RepoFactory.MovieDB_Poster.GetAll());
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Could not RemoveOldMovieDBImageRecords: " + ex);
-        }
+        // No-op.
     }
 
 
@@ -1135,5 +1128,24 @@ public class DatabaseFixes
 
         logger.Trace($"Deleting {xrefsToRemove.Count} orphaned file/episode cross-references.");
         RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
+    }
+
+    public static void CleanupAfterAddingTMDB()
+    {
+        // TODO: Cleanup afterwards
+        var helper = Utils.ServiceContainer.GetRequiredService<TMDBHelper>();
+
+        // Remove the "MovieDB" directory in the image directory, since it's no longer used,
+        var dir = new DirectoryInfo(Path.Join(ImageUtils.GetBaseImagesPath(), "MovieDB"));
+        if (dir.Exists)
+            dir.Delete(true);
+
+        // Schedule commands to get the new movie info for existing cross-reference
+        helper.UpdateAllMovies(true, true);
+
+        // Schedule tmdb searches if we have auto linking enabled.
+        helper.ScanForMatches();
+
+        // - etc.
     }
 }

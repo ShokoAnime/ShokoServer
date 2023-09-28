@@ -22,7 +22,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name { get; } = "SQLite";
 
-    public override int RequiredVersion { get; } = 104;
+    public override int RequiredVersion { get; } = 105;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -672,6 +672,38 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(103, 2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion text;"),
         new(104, 1, DatabaseFixes.FixAnimeSourceLinks),
         new(104, 2, DatabaseFixes.FixOrphanedShokoEpisodes),
+        new(105, 1, "CREATE TABLE CrossRef_AniDB_TMDB_Episode ( CrossRef_AniDB_TMDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, AnidbEpisodeID INTEGER NOT NULL, TmdbEpisodeID INTEGER NOT NULL, Ordering INTEGER NOT NULL, MatchRating INTEGER NOT NULL);"),
+        new(105, 2, "CREATE TABLE CrossRef_AniDB_TMDB_Movie ( CrossRef_AniDB_TMDB_MovieID INTEGER PRIMARY KEY AUTOINCREMENT, AnidbAnimeID INTEGER NOT NULL, AnidbEpisodeID INTEGER NULL, TmdbMovieID INTEGER NOT NULL, Source INTEGER NOT NULL);"),
+        new(105, 3, "CREATE TABLE CrossRef_AniDB_TMDB_Show ( CrossRef_AniDB_TMDB_ShowID INTEGER PRIMARY KEY AUTOINCREMENT, AnidbAnimeID INTEGER NOT NULL, TmdbShowID INTEGER NOT NULL, TmdbSeasonID INTEGER NULL, Source INTEGER NOT NULL);"),
+        new(105, 4, "CREATE TABLE TMDB_Image ( TMDB_ImageID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbMovieID INTEGER NULL, TmdbEpisodeID INTEGER NULL, TmdbSeasonID INTEGER NULL, TmdbShowID INTEGER NULL, TmdbCollectionID INTEGER NULL, TmdbNetworkID INTEGER NULL, TmdbCompanyID INTEGER NULL, TmdbPersonID INTEGER NULL, ForeignType INTEGER NOT NULL, ImageType INTEGER NOT NULL, IsEnabled INTEGER NOT NULL, Width INTEGER NOT NULL, Height INTEGER NOT NULL, Language TEXT NOT NULL, RemoteFileName TEXT NOT NULL, UserRating REAL NOT NULL, UserVotes INTEGER NOT NULL );"),
+        new(105, 5, "CREATE TABLE AniDB_Anime_PreferredImage ( AniDB_Anime_PreferredImageID INTEGER PRIMARY KEY AUTOINCREMENT, AnidbAnimeID INTEGER NULL, ImageID INTEGER NOT NULL, ImageType INTEGER NOT NULL, ImageSource INTEGER NOT NULL );"),
+        new(105, 6, "CREATE TABLE TMDB_Title ( TMDB_TitleID INTEGER PRIMARY KEY AUTOINCREMENT, ParentID INTEGER NOT NULL, ParentType INTEGER NOT NULL, LanguageCode TEXT NOT NULL, CountryCode TEXT NOT NULL, Value TEXT NOT NULL );"),
+        new(105, 7, "CREATE TABLE TMDB_Overview ( TMDB_OverviewID INTEGER PRIMARY KEY AUTOINCREMENT, ParentID INTEGER NOT NULL, ParentType INTEGER NOT NULL, LanguageCode TEXT NOT NULL, CountryCode TEXT NOT NULL, Value TEXT NOT NULL );"),
+        new(105, 8, "CREATE TABLE TMDB_Company ( TMDB_CompanyID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbCompanyID INTEGER NOT NULL, Name TEXT NOT NULL, CountryOfOrigin TEXT NOT NULL );"),
+        new(105, 9, "CREATE TABLE TMDB_Network ( TMDB_NetworkID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbNetworkID INTEGER NOT NULL, Name TEXT NOT NULL, CountryOfOrigin TEXT NOT NULL );"),
+        new(105, 10, "CREATE TABLE TMDB_Person ( TMDB_PersonID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbPersonID INTEGER NOT NULL, EnglishName TEXT NOT NULL, EnglishBiography TEXT NOT NULL, Gender INTEGER NOT NULL, IsRestricted INTEGER NOT NULL, BirthDay DATE NULL, DeathDay DATE NULL, PlaceOfBirth TEXT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(105, 11, "CREATE TABLE TMDB_Movie ( TMDB_MovieID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbMovieID INTEGER NOT NULL, TmdbCollectionID INTEGER NULL, EnglishTitle TEXT NOT NULL, EnglishOverview TEXT NOT NULL, OriginalTitle TEXT NOT NULL, OriginalLanguageCode TEXT NOT NULL, IsRestricted INTEGER NOT NULL, IsVideo INTEGER NOT NULL, Genres TEXT NOT NULL, ContentRatings TEXT NOT NULL, Runtime TEXT NULL, UserRating REAL NOT NULL, UserVotes INTEGER NOT NULL, ReleasedAt DATE NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(105, 12, "CREATE TABLE TMDB_Movie_Cast ( TMDB_Movie_CastID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbMovieID INT NOT NULL, TmdbPersonID INT NOT NULL, TmdbCreditID TEXT NOT NULL, CharacterName TEXT NOT NULL, IsGuestRole INTEGER NOT NULL, Ordering INTEGER NOT NULL );"),
+        new(105, 13, "CREATE TABLE TMDB_Company_Entity ( TMDB_Company_EntityID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbCompanyID INTEGER NOT NULL, TmdbEntityType INTEGER NOT NULL, TmdbEntityID INTEGER NOT NULL, 'Index' INTEGER NOT NULL, ReleasedAt DATE NULL );"),
+        new(105, 14, "CREATE TABLE TMDB_Movie_Crew ( TMDB_Movie_CrewID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbMovieID INTEGER NOT NULL, TmdbPersonID INTEGER NOT NULL, TmdbCreditID TEXT NOT NULL, Job TEXT NOT NULL, Department TEXT NOT NULL );"),
+        new(105, 15, "CREATE TABLE TMDB_Show ( TMDB_ShowID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbShowID INTEGER NOT NULL, EnglishTitle TEXT NOT NULL, EnglishOverview TEXT NOT NULL, OriginalTitle TEXT NOT NULL, OriginalLanguageCode TEXT NOT NULL, IsRestricted INTEGER NOT NULL, Genres TEXT NOT NULL, ContentRatings TEXT NOT NULL, EpisodeCount INTEGER NOT NULL, SeasonCount INTEGER NOT NULL, AlternateOrderingCount INTEGER NOT NULL, UserRating REAL NOT NULL, UserVotes INTEGER NOT NULL, FirstAiredAt DATE, LastAiredAt DATE NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(105, 16, "CREATE TABLE Tmdb_Show_Network ( TMDB_Show_NetworkID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbShowID INTEGER NOT NULL, TmdbNetworkID INTEGER NOT NULL, Ordering INTEGER NOT NULL );"),
+        new(105, 17, "CREATE TABLE TMDB_Season ( TMDB_SeasonID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbShowID INTEGER NOT NULL, TmdbSeasonID INTEGER NOT NULL, EnglishTitle TEXT NOT NULL, EnglishOverview TEXT NOT NULL, EpisodeCount INTEGER NOT NULL, SeasonNumber INTEGER NOT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(105, 18, "CREATE TABLE TMDB_Episode ( TMDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbShowID INTEGER NOT NULL, TmdbSeasonID INTEGER NOT NULL, TmdbEpisodeID INTEGER NOT NULL, EnglishTitle TEXT NOT NULL, EnglishOverview TEXT NOT NULL, SeasonNumber INTEGER NOT NULL, EpisodeNumber INTEGER NOT NULL, Runtime TEXT NULL, UserRating REAL NOT NULL, UserVotes INTEGER NOT NULL, AiredAt DATE NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(105, 19, "CREATE TABLE TMDB_Episode_Cast ( TMDB_Episode_CastID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbShowID INTEGER NOT NULL, TmdbSeasonID INTEGER NOT NULL, TmdbEpisodeID INTEGER NOT NULL, TmdbPersonID INTEGER NOT NULL, TmdbCreditID TEXT NOT NULL, CharacterName TEXT NOT NULL, IsGuestRole INTEGER NOT NULL, Ordering INTEGER NOT NULL );"),
+        new(105, 20, "CREATE TABLE TMDB_Episode_Crew ( TMDB_Episode_CrewID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbShowID INTEGER NOT NULL, TmdbSeasonID INTEGER NOT NULL, TmdbEpisodeID INTEGER NOT NULL, TmdbPersonID INTEGER NOT NULL, TmdbCreditID TEXT NOT NULL, Job TEXT NOT NULL, Department TEXT NOT NULL );"),
+        new(105, 21, "CREATE TABLE TMDB_AlternateOrdering ( TMDB_AlternateOrderingID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbShowID INTEGER NOT NULL, TmdbNetworkID INTEGER NULL, TmdbEpisodeGroupID TEXT NOT NULL, EnglishTitle TEXT NOT NULL, EnglishOverview TEXT NOT NULL, EpisodeCount INTEGER NOT NULL, SeasonCount INTEGER NOT NULL );"),
+        new(105, 22, "CREATE TABLE TMDB_AlternateOrdering_Season ( TMDB_AlternateOrdering_SeasonID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbShowID INTEGER NOT NULL, TmdbEpisodeGroupID TEXT NOT NULL, TmdbEpisodeGroupSeasonID TEXT NOT NULL, EnglishTitle TEXT NOT NULL, SeasonNumber INTEGER NOT NULL, EpisodeCount INTEGER NOT NULL, IsLocked INTEGER NOT NULL );"),
+        new(105, 23, "CREATE TABLE TMDB_AlternateOrdering_Episode ( TMDB_AlternativeOrdering_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbShowID INTEGER NOT NULL, TmdbEpisodeGroupID TEXT NOT NULL, TmdbEpisodeGroupSeasonID TEXT NOT NULL, TmdbEpisodeID INTEGER NOT NULL, SeasonNumber INTEGER NOT NULL, EpisodeNumber INTEGER NOT NULL );"),
+        new(105, 24, "CREATE TABLE TMDB_Collection ( TMDB_CollectionID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbCollectionID INTEGER NOT NULL, EnglishTitle TEXT NOT NULL, EnglishOverview TEXT NOT NULL, MovieCount INTEGER NOT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(105, 25, "CREATE TABLE TMDB_Collection_Movie ( TMDB_Collection_MovieID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbCollectionID INTEGER NOT NULL, TmdbMovieID INTEGER NOT NULL, Ordering INTEGER NOT NULL );"),
+        new(105, 26, "INSERT INTO CrossRef_AniDB_TMDB_Movie (AnidbAnimeID, TmdbMovieID, Source) SELECT AnimeID, CAST(CrossRefID AS INTEGER), CrossRefSource FROM CrossRef_AniDB_Other WHERE CrossRefType = 1;"),
+        new(105, 27, "DROP TABLE CrossRef_AniDB_Other;"),
+        new(105, 28, "DROP TABLE MovieDB_Fanart;"),
+        new(105, 29, "DROP TABLE MovieDB_Movie;"),
+        new(105, 30, "DROP TABLE MovieDB_Poster;"),
+        new(105, 31, "DROP TABLE AniDB_Anime_DefaultImage;"),
+        new(105, 32, DatabaseFixes.CleanupAfterAddingTMDB),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

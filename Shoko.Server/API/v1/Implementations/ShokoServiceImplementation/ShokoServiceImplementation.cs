@@ -18,10 +18,11 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
+using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.MovieDB;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
@@ -43,17 +44,17 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private static Logger logger = LogManager.GetCurrentClassLogger();
     private readonly TvDBApiHelper _tvdbHelper;
     private readonly TraktTVHelper _traktHelper;
-    private readonly MovieDBHelper _movieDBHelper;
+    private readonly TMDBHelper _tmdbHelper;
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
 
-    public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper,
+    public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, TMDBHelper tmdbHelper,
         ICommandRequestFactory commandFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
     {
         _tvdbHelper = tvdbHelper;
         _traktHelper = traktHelper;
-        _movieDBHelper = movieDBHelper;
+        _tmdbHelper = tmdbHelper;
         _commandFactory = commandFactory;
         _schedulerFactory = schedulerFactory;
         _settingsProvider = settingsProvider;
@@ -615,10 +616,10 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.TvDB.Language = contractIn.TvDB_Language;
 
             // MovieDB
-            settings.MovieDb.AutoFanart = contractIn.MovieDB_AutoFanart;
-            settings.MovieDb.AutoFanartAmount = contractIn.MovieDB_AutoFanartAmount;
-            settings.MovieDb.AutoPosters = contractIn.MovieDB_AutoPosters;
-            settings.MovieDb.AutoPostersAmount = contractIn.MovieDB_AutoPostersAmount;
+            settings.TMDB.AutoDownloadBackdrops = contractIn.MovieDB_AutoFanart;
+            settings.TMDB.MaxAutoBackdrops = contractIn.MovieDB_AutoFanartAmount;
+            settings.TMDB.AutoDownloadPosters = contractIn.MovieDB_AutoPosters;
+            settings.TMDB.MaxAutoPosters = contractIn.MovieDB_AutoPostersAmount;
 
             // Import settings
             settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
@@ -938,84 +939,10 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            var imgType = (ImageEntityType)imageType;
-            int animeID = 0;
+            var it = (CL_ImageEntityType)imageType;
+            if (!ImageUtils.SetEnabled(it.ToServerSource(), it.ToServerType(), imageID, enabled))
+                return "Could not find image";
 
-            switch (imgType)
-            {
-                case ImageEntityType.AniDB_Cover:
-                    var anime = RepoFactory.AniDB_Anime.GetByAnimeID(imageID);
-                    if (anime == null)
-                    {
-                        return "Could not find anime";
-                    }
-
-                    anime.ImageEnabled = enabled ? 1 : 0;
-                    RepoFactory.AniDB_Anime.Save(anime);
-                    break;
-
-                case ImageEntityType.TvDB_Banner:
-                    var banner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
-                    if (banner == null)
-                    {
-                        return "Could not find image";
-                    }
-
-                    banner.Enabled = enabled ? 1 : 0;
-                    RepoFactory.TvDB_ImageWideBanner.Save(banner);
-                    animeID = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(banner.SeriesID).FirstOrDefault()?.AniDBID ?? 0;
-                    break;
-
-                case ImageEntityType.TvDB_Cover:
-                    var poster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
-                    if (poster == null)
-                    {
-                        return "Could not find image";
-                    }
-
-                    poster.Enabled = enabled ? 1 : 0;
-                    RepoFactory.TvDB_ImagePoster.Save(poster);
-                    animeID = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(poster.SeriesID).FirstOrDefault()?.AniDBID ?? 0;
-                    break;
-
-                case ImageEntityType.TvDB_FanArt:
-                    var fanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
-                    if (fanart == null)
-                    {
-                        return "Could not find image";
-                    }
-
-                    fanart.Enabled = enabled ? 1 : 0;
-                    RepoFactory.TvDB_ImageFanart.Save(fanart);
-                    animeID = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(fanart.SeriesID).FirstOrDefault()?.AniDBID ?? 0;
-                    break;
-
-                case ImageEntityType.MovieDB_Poster:
-                    var moviePoster = RepoFactory.MovieDB_Poster.GetByID(imageID);
-                    if (moviePoster == null)
-                    {
-                        return "Could not find image";
-                    }
-
-                    moviePoster.Enabled = enabled ? 1 : 0;
-                    RepoFactory.MovieDB_Poster.Save(moviePoster);
-                    animeID = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(moviePoster.MovieId, CrossRefType.MovieDB)?.AnimeID ?? 0;
-                    break;
-
-                case ImageEntityType.MovieDB_FanArt:
-                    var movieFanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
-                    if (movieFanart == null)
-                    {
-                        return "Could not find image";
-                    }
-
-                    movieFanart.Enabled = enabled ? 1 : 0;
-                    RepoFactory.MovieDB_Fanart.Save(movieFanart);
-                    animeID = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(movieFanart.MovieId, CrossRefType.MovieDB)?.AnimeID ?? 0;
-                    break;
-            }
-
-            if (animeID != 0) SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
             return string.Empty;
         }
         catch (Exception ex)
@@ -1030,54 +957,23 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            var imgType = (ImageEntityType)imageType;
-            var sizeType = ImageSizeType.Poster;
+            var imageEntityType = ((CL_ImageEntityType)imageType).ToServerType();
+            var dataSource = ((CL_ImageEntityType)imageType).ToServerSource();
 
-            switch (imgType)
-            {
-                case ImageEntityType.AniDB_Cover:
-                case ImageEntityType.TvDB_Cover:
-                case ImageEntityType.MovieDB_Poster:
-                    sizeType = ImageSizeType.Poster;
-                    break;
-
-                case ImageEntityType.TvDB_Banner:
-                    sizeType = ImageSizeType.WideBanner;
-                    break;
-
-                case ImageEntityType.TvDB_FanArt:
-                case ImageEntityType.MovieDB_FanArt:
-                    sizeType = ImageSizeType.Fanart;
-                    break;
-            }
-
+            // Reset the image preference.
             if (!isDefault)
             {
-                // this mean we are removing an image as default
-                // which essential means deleting the record
-
-                var img =
-                    RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, sizeType);
-                if (img != null)
-                {
-                    RepoFactory.AniDB_Anime_DefaultImage.Delete(img.AniDB_Anime_DefaultImageID);
-                }
+                var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(animeID, imageEntityType);
+                if (defaultImage != null)
+                    RepoFactory.AniDB_Anime_PreferredImage.Delete(defaultImage);
             }
+            // Mark the image as the preferred/default for it's type.
             else
             {
-                // making the image the default for it's type (poster, fanart etc)
-                var img =
-                    RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, sizeType);
-                if (img == null)
-                {
-                    img = new AniDB_Anime_DefaultImage();
-                }
-
-                img.AnimeID = animeID;
-                img.ImageParentID = imageID;
-                img.ImageParentType = (int)imgType;
-                img.ImageType = (int)sizeType;
-                RepoFactory.AniDB_Anime_DefaultImage.Save(img);
+                var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(animeID, imageEntityType) ?? new(animeID, imageEntityType);
+                defaultImage.ImageID = imageID;
+                defaultImage.ImageSource = dataSource;
+                RepoFactory.AniDB_Anime_PreferredImage.Save(defaultImage);
             }
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);

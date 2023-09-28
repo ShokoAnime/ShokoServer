@@ -17,10 +17,12 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.LZ4;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
@@ -159,48 +161,30 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         return results;
     }
 
-    public CrossRef_AniDB_Other GetCrossRefMovieDB()
+    public List<CrossRef_AniDB_TMDB_Show> GetCrossRefTmdbShows()
+        => RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(AnimeID);
+
+    public List<CrossRef_AniDB_TMDB_Movie> GetCrossRefTmdbMovies()
+        => RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(AnimeID);
+
+    public List<MovieDB_Movie> GetTmdbMovie()
+        => GetCrossRefTmdbMovies()
+            .Select(xref => RepoFactory.MovieDb_Movie.GetByOnlineID(xref.TmdbMovieID))
+            .ToList();
+
+    public List<TMDB_Image> GetTmdbMovieFanarts()
+        => GetCrossRefTmdbMovies()
+            .SelectMany(xref => RepoFactory.TMDB_Image.GetByTmdbMovieIDAndType(xref.TmdbMovieID, ImageEntityType.Backdrop))
+            .ToList();
+
+    public List<TMDB_Image> GetTmdbMoviePosters()
+        => GetCrossRefTmdbMovies()
+            .SelectMany(xref => RepoFactory.TMDB_Image.GetByTmdbMovieIDAndType(xref.TmdbMovieID, ImageEntityType.Backdrop))
+            .ToList();
+
+    public AniDB_Anime_PreferredImage GetDefaultPoster()
     {
-        return RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(AnimeID,
-            CrossRefType.MovieDB);
-    }
-
-    public MovieDB_Movie GetMovieDBMovie()
-    {
-        var xref = GetCrossRefMovieDB();
-        if (xref == null)
-        {
-            return null;
-        }
-
-        return RepoFactory.MovieDb_Movie.GetByOnlineID(int.Parse(xref.CrossRefID));
-    }
-
-    public List<MovieDB_Fanart> GetMovieDBFanarts()
-    {
-        var xref = GetCrossRefMovieDB();
-        if (xref == null)
-        {
-            return new List<MovieDB_Fanart>();
-        }
-
-        return RepoFactory.MovieDB_Fanart.GetByMovieID(int.Parse(xref.CrossRefID));
-    }
-
-    public List<MovieDB_Poster> GetMovieDBPosters()
-    {
-        var xref = GetCrossRefMovieDB();
-        if (xref == null)
-        {
-            return new List<MovieDB_Poster>();
-        }
-
-        return RepoFactory.MovieDB_Poster.GetByMovieID(int.Parse(xref.CrossRefID));
-    }
-
-    public AniDB_Anime_DefaultImage GetDefaultPoster()
-    {
-        return RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, ImageSizeType.Poster);
+        return RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AnimeID, ImageEntityType.Poster);
     }
 
     public string PosterPathNoDefault
@@ -212,46 +196,36 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         }
     }
 
-    private List<AniDB_Anime_DefaultImage> allPosters;
+    private List<AniDB_Anime_PreferredImage> allPosters;
 
-    public List<AniDB_Anime_DefaultImage> AllPosters
+    public List<AniDB_Anime_PreferredImage> AllPosters
     {
-        get
-        {
-            if (allPosters != null)
+        get => allPosters ??= new AniDB_Anime_PreferredImage[]
             {
-                return allPosters;
-            }
-
-            var posters = new List<AniDB_Anime_DefaultImage>();
-            posters.Add(new AniDB_Anime_DefaultImage
-            {
-                AniDB_Anime_DefaultImageID = AnimeID, ImageType = (int)ImageEntityType.AniDB_Cover
-            });
-            var tvdbposters = GetTvDBImagePosters()?.Where(img => img != null).Select(img =>
-                new AniDB_Anime_DefaultImage
+                new()
                 {
-                    AniDB_Anime_DefaultImageID = img.TvDB_ImagePosterID, ImageType = (int)ImageEntityType.TvDB_Cover
-                });
-            if (tvdbposters != null)
-            {
-                posters.AddRange(tvdbposters);
+                    AniDB_Anime_PreferredImageID = AnimeID,
+                    ImageType = ImageEntityType.Poster,
+                    ImageSource = DataSourceType.AniDB,
+                }
             }
-
-            var moviebposters = GetMovieDBPosters()?.Where(img => img != null).Select(img =>
-                new AniDB_Anime_DefaultImage
+            .Concat(GetTvDBImagePosters().Where(img => img != null).Select(img =>
+                new AniDB_Anime_PreferredImage
                 {
-                    AniDB_Anime_DefaultImageID = img.MovieDB_PosterID,
-                    ImageType = (int)ImageEntityType.MovieDB_Poster
-                });
-            if (moviebposters != null)
-            {
-                posters.AddRange(moviebposters);
-            }
-
-            allPosters = posters;
-            return posters;
-        }
+                    AniDB_Anime_PreferredImageID = img.TvDB_ImagePosterID,
+                    ImageType = ImageEntityType.Poster,
+                    ImageSource = DataSourceType.TvDB,
+                }
+            ))
+            .Concat(GetTmdbMoviePosters().Where(img => img != null).Select(img =>
+                new AniDB_Anime_PreferredImage
+                {
+                    AniDB_Anime_PreferredImageID = img.TMDB_ImageID,
+                    ImageType = ImageEntityType.Poster,
+                    ImageSource = DataSourceType.TMDB,
+                }
+            ))
+            .ToList();
     }
 
     public string GetDefaultPosterPathNoBlanks()
@@ -262,31 +236,27 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
             return PosterPathNoDefault;
         }
 
-        var imageType = (ImageEntityType)defaultPoster.ImageParentType;
-
-        switch (imageType)
+        switch (defaultPoster.ImageSource)
         {
-            case ImageEntityType.AniDB_Cover:
+            case DataSourceType.AniDB:
                 return PosterPath;
 
-            case ImageEntityType.TvDB_Cover:
-                var tvPoster =
-                    RepoFactory.TvDB_ImagePoster.GetByID(defaultPoster.ImageParentID);
-                if (tvPoster != null)
+            case DataSourceType.TvDB:
+                var tvdbPoster = RepoFactory.TvDB_ImagePoster.GetByID(defaultPoster.ImageID);
+                if (tvdbPoster != null)
                 {
-                    return tvPoster.GetFullImagePath();
+                    return tvdbPoster.GetFullImagePath();
                 }
                 else
                 {
                     return PosterPath;
                 }
 
-            case ImageEntityType.MovieDB_Poster:
-                var moviePoster =
-                    RepoFactory.MovieDB_Poster.GetByID(defaultPoster.ImageParentID);
-                if (moviePoster != null)
+            case DataSourceType.TMDB:
+                var tmdbPoster = RepoFactory.TMDB_Image.GetByID(defaultPoster.ImageID);
+                if (tmdbPoster != null)
                 {
-                    return moviePoster.GetFullImagePath();
+                    return tmdbPoster.LocalPath;
                 }
                 else
                 {
@@ -299,174 +269,96 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
     public ImageDetails GetDefaultPosterDetailsNoBlanks()
     {
-        var details = new ImageDetails { ImageType = ImageEntityType.AniDB_Cover, ImageID = AnimeID };
+        var details = new ImageDetails { ImageType = CL_ImageEntityType.AniDB_Cover, ImageID = AnimeID };
         var defaultPoster = GetDefaultPoster();
 
         if (defaultPoster == null)
-        {
             return details;
-        }
 
-        var imageType = (ImageEntityType)defaultPoster.ImageParentType;
-
-        switch (imageType)
+        switch (defaultPoster.ImageSource)
         {
-            case ImageEntityType.AniDB_Cover:
+            case DataSourceType.AniDB:
                 return details;
 
-            case ImageEntityType.TvDB_Cover:
-                var tvPoster =
-                    RepoFactory.TvDB_ImagePoster.GetByID(defaultPoster.ImageParentID);
-                if (tvPoster != null)
-                {
-                    details = new ImageDetails
+            case DataSourceType.TvDB:
+                var tvdbPoster = RepoFactory.TvDB_ImagePoster.GetByID(defaultPoster.ImageID);
+                if (tvdbPoster != null)
+                    return new()
                     {
-                        ImageType = ImageEntityType.TvDB_Cover, ImageID = tvPoster.TvDB_ImagePosterID
+                        ImageType = CL_ImageEntityType.TvDB_Cover,
+                        ImageID = defaultPoster.ImageID
                     };
-                }
 
-                return details;
+                break;
 
-            case ImageEntityType.MovieDB_Poster:
-                var moviePoster =
-                    RepoFactory.MovieDB_Poster.GetByID(defaultPoster.ImageParentID);
-                if (moviePoster != null)
-                {
-                    details = new ImageDetails
+            case DataSourceType.TMDB:
+                var tmdbPoster = RepoFactory.TMDB_Image.GetByID(defaultPoster.ImageID);
+                if (tmdbPoster != null)
+                    return new()
                     {
-                        ImageType = ImageEntityType.MovieDB_Poster, ImageID = moviePoster.MovieDB_PosterID
+                        ImageType = CL_ImageEntityType.MovieDB_Poster,
+                        ImageID = defaultPoster.ImageID
                     };
-                }
 
-                return details;
+                break;
         }
 
         return details;
     }
 
-    public AniDB_Anime_DefaultImage GetDefaultFanart()
+    public AniDB_Anime_PreferredImage GetDefaultFanart()
     {
-        return RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, ImageSizeType.Fanart);
+        return RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AnimeID, ImageEntityType.Backdrop);
     }
 
     public ImageDetails GetDefaultFanartDetailsNoBlanks()
     {
-        var fanartRandom = new Random();
-
-        ImageDetails details = null;
         var fanart = GetDefaultFanart();
         if (fanart == null)
         {
             var fanarts = Contract.AniDBAnime.Fanarts;
             if (fanarts == null || fanarts.Count == 0)
-            {
                 return null;
-            }
 
-            var art = fanarts[fanartRandom.Next(0, fanarts.Count)];
-            details = new ImageDetails
+            var art = fanarts[Random.Shared.Next(0, fanarts.Count)];
+            return new()
             {
-                ImageID = art.AniDB_Anime_DefaultImageID, ImageType = (ImageEntityType)art.ImageType
+                ImageType = (CL_ImageEntityType)art.ImageType,
+                ImageID = art.ImageParentID,
             };
-            return details;
         }
 
-        var imageType = (ImageEntityType)fanart.ImageParentType;
-
-        switch (imageType)
+        switch (fanart.ImageSource)
         {
-            case ImageEntityType.TvDB_FanArt:
-                var tvFanart = RepoFactory.TvDB_ImageFanart.GetByID(fanart.ImageParentID);
+            case DataSourceType.TvDB:
+                var tvFanart = RepoFactory.TvDB_ImageFanart.GetByID(fanart.ImageID);
                 if (tvFanart != null)
-                {
-                    details = new ImageDetails
+                    return new()
                     {
-                        ImageType = ImageEntityType.TvDB_FanArt, ImageID = tvFanart.TvDB_ImageFanartID
+                        ImageType = CL_ImageEntityType.TvDB_FanArt,
+                        ImageID = fanart.ImageID,
                     };
-                }
 
-                return details;
+                break;
 
-            case ImageEntityType.MovieDB_FanArt:
-                var movieFanart = RepoFactory.MovieDB_Fanart.GetByID(fanart.ImageParentID);
+            case DataSourceType.TMDB:
+                var movieFanart = RepoFactory.TMDB_Image.GetByID(fanart.ImageID);
                 if (movieFanart != null)
-                {
-                    details = new ImageDetails
+                    return new()
                     {
-                        ImageType = ImageEntityType.MovieDB_FanArt, ImageID = movieFanart.MovieDB_FanartID
+                        ImageType = CL_ImageEntityType.MovieDB_FanArt,
+                        ImageID = fanart.ImageID,
                     };
-                }
 
-                return details;
+                break;
         }
 
         return null;
     }
 
-    public string GetDefaultFanartOnlineURL()
+    public AniDB_Anime_PreferredImage GetDefaultWideBanner()
     {
-        var fanartRandom = new Random();
-
-
-        if (GetDefaultFanart() == null)
-        {
-            // get a random fanart
-            if (this.GetAnimeTypeEnum() == Shoko.Models.Enums.AnimeType.Movie)
-            {
-                var fanarts = GetMovieDBFanarts();
-                if (fanarts.Count == 0)
-                {
-                    return string.Empty;
-                }
-
-                var movieFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
-                return movieFanart.URL;
-            }
-            else
-            {
-                var fanarts = GetTvDBImageFanarts();
-                if (fanarts.Count == 0)
-                {
-                    return null;
-                }
-
-                var tvFanart = fanarts[fanartRandom.Next(0, fanarts.Count)];
-                return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
-            }
-        }
-
-        var fanart = GetDefaultFanart();
-        var imageType = (ImageEntityType)fanart.ImageParentType;
-
-        switch (imageType)
-        {
-            case ImageEntityType.TvDB_FanArt:
-                var tvFanart =
-                    RepoFactory.TvDB_ImageFanart.GetByID(fanart.ImageParentID);
-                if (tvFanart != null)
-                {
-                    return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
-                }
-
-                break;
-
-            case ImageEntityType.MovieDB_FanArt:
-                var movieFanart =
-                    RepoFactory.MovieDB_Fanart.GetByID(fanart.ImageParentID);
-                if (movieFanart != null)
-                {
-                    return movieFanart.URL;
-                }
-
-                break;
-        }
-
-        return string.Empty;
-    }
-
-    public AniDB_Anime_DefaultImage GetDefaultWideBanner()
-    {
-        return RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, ImageSizeType.WideBanner);
+        return RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AnimeID, ImageEntityType.Banner);
     }
 
     public ImageDetails GetDefaultWideBannerDetailsNoBlanks()
@@ -480,7 +372,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
             // get a random banner (only tvdb)
             if (this.GetAnimeTypeEnum() == Shoko.Models.Enums.AnimeType.Movie)
             {
-                // MovieDB doesn't have banners
+                // TMDB Movies doesn't have banners
                 return null;
             }
 
@@ -491,22 +383,21 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
             }
 
             var art = banners[bannerRandom.Next(0, banners.Count)];
-            details = new ImageDetails
+            details = new()
             {
-                ImageID = art.AniDB_Anime_DefaultImageID, ImageType = (ImageEntityType)art.ImageType
+                ImageType = (CL_ImageEntityType)art.ImageType,
+                ImageID = art.AniDB_Anime_DefaultImageID,
             };
             return details;
         }
 
-        var imageType = (ImageEntityType)banner.ImageParentType;
-
-        switch (imageType)
+        switch (banner.ImageSource)
         {
-            case ImageEntityType.TvDB_Banner:
-                details = new ImageDetails
+            case DataSourceType.TvDB:
+                details = new()
                 {
-                    ImageType = ImageEntityType.TvDB_Banner,
-                    ImageID = banner.ToClient().TVWideBanner.TvDB_ImageWideBannerID
+                    ImageType = CL_ImageEntityType.TvDB_Banner,
+                    ImageID = banner.ImageID,
                 };
                 return details;
         }
@@ -690,15 +581,16 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
             // check for Trakt associations
             if (settings.TraktTv.Enabled &&
+                settings.TraktTv.AutoLink &&
                 !string.IsNullOrEmpty(settings.TraktTv.AuthToken) &&
                 !series.IsTraktAutoMatchingDisabled)
             {
                 commandFactory.CreateAndSave<CommandRequest_TraktSearchAnime>(c => c.AnimeID = AnimeID);
             }
 
-            if (AnimeType == (int)Shoko.Models.Enums.AnimeType.Movie && !series.IsTMDBAutoMatchingDisabled)
+            if (settings.TMDB.AutoLink && !series.IsTMDBAutoMatchingDisabled)
             {
-                commandFactory.CreateAndSave<CommandRequest_MovieDBSearchAnime>(c => c.AnimeID = AnimeID);
+                commandFactory.CreateAndSave<CommandRequest_TMDB_Search>(c => c.AnimeID = AnimeID);
             }
         }
 
@@ -717,10 +609,10 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         sw.Stop();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Updated Character Contracts in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
-        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting MovieDB Fanarts");
-        var movDbFanart = GetMovieDBFanarts();
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting TMDB Movie Fanarts");
+        var tmdbFanart = GetTmdbMovieFanarts();
         sw.Stop();
-        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got MovieDB Fanarts in {sw.Elapsed.TotalSeconds:0.00###}s");
+        logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Got TMDB Movie Fanarts in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Getting TvDB Fanarts");
         var tvDbFanart = GetTvDBImageFanarts();
@@ -734,7 +626,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         sw.Restart();
 
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generating Images Contract");
-        var cl = GenerateContract(titles, null, characters, movDbFanart, tvDbFanart, tvDbBanners);
+        var cl = GenerateContract(titles, null, characters, tmdbFanart, tvDbFanart, tvDbBanners);
         var defFanart = GetDefaultFanart();
         var defPoster = GetDefaultPoster();
         var defBanner = GetDefaultWideBanner();
@@ -751,7 +643,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
     }
 
     private CL_AniDB_Anime GenerateContract(List<SVR_AniDB_Anime_Title> titles, DefaultAnimeImages defaultImages,
-        List<CL_AniDB_Character> characters, IList<MovieDB_Fanart> movDbFanart,
+        List<CL_AniDB_Character> characters, IList<TMDB_Image> tmdbBackdrops,
         IList<TvDB_ImageFanart> tvDbFanart,
         IList<TvDB_ImageWideBanner> tvDbBanners)
     {
@@ -761,19 +653,19 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
         if (defaultImages != null)
         {
-            cl.DefaultImageFanart = defaultImages.Fanart?.ToContract();
-            cl.DefaultImagePoster = defaultImages.Poster?.ToContract();
-            cl.DefaultImageWideBanner = defaultImages.WideBanner?.ToContract();
+            cl.DefaultImageFanart = defaultImages.Backdrop;
+            cl.DefaultImagePoster = defaultImages.Poster;
+            cl.DefaultImageWideBanner = defaultImages.Banner;
         }
 
         cl.Fanarts = new List<CL_AniDB_Anime_DefaultImage>();
-        if (movDbFanart != null && movDbFanart.Any())
+        if (tmdbBackdrops != null && tmdbBackdrops.Any())
         {
-            cl.Fanarts.AddRange(movDbFanart.Select(a => new CL_AniDB_Anime_DefaultImage
+            cl.Fanarts.AddRange(tmdbBackdrops.Select(a => new CL_AniDB_Anime_DefaultImage
             {
-                ImageType = (int)ImageEntityType.MovieDB_FanArt,
-                MovieFanart = a,
-                AniDB_Anime_DefaultImageID = a.MovieDB_FanartID
+                ImageType = (int)CL_ImageEntityType.MovieDB_FanArt,
+                MovieFanart = a.ToClientFanart(),
+                AniDB_Anime_DefaultImageID = a.TMDB_ImageID
             }));
         }
 
@@ -781,18 +673,18 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         {
             cl.Fanarts.AddRange(tvDbFanart.Select(a => new CL_AniDB_Anime_DefaultImage
             {
-                ImageType = (int)ImageEntityType.TvDB_FanArt,
+                ImageType = (int)CL_ImageEntityType.TvDB_FanArt,
                 TVFanart = a,
                 AniDB_Anime_DefaultImageID = a.TvDB_ImageFanartID
             }));
         }
 
         cl.Banners = tvDbBanners?.Select(a => new CL_AniDB_Anime_DefaultImage
-            {
-                ImageType = (int)ImageEntityType.TvDB_Banner,
-                TVWideBanner = a,
-                AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID
-            })
+        {
+            ImageType = (int)CL_ImageEntityType.TvDB_Banner,
+            TVWideBanner = a,
+            AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID
+        })
             .ToList();
 
         if (cl.Fanarts?.Count == 0)
@@ -863,7 +755,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
                 });
         var defImagesByAnime = RepoFactory.AniDB_Anime.GetDefaultImagesByAnime(session, animeIds);
         var charsByAnime = RepoFactory.AniDB_Character.GetCharacterAndSeiyuuByAnime(session, animeIds);
-        var movDbFanartByAnime = RepoFactory.MovieDB_Fanart.GetByAnimeIDs(session, animeIds);
+        var tmdbBackdropByAnime = RepoFactory.TMDB_Image.GetByAnimeIDsAndType(animeIds, ImageEntityType.Backdrop);
         var tvDbBannersByAnime = RepoFactory.TvDB_ImageWideBanner.GetByAnimeIDs(session, animeIds);
         var tvDbFanartByAnime = RepoFactory.TvDB_ImageFanart.GetByAnimeIDs(session, animeIds);
 
@@ -875,12 +767,12 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
             defImagesByAnime.TryGetValue(anime.AnimeID, out var defImages);
 
             var characterContracts = charsByAnime[anime.AnimeID].Select(ac => ac.ToClient()).ToList();
-            var movieDbFanart = movDbFanartByAnime[anime.AnimeID].ToList();
+            var tmdbFanart = tmdbBackdropByAnime[anime.AnimeID].ToList();
             var tvDbBanners = tvDbBannersByAnime[anime.AnimeID].ToList();
             var tvDbFanart = tvDbFanartByAnime[anime.AnimeID].ToList();
 
             contract.AniDBAnime = anime.GenerateContract(animeTitles.ToList(), defImages, characterContracts,
-                movieDbFanart, tvDbFanart, tvDbBanners);
+                tmdbFanart, tvDbFanart, tvDbBanners);
 
             // Anime titles
             contract.AnimeTitles = titlesByAnime[anime.AnimeID]
@@ -1044,7 +936,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         {
             cl.CustomTags.Add(custag);
         }
-        
+
         sw.Stop();
         logger.Trace($"Updating AniDB_Anime Contract {AnimeID} | Generated Tag Contracts in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
@@ -1120,9 +1012,12 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
 
     IReadOnlyList<AnimeTitle> IAnime.Titles => GetTitles()
         .Select(a => new AnimeTitle
-            {
-                LanguageCode = a.LanguageCode, Language = a.Language, Title = a.Title, Type = a.TitleType
-            }
+        {
+            LanguageCode = a.LanguageCode,
+            Language = a.Language,
+            Title = a.Title,
+            Type = a.TitleType
+        }
         )
         .Where(a => a.Type != TitleType.None)
         .ToList();

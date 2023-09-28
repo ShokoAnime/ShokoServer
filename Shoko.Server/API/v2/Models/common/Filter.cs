@@ -86,7 +86,7 @@ public class Filter : Filters
                         filter.art.fanart.Add(new Art
                         {
                             index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_FanArt,
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)CL_ImageEntityType.TvDB_FanArt,
                                 fanart.TvDB_ImageFanartID)
                         });
                     }
@@ -98,14 +98,14 @@ public class Filter : Filters
                         filter.art.banner.Add(new Art
                         {
                             index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.TvDB_Banner,
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)CL_ImageEntityType.TvDB_Banner,
                                 banner.TvDB_ImageWideBannerID)
                         });
                     }
 
                     filter.art.thumb.Add(new Art
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)ImageEntityType.AniDB_Cover,
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int)CL_ImageEntityType.AniDB_Cover,
                             anime.AniDB_ID),
                         index = 0
                     });
