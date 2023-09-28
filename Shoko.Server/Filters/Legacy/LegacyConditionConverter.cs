@@ -35,70 +35,72 @@ public static class LegacyConditionConverter
             return true;
         }
 
-        conditions = null;
-        var results = new List<GroupFilterCondition>();
-        // single condition
-        if (TryGetIncludeCondition(expression, out var condition))
+        if (TryGetSingleCondition(expression, out var condition))
         {
-            results.Add(condition);
             baseCondition = GroupFilterBaseCondition.Include;
+            conditions = new List<GroupFilterCondition> { condition };
             return true;
         }
 
+        var results = new List<GroupFilterCondition>();
         if (expression is NotExpression not)
         {
             baseCondition = GroupFilterBaseCondition.Exclude;
-            if (!TryGetConditionsRecursive(not.Left, results)) return false;
+            if (TryGetConditionsRecursive<OrExpression>(not.Left, results))
+            {
+                conditions = results;
+                return true;
+            }
+        }
 
+        baseCondition = GroupFilterBaseCondition.Include;
+        if (TryGetConditionsRecursive<AndExpression>(expression, results))
+        {
             conditions = results;
             return true;
         }
 
-        baseCondition = GroupFilterBaseCondition.Include;
-        if (!TryGetConditionsRecursive(expression, results)) return false;
-        conditions = results;
-        return true;
+        conditions = null;
+        return false;
     }
 
-    private static bool TryGetConditionsRecursive(FilterExpression expression, List<GroupFilterCondition> conditions)
+    private static bool TryGetSingleCondition(FilterExpression expression, out GroupFilterCondition condition)
+    {
+        if (TryGetIncludeCondition(expression, out condition)) return true;
+        if (TryGetInCondition(expression, out condition)) return true;
+        return TryGetComparatorCondition(expression, out condition);
+    }
+
+
+    private static bool TryGetConditionsRecursive<T>(FilterExpression expression, List<GroupFilterCondition> conditions) where T : IWithExpressionParameter, IWithSecondExpressionParameter
     {
         // Do this first, as compound expressions can throw off the following logic
-        if (TryGetIncludeCondition(expression, out var condition))
+        if (TryGetSingleCondition(expression, out var condition))
         {
             conditions.Add(condition);
             return true;
         }
 
-        if (expression is AndExpression and) return TryGetConditionsRecursive(and.Left, conditions) && TryGetConditionsRecursive(and.Right, conditions);
-
-        if (!TryGetCondition(expression, out condition)) return false;
-        conditions.Add(condition);
-        return true;
-    }
-
-    private static bool TryGetCondition(FilterExpression expression, out GroupFilterCondition condition)
-    {
-        if (expression is NotExpression not && TryGetIncludeCondition(not.Left, out condition))
-        {
-            condition.ConditionOperator = (int)GroupFilterOperator.Exclude;
-            return true;
-        }
-
-        
-        if (TryGetInCondition(expression, out condition)) return true;
-        if (TryGetComparatorCondition(expression, out condition)) return true;
+        if (expression is T and) return TryGetConditionsRecursive<T>(and.Left, conditions) && TryGetConditionsRecursive<T>(and.Right, conditions);
         return false;
     }
 
     private static bool TryGetIncludeCondition(FilterExpression expression, out GroupFilterCondition condition)
     {
+        var conditionOperator = GroupFilterOperator.Include;
+        if (expression is NotExpression not)
+        {
+            conditionOperator = GroupFilterOperator.Exclude;
+            expression = not.Left;
+        }
+
         condition = null;
         var type = expression.GetType();
         if (type == typeof(HasMissingEpisodesExpression))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.MissingEpisodes
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.MissingEpisodes
             };
             return true;
         }
@@ -107,7 +109,7 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.MissingEpisodesCollecting
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.MissingEpisodesCollecting
             };
             return true;
         }
@@ -116,7 +118,7 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes
             };
             return true;
         }
@@ -125,7 +127,7 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes
             };
             return true;
         }
@@ -134,7 +136,7 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.UserVoted
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.UserVoted
             };
             return true;
         }
@@ -143,7 +145,7 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.UserVotedAny
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.UserVotedAny
             };
             return true;
         }
@@ -152,7 +154,7 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.AssignedTvDBInfo
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.AssignedTvDBInfo
             };
             return true;
         }
@@ -161,7 +163,7 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.AssignedMovieDBInfo
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.AssignedMovieDBInfo
             };
             return true;
         }
@@ -170,7 +172,7 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.AssignedTraktInfo
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.AssignedTraktInfo
             };
             return true;
         }
@@ -179,7 +181,7 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.Favourite
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.Favourite
             };
             return true;
         }
@@ -188,7 +190,7 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.FinishedAiring
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.FinishedAiring
             };
             return true;
         }
@@ -197,7 +199,7 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.AssignedMovieDBInfo
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.AssignedMovieDBInfo
             };
             return true;
         }
@@ -206,7 +208,7 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.CompletedSeries
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.CompletedSeries
             };
             return true;
         }
@@ -215,7 +217,7 @@ public static class LegacyConditionConverter
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = (int)GroupFilterOperator.Include, ConditionType = (int)GroupFilterConditionType.AssignedTvDBOrMovieDBInfo
+                ConditionOperator = (int)conditionOperator, ConditionType = (int)GroupFilterConditionType.AssignedTvDBOrMovieDBInfo
             };
             return true;
         }
@@ -225,140 +227,146 @@ public static class LegacyConditionConverter
 
     private static bool TryGetInCondition(FilterExpression expression, out GroupFilterCondition condition)
     {
-        condition = null;
+        var conditionOperator = GroupFilterOperator.In;
+        if (expression is NotExpression not)
+        {
+            conditionOperator = GroupFilterOperator.NotIn;
+            expression = not.Left;
+        }
 
-        if (IsInTag(expression, out var tags, out var inverted))
+        if (IsInTag(expression, out var tags))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = inverted ? (int)GroupFilterOperator.NotIn : (int)GroupFilterOperator.In,
+                ConditionOperator = (int)conditionOperator,
                 ConditionType = (int)GroupFilterConditionType.Tag,
                 ConditionParameter = string.Join(",", tags)
             };
             return true;
         }
 
-        if (IsInCustomTag(expression, out var customTags, out inverted))
+        if (IsInCustomTag(expression, out var customTags))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = inverted ? (int)GroupFilterOperator.NotIn : (int)GroupFilterOperator.In,
+                ConditionOperator = (int)conditionOperator,
                 ConditionType = (int)GroupFilterConditionType.CustomTags,
                 ConditionParameter = string.Join(",", customTags)
             };
             return true;
         }
 
-        if (IsInAnimeType(expression, out var animeType, out inverted))
+        if (IsInAnimeType(expression, out var animeType))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = inverted ? (int)GroupFilterOperator.NotIn : (int)GroupFilterOperator.In,
+                ConditionOperator = (int)conditionOperator,
                 ConditionType = (int)GroupFilterConditionType.AnimeType,
                 ConditionParameter = string.Join(",", animeType)
             };
             return true;
         }
 
-        if (IsInVideoQuality(expression, out var videoQualities, out inverted))
+        if (IsInVideoQuality(expression, out var videoQualities))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = inverted ? (int)GroupFilterOperator.NotIn : (int)GroupFilterOperator.In,
+                ConditionOperator = (int)conditionOperator,
                 ConditionType = (int)GroupFilterConditionType.VideoQuality,
                 ConditionParameter = string.Join(",", videoQualities)
             };
             return true;
         }
 
-        if (IsInGroup(expression, out var groups, out inverted))
+        if (IsInGroup(expression, out var groups))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = inverted ? (int)GroupFilterOperator.NotIn : (int)GroupFilterOperator.In,
+                ConditionOperator = (int)conditionOperator,
                 ConditionType = (int)GroupFilterConditionType.AnimeGroup,
                 ConditionParameter = string.Join(",", groups)
             };
             return true;
         }
 
-        if (IsInYear(expression, out var years, out inverted))
+        if (IsInYear(expression, out var years))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = inverted ? (int)GroupFilterOperator.NotIn : (int)GroupFilterOperator.In,
+                ConditionOperator = (int)conditionOperator,
                 ConditionType = (int)GroupFilterConditionType.Year,
                 ConditionParameter = string.Join(",", years)
             };
             return true;
         }
 
-        if (IsInSeason(expression, out var seasons, out inverted))
+        if (IsInSeason(expression, out var seasons))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = inverted ? (int)GroupFilterOperator.NotIn : (int)GroupFilterOperator.In,
+                ConditionOperator = (int)conditionOperator,
                 ConditionType = (int)GroupFilterConditionType.Season,
                 ConditionParameter = string.Join(",", seasons.Select(a => a.Season + " " + a.Year))
             };
             return true;
         }
 
-        if (IsInAudioLanguage(expression, out var aLanguages, out inverted))
+        if (IsInAudioLanguage(expression, out var aLanguages))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = inverted ? (int)GroupFilterOperator.NotIn : (int)GroupFilterOperator.In,
+                ConditionOperator = (int)conditionOperator,
                 ConditionType = (int)GroupFilterConditionType.AudioLanguage,
                 ConditionParameter = string.Join(",", aLanguages)
             };
             return true;
         }
 
-        if (IsInSubtitleLanguage(expression, out var sLanguages, out inverted))
+        if (IsInSubtitleLanguage(expression, out var sLanguages))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = inverted ? (int)GroupFilterOperator.NotIn : (int)GroupFilterOperator.In,
+                ConditionOperator = (int)conditionOperator,
                 ConditionType = (int)GroupFilterConditionType.SubtitleLanguage,
                 ConditionParameter = string.Join(",", sLanguages)
             };
             return true;
         }
 
-        if (IsInSharedVideoQuality(expression, out var sVideoQuality, out inverted))
+        if (IsInSharedVideoQuality(expression, out var sVideoQuality))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = inverted ? (int)GroupFilterOperator.NotInAllEpisodes : (int)GroupFilterOperator.InAllEpisodes,
+                ConditionOperator = conditionOperator == GroupFilterOperator.NotIn ? (int)GroupFilterOperator.NotInAllEpisodes : (int)GroupFilterOperator.InAllEpisodes,
                 ConditionType = (int)GroupFilterConditionType.VideoQuality,
                 ConditionParameter = string.Join(",", sVideoQuality)
             };
             return true;
         }
 
-        if (IsInSharedAudioLanguage(expression, out var sALanguages, out inverted))
+        if (IsInSharedAudioLanguage(expression, out var sALanguages))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = inverted ? (int)GroupFilterOperator.NotInAllEpisodes : (int)GroupFilterOperator.InAllEpisodes,
+                ConditionOperator = conditionOperator == GroupFilterOperator.NotIn ? (int)GroupFilterOperator.NotInAllEpisodes : (int)GroupFilterOperator.InAllEpisodes,
                 ConditionType = (int)GroupFilterConditionType.AudioLanguage,
                 ConditionParameter = string.Join(",", sALanguages)
             };
             return true;
         }
 
-        if (IsInSharedSubtitleLanguage(expression, out var sSLanguages, out inverted))
+        if (IsInSharedSubtitleLanguage(expression, out var sSLanguages))
         {
             condition = new GroupFilterCondition
             {
-                ConditionOperator = inverted ? (int)GroupFilterOperator.NotInAllEpisodes : (int)GroupFilterOperator.InAllEpisodes,
+                ConditionOperator = conditionOperator == GroupFilterOperator.NotIn ? (int)GroupFilterOperator.NotInAllEpisodes : (int)GroupFilterOperator.InAllEpisodes,
                 ConditionType = (int)GroupFilterConditionType.SubtitleLanguage,
                 ConditionParameter = string.Join(",", sSLanguages)
             };
             return true;
         }
 
+        condition = null;
         return false;
     }
 
@@ -461,76 +469,76 @@ public static class LegacyConditionConverter
         return false;
     }
 
-    private static bool IsInTag(FilterExpression expression, out List<string> parameters, out bool inverted)
+    private static bool IsInTag(FilterExpression expression, out List<string> parameters)
     {
         parameters = new List<string>();
-        return TryParseIn(expression, typeof(HasTagExpression), parameters, out inverted);
+        return TryParseIn(expression, typeof(HasTagExpression), parameters);
     }
 
-    private static bool IsInCustomTag(FilterExpression expression, out List<string> parameters, out bool inverted)
+    private static bool IsInCustomTag(FilterExpression expression, out List<string> parameters)
     {
         parameters = new List<string>();
-        return TryParseIn(expression, typeof(HasCustomTagExpression), parameters, out inverted);
+        return TryParseIn(expression, typeof(HasCustomTagExpression), parameters);
     }
 
-    private static bool IsInAnimeType(FilterExpression expression, out List<string> parameters, out bool inverted)
+    private static bool IsInAnimeType(FilterExpression expression, out List<string> parameters)
     {
         parameters = new List<string>();
-        return TryParseIn(expression, typeof(HasAnimeTypeExpression), parameters, out inverted);
+        return TryParseIn(expression, typeof(HasAnimeTypeExpression), parameters);
     }
 
-    private static bool IsInVideoQuality(FilterExpression expression, out List<string> parameters, out bool inverted)
+    private static bool IsInVideoQuality(FilterExpression expression, out List<string> parameters)
     {
         parameters = new List<string>();
-        return TryParseIn(expression, typeof(HasVideoSourceExpression), parameters, out inverted);
+        return TryParseIn(expression, typeof(HasVideoSourceExpression), parameters);
     }
 
-    private static bool IsInSharedVideoQuality(FilterExpression expression, out List<string> parameters, out bool inverted)
+    private static bool IsInSharedVideoQuality(FilterExpression expression, out List<string> parameters)
     {
         parameters = new List<string>();
-        return TryParseIn(expression, typeof(HasSharedVideoSourceExpression), parameters, out inverted);
+        return TryParseIn(expression, typeof(HasSharedVideoSourceExpression), parameters);
     }
 
-    private static bool IsInGroup(FilterExpression expression, out List<string> parameters, out bool inverted)
+    private static bool IsInGroup(FilterExpression expression, out List<string> parameters)
     {
         parameters = new List<string>();
-        return TryParseIn(expression, typeof(HasNameExpression), parameters, out inverted);
+        return TryParseIn(expression, typeof(HasNameExpression), parameters);
     }
 
-    private static bool IsInYear(FilterExpression expression, out List<int> parameters, out bool inverted)
+    private static bool IsInYear(FilterExpression expression, out List<int> parameters)
     {
         parameters = new List<int>();
-        return TryParseIn(expression, typeof(InYearExpression), parameters, out inverted);
+        return TryParseIn(expression, typeof(InYearExpression), parameters);
     }
 
-    private static bool IsInSeason(FilterExpression expression, out List<(int Year, string Season)> parameters, out bool inverted)
+    private static bool IsInSeason(FilterExpression expression, out List<(int Year, string Season)> parameters)
     {
         parameters = new List<(int, string)>();
-        return TryParseIn(expression, typeof(InSeasonExpression), parameters, out inverted);
+        return TryParseIn(expression, typeof(InSeasonExpression), parameters);
     }
 
-    private static bool IsInAudioLanguage(FilterExpression expression, out List<string> parameters, out bool inverted)
+    private static bool IsInAudioLanguage(FilterExpression expression, out List<string> parameters)
     {
         parameters = new List<string>();
-        return TryParseIn(expression, typeof(HasAudioLanguageExpression), parameters, out inverted);
+        return TryParseIn(expression, typeof(HasAudioLanguageExpression), parameters);
     }
 
-    private static bool IsInSubtitleLanguage(FilterExpression expression, out List<string> parameters, out bool inverted)
+    private static bool IsInSubtitleLanguage(FilterExpression expression, out List<string> parameters)
     {
         parameters = new List<string>();
-        return TryParseIn(expression, typeof(HasSubtitleLanguageExpression), parameters, out inverted);
+        return TryParseIn(expression, typeof(HasSubtitleLanguageExpression), parameters);
     }
 
-    private static bool IsInSharedAudioLanguage(FilterExpression expression, out List<string> parameters, out bool inverted)
+    private static bool IsInSharedAudioLanguage(FilterExpression expression, out List<string> parameters)
     {
         parameters = new List<string>();
-        return TryParseIn(expression, typeof(HasSharedAudioLanguageExpression), parameters, out inverted);
+        return TryParseIn(expression, typeof(HasSharedAudioLanguageExpression), parameters);
     }
 
-    private static bool IsInSharedSubtitleLanguage(FilterExpression expression, out List<string> parameters, out bool inverted)
+    private static bool IsInSharedSubtitleLanguage(FilterExpression expression, out List<string> parameters)
     {
         parameters = new List<string>();
-        return TryParseIn(expression, typeof(HasSharedSubtitleLanguageExpression), parameters, out inverted);
+        return TryParseIn(expression, typeof(HasSharedSubtitleLanguageExpression), parameters);
     }
 
     private static bool IsAirDate(FilterExpression expression, out object parameter, out GroupFilterOperator gfOperator)
@@ -573,16 +581,9 @@ public static class LegacyConditionConverter
         return TryParseComparator(expression, typeof(EpisodeCountSelector), out parameter, out gfOperator);
     }
 
-    private static bool TryParseIn<T>(FilterExpression expression, Type type, List<T> parameters, out bool inverted)
+    private static bool TryParseIn<T>(FilterExpression expression, Type type, List<T> parameters)
     {
-        inverted = false;
-        if (expression is NotExpression not)
-        {
-            inverted = true;
-            expression = not.Left;
-        }
-
-        if (expression is OrExpression or) return TryParseIn(or.Left, type, parameters, out _) && TryParseIn(or.Right, type, parameters, out _);
+        if (expression is OrExpression or) return TryParseIn(or.Left, type, parameters) && TryParseIn(or.Right, type, parameters);
         if (expression.GetType() != type) return false;
 
         if (typeof(T) == typeof(string) && expression is IWithStringParameter withString) parameters.Add((T)(object)withString.Parameter);
@@ -594,16 +595,9 @@ public static class LegacyConditionConverter
 
     }
 
-    private static bool TryParseIn<T,T1>(FilterExpression expression, Type type, List<(T, T1)> parameters, out bool inverted)
+    private static bool TryParseIn<T,T1>(FilterExpression expression, Type type, List<(T, T1)> parameters)
     {
-        inverted = false;
-        if (expression is NotExpression not)
-        {
-            inverted = true;
-            expression = not.Left;
-        }
-
-        if (expression is OrExpression or) return TryParseIn(or.Left, type, parameters, out _) && TryParseIn(or.Right, type, parameters, out _);
+        if (expression is OrExpression or) return TryParseIn(or.Left, type, parameters) && TryParseIn(or.Right, type, parameters);
         if (expression.GetType() != type) return false;
 
         T first = default;
