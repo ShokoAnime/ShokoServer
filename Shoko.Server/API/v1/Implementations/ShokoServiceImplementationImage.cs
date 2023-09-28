@@ -39,19 +39,6 @@ public class ShokoServiceImplementationImage : Controller, IShokoServerImage, IH
         return System.IO.File.OpenRead(path);
     }
 
-    [HttpGet("WithPath/{serverImagePath}")]
-    public object GetImageUsingPath(string serverImagePath)
-    {
-        if (!System.IO.File.Exists(serverImagePath))
-        {
-            logger.Trace("Could not find AniDB_Cover image: {0}", serverImagePath);
-            return NotFound();
-        }
-
-        Response.ContentType = Mime.GetMimeMapping(serverImagePath);
-        return System.IO.File.OpenRead(serverImagePath);
-    }
-
     [HttpGet("Blank")]
     public object BlankImage()
     {
