@@ -676,7 +676,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             "CREATE TABLE FilterPreset( FilterPresetID INTEGER PRIMARY KEY AUTOINCREMENT, ParentFilterPresetID int, Name text NOT NULL, FilterType int NOT NULL, Locked int NOT NULL, Hidden int NOT NULL, ApplyAtSeriesLevel int NOT NULL, Expression text, SortingExpression text ); "),
         new DatabaseCommand(105, 2,
             "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
-        new DatabaseCommand(105, 3, "DELETE FROM GroupFilter WHERE FilterType = 2"),
+        new DatabaseCommand(105, 3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
         new DatabaseCommand(105, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
         new DatabaseCommand(105, 5, DatabaseFixes.DropGroupFilter),
     };

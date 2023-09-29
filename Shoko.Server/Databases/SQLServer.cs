@@ -685,7 +685,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
             "CREATE TABLE FilterPreset( FilterPresetID INT IDENTITY(1,1), ParentFilterPresetID int, Name nvarchar(250) NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression nvarchar(max), SortingExpression nvarchar(max) ); "),
         new DatabaseCommand(112, 2,
             "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
-        new DatabaseCommand(112, 3, "DELETE FROM GroupFilter WHERE FilterType = 2"),
+        new DatabaseCommand(112, 3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
         new DatabaseCommand(112, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
         new DatabaseCommand(112, 5, DatabaseFixes.DropGroupFilter),
     };
