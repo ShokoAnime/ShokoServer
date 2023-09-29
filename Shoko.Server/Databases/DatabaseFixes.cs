@@ -68,7 +68,7 @@ public class DatabaseFixes
                 GroupFilterName = (string)fields[2],
                 ApplyToSeries = (int)fields[3],
                 BaseCondition = (int)fields[4],
-                Locked = (int)fields[5],
+                Locked = (int?)fields[5],
                 FilterType = (int)fields[6],
                 InvisibleInClients = (int)fields[7]
             };
