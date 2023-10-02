@@ -32,6 +32,7 @@ public class FilterExpressionConverter : TypeConverter, IUserType
         {
             MissingMemberHandling = MissingMemberHandling.Ignore,
             TypeNameHandling = TypeNameHandling.Objects,
+            SerializationBinder = new SimpleNameSerializationBinder(),
             Error = (_, args) =>
             {
                 LogManager.GetCurrentClassLogger().Error(args.ErrorContext.Error);
@@ -60,7 +61,8 @@ public class FilterExpressionConverter : TypeConverter, IUserType
         return JsonConvert.SerializeObject(value, new JsonSerializerSettings
         {
             MissingMemberHandling = MissingMemberHandling.Ignore,
-            TypeNameHandling = TypeNameHandling.Objects
+            TypeNameHandling = TypeNameHandling.Objects,
+            SerializationBinder = new SimpleNameSerializationBinder(),
         });
     }
 
