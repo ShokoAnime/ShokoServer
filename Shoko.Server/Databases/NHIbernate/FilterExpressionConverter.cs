@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using NHibernate;
 using NHibernate.Engine;
 using NHibernate.SqlTypes;
@@ -14,6 +15,8 @@ namespace Shoko.Server.Databases.NHIbernate;
 
 public class FilterExpressionConverter : TypeConverter, IUserType
 {
+    private static readonly ISerializationBinder _binder = new SimpleNameSerializationBinder(typeof(FilterExpression));
+
     public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
     {
         return typeof(FilterExpression<bool>).IsAssignableFrom(sourceType);
@@ -32,7 +35,7 @@ public class FilterExpressionConverter : TypeConverter, IUserType
         {
             MissingMemberHandling = MissingMemberHandling.Ignore,
             TypeNameHandling = TypeNameHandling.Objects,
-            SerializationBinder = new SimpleNameSerializationBinder(),
+            SerializationBinder = _binder,
             Error = (_, args) =>
             {
                 LogManager.GetCurrentClassLogger().Error(args.ErrorContext.Error);
@@ -62,7 +65,7 @@ public class FilterExpressionConverter : TypeConverter, IUserType
         {
             MissingMemberHandling = MissingMemberHandling.Ignore,
             TypeNameHandling = TypeNameHandling.Objects,
-            SerializationBinder = new SimpleNameSerializationBinder(),
+            SerializationBinder = _binder,
         });
     }
 
