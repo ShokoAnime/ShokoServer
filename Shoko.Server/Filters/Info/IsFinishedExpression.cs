@@ -6,6 +6,7 @@ public class IsFinishedExpression : FilterExpression<bool>
 {
     public override bool TimeDependent => true;
     public override bool UserDependent => false;
+    public override string HelpDescription => "This passes if any of the anime have finished";
 
     public override bool Evaluate(IFilterable filterable)
     {

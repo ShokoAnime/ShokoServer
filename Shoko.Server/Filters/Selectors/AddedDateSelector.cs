@@ -7,6 +7,7 @@ public class AddedDateSelector : FilterExpression<DateTime?>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
+    public override string HelpDescription => "This returns the date that a filterable was created";
 
     public override DateTime? Evaluate(IFilterable f)
     {

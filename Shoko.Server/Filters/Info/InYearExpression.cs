@@ -14,6 +14,7 @@ public class InYearExpression : FilterExpression<bool>, IWithNumberParameter
     public int Parameter { get; set; }
     public override bool TimeDependent => true;
     public override bool UserDependent => false;
+    public override string HelpDescription => "This passes if any of the anime aired in the year given in the parameters";
 
     double IWithNumberParameter.Parameter
     {

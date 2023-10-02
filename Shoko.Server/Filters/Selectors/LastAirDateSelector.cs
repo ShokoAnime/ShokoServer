@@ -7,6 +7,7 @@ public class LastAirDateSelector : FilterExpression<DateTime?>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
+    public override string HelpDescription => "This returns the last date that a filterable aired";
 
     public override DateTime? Evaluate(IFilterable f)
     {

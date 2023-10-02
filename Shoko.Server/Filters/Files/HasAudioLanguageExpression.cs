@@ -1,5 +1,6 @@
 using System;
 using Shoko.Server.Filters.Interfaces;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Filters.Files;
 
@@ -14,6 +15,8 @@ public class HasAudioLanguageExpression : FilterExpression<bool>, IWithStringPar
     public string Parameter { get; set; }
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
+    public override string HelpDescription => "This passes if any of the files have the audio language provided in the parameter";
+    public override string[] HelpPossibleParameters => SVR_AniDB_File.GetPossibleAudioLanguages();
 
     public override bool Evaluate(IFilterable filterable)
     {

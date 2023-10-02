@@ -7,6 +7,7 @@ public class HighestUserRatingSelector : UserDependentFilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
+    public override string HelpDescription => "This returns the highest user rating in a filterable";
 
     public override double Evaluate(IUserDependentFilterable f)
     {

@@ -9,6 +9,7 @@ using Shoko.Server.Filters.Info;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Filters.Logic;
 using Shoko.Server.Filters.Logic.DateTimes;
+using Shoko.Server.Filters.Logic.Expressions;
 using Shoko.Server.Filters.Logic.Numbers;
 using Shoko.Server.Filters.Selectors;
 using Shoko.Server.Filters.SortingSelectors;
@@ -568,7 +569,7 @@ public static class LegacyConditionConverter
 
     private static bool IsAniDBRating(FilterExpression expression, out object parameter, out GroupFilterOperator gfOperator)
     {
-        return TryParseComparator(expression, typeof(HighestAniDBRatingSelector), out parameter, out gfOperator);
+        return TryParseComparator(expression, typeof(AverageAniDBRatingSelector), out parameter, out gfOperator);
     }
 
     private static bool IsUserRating(FilterExpression expression, out object parameter, out GroupFilterOperator gfOperator)
@@ -702,7 +703,7 @@ public static class LegacyConditionConverter
                 sortType = GroupFilterSorting.Year;
             else if (type == typeof(SeriesCountSortingSelector))
                 sortType = GroupFilterSorting.SeriesCount;
-            else if (type == typeof(UnwatchedCountSortingSelector))
+            else if (type == typeof(UnwatchedEpisodeCountSortingSelector))
                 sortType = GroupFilterSorting.UnwatchedEpisodeCount;
             else if (type == typeof(MissingEpisodeCountSortingSelector))
                 sortType = GroupFilterSorting.MissingEpisodeCount;
@@ -885,7 +886,7 @@ public static class LegacyConditionConverter
                 {
                     Descending = criteria.SortDirection == GroupFilterSortDirection.Desc
                 },
-                GroupFilterSorting.UnwatchedEpisodeCount => new UnwatchedCountSortingSelector
+                GroupFilterSorting.UnwatchedEpisodeCount => new UnwatchedEpisodeCountSortingSelector
                 {
                     Descending = criteria.SortDirection == GroupFilterSortDirection.Desc
                 },

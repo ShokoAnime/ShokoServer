@@ -17,6 +17,7 @@ public class DateDiffFunction : FilterExpression<DateTime?>, IWithDateSelectorPa
 
     public override bool TimeDependent => Selector.TimeDependent;
     public override bool UserDependent => Selector.UserDependent;
+    public override string HelpDescription => "This subtracts a timespan from a date selector.";
 
     public FilterExpression<DateTime?> Left
     {

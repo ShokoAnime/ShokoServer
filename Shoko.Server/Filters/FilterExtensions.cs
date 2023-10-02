@@ -48,6 +48,7 @@ public static class FilterExtensions
             TotalEpisodeCountDelegate = () => anime?.EpisodeCount ?? 0,
             LowestAniDBRatingDelegate = () => decimal.Round(Convert.ToDecimal(anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
             HighestAniDBRatingDelegate = () => decimal.Round(Convert.ToDecimal(anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
+            AverageAniDBRatingDelegate = () => decimal.Round(Convert.ToDecimal(anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
             AnimeTypesDelegate = () => anime == null
                 ? new HashSet<string>()
                 : new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
@@ -114,6 +115,7 @@ public static class FilterExtensions
             TotalEpisodeCountDelegate = () => anime?.EpisodeCount ?? 0,
             LowestAniDBRatingDelegate = () => decimal.Round(Convert.ToDecimal(anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
             HighestAniDBRatingDelegate = () => decimal.Round(Convert.ToDecimal(anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
+            AverageAniDBRatingDelegate = () => decimal.Round(Convert.ToDecimal(anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
             AnimeTypesDelegate = () => anime == null
                 ? new HashSet<string>()
                 : new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
@@ -263,6 +265,7 @@ public static class FilterExtensions
             TotalEpisodeCountDelegate = () => series.Sum(a => a.GetAnime()?.EpisodeCount ?? 0),
             LowestAniDBRatingDelegate = () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Min(),
             HighestAniDBRatingDelegate = () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Max(),
+            AverageAniDBRatingDelegate = () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Average(),
             AnimeTypesDelegate = () => new HashSet<string>(anime.Select(a => ((AnimeType)a.AnimeType).ToString()), StringComparer.InvariantCultureIgnoreCase),
             VideoSourcesDelegate = () => group.Contract?.Stat_AllVideoQuality ?? new HashSet<string>(),
             SharedVideoSourcesDelegate = () => group.Contract?.Stat_AllVideoQuality_Episodes ?? new HashSet<string>(),
@@ -331,12 +334,9 @@ public static class FilterExtensions
             LastAddedDateDelegate = () => series.SelectMany(a => a.GetVideoLocals()).Select(a => a.DateTimeCreated).DefaultIfEmpty().Max(),
             EpisodeCountDelegate = () => series.Sum(a => a.GetAnime()?.EpisodeCountNormal ?? 0),
             TotalEpisodeCountDelegate = () => series.Sum(a => a.GetAnime()?.EpisodeCount ?? 0),
-            LowestAniDBRatingDelegate = () =>
-                anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty()
-                    .Min(),
-            HighestAniDBRatingDelegate = () =>
-                anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty()
-                    .Max(),
+            LowestAniDBRatingDelegate = () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Min(),
+            HighestAniDBRatingDelegate = () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Max(),
+            AverageAniDBRatingDelegate = () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Average(),
             AnimeTypesDelegate = () => new HashSet<string>(anime.Select(a => ((AnimeType)a.AnimeType).ToString()), StringComparer.InvariantCultureIgnoreCase),
             VideoSourcesDelegate = () => group.Contract?.Stat_AllVideoQuality ?? new HashSet<string>(),
             SharedVideoSourcesDelegate = () => group.Contract?.Stat_AllVideoQuality_Episodes ?? new HashSet<string>(),

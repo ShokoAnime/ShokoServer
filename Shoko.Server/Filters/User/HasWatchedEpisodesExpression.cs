@@ -6,6 +6,7 @@ public class HasWatchedEpisodesExpression : UserDependentFilterExpression<bool>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
+    public override string HelpDescription => "This passes if the current user has any watched episodes in the filterable";
 
     public override bool Evaluate(IUserDependentFilterable filterable)
     {

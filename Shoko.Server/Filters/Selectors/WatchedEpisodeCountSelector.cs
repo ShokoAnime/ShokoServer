@@ -1,19 +1,19 @@
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.User;
+namespace Shoko.Server.Filters.Selectors;
 
-public class HasUnwatchedEpisodesExpression : UserDependentFilterExpression<bool>
+public class WatchedEpisodeCountSelector : UserDependentFilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
-    public override string HelpDescription => "This passes if the current user has any unwatched episodes in the filterable";
+    public override string HelpDescription => "This returns the number of episodes in a filterable that have been watched by the current user";
 
-    public override bool Evaluate(IUserDependentFilterable filterable)
+    public override double Evaluate(IUserDependentFilterable f)
     {
-        return filterable.UnwatchedEpisodes > 0;
+        return f.WatchedEpisodes;
     }
 
-    protected bool Equals(HasUnwatchedEpisodesExpression other)
+    protected bool Equals(WatchedEpisodeCountSelector other)
     {
         return base.Equals(other);
     }
@@ -35,7 +35,7 @@ public class HasUnwatchedEpisodesExpression : UserDependentFilterExpression<bool
             return false;
         }
 
-        return Equals((HasUnwatchedEpisodesExpression)obj);
+        return Equals((WatchedEpisodeCountSelector)obj);
     }
 
     public override int GetHashCode()
@@ -43,12 +43,12 @@ public class HasUnwatchedEpisodesExpression : UserDependentFilterExpression<bool
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(HasUnwatchedEpisodesExpression left, HasUnwatchedEpisodesExpression right)
+    public static bool operator ==(WatchedEpisodeCountSelector left, WatchedEpisodeCountSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(HasUnwatchedEpisodesExpression left, HasUnwatchedEpisodesExpression right)
+    public static bool operator !=(WatchedEpisodeCountSelector left, WatchedEpisodeCountSelector right)
     {
         return !Equals(left, right);
     }

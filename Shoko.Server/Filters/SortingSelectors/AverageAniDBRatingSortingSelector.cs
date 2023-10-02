@@ -1,15 +1,16 @@
+using System;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.SortingSelectors;
 
-public class AddedDateSortingSelector : SortingExpression
+public class AverageAniDBRatingSortingSelector : SortingExpression
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This sorts by the date that a filterable was created";
+    public override string HelpDescription => "This sorts by the average AniDB rating in a filterable";
 
     public override object Evaluate(IFilterable f)
     {
-        return f.AddedDate;
+        return Convert.ToDouble(f.AverageAniDBRating);
     }
 }

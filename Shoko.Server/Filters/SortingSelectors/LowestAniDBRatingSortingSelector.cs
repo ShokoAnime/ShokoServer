@@ -7,6 +7,7 @@ public class LowestAniDBRatingSortingSelector : SortingExpression
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
+    public override string HelpDescription => "This sorts by the lowest AniDB rating in a filterable";
 
     public override object Evaluate(IFilterable f)
     {

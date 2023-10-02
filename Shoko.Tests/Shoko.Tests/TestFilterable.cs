@@ -30,6 +30,7 @@ public class TestFilterable : IFilterable
     public int EpisodeCount { get; init; }
     public int TotalEpisodeCount { get; init; }
     public decimal LowestAniDBRating { get; init; }
+    public decimal AverageAniDBRating { get; init; }
     public decimal HighestAniDBRating { get; init; }
     public IReadOnlySet<string> VideoSources { get; init; }
     public IReadOnlySet<string> SharedVideoSources { get; init; }

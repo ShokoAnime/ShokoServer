@@ -125,7 +125,12 @@ public interface IFilterable
     /// Highest AniDB Rating (0-10)
     /// </summary>
     decimal HighestAniDBRating { get; init; }
-    
+
+    /// <summary>
+    /// Average AniDB Rating (0-10)
+    /// </summary>
+    decimal AverageAniDBRating { get; init; }
+
     /// <summary>
     /// The sources that the video came from, such as TV, Web, DVD, Blu-ray, etc.
     /// </summary>

@@ -13,6 +13,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Filters;
+using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -34,6 +35,8 @@ public class FilterController : BaseController
     private readonly FilterFactory _factory;
     private readonly SeriesFactory _seriesFactory;
     private readonly FilterEvaluator _filterEvaluator;
+    private static Filter.FilterExpressionHelp[] _expressionTypes;
+    private static Filter.SortingCriteriaHelp[] _sortingTypes;
 
     #region Existing Filters
 
@@ -85,6 +88,103 @@ public class FilterController : BaseController
             return ValidationProblem(ModelState);
 
         return filter;
+    }
+
+    /// <summary>
+    /// Lists the available expressions.
+    /// The word "Filterable" is used a lot. It is a generic word for a series or group, depending on what the filter is set to apply to.
+    /// Expression: The identifier used to create the expression. eg. And, Not, HasTag.
+    /// Type: Parameters have a type, and this is the type that needs to match.
+    /// Left, Right, Parameter, and SecondParameter show what type the expression supports as parameters.
+    /// Left and Right are Expressions or Selectors. Parameters are constants.
+    /// </summary>
+    [HttpGet("Expressions")]
+    public ActionResult<Filter.FilterExpressionHelp[]> GetExpressions()
+    {
+        // get all classes that derive from FilterExpression, but not SortingExpression
+        _expressionTypes ??= AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
+            .Where(a => a != typeof(FilterExpression) && !a.IsGenericType && typeof(FilterExpression).IsAssignableFrom(a) && !typeof(SortingExpression).IsAssignableFrom(a))
+            .OrderBy(a => a.FullName).Select(a =>
+        {
+            var expression = (FilterExpression)Activator.CreateInstance(a);
+            if (expression == null) return null;
+            Filter.FilterExpressionHelp.FilterExpressionParameterType? left = expression switch
+            {
+                IWithExpressionParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Expression,
+                IWithDateSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
+                IWithNumberSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
+                IWithStringSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
+                _ => null
+            };
+            Filter.FilterExpressionHelp.FilterExpressionParameterType? right = expression switch
+            {
+                IWithSecondExpressionParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Expression,
+                IWithSecondDateSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
+                IWithSecondNumberSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
+                IWithSecondStringSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
+                _ => null
+            };
+            Filter.FilterExpressionHelp.FilterExpressionParameterType? parameter = expression switch
+            {
+                IWithDateParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Date,
+                IWithNumberParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Number,
+                IWithStringParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.String,
+                IWithTimeSpanParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.TimeSpan,
+                _ => null
+            };
+            Filter.FilterExpressionHelp.FilterExpressionParameterType? secondParameter = expression switch
+            {
+                IWithSecondStringParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.String,
+                _ => null
+            };
+            var type = expression switch
+            {
+                FilterExpression<bool> => Filter.FilterExpressionHelp.FilterExpressionParameterType.Expression,
+                FilterExpression<DateTime?> => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
+                FilterExpression<double> => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
+                FilterExpression<string> => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
+                _ => throw new Exception($"Expression {a.Name} is not a handled type for Filter Expression Help")
+            };
+            return new Filter.FilterExpressionHelp
+            {
+                Expression = a.Name.Replace("Expression", ""),
+                Description = expression.HelpDescription,
+                PossibleParameters = expression.HelpPossibleParameters,
+                PossibleSecondParameters = expression.HelpPossibleSecondParameters,
+                Left = left,
+                Right = right,
+                Parameter = parameter,
+                SecondParameter = secondParameter,
+                Type = type
+            };
+        }).Where(a => a != null).ToArray();
+        return _expressionTypes;
+    }
+
+    /// <summary>
+    /// Lists the available sorting expressions. These are basically selectors that the filter system uses to sort.
+    /// The word "Filterable" is used a lot. It is a generic word for a series or group, depending on what the filter is set to apply to.
+    /// Type: The identifier used to create the expression. eg. AddedDate.
+    /// IsInverted: Whether the sorting should be in descending order.
+    /// Next: If the expression returns equal values, it defers to the next expression to sort more predictably.
+    /// For example, MissingEpisodeCount,Descending -> AirDate, Descending would have thing with the most missing episodes, then the last aired first.
+    /// </summary>
+    [HttpGet("SortingCriteria")]
+    public ActionResult<Filter.SortingCriteriaHelp[]> GetSortingCriteria()
+    {
+        // get all classes that derive from FilterExpression, but not SortingExpression
+        _sortingTypes ??= AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a =>
+                a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType && typeof(SortingExpression).IsAssignableFrom(a)).OrderBy(a => a.FullName)
+            .Select(a =>
+            {
+                var criteria = (SortingExpression)Activator.CreateInstance(a);
+                if (criteria == null) return null;
+                return new Filter.SortingCriteriaHelp
+                {
+                    Type = a.Name.Replace("SortingSelector", ""), Description = criteria.HelpDescription
+                };
+            }).Where(a => a != null).ToArray();
+        return _sortingTypes;
     }
 
     /// <summary>

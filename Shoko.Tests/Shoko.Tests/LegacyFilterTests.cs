@@ -5,6 +5,7 @@ using Shoko.Server.Filters;
 using Shoko.Server.Filters.Info;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Filters.Logic;
+using Shoko.Server.Filters.Logic.Expressions;
 using Shoko.Server.Filters.User;
 using Shoko.Server.Models;
 using Xunit;

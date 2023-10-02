@@ -1,7 +1,7 @@
 using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Logic;
+namespace Shoko.Server.Filters.Logic.Expressions;
 
 public class AndExpression : FilterExpression<bool>, IWithExpressionParameter, IWithSecondExpressionParameter
 {
@@ -15,6 +15,7 @@ public class AndExpression : FilterExpression<bool>, IWithExpressionParameter, I
 
     public override bool TimeDependent => Left.TimeDependent || Right.TimeDependent;
     public override bool UserDependent => Left.UserDependent || Right.UserDependent;
+    public override string HelpDescription => "This passes if both the left expression and the right expression pass";
 
     public FilterExpression<bool> Left { get; set; }
     public FilterExpression<bool> Right { get; set; }

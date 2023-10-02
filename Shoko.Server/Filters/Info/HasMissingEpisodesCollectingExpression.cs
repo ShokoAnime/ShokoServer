@@ -6,6 +6,7 @@ public class HasMissingEpisodesCollectingExpression : FilterExpression<bool>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
+    public override string HelpDescription => "This passes if any of the anime are missing episodes from a release group that is currently in the collection";
 
     public override bool Evaluate(IFilterable filterable)
     {

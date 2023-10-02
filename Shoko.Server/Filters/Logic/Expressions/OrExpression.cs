@@ -1,7 +1,7 @@
 using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Logic;
+namespace Shoko.Server.Filters.Logic.Expressions;
 
 public class OrExpression : FilterExpression<bool>, IWithExpressionParameter, IWithSecondExpressionParameter
 {
@@ -15,6 +15,7 @@ public class OrExpression : FilterExpression<bool>, IWithExpressionParameter, IW
 
     public override bool TimeDependent => Left.TimeDependent || Right.TimeDependent;
     public override bool UserDependent => Left.UserDependent || Right.UserDependent;
+    public override string HelpDescription => "This passes if either the left expression or the right expression pass";
 
     public FilterExpression<bool> Left { get; set; }
     public FilterExpression<bool> Right { get; set; }

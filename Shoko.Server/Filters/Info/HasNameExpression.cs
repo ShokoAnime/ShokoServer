@@ -14,6 +14,7 @@ public class HasNameExpression : FilterExpression<bool>, IWithStringParameter
     public string Parameter { get; set; }
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
+    public override string HelpDescription => "This passes if the name of the series or group matches the parameter";
 
     public override bool Evaluate(IFilterable filterable)
     {

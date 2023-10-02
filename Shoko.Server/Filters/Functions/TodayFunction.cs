@@ -7,6 +7,7 @@ public class TodayFunction : FilterExpression<DateTime?>
 {
     public override bool TimeDependent => true;
     public override bool UserDependent => false;
+    public override string HelpDescription => "This returns the current date, at midnight (00:00:00.0000)";
 
     public override DateTime? Evaluate(IFilterable f)
     {

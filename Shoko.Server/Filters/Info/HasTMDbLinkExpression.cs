@@ -6,6 +6,7 @@ public class HasTMDbLinkExpression : FilterExpression<bool>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
+    public override string HelpDescription => "This passes if any of the anime have a TMDb link";
 
     public override bool Evaluate(IFilterable filterable)
     {

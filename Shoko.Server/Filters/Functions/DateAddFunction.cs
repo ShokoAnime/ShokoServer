@@ -20,6 +20,7 @@ public class DateAddFunction : FilterExpression<DateTime?>, IWithDateSelectorPar
 
     public override bool TimeDependent => Selector.TimeDependent;
     public override bool UserDependent => Selector.UserDependent;
+    public override string HelpDescription => "This adds a timespan to a date selector";
 
     public FilterExpression<DateTime?> Left
     {

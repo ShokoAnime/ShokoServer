@@ -1,4 +1,5 @@
 using System;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Info;
@@ -14,6 +15,16 @@ public class HasAnimeTypeExpression : FilterExpression<bool>, IWithStringParamet
     public string Parameter { get; set; }
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
+    public override string HelpDescription => "This passes if any of the anime in a filterable are of the type given in the parameter";
+    public override string[] HelpPossibleParameters => new[]
+    {
+        AnimeType.TVSeries.ToString(),
+        AnimeType.Movie.ToString(),
+        AnimeType.OVA.ToString(),
+        AnimeType.Web.ToString(),
+        AnimeType.TVSpecial.ToString(),
+        AnimeType.Other.ToString(),
+    };
 
     public override bool Evaluate(IFilterable filterable)
     {

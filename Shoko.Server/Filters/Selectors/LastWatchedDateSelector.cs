@@ -7,6 +7,7 @@ public class LastWatchedDateSelector : UserDependentFilterExpression<DateTime?>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
+    public override string HelpDescription => "This returns the last date that a filterable was watched by the current user";
 
     public override DateTime? Evaluate(IUserDependentFilterable f)
     {

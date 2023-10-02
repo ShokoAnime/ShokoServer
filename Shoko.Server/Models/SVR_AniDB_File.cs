@@ -164,6 +164,94 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
         }
     }
 
+    private static readonly string[] _possibleAudioLanguages =
+    {
+        "english", "japanese",
+        "chinese (mandarin)", "afrikaans",
+        "albanian", "arabic",
+        "basque", "bengali",
+        "bulgarian", "bosnian",
+        "catalan", "chinese (unspecified)",
+        "chinese (cantonese)", "chinese (taiwanese)",
+        "croatian", "czech",
+        "danish", "dutch",
+        "esperanto", "estonian",
+        "filipino", "filipino (tagalog)",
+        "finnish", "french",
+        "galician", "georgian",
+        "german", "greek",
+        "haitian creole", "hebrew",
+        "hindi", "hungarian",
+        "icelandic", "indonesian",
+        "instrumental", "italian",
+        "javanese", "korean",
+        "latin", "latvian",
+        "lithuanian", "malay",
+        "mongolian", "nepali",
+        "norwegian", "persian",
+        "polish", "portuguese",
+        "portuguese (brazilian)", "romanian",
+        "russian", "serbian",
+        "sinhala", "slovak",
+        "slovenian", "spanish",
+        "spanish (latin american)", "swedish",
+        "tamil", "tatar",
+        "telugu", "thai",
+        "turkish", "ukrainian",
+        "vietnamese", "unknown",
+        "other",
+    };
+
+    public static string[] GetPossibleAudioLanguages()
+    {
+        return _possibleAudioLanguages;
+    }
+
+    private static readonly string[] _possibleSubtitleLanguages =
+    {
+        "english", "japanese",
+        "japanese (transcription)", "afrikaans",
+        "albanian", "arabic",
+        "basque", "bengali",
+        "bulgarian", "bosnian",
+        "catalan", "chinese (unspecified)",
+        "chinese (transcription)", "chinese (traditional)",
+        "chinese (simplified)", "croatian",
+        "czech", "danish",
+        "dutch", "esperanto",
+        "estonian", "filipino",
+        "filipino (tagalog)", "finnish",
+        "french", "galician",
+        "georgian", "german",
+        "greek", "greek (ancient)",
+        "haitian creole", "hebrew",
+        "hindi", "hungarian",
+        "icelandic", "indonesian",
+        "italian", "javanese",
+        "korean", "korean (transcription)",
+        "latin", "latvian",
+        "lithuanian", "malay",
+        "mongolian", "nepali",
+        "norwegian", "persian",
+        "polish", "portuguese",
+        "portuguese (brazilian)", "romanian",
+        "russian", "serbian",
+        "sinhala", "slovak",
+        "slovenian", "spanish",
+        "spanish (latin american)", "swedish",
+        "tamil", "tatar",
+        "telugu", "thai",
+        "thai (transcription)", "turkish",
+        "ukrainian", "urdu",
+        "vietnamese", "unknown",
+        "other",
+    };
+
+    public static string[] GetPossibleSubtitleLanguages()
+    {
+        return _possibleSubtitleLanguages;
+    }
+
     int IAniDBFile.AniDBFileID => FileID;
 
     IReleaseGroup IAniDBFile.ReleaseGroup

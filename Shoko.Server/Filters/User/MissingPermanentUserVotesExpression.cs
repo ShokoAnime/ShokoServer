@@ -6,6 +6,7 @@ public class MissingPermanentUserVotesExpression : UserDependentFilterExpression
 {
     public override bool TimeDependent => true;
     public override bool UserDependent => true;
+    public override string HelpDescription => "This passes if the filterable is missing a user vote that is of the permanent vote type. This has logic for if the filterable should have a vote";
 
     public override bool Evaluate(IUserDependentFilterable filterable)
     {

@@ -20,6 +20,9 @@ public class Filterable : IFilterable
 
     private readonly Lazy<IReadOnlySet<string>> _audioLanguages;
     private readonly Func<IReadOnlySet<string>> _audioLanguagesDelegate;
+    
+    private readonly Lazy<decimal> _averageAniDBRating;
+    private readonly Func<decimal> _averageAniDBRatingDelegate;
 
     private readonly Lazy<IReadOnlySet<string>> _customTags;
     private readonly Func<IReadOnlySet<string>> _customTagsDelegate;
@@ -483,6 +486,22 @@ public class Filterable : IFilterable
         {
             _highestAniDBRatingDelegate = value;
             _highestAniDBRating = new Lazy<decimal>(_highestAniDBRatingDelegate, LazyThreadSafetyMode.ExecutionAndPublication);
+        }
+    }
+
+    public decimal AverageAniDBRating
+    {
+        get => _averageAniDBRating.Value;
+        init => throw new NotSupportedException();
+    }
+
+    public Func<decimal> AverageAniDBRatingDelegate
+    {
+        get => _averageAniDBRatingDelegate;
+        init
+        {
+            _averageAniDBRatingDelegate = value;
+            _averageAniDBRating = new Lazy<decimal>(_averageAniDBRatingDelegate, LazyThreadSafetyMode.ExecutionAndPublication);
         }
     }
 

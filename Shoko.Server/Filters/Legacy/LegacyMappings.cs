@@ -6,6 +6,7 @@ using Shoko.Server.Filters.Functions;
 using Shoko.Server.Filters.Info;
 using Shoko.Server.Filters.Logic;
 using Shoko.Server.Filters.Logic.DateTimes;
+using Shoko.Server.Filters.Logic.Expressions;
 using Shoko.Server.Filters.Logic.Numbers;
 using Shoko.Server.Filters.Selectors;
 using Shoko.Server.Filters.User;
@@ -341,9 +342,9 @@ public class LegacyMappings
         {
             // These are reversed because we would consider that parameter is greater than the rating, but the expression takes a constant as the second operand
             case GroupFilterOperator.GreaterThan:
-                return new NumberLessThanExpression(new HighestAniDBRatingSelector(), rating);
+                return new NumberLessThanExpression(new AverageAniDBRatingSelector(), rating);
             case GroupFilterOperator.LessThan:
-                return new NumberGreaterThanExpression(new HighestAniDBRatingSelector(), rating);
+                return new NumberGreaterThanExpression(new AverageAniDBRatingSelector(), rating);
             default:
                 return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Rating");
         }
@@ -371,11 +372,10 @@ public class LegacyMappings
             return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
         switch (op)
         {
-            // These are reversed because we would consider that parameter is greater than the rating, but the expression takes a constant as the second operand
             case GroupFilterOperator.GreaterThan:
                 return new NumberLessThanExpression(new EpisodeCountSelector(), count);
             case GroupFilterOperator.LessThan:
-                return new NumberGreaterThanExpression(new HighestUserRatingSelector(), count);
+                return new NumberGreaterThanExpression(new EpisodeCountSelector(), count);
             default:
                 return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Episode Count");
         }

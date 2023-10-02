@@ -1,7 +1,7 @@
 using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Logic;
+namespace Shoko.Server.Filters.Logic.Expressions;
 
 public class NotExpression : FilterExpression<bool>, IWithExpressionParameter
 {
@@ -13,6 +13,7 @@ public class NotExpression : FilterExpression<bool>, IWithExpressionParameter
     public NotExpression() { }
     public override bool TimeDependent => Left.TimeDependent;
     public override bool UserDependent => Left.UserDependent;
+    public override string HelpDescription => "This passes if the left expression does not pass, e.g. an inverse";
 
     public FilterExpression<bool> Left { get; set; }
 
