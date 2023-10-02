@@ -147,7 +147,7 @@ public class FilterController : BaseController
             };
             return new Filter.FilterExpressionHelp
             {
-                Expression = a.Name.Replace("Expression", ""),
+                Expression = a.Name.Replace("Expression", "").Replace("Function", ""),
                 Description = expression.HelpDescription,
                 PossibleParameters = expression.HelpPossibleParameters,
                 PossibleSecondParameters = expression.HelpPossibleSecondParameters,

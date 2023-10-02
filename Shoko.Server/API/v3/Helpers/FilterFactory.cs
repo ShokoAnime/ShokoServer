@@ -91,7 +91,7 @@ public class FilterFactory
         if (expression is null) return null;
         var result = new Filter.FilterCondition
         {
-            Type = expression.GetType().Name.Replace("Expression", "")
+            Type = expression.GetType().Name.Replace("Expression", "").Replace("Function", "")
         };
 
         // Left/First
@@ -154,7 +154,9 @@ public class FilterFactory
     public FilterExpression<T> GetExpressionTree<T>(Filter.FilterCondition condition)
     {
         var type = Type.GetType(condition.Type + "Expression");
-        if (type == null) throw new ArgumentException($"FilterCondition type {condition.Type}Expression was not found");
+        type ??= Type.GetType(condition.Type + "Function");
+        type ??= Type.GetType(condition.Type);
+        if (type == null) throw new ArgumentException($"FilterCondition type {condition.Type} was not found");
         var result = (FilterExpression<T>)Activator.CreateInstance(type);
 
         // Left/First
@@ -218,7 +220,7 @@ public class FilterFactory
     {
         var result = new Filter.SortingCriteria
         {
-            Type = expression.GetType().Name.Replace("Selector", ""),
+            Type = expression.GetType().Name.Replace("SortingSelector", ""),
             IsInverted = expression.Descending
         };
 
@@ -228,7 +230,7 @@ public class FilterFactory
         {
             currentCriteria.Next = new Filter.SortingCriteria
             {
-                Type = currentExpression.GetType().Name.Replace("Selector", ""),
+                Type = currentExpression.GetType().Name.Replace("SortingSelector", ""),
                 IsInverted = currentExpression.Descending
             };
             currentCriteria = currentCriteria.Next;
@@ -240,7 +242,8 @@ public class FilterFactory
     
     public static SortingExpression GetSortingCriteria(Filter.SortingCriteria criteria)
     {
-        var type = Type.GetType(criteria.Type + "Selector");
+        var type = Type.GetType(criteria.Type + "SortingSelector");
+        type ??= Type.GetType(criteria.Type);
         if (type == null) throw new ArgumentException($"SortingExpression type {criteria.Type}Selector was not found");
         var result = (SortingExpression)Activator.CreateInstance(type)!;
         result.Descending = criteria.IsInverted;
