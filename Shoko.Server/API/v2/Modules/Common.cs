@@ -2738,7 +2738,7 @@ public class Common : BaseController
             ? RepoFactory.FilterPreset.GetAll().Where(a => (a.FilterType & GroupFilterType.Tag) == 0 || !hideCategories.Contains(a.Name)).ToList()
             : allGfs;
         var result = evaluator.BatchEvaluateFilters(filtersToEvaluate, user.JMMUserID);
-        allGfs = allGfs.Where(a => result[a].Any()).ToList();
+        allGfs = allGfs.Where(a => a.IsDirectory() || result[a].Any()).ToList();
 
         foreach (var gf in allGfs)
         {
