@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -292,23 +292,35 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         RepoFactory.AnimeGroup.Save(this, false, false);
     }
 
-    public List<SVR_AnimeSeries> GetSeries()
+    public List<SVR_AnimeSeries> GetSeries(bool skipSorting = false)
     {
-        // Make sure the default/main series is the first, if it's directly within the group
-        if (DefaultAnimeSeriesID == null && MainAniDBAnimeID == null)
-            return RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID).OrderBy(a => a.AirDate).ToList();
+        if (skipSorting)
+            return RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID);
 
-        SVR_AnimeSeries mainSeries = null;
-        if (DefaultAnimeSeriesID.HasValue) mainSeries = RepoFactory.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);
-        if (mainSeries == null && MainAniDBAnimeID.HasValue) mainSeries = RepoFactory.AnimeSeries.GetByAnimeID(MainAniDBAnimeID.Value);
+        var seriesList = RepoFactory.AnimeSeries
+            .GetByGroupID(AnimeGroupID)
+            .OrderBy(a => a.AirDate)
+            .ToList();
 
-        var seriesList = RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID).OrderBy(a => a.AirDate).ToList();
-        if (mainSeries == null) return seriesList;
+        // Make sure the default/main series is the first, if it's directly
+        // within the group.
+        if (DefaultAnimeSeriesID.HasValue || MainAniDBAnimeID.HasValue)
+        {
+            SVR_AnimeSeries mainSeries = null;
+            if (DefaultAnimeSeriesID.HasValue)
+                mainSeries = seriesList.Find(series => series.AnimeSeriesID == DefaultAnimeSeriesID.Value);
 
-        seriesList.Remove(mainSeries);
-        seriesList.Insert(0, mainSeries);
+            if (mainSeries == null && MainAniDBAnimeID.HasValue)
+                mainSeries = seriesList.Find(series => series.AniDB_ID == MainAniDBAnimeID.Value);
+
+            if (mainSeries != null)
+            {
+                seriesList.Remove(mainSeries);
+                seriesList.Insert(0, mainSeries);
+            }
+        }
+
         return seriesList;
-
     }
 
     public List<SVR_AnimeSeries> GetAllSeries(bool skipSorting = false)
@@ -1266,7 +1278,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         }
 
         // get the series for this group
-        var thisSeries = grp.GetSeries();
+        var thisSeries = grp.GetSeries(true);
         seriesList.AddRange(thisSeries);
 
         foreach (var childGroup in grp.GetChildGroups())
