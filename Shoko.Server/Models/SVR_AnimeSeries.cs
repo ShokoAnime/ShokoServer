@@ -1554,6 +1554,24 @@ public class SVR_AnimeSeries : AnimeSeries
             {
                 oldGroup.DeleteGroup(false);
             }
+            else
+            {
+                var updatedOldGroup = false;
+                if (oldGroup.DefaultAnimeSeriesID.HasValue && oldGroup.DefaultAnimeSeriesID.Value == AnimeSeriesID)
+                {
+                    oldGroup.DefaultAnimeSeriesID = null;
+                    updatedOldGroup = true;
+                }
+
+                if (oldGroup.MainAniDBAnimeID.HasValue && oldGroup.MainAniDBAnimeID.Value == AniDB_ID)
+                {
+                    oldGroup.MainAniDBAnimeID = null;
+                    updatedOldGroup = true;
+                }
+
+                if (updatedOldGroup)
+                    RepoFactory.AnimeGroup.Save(oldGroup);
+            }
 
             // Update the top group 
             var topGroup = oldGroup.TopLevelAnimeGroup;
