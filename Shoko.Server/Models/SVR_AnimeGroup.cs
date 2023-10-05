@@ -273,8 +273,10 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         // the new id instead of the old.
         DefaultAnimeSeriesID = series?.AnimeSeriesID;
 
+        ValidateMainSeries();
+
         // Reset the name/description if the group is not manually named.
-        if (series == null && (IsManuallyNamed == 0 || OverrideDescription == 0))
+        if (IsManuallyNamed == 0 || OverrideDescription == 0)
             series = GetMainSeries();
         if (IsManuallyNamed == 0)
             GroupName = SortName = series!.GetSeriesName();
@@ -284,6 +286,36 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         // Save the changes for this group only.
         DateTimeUpdated = DateTime.Now;
         RepoFactory.AnimeGroup.Save(this, false, false);
+    }
+
+    public bool ValidateMainSeries()
+    {
+        var changed = false;
+        var allSeries = GetAllSeries(true);
+
+        // User overridden main series.
+        if (DefaultAnimeSeriesID.HasValue)
+        {
+            var series = allSeries.Find(series => series.AnimeSeriesID == DefaultAnimeSeriesID.Value);
+            if (series != null)
+            {
+                DefaultAnimeSeriesID = null;
+                changed = true;
+            }
+        }
+
+        // Auto selected main series.
+        if (MainAniDBAnimeID.HasValue)
+        {
+            var series = allSeries.Find(series => series.AniDB_ID == MainAniDBAnimeID.Value);
+            if (series != null)
+            {
+                MainAniDBAnimeID = null;
+                changed = true;
+            }
+        }
+
+        return changed;
     }
 
     public List<SVR_AnimeSeries> GetSeries(bool skipSorting = false)

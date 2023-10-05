@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
@@ -2149,6 +2149,8 @@ public partial class ShokoServiceImplementation : IShokoServer
             {
                 grp.SortName = contract.SortName;
             }
+
+            grp.ValidateMainSeries();
 
             RepoFactory.AnimeGroup.Save(grp, true, true);
 
