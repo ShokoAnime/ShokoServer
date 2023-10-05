@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -246,26 +246,20 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
     /// </summary>
     public SVR_AnimeSeries GetMainSeries()
     {
-        SVR_AnimeSeries series = null;
-
         // User overridden main series.
         if (DefaultAnimeSeriesID.HasValue)
         {
-            series = RepoFactory.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);
+            var series = RepoFactory.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);
             if (series != null)
-            {
                 return series;
-            }
         }
 
         // Auto selected main series.
         if (MainAniDBAnimeID.HasValue)
         {
-            series = RepoFactory.AnimeSeries.GetByAnimeID(MainAniDBAnimeID.Value);
+            var series = RepoFactory.AnimeSeries.GetByAnimeID(MainAniDBAnimeID.Value);
             if (series != null)
-            {
                 return series;
-            }
         }
 
         // Earliest airing series.
