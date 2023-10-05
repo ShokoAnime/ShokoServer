@@ -17,7 +17,8 @@ public class InSeasonExpression : FilterExpression<bool>, IWithNumberParameter, 
     public AnimeSeason Season { get; set; }
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This passes if any of the anime aired in the season given in the parameters";
+    public override string HelpDescription => "This passes if any of the anime aired in the season given in the parameters." +
+                                              "The first parameter is the Year, while the second parameter is the Season.";
     public override string[] HelpPossibleSecondParameters => new[]
     {
         AnimeSeason.Winter.ToString(), AnimeSeason.Spring.ToString(),

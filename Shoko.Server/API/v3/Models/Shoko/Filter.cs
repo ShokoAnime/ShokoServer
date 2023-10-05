@@ -69,39 +69,39 @@ public class Filter : BaseModel
     public class FilterCondition
     {
         /// <summary>
-        /// Condition Type. What it does.
-        /// This is not the GroupFilterConditionType, but the type of the FilterExpression, with 'Expression' removed.
+        /// Condition Type. What it does.<br/>
+        /// This is not the GroupFilterConditionType, but the type of the FilterExpression, with 'Expression' removed.<br/>
         /// ex. And, Or, Not, HasAudioLanguage
         /// </summary>
         [Required]
         public string Type { get; set; }
 
         /// <summary>
-        /// The first, or left, child expression.
-        /// This might be another logic operator like And, a selector for data like Today's Date, or an expression like HasAudioLanguage.
+        /// The first, or left, child expression.<br/>
+        /// This might be another logic operator like And, a selector for data like Today's Date, or an expression like HasAudioLanguage.<br/>
         /// Whether this is included depends on the expression.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public FilterCondition? Left { get; set; }
 
         /// <summary>
-        /// The second, or right, child expression.
-        /// This might be another logic operator like And, a selector for data like Today's Date, or an expression like HasAudioLanguage.
+        /// The second, or right, child expression.<br/>
+        /// This might be another logic operator like And, a selector for data like Today's Date, or an expression like HasAudioLanguage.<br/>
         /// Whether this is included depends on the expression.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public FilterCondition? Right { get; set; }
 
         /// <summary>
-        /// The actual value to compare. Dependent on the expression type.
+        /// The actual value to compare. Dependent on the expression type.<br/>
         /// Coerced this to string to make things easier.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? Parameter { get; set; }
 
         /// <summary>
-        /// The actual value to compare. Dependent on the expression type.
-        /// Very few things have a second parameter. Seasons are one of them
+        /// The actual value to compare. Dependent on the expression type.<br/>
+        /// Very few things have a second parameter. Seasons are one of them<br/>
         /// Coerced this to string to make things easier.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -111,7 +111,7 @@ public class Filter : BaseModel
     public class FilterExpressionHelp
     {
         /// <summary>
-        /// The internal type name of the FilterExpression
+        /// The internal type name of the FilterExpression<br/>
         /// This is what you give the API, not actually the internal type (it is the internal type without the word Expression) 
         /// </summary>
         [Required]
@@ -138,7 +138,7 @@ public class Filter : BaseModel
         public FilterExpressionParameterType? Left { get; init; }
 
         /// <summary>
-        /// The parameter types that the <see cref="FilterCondition.Right"/> property requires
+        /// The parameter types that the <see cref="FilterCondition.Right"/> property requires<br/>
         /// If multiple are given, then at least one is required
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -146,7 +146,7 @@ public class Filter : BaseModel
         public FilterExpressionParameterType? Right { get; init; }
 
         /// <summary>
-        /// The parameter type that the <see cref="FilterCondition.Parameter"/> property requires.
+        /// The parameter type that the <see cref="FilterCondition.Parameter"/> property requires.<br/>
         /// This will always be a string for simplicity in type safety, but the type is what it expects
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -164,7 +164,7 @@ public class Filter : BaseModel
         public string[]? PossibleSecondParameters { get; init; }
 
         /// <summary>
-        /// The parameter type that the <see cref="FilterCondition.SecondParameter"/> property requires
+        /// The parameter type that the <see cref="FilterCondition.SecondParameter"/> property requires<br/>
         /// This will always be a string for simplicity in type safety, but the type is what it expects
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -188,8 +188,8 @@ public class Filter : BaseModel
         }
 
         /// <summary>
-        /// The type of the parameter. Expressions return a boolean, Selectors return the type of their name, and the rest are values from the user.
-        /// Dates are in yyyy-MM-dd format
+        /// The type of the parameter. Expressions return a boolean, Selectors return the type of their name, and the rest are values from the user.<br/>
+        /// Dates are in yyyy-MM-dd format<br/>
         /// TimeSpans are in d:HH:mm:ss.ffff format (f is milliseconds)
         /// </summary>
         public enum FilterExpressionParameterType
@@ -208,7 +208,7 @@ public class Filter : BaseModel
     public class SortingCriteriaHelp
     {
         /// <summary>
-        /// The internal type name of the FilterExpression
+        /// The internal type name of the FilterExpression<br/>
         /// This is what you give the API, not actually the internal type (it is the internal type without the word Expression) 
         /// </summary>
         [Required]
@@ -222,16 +222,16 @@ public class Filter : BaseModel
     }
 
     /// <summary>
-    /// Sorting Criteria hold info on how Group Filters sort their items.
+    /// Sorting Criteria hold info on how Group Filters sort their items.<br/>
     /// It is in a List to follow an OrderBy().ThenBy().ThenBy(), allowing
     /// consistent results with fallbacks.
     /// </summary>
     public class SortingCriteria
     {
         /// <summary>
-        /// The sorting type. What it is sorted on.
-        /// This is not the GroupFilterSorting, but the type of the SortingExpression, with 'Expression' removed.
-        /// ex. And, Or, Not, HasAudioLanguage
+        /// The sorting type. What it is sorted on.<br/>
+        /// This is not the GroupFilterSorting, but the type of the SortingExpression, with 'Expression' removed.<br/>
+        /// ex. And, Or, Not, HasAudioLanguage<br/>
         /// </summary>
         [Required]
         public string Type { get; set; }

@@ -92,12 +92,14 @@ public class FilterController : BaseController
 
     /// <summary>
     /// Lists the available expressions.
-    /// The word "Filterable" is used a lot. It is a generic word for a series or group, depending on what the filter is set to apply to.
-    /// Expression: The identifier used to create the expression. eg. And, Not, HasTag.
-    /// Type: Parameters have a type, and this is the type that needs to match.
-    /// Left, Right, Parameter, and SecondParameter show what type the expression supports as parameters.
-    /// Left and Right are Expressions or Selectors. Parameters are constants.
     /// </summary>
+    /// <remarks>
+    /// The word "Filterable" is used a lot. It is a generic word for a series or group, depending on what the filter is set to apply to.  
+    /// Expression: The identifier used to create the expression. eg. And, Not, HasTag.  
+    /// Type: Parameters have a type, and this is the type that needs to match.  
+    /// Left, Right, Parameter, and SecondParameter show what type the expression supports as parameters.  
+    /// Left and Right are Expressions or Selectors. Parameters are constants.
+    /// </remarks>
     [HttpGet("Expressions")]
     public ActionResult<Filter.FilterExpressionHelp[]> GetExpressions()
     {
@@ -163,12 +165,14 @@ public class FilterController : BaseController
 
     /// <summary>
     /// Lists the available sorting expressions. These are basically selectors that the filter system uses to sort.
-    /// The word "Filterable" is used a lot. It is a generic word for a series or group, depending on what the filter is set to apply to.
-    /// Type: The identifier used to create the expression. eg. AddedDate.
-    /// IsInverted: Whether the sorting should be in descending order.
-    /// Next: If the expression returns equal values, it defers to the next expression to sort more predictably.
-    /// For example, MissingEpisodeCount,Descending -> AirDate, Descending would have thing with the most missing episodes, then the last aired first.
     /// </summary>
+    /// <remarks>
+    /// The word "Filterable" is used a lot. It is a generic word for a series or group, depending on what the filter is set to apply to.  
+    /// Type: The identifier used to create the expression. eg. AddedDate.  
+    /// IsInverted: Whether the sorting should be in descending order.  
+    /// Next: If the expression returns equal values, it defers to the next expression to sort more predictably.  
+    /// For example, MissingEpisodeCount,Descending -> AirDate, Descending would have thing with the most missing episodes, then the last aired first.
+    /// </remarks>
     [HttpGet("SortingCriteria")]
     public ActionResult<Filter.SortingCriteriaHelp[]> GetSortingCriteria()
     {

@@ -122,8 +122,9 @@ public static class APIExtensions
 
                 options.AddPlugins();
 
-                options.MapType<SeriesType>(() => new OpenApiSchema { Type = "string" });
-                options.MapType<EpisodeType>(() => new OpenApiSchema { Type = "string" });
+                options.SchemaFilter<EnumSchemaFilter<EpisodeType>>();
+                options.SchemaFilter<EnumSchemaFilter<SeriesType>>();
+                options.SchemaFilter<EnumSchemaFilter<Filter.FilterExpressionHelp.FilterExpressionParameterType>>();
 
                 options.CustomSchemaIds(GetTypeName);
             });
