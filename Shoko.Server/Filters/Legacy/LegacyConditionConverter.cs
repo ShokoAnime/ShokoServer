@@ -569,7 +569,9 @@ public static class LegacyConditionConverter
 
     private static bool IsAniDBRating(FilterExpression expression, out object parameter, out GroupFilterOperator gfOperator)
     {
-        return TryParseComparator(expression, typeof(AverageAniDBRatingSelector), out parameter, out gfOperator);
+        return TryParseComparator(expression, typeof(AverageAniDBRatingSelector), out parameter, out gfOperator) ||
+               TryParseComparator(expression, typeof(HighestAniDBRatingSelector), out parameter, out gfOperator) ||
+               TryParseComparator(expression, typeof(LowestAniDBRatingSelector), out parameter, out gfOperator);
     }
 
     private static bool IsUserRating(FilterExpression expression, out object parameter, out GroupFilterOperator gfOperator)
@@ -709,7 +711,13 @@ public static class LegacyConditionConverter
                 sortType = GroupFilterSorting.MissingEpisodeCount;
             else if (type == typeof(HighestUserRatingSortingSelector))
                 sortType = GroupFilterSorting.UserRating;
+            else if (type == typeof(LowestUserRatingSortingSelector))
+                sortType = GroupFilterSorting.UserRating;
+            else if (type == typeof(AverageAniDBRatingSortingSelector))
+                sortType = GroupFilterSorting.AniDBRating;
             else if (type == typeof(HighestAniDBRatingSortingSelector))
+                sortType = GroupFilterSorting.AniDBRating;
+            else if (type == typeof(LowestAniDBRatingSortingSelector))
                 sortType = GroupFilterSorting.AniDBRating;
             else if (type == typeof(SortingNameSortingSelector))
                 sortType = GroupFilterSorting.SortName;
@@ -898,7 +906,7 @@ public static class LegacyConditionConverter
                 {
                     Descending = criteria.SortDirection == GroupFilterSortDirection.Desc
                 },
-                GroupFilterSorting.AniDBRating => new HighestAniDBRatingSortingSelector
+                GroupFilterSorting.AniDBRating => new AverageAniDBRatingSortingSelector
                 {
                     Descending = criteria.SortDirection == GroupFilterSortDirection.Desc
                 },
