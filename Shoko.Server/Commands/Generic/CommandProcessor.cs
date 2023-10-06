@@ -10,6 +10,7 @@ using Shoko.Models.Queue;
 using Shoko.Server.Commands.Interfaces;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Commands.Generic;
 
@@ -124,6 +125,7 @@ public abstract class CommandProcessor : IDisposable, ICommandProcessor
     /// </summary>
     public void NotifyOfNewCommand()
     {
+        if (!ServerState.Instance.DatabaseAvailable) return;
         UpdateQueueCount();
         StartWorker();
     }
