@@ -297,7 +297,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         if (DefaultAnimeSeriesID.HasValue)
         {
             var series = allSeries.Find(series => series.AnimeSeriesID == DefaultAnimeSeriesID.Value);
-            if (series != null)
+            if (series == null)
             {
                 DefaultAnimeSeriesID = null;
                 changed = true;
@@ -308,7 +308,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         if (MainAniDBAnimeID.HasValue)
         {
             var series = allSeries.Find(series => series.AniDB_ID == MainAniDBAnimeID.Value);
-            if (series != null)
+            if (series == null)
             {
                 MainAniDBAnimeID = null;
                 changed = true;

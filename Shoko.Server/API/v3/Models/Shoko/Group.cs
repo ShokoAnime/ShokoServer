@@ -308,6 +308,10 @@ public class Group : BaseModel
                 if (group.AnimeGroupID == 0)
                     RepoFactory.AnimeGroup.Save(group);
 
+                // Move the group under the new parent.
+                if (ParentID.HasValue)
+                    group.AnimeGroupParentID = ParentID.Value == 0 ? null : ParentID.Value;
+
                 // Check if the names have changed if we omit the value, or if
                 // we set it to true.
                 if (!HasCustomName.HasValue || HasCustomName.Value)
@@ -367,18 +371,12 @@ public class Group : BaseModel
                         continue;
 
                     childGroup.AnimeGroupParentID = group.AnimeGroupID;
-                    RepoFactory.AnimeGroup.Save(group, false, false);
+                    RepoFactory.AnimeGroup.Save(childGroup, false, false);
                 }
 
                 // Move the series over to the new group.
                 foreach (var series in seriesList)
-                {
-                    // Skip adding series already part of the group.
-                    if (series.AnimeGroupID == group.AnimeGroupID)
-                        continue;
-
                     series.MoveSeries(group);
-                }
 
                 // Set the main series and maybe update the group
                 // name/description.

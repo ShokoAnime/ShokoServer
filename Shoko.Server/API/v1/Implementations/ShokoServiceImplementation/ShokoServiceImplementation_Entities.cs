@@ -2200,6 +2200,8 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             ser.MoveSeries(grp);
 
+            grp.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
+
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
             if (anime == null)
             {
