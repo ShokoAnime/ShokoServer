@@ -7,7 +7,6 @@ using Shoko.Server.Filters.Files;
 using Shoko.Server.Filters.Functions;
 using Shoko.Server.Filters.Info;
 using Shoko.Server.Filters.Interfaces;
-using Shoko.Server.Filters.Logic;
 using Shoko.Server.Filters.Logic.DateTimes;
 using Shoko.Server.Filters.Logic.Expressions;
 using Shoko.Server.Filters.Logic.Numbers;

@@ -16,6 +16,8 @@ namespace Shoko.Server.API.v3.Helpers;
 
 public class FilterFactory
 {
+    private readonly Dictionary<string, Type> _expressionTypes;
+    private readonly Dictionary<string, Type> _sortingTypes;
     private readonly HttpContext _context;
     private readonly FilterEvaluator _evaluator;
 
@@ -23,6 +25,14 @@ public class FilterFactory
     {
         _context = context.HttpContext;
         _evaluator = evaluator;
+
+        _expressionTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
+            .Where(a => a != typeof(FilterExpression) && !a.IsGenericType && typeof(FilterExpression).IsAssignableFrom(a) &&
+                        !typeof(SortingExpression).IsAssignableFrom(a)).ToDictionary(a => a.Name.Replace("Expression", "").Replace("Function", ""));
+
+        _sortingTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
+            .Where(a => a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType && typeof(SortingExpression).IsAssignableFrom(a))
+            .ToDictionary(a => a.Name.Replace("SortingSelector", ""));
     }
 
     public Filter GetFilter(FilterPreset groupFilter, bool fullModel = false)
@@ -86,7 +96,7 @@ public class FilterFactory
         return filters;
     }
 
-    public static Filter.FilterCondition GetExpressionTree(FilterExpression expression)
+    public Filter.FilterCondition GetExpressionTree(FilterExpression expression)
     {
         if (expression is null) return null;
         var result = new Filter.FilterCondition
@@ -118,13 +128,13 @@ public class FilterFactory
                 result.Parameter = parameter.Parameter;
                 break;
             case IWithNumberParameter parameter:
-                result.Parameter = parameter.Parameter.ToString();
+                result.Parameter = parameter.Parameter == 0 ? null : parameter.Parameter.ToString(CultureInfo.CurrentCulture);
                 break;
             case IWithDateParameter parameter:
-                result.Parameter = parameter.Parameter.ToString("yyyy-MM-dd");
+                result.Parameter = parameter.Parameter == default ? null : parameter.Parameter.ToString("yyyy-MM-dd");
                 break;
             case IWithTimeSpanParameter parameter:
-                result.Parameter = parameter.Parameter.ToString("G");
+                result.Parameter = parameter.Parameter == default ? null : parameter.Parameter.ToString("G");
                 break;
         }
 
@@ -153,10 +163,7 @@ public class FilterFactory
     
     public FilterExpression<T> GetExpressionTree<T>(Filter.FilterCondition condition)
     {
-        var type = Type.GetType(condition.Type + "Expression");
-        type ??= Type.GetType(condition.Type + "Function");
-        type ??= Type.GetType(condition.Type);
-        if (type == null) throw new ArgumentException($"FilterCondition type {condition.Type} was not found");
+        if (!_expressionTypes.TryGetValue(condition.Type, out var type)) throw new ArgumentException($"FilterCondition type {condition.Type} was not found");
         var result = (FilterExpression<T>)Activator.CreateInstance(type);
 
         // Left/First
@@ -180,16 +187,20 @@ public class FilterFactory
         switch (result)
         {
             case IWithStringParameter parameter:
-                parameter.Parameter = parameter.Parameter;
+                parameter.Parameter = condition.Parameter;
                 break;
             case IWithNumberParameter parameter:
-                parameter.Parameter = double.Parse(condition.Parameter!);
+                parameter.Parameter = string.IsNullOrEmpty(condition.Parameter) ? default : double.Parse(condition.Parameter!);
                 break;
             case IWithDateParameter parameter:
-                parameter.Parameter = DateTime.ParseExact(condition.Parameter!, "yyyy-MM-dd", CultureInfo.InvariantCulture.DateTimeFormat);
+                parameter.Parameter = string.IsNullOrEmpty(condition.Parameter)
+                    ? default
+                    : DateTime.ParseExact(condition.Parameter!, "yyyy-MM-dd", CultureInfo.InvariantCulture.DateTimeFormat);
                 break;
             case IWithTimeSpanParameter parameter:
-                parameter.Parameter = TimeSpan.ParseExact(condition.Parameter!, "G", CultureInfo.InvariantCulture.DateTimeFormat);
+                parameter.Parameter = string.IsNullOrEmpty(condition.Parameter)
+                    ? default
+                    : TimeSpan.ParseExact(condition.Parameter!, "G", CultureInfo.InvariantCulture.DateTimeFormat);
                 break;
         }
 
@@ -216,8 +227,10 @@ public class FilterFactory
         return result;
     }
 
-    public static Filter.SortingCriteria GetSortingCriteria(SortingExpression expression)
+    public Filter.SortingCriteria GetSortingCriteria(SortingExpression expression)
     {
+        if (expression == null) return new Filter.SortingCriteria { Type = "Name", IsInverted = false };
+
         var result = new Filter.SortingCriteria
         {
             Type = expression.GetType().Name.Replace("SortingSelector", ""),
@@ -240,11 +253,10 @@ public class FilterFactory
         return result;
     }
     
-    public static SortingExpression GetSortingCriteria(Filter.SortingCriteria criteria)
+    public SortingExpression GetSortingCriteria(Filter.SortingCriteria criteria)
     {
-        var type = Type.GetType(criteria.Type + "SortingSelector");
-        type ??= Type.GetType(criteria.Type);
-        if (type == null) throw new ArgumentException($"SortingExpression type {criteria.Type}Selector was not found");
+        if (!_sortingTypes.TryGetValue(criteria.Type, out var type))
+            throw new ArgumentException($"SortingExpression type {criteria.Type}Selector was not found");
         var result = (SortingExpression)Activator.CreateInstance(type)!;
         result.Descending = criteria.IsInverted;
 
