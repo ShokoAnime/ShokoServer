@@ -1537,7 +1537,7 @@ public class SVR_AnimeSeries : AnimeSeries
         }
     }
 
-    public void MoveSeries(SVR_AnimeGroup newGroup)
+    public void MoveSeries(SVR_AnimeGroup newGroup, bool updateGroupStats = true)
     {
         // Skip moving series if it's already part of the group.
         if (AnimeGroupID == newGroup.AnimeGroupID)
@@ -1548,6 +1548,8 @@ public class SVR_AnimeSeries : AnimeSeries
         AnimeGroupID = newGroup.AnimeGroupID;
         DateTimeUpdated = DateTime.Now;
         UpdateStats(true, true);
+        if (updateGroupStats)
+            newGroup.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
 
         var oldGroup = RepoFactory.AnimeGroup.GetByID(oldGroupID);
         if (oldGroup != null)

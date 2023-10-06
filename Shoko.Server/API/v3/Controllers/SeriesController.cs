@@ -1448,8 +1448,6 @@ public class SeriesController : BaseController
 
         series.MoveSeries(group);
 
-        group.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, true);
-
         return Ok();
     }
 
