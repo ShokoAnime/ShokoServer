@@ -455,7 +455,7 @@ public class TreeController : BaseController
                     return false;
                 }
 
-                return includeEmpty || group.GetAllSeries()
+                return includeEmpty || subGroup.GetAllSeries()
                     .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
             })
             .OrderBy(group => group.GroupName)
