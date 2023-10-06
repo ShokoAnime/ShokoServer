@@ -82,12 +82,22 @@ public class FilterController : BaseController
     [HttpPost]
     public ActionResult<Filter> AddNewFilter(Filter.Input.CreateOrUpdateFilterBody body)
     {
-        var filterPreset = new FilterPreset { FilterType = GroupFilterType.UserDefined };
-        var filter = _factory.MergeWithExisting(body, filterPreset, ModelState);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
+        try
+        {
+            var filterPreset = new FilterPreset
+            {
+                FilterType = GroupFilterType.UserDefined
+            };
+            var filter = _factory.MergeWithExisting(body, filterPreset, ModelState);
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
 
-        return filter;
+            return filter;
+        }
+        catch (ArgumentException e)
+        {
+            return ValidationProblem(e.Message, "Expression");
+        }
     }
 
     /// <summary>
@@ -222,16 +232,23 @@ public class FilterController : BaseController
         if (filterPreset == null)
             return NotFound(FilterNotFound);
 
-        var body = _factory.CreateOrUpdateFilterBody(filterPreset);
-        document.ApplyTo(body, ModelState);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
+        try
+        {
+            var body = _factory.CreateOrUpdateFilterBody(filterPreset);
+            document.ApplyTo(body, ModelState);
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
 
-        var filter = _factory.MergeWithExisting(body, filterPreset, ModelState);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
+            var filter = _factory.MergeWithExisting(body, filterPreset, ModelState);
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
 
-        return filter;
+            return filter;
+        }
+        catch (ArgumentException e)
+        {
+            return ValidationProblem(e.Message, "Expression");
+        }
     }
 
     /// <summary>
@@ -248,11 +265,18 @@ public class FilterController : BaseController
         if (filterPreset == null)
             return NotFound(FilterNotFound);
 
-        var filter = _factory.MergeWithExisting(body, filterPreset, ModelState);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
+        try
+        {
+            var filter = _factory.MergeWithExisting(body, filterPreset, ModelState);
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
 
-        return filter;
+            return filter;
+        }
+        catch (ArgumentException e)
+        {
+            return ValidationProblem(e.Message, "Expression");
+        }
     }
 
     /// <summary>
