@@ -274,7 +274,7 @@ public class Group : BaseModel
                     var unknownSeriesIDs = SeriesIDs
                         .Where(id => !seriesList.Any(series => series.AnimeSeriesID == id))
                         .ToList();
-                    throw new Exception($"Unable to get series with ids \"{string.Join("\", \"", unknownSeriesIDs)}\".");
+                    modelState.AddModelError(nameof(SeriesIDs), $"Unable to get series with ids \"{string.Join("\", \"", unknownSeriesIDs)}\".");
                 }
 
                 // Get a list of all the series across the new inputs and the existing group.
