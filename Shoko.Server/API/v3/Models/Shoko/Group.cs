@@ -158,7 +158,7 @@ public class Group : BaseModel
             /// <summary>
             /// All the series to put into the group.
             /// </summary>
-            public List<int> SeriesIDs { get; set; } = new();
+            public List<int>? SeriesIDs { get; set; } = new();
 
             /// <summary>
             /// All groups to put into the group as sub-groups.
@@ -167,7 +167,7 @@ public class Group : BaseModel
             /// If the parent group is a sub-group of any of the groups in this
             /// array, then the request will be aborted.
             /// </remarks>
-            public List<int> GroupIDs { get; set; } = new();
+            public List<int>? GroupIDs { get; set; } = new();
 
             /// <summary>
             /// The group's custom name.
@@ -256,26 +256,26 @@ public class Group : BaseModel
                 }
 
                 // Get the groups and validate the group ids.
-                var childGroups = GroupIDs
+                var childGroups = GroupIDs == null ? new() : GroupIDs
                     .Select(groupID => RepoFactory.AnimeGroup.GetByID(groupID))
                     .Where(childGroup => childGroup != null)
                     .ToList();
-                if (childGroups.Count != GroupIDs.Count)
+                if (childGroups.Count != (GroupIDs?.Count ?? 0))
                 {
-                    var unknownGroupIDs = GroupIDs
+                    var unknownGroupIDs = GroupIDs!
                         .Where(id => !childGroups.Any(childGroup => childGroup.AnimeGroupID == id))
                         .ToList();
                     modelState.AddModelError(nameof(GroupIDs), $"Unable to get child groups with ids \"{string.Join("\", \"", unknownGroupIDs)}\".");
                 }
 
                 // Get the series and validate the series ids.
-                var seriesList = SeriesIDs
+                var seriesList = SeriesIDs == null ? new() : SeriesIDs
                     .Select(id => RepoFactory.AnimeSeries.GetByID(id))
                     .Where(s => s != null)
                     .ToList();
-                if (seriesList.Count != SeriesIDs.Count)
+                if (seriesList.Count != (SeriesIDs?.Count ?? 0))
                 {
-                    var unknownSeriesIDs = SeriesIDs
+                    var unknownSeriesIDs = SeriesIDs!
                         .Where(id => !seriesList.Any(series => series.AnimeSeriesID == id))
                         .ToList();
                     modelState.AddModelError(nameof(SeriesIDs), $"Unable to get series with ids \"{string.Join("\", \"", unknownSeriesIDs)}\".");
