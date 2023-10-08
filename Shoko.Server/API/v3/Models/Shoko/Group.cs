@@ -141,10 +141,14 @@ public class Group : BaseModel
         public class CreateOrUpdateGroupBody
         {
             /// <summary>
-            /// The <see cref="Group"/> parent ID. Omit it or set it to 0 to
-            /// create a new top-level group.
+            /// The <see cref="Group"/> parent ID.
             /// </summary>
-            public int? ParentID { get; set; } = null;
+            /// <remarks>
+            /// Omit it or set it to 0 to create a new top-level group when
+            /// creating a new group, and omit it to keep the current parent or
+            /// set it to 0 to move the group under a new parent group when modifying a series.
+            /// </remarks>
+            public int? ParentGroupID { get; set; } = null;
 
             /// <summary>
             /// Manually select the default series for the group.
@@ -163,7 +167,7 @@ public class Group : BaseModel
             /// If the parent group is a sub-group of any of the groups in this
             /// array, then the request will be aborted.
             /// </remarks>
-            public List<int> ChildIDs { get; set; } = new();
+            public List<int> GroupIDs { get; set; } = new();
 
             /// <summary>
             /// The group's custom name.
@@ -225,43 +229,43 @@ public class Group : BaseModel
             {
                 Name = group.GroupName;
                 SortName = group.SortName;
-                ParentID = group.AnimeGroupParentID;
+                ParentGroupID = group.AnimeGroupParentID;
                 DefaultSeriesID = group.DefaultAnimeSeriesID;
                 SeriesIDs = group.GetSeries().Select(series => series.AnimeSeriesID).ToList();
-                ChildIDs = group.GetChildGroups().Select(group => group.AnimeGroupID).ToList();
+                GroupIDs = group.GetChildGroups().Select(group => group.AnimeGroupID).ToList();
             }
 
             public Group? MergeWithExisting(HttpContext ctx, SVR_AnimeGroup group, ModelStateDictionary modelState)
             {
                 // Validate if the parent exists if a parent id is set.
                 SVR_AnimeGroup? parent = null;
-                if (ParentID.HasValue && ParentID.Value != 0)
+                if (ParentGroupID.HasValue && ParentGroupID.Value != 0)
                 {
-                    parent = RepoFactory.AnimeGroup.GetByID(ParentID.Value);
+                    parent = RepoFactory.AnimeGroup.GetByID(ParentGroupID.Value);
                     if (parent == null)
                     {
-                        modelState.AddModelError(nameof(ParentID), $"Unable to get parent group with id \"{ParentID.Value}\".");
+                        modelState.AddModelError(nameof(ParentGroupID), $"Unable to get parent group with id \"{ParentGroupID.Value}\".");
                     }
                     else
                     {
-                        if (parent.IsDescendantOf(ChildIDs))
-                            modelState.AddModelError(nameof(ParentID), "Infinite recursion detected between selected parent group and child groups.");
+                        if (parent.IsDescendantOf(GroupIDs))
+                            modelState.AddModelError(nameof(ParentGroupID), "Infinite recursion detected between selected parent group and child groups.");
                         if (group.AnimeGroupID != 0 && parent.IsDescendantOf(group.AnimeGroupID))
-                            modelState.AddModelError(nameof(ParentID), "Infinite recursion detected between selected parent group and current group.");
+                            modelState.AddModelError(nameof(ParentGroupID), "Infinite recursion detected between selected parent group and current group.");
                     }
                 }
 
                 // Get the groups and validate the group ids.
-                var childGroups = ChildIDs
+                var childGroups = GroupIDs
                     .Select(groupID => RepoFactory.AnimeGroup.GetByID(groupID))
                     .Where(childGroup => childGroup != null)
                     .ToList();
-                if (childGroups.Count != ChildIDs.Count)
+                if (childGroups.Count != GroupIDs.Count)
                 {
-                    var unknownGroupIDs = ChildIDs
+                    var unknownGroupIDs = GroupIDs
                         .Where(id => !childGroups.Any(childGroup => childGroup.AnimeGroupID == id))
                         .ToList();
-                    modelState.AddModelError(nameof(ChildIDs), $"Unable to get child groups with ids \"{string.Join("\", \"", unknownGroupIDs)}\".");
+                    modelState.AddModelError(nameof(GroupIDs), $"Unable to get child groups with ids \"{string.Join("\", \"", unknownGroupIDs)}\".");
                 }
 
                 // Get the series and validate the series ids.
@@ -286,7 +290,7 @@ public class Group : BaseModel
                 if (allSeriesList.Count == 0)
                 {
                     modelState.AddModelError(nameof(SeriesIDs), "Unable to create an empty group without any series or child groups.");
-                    modelState.AddModelError(nameof(ChildIDs), "Unable to create an empty group without any series or child groups.");
+                    modelState.AddModelError(nameof(GroupIDs), "Unable to create an empty group without any series or child groups.");
                 }
 
                 // Find the default series among the list of seris.
@@ -309,8 +313,8 @@ public class Group : BaseModel
                     RepoFactory.AnimeGroup.Save(group);
 
                 // Move the group under the new parent.
-                if (ParentID.HasValue)
-                    group.AnimeGroupParentID = ParentID.Value == 0 ? null : ParentID.Value;
+                if (ParentGroupID.HasValue)
+                    group.AnimeGroupParentID = ParentGroupID.Value == 0 ? null : ParentGroupID.Value;
 
                 // Check if the names have changed if we omit the value, or if
                 // we set it to true.
