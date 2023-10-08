@@ -16,11 +16,61 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class FolderController : BaseController
 {
+    private static HashSet<string> ExcludedFormats = new()
+    {
+        "msdos", // fat32 - might be overkill, but the esp (u)efi partition is usually formatted as such.
+        "ramfs",
+        "configfs",
+        "fusectl",
+        "tracefs",
+        "hugetlbfs",
+        "mqueue",
+        "debugfs",
+        "binfmt_misc",
+        "devpts",
+        "pstorefs",
+        "bpf_fs",
+        "cgroup2fs",
+        "securityfs",
+        "proc",
+        "tmpfs",
+        "sysfs",
+    };
+
     [HttpGet("Drives")]
     public ActionResult<IEnumerable<Drive>> GetDrives()
     {
         return DriveInfo.GetDrives().Select(d =>
         {
+            if (d.DriveType == DriveType.Unknown)
+                return null;
+
+            string fullName;
+            try
+            {
+                fullName = d.RootDirectory.FullName;
+            }
+            catch
+            {
+                return null;
+            }
+
+            string driveFormat;
+            try
+            {
+                driveFormat = d.DriveFormat;
+            }
+            catch
+            {
+                return null;
+            }
+
+            foreach (var format in ExcludedFormats)
+            {
+                if (driveFormat == format)
+                    return null;
+            }
+
             ChildItems childItems = null;
             try
             {
@@ -28,7 +78,7 @@ public class FolderController : BaseController
                     ? new ChildItems()
                     {
                         Files = d.RootDirectory.GetFiles()?.Length ?? 0,
-                        Folders = d.RootDirectory.GetDirectories()?.Length ?? 0
+                        Folders = d.RootDirectory.GetDirectories()?.Length ?? 0,
                     }
                     : null;
             }
@@ -38,12 +88,14 @@ public class FolderController : BaseController
 
             return new Drive()
             {
-                Path = d.RootDirectory.FullName,
+                Path = fullName,
                 IsAccessible = childItems != null,
                 Sizes = childItems,
-                Type = d.DriveType
+                Type = d.DriveType,
             };
-        }).ToList();
+        })
+        .Where(mountPoint => mountPoint != null)
+        .ToList();
     }
 
     [HttpGet]
