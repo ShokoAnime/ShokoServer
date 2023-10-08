@@ -291,7 +291,7 @@ public class Group : BaseModel
 
                 // Find the default series among the list of seris.
                 SVR_AnimeSeries? defaultSeries = null;
-                if (DefaultSeriesID.HasValue)
+                if (DefaultSeriesID.HasValue && DefaultSeriesID.Value != 0)
                 {
                     defaultSeries = allSeriesList
                         .FirstOrDefault(series => series.AnimeSeriesID == DefaultSeriesID.Value);
@@ -380,7 +380,8 @@ public class Group : BaseModel
 
                 // Set the main series and maybe update the group
                 // name/description.
-                group.SetMainSeries(defaultSeries);
+                if (DefaultSeriesID.HasValue)
+                    group.SetMainSeries(defaultSeries);
 
                 // Update stats for all groups in the chain.
                 group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
