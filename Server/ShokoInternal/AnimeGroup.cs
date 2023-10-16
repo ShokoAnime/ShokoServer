@@ -13,7 +13,6 @@ namespace Shoko.Models.Server
         public int IsManuallyNamed { get; set; }
         public DateTime DateTimeUpdated { get; set; }
         public DateTime DateTimeCreated { get; set; }
-        public string SortName { get; set; }
         public DateTime? EpisodeAddedDate { get; set; }
         public DateTime? LatestEpisodeAirDate { get; set; }
         public int MissingEpisodeCount { get; set; }
