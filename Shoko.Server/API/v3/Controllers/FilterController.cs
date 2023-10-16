@@ -344,7 +344,7 @@ public class FilterController : BaseController
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing
     ///     <see cref="Episode"/>s in the count.</param>
     /// <returns></returns>
-    [HttpGet("Preview/Group/Letters")]
+    [HttpPost("Preview/Group/Letters")]
     public ActionResult<Dictionary<char, int>> GetPreviewGroupNameLettersInFilter([FromBody] Filter.Input.CreateOrUpdateFilterBody filter, [FromQuery] bool includeEmpty = false)
     {
         // Directories should only contain sub-filters, not groups and series.
