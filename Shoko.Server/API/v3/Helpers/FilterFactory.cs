@@ -265,7 +265,7 @@ public class FilterFactory
         return result;
     }
     
-    public Filter.Input.CreateOrUpdateFilterBody CreateOrUpdateFilterBody(FilterPreset groupFilter)
+    public Filter.Input.CreateOrUpdateFilterBody GetPostModel(FilterPreset groupFilter)
     {
         var result = new Filter.Input.CreateOrUpdateFilterBody
         {
@@ -285,67 +285,65 @@ public class FilterFactory
         return result;
     }
 
-    public Filter MergeWithExisting(Filter.Input.CreateOrUpdateFilterBody body, FilterPreset groupFilter, ModelStateDictionary modelState, bool skipSave = false)
+    public FilterPreset GetFilterPreset(Filter.Input.CreateOrUpdateFilterBody filter, ModelStateDictionary modelState = null, FilterPreset existing = null)
     {
-        if (groupFilter.Locked)
-            modelState.AddModelError("IsLocked", "Filter is locked.");
+        existing ??= new FilterPreset();
+
+        if (existing.Locked)
+            modelState?.AddModelError("IsLocked", "Filter is locked.");
 
         // Defer to `null` if the id is `0`.
-        if (body.ParentID is 0)
-            body.ParentID = null;
+        if (filter.ParentID is 0)
+            filter.ParentID = null;
 
-        if (body.ParentID.HasValue)
+        if (filter.ParentID.HasValue)
         {
-            var parentFilter = RepoFactory.FilterPreset.GetByID(body.ParentID.Value);
+            var parentFilter = RepoFactory.FilterPreset.GetByID(filter.ParentID.Value);
             if (parentFilter == null)
             {
-                modelState.AddModelError(nameof(body.ParentID), $"Unable to find parent filter with id {body.ParentID.Value}");
+                modelState?.AddModelError(nameof(filter.ParentID), $"Unable to find parent filter with id {filter.ParentID.Value}");
             }
             else
             {
                 if (parentFilter.Locked)
-                    modelState.AddModelError(nameof(body.ParentID), $"Unable to add a sub-filter to a filter that is locked.");
+                    modelState?.AddModelError(nameof(filter.ParentID), $"Unable to add a sub-filter to a filter that is locked.");
 
                 if (!parentFilter.IsDirectory())
-                    modelState.AddModelError(nameof(body.ParentID), $"Unable to add a sub-filter to a filter that is not a directorty filter.");
+                    modelState?.AddModelError(nameof(filter.ParentID), $"Unable to add a sub-filter to a filter that is not a directorty filter.");
             }
         }
 
-        if (body.IsDirectory)
+        if (filter.IsDirectory)
         {
-            if (body.Expression != null)
-                modelState.AddModelError(nameof(body.Expression), "Directory filters cannot have any conditions applied to them.");
+            if (filter.Expression != null)
+                modelState?.AddModelError(nameof(filter.Expression), "Directory filters cannot have any conditions applied to them.");
 
-            if (body.Sorting != null)
-                modelState.AddModelError(nameof(body.Sorting), "Directory filters cannot have custom sorting applied to them.");
+            if (filter.Sorting != null)
+                modelState?.AddModelError(nameof(filter.Sorting), "Directory filters cannot have custom sorting applied to them.");
         }
         else
         {
-            var subFilters = groupFilter.FilterPresetID != 0 ? RepoFactory.FilterPreset.GetByParentID(groupFilter.FilterPresetID) : new();
+            var subFilters = existing.FilterPresetID != 0 ? RepoFactory.FilterPreset.GetByParentID(existing.FilterPresetID) : new();
             if (subFilters.Count > 0)
-                modelState.AddModelError(nameof(body.IsDirectory), "Cannot turn a directory filter with sub-filters into a normal filter without first removing the sub-filters");
+                modelState?.AddModelError(nameof(filter.IsDirectory), "Cannot turn a directory filter with sub-filters into a normal filter without first removing the sub-filters");
         }
 
         // Return now if we encountered any validation errors.
-        if (!modelState.IsValid)
+        if (modelState is { IsValid: false })
             return null;
 
-        groupFilter.ParentFilterPresetID = body.ParentID;
-        groupFilter.FilterType = body.IsDirectory ? GroupFilterType.UserDefined | GroupFilterType.Directory : GroupFilterType.UserDefined;
-        groupFilter.Name = body.Name;
-        groupFilter.Hidden = body.IsHidden;
-        groupFilter.ApplyAtSeriesLevel = body.ApplyAtSeriesLevel;
-        if (!body.IsDirectory)
+        existing.ParentFilterPresetID = filter.ParentID;
+        existing.FilterType = filter.IsDirectory ? GroupFilterType.UserDefined | GroupFilterType.Directory : GroupFilterType.UserDefined;
+        existing.Name = filter.Name;
+        existing.Hidden = filter.IsHidden;
+        existing.ApplyAtSeriesLevel = filter.ApplyAtSeriesLevel;
+        if (!filter.IsDirectory)
         {
-            if (body.Expression != null) groupFilter.Expression = GetExpressionTree<bool>(body.Expression);
-            if (body.Sorting != null) groupFilter.SortingExpression = GetSortingCriteria(body.Sorting);
+            if (filter.Expression != null) existing.Expression = GetExpressionTree<bool>(filter.Expression);
+            if (filter.Sorting != null) existing.SortingExpression = GetSortingCriteria(filter.Sorting);
         }
 
-        // Skip saving if we're just going to preview a group filter.
-        if (!skipSave)
-            RepoFactory.FilterPreset.Save(groupFilter);
-
-        return GetFilter(groupFilter, true);
+        return existing;
     }
 
     public Filter GetFirstAiringSeasonGroupFilter(SVR_AniDB_Anime anime)
