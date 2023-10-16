@@ -1215,5 +1215,13 @@ namespace Shoko.Commons.Extensions
         public static bool HasMissingEpisodesGroups(this AnimeGroup gr) => gr.MissingEpisodeCountGroups > 0;
 
         public static bool HasMissingEpisodes(this AnimeGroup grp) => grp.MissingEpisodeCountGroups > 0;
+
+        public static string ToSortName(this string name)
+        {
+            if (name.StartsWith("A ")) name = name[2..];
+            else if (name.StartsWith("An ")) name = name[3..];
+            else if (name.StartsWith("The ")) name = name[4..];
+            return name;
+        }
     }
 }
