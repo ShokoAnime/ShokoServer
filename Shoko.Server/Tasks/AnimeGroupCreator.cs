@@ -65,7 +65,6 @@ internal class AnimeGroupCreator
         {
             GroupName = TempGroupName,
             Description = TempGroupName,
-            SortName = TempGroupName,
             DateTimeUpdated = now,
             DateTimeCreated = now
         };
@@ -338,7 +337,6 @@ internal class AnimeGroupCreator
         // If the title appears to end with a year suffix, then remove it
         groupName = _truncateYearRegex.Replace(groupName, string.Empty);
         animeGroup.GroupName = groupName;
-        animeGroup.SortName = groupName;
 
         return animeGroup;
     }
@@ -394,7 +392,6 @@ internal class AnimeGroupCreator
                     if (animeGroup.IsManuallyNamed == 0)
                     {
                         animeGroup.GroupName = series.GetSeriesName();
-                        animeGroup.SortName = animeGroup.GroupName.GetSortName();
                     }
                     // Override the group desc. if the group doesn't have an override.
                     if (animeGroup.OverrideDescription == 0)

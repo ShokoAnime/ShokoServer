@@ -2121,7 +2121,6 @@ public partial class ShokoServiceImplementation : IShokoServer
                     IsManuallyNamed = 0,
                     DateTimeCreated = DateTime.Now,
                     DateTimeUpdated = DateTime.Now,
-                    SortName = string.Empty,
                     MissingEpisodeCount = 0,
                     MissingEpisodeCountGroups = 0,
                     OverrideDescription = 0
@@ -2140,15 +2139,6 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             grp.IsManuallyNamed = contract.IsManuallyNamed;
             grp.OverrideDescription = 0;
-
-            if (string.IsNullOrEmpty(contract.SortName))
-            {
-                grp.SortName = contract.GroupName;
-            }
-            else
-            {
-                grp.SortName = contract.SortName;
-            }
 
             grp.ValidateMainSeries();
 

@@ -44,8 +44,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
     /// </summary>
     public string GetSortName()
     {
-        var sortName = !string.IsNullOrWhiteSpace(SortName) ? SortName.ToUpperInvariant() :
-                !string.IsNullOrWhiteSpace(GroupName) ? GroupName.ToUpperInvariant() : "";
+        var sortName = !string.IsNullOrWhiteSpace(GroupName) ? GroupName.ToSortName().ToUpperInvariant() : "";
         var initialChar = (short)(sortName.Length > 0 ? sortName[0] : ' ');
         return initialChar is >= 65 and <= 90 ? sortName : "#" + sortName;
     }
@@ -183,7 +182,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
             {
                 // Reset the name/description as needed.
                 if (grp.IsManuallyNamed == 0)
-                    grp.GroupName = grp.SortName = series.GetSeriesName();
+                    grp.GroupName = series.GetSeriesName();
                 if (grp.OverrideDescription == 0)
                     grp.Description = series.GetAnime().Description;
 
@@ -279,7 +278,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         if (IsManuallyNamed == 0 || OverrideDescription == 0)
             series = GetMainSeries();
         if (IsManuallyNamed == 0)
-            GroupName = SortName = series!.GetSeriesName();
+            GroupName = series!.GetSeriesName();
         if (OverrideDescription == 0)
             Description = series!.GetAnime().Description;
 
@@ -950,7 +949,7 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
             contract.GroupName = animeGroup.GroupName;
             contract.Description = animeGroup.Description;
             contract.LatestEpisodeAirDate = animeGroup.LatestEpisodeAirDate;
-            contract.SortName = animeGroup.SortName;
+            contract.SortName = animeGroup.GroupName.ToSortName();
             contract.EpisodeAddedDate = animeGroup.EpisodeAddedDate;
             contract.OverrideDescription = animeGroup.OverrideDescription;
             contract.DateTimeUpdated = animeGroup.DateTimeUpdated;

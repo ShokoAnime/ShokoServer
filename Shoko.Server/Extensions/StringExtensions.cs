@@ -168,12 +168,4 @@ public static class StringExtensions
 
         return strOutput.ToString();
     }
-
-    public static string GetSortName(this string name)
-    {
-        if (name.StartsWith("A ")) name = name[2..];
-        if (name.StartsWith("An ")) name = name[3..];
-        if (name.StartsWith("The ")) name = name[4..];
-        return name;
-    }
 }

@@ -19,7 +19,6 @@ public class AnimeGroupMap : ClassMap<SVR_AnimeGroup>
         Map(x => x.GroupName);
         Map(x => x.IsManuallyNamed).Not.Nullable();
         Map(x => x.OverrideDescription).Not.Nullable();
-        Map(x => x.SortName);
         Map(x => x.EpisodeAddedDate);
         Map(x => x.LatestEpisodeAirDate);
         Map(x => x.MissingEpisodeCount).Not.Nullable();

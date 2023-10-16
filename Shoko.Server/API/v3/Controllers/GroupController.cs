@@ -128,7 +128,6 @@ public class GroupController : BaseController
         var animeGroup = new SVR_AnimeGroup()
         {
             GroupName = string.Empty,
-            SortName = string.Empty,
             Description = string.Empty,
             IsManuallyNamed = 0,
             DateTimeCreated = DateTime.Now,

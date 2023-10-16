@@ -91,7 +91,6 @@ public class Group : BaseModel
         IDs.TopLevelGroup = group.TopLevelAnimeGroup.AnimeGroupID;
 
         Name = group.GroupName;
-        SortName = group.SortName;
         Description = group.Description;
         Sizes = ModelHelper.GenerateGroupSizes(allSeries, episodes, subGroupCount, userID);
         Size = allSeries.Count(series => series.AnimeGroupID == group.AnimeGroupID);
@@ -228,7 +227,6 @@ public class Group : BaseModel
             public CreateOrUpdateGroupBody(SVR_AnimeGroup group)
             {
                 Name = group.GroupName;
-                SortName = group.SortName;
                 ParentGroupID = group.AnimeGroupParentID;
                 DefaultSeriesID = group.DefaultAnimeSeriesID;
                 SeriesIDs = group.GetSeries().Select(series => series.AnimeSeriesID).ToList();
@@ -330,15 +328,6 @@ public class Group : BaseModel
                     {
                         group.IsManuallyNamed = 1;
                         group.GroupName = Name;
-                        group.SortName = string.IsNullOrWhiteSpace(SortName) ? Name : SortName;
-                    }
-
-                    // The group sort name changed.
-                    var overrideSortName = !overrideName && group.IsManuallyNamed == 1 && !string.IsNullOrEmpty(SortName) && !string.Equals(group.SortName, SortName);
-                    if (overrideSortName)
-                    {
-                        group.IsManuallyNamed = 1;
-                        group.SortName = SortName;
                     }
                 }
                 // Reset the name.

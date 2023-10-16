@@ -70,7 +70,6 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         {
             g.Description = g.Description?.Replace('`', '\'');
             g.GroupName = g.GroupName?.Replace('`', '\'');
-            g.SortName = g.SortName?.Replace('`', '\'');
             Save(g, true, false, false);
             cnt++;
             if (cnt % 10 == 0)

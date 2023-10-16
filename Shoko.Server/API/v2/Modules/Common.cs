@@ -3045,7 +3045,7 @@ public class Common : BaseController
                 .Where(a => a.GroupName
                     .IndexOf(SeriesSearch.SanitizeFuzzy(query, fuzzy), 0,
                         StringComparison.InvariantCultureIgnoreCase) >= 0)
-                .OrderBy(a => a.SortName)
+                .OrderBy(a => a.GetSortName())
                 .ToList();
             foreach (var grp in groups)
             {
@@ -3071,9 +3071,8 @@ public class Common : BaseController
             allGroups.ForEach(a => CheckGroupNameFuzzy(a, query, distLevenshtein, limit));
 
             groups = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a])
-                .ThenBy(a => a.GroupName.Length)
-                .ThenBy(a => a.SortName)
-                .Select(a => a).ToList();
+                .ThenBy(a => a.GroupName.ToSortName().Length)
+                .ThenBy(a => a.GroupName.ToSortName()).ToList();
             foreach (var grp in groups)
             {
                 if (offset == 0)

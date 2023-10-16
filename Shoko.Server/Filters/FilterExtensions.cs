@@ -22,7 +22,7 @@ public static class FilterExtensions
         var filterable = new Filterable
         {
             NameDelegate = series.GetSeriesName,
-            SortingNameDelegate = () => series.GetSeriesName().GetSortName(),
+            SortingNameDelegate = () => series.GetSeriesName().ToSortName(),
             SeriesCountDelegate = () => 1,
             AirDateDelegate = () => anime?.AirDate,
             MissingEpisodesDelegate = () => series.Contract?.MissingEpisodeCount ?? 0,
@@ -90,7 +90,7 @@ public static class FilterExtensions
         var filterable = new UserDependentFilterable
         {
             NameDelegate = series.GetSeriesName,
-            SortingNameDelegate = () => series.GetSeriesName().GetSortName(),
+            SortingNameDelegate = () => series.GetSeriesName().ToSortName(),
             SeriesCountDelegate = () => 1,
             AirDateDelegate = () => anime?.AirDate,
             MissingEpisodesDelegate = () => series.Contract?.MissingEpisodeCount ?? 0,
@@ -237,7 +237,7 @@ public static class FilterExtensions
         var filterable = new Filterable
         {
             NameDelegate = () => group.GroupName,
-            SortingNameDelegate = () => group.GroupName.GetSortName(),
+            SortingNameDelegate = () => group.GroupName.ToSortName(),
             SeriesCountDelegate = () => series.Count,
             AirDateDelegate = () => group.Contract.Stat_AirDate_Min,
             LastAirDateDelegate = () => group.Contract?.Stat_EndDate ?? group.GetAllSeries().SelectMany(a => a.GetAnimeEpisodes()).Select(a =>
@@ -308,7 +308,7 @@ public static class FilterExtensions
         var filterable = new UserDependentFilterable
         {
             NameDelegate = () => group.GroupName,
-            SortingNameDelegate = () => group.GroupName.GetSortName(),
+            SortingNameDelegate = () => group.GroupName.ToSortName(),
             SeriesCountDelegate = () => series.Count,
             AirDateDelegate = () => group.Contract.Stat_AirDate_Min,
             LastAirDateDelegate = () => group.Contract?.Stat_EndDate ?? group.GetAllSeries().SelectMany(a => a.GetAnimeEpisodes()).Select(a =>

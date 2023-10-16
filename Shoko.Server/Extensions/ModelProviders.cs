@@ -229,7 +229,6 @@ public static class ModelProviders
         agroup.Description = anime.Description;
         var name = series.GetSeriesName();
         agroup.GroupName = name;
-        agroup.SortName = name;
         agroup.MainAniDBAnimeID = series.AniDB_ID;
         agroup.DateTimeUpdated = now;
         agroup.DateTimeCreated = now;
@@ -240,7 +239,6 @@ public static class ModelProviders
         agroup.Description = anime.Description;
         var name = anime.PreferredTitle;
         agroup.GroupName = name;
-        agroup.SortName = name;
         agroup.MainAniDBAnimeID = anime.AnimeID;
         agroup.DateTimeUpdated = now;
         agroup.DateTimeCreated = now;
