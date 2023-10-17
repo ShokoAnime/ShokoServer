@@ -679,6 +679,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new DatabaseCommand(105, 3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
         new DatabaseCommand(105, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
         new DatabaseCommand(105, 5, DatabaseFixes.DropGroupFilter),
+        new DatabaseCommand(106, 1, "ALTER TABLE AnimeGroup DROP COLUMN SortName;"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

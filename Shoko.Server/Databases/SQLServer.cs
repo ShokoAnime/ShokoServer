@@ -688,6 +688,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(112, 3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
         new DatabaseCommand(112, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
         new DatabaseCommand(112, 5, DatabaseFixes.DropGroupFilter),
+        new DatabaseCommand(113, 1, "ALTER TABLE AnimeGroup DROP COLUMN SortName;"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

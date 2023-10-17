@@ -745,6 +745,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new DatabaseCommand(119, 3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
         new DatabaseCommand(119, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
         new DatabaseCommand(119, 5, DatabaseFixes.DropGroupFilter),
+        new DatabaseCommand(120, 1, "ALTER TABLE AnimeGroup DROP COLUMN SortName;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
