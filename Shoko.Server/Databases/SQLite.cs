@@ -22,7 +22,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name { get; } = "SQLite";
 
-    public override int RequiredVersion { get; } = 105;
+    public override int RequiredVersion { get; } = 106;
 
 
     public override void BackupDatabase(string fullfilename)

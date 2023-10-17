@@ -23,7 +23,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 112;
+    public override int RequiredVersion { get; } = 113;
 
     public override void BackupDatabase(string fullfilename)
     {
