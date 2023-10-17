@@ -28,7 +28,7 @@ public class Group : BaseModel
     public GroupIDs IDs { get; set; }
 
     /// <summary>
-    /// The sort name for the group.
+    /// The sort name for the group. Cannot directly be set by the user.
     /// </summary>
     public string SortName { get; set; }
 
@@ -91,6 +91,7 @@ public class Group : BaseModel
         IDs.TopLevelGroup = group.TopLevelAnimeGroup.AnimeGroupID;
 
         Name = group.GroupName;
+        SortName = group.GetSortName();
         Description = group.Description;
         Sizes = ModelHelper.GenerateGroupSizes(allSeries, episodes, subGroupCount, userID);
         Size = allSeries.Count(series => series.AnimeGroupID == group.AnimeGroupID);
@@ -179,16 +180,6 @@ public class Group : BaseModel
             public string? Name { get; set; } = null;
 
             /// <summary>
-            /// The group's custom sort name.
-            /// </summary>
-            /// <remarks>
-            /// The sort name will only be modified if either
-            /// <see cref="Group.HasCustomName"/> or <see cref="HasCustomName"/>
-            /// is set to true, and the value is not set to <c>null</c>.
-            /// </remarks>
-            public string? SortName { get; set; } = null;
-
-            /// <summary>
             /// The group's custom description.
             /// </summary>
             /// <remarks>
@@ -203,7 +194,7 @@ public class Group : BaseModel
             /// </summary>
             /// <remarks>
             /// Leave it as <c>null</c> to conditionally set the value if
-            /// <see cref="Name"/> or <see cref="SortName"/> is set, or
+            /// <see cref="Name"/> is set, or
             /// explictly set it to <c>true</c> to lock in the new/current
             /// names, or set it to <c>false</c> to reset the names back to the
             /// automatic naming based on the main series.
@@ -322,7 +313,7 @@ public class Group : BaseModel
                     if (HasCustomName.HasValue)
                         group.IsManuallyNamed = 1;
 
-                    // The group name and/or the group sort name changed.
+                    // The group name changed.
                     var overrideName = !string.IsNullOrWhiteSpace(Name) && !string.Equals(group.GroupName, Name);
                     if (overrideName)
                     {
