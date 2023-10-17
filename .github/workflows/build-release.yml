@@ -39,7 +39,7 @@ jobs:
           prefixRegex: "[vV]?"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -96,7 +96,7 @@ jobs:
         if: ${{ matrix.rid == 'linux-arm64' }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -156,7 +156,7 @@ jobs:
           prefixRegex: "[vV]?"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -206,7 +206,7 @@ jobs:
           prefixRegex: "[vV]?"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ matrix.dotnet }}
 

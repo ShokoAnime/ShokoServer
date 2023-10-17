@@ -86,14 +86,14 @@ jobs:
         if: ${{ matrix.rid == 'linux-arm64' }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
       - run: dotnet publish -c Release -r ${{ matrix.rid }} ${{ matrix.build_props }} Shoko.CLI "/p:Version=\"${{ needs.current_info.outputs.version }}\",InformationalVersion=\"channel=dev,commit=${{ needs.current_info.outputs.sha }},date=${{ needs.current_info.outputs.date }}\""
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: Shoko.CLI_${{ matrix.build_type }}_${{ matrix.rid }}.zip
           path: Shoko.Server/bin/Release/net6.0/${{matrix.rid}}/publish/
@@ -134,14 +134,14 @@ jobs:
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
       - run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService "/p:Version=\`"${{ needs.current_info.outputs.version }}\`",InformationalVersion=\`"channel=dev,commit=${{ needs.current_info.outputs.sha }},date=${{ needs.current_info.outputs.date }}\`""
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: Shoko.TrayService_${{ matrix.build_type }}_win10-x64.zip
           path: Shoko.Server/bin/Release${{ matrix.build_dir }}/publish/
