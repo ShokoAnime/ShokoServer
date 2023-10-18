@@ -33,8 +33,13 @@ public class Filters : BaseDirectory
         var f = new Filters { id = gf.FilterPresetID, name = gf.Name };
         var hideCategories = ctx.GetUser().GetHideCategories();
         var gfs = RepoFactory.FilterPreset.GetByParentID(f.id).AsParallel().Where(a =>
-                !a.Hidden && !((a.FilterType & GroupFilterType.Tag) != 0 &&
-                               (!hideCategories.Contains(a.Name) || TagFilter.IsTagBlackListed(a.Name, tagfilter))))
+            {
+                if (a.Hidden) return false;
+                // return true if it's not a tag
+                if ((a.FilterType & GroupFilterType.Tag) == 0) return true;
+                if (hideCategories.Contains(a.Name)) return false;
+                return !TagFilter.IsTagBlackListed(a.Name, tagfilter);
+            })
             .ToList();
 
         if (evaluatedResults == null)
