@@ -3,7 +3,7 @@ name: Build (Daily)
 on:
   push:
     branches:
-      - master
+      - test-tray-service-workflow
 
 jobs:
   current_info:
@@ -134,7 +134,7 @@ jobs:
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
