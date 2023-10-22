@@ -508,7 +508,7 @@ public class SeriesFactory
 
         var anime = series != null ? series.GetAnime() : RepoFactory.AniDB_Anime.GetByAnimeID(result.AnimeID);
 
-        var animeTitle = series?.GetSeriesName() ?? anime?.PreferredTitle ?? result.MainTitle;
+        var animeTitle = series?.GetSeriesName() ?? anime?.PreferredTitle ?? result.PreferredTitle;
         var anidb = new Series.AniDB
         {
             ID = result.AnimeID,
