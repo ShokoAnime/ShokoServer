@@ -135,14 +135,14 @@ public class CommandRequest_DownloadAniDBImages : CommandRequestImplementation
                         Logger.LogDebug("Image already in cache; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
                         break;
                     case ImageDownloadResult.Failure:
-                        Logger.LogError("Image failed to download; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
+                        Logger.LogWarning("Image failed to download; {FilePath} from {DownloadUrl}", req.FilePath, req.DownloadUrl);
                         break;
                     case ImageDownloadResult.RemovedResource:
                         Logger.LogWarning("Image failed to download and the local entry has been removed; {FilePath} from {DownloadUrl}", req.FilePath,
                             req.DownloadUrl);
                         break;
                     case ImageDownloadResult.InvalidResource:
-                        Logger.LogError("Image failed to download and the local entry could not be removed; {FilePath} from {DownloadUrl}", req.FilePath,
+                        Logger.LogWarning("Image failed to download and the local entry could not be removed; {FilePath} from {DownloadUrl}", req.FilePath,
                             req.DownloadUrl);
                         break;
                 }

@@ -34,7 +34,7 @@ public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
         var place = vlocal?.GetBestVideoLocalPlace(true);
         if (place == null)
         {
-            Logger.LogError("Could not find Video: {VideoLocalID}", VideoLocalID);
+            Logger.LogWarning("Could not find Video: {VideoLocalID}", VideoLocalID);
             return;
         }
 

@@ -174,7 +174,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         {
             if (!Directory.Exists(_path))
             {
-                _logger.LogError("Unable to find {Path}. Retrying in {Time}s", _path, _directoryFailedRetryInterval.TotalSeconds);
+                _logger.LogWarning("Unable to find {Path}. Retrying in {Time}s", _path, _directoryFailedRetryInterval.TotalSeconds);
                 if (_watcher != null)
                     _watcher.EnableRaisingEvents = false;
                 _recoveringTimer?.Change(_directoryFailedRetryInterval, Timeout.InfiniteTimeSpan);
@@ -305,7 +305,7 @@ public class RecoveringFileSystemWatcher : IDisposable
 
             if (numAttempts >= 60)
             {
-                _logger.LogError("Could not access file: {Filename}", path);
+                _logger.LogWarning("Could not access file: {Filename}", path);
                 return true;
             }
 
@@ -341,7 +341,7 @@ public class RecoveringFileSystemWatcher : IDisposable
 
         if (numAttempts < 60 && filesize != 0) return false;
 
-        _logger.LogError("Could not access file: {Filename}", path);
+        _logger.LogWarning("Could not access file: {Filename}", path);
         return true;
     }
 
