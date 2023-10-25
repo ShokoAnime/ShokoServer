@@ -39,11 +39,8 @@ public class FilterEvaluator
     public IEnumerable<IGrouping<int, int>> EvaluateFilter(FilterPreset filter, int? userID)
     {
         ArgumentNullException.ThrowIfNull(filter);
-        var needsUser = filter.Expression?.UserDependent ?? false;
-        if (needsUser && userID == null)
-        {
-            throw new ArgumentNullException(nameof(userID));
-        }
+        var needsUser = (filter.Expression?.UserDependent ?? false) || (filter.SortingExpression?.UserDependent ?? false);
+        if (needsUser && userID == null) throw new ArgumentNullException(nameof(userID));
 
         var user = userID != null ? RepoFactory.JMMUser.GetByID(userID.Value) : null;
 
@@ -93,17 +90,30 @@ public class FilterEvaluator
         if (needsUser && userID == null) throw new ArgumentNullException(nameof(userID));
 
         var user = userID != null ? RepoFactory.JMMUser.GetByID(userID.Value) : null;
-        var filterables = filters.Any(a => a.ApplyAtSeriesLevel) switch
+        ParallelQuery<FilterableWithID> series = null;
+        ParallelQuery<FilterableWithID> seriesUsers = null;
+        ParallelQuery<FilterableWithID> groups = null;
+        ParallelQuery<FilterableWithID> groupUsers = null;
+
+        var filterables = filters.ToDictionary(filter => filter, filter =>
         {
-            true when needsUser => _series.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true).Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
-            true => _series.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true).Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable())),
-            false when needsUser => _groups.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true).Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
-            false => _groups.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true).Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable()))
-        };
+            var filterNeedsUser = (filter.Expression?.UserDependent ?? false) || skipSorting && (filter?.SortingExpression?.UserDependent ?? false);
+            return filter.ApplyAtSeriesLevel switch
+            {
+                true when filterNeedsUser => seriesUsers ??= _series.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true)
+                    .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
+                true => series ??= _series.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true)
+                    .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable())),
+                false when filterNeedsUser => groupUsers ??= _groups.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true)
+                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
+                false => groups ??= _groups.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true)
+                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable()))
+            };
+        });
 
         // Filtering
-        var filtered = filterables.SelectMany(a => filters.Select(f => (Filter: f, FilterableWithID: a)))
-            .Where(a => (a.Filter.FilterType & GroupFilterType.Directory) == 0 && (a.Filter.Expression?.Evaluate(a.FilterableWithID.Filterable) ?? true));
+        var filtered = filterables.SelectMany(a => a.Value.Select(filterable => (Filter: a.Key, FilterableWithID: filterable))).Where(a =>
+            (a.Filter.FilterType & GroupFilterType.Directory) == 0 && (a.Filter.Expression?.Evaluate(a.FilterableWithID.Filterable) ?? true));
 
         // ordering
         var grouped = filtered.GroupBy(a => a.Filter).ToDictionary(a => a.Key, f =>

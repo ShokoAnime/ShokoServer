@@ -43,7 +43,7 @@ public class Filter : Filters
         if (evaluatedResults == null)
         {
             var evaluator = ctx.RequestServices.GetRequiredService<FilterEvaluator>();
-            evaluatedResults = evaluator.EvaluateFilter(gf, ctx.GetUser().JMMUserID).ToList();
+            evaluatedResults = evaluator.EvaluateFilter(gf, uid).ToList();
         }
 
         if (evaluatedResults.Count != 0)
@@ -110,7 +110,7 @@ public class Filter : Filters
             {
                 groups.AddRange(groupsList.Select(ag =>
                     Group.GenerateFromAnimeGroup(ctx, ag, uid, nocast, notag, level - 1, all, filter.id, allpic, pic, tagfilter,
-                        evaluatedResults.FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList())));
+                        evaluatedResults?.FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList())));
             }
 
             if (groups.Count > 0)

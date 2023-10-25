@@ -2737,7 +2737,7 @@ public class Common : BaseController
         var filtersToEvaluate = level > 1
             ? RepoFactory.FilterPreset.GetAll().Where(a => (a.FilterType & GroupFilterType.Tag) == 0 || !hideCategories.Contains(a.Name)).ToList()
             : allGfs;
-        var result = evaluator.BatchEvaluateFilters(filtersToEvaluate, user.JMMUserID);
+        var result = evaluator.BatchEvaluateFilters(filtersToEvaluate, user.JMMUserID, true);
         allGfs = allGfs.Where(a => a.IsDirectory() || result[a].Any()).ToList();
 
         foreach (var gf in allGfs)
@@ -2815,7 +2815,7 @@ public class Common : BaseController
     /// <summary>
     /// Handle /api/group
     /// </summary>
-    /// <returns>Group or List<Group> or APIStatus</returns>
+    /// <returns>Group or <see cref="List{Group}"/> or APIStatus</returns>
     [HttpGet("group")]
     public object GetGroups([FromQuery] API_Call_Parameters para)
     {
