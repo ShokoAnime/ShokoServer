@@ -186,34 +186,13 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             c.Filters = new CL_Changes<CL_GroupFilter>
             {
-                ChangedItems = legacyConverter.ToClient(changes[0].ChangedItems.Select(a => RepoFactory.FilterPreset.GetByID(a)).ToList())
+                ChangedItems = legacyConverter.ToClient(changes[0].ChangedItems.Select(a => RepoFactory.FilterPreset.GetByID(a)).ToList(), userID)
                     .Select(a => a.Value)
                     .Where(a => a != null)
                     .ToList(),
                 RemovedItems = changes[0].RemovedItems.ToList(),
                 LastChange = changes[0].LastChange
             };
-
-            //Add Group Filter that one of his child changed.
-            bool end;
-            do
-            {
-                end = true;
-                foreach (var ag in c.Filters.ChangedItems
-                             .Where(a => a.ParentGroupFilterID.HasValue && a.ParentGroupFilterID.Value != 0)
-                             .ToList())
-                {
-                    if (!c.Filters.ChangedItems.Any(a => a.GroupFilterID == ag.ParentGroupFilterID.Value))
-                    {
-                        end = false;
-                        var cag = legacyConverter.ToClient(RepoFactory.FilterPreset.GetByID(ag.ParentGroupFilterID.Value));
-                        if (cag != null)
-                        {
-                            c.Filters.ChangedItems.Add(cag);
-                        }
-                    }
-                }
-            } while (!end);
 
             c.Groups = new CL_Changes<CL_AnimeGroup_User>();
             changes[1].ChangedItems.UnionWith(changes[2].ChangedItems);

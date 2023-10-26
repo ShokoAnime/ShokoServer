@@ -3,11 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Filters.SortingSelectors;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Filters;
 
@@ -90,6 +93,12 @@ public class FilterEvaluator
         if (needsUser && userID == null) throw new ArgumentNullException(nameof(userID));
 
         var user = userID != null ? RepoFactory.JMMUser.GetByID(userID.Value) : null;
+        ILookup<int, CrossRef_AniDB_Other> movieDBMappings;
+        using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
+        {
+            movieDBMappings = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDsAndType(session.Wrap(), null, CrossRefType.MovieDB);
+        }
+
         ParallelQuery<FilterableWithID> series = null;
         ParallelQuery<FilterableWithID> seriesUsers = null;
         ParallelQuery<FilterableWithID> groups = null;
@@ -101,9 +110,9 @@ public class FilterEvaluator
             return filter.ApplyAtSeriesLevel switch
             {
                 true when filterNeedsUser => seriesUsers ??= _series.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true)
-                    .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
+                    .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value, movieDBMappings))),
                 true => series ??= _series.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true)
-                    .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable())),
+                    .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(movieDBMappings))),
                 false when filterNeedsUser => groupUsers ??= _groups.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true)
                     .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
                 false => groups ??= _groups.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true)

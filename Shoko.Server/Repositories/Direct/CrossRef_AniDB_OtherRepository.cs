@@ -37,29 +37,15 @@ public class CrossRef_AniDB_OtherRepository : BaseDirectRepository<CrossRef_AniD
         IReadOnlyCollection<int> animeIds,
         params CrossRefType[] xrefTypes)
     {
-        if (session == null)
-        {
-            throw new ArgumentNullException(nameof(session));
-        }
+        if (session == null) throw new ArgumentNullException(nameof(session));
 
-        if (xrefTypes == null || xrefTypes.Length == 0 || animeIds?.Count == 0)
-        {
-            return EmptyLookup<int, CrossRef_AniDB_Other>.Instance;
-        }
+        if (xrefTypes == null || xrefTypes.Length == 0 || animeIds is { Count: 0 }) return EmptyLookup<int, CrossRef_AniDB_Other>.Instance;
 
         return Lock(() =>
         {
-            var criteria = session.CreateCriteria<CrossRef_AniDB_Other>()
-                .Add(Restrictions.In(nameof(CrossRef_AniDB_Other.CrossRefType), xrefTypes));
-
-            if (animeIds != null)
-            {
-                criteria = criteria.Add(Restrictions.InG(nameof(CrossRef_AniDB_Other.AnimeID), animeIds));
-            }
-
-            var crossRefs = criteria.List<CrossRef_AniDB_Other>()
-                .ToLookup(cr => cr.AnimeID);
-
+            var criteria = session.CreateCriteria<CrossRef_AniDB_Other>().Add(Restrictions.In(nameof(CrossRef_AniDB_Other.CrossRefType), xrefTypes));
+            if (animeIds != null) criteria = criteria.Add(Restrictions.InG(nameof(CrossRef_AniDB_Other.AnimeID), animeIds));
+            var crossRefs = criteria.List<CrossRef_AniDB_Other>().ToLookup(cr => cr.AnimeID);
             return crossRefs;
         });
     }

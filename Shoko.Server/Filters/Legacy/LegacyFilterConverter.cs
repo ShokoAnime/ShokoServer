@@ -100,14 +100,14 @@ public class LegacyFilterConverter
         return contract;
     }
     
-    public Dictionary<FilterPreset, CL_GroupFilter> ToClient(IReadOnlyList<FilterPreset> filters)
+    public Dictionary<FilterPreset, CL_GroupFilter> ToClient(IReadOnlyList<FilterPreset> filters, int? userID = null)
     {
         var result = new Dictionary<FilterPreset, CL_GroupFilter>();
         var userFilters = filters.Where(a => a?.Expression?.UserDependent ?? false).ToList();
         var otherFilters = filters.Except(userFilters).ToList();
 
         // batch evaluate each list, then build the mappings
-        if (userFilters.Count > 0) SetUserFilters(userFilters, result);
+        if (userFilters.Count > 0) SetUserFilters(userID, userFilters, result);
         if (otherFilters.Count > 0) SetOtherFilters(otherFilters, result);
 
         return result;
@@ -158,12 +158,21 @@ public class LegacyFilterConverter
         }
     }
 
-    private void SetUserFilters(List<FilterPreset> userFilters, Dictionary<FilterPreset, CL_GroupFilter> result)
+    /// <summary>
+    /// Batch Evaluates filters and sets the models
+    /// </summary>
+    /// <param name="userID">if this is specified, it only calculates one user</param>
+    /// <param name="userFilters"></param>
+    /// <param name="result"></param>
+    private void SetUserFilters(int? userID, List<FilterPreset> userFilters, Dictionary<FilterPreset, CL_GroupFilter> result)
     {
 
-        var userResults = RepoFactory.JMMUser.GetAll()
-            .SelectMany(user => _evaluator.BatchEvaluateFilters(userFilters, user.JMMUserID, true).Select(a => (a.Key, user.JMMUserID, a.Value)))
-            .GroupBy(a => a.Key, a => (a.JMMUserID, a.Value));
+        var userResults = userID.HasValue
+            ? _evaluator.BatchEvaluateFilters(userFilters, userID.Value, true).Select(a => (a.Key, JMMUserID: userID.Value, a.Value))
+                .GroupBy(a => a.Key, a => (a.JMMUserID, a.Value))
+            : RepoFactory.JMMUser.GetAll()
+                .SelectMany(user => _evaluator.BatchEvaluateFilters(userFilters, user.JMMUserID, true).Select(a => (a.Key, user.JMMUserID, a.Value)))
+                .GroupBy(a => a.Key, a => (a.JMMUserID, a.Value));
         var userModels = userResults.Select(group =>
         {
             var filter = group.Key;

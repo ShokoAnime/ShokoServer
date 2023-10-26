@@ -9,160 +9,160 @@ public interface IFilterable
     /// <summary>
     /// Name
     /// </summary>
-    string Name { get; init; }
+    string Name { get; }
 
     /// <summary>
     /// Sorting Name
     /// </summary>
-    string SortingName { get; init; }
+    string SortingName { get; }
 
     /// <summary>
     /// The number of series in a group
     /// </summary>
-    int SeriesCount { get; init; }
+    int SeriesCount { get; }
     
     /// <summary>
     /// Number of Missing Episodes
     /// </summary>
-    int MissingEpisodes { get; init; }
+    int MissingEpisodes { get; }
     
     /// <summary>
     /// Number of Missing Episodes from Groups that you have
     /// </summary>
-    int MissingEpisodesCollecting { get; init; }
+    int MissingEpisodesCollecting { get; }
 
     /// <summary>
     /// All of the tags
     /// </summary>
-    IReadOnlySet<string> Tags { get; init; }
+    IReadOnlySet<string> Tags { get; }
 
     /// <summary>
     /// All of the custom tags
     /// </summary>
-    IReadOnlySet<string> CustomTags { get; init; }
+    IReadOnlySet<string> CustomTags { get; }
     
     /// <summary>
     /// The years this aired in
     /// </summary>
-    IReadOnlySet<int> Years { get; init; }
+    IReadOnlySet<int> Years { get; }
     
     /// <summary>
     /// The seasons this aired in
     /// </summary>
-    IReadOnlySet<(int year, AnimeSeason season)> Seasons { get; init; }
+    IReadOnlySet<(int year, AnimeSeason season)> Seasons { get; }
 
     /// <summary>
     /// Has at least one TvDB Link
     /// </summary>
-    bool HasTvDBLink { get; init; }
+    bool HasTvDBLink { get; }
 
     /// <summary>
     /// Missing at least one TvDB Link
     /// </summary>
-    bool HasMissingTvDbLink { get; init; }
+    bool HasMissingTvDbLink { get; }
     
     /// <summary>
     /// Has at least one TMDb Link
     /// </summary>
-    bool HasTMDbLink { get; init; }
+    bool HasTMDbLink { get; }
     
     /// <summary>
     /// Missing at least one TMDb Link
     /// </summary>
-    bool HasMissingTMDbLink { get; init; }
+    bool HasMissingTMDbLink { get; }
     
     /// <summary>
     /// Has at least one Trakt Link
     /// </summary>
-    bool HasTraktLink { get; init; }
+    bool HasTraktLink { get; }
     
     /// <summary>
     /// Missing at least one Trakt Link
     /// </summary>
-    bool HasMissingTraktLink { get; init; }
+    bool HasMissingTraktLink { get; }
     
     /// <summary>
     /// Has Finished airing
     /// </summary>
-    bool IsFinished { get; init; }
+    bool IsFinished { get; }
     
     /// <summary>
     /// First Air Date
     /// </summary>
-    DateTime? AirDate { get; init; }
+    DateTime? AirDate { get; }
     
     /// <summary>
     /// Latest Air Date
     /// </summary>
-    DateTime? LastAirDate { get; init; }
+    DateTime? LastAirDate { get; }
     
     /// <summary>
     /// When it was first added to the collection
     /// </summary>
-    DateTime AddedDate { get; init; }
+    DateTime AddedDate { get; }
     
     /// <summary>
     /// When it was most recently added to the collection
     /// </summary>
-    DateTime LastAddedDate { get; init; }
+    DateTime LastAddedDate { get; }
 
     /// <summary>
     /// Highest Episode Count
     /// </summary>
-    int EpisodeCount { get; init; }
+    int EpisodeCount { get; }
 
     /// <summary>
     /// Total Episode Count
     /// </summary>
-    int TotalEpisodeCount { get; init; }
+    int TotalEpisodeCount { get; }
     
     /// <summary>
     /// Lowest AniDB Rating (0-10)
     /// </summary>
-    decimal LowestAniDBRating { get; init; }
+    decimal LowestAniDBRating { get; }
     
     /// <summary>
     /// Highest AniDB Rating (0-10)
     /// </summary>
-    decimal HighestAniDBRating { get; init; }
+    decimal HighestAniDBRating { get; }
 
     /// <summary>
     /// Average AniDB Rating (0-10)
     /// </summary>
-    decimal AverageAniDBRating { get; init; }
+    decimal AverageAniDBRating { get; }
 
     /// <summary>
     /// The sources that the video came from, such as TV, Web, DVD, Blu-ray, etc.
     /// </summary>
-    IReadOnlySet<string> VideoSources { get; init; }
+    IReadOnlySet<string> VideoSources { get; }
     
     /// <summary>
     /// The sources that the video came from, such as TV, Web, DVD, Blu-ray, etc. (only sources that are in every file)
     /// </summary>
-    IReadOnlySet<string> SharedVideoSources { get; init; }
+    IReadOnlySet<string> SharedVideoSources { get; }
 
     /// <summary>
     /// The anime types (movie, series, ova, etc)
     /// </summary>
-    IReadOnlySet<string> AnimeTypes { get; init; }
+    IReadOnlySet<string> AnimeTypes { get; }
 
     /// <summary>
     /// Audio Languages
     /// </summary>
-    IReadOnlySet<string> AudioLanguages { get; init; }
+    IReadOnlySet<string> AudioLanguages { get; }
     
     /// <summary>
     /// Audio Languages (only languages that are in every file)
     /// </summary>
-    IReadOnlySet<string> SharedAudioLanguages { get; init; }
+    IReadOnlySet<string> SharedAudioLanguages { get; }
     
     /// <summary>
     /// Subtitle Languages
     /// </summary>
-    IReadOnlySet<string> SubtitleLanguages { get; init; }
+    IReadOnlySet<string> SubtitleLanguages { get; }
     
     /// <summary>
     /// Subtitle Languages (only languages that are in every file)
     /// </summary>
-    IReadOnlySet<string> SharedSubtitleLanguages { get; init; }
+    IReadOnlySet<string> SharedSubtitleLanguages { get; }
 }
