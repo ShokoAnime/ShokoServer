@@ -10,8 +10,8 @@ public class LastAirDateSortingSelector : SortingExpression
     public override string HelpDescription => "This sorts by the last date that a filterable aired";
     public DateTime DefaultValue { get; set; }
 
-    public override object Evaluate(IFilterable f)
+    public override object Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.LastAirDate ?? DefaultValue;
+        return filterable.LastAirDate ?? DefaultValue;
     }
 }

@@ -28,9 +28,9 @@ public class DateAddFunction : FilterExpression<DateTime?>, IWithDateSelectorPar
         set => Selector = value;
     }
 
-    public override DateTime? Evaluate(IFilterable f)
+    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return Selector.Evaluate(f) + Parameter;
+        return Selector.Evaluate(filterable, userInfo) + Parameter;
     }
 
     protected bool Equals(DateAddFunction other)

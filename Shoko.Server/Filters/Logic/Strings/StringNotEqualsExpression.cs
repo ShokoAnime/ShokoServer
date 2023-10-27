@@ -24,10 +24,10 @@ public class StringNotEqualsExpression : FilterExpression<bool>, IWithStringSele
     public override bool UserDependent => Left.UserDependent || (Right?.UserDependent ?? false);
     public override string HelpDescription => "This passes if the left selector is not equal to either the right selector or the parameter";
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        var left = Left.Evaluate(filterable);
-        var right = Parameter ?? Right?.Evaluate(filterable);
+        var left = Left.Evaluate(filterable, userInfo);
+        var right = Parameter ?? Right?.Evaluate(filterable, userInfo);
         return !string.Equals(left, right, StringComparison.InvariantCultureIgnoreCase);
     }
 

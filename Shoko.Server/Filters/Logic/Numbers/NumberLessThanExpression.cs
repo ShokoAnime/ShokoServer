@@ -24,10 +24,10 @@ public class NumberLessThanExpression : FilterExpression<bool>, IWithNumberSelec
     public override bool UserDependent => Left.UserDependent || (Right?.UserDependent ?? false);
     public override string HelpDescription => "This passes if the left selector is less than either the right selector or the parameter";
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        var left = Left.Evaluate(filterable);
-        var right = Right?.Evaluate(filterable) ?? Parameter;
+        var left = Left.Evaluate(filterable, userInfo);
+        var right = Right?.Evaluate(filterable, userInfo) ?? Parameter;
         return left < right;
     }
 

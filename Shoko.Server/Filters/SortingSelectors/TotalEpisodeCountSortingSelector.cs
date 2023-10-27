@@ -8,8 +8,8 @@ public class TotalEpisodeCountSortingSelector : SortingExpression
     public override bool UserDependent => false;
     public override string HelpDescription => "This sorts by the total number of episodes in a filterable";
 
-    public override object Evaluate(IFilterable f)
+    public override object Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.TotalEpisodeCount;
+        return filterable.TotalEpisodeCount;
     }
 }

@@ -8,9 +8,9 @@ public class NameSelector : FilterExpression<string>
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns the name of a filterable";
 
-    public override string Evaluate(IFilterable f)
+    public override string Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.Name;
+        return filterable.Name;
     }
 
     protected bool Equals(NameSelector other)

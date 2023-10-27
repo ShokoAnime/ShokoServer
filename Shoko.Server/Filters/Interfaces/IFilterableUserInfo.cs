@@ -2,7 +2,7 @@ using System;
 
 namespace Shoko.Server.Filters.Interfaces;
 
-public interface IUserDependentFilterable : IFilterable
+public interface IFilterableUserInfo
 {
     /// <summary>
     /// Probably will be removed in the future. Custom Tags would handle this better

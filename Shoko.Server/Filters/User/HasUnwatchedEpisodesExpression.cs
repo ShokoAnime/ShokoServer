@@ -1,16 +1,18 @@
+using System;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.User;
 
-public class HasUnwatchedEpisodesExpression : UserDependentFilterExpression<bool>
+public class HasUnwatchedEpisodesExpression : FilterExpression<bool>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
     public override string HelpDescription => "This passes if the current user has any unwatched episodes in the filterable";
 
-    public override bool Evaluate(IUserDependentFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.UnwatchedEpisodes > 0;
+        ArgumentNullException.ThrowIfNull(userInfo);
+        return userInfo.UnwatchedEpisodes > 0;
     }
 
     protected bool Equals(HasUnwatchedEpisodesExpression other)

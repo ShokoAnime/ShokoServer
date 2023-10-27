@@ -8,8 +8,8 @@ public class SeriesCountSortingSelector : SortingExpression
     public override bool UserDependent => false;
     public override string HelpDescription => "This sorts by the number of series in a filterable";
 
-    public override object Evaluate(IFilterable f)
+    public override object Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.SeriesCount;
+        return filterable.SeriesCount;
     }
 }

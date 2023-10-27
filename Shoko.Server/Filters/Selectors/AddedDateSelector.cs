@@ -9,9 +9,9 @@ public class AddedDateSelector : FilterExpression<DateTime?>
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns the date that a filterable was created";
 
-    public override DateTime? Evaluate(IFilterable f)
+    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.AddedDate;
+        return filterable.AddedDate;
     }
 
     protected bool Equals(AddedDateSelector other)

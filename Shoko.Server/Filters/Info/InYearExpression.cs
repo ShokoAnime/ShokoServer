@@ -22,7 +22,7 @@ public class InYearExpression : FilterExpression<bool>, IWithNumberParameter
         set => Parameter = (int)value;
     }
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         return filterable.Years.Contains(Parameter);
     }

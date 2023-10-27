@@ -9,9 +9,9 @@ public class AirDateSelector : FilterExpression<DateTime?>
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns the first date that a filterable aired";
 
-    public override DateTime? Evaluate(IFilterable f)
+    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.AirDate;
+        return filterable.AirDate;
     }
 
     protected bool Equals(AirDateSelector other)

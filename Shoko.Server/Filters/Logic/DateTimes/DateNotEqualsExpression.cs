@@ -24,11 +24,11 @@ public class DateNotEqualsExpression : FilterExpression<bool>, IWithDateSelector
     public override bool UserDependent => Left.UserDependent || (Right?.UserDependent ?? false);
     public override string HelpDescription => "This passes if the left selector is not equal to either the right selector or the parameter";
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        var date = Left.Evaluate(filterable);
+        var date = Left.Evaluate(filterable, userInfo);
         var dateIsNull = date == null || date.Value == DateTime.MinValue || date.Value == DateTime.MaxValue || date.Value == DateTime.UnixEpoch;
-        var operand = Right == null ? Parameter : Right.Evaluate(filterable);
+        var operand = Right == null ? Parameter : Right.Evaluate(filterable, userInfo);
         var operandIsNull = operand == null || operand.Value == DateTime.MinValue || operand.Value == DateTime.MaxValue || operand.Value == DateTime.UnixEpoch;
         if (dateIsNull && operandIsNull)
         {

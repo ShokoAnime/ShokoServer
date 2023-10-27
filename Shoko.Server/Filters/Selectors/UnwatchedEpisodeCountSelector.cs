@@ -1,16 +1,18 @@
+using System;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Selectors;
 
-public class UnwatchedEpisodeCountSelector : UserDependentFilterExpression<double>
+public class UnwatchedEpisodeCountSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
     public override string HelpDescription => "This returns the number of episodes in a filterable that have not been watched by the current user";
 
-    public override double Evaluate(IUserDependentFilterable f)
+    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.UnwatchedEpisodes;
+        ArgumentNullException.ThrowIfNull(userInfo);
+        return userInfo.UnwatchedEpisodes;
     }
 
     protected bool Equals(UnwatchedEpisodeCountSelector other)

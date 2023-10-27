@@ -3,15 +3,16 @@ using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Selectors;
 
-public class WatchedDateSelector : UserDependentFilterExpression<DateTime?>
+public class WatchedDateSelector : FilterExpression<DateTime?>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
     public override string HelpDescription => "This returns the first date that a filterable was watched by the current user";
 
-    public override DateTime? Evaluate(IUserDependentFilterable f)
+    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.WatchedDate;
+        ArgumentNullException.ThrowIfNull(userInfo);
+        return userInfo.WatchedDate;
     }
 
     protected bool Equals(WatchedDateSelector other)

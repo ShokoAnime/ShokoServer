@@ -24,15 +24,15 @@ public class DateLessThanEqualsExpression : FilterExpression<bool>, IWithDateSel
     public override bool UserDependent => Left.UserDependent || (Right?.UserDependent ?? false);
     public override string HelpDescription => "This passes if the left selector is less than or equal to either the right selector or the parameter";
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        var date = Left.Evaluate(filterable);
+        var date = Left.Evaluate(filterable, userInfo);
         if (date == null || date.Value == DateTime.MinValue || date.Value == DateTime.MaxValue || date.Value == DateTime.UnixEpoch)
         {
             return false;
         }
 
-        var operand = Right == null ? Parameter : Right.Evaluate(filterable);
+        var operand = Right == null ? Parameter : Right.Evaluate(filterable, userInfo);
         if (operand == null || operand.Value == DateTime.MinValue || operand.Value == DateTime.MaxValue || operand.Value == DateTime.UnixEpoch)
         {
             return false;

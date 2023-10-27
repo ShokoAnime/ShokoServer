@@ -18,7 +18,7 @@ public class HasSharedSubtitleLanguageExpression : FilterExpression<bool>, IWith
     public override string HelpDescription => "This passes if all of the files have the subtitle language provided in the parameter";
     public override string[] HelpPossibleParameters => SVR_AniDB_File.GetPossibleSubtitleLanguages();
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         return filterable.SharedSubtitleLanguages.Contains(Parameter);
     }

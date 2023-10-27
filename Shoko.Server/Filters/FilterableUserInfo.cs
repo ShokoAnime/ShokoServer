@@ -4,7 +4,7 @@ using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters;
 
-public class UserDependentFilterable : Filterable, IUserDependentFilterable
+public class FilterableUserInfo : IFilterableUserInfo
 {
     private readonly Lazy<bool> _hasPermanentVotes;
     private readonly Func<bool> _hasPermanentVotesDelegate;

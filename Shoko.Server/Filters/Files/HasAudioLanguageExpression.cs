@@ -18,7 +18,7 @@ public class HasAudioLanguageExpression : FilterExpression<bool>, IWithStringPar
     public override string HelpDescription => "This passes if any of the files have the audio language provided in the parameter";
     public override string[] HelpPossibleParameters => SVR_AniDB_File.GetPossibleAudioLanguages();
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         return filterable.AudioLanguages.Contains(Parameter);
     }

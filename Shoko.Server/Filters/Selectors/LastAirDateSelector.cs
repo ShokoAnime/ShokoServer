@@ -9,9 +9,9 @@ public class LastAirDateSelector : FilterExpression<DateTime?>
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns the last date that a filterable aired";
 
-    public override DateTime? Evaluate(IFilterable f)
+    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.LastAirDate;
+        return filterable.LastAirDate;
     }
 
     protected bool Equals(LastAirDateSelector other)

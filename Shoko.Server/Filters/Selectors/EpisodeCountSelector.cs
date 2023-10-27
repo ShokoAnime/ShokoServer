@@ -8,9 +8,9 @@ public class EpisodeCountSelector : FilterExpression<double>
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns the total number of episodes in a filterable";
 
-    public override double Evaluate(IFilterable f)
+    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.EpisodeCount;
+        return filterable.EpisodeCount;
     }
 
     protected bool Equals(EpisodeCountSelector other)

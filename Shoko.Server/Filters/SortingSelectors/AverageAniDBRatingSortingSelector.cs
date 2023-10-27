@@ -9,8 +9,8 @@ public class AverageAniDBRatingSortingSelector : SortingExpression
     public override bool UserDependent => false;
     public override string HelpDescription => "This sorts by the average AniDB rating in a filterable";
 
-    public override object Evaluate(IFilterable f)
+    public override object Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return Convert.ToDouble(f.AverageAniDBRating);
+        return Convert.ToDouble(filterable.AverageAniDBRating);
     }
 }

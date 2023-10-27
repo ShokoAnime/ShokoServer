@@ -8,8 +8,8 @@ public class SubtitleLanguageCountSortingSelector : SortingExpression
     public override bool UserDependent => false;
     public override string HelpDescription => "This sorts by how many distinct subtitle languages are present in all of the files in a filterable";
 
-    public override object Evaluate(IFilterable f)
+    public override object Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.SubtitleLanguages.Count;
+        return filterable.SubtitleLanguages.Count;
     }
 }

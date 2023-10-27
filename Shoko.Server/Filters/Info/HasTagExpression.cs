@@ -16,7 +16,7 @@ public class HasTagExpression : FilterExpression<bool>, IWithStringParameter
     public override bool UserDependent => false;
     public override string HelpDescription => "This passes if any of the anime have a tag that matches the parameter";
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         return filterable.Tags.Contains(Parameter);
     }

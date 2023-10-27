@@ -26,9 +26,9 @@ public class StringRegexMatchesExpression : FilterExpression<bool>, IWithStringS
     public override bool UserDependent => Left.UserDependent;
     public override string HelpDescription => "This passes if the left selector matches the regular expression given in the parameter";
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        var left = Left.Evaluate(filterable);
+        var left = Left.Evaluate(filterable, userInfo);
         if (string.IsNullOrEmpty(left) || _regex == null)
         {
             return false;

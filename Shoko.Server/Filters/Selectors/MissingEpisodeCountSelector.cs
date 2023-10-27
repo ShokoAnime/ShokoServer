@@ -8,9 +8,9 @@ public class MissingEpisodeCountSelector : FilterExpression<double>
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns the number of missing episodes from any release group in a filterable";
 
-    public override double Evaluate(IFilterable f)
+    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.MissingEpisodes;
+        return filterable.MissingEpisodes;
     }
 
     protected bool Equals(MissingEpisodeCountSelector other)

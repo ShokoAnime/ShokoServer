@@ -1,16 +1,18 @@
+using System;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.User;
 
-public class MissingPermanentUserVotesExpression : UserDependentFilterExpression<bool>
+public class MissingPermanentUserVotesExpression : FilterExpression<bool>
 {
     public override bool TimeDependent => true;
     public override bool UserDependent => true;
     public override string HelpDescription => "This passes if the filterable is missing a user vote that is of the permanent vote type. This has logic for if the filterable should have a vote";
 
-    public override bool Evaluate(IUserDependentFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.MissingPermanentVotes;
+        ArgumentNullException.ThrowIfNull(userInfo);
+        return userInfo.MissingPermanentVotes;
     }
 
     protected bool Equals(MissingPermanentUserVotesExpression other)

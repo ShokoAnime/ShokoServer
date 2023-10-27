@@ -1,16 +1,18 @@
+using System;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.User;
 
-public class IsFavoriteExpression : UserDependentFilterExpression<bool>
+public class IsFavoriteExpression : FilterExpression<bool>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
     public override string HelpDescription => "This passes if the filterable is marked as Favorite. This exists for backwards compatibility. Custom Tags are a better way to do this.";
 
-    public override bool Evaluate(IUserDependentFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.IsFavorite;
+        ArgumentNullException.ThrowIfNull(userInfo);
+        return userInfo.IsFavorite;
     }
 
     protected bool Equals(IsFavoriteExpression other)

@@ -96,77 +96,15 @@ public static class FilterExtensions
         return filterable;
     }
 
-    public static UserDependentFilterable ToUserDependentFilterable(this SVR_AnimeSeries series, int userID, ILookup<int, CrossRef_AniDB_Other> movieDBLookup = null)
+    public static FilterableUserInfo ToFilterableUserInfo(this SVR_AnimeSeries series, int userID)
     {
         var anime = series.GetAnime();
         var user = series.GetUserRecord(userID);
         var vote = anime?.UserVote;
         var watchedDates = series.GetVideoLocals().Select(a => a.GetUserRecord(userID)?.WatchedDate).Where(a => a != null).OrderBy(a => a).ToList();
 
-        var filterable = new UserDependentFilterable
+        var filterable = new FilterableUserInfo
         {
-            NameDelegate = () => series.GetSeriesName(),
-            SortingNameDelegate = () => series.GetSeriesName().ToSortName(),
-            SeriesCountDelegate = () => 1,
-            AirDateDelegate = () => series.GetAnime()?.AirDate,
-            MissingEpisodesDelegate = () => series.MissingEpisodeCount,
-            MissingEpisodesCollectingDelegate = () => series.MissingEpisodeCountGroups,
-            TagsDelegate = () => series.GetAnime()?.GetAllTags() ?? new HashSet<string>(),
-            CustomTagsDelegate =
-                () => series.GetAnime()?.GetCustomTagsForAnime().Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase) ??
-                      new HashSet<string>(),
-            YearsDelegate = () => GetYears(series),
-            SeasonsDelegate = () => series.GetAnime()?.GetSeasons().ToHashSet(),
-            HasTvDBLinkDelegate = () => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(series.AniDB_ID).Any(),
-            HasMissingTvDbLinkDelegate = () => HasMissingTvDBLink(series),
-            HasTMDbLinkDelegate = () => movieDBLookup?.Contains(series.AniDB_ID) ?? series.GetMovieDB() != null,
-            HasMissingTMDbLinkDelegate = () => HasMissingTMDbLink(series, movieDBLookup),
-            HasTraktLinkDelegate = () => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(series.AniDB_ID).Any(),
-            HasMissingTraktLinkDelegate = () => !RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(series.AniDB_ID).Any(),
-            IsFinishedDelegate = () => anime?.EndDate != null && anime.EndDate.Value < DateTime.Now,
-            LastAirDateDelegate = () =>
-                series.EndDate ?? series.GetAnimeEpisodes().Select(a => a.AniDB_Episode?.GetAirDateAsDate()).Where(a => a != null).DefaultIfEmpty().Max(),
-            AddedDateDelegate = () => series.DateTimeCreated,
-            LastAddedDateDelegate = () => series.GetVideoLocals().Select(a => a.DateTimeCreated).DefaultIfEmpty().Max(),
-            EpisodeCountDelegate = () => series.GetAnime()?.EpisodeCountNormal ?? 0,
-            TotalEpisodeCountDelegate = () => series.GetAnime()?.EpisodeCount ?? 0,
-            LowestAniDBRatingDelegate = () => decimal.Round(Convert.ToDecimal(series.GetAnime()?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
-            HighestAniDBRatingDelegate = () => decimal.Round(Convert.ToDecimal(series.GetAnime()?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
-            AverageAniDBRatingDelegate = () => decimal.Round(Convert.ToDecimal(series.GetAnime()?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
-            AnimeTypesDelegate = () => anime == null
-                ? new HashSet<string>()
-                : new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
-                {
-                    ((AnimeType)anime.AnimeType).ToString()
-                },
-            VideoSourcesDelegate = () => series.GetVideoLocals().Select(a => a.GetAniDBFile()).Where(a => a != null).Select(a => a.File_Source).ToHashSet(),
-            SharedVideoSourcesDelegate = () =>
-            {
-                var sources = series.GetVideoLocals().Select(b => b.GetAniDBFile()).Where(a => a != null).Select(a => a.File_Source).ToHashSet();
-                return sources.Count == 1 ? sources : new HashSet<string>();
-            },
-            AudioLanguagesDelegate =
-                () => series.GetVideoLocals().Select(a => a.GetAniDBFile()).Where(a => a != null).SelectMany(a => a.Languages.Select(b => b.LanguageName))
-                    .ToHashSet(StringComparer.InvariantCultureIgnoreCase),
-            SharedAudioLanguagesDelegate = () =>
-            {
-                var audio = new HashSet<string>();
-                var audioNames = series.GetVideoLocals().Select(b => b.GetAniDBFile()).Where(a => a != null)
-                    .Select(a => a.Languages.Select(b => b.LanguageName));
-                if (audioNames.Any()) audio = audioNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet();
-                return audio;
-            },
-            SubtitleLanguagesDelegate =
-                () => series.GetVideoLocals().Select(a => a.GetAniDBFile()).Where(a => a != null).SelectMany(a => a.Subtitles.Select(b => b.LanguageName))
-                    .ToHashSet(StringComparer.InvariantCultureIgnoreCase),
-            SharedSubtitleLanguagesDelegate = () =>
-            {
-                var subtitles = new HashSet<string>();
-                var subtitleNames = series.GetVideoLocals().Select(b => b.GetAniDBFile()).Where(a => a != null)
-                    .Select(a => a.Subtitles.Select(b => b.LanguageName));
-                if (subtitleNames.Any()) subtitles = subtitleNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet();
-                return subtitles;
-            },
             IsFavoriteDelegate = () => false,
             WatchedEpisodesDelegate = () => user?.WatchedEpisodeCount ?? 0,
             UnwatchedEpisodesDelegate = () => user?.UnwatchedEpisodeCount ?? 0,
@@ -256,7 +194,7 @@ public static class FilterExtensions
         return !RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(series.AniDB_ID).Any();
     }
 
-    public static Filterable ToFilterable(this SVR_AnimeGroup group)
+    public static Filterable ToFilterable(this SVR_AnimeGroup group, ILookup<int, CrossRef_AniDB_Other> movieDBLookup = null)
     {
         var series = group.GetAllSeries(true);
         var anime = group.Anime;
@@ -281,8 +219,8 @@ public static class FilterExtensions
             }).ToHashSet(),
             HasTvDBLinkDelegate = () => series.Any(a => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(a.AniDB_ID).Any()),
             HasMissingTvDbLinkDelegate = () => HasMissingTvDBLink(group),
-            HasTMDbLinkDelegate = () => group.Contract?.Stat_HasMovieDBLink ?? false,
-            HasMissingTMDbLinkDelegate = () => HasMissingTMDbLink(group),
+            HasTMDbLinkDelegate = () => movieDBLookup != null ? series.All(a => movieDBLookup.Contains(a.AniDB_ID)) : group.Contract?.Stat_HasMovieDBLink ?? false,
+            HasMissingTMDbLinkDelegate = () => HasMissingTMDbLink(series, movieDBLookup),
             HasTraktLinkDelegate = () => series.Any(a => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(a.AniDB_ID).Any()),
             HasMissingTraktLinkDelegate = () => series.Any(a => !RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(a.AniDB_ID).Any()),
             IsFinishedDelegate = () => group.GetAllSeries().All(a => a.EndDate != null && a.EndDate <= DateTime.Today),
@@ -290,13 +228,17 @@ public static class FilterExtensions
             LastAddedDateDelegate = () => series.SelectMany(a => a.GetVideoLocals()).Select(a => a.DateTimeCreated).DefaultIfEmpty().Max(),
             EpisodeCountDelegate = () => series.Sum(a => a.GetAnime()?.EpisodeCountNormal ?? 0),
             TotalEpisodeCountDelegate = () => series.Sum(a => a.GetAnime()?.EpisodeCount ?? 0),
-            LowestAniDBRatingDelegate = () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Min(),
-            HighestAniDBRatingDelegate = () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Max(),
-            AverageAniDBRatingDelegate = () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Average(),
+            LowestAniDBRatingDelegate =
+                () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Min(),
+            HighestAniDBRatingDelegate =
+                () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Max(),
+            AverageAniDBRatingDelegate =
+                () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Average(),
             AnimeTypesDelegate = () => new HashSet<string>(anime.Select(a => ((AnimeType)a.AnimeType).ToString()), StringComparer.InvariantCultureIgnoreCase),
             VideoSourcesDelegate = () => group.Contract?.Stat_AllVideoQuality ?? new HashSet<string>(),
             SharedVideoSourcesDelegate = () => group.Contract?.Stat_AllVideoQuality_Episodes ?? new HashSet<string>(),
-            AudioLanguagesDelegate = () => group.Contract?.Stat_AudioLanguages ?? new HashSet<string>(),
+            AudioLanguagesDelegate = () => series.SelectMany(a => a.GetVideoLocals().Select(b => b.GetAniDBFile())).Where(a => a != null)
+                .SelectMany(a => a.Languages.Select(b => b.LanguageName)).ToHashSet(),
             SharedAudioLanguagesDelegate = () =>
             {
                 var audio = new HashSet<string>();
@@ -307,7 +249,8 @@ public static class FilterExtensions
                         .ToHashSet();
                 return audio;
             },
-            SubtitleLanguagesDelegate = () => group.Contract?.Stat_SubtitleLanguages ?? new HashSet<string>(),
+            SubtitleLanguagesDelegate = () => series.SelectMany(a => a.GetVideoLocals().Select(b => b.GetAniDBFile())).Where(a => a != null)
+                .SelectMany(a => a.Subtitles.Select(b => b.LanguageName)).ToHashSet(),
             SharedSubtitleLanguagesDelegate = () =>
             {
                 var subtitles = new HashSet<string>();
@@ -322,7 +265,7 @@ public static class FilterExtensions
         return filterable;
     }
 
-    public static Filterable ToUserDependentFilterable(this SVR_AnimeGroup group, int userID)
+    public static FilterableUserInfo ToFilterableUserInfo(this SVR_AnimeGroup group, int userID)
     {
         var series = group.GetAllSeries(true);
         var anime = group.Anime;
@@ -332,62 +275,8 @@ public static class FilterExtensions
         var watchedDates = series.SelectMany(a => a.GetVideoLocals()).Select(a => a.GetUserRecord(userID)?.WatchedDate).Where(a => a != null).OrderBy(a => a)
             .ToList();
 
-        var filterable = new UserDependentFilterable
+        var filterable = new FilterableUserInfo
         {
-            NameDelegate = () => group.GroupName,
-            SortingNameDelegate = () => group.GroupName.ToSortName(),
-            SeriesCountDelegate = () => series.Count,
-            AirDateDelegate = () => group.Contract.Stat_AirDate_Min,
-            LastAirDateDelegate = () => group.Contract?.Stat_EndDate ?? group.GetAllSeries().SelectMany(a => a.GetAnimeEpisodes()).Select(a =>
-                a.AniDB_Episode?.GetAirDateAsDate()).Where(a => a != null).DefaultIfEmpty().Max(),
-            MissingEpisodesDelegate = () => group.Contract?.MissingEpisodeCount ?? 0,
-            MissingEpisodesCollectingDelegate = () => group.Contract?.MissingEpisodeCountGroups ?? 0,
-            TagsDelegate = () => group.Contract?.Stat_AllTags ?? new HashSet<string>(),
-            CustomTagsDelegate = () => group.Contract?.Stat_AllCustomTags ?? new HashSet<string>(),
-            YearsDelegate = () => group.Contract?.Stat_AllYears ?? new HashSet<int>(),
-            SeasonsDelegate = () => group.Contract?.Stat_AllSeasons.Select(a =>
-            {
-                var parts = a.Split(' ');
-                return (int.Parse(parts[1]), Enum.Parse<AnimeSeason>(parts[0]));
-            }).ToHashSet(),
-            HasTvDBLinkDelegate = () => series.Any(a => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(a.AniDB_ID).Any()),
-            HasMissingTvDbLinkDelegate = () => HasMissingTvDBLink(group),
-            HasTMDbLinkDelegate = () => group.Contract?.Stat_HasMovieDBLink ?? false,
-            HasMissingTMDbLinkDelegate = () => HasMissingTMDbLink(group),
-            HasTraktLinkDelegate = () => series.Any(a => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(a.AniDB_ID).Any()),
-            HasMissingTraktLinkDelegate = () => series.Any(a => !RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(a.AniDB_ID).Any()),
-            IsFinishedDelegate = () => group.Contract?.Stat_HasFinishedAiring ?? false,
-            AddedDateDelegate = () => group.DateTimeCreated,
-            LastAddedDateDelegate = () => series.SelectMany(a => a.GetVideoLocals()).Select(a => a.DateTimeCreated).DefaultIfEmpty().Max(),
-            EpisodeCountDelegate = () => series.Sum(a => a.GetAnime()?.EpisodeCountNormal ?? 0),
-            TotalEpisodeCountDelegate = () => series.Sum(a => a.GetAnime()?.EpisodeCount ?? 0),
-            LowestAniDBRatingDelegate = () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Min(),
-            HighestAniDBRatingDelegate = () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Max(),
-            AverageAniDBRatingDelegate = () => anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Average(),
-            AnimeTypesDelegate = () => new HashSet<string>(anime.Select(a => ((AnimeType)a.AnimeType).ToString()), StringComparer.InvariantCultureIgnoreCase),
-            VideoSourcesDelegate = () => group.Contract?.Stat_AllVideoQuality ?? new HashSet<string>(),
-            SharedVideoSourcesDelegate = () => group.Contract?.Stat_AllVideoQuality_Episodes ?? new HashSet<string>(),
-            AudioLanguagesDelegate = () => group.Contract?.Stat_AudioLanguages ?? new HashSet<string>(),
-            SharedAudioLanguagesDelegate = () =>
-            {
-                var audio = new HashSet<string>();
-                var audioLanguageNames = series.SelectMany(a => a.GetVideoLocals().Select(b => b.GetAniDBFile())).Where(a => a != null)
-                    .Select(a => a.Languages.Select(b => b.LanguageName));
-                if (audioLanguageNames.Any())
-                    audio = audioLanguageNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase))
-                        .ToHashSet();
-                return audio;
-            },
-            SubtitleLanguagesDelegate = () => group.Contract?.Stat_SubtitleLanguages ?? new HashSet<string>(),
-            SharedSubtitleLanguagesDelegate = () =>
-            {
-                var subtitles = new HashSet<string>();
-                var subtitleLanguageNames = series.SelectMany(a => a.GetVideoLocals().Select(b => b.GetAniDBFile())).Where(a => a != null)
-                    .Select(a => a.Subtitles.Select(b => b.LanguageName));
-                if (subtitleLanguageNames.Any())
-                    subtitles = subtitleLanguageNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet();
-                return subtitles;
-            },
             IsFavoriteDelegate = () => user?.IsFave == 1,
             WatchedEpisodesDelegate = () => user?.WatchedEpisodeCount ?? 0,
             UnwatchedEpisodesDelegate = () => user?.UnwatchedEpisodeCount ?? 0,
@@ -403,11 +292,11 @@ public static class FilterExtensions
         return filterable;
     }
 
-    private static bool HasMissingTMDbLink(SVR_AnimeGroup group)
+    private static bool HasMissingTMDbLink(IEnumerable<SVR_AnimeSeries> series, ILookup<int, CrossRef_AniDB_Other> movieDB)
     {
-        return group.GetAllSeries().Any(series =>
+        return series.Any(s =>
         {
-            var anime = series.GetAnime();
+            var anime = s.GetAnime();
             if (anime == null)
             {
                 return false;
@@ -424,7 +313,7 @@ public static class FilterExtensions
                 return false;
             }
 
-            return series.GetMovieDB() == null;
+            return movieDB?.Contains(s.AniDB_ID) ?? s.GetMovieDB() == null;
         });
     }
 

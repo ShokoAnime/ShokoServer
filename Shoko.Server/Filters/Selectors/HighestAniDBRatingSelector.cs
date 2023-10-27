@@ -9,9 +9,9 @@ public class HighestAniDBRatingSelector : FilterExpression<double>
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns the highest AniDB rating in a filterable";
 
-    public override double Evaluate(IFilterable f)
+    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return Convert.ToDouble(f.HighestAniDBRating);
+        return Convert.ToDouble(filterable.HighestAniDBRating);
     }
 
     protected bool Equals(HighestAniDBRatingSelector other)

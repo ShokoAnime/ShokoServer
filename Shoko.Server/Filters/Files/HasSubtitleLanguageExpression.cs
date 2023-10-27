@@ -18,7 +18,7 @@ public class HasSubtitleLanguageExpression : FilterExpression<bool>, IWithString
     public override string HelpDescription => "This passes if any of the files have the subtitle language provided in the parameter";
     public override string[] HelpPossibleParameters => SVR_AniDB_File.GetPossibleSubtitleLanguages();
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         return filterable.SubtitleLanguages.Contains(Parameter);
     }

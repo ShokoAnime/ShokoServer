@@ -9,9 +9,9 @@ public class AverageAniDBRatingSelector : FilterExpression<double>
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns the average AniDB rating in a filterable";
 
-    public override double Evaluate(IFilterable f)
+    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return Convert.ToDouble(f.AverageAniDBRating);
+        return Convert.ToDouble(filterable.AverageAniDBRating);
     }
 
     protected bool Equals(AverageAniDBRatingSelector other)

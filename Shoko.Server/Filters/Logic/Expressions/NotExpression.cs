@@ -17,9 +17,9 @@ public class NotExpression : FilterExpression<bool>, IWithExpressionParameter
 
     public FilterExpression<bool> Left { get; set; }
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return !Left.Evaluate(filterable);
+        return !Left.Evaluate(filterable, userInfo);
     }
 
     protected bool Equals(NotExpression other)

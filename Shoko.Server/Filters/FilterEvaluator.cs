@@ -50,19 +50,19 @@ public class FilterEvaluator
         var filterables = filter.ApplyAtSeriesLevel switch
         {
             true when needsUser => _series?.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true).Select(a =>
-                                       new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))) ??
+                                       new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(), a.ToFilterableUserInfo(userID.Value))) ??
                                    Array.Empty<FilterableWithID>().AsParallel(),
             true => _series?.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true)
                 .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable())) ?? Array.Empty<FilterableWithID>().AsParallel(),
-            false when needsUser => _groups?.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true)
-                                        .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))) ??
+            false when needsUser => _groups?.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true).Select(a =>
+                                        new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(), a.ToFilterableUserInfo(userID.Value))) ??
                                     Array.Empty<FilterableWithID>().AsParallel(),
             false => _groups?.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true)
                 .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable())) ?? Array.Empty<FilterableWithID>().AsParallel()
         };
 
         // Filtering
-        var filtered = filterables.Where(a => filter.Expression?.Evaluate(a.Filterable) ?? true);
+        var filtered = filterables.Where(a => filter.Expression?.Evaluate(a.Filterable, a.UserInfo) ?? true);
 
         // ordering
         var ordered = OrderFilterables(filter, filtered);
@@ -100,29 +100,27 @@ public class FilterEvaluator
         }
 
         ParallelQuery<FilterableWithID> series = null;
-        ParallelQuery<FilterableWithID> seriesUsers = null;
         ParallelQuery<FilterableWithID> groups = null;
-        ParallelQuery<FilterableWithID> groupUsers = null;
 
         var filterables = filters.ToDictionary(filter => filter, filter =>
         {
             var filterNeedsUser = (filter.Expression?.UserDependent ?? false) || skipSorting && (filter?.SortingExpression?.UserDependent ?? false);
             return filter.ApplyAtSeriesLevel switch
             {
-                true when filterNeedsUser => seriesUsers ??= _series.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true)
-                    .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value, movieDBMappings))),
+                true when filterNeedsUser => series ??= _series.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true)
+                    .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(movieDBMappings), a.ToFilterableUserInfo(userID.Value))),
                 true => series ??= _series.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true)
                     .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(movieDBMappings))),
-                false when filterNeedsUser => groupUsers ??= _groups.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true)
-                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToUserDependentFilterable(userID.Value))),
+                false when filterNeedsUser => groups ??= _groups.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true)
+                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(movieDBMappings), a.ToFilterableUserInfo(userID.Value))),
                 false => groups ??= _groups.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true)
-                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable()))
+                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(movieDBMappings)))
             };
         });
 
         // Filtering
         var filtered = filterables.SelectMany(a => a.Value.Select(filterable => (Filter: a.Key, FilterableWithID: filterable))).Where(a =>
-            (a.Filter.FilterType & GroupFilterType.Directory) == 0 && (a.Filter.Expression?.Evaluate(a.FilterableWithID.Filterable) ?? true));
+            (a.Filter.FilterType & GroupFilterType.Directory) == 0 && (a.Filter.Expression?.Evaluate(a.FilterableWithID.Filterable, a.FilterableWithID.UserInfo) ?? true));
 
         // ordering
         var grouped = filtered.GroupBy(a => a.Filter).ToDictionary(a => a.Key, f =>
@@ -145,23 +143,22 @@ public class FilterEvaluator
     private static IOrderedEnumerable<FilterableWithID> OrderFilterables(FilterPreset filter, IEnumerable<FilterableWithID> filtered)
     {
         var nameSorter = new NameSortingSelector();
-        var ordered = filter.SortingExpression == null ? filtered.OrderBy(a => nameSorter.Evaluate(a.Filterable)) :
-            !filter.SortingExpression.Descending ? filtered.OrderBy(a => filter.SortingExpression.Evaluate(a.Filterable)) :
-            filtered.OrderByDescending(a => filter.SortingExpression.Evaluate(a.Filterable));
+        var ordered = filter.SortingExpression == null ? filtered.OrderBy(a => nameSorter.Evaluate(a.Filterable, a.UserInfo)) :
+            !filter.SortingExpression.Descending ? filtered.OrderBy(a => filter.SortingExpression.Evaluate(a.Filterable, a.UserInfo)) :
+            filtered.OrderByDescending(a => filter.SortingExpression.Evaluate(a.Filterable, a.UserInfo));
 
         var next = filter.SortingExpression?.Next;
         while (next != null)
         {
             var expr = next;
-            ordered = !next.Descending ? ordered.ThenBy(a => expr.Evaluate(a.Filterable)) : ordered.ThenByDescending(a => expr.Evaluate(a.Filterable));
+            ordered = !next.Descending ? ordered.ThenBy(a => expr.Evaluate(a.Filterable, a.UserInfo)) : ordered.ThenByDescending(a => expr.Evaluate(a.Filterable, a.UserInfo));
             next = next.Next;
         }
 
         return ordered;
     }
 
-    private record FilterableWithID(int SeriesID, int GroupID, IFilterable Filterable);
-    private record UserFilterableWithID(int UserID, int SeriesID, int GroupID, IFilterable Filterable) : FilterableWithID(SeriesID, GroupID, Filterable);
+    private record FilterableWithID(int SeriesID, int GroupID, IFilterable Filterable, IFilterableUserInfo UserInfo=null);
 
     private record Grouping(int GroupID, int[] SeriesIDs) : IGrouping<int, int>
     {

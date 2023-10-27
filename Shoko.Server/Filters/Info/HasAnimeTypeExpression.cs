@@ -26,7 +26,7 @@ public class HasAnimeTypeExpression : FilterExpression<bool>, IWithStringParamet
         AnimeType.Other.ToString(),
     };
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         return filterable.AnimeTypes.Contains(Parameter);
     }

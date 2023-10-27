@@ -37,7 +37,7 @@ public class InSeasonExpression : FilterExpression<bool>, IWithNumberParameter, 
         set => Season = Enum.Parse<AnimeSeason>(value);
     }
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         return filterable.Seasons.Contains((Year, Season));
     }

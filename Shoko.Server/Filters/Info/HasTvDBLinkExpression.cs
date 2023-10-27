@@ -8,7 +8,7 @@ public class HasTvDBLinkExpression : FilterExpression<bool>
     public override bool UserDependent => false;
     public override string HelpDescription => "This passes if any of the anime have a TvDB link";
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         return filterable.HasTvDBLink;
     }

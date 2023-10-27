@@ -61,5 +61,5 @@ public class FilterExpression : IFilterExpression
 
 public abstract class FilterExpression<T> : FilterExpression, IFilterExpression<T>
 {
-    public abstract T Evaluate(IFilterable f);
+    public abstract T Evaluate(IFilterable filterable, IFilterableUserInfo userInfo);
 }

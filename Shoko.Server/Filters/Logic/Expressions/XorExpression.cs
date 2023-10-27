@@ -20,9 +20,9 @@ public class XorExpression : FilterExpression<bool>, IWithExpressionParameter, I
     public FilterExpression<bool> Left { get; set; }
     public FilterExpression<bool> Right { get; set; }
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return Left.Evaluate(filterable) ^ Right.Evaluate(filterable);
+        return Left.Evaluate(filterable, userInfo) ^ Right.Evaluate(filterable, userInfo);
     }
 
     protected bool Equals(XorExpression other)

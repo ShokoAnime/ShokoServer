@@ -3,15 +3,16 @@ using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Selectors;
 
-public class LowestUserRatingSelector : UserDependentFilterExpression<double>
+public class LowestUserRatingSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
     public override string HelpDescription => "This returns the lowest user rating in a filterable";
 
-    public override double Evaluate(IUserDependentFilterable f)
+    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return Convert.ToDouble(f.LowestUserRating);
+        ArgumentNullException.ThrowIfNull(userInfo);
+        return Convert.ToDouble(userInfo.LowestUserRating);
     }
 
     protected bool Equals(LowestUserRatingSelector other)

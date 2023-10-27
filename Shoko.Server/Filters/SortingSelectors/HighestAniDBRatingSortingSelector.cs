@@ -9,8 +9,8 @@ public class HighestAniDBRatingSortingSelector : SortingExpression
     public override bool UserDependent => false;
     public override string HelpDescription => "This sorts by the highest AniDB rating in a filterable";
 
-    public override object Evaluate(IFilterable f)
+    public override object Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return Convert.ToDouble(f.HighestAniDBRating);
+        return Convert.ToDouble(filterable.HighestAniDBRating);
     }
 }

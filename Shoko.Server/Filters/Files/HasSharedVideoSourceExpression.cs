@@ -27,7 +27,7 @@ public class HasSharedVideoSourceExpression : FilterExpression<bool>, IWithStrin
         GetFile_Source.HKDVD.ToString(), GetFile_Source.LaserDisc.ToString()
     };
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         return filterable.SharedVideoSources.Contains(Parameter);
     }

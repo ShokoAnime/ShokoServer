@@ -9,8 +9,8 @@ public class LowestAniDBRatingSortingSelector : SortingExpression
     public override bool UserDependent => false;
     public override string HelpDescription => "This sorts by the lowest AniDB rating in a filterable";
 
-    public override object Evaluate(IFilterable f)
+    public override object Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return Convert.ToDouble(f.LowestAniDBRating);
+        return Convert.ToDouble(filterable.LowestAniDBRating);
     }
 }

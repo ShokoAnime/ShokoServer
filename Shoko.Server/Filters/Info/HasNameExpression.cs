@@ -16,7 +16,7 @@ public class HasNameExpression : FilterExpression<bool>, IWithStringParameter
     public override bool UserDependent => false;
     public override string HelpDescription => "This passes if the name of the series or group matches the parameter";
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         return filterable.Name.Equals(Parameter, StringComparison.InvariantCultureIgnoreCase);
     }

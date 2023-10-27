@@ -8,9 +8,9 @@ public class AudioLanguageCountSelector : FilterExpression<double>
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns how many distinct audio languages are present in all of the files in a filterable";
 
-    public override double Evaluate(IFilterable f)
+    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.AudioLanguages.Count;
+        return filterable.AudioLanguages.Count;
     }
 
     protected bool Equals(AudioLanguageCountSelector other)

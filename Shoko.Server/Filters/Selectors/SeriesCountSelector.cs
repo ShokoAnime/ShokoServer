@@ -8,9 +8,9 @@ public class SeriesCountSelector : FilterExpression<double>
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns the number of series in a filterable";
 
-    public override double Evaluate(IFilterable f)
+    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.SeriesCount;
+        return filterable.SeriesCount;
     }
 
     protected bool Equals(SeriesCountSelector other)

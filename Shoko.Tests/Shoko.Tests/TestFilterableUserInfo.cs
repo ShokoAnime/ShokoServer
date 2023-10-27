@@ -3,7 +3,7 @@ using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Tests;
 
-public class TestUserDependentFilterable : TestFilterable, IUserDependentFilterable
+public class TestFilterableUserInfo : IFilterableUserInfo
 {
     public bool IsFavorite { get; init; }
     public int WatchedEpisodes { get; init; }

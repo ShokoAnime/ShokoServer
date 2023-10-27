@@ -8,8 +8,8 @@ public class NameSortingSelector : SortingExpression
     public override bool UserDependent => false;
     public override string HelpDescription => "This sorts by the name of a filterable";
 
-    public override string Evaluate(IFilterable f)
+    public override object Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.Name;
+        return filterable.Name;
     }
 }

@@ -1,16 +1,18 @@
+using System;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.User;
 
-public class HasUserVotesExpression : UserDependentFilterExpression<bool>
+public class HasUserVotesExpression : FilterExpression<bool>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
     public override string HelpDescription => "This passes if the filterable has a user vote";
 
-    public override bool Evaluate(IUserDependentFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.HasVotes;
+        ArgumentNullException.ThrowIfNull(userInfo);
+        return userInfo.HasVotes;
     }
 
     protected bool Equals(HasUserVotesExpression other)

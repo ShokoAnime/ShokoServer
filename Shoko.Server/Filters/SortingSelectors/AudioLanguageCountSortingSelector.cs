@@ -8,8 +8,8 @@ public class AudioLanguageCountSortingSelector : SortingExpression
     public override bool UserDependent => false;
     public override string HelpDescription => "This sorts by how many distinct audio languages are present in all of the files in a filterable";
 
-    public override object Evaluate(IFilterable f)
+    public override object Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.AudioLanguages.Count;
+        return filterable.AudioLanguages.Count;
     }
 }

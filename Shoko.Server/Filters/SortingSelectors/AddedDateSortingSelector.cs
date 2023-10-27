@@ -8,8 +8,8 @@ public class AddedDateSortingSelector : SortingExpression
     public override bool UserDependent => false;
     public override string HelpDescription => "This sorts by the date that a filterable was created";
 
-    public override object Evaluate(IFilterable f)
+    public override object Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.AddedDate;
+        return filterable.AddedDate;
     }
 }

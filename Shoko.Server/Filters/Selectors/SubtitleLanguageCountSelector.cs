@@ -8,9 +8,9 @@ public class SubtitleLanguageCountSelector : FilterExpression<double>
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns how many distinct subtitle languages are present in all of the files in a filterable";
 
-    public override double Evaluate(IFilterable f)
+    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.SubtitleLanguages.Count;
+        return filterable.SubtitleLanguages.Count;
     }
 
     protected bool Equals(SubtitleLanguageCountSelector other)

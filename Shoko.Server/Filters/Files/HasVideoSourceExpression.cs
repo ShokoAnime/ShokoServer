@@ -27,7 +27,7 @@ public class HasVideoSourceExpression : FilterExpression<bool>, IWithStringParam
         GetFile_Source.HKDVD.ToString(), GetFile_Source.LaserDisc.ToString()
     };
 
-    public override bool Evaluate(IFilterable filterable)
+    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         return filterable.VideoSources.Contains(Parameter);
     }

@@ -9,9 +9,9 @@ public class LastAddedDateSelector : FilterExpression<DateTime?>
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns the last date that any episode was added in a filterable";
 
-    public override DateTime? Evaluate(IFilterable f)
+    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return f.LastAddedDate;
+        return filterable.LastAddedDate;
     }
 
     protected bool Equals(LastAddedDateSelector other)

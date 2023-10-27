@@ -3,15 +3,16 @@ using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Selectors;
 
-public class HighestUserRatingSelector : UserDependentFilterExpression<double>
+public class HighestUserRatingSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
     public override string HelpDescription => "This returns the highest user rating in a filterable";
 
-    public override double Evaluate(IUserDependentFilterable f)
+    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return Convert.ToDouble(f.HighestUserRating);
+        ArgumentNullException.ThrowIfNull(userInfo);
+        return Convert.ToDouble(userInfo.HighestUserRating);
     }
 
     protected bool Equals(HighestUserRatingSelector other)
