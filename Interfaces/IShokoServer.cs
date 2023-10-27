@@ -724,7 +724,7 @@ namespace Shoko.Models.Interfaces
 
         #region Change Tracker
 
-        [Rest("Changes/{date}/{userID}", Verbs.Get)]
+        [Rest("Changes/{date}/{userID}", Verbs.Get, TimeOutSeconds = 6000)]
         CL_MainChanges GetAllChanges(DateTime date, int userID);
 
         #endregion
