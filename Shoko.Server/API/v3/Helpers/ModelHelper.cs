@@ -182,11 +182,6 @@ public static class ModelHelper
                     continue;
                 }
 
-                if (episode.IsHidden)
-                {
-                    sizes.Hidden++;
-                }
-
                 switch (File.ParseFileSource(anidbFile.File_Source))
                 {
                     case FileSource.Unknown:
@@ -220,6 +215,12 @@ public static class ModelHelper
                         sizes.FileSources.Camera++;
                         break;
                 }
+            }
+
+            if (episode.IsHidden)
+            {
+                sizes.Hidden++;
+                continue;
             }
 
             if (anidbEpisode == null)
