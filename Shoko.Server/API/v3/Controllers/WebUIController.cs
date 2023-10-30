@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -43,6 +44,9 @@ public class WebUIController : BaseController
     });
 
     private static readonly TimeSpan CacheTTL = TimeSpan.FromHours(1);
+
+    private readonly ILogger<WebUIController> _logger;
+
     private readonly WebUIFactory _webUIFactory;
 
     /// <summary>
@@ -306,7 +310,10 @@ public class WebUIController : BaseController
         catch (WebException ex)
         {
             if (ex.Status != WebExceptionStatus.Success)
-                return StatusCode((int)HttpStatusCode.BadGateway, "Unable to use the GitHub API to check for an update. Check your connection.");
+            {
+                _logger.LogError(ex, "An error occured while trying to install the Web UI.");
+                return Problem("Unable to use the GitHub API to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect to GitHub.");
+            }
             throw;
         }
 
@@ -335,18 +342,21 @@ public class WebUIController : BaseController
         catch (WebException ex)
         {
             if (ex.Status != WebExceptionStatus.Success)
-                return StatusCode((int)HttpStatusCode.BadGateway, "Unable to use the GitHub API to check for an update. Check your connection.");
+            {
+                _logger.LogError(ex, "An error occured while trying to update the Web UI.");
+                return Problem("Unable to use the GitHub API to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect to GitHub.");
+            }
             throw;
         }
 
         return NoContent();
     }
-    
+
     /// <inheritdoc cref="UpdateWebUI"/>
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("Update")]
-    [Obsolete("Post is correct, but we want old versions of the webui to be able to update. We can remove this later")]
+    [Obsolete("Post is correct, but we want old versions of the webui to be able to update. We can remove this later™.")]
     public ActionResult UpdateWebUIOld([FromQuery] ReleaseChannel channel = ReleaseChannel.Stable)
     {
         return UpdateWebUI(channel);
@@ -564,8 +574,9 @@ public class WebUIController : BaseController
     }
 
 
-    public WebUIController(ISettingsProvider settingsProvider, WebUIFactory webUIFactory) : base(settingsProvider)
+    public WebUIController(ISettingsProvider settingsProvider, WebUIFactory webUIFactory, ILogger<WebUIController> logger) : base(settingsProvider)
     {
+        _logger = logger;
         _webUIFactory = webUIFactory;
     }
 }
