@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.Utilities.FileSystemWatcher;
 
@@ -151,6 +150,7 @@ public class RecoveringFileSystemWatcher : IDisposable
 
         try
         {
+            _watcher = InitWatcher();
             Start();
         }
         catch (Exception ex)
@@ -159,13 +159,19 @@ public class RecoveringFileSystemWatcher : IDisposable
         }
     }
 
+    private void WatcherDisposed(object sender, EventArgs e)
+    {
+        _watcher = null;
+    }
+
     public void Start()
     {
         if (_watcher is { EnableRaisingEvents: true } && _recoveringTimer != null) return;
         _watcher ??= InitWatcher();
-        _watcher.EnableRaisingEvents = true;
         _recoveringTimer ??= new Timer(_recoveringTimerElapsed);
         _recoveringTimer?.Change(_directoryRetryInterval, Timeout.InfiniteTimeSpan);
+        // do this last to ensure the rest is done
+        _watcher.EnableRaisingEvents = true;
     }
 
     private void _recoveringTimerElapsed(object state)
@@ -181,6 +187,7 @@ public class RecoveringFileSystemWatcher : IDisposable
                 return;
             }
 
+            _watcher ??= InitWatcher();
             Start();
         }
         catch (Exception ex)
@@ -228,6 +235,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         watcher.Renamed += WatcherChangeDetected;
         watcher.Deleted += WatcherChangeDetected;
         watcher.Error += WatcherOnError;
+        watcher.Disposed += WatcherDisposed;
         return watcher;
     }
 
