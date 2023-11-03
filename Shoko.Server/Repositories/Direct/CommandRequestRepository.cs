@@ -169,9 +169,6 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
 
     public bool CheckIfCommandRequestIsDisabled(CommandRequestType type, IConnectivityService connectivityService)
     {
-        if (!CommandTypesGeneral.Contains((int)type))
-            return false;
-
         var udpBanned = connectivityService.IsAniDBUdpBanned;
         var networkUnavailable = !connectivityService.NetworkAvailability.HasInternet();
         var udpUnavailable = !connectivityService.IsAniDBUdpReachable;
