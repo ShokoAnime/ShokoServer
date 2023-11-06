@@ -902,7 +902,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
     {
         try
         {
-            using (var conn = new MySqlConnection(GetConnectionString()))
+            using (var conn = new MySqlConnection(GetTestConnectionString()))
             {
                 var query = "select 1";
                 var cmd = new MySqlCommand(query, conn);
