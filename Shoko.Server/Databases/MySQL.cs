@@ -993,7 +993,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
     {
         var settings = Utils.SettingsProvider.GetSettings();
         return
-            $"Server={settings.Database.Hostname};Port={settings.Database.Port};Database=mysql;User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
+            $"Server={settings.Database.Hostname};Port={settings.Database.Port};Database={settings.Database.Schema};User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
     }
 
     public override bool HasVersionsTable()
