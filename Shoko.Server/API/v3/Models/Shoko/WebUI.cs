@@ -158,7 +158,7 @@ public class WebUI
 
     public class WebUISeriesFileSummary
     {
-        public WebUISeriesFileSummary(SVR_AnimeSeries series, HashSet<EpisodeType> episodeTypes = null, bool withEpisodeDetails = false, bool showMissingFutureEpisodes = false, HashSet<FileSummaryGroupByCriteria> groupByCriteria = null)
+        public WebUISeriesFileSummary(SVR_AnimeSeries series, HashSet<EpisodeType> episodeTypes = null, bool withEpisodeDetails = false, bool showMissingFutureEpisodes = false, bool showMissingUnknownEpisodes = false, HashSet<FileSummaryGroupByCriteria> groupByCriteria = null)
         {
             // By default only show 'normal', 'special' or 'other' episodes.
             episodeTypes ??= new() { EpisodeType.Normal, EpisodeType.Special, EpisodeType.Other };
@@ -366,7 +366,7 @@ public class WebUI
 
             var now = DateTime.Now;
             MissingEpisodes = episodes.Values
-                .Where(episode => !presentEpisodes.Contains(episode.ID) && episode.AirDate != null && !episode.IsHidden && (showMissingFutureEpisodes || episode.AirDate < now))
+                .Where(episode => !presentEpisodes.Contains(episode.ID) && !episode.IsHidden && (episode.AirDate.HasValue ? (showMissingFutureEpisodes || episode.AirDate.Value < now) : showMissingUnknownEpisodes))
                 .OrderBy(episode => episode.Type)
                 .ThenBy(episode => episode.Number)
                 .Select(episode => new Episode.AniDB(episode.AniDB))

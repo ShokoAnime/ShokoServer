@@ -526,18 +526,13 @@ public class SeriesSizes
 {
     public SeriesSizes() : base()
     {
-        Missing = 0;
         Hidden = 0;
         FileSources = new FileSourceCounts();
-        Total = new EpisodeTypeCounts();
         Local = new EpisodeTypeCounts();
         Watched = new EpisodeTypeCounts();
+        Missing = new ReducedEpisodeTypeCounts();
+        Total = new EpisodeTypeCounts();
     }
-
-    /// <summary>
-    /// Count of missing episodes that are not hidden.
-    /// </summary>
-    public int Missing { get; set; }
 
     /// <summary>
     /// Count of hidden episodes, be it available or missing.
@@ -562,10 +557,24 @@ public class SeriesSizes
     public EpisodeTypeCounts Watched { get; set; }
 
     /// <summary>
+    /// Count of missing episodes that are not hidden.
+    /// </summary>
+    public ReducedEpisodeTypeCounts Missing { get; set; }
+
+    /// <summary>
     /// Total count of each type
     /// </summary>
     [Required]
     public EpisodeTypeCounts Total { get; set; }
+
+    /// <summary>
+    /// Lists the count of each type of episode.
+    /// </summary>
+    public class ReducedEpisodeTypeCounts
+    {
+        public int Episodes { get; set; }
+        public int Specials { get; set; }
+    }
 
     /// <summary>
     /// Lists the count of each type of episode.

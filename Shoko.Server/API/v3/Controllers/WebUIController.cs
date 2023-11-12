@@ -250,6 +250,7 @@ public class WebUIController : BaseController
     /// <param name="type">Filter the view to only the spesified <see cref="EpisodeType"/>s.</param>
     /// <param name="groupBy">Group the episodes in view into smaller groups based on <see cref="FileSummaryGroupByCriteria"/>s.</param>
     /// <param name="includeEpisodeDetails">Include episode details for each range.</param>
+    /// <param name="includeMissingUnknownEpisodes">Include missing episodes that does not have an air date set.</param>
     /// <param name="includeMissingFutureEpisodes">Include missing episodes that will air in the future.</param>
     /// <returns>A <c>WebUISeriesFileSummary</c> object containing a summary of file information for the series.</returns>
     [HttpGet("Series/{seriesID}/FileSummary")]
@@ -258,6 +259,7 @@ public class WebUIController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<FileSummaryGroupByCriteria> groupBy = null,
         [FromQuery] bool includeEpisodeDetails = false,
+        [FromQuery] bool includeMissingUnknownEpisodes = false,
         [FromQuery] bool includeMissingFutureEpisodes = false)
     {
         // Retrieve a summary of file information for the specified series if it exists and the user has permissions.
@@ -272,7 +274,7 @@ public class WebUIController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        return new WebUISeriesFileSummary(series, type, includeEpisodeDetails, includeMissingFutureEpisodes, groupBy);
+        return new WebUISeriesFileSummary(series, type, includeEpisodeDetails, includeMissingFutureEpisodes, includeMissingUnknownEpisodes, groupBy);
     }
 
     /// <summary>

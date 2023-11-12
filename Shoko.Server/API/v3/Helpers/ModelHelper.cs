@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
@@ -161,6 +162,7 @@ public static class ModelHelper
 
     public static SeriesSizes GenerateSeriesSizes(List<SVR_AnimeEpisode> episodeList, int userID)
     {
+        var now = DateTime.Now;
         var sizes = new SeriesSizes();
         var fileSet = new HashSet<int>();
         foreach (var episode in episodeList)
@@ -223,6 +225,7 @@ public static class ModelHelper
                 continue;
             }
 
+            var airDate = anidbEpisode.GetAirDateAsDate();
             if (anidbEpisode == null)
             {
                 sizes.Total.Unknown++;
@@ -247,9 +250,9 @@ public static class ModelHelper
                     {
                         sizes.Local.Episodes++;
                     }
-                    else if (!episode.IsHidden)
+                    else if (!episode.IsHidden && airDate.HasValue && airDate.Value < now)
                     {
-                        sizes.Missing++;
+                        sizes.Missing.Episodes++;
                     }
 
                     if (isWatched)
@@ -277,9 +280,9 @@ public static class ModelHelper
                     {
                         sizes.Local.Specials++;
                     }
-                    else if (!episode.IsHidden)
+                    else if (!episode.IsHidden && airDate.HasValue && airDate.Value < now)
                     {
-                        sizes.Missing++;
+                        sizes.Missing.Specials++;
                     }
 
                     if (isWatched)
