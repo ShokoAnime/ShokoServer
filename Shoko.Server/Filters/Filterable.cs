@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using Shoko.Models.Enums;
 using Shoko.Server.Filters.Interfaces;
 
@@ -46,224 +45,224 @@ public class Filterable : IFilterable
 
     public Func<string> NameDelegate
     {
-        init => _name = new Lazy<string>(value, LazyThreadSafetyMode.None);
+        init => _name = new Lazy<string>(value);
     }
 
     public string SortingName => _sortingName.Value;
 
     public Func<string> SortingNameDelegate
     {
-        init => _sortingName = new Lazy<string>(value, LazyThreadSafetyMode.None);
+        init => _sortingName = new Lazy<string>(value);
     }
 
     public int SeriesCount => _seriesCount.Value;
 
     public Func<int> SeriesCountDelegate
     {
-        init => _seriesCount = new Lazy<int>(value, LazyThreadSafetyMode.None);
+        init => _seriesCount = new Lazy<int>(value);
     }
 
     public int MissingEpisodes => _missingEpisodes.Value;
 
     public Func<int> MissingEpisodesDelegate
     {
-        init => _missingEpisodes = new Lazy<int>(value, LazyThreadSafetyMode.None);
+        init => _missingEpisodes = new Lazy<int>(value);
     }
 
     public int MissingEpisodesCollecting => _missingEpisodesCollecting.Value;
 
     public Func<int> MissingEpisodesCollectingDelegate
     {
-        init => _missingEpisodesCollecting = new Lazy<int>(value, LazyThreadSafetyMode.None);
+        init => _missingEpisodesCollecting = new Lazy<int>(value);
     }
 
     public IReadOnlySet<string> Tags => _tags.Value;
 
     public Func<IReadOnlySet<string>> TagsDelegate
     {
-        init => _tags = new Lazy<IReadOnlySet<string>>(value, LazyThreadSafetyMode.None);
+        init => _tags = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> CustomTags => _customTags.Value;
 
     public Func<IReadOnlySet<string>> CustomTagsDelegate
     {
-        init => _customTags = new Lazy<IReadOnlySet<string>>(value, LazyThreadSafetyMode.None);
+        init => _customTags = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<int> Years => _years.Value;
 
     public Func<IReadOnlySet<int>> YearsDelegate
     {
-        init => _years = new Lazy<IReadOnlySet<int>>(value, LazyThreadSafetyMode.None);
+        init => _years = new Lazy<IReadOnlySet<int>>(value);
     }
 
     public IReadOnlySet<(int year, AnimeSeason season)> Seasons => _seasons.Value;
 
     public Func<IReadOnlySet<(int year, AnimeSeason season)>> SeasonsDelegate
     {
-        init => _seasons = new Lazy<IReadOnlySet<(int year, AnimeSeason season)>>(value, LazyThreadSafetyMode.None);
+        init => _seasons = new Lazy<IReadOnlySet<(int year, AnimeSeason season)>>(value);
     }
 
     public bool HasTvDBLink => _hasTvDBLink.Value;
 
     public Func<bool> HasTvDBLinkDelegate
     {
-        init => _hasTvDBLink = new Lazy<bool>(value, LazyThreadSafetyMode.None);
+        init => _hasTvDBLink = new Lazy<bool>(value);
     }
 
     public bool HasMissingTvDbLink => _hasMissingTvDBLink.Value;
 
     public Func<bool> HasMissingTvDbLinkDelegate
     {
-        init => _hasMissingTvDBLink = new Lazy<bool>(value, LazyThreadSafetyMode.None);
+        init => _hasMissingTvDBLink = new Lazy<bool>(value);
     }
 
     public bool HasTMDbLink => _hasTMDbLink.Value;
 
     public Func<bool> HasTMDbLinkDelegate
     {
-        init => _hasTMDbLink = new Lazy<bool>(value, LazyThreadSafetyMode.None);
+        init => _hasTMDbLink = new Lazy<bool>(value);
     }
 
     public bool HasMissingTMDbLink => _hasMissingTMDbLink.Value;
 
     public Func<bool> HasMissingTMDbLinkDelegate
     {
-        init => _hasMissingTMDbLink = new Lazy<bool>(value, LazyThreadSafetyMode.None);
+        init => _hasMissingTMDbLink = new Lazy<bool>(value);
     }
 
     public bool HasTraktLink => _hasTraktLink.Value;
 
     public Func<bool> HasTraktLinkDelegate
     {
-        init => _hasTraktLink = new Lazy<bool>(value, LazyThreadSafetyMode.None);
+        init => _hasTraktLink = new Lazy<bool>(value);
     }
 
     public bool HasMissingTraktLink => _hasMissingTraktLink.Value;
 
     public Func<bool> HasMissingTraktLinkDelegate
     {
-        init => _hasMissingTraktLink = new Lazy<bool>(value, LazyThreadSafetyMode.None);
+        init => _hasMissingTraktLink = new Lazy<bool>(value);
     }
 
     public bool IsFinished => _isFinished.Value;
 
     public Func<bool> IsFinishedDelegate
     {
-        init => _isFinished = new Lazy<bool>(value, LazyThreadSafetyMode.None);
+        init => _isFinished = new Lazy<bool>(value);
     }
 
     public DateTime? AirDate => _airDate.Value;
 
     public Func<DateTime?> AirDateDelegate
     {
-        init => _airDate = new Lazy<DateTime?>(value, LazyThreadSafetyMode.None);
+        init => _airDate = new Lazy<DateTime?>(value);
     }
 
     public DateTime? LastAirDate => _lastAirDate.Value;
 
     public Func<DateTime?> LastAirDateDelegate
     {
-        init => _lastAirDate = new Lazy<DateTime?>(value, LazyThreadSafetyMode.None);
+        init => _lastAirDate = new Lazy<DateTime?>(value);
     }
 
     public DateTime AddedDate => _addedDate.Value;
 
     public Func<DateTime> AddedDateDelegate
     {
-        init => _addedDate = new Lazy<DateTime>(value, LazyThreadSafetyMode.None);
+        init => _addedDate = new Lazy<DateTime>(value);
     }
 
     public DateTime LastAddedDate => _lastAddedDate.Value;
 
     public Func<DateTime> LastAddedDateDelegate
     {
-        init => _lastAddedDate = new Lazy<DateTime>(value, LazyThreadSafetyMode.None);
+        init => _lastAddedDate = new Lazy<DateTime>(value);
     }
 
     public int EpisodeCount => _episodeCount.Value;
 
     public Func<int> EpisodeCountDelegate
     {
-        init => _episodeCount = new Lazy<int>(value, LazyThreadSafetyMode.None);
+        init => _episodeCount = new Lazy<int>(value);
     }
 
     public int TotalEpisodeCount => _totalEpisodeCount.Value;
 
     public Func<int> TotalEpisodeCountDelegate
     {
-        init => _totalEpisodeCount = new Lazy<int>(value, LazyThreadSafetyMode.None);
+        init => _totalEpisodeCount = new Lazy<int>(value);
     }
 
     public decimal LowestAniDBRating => _lowestAniDBRating.Value;
 
     public Func<decimal> LowestAniDBRatingDelegate
     {
-        init => _lowestAniDBRating = new Lazy<decimal>(value, LazyThreadSafetyMode.None);
+        init => _lowestAniDBRating = new Lazy<decimal>(value);
     }
 
     public decimal HighestAniDBRating => _highestAniDBRating.Value;
 
     public Func<decimal> HighestAniDBRatingDelegate
     {
-        init => _highestAniDBRating = new Lazy<decimal>(value, LazyThreadSafetyMode.None);
+        init => _highestAniDBRating = new Lazy<decimal>(value);
     }
 
     public decimal AverageAniDBRating => _averageAniDBRating.Value;
 
     public Func<decimal> AverageAniDBRatingDelegate
     {
-        init => _averageAniDBRating = new Lazy<decimal>(value, LazyThreadSafetyMode.None);
+        init => _averageAniDBRating = new Lazy<decimal>(value);
     }
 
     public IReadOnlySet<string> VideoSources => _videoSources.Value;
 
     public Func<IReadOnlySet<string>> VideoSourcesDelegate
     {
-        init => _videoSources = new Lazy<IReadOnlySet<string>>(value, LazyThreadSafetyMode.None);
+        init => _videoSources = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> SharedVideoSources => _sharedVideoSources.Value;
 
     public Func<IReadOnlySet<string>> SharedVideoSourcesDelegate
     {
-        init => _sharedVideoSources = new Lazy<IReadOnlySet<string>>(value, LazyThreadSafetyMode.None);
+        init => _sharedVideoSources = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> AnimeTypes => _animeTypes.Value;
 
     public Func<IReadOnlySet<string>> AnimeTypesDelegate
     {
-        init => _animeTypes = new Lazy<IReadOnlySet<string>>(value, LazyThreadSafetyMode.None);
+        init => _animeTypes = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> AudioLanguages => _audioLanguages.Value;
 
     public Func<IReadOnlySet<string>> AudioLanguagesDelegate
     {
-        init => _audioLanguages = new Lazy<IReadOnlySet<string>>(value, LazyThreadSafetyMode.None);
+        init => _audioLanguages = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> SharedAudioLanguages => _sharedAudioLanguages.Value;
 
     public Func<IReadOnlySet<string>> SharedAudioLanguagesDelegate
     {
-        init => _sharedAudioLanguages = new Lazy<IReadOnlySet<string>>(value, LazyThreadSafetyMode.None);
+        init => _sharedAudioLanguages = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> SubtitleLanguages => _subtitleLanguages.Value;
 
     public Func<IReadOnlySet<string>> SubtitleLanguagesDelegate
     {
-        init => _subtitleLanguages = new Lazy<IReadOnlySet<string>>(value, LazyThreadSafetyMode.None);
+        init => _subtitleLanguages = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> SharedSubtitleLanguages => _sharedSubtitleLanguages.Value;
 
     public Func<IReadOnlySet<string>> SharedSubtitleLanguagesDelegate
     {
-        init => _sharedSubtitleLanguages = new Lazy<IReadOnlySet<string>>(value, LazyThreadSafetyMode.None);
+        init => _sharedSubtitleLanguages = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> Resolutions => _resolutions.Value;
@@ -271,7 +270,7 @@ public class Filterable : IFilterable
     {
         init
         {
-            _resolutions = new Lazy<IReadOnlySet<string>>(value, LazyThreadSafetyMode.None);
+            _resolutions = new Lazy<IReadOnlySet<string>>(value);
         }
     }
 }

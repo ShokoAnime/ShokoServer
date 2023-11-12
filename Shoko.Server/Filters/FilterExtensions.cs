@@ -8,7 +8,6 @@ using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 
 namespace Shoko.Server.Filters;
@@ -27,7 +26,7 @@ public static class FilterExtensions
             AirDateDelegate = () => series.GetAnime()?.AirDate,
             MissingEpisodesDelegate = () => series.MissingEpisodeCount,
             MissingEpisodesCollectingDelegate = () => series.MissingEpisodeCountGroups,
-            TagsDelegate = () => series.GetAnime()?.GetAllTags() ?? new HashSet<string>(),
+            TagsDelegate = () => series.GetAnime()?.GetTags().Select(a => a.TagName).ToHashSet() ?? new HashSet<string>(),
             CustomTagsDelegate =
                 () => series.GetAnime()?.GetCustomTagsForAnime().Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase) ??
                       new HashSet<string>(),

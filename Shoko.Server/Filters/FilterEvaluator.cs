@@ -89,55 +89,72 @@ public class FilterEvaluator
         ArgumentNullException.ThrowIfNull(filters);
         if (!filters.Any()) return new Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>>();
         // count it as a user filter if it needs to sort using a user-dependent expression
-        var needsUser = filters.Any(a => (a?.Expression?.UserDependent ?? false) || skipSorting && (a?.SortingExpression?.UserDependent ?? false));
+        var hasSeries = filters.Any(a => a.ApplyAtSeriesLevel);
+        var seriesNeedsUser = hasSeries && filters.Any(a =>
+        {
+            if (!a.ApplyAtSeriesLevel) return false;
+            if (a.Expression?.UserDependent ?? false) return true;
+            if (skipSorting) return false;
+            return a.SortingExpression?.UserDependent ?? false;
+        });
+        var hasGroups = filters.Any(a => !a.ApplyAtSeriesLevel);
+        var groupsNeedUser = hasGroups && filters.Any(a =>
+        {
+            if (a.ApplyAtSeriesLevel) return false;
+            if (a.Expression?.UserDependent ?? false) return true;
+            if (skipSorting) return false;
+            return a.SortingExpression?.UserDependent ?? false;
+        });
+        var needsUser = seriesNeedsUser || groupsNeedUser;
         if (needsUser && userID == null) throw new ArgumentNullException(nameof(userID));
 
         var user = userID != null ? RepoFactory.JMMUser.GetByID(userID.Value) : null;
         ILookup<int, CrossRef_AniDB_Other> movieDBMappings;
         using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
-        {
             movieDBMappings = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDsAndType(session.Wrap(), null, CrossRefType.MovieDB);
+
+        FilterableWithID[] series = null;
+        if (hasSeries)
+        {
+            var allowedSeries = _series.GetAll().Where(a => user?.AllowedSeries(a) ?? true);
+            series = seriesNeedsUser
+                ? allowedSeries.Select(a =>
+                    new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(movieDBMappings), a.ToFilterableUserInfo(userID.Value))).ToArray()
+                : allowedSeries.Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(movieDBMappings))).ToArray();
         }
 
-        ParallelQuery<FilterableWithID> series = null;
-        ParallelQuery<FilterableWithID> groups = null;
-
-        var filterables = filters.ToDictionary(filter => filter, filter =>
+        FilterableWithID[] groups = null;
+        if (hasGroups)
         {
-            var filterNeedsUser = (filter.Expression?.UserDependent ?? false) || skipSorting && (filter?.SortingExpression?.UserDependent ?? false);
-            return filter.ApplyAtSeriesLevel switch
-            {
-                true when filterNeedsUser => series ??= _series.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true)
-                    .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(movieDBMappings), a.ToFilterableUserInfo(userID.Value))),
-                true => series ??= _series.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true)
-                    .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(movieDBMappings))),
-                false when filterNeedsUser => groups ??= _groups.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true)
-                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(movieDBMappings), a.ToFilterableUserInfo(userID.Value))),
-                false => groups ??= _groups.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true)
-                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(movieDBMappings)))
-            };
-        });
+            var allowedGroups = _groups.GetAll().Where(a => user?.AllowedGroup(a) ?? true);
+            groups = groupsNeedUser
+                ? allowedGroups.Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(movieDBMappings), a.ToFilterableUserInfo(userID.Value)))
+                    .ToArray()
+                : allowedGroups.Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(movieDBMappings))).ToArray();
+        }
+
+        var filterableMap = filters.Where(a => (a.FilterType & GroupFilterType.Directory) == 0)
+            .ToDictionary(filter => filter, filter => filter.ApplyAtSeriesLevel switch { true => series, false => groups });
 
         // Filtering
-        var filtered = filterables.SelectMany(a => a.Value.Select(filterable => (Filter: a.Key, FilterableWithID: filterable))).Where(a =>
-            (a.Filter.FilterType & GroupFilterType.Directory) == 0 && (a.Filter.Expression?.Evaluate(a.FilterableWithID.Filterable, a.FilterableWithID.UserInfo) ?? true));
-
-        // ordering
-        var grouped = filtered.GroupBy(a => a.Filter).ToDictionary(a => a.Key, f =>
+        var results = new Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>>();
+        foreach (var (filter, filterables) in filterableMap.AsParallel())
         {
-            var ordered = skipSorting ? f.Select(a => a.FilterableWithID) : OrderFilterables(f.Key, f.Select(a => a.FilterableWithID));
-
+            var expression = filter.Expression;
+            var filtered = filterables.AsParallel().AsUnordered().Where(a => expression?.Evaluate(a.Filterable, a.UserInfo) ?? true).ToArray();
+            var ordered = skipSorting ? (IEnumerable<FilterableWithID>)filtered : OrderFilterables(filter, filtered);
+            
             var result = ordered.GroupBy(a => a.GroupID, a => a.SeriesID);
-            if (!f.Key.ApplyAtSeriesLevel)
-                result = result.Select(a => new Grouping(a.Key, _series.GetByGroupID(a.Key).Select(ser => ser.AnimeSeriesID).ToArray()));
+            if (!filter.ApplyAtSeriesLevel)
+                result = result.Select(a => new Grouping(a.Key, _series.GetByGroupID(a.Key).Select(ser => ser.AnimeSeriesID)));
 
-            return result;
-        });
+            results.Add(filter, result);
+        }
 
-        foreach (var filter in filters.Where(filter => !grouped.ContainsKey(filter)))
-            grouped.Add(filter, Array.Empty<IGrouping<int, int>>());
+        foreach (var filter in filters.Where(filter => !results.ContainsKey(filter)))
+            results.Add(filter, Array.Empty<IGrouping<int, int>>());
 
-        return grouped;
+        return results;
     }
 
     private static IOrderedEnumerable<FilterableWithID> OrderFilterables(FilterPreset filter, IEnumerable<FilterableWithID> filtered)
@@ -160,11 +177,11 @@ public class FilterEvaluator
 
     private record FilterableWithID(int SeriesID, int GroupID, IFilterable Filterable, IFilterableUserInfo UserInfo=null);
 
-    private record Grouping(int GroupID, int[] SeriesIDs) : IGrouping<int, int>
+    private record Grouping(int GroupID, IEnumerable<int> SeriesIDs) : IGrouping<int, int>
     {
         public IEnumerator<int> GetEnumerator()
         {
-            return ((IEnumerable<int>)SeriesIDs).GetEnumerator();
+            return SeriesIDs.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()

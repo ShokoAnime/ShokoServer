@@ -28,7 +28,7 @@ public class Filters : BaseDirectory
 
     internal static Filters GenerateFromGroupFilter(HttpContext ctx, FilterPreset gf, int uid, bool nocast,
         bool notag, int level,
-        bool all, bool allpic, int pic, TagFilter.Filter tagfilter, Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>> evaluatedResults = null)
+        bool all, bool allpic, int pic, TagFilter.Filter tagfilter, IDictionary<FilterPreset, IEnumerable<IGrouping<int, int>>> evaluatedResults = null)
     {
         var f = new Filters { id = gf.FilterPresetID, name = gf.Name };
         var hideCategories = ctx.GetUser().GetHideCategories();
