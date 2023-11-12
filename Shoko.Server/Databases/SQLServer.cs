@@ -689,7 +689,8 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(112, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
         new DatabaseCommand(112, 5, DatabaseFixes.DropGroupFilter),
         new DatabaseCommand(113, 1, "ALTER TABLE AnimeGroup DROP COLUMN SortName;"),
-        new DatabaseCommand(114, 1, "ALTER TABLE AnimeEpisode DROP COLUMN PlexContractVersion;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractSize;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractSize;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractSize;"),
+        new DatabaseCommand(114, 1, "ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob;"),
+        new DatabaseCommand(114, 2, DropPlexContractColumns),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
@@ -714,6 +715,20 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(
             "CREATE INDEX IX_Versions_VersionType ON Versions(VersionType,VersionValue,VersionRevision);"),
     };
+
+    private static void DropPlexContractColumns()
+    {
+        var tables = new[]
+        {
+            "AnimeEpisode", "AnimeSeries_User",
+            "AnimeGroup_User"
+        };
+        var columns = new[]
+        {
+            "PlexContractSize", "PlexContractVersion"
+        };
+        tables.ForEach(t => columns.ForEach(a => DropColumnWithDefaultConstraint(t, a)));
+    }
 
     private static void DropVideoLocalMediaColumns()
     {
