@@ -882,11 +882,10 @@ public static class Importer
 
         foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
         {
-            commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP>(
+            commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP_Force>(
                 c =>
                 {
                     c.AnimeID = anime.AnimeID;
-                    c.ForceRefresh = true;
                 }
             );
         }
