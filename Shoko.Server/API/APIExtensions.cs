@@ -79,7 +79,7 @@ public static class APIExtensions
 
                 // add a swagger document for each discovered API version
                 // note: you might choose to skip or document deprecated API versions differently
-                foreach (var description in provider.ApiVersionDescriptions)
+                foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
                 {
                     options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description));
                 }
@@ -173,7 +173,6 @@ public static class APIExtensions
 
         services.AddApiVersioning(o =>
         {
-            o.DefaultApiVersion = new ApiVersion(3, 0);
             o.ReportApiVersions = true;
             o.AssumeDefaultVersionWhenUnspecified = true;
             o.ApiVersionReader = ApiVersionReader.Combine(
@@ -305,7 +304,7 @@ public static class APIExtensions
             {
                 // build a swagger endpoint for each discovered API version
                 var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
-                foreach (var description in provider.ApiVersionDescriptions)
+                foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
                 {
                     options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
                         description.GroupName.ToUpperInvariant());
