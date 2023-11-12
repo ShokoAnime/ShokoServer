@@ -14,6 +14,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
+#nullable enable
 namespace Shoko.Server.Services.Connectivity;
 
 public class ConnectivityService : IConnectivityService
@@ -163,7 +164,7 @@ public class ConnectivityService : IConnectivityService
     }
 
     // Notify the queues that they can start again.
-    private void OnNetworkAvailabilityChanged(object sender, NetworkAvailabilityChangedEventArgs eventArgs)
+    private void OnNetworkAvailabilityChanged(object? sender, NetworkAvailabilityChangedEventArgs eventArgs)
     {
         if (!eventArgs.NetworkAvailability.HasInternet())
             return;
