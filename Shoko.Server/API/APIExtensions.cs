@@ -157,7 +157,6 @@ public static class APIExtensions
 
                 EmitEmptyEnumerableInsteadOfNullAttribute.MvcOptions = options;
             })
-            .SetCompatibilityVersion(CompatibilityVersion.Version_3_0)
             .AddNewtonsoftJson(json =>
             {
                 json.SerializerSettings.MaxDepth = 10;
@@ -174,6 +173,7 @@ public static class APIExtensions
 
         services.AddApiVersioning(o =>
         {
+            o.DefaultApiVersion = new ApiVersion(3, 0);
             o.ReportApiVersions = true;
             o.AssumeDefaultVersionWhenUnspecified = true;
             o.ApiVersionReader = ApiVersionReader.Combine(
