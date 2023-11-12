@@ -1,9 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
-using Shoko.Server.PlexAndKodi;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -43,24 +41,10 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<SVR_AnimeSeries_U
 
     public override void Save(SVR_AnimeSeries_User obj)
     {
-        UpdatePlexKodiContracts(obj);
         base.Save(obj);
         Changes.TryAdd(obj.JMMUserID, new ChangeTracker<int>());
         Changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
     }
-
-    private void UpdatePlexKodiContracts(SVR_AnimeSeries_User ugrp)
-    {
-        var ser = RepoFactory.AnimeSeries.GetByID(ugrp.AnimeSeriesID);
-        var con = ser?.GetUserContract(ugrp.JMMUserID);
-        if (con == null)
-        {
-            return;
-        }
-
-        ugrp.PlexContract = Helper.GenerateFromSeries(con, ser, ser.GetAnime(), ugrp.JMMUserID);
-    }
-
 
     public SVR_AnimeSeries_User GetByUserAndSeriesID(int userid, int seriesid)
     {

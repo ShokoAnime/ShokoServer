@@ -472,14 +472,6 @@ public class SVR_AnimeSeries : AnimeSeries
         }
     }
 
-    public Video GetPlexContract(int userid)
-    {
-        var ser = GetUserContract(userid);
-        var v = GetOrCreateUserRecord(userid).PlexContract;
-        v.Title = ser.AniDBAnime.AniDBAnime.FormattedTitle;
-        return v;
-    }
-
     public SVR_AnimeSeries_User GetUserRecord(int userID)
     {
         return RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, AnimeSeriesID);

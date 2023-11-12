@@ -178,13 +178,6 @@ internal class AnimeGroupCreator
         _animeGroupUserRepo.Populate(session, false);
         _animeGroupRepo.Populate(session, false);
 
-        // NOTE: There are situations in which UpdatePlexKodiContracts will cause database database writes to occur, so we can't
-        // use Parallel.ForEach for the time being (If it was guaranteed to only read then we'd be ok)
-        foreach (var groupUser in animeGroupUsers)
-        {
-            groupUser.UpdatePlexKodiContracts();
-        }
-
         BaseRepository.Lock(session, animeGroupUsers, (s, u) => _animeGroupUserRepo.UpdateBatch(s, u));
         _log.Info("AnimeGroup_Users have been created");
     }

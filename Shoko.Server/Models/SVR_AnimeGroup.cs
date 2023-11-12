@@ -7,17 +7,12 @@ using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
-using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Settings;
-using Shoko.Server.Tasks;
-using Shoko.Server.Utilities;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
@@ -125,38 +120,6 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
         }
 
         return contract;
-    }
-
-    public Video GetPlexContract(int userid)
-    {
-        return GetOrCreateUserRecord(userid).PlexContract;
-    }
-
-    private SVR_AnimeGroup_User GetOrCreateUserRecord(int userid)
-    {
-        var rr = GetUserRecord(userid);
-        if (rr != null)
-        {
-            return rr;
-        }
-
-        rr = new SVR_AnimeGroup_User(userid, AnimeGroupID)
-        {
-            WatchedCount = 0,
-            UnwatchedEpisodeCount = 0,
-            PlayedCount = 0,
-            StoppedCount = 0,
-            WatchedEpisodeCount = 0,
-            WatchedDate = null
-        };
-        RepoFactory.AnimeGroup_User.Save(rr);
-        return rr;
-    }
-
-    public static bool IsRelationTypeInExclusions(string type)
-    {
-        var list = Utils.SettingsProvider.GetSettings().AutoGroupSeriesRelationExclusions;
-        return list.Any(a => a.Equals(type, StringComparison.InvariantCultureIgnoreCase));
     }
 
     public SVR_AnimeGroup_User GetUserRecord(int userID)

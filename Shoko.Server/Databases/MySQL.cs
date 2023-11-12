@@ -21,7 +21,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 120;
+    public override int RequiredVersion { get; } = 121;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -746,6 +746,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new DatabaseCommand(119, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
         new DatabaseCommand(119, 5, DatabaseFixes.DropGroupFilter),
         new DatabaseCommand(120, 1, "ALTER TABLE AnimeGroup DROP COLUMN SortName;"),
+        new DatabaseCommand(121, 1, "ALTER TABLE AnimeEpisode DROP COLUMN PlexContractVersion;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractSize;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractSize;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractSize;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

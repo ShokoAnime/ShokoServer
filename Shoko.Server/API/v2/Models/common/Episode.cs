@@ -7,7 +7,6 @@ using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common;
@@ -87,7 +86,7 @@ public class Episode : BaseDirectory
             ep.summary = cae.Description;
 
             ep.year = cae.AniDB_AirDate?.Year.ToString(CultureInfo.InvariantCulture);
-            ep.air = cae.AniDB_AirDate?.ToPlexDate();
+            ep.air = cae.AniDB_AirDate?.ToISO8601Date();
 
             ep.votes = cae.AniDB_Votes;
             ep.rating = cae.AniDB_Rating;
@@ -155,7 +154,7 @@ public class Episode : BaseDirectory
             var airdate = tvep.AirDate;
             if (airdate != null)
             {
-                ep.air = airdate.Value.ToPlexDate();
+                ep.air = airdate.Value.ToISO8601Date();
                 ep.year = airdate.Value.Year.ToString(CultureInfo.InvariantCulture);
             }
         }

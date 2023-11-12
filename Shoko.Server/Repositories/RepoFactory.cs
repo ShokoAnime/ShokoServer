@@ -137,9 +137,7 @@ public static class RepoFactory
         AniDB_Anime.GetAll().ForEach(a => a.CollectContractMemory());
         VideoLocal.GetAll().ForEach(a => a.CollectContractMemory());
         AnimeSeries.GetAll().ForEach(a => a.CollectContractMemory());
-        AnimeSeries_User.GetAll().ForEach(a => a.CollectContractMemory());
         AnimeGroup.GetAll().ForEach(a => a.CollectContractMemory());
-        AnimeGroup_User.GetAll().ForEach(a => a.CollectContractMemory());
 
         GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
         GC.Collect();

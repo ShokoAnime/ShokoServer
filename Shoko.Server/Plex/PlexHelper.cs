@@ -164,9 +164,9 @@ public class PlexHelper
     {
         get
         {
-            if (isAuthenticated == true)
+            if (isAuthenticated is true)
             {
-                return (bool)isAuthenticated;
+                return isAuthenticated.Value;
             }
 
             try
@@ -462,21 +462,6 @@ public class PlexHelper
         Utils.SettingsProvider.SaveSettings();
     }
 
-    public User GetAccount()
-    {
-        //https://plex.tv/users/account.json
-        var (resp, data) =
-            RequestAsync("https://plex.tv/users/account.json", HttpMethod.Get, AuthenticationHeaders)
-                .ConfigureAwait(false).GetAwaiter().GetResult();
-        if (resp != HttpStatusCode.OK)
-        {
-            return null;
-        }
-
-        return JsonConvert.DeserializeObject<PlexAccount>(data).User;
-    }
-
-
     public Directory[] GetDirectories()
     {
         if (ServerCache == null)
@@ -497,12 +482,11 @@ public class PlexHelper
         }
     }
 
-    public async Task<(HttpStatusCode status, string content)> RequestFromPlexAsync(string path,
+    public Task<(HttpStatusCode status, string content)> RequestFromPlexAsync(string path,
         HttpMethod method = null)
     {
-        return await RequestAsync($"{ConnectionCache.Uri}{path}", method ?? HttpMethod.Get,
-                new Dictionary<string, string> { { "X-Plex-Token", ServerCache.AccessToken } })
-            .ConfigureAwait(false);
+        return RequestAsync($"{ConnectionCache.Uri}{path}", method ?? HttpMethod.Get,
+            new Dictionary<string, string> { { "X-Plex-Token", ServerCache.AccessToken } });
     }
 
     public void InvalidateToken()

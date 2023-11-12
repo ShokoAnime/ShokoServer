@@ -22,7 +22,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name { get; } = "SQLite";
 
-    public override int RequiredVersion { get; } = 106;
+    public override int RequiredVersion { get; } = 107;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -680,6 +680,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new DatabaseCommand(105, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
         new DatabaseCommand(105, 5, DatabaseFixes.DropGroupFilter),
         new DatabaseCommand(106, 1, "ALTER TABLE AnimeGroup DROP COLUMN SortName;"),
+        new DatabaseCommand(107, 1, "ALTER TABLE AnimeEpisode DROP COLUMN PlexContractVersion;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractSize;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractSize;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractSize;"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

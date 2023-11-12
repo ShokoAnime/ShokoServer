@@ -11,8 +11,8 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common;
@@ -115,7 +115,7 @@ public class Serie : BaseDirectory, IComparable
             var airdate = anime.AirDate.Value;
             if (airdate != DateTime.MinValue)
             {
-                sr.air = airdate.ToPlexDate();
+                sr.air = airdate.ToISO8601Date();
             }
         }
 
@@ -603,8 +603,8 @@ public class Serie : BaseDirectory, IComparable
         }
 
         // Does it have an air date? Sort by it
-        if (!string.IsNullOrEmpty(a.air) && !a.air.Equals(DateTime.MinValue.ToPlexDate()) &&
-            !string.IsNullOrEmpty(air) && !air.Equals(DateTime.MinValue.ToPlexDate()))
+        if (!string.IsNullOrEmpty(a.air) && !a.air.Equals(DateTime.MinValue.ToISO8601Date()) &&
+            !string.IsNullOrEmpty(air) && !air.Equals(DateTime.MinValue.ToISO8601Date()))
         {
             if (DateTime.TryParseExact(a.air, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None,
                     out var d1) &&

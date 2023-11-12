@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
+using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Models;
-using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common;
@@ -79,7 +79,7 @@ public class Group : BaseDirectory
 
         GenerateSizes(g, ael, uid);
 
-        g.air = anime.AirDate?.ToPlexDate() ?? string.Empty;
+        g.air = anime.AirDate?.ToISO8601Date() ?? string.Empty;
 
         g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
         g.summary = anime.Description ?? string.Empty;
@@ -150,12 +150,18 @@ public class Group : BaseDirectory
         return g;
     }
 
+    private static IEnumerable<T> Randomize<T>(IEnumerable<T> source, int seed = -1)
+    {
+        var rnd = seed == -1 ? new Random() : new Random(seed);
+        return source.OrderBy(item => rnd.Next());
+    }
+
     public static void PopulateArtFromAniDBAnime(HttpContext ctx, IEnumerable<SVR_AniDB_Anime> animes, Group grp,
         bool allpics, int pic)
     {
         var rand = new Random();
 
-        foreach (var anime in animes.Randomize())
+        foreach (var anime in Randomize(animes))
         {
             var tvdbIDs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
             var fanarts = tvdbIDs

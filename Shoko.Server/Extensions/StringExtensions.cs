@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Shoko.Commons.Extensions;
@@ -8,24 +9,6 @@ namespace Shoko.Server.Extensions;
 
 public static class StringExtensions
 {
-    public static void Deconstruct(this IList<string> list, out string first, out IList<string> rest) {
-        first = list.Count > 0 ? list[0] : "";
-        rest = list.Skip(1).ToList();
-    }
-
-    public static void Deconstruct(this IList<string> list, out string first, out string second, out IList<string> rest) {
-        first = list.Count > 0 ? list[0] : "";
-        second = list.Count > 1 ? list[1] : "";
-        rest = list.Skip(2).ToList();
-    }
-
-    public static void Deconstruct(this IList<string> list, out string first, out string second, out string third, out IList<string> rest) {
-        first = list.Count > 0 ? list[0] : "";
-        second = list.Count > 1 ? list[1] : "";
-        third = list.Count > 2 ? list[2] : "";
-        rest = list.Skip(3).ToList();
-    }
-
     public static void Deconstruct(this IList<string> list, out string first, out string second, out string third, out string forth, out IList<string> rest) {
         first = list.Count > 0 ? list[0] : "";
         second = list.Count > 1 ? list[1] : "";
@@ -33,45 +16,10 @@ public static class StringExtensions
         forth = list.Count > 3 ? list[3] : "";
         rest = list.Skip(4).ToList();
     }
-
-    public static bool Contains(this string item, string other, StringComparison comparer)
+    
+    public static string ToISO8601Date(this DateTime dt)
     {
-        if (item == null || other == null)
-        {
-            return false;
-        }
-
-        return item.IndexOf(other, comparer) >= 0;
-    }
-
-    public static void ShallowCopyTo(this object s, object d)
-    {
-        foreach (var pis in s.GetType().GetProperties())
-        {
-            foreach (var pid in d.GetType().GetProperties())
-            {
-                if (pid.Name == pis.Name)
-                {
-                    pid.GetSetMethod().Invoke(d, new[] { pis.GetGetMethod().Invoke(s, null) });
-                }
-            }
-        }
-    }
-
-    public static void AddRange<K, V>(this IDictionary<K, V> dict, IDictionary<K, V> otherdict)
-    {
-        if (dict == null || otherdict == null)
-        {
-            return;
-        }
-
-        otherdict.ForEach(a =>
-        {
-            if (!dict.ContainsKey(a.Key))
-            {
-                dict.Add(a.Key, a.Value);
-            }
-        });
+        return dt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     }
 
     public static bool FindInEnumerable(this IEnumerable<string> items, IEnumerable<string> list)
@@ -108,24 +56,9 @@ public static class StringExtensions
         return listHash.Overlaps(itemHash);
     }
 
-    public static bool FindInEnumerable(this IEnumerable<int> items, IEnumerable<int> list)
-    {
-        if (items == null || list == null)
-        {
-            return false;
-        }
-
-        return list.ToHashSet().Overlaps(items.ToHashSet());
-    }
-
     public static bool FindIn(this string item, IEnumerable<string> list)
     {
         return list.Contains(item, StringComparer.InvariantCultureIgnoreCase);
-    }
-
-    public static int? ParseNullableInt(this string input)
-    {
-        return int.TryParse(input, out var output) ? output : (int?)null;
     }
 
     public static bool IsWithinErrorMargin(this DateTime value1, DateTime value2, TimeSpan error)
@@ -141,31 +74,5 @@ public static class StringExtensions
     public static bool EqualsInvariantIgnoreCase(this string value1, string value2)
     {
         return value1.Equals(value2, StringComparison.InvariantCultureIgnoreCase);
-    }
-
-    public static string SplitCamelCaseToWords(this string strInput)
-    {
-        var strOutput = new StringBuilder();
-        int intCurrentCharPos;
-        var intLastCharPos = strInput.Length - 1;
-        for (intCurrentCharPos = 0; intCurrentCharPos <= intLastCharPos; intCurrentCharPos++)
-        {
-            var chrCurrentInputChar = strInput[intCurrentCharPos];
-            var chrPreviousInputChar = chrCurrentInputChar;
-
-            if (intCurrentCharPos > 0)
-            {
-                chrPreviousInputChar = strInput[intCurrentCharPos - 1];
-            }
-
-            if (char.IsUpper(chrCurrentInputChar) && char.IsLower(chrPreviousInputChar))
-            {
-                strOutput.Append(' ');
-            }
-
-            strOutput.Append(chrCurrentInputChar);
-        }
-
-        return strOutput.ToString();
     }
 }
