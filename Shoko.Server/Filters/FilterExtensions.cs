@@ -92,6 +92,9 @@ public static class FilterExtensions
                 if (subtitleNames.Any()) subtitles = subtitleNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet();
                 return subtitles;
             },
+            ResolutionsDelegate = () =>
+                series.GetVideoLocals().Select(a => MediaInfoUtils.GetStandardResolution(Tuple.Create(a.Media.VideoStream.Width, a.Media.VideoStream.Height)))
+                    .ToHashSet()
         };
 
         return filterable;
