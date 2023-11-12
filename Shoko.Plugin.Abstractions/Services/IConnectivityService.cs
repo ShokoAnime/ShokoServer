@@ -1,5 +1,6 @@
 
 using System;
+using System.Threading.Tasks;
 using Shoko.Plugin.Abstractions.Enums;
 
 namespace Shoko.Plugin.Abstractions.Services
@@ -33,5 +34,11 @@ namespace Shoko.Plugin.Abstractions.Services
         /// Are we currently banned from using the AniDB UDP API?
         /// </summary>
         public bool IsAniDBUdpBanned { get; }
+
+        /// <summary>
+        /// Check for network availability now.
+        /// </summary>
+        /// <returns>The updated network availability status.</returns>
+        public Task<NetworkAvailability> CheckAvailability();
     }
 }
