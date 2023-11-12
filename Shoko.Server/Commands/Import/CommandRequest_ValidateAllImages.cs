@@ -50,7 +50,7 @@ public class CommandRequest_ValidateAllImages : CommandRequestImplementation
         UpdateProgress(Resources.Command_ValidateAllImages_TvDBEpisodes);
         Logger.LogInformation(ScanForType, "TvDB episodes");
         var episodes = RepoFactory.TvDB_Episode.GetAll()
-            .Where(episode => Misc.IsImageValid(episode.GetFullImagePath()))
+            .Where(episode => !Misc.IsImageValid(episode.GetFullImagePath()))
             .ToList();
 
         Logger.LogInformation(FoundCorruptedOfType, episodes.Count, episodes.Count == 1 ? "TvDB episode thumbnail" : "TvDB episode thumbnails");
