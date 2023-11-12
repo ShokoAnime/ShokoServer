@@ -28,6 +28,6 @@ public class NetworkEmitter : BaseEmitter, IDisposable
 
     public override object GetInitialMessage()
     {
-        return new NetworkAvailabilitySignalRModel(EventHandler.NetworkAvailability);
+        return new NetworkAvailabilitySignalRModel(EventHandler.NetworkAvailability, EventHandler.LastChangedAt);
     }
 }

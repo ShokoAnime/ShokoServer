@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Quartz;
 using QuartzJobFactory.Attributes;
 using Shoko.Plugin.Abstractions.Services;
-using Shoko.Server.Services.Connectivity;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
@@ -16,11 +15,11 @@ namespace Shoko.Server.Scheduling.Jobs;
 [DisallowConcurrentExecution]
 public class ConnectivityMonitorJob : IJob
 {
-    private readonly ConnectivityService _connectivityService;
+    private readonly IConnectivityService _connectivityService;
 
     public ConnectivityMonitorJob(IConnectivityService connectivityService)
     {
-        _connectivityService = connectivityService as ConnectivityService;
+        _connectivityService = connectivityService;
     }
 
     protected ConnectivityMonitorJob() { }

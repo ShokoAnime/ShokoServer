@@ -35,6 +35,8 @@ public class ConnectivityService : IConnectivityService
 
     private NetworkAvailability _networkAvailability { get; set; } = NetworkAvailability.NoInterfaces;
 
+    private DateTime _lastChangedAt { get; set; } = DateTime.Now;
+
     /// <inheritdoc/>
     public event EventHandler<NetworkAvailabilityChangedEventArgs> NetworkAvailabilityChanged;
 
@@ -45,11 +47,18 @@ public class ConnectivityService : IConnectivityService
         private set
         {
             var hasChanged = _networkAvailability != value;
-            _networkAvailability = value;
             if (hasChanged)
-                Task.Run(() => NetworkAvailabilityChanged?.Invoke(null, new(value))).ConfigureAwait(false);
+            {
+                _lastChangedAt = DateTime.Now;
+                _networkAvailability = value;
+                Task.Run(() => NetworkAvailabilityChanged?.Invoke(null, new(value, _lastChangedAt))).ConfigureAwait(false);
+            }
         }
     }
+
+    /// <inheritdoc/>
+    public DateTime LastChangedAt =>
+        _lastChangedAt;
 
     /// <inheritdoc/>
     public bool IsAniDBUdpReachable =>

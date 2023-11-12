@@ -10,9 +10,15 @@ namespace Shoko.Plugin.Abstractions
         /// </summary>
         public NetworkAvailability NetworkAvailability { get; }
 
-        public NetworkAvailabilityChangedEventArgs(NetworkAvailability networkAvailability)
+        /// <summary>
+        /// When the last network change was detected.
+        /// </summary>
+        public DateTime LastCheckedAt { get; set; }
+
+        public NetworkAvailabilityChangedEventArgs(NetworkAvailability networkAvailability, DateTime lastChange)
         {
             NetworkAvailability = networkAvailability;
+            LastCheckedAt = lastChange;
         }
     }
 }

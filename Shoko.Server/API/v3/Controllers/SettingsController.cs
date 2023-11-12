@@ -1,7 +1,9 @@
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -17,6 +19,8 @@ namespace Shoko.Server.API.v3.Controllers;
 [InitFriendly]
 public class SettingsController : BaseController
 {
+    private readonly IConnectivityService _connectivityService;
+
     // As far as I can tell, only GET and PATCH should be supported, as we don't support unset settings.
     // Some may be patched to "", though.
 
@@ -84,7 +88,31 @@ public class SettingsController : BaseController
         return Ok();
     }
 
-    public SettingsController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    /// <summary>
+    /// Gets the current network connectivity details for the server.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("Connectivity")]
+    public ActionResult<ConnectivityDetails> GetNetworkAvailability()
     {
+        return new ConnectivityDetails(_connectivityService);
+    }
+
+    /// <summary>
+    /// Forcefully re-checks the current network connectivity, then returns the
+    /// updated details for the server.
+    /// </summary>
+    /// <returns></returns>
+    [HttpPost("Connectivity")]
+    public async Task<ActionResult<object>> CheckNetworkAvailability()
+    {
+        await _connectivityService.CheckAvailability();
+
+        return GetNetworkAvailability();
+    }
+
+    public SettingsController(ISettingsProvider settingsProvider, IConnectivityService connectivityService) : base(settingsProvider)
+    {
+        _connectivityService = connectivityService;
     }
 }

@@ -21,6 +21,11 @@ namespace Shoko.Plugin.Abstractions.Services
         public NetworkAvailability NetworkAvailability { get; }
 
         /// <summary>
+        /// When the last network change was detected.
+        /// </summary>
+        public DateTime LastChangedAt { get; }
+
+        /// <summary>
         /// Is the AniDB UDP API currently reachable?
         /// </summary>
         public bool IsAniDBUdpReachable { get; }

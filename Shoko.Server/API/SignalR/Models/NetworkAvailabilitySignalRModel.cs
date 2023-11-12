@@ -1,3 +1,4 @@
+using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions;
@@ -13,13 +14,21 @@ public class NetworkAvailabilitySignalRModel
     [JsonConverter(typeof(StringEnumConverter))]
     public NetworkAvailability NetworkAvailability { get; }
 
-    public NetworkAvailabilitySignalRModel(NetworkAvailability networkAvailability)
+    /// <summary>
+    /// When the last network change was detected.
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime LastChangedAt { get; }
+
+    public NetworkAvailabilitySignalRModel(NetworkAvailability networkAvailability, DateTime lastCheckedAt)
     {
         NetworkAvailability = networkAvailability;
+        LastChangedAt = lastCheckedAt.ToUniversalTime();
     }
 
     public NetworkAvailabilitySignalRModel(NetworkAvailabilityChangedEventArgs eventArgs)
     {
         NetworkAvailability = eventArgs.NetworkAvailability;
+        LastChangedAt = eventArgs.LastCheckedAt.ToUniversalTime();
     }
 }
