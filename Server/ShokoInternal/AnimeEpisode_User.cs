@@ -15,12 +15,6 @@ namespace Shoko.Models.Server
         public int WatchedCount { get; set; }
         public int StoppedCount { get; set; }
 
-#if SERVER
-        public int ContractVersion { get; set; }
-        public byte[] ContractBlob { get; set; }
-        public int ContractSize { get; set; }
-
-#endif
         #endregion
     }
 }
