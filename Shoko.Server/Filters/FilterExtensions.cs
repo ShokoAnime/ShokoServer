@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 
 namespace Shoko.Server.Filters;
@@ -259,7 +261,9 @@ public static class FilterExtensions
                 if (subtitleLanguageNames.Any())
                     subtitles = subtitleLanguageNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet();
                 return subtitles;
-            }
+            },
+            ResolutionsDelegate = () => series.SelectMany(a => a.GetVideoLocals()).Select(a =>
+                MediaInfoUtils.GetStandardResolution(Tuple.Create(a.Media.VideoStream.Width, a.Media.VideoStream.Height))).ToHashSet()
         };
 
         return filterable;

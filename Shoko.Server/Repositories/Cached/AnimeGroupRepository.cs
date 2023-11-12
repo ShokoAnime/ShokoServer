@@ -111,7 +111,6 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         var types = grp.UpdateContract(sessionWrapper, updategrpcontractstats);
         Lock(session, s =>
         {
-            //Types will contains the affected GroupFilterConditionTypes
             using var transaction = s.BeginTransaction();
             SaveWithOpenTransaction(s, grp);
             transaction.Commit();

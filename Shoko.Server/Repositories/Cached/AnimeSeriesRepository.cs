@@ -4,9 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using NLog;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
@@ -211,8 +209,6 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
 
         if (updateGroups && !isMigrating) UpdateGroups(obj, animeID, sw, oldGroup);
 
-        if (false && !skipgroupfilters && !isMigrating) UpdateGroupFilters(obj, sw, animeID, types);
-
         Changes.AddOrUpdate(obj.AnimeSeriesID);
 
         if (alsoupdateepisodes) UpdateEpisodes(obj, sw, animeID);
@@ -248,44 +244,6 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         RepoFactory.AnimeEpisode.Save(eps);
         sw.Stop();
         logger.Trace($"Saving Series {animeID} | Updated Episodes in {sw.Elapsed.TotalSeconds:0.00###}s");
-        sw.Restart();
-    }
-
-    private static void UpdateGroupFilters(SVR_AnimeSeries obj, Stopwatch sw, string animeID, HashSet<GroupFilterConditionType> types)
-    {
-        SortedSet<string> seasons;
-        sw.Stop();
-        logger.Trace($"Saving Series {animeID} | Updating Group Filters");
-        sw.Restart();
-        var endyear = obj.Contract?.AniDBAnime?.AniDBAnime?.EndYear ?? 0;
-        if (endyear == 0)
-        {
-            endyear = DateTime.Today.Year;
-        }
-
-        var startyear = obj.Contract?.AniDBAnime?.AniDBAnime?.BeginYear ?? 0;
-        if (endyear < startyear)
-        {
-            endyear = startyear;
-        }
-
-        HashSet<int> allyears = null;
-        if (startyear != 0)
-        {
-            allyears = startyear == endyear
-                ? new HashSet<int> { startyear }
-                : new HashSet<int>(Enumerable.Range(startyear, endyear - startyear + 1));
-        }
-
-        // Reinit this in case it was updated in the contract
-        seasons = obj.Contract?.AniDBAnime?.Stat_AllSeasons;
-        //This call will create extra years or tags if the Group have a new year or tag
-        logger.Trace(
-            $"Saving Series {animeID} | Updating Group Filters for Years ({string.Join(",", (IEnumerable<int>)allyears?.OrderBy(a => a) ?? Array.Empty<int>())}) and Seasons ({string.Join(",", (IEnumerable<string>)seasons ?? Array.Empty<string>())})");
-        RepoFactory.FilterPreset.CreateOrVerifyDirectoryFilters(false,
-            obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears, obj.Contract?.AniDBAnime?.AniDBAnime?.GetSeasons().ToHashSet());
-        sw.Stop();
-        logger.Trace($"Saving Series {animeID} | Updated Group Filters in {sw.Elapsed.TotalSeconds:0.00###}s");
         sw.Restart();
     }
 

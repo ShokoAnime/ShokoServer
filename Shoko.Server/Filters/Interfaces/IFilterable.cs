@@ -165,4 +165,9 @@ public interface IFilterable
     /// Subtitle Languages (only languages that are in every file)
     /// </summary>
     IReadOnlySet<string> SharedSubtitleLanguages { get; }
+
+    /// <summary>
+    /// Resolutions
+    /// </summary>
+    IReadOnlySet<string> Resolutions { get; }
 }

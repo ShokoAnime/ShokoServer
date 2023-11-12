@@ -97,8 +97,7 @@ internal class AnimeGroupCreator
         BaseRepository.Lock(() =>
         {
             session.CreateSQLQuery(@"
-                UPDATE AnimeSeries SET AnimeGroupID = :tempGroupId;
-                UPDATE GroupFilter SET GroupsIdsString = '{}';")
+                UPDATE AnimeSeries SET AnimeGroupID = :tempGroupId;")
                 .SetInt32("tempGroupId", tempGroupId)
                 .ExecuteUpdate();
         });
