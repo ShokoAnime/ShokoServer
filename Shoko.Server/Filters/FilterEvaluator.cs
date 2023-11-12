@@ -136,20 +136,23 @@ public class FilterEvaluator
         var filterableMap = filters.Where(a => (a.FilterType & GroupFilterType.Directory) == 0)
             .ToDictionary(filter => filter, filter => filter.ApplyAtSeriesLevel switch { true => series, false => groups });
 
-        // Filtering
         var results = new Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>>();
-        foreach (var (filter, filterables) in filterableMap.AsParallel())
+        
+        filterableMap.AsParallel().AsUnordered().ForAll(kv =>
         {
+            var (filter, filterables) = kv;
             var expression = filter.Expression;
+            // Filtering
             var filtered = filterables.AsParallel().AsUnordered().Where(a => expression?.Evaluate(a.Filterable, a.UserInfo) ?? true).ToArray();
+            // Sorting
             var ordered = skipSorting ? (IEnumerable<FilterableWithID>)filtered : OrderFilterables(filter, filtered);
-            
+            // Building Group -> Series map
             var result = ordered.GroupBy(a => a.GroupID, a => a.SeriesID);
+            // Fill Series IDs for filters calculated at the group level
             if (!filter.ApplyAtSeriesLevel)
                 result = result.Select(a => new Grouping(a.Key, _series.GetByGroupID(a.Key).Select(ser => ser.AnimeSeriesID)));
-
             results.Add(filter, result);
-        }
+        });
 
         foreach (var filter in filters.Where(filter => !results.ContainsKey(filter)))
             results.Add(filter, Array.Empty<IGrouping<int, int>>());
