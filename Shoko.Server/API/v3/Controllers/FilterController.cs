@@ -303,7 +303,7 @@ public class FilterController : BaseController
     /// <param name="page">The page index.</param>
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
     /// <param name="randomImages">Randomise images shown for the <see cref="Group"/>.</param>
-    /// <param name="orderByName">Ignore the group filter sort critaria and always order the returned list by name.</param>
+    /// <param name="orderByName">Ignore the group filter sort criteria and always order the returned list by name.</param>
     /// <returns></returns>
     [HttpPost("Preview/Group")]
     public ActionResult<ListResult<Group>> GetPreviewFilteredGroups([FromBody] Filter.Input.CreateOrUpdateFilterBody filter,
