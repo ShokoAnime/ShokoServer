@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Force.DeepCloner;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -33,8 +34,8 @@ public class SettingsProvider : ISettingsProvider
 
     public IServerSettings GetSettings(bool copy = false)
     {
-        if (copy || Instance == null)
-            return LoadSettings(copy);
+        if (Instance == null) LoadSettings();
+        if (copy) return Instance.DeepClone();
         return Instance;
     }
 
@@ -44,7 +45,7 @@ public class SettingsProvider : ISettingsProvider
         SaveSettings();
     }
 
-    public ServerSettings LoadSettings(bool copy = false)
+    public void LoadSettings()
     {
         var appPath = Utils.ApplicationPath;
         if (!Directory.Exists(appPath))
@@ -53,19 +54,15 @@ public class SettingsProvider : ISettingsProvider
         var path = Path.Combine(appPath, SettingsFilename);
         if (!File.Exists(path))
         {
-            var convertedInstance = File.Exists(Path.Combine(appPath, "settings.json"))
+            Instance = File.Exists(Path.Combine(appPath, "settings.json"))
                 ? LoadLegacySettings()
                 : new();
-
-            if (!copy)
-                SaveSettings(convertedInstance);
-            return convertedInstance;
+            SaveSettings();
+            return;
         }
 
-        var instance = LoadSettingsFromFile(path);
-        if (!copy)
-            SaveSettings(instance);
-        return instance;
+        LoadSettingsFromFile(path);
+        SaveSettings();
     }
 
     private static ServerSettings LoadLegacySettings()
@@ -254,19 +251,18 @@ public class SettingsProvider : ISettingsProvider
         return result;
     }
 
-    public ServerSettings LoadSettingsFromFile(string path)
+    public void LoadSettingsFromFile(string path)
     {
         var settings = File.ReadAllText(path);
         settings = SettingsMigrations.MigrateSettings(settings);
         settings = FixNonEmittedDefaults(path, settings);
         try
         {
-            return Deserialize<ServerSettings>(settings);
+            Instance = Deserialize<ServerSettings>(settings);
         }
         catch (Exception e)
         {
             _logger.LogError(e, "An error occurred while loading the settings from file");
-            return new();
         }
     }
 
