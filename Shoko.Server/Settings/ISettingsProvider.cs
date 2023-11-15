@@ -6,7 +6,7 @@ namespace Shoko.Server.Settings;
 
 public interface ISettingsProvider
 {
-    IServerSettings GetSettings();
+    IServerSettings GetSettings(bool copy = false);
     void SaveSettings(IServerSettings settings);
     void SaveSettings();
     void DebugSettingsToLog();

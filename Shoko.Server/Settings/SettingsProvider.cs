@@ -31,9 +31,10 @@ public class SettingsProvider : ISettingsProvider
         _logger = logger;
     }
 
-    public IServerSettings GetSettings()
+    public IServerSettings GetSettings(bool copy = false)
     {
-        if (Instance == null) LoadSettings();
+        if (copy || Instance == null)
+            return LoadSettings(copy);
         return Instance;
     }
 
@@ -43,28 +44,28 @@ public class SettingsProvider : ISettingsProvider
         SaveSettings();
     }
 
-    public void LoadSettings()
+    public ServerSettings LoadSettings(bool copy = false)
     {
         var appPath = Utils.ApplicationPath;
         if (!Directory.Exists(appPath))
-        {
             Directory.CreateDirectory(appPath);
-        }
 
         var path = Path.Combine(appPath, SettingsFilename);
         if (!File.Exists(path))
         {
-            Instance = File.Exists(Path.Combine(appPath, "settings.json"))
+            var convertedInstance = File.Exists(Path.Combine(appPath, "settings.json"))
                 ? LoadLegacySettings()
-                : new ServerSettings();
-            SaveSettings();
-            return;
+                : new();
+
+            if (!copy)
+                SaveSettings(convertedInstance);
+            return convertedInstance;
         }
 
-        LoadSettingsFromFile(path);
-        SaveSettings();
-
-        Utils.SetTraceLogging(Instance.TraceLog);
+        var instance = LoadSettingsFromFile(path);
+        if (!copy)
+            SaveSettings(instance);
+        return instance;
     }
 
     private static ServerSettings LoadLegacySettings()
@@ -253,23 +254,19 @@ public class SettingsProvider : ISettingsProvider
         return result;
     }
 
-    public void LoadSettingsFromFile(string path, bool delete = false)
+    public ServerSettings LoadSettingsFromFile(string path)
     {
         var settings = File.ReadAllText(path);
         settings = SettingsMigrations.MigrateSettings(settings);
         settings = FixNonEmittedDefaults(path, settings);
         try
         {
-            Instance = Deserialize<ServerSettings>(settings);
+            return Deserialize<ServerSettings>(settings);
         }
         catch (Exception e)
         {
             _logger.LogError(e, "An error occurred while loading the settings from file");
-        }
-
-        if (delete)
-        {
-            File.Delete(path);
+            return new();
         }
     }
 
@@ -303,6 +300,9 @@ public class SettingsProvider : ISettingsProvider
             _logger.LogWarning("Tried to save settings, but the settings were null");
             return;
         }
+
+        // Always update the trace logging settings when the settings change.
+        Utils.SetTraceLogging(Instance.TraceLog);
 
         var path = Path.Combine(Utils.ApplicationPath, SettingsFilename);
 

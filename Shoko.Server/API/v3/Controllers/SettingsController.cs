@@ -50,15 +50,12 @@ public class SettingsController : BaseController
             return ValidationProblem("The settings object is invalid.");
         }
 
-        var existingSettings = SettingsProvider.GetSettings();
+        var existingSettings = SettingsProvider.GetSettings(copy: true);
         settings.ApplyTo((ServerSettings)existingSettings, ModelState);
-        if (!skipValidation)
-        {
-            if (!TryValidateModel(existingSettings))
-                return ValidationProblem(ModelState);
-        }
+        if (!skipValidation && !TryValidateModel(existingSettings))
+            return ValidationProblem(ModelState);
 
-        SettingsProvider.SaveSettings();
+        SettingsProvider.SaveSettings(existingSettings);
         return Ok();
     }
 
