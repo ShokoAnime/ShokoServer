@@ -75,7 +75,7 @@ public class Group : BaseModel
         IDs = new GroupIDs { ID = group.AnimeGroupID };
         if (group.DefaultAnimeSeriesID != null)
         {
-            IDs.DefaultSeries = group.DefaultAnimeSeriesID.Value;
+            IDs.PreferredSeries = group.DefaultAnimeSeriesID.Value;
         }
 
         if (mainSeries != null)
@@ -108,11 +108,11 @@ public class Group : BaseModel
     public class GroupIDs : IDs
     {
         /// <summary>
-        /// The ID of the user selected default series, if it has one.
+        /// The ID of the user selected preferred series, if one is set.
         ///
         /// The value of this field will be reflected in <see cref="MainSeries"/> if it is set.
         /// </summary>
-        public int? DefaultSeries { get; set; }
+        public int? PreferredSeries { get; set; }
 
         /// <summary>
         /// The ID of the main series for the group.
@@ -151,9 +151,10 @@ public class Group : BaseModel
             public int? ParentGroupID { get; set; } = null;
 
             /// <summary>
-            /// Manually select the default series for the group.
+            /// Manually select the preferred series for the group. Set to 0 to
+            /// remove the preferred series.
             /// </summary>
-            public int? DefaultSeriesID { get; set; } = null;
+            public int? PreferredSeriesID { get; set; } = null;
 
             /// <summary>
             /// All the series to put into the group.
@@ -219,7 +220,7 @@ public class Group : BaseModel
             {
                 Name = group.GroupName;
                 ParentGroupID = group.AnimeGroupParentID;
-                DefaultSeriesID = group.DefaultAnimeSeriesID;
+                PreferredSeriesID = group.DefaultAnimeSeriesID;
                 SeriesIDs = group.GetSeries().Select(series => series.AnimeSeriesID).ToList();
                 GroupIDs = group.GetChildGroups().Select(group => group.AnimeGroupID).ToList();
             }
@@ -282,14 +283,14 @@ public class Group : BaseModel
                     modelState.AddModelError(nameof(GroupIDs), "Unable to create an empty group without any series or child groups.");
                 }
 
-                // Find the default series among the list of seris.
-                SVR_AnimeSeries? defaultSeries = null;
-                if (DefaultSeriesID.HasValue && DefaultSeriesID.Value != 0)
+                // Find the preferred series among the list of seris.
+                SVR_AnimeSeries? preferredSeries = null;
+                if (PreferredSeriesID.HasValue && PreferredSeriesID.Value != 0)
                 {
-                    defaultSeries = allSeriesList
-                        .FirstOrDefault(series => series.AnimeSeriesID == DefaultSeriesID.Value);
-                    if (defaultSeries == null)
-                        modelState.AddModelError(nameof(DefaultSeriesID), $"Unable to find the default series with id \"{DefaultSeriesID.Value}\" within the newly created group.");
+                    preferredSeries = allSeriesList
+                        .FirstOrDefault(series => series.AnimeSeriesID == PreferredSeriesID.Value);
+                    if (preferredSeries == null)
+                        modelState.AddModelError(nameof(PreferredSeriesID), $"Unable to find the preferred series with id \"{PreferredSeriesID.Value}\" within the group.");
                 }
 
                 // Return now if we encountered any validation errors.
@@ -364,8 +365,8 @@ public class Group : BaseModel
 
                 // Set the main series and maybe update the group
                 // name/description.
-                if (DefaultSeriesID.HasValue)
-                    group.SetMainSeries(defaultSeries);
+                if (PreferredSeriesID.HasValue)
+                    group.SetMainSeries(preferredSeries);
 
                 // Update stats for all groups in the chain.
                 group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true);
