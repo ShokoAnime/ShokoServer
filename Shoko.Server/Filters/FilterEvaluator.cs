@@ -151,7 +151,7 @@ public class FilterEvaluator
             // Fill Series IDs for filters calculated at the group level
             if (!filter.ApplyAtSeriesLevel)
                 result = result.Select(a => new Grouping(a.Key, _series.GetByGroupID(a.Key).Select(ser => ser.AnimeSeriesID)));
-            results.Add(filter, result);
+            lock(results) results[filter] = result;
         });
 
         foreach (var filter in filters.Where(filter => !results.ContainsKey(filter)))
