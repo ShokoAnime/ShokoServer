@@ -359,9 +359,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         var accessType = Options.FileAccessMode;
         try
         {
-            using var fs = File.Open(fileName, FileMode.Open, accessType, FileShare.ReadWrite);
-            var size = fs.Seek(0, SeekOrigin.End);
-            return size;
+            return GetFileSize(fileName, accessType);
         }
         catch (IOException)
         {
@@ -377,7 +375,7 @@ public class RecoveringFileSystemWatcher : IDisposable
                 if (info.IsReadOnly) info.IsReadOnly = false;
 
                 // check to see if it stuck. On linux, we can't just WinAPI hack our way out, so don't recurse in that case, anyway
-                if (!new FileInfo(fileName).IsReadOnly && !Utils.IsRunningOnLinuxOrMac()) return CanAccessFile(fileName, ref e);
+                if (!new FileInfo(fileName).IsReadOnly && !Utils.IsRunningOnLinuxOrMac()) return GetFileSize(fileName, accessType);
             }
             catch
             {
@@ -387,6 +385,13 @@ public class RecoveringFileSystemWatcher : IDisposable
             e = ex;
             return 0;
         }
+    }
+
+    private static long GetFileSize(string fileName, FileAccess accessType)
+    {
+        using var fs = File.Open(fileName, FileMode.Open, accessType, FileShare.ReadWrite);
+        var size = fs.Seek(0, SeekOrigin.End);
+        return size;
     }
 
     //Used to check if file has been modified within the last X seconds.
