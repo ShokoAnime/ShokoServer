@@ -34,7 +34,7 @@ public static class Languages
     {
         get
         {
-            if (_preferredNamingLanguages != null) return _preferredNamingLanguageNames;
+            if (_preferredNamingLanguageNames != null) return _preferredNamingLanguageNames;
             _preferredNamingLanguageNames = PreferredNamingLanguages.Select(a => a.Language).ToList();
             return _preferredNamingLanguageNames;
         }
