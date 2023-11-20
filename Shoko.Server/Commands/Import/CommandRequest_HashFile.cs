@@ -144,11 +144,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         var accessType = writeAccess ? FileAccess.ReadWrite : FileAccess.Read;
         try
         {
-            using (var fs = File.Open(fileName, FileMode.Open, accessType, FileShare.ReadWrite))
-            {
-                var size = fs.Seek(0, SeekOrigin.End);
-                return size;
-            }
+            return GetFileSize(fileName, accessType);
         }
         catch (IOException)
         {
@@ -157,19 +153,16 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         catch (Exception ex)
         {
             // This shouldn't cause a recursion, as it'll throw if failing
-            Logger.LogTrace("File {FileName} is Read-Only, unmarking", fileName);
+            Logger.LogTrace("File {FileName} is Read-Only, attempting to unmark", fileName);
             try
             {
                 var info = new FileInfo(fileName);
-                if (info.IsReadOnly)
-                {
-                    info.IsReadOnly = false;
-                }
+                if (info.IsReadOnly) info.IsReadOnly = false;
 
                 // check to see if it stuck. On linux, we can't just winapi hack our way out, so don't recurse in that case, anyway
                 if (!new FileInfo(fileName).IsReadOnly && !Utils.IsRunningOnLinuxOrMac())
                 {
-                    return CanAccessFile(fileName, writeAccess, ref e);
+                    return GetFileSize(fileName, accessType);
                 }
             }
             catch
@@ -180,6 +173,13 @@ public class CommandRequest_HashFile : CommandRequestImplementation
             e = ex;
             return 0;
         }
+    }
+
+    private static long GetFileSize(string fileName, FileAccess accessType)
+    {
+        using var fs = File.Open(fileName, FileMode.Open, accessType, FileShare.ReadWrite);
+        var size = fs.Seek(0, SeekOrigin.End);
+        return size;
     }
 
     private (bool existing, SVR_VideoLocal, SVR_VideoLocal_Place, SVR_ImportFolder) GetVideoLocal()
