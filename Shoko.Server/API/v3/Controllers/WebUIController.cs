@@ -10,12 +10,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Shoko.Commons.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.WebUI;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -275,6 +277,41 @@ public class WebUIController : BaseController
         }
 
         return new WebUISeriesFileSummary(series, type, includeEpisodeDetails, includeMissingFutureEpisodes, includeMissingUnknownEpisodes, groupBy);
+    }
+
+
+    /// <summary>
+    /// Get the list of file ids to remove according to the file quality
+    /// preference.
+    /// </summary>
+    /// <param name="ignoreVariations">Ignore manually toggled variations in the results.</param>
+    /// <param name="onlyFinishedSeries">Only show finished series.</param>
+    /// <returns></returns>
+    [HttpGet("Episode/WithMultipleFiles/FilesToDelete")]
+    public ActionResult<List<int>> GetFileIdsWithPreference([FromQuery] bool ignoreVariations = true, [FromQuery] bool onlyFinishedSeries = false)
+    {
+        IEnumerable<SVR_AnimeEpisode> enumerable =
+            RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(ignoreVariations);
+        if (onlyFinishedSeries)
+        {
+            var dictSeriesFinishedAiring = RepoFactory.AnimeSeries.GetAll()
+                .ToDictionary(a => a.AnimeSeriesID, a => a.GetAnime().GetFinishedAiring());
+            enumerable = enumerable.Where(episode =>
+                dictSeriesFinishedAiring.TryGetValue(episode.AnimeSeriesID, out var finishedAiring) && finishedAiring);
+        }
+
+        return enumerable
+            .SelectMany(episode =>
+            {
+                var files = episode.GetVideoLocals();
+                files.Sort(FileQualityFilter.CompareTo);
+                return files
+                    .Skip(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
+                    .Where(file => !FileQualityFilter.CheckFileKeep(file))
+                    .Select(file => file.VideoLocalID);
+            })
+            .Distinct()
+            .ToList();
     }
 
     /// <summary>
