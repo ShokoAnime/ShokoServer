@@ -230,10 +230,7 @@ public class File
         {
             ID = anidb.FileID;
             Source = ParseFileSource(anidb.File_Source);
-            ReleaseGroup = new AniDBReleaseGroup
-            {
-                ID = anidb.GroupID, Name = anidb.Anime_GroupName, ShortName = anidb.Anime_GroupNameShort
-            };
+            ReleaseGroup = new ReleaseGroup(anidb.ReleaseGroup);
             ReleaseDate = anidb.File_ReleaseDate == 0
                 ? null
                 : Commons.Utils.AniDB.GetAniDBDateAsDate(anidb.File_ReleaseDate);
@@ -262,7 +259,7 @@ public class File
         /// <summary>
         /// The Release Group. This is usually set, but sometimes is set as "raw/unknown"
         /// </summary>
-        public AniDBReleaseGroup ReleaseGroup { get; set; }
+        public ReleaseGroup ReleaseGroup { get; set; }
 
         /// <summary>
         /// The file's release date. This is probably not filled in
@@ -321,23 +318,6 @@ public class File
         [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime Updated { get; set; }
 
-        public class AniDBReleaseGroup
-        {
-            /// <summary>
-            /// The Release Group's Name (Unlimited Translation Works)
-            /// </summary>
-            public string Name { get; set; }
-
-            /// <summary>
-            /// The Release Group's Name (UTW)
-            /// </summary>
-            public string ShortName { get; set; }
-
-            /// <summary>
-            /// AniDB ID
-            /// </summary>
-            public int ID { get; set; }
-        }
     }
 
     public class CrossReferenceIDs

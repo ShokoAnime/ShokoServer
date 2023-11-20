@@ -33,9 +33,17 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
     [XmlIgnore]
     public List<CrossRef_File_Episode> EpisodeCrossRefs => RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
 
-    public string Anime_GroupName => RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID)?.Name;
-    public string Anime_GroupNameShort => RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID)?.ShortName;
+    // NOTE: I want to cache it, but i won't for now. not until the anidb files and release groups are stored in a non-cached repo.
+    public AniDB_ReleaseGroup ReleaseGroup =>
+        RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID) ?? new()
+        {
+            GroupID = GroupID,
+            GroupName = "",
+            GroupNameShort = "",
+        };
 
+    public string Anime_GroupName => ReleaseGroup?.Name;
+    public string Anime_GroupNameShort => ReleaseGroup?.ShortName;
 
     public string SubtitlesRAW
     {
