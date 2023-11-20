@@ -53,16 +53,24 @@ public class EpisodeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
     /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
+    /// <param name="includeFiles">Include files with the episodes.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="search">An optional search query to filter episodes based on their titles.</param>
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns>A list of episodes based on the specified filters.</returns>
     [HttpGet]
     public ActionResult<ListResult<Episode>> GetAllEpisodes(
-        [FromQuery] [Range(0, 1000)] int pageSize = 20, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False, [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
+        [FromQuery, Range(0, 1000)] int pageSize = 20,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
+        [FromQuery] bool includeFiles = false,
+        [FromQuery] bool includeMediaInfo = false,
+        [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] string search = null, [FromQuery] bool fuzzy = true)
     {
         var user = User;
@@ -147,7 +155,7 @@ public class EpisodeController : BaseController
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom), page, pageSize);
+                .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths), page, pageSize);
         }
 
         return episodes
@@ -155,7 +163,7 @@ public class EpisodeController : BaseController
             .OrderBy(episode => episode.Shoko.AnimeSeriesID)
             .ThenBy(episode => episode.AniDB.EpisodeType)
             .ThenBy(episode => episode.AniDB.EpisodeNumber)
-            .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom), page, pageSize);
+            .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths), page, pageSize);
     }
 
     /// <summary>
@@ -168,7 +176,8 @@ public class EpisodeController : BaseController
     [HttpGet("AniDB")]
     [Authorize("admin")]
     public ActionResult<ListResult<Episode.AniDB>> GetAllAniDBEpisodes(
-        [FromQuery] [Range(0, 1000)] int pageSize = 20, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, Range(0, 1000)] int pageSize = 20,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null)
     {
         var user = User;
@@ -218,7 +227,8 @@ public class EpisodeController : BaseController
     /// <returns></returns>
     [HttpGet("TvDB")]
     public ActionResult<ListResult<Episode.TvDB>> GetAllTvDBEpisodes(
-        [FromQuery] [Range(0, 1000)] int pageSize = 20, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+        [FromQuery, Range(0, 1000)] int pageSize = 20,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         var user = User;
         var isAdmin = user.IsAdmin == 1;
@@ -271,10 +281,17 @@ public class EpisodeController : BaseController
     /// Get the <see cref="Episode"/> entry for the given <paramref name="episodeID"/>.
     /// </summary>
     /// <param name="episodeID">Shoko ID</param>
+    /// <param name="includeFiles">Include files with the episodes.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("{episodeID}")]
-    public ActionResult<Episode> GetEpisodeByEpisodeID([FromRoute] int episodeID,
+    public ActionResult<Episode> GetEpisodeByEpisodeID(
+        [FromRoute] int episodeID,
+        [FromQuery] bool includeFiles = false,
+        [FromQuery] bool includeMediaInfo = false,
+        [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
@@ -283,7 +300,7 @@ public class EpisodeController : BaseController
             return NotFound(EpisodeNotFoundWithEpisodeID);
         }
 
-        return new Episode(HttpContext, episode, includeDataFrom);
+        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths);
     }
 
     /// <summary>
@@ -359,10 +376,17 @@ public class EpisodeController : BaseController
     /// Get the <see cref="Episode"/> entry for the given <paramref name="anidbEpisodeID"/>, if any.
     /// </summary>
     /// <param name="anidbEpisodeID">AniDB Episode ID</param>
+    /// <param name="includeFiles">Include files with the episodes.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbEpisodeID}/Episode")]
-    public ActionResult<Episode> GetEpisode([FromRoute] int anidbEpisodeID,
+    public ActionResult<Episode> GetEpisode(
+        [FromRoute] int anidbEpisodeID,
+        [FromQuery] bool includeFiles = false,
+        [FromQuery] bool includeMediaInfo = false,
+        [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var anidb = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID);
@@ -377,7 +401,7 @@ public class EpisodeController : BaseController
             return NotFound(EpisodeNotFoundForAnidbEpisodeID);
         }
 
-        return new Episode(HttpContext, episode, includeDataFrom);
+        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths);
     }
 
     /// <summary>
@@ -443,15 +467,25 @@ public class EpisodeController : BaseController
     /// <summary>
     /// Get episodes with multiple files attached.
     /// </summary>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeFiles">Include files with the episodes.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="ignoreVariations">Ignore manually toggled variations in the results.</param>
     /// <param name="onlyFinishedSeries">Only show finished series.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <returns></returns>
     [HttpGet("WithMultipleFiles")]
-    public ActionResult<ListResult<Episode>> GetSoftDuplicatesForEpisode([FromQuery] bool ignoreVariations = true,
-        [FromQuery] bool onlyFinishedSeries = false, [FromQuery] [Range(0, 1000)] int pageSize = 100,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+    public ActionResult<ListResult<Episode>> GetSoftDuplicatesForEpisode(
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery] bool includeFiles = true,
+        [FromQuery] bool includeMediaInfo = true,
+        [FromQuery] bool includeAbsolutePaths = false,
+        [FromQuery] bool ignoreVariations = true,
+        [FromQuery] bool onlyFinishedSeries = false,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         IEnumerable<SVR_AnimeEpisode> enumerable =
             RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(ignoreVariations);
@@ -464,7 +498,7 @@ public class EpisodeController : BaseController
         }
 
         return enumerable
-            .ToListResult(episode => new Episode(HttpContext, episode), page, pageSize);
+            .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths), page, pageSize);
     }
 
     /// <summary>
@@ -476,9 +510,11 @@ public class EpisodeController : BaseController
     /// <param name="page">Page number.</param>
     /// <returns></returns>
     [HttpGet("WithNoFiles")]
-    public ActionResult<ListResult<Episode>> GetMissingEpisodes([FromQuery] bool includeSpecials = false,
-        [FromQuery] bool onlyFinishedSeries = false, [FromQuery] [Range(0, 1000)] int pageSize = 100,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1)
+    public ActionResult<ListResult<Episode>> GetMissingEpisodes(
+        [FromQuery] bool includeSpecials = false,
+        [FromQuery] bool onlyFinishedSeries = false,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetEpisodesWithNoFiles(includeSpecials);
         if (onlyFinishedSeries)

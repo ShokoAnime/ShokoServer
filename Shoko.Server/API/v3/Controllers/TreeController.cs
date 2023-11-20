@@ -553,16 +553,24 @@ public class TreeController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
     /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
+    /// <param name="includeFiles">Include files with the episodes.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="search">An optional search query to filter episodes based on their titles.</param>
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns>A list of episodes based on the specified filters.</returns>
     [HttpGet("Series/{seriesID}/Episode")]
     public ActionResult<ListResult<Episode>> GetEpisodes([FromRoute] int seriesID,
-        [FromQuery] [Range(0, 1000)] int pageSize = 20, [FromQuery] [Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False, [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
+        [FromQuery, Range(0, 1000)] int pageSize = 20,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
+        [FromQuery] bool includeFiles = false,
+        [FromQuery] bool includeMediaInfo = false,
+        [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] string search = null, [FromQuery] bool fuzzy = true)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -650,14 +658,14 @@ public class TreeController : BaseController
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom), page, pageSize);
+                .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths), page, pageSize);
         }
 
         return episodes
             // Order the episodes since we're not using the search ordering.
             .OrderBy(episode => episode.AniDB.EpisodeType)
             .ThenBy(episode => episode.AniDB.EpisodeNumber)
-            .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom), page, pageSize);
+            .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths), page, pageSize);
     }
 
     /// <summary>
@@ -782,7 +790,6 @@ public class TreeController : BaseController
             .ThenBy(episode => episode.AniDB.EpisodeNumber)
             .ToListResult(a => new Episode.AniDB(a.AniDB), page, pageSize);
     }
-    
 
     /// <summary>
     /// Get the next <see cref="Episode"/> for the <see cref="Series"/> with <paramref name="seriesID"/>.
@@ -797,13 +804,22 @@ public class TreeController : BaseController
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeRewatching">Include already watched episodes in the
     /// search if we determine the user is "re-watching" the series.</param>
+    /// <param name="includeFiles">Include files with the episodes.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/NextUpEpisode")]
     public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute] int seriesID,
-        [FromQuery] bool onlyUnwatched = true, [FromQuery] bool includeSpecials = true,
-        [FromQuery] bool includeMissing = true, [FromQuery] bool includeHidden = false,
-        [FromQuery] bool includeRewatching = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery] bool onlyUnwatched = true,
+        [FromQuery] bool includeSpecials = true,
+        [FromQuery] bool includeMissing = true,
+        [FromQuery] bool includeHidden = false,
+        [FromQuery] bool includeRewatching = false,
+        [FromQuery] bool includeFiles = false,
+        [FromQuery] bool includeMediaInfo = false,
+        [FromQuery] bool includeAbsolutePaths = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var user = User;
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -830,7 +846,7 @@ public class TreeController : BaseController
             return null;
         }
 
-        return new Episode(HttpContext, episode, includeDataFrom);
+        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths);
     }
 
     /// <summary>

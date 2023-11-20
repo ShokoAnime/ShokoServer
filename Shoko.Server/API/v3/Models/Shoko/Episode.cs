@@ -74,9 +74,15 @@ public class Episode : BaseModel
     [JsonProperty("TvDB", NullValueHandling = NullValueHandling.Ignore)]
     public IEnumerable<TvDB> _TvDB { get; set; }
 
+    /// <summary>
+    /// Files assosiated with the episode, if included with the metadata.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IEnumerable<File> Files { get; set; }
+
     public Episode() { }
 
-    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource> includeDataFrom = null)
+    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource> includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
     {
         var userID = context.GetUser()?.JMMUserID ?? 0;
         var episodeUserRecord = episode.GetUserRecord(userID);
@@ -103,9 +109,11 @@ public class Episode : BaseModel
         Size = files.Count;
 
         if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
-            this._AniDB = new Episode.AniDB(anidbEpisode);
+            _AniDB = new Episode.AniDB(anidbEpisode);
         if (includeDataFrom?.Contains(DataSource.TvDB) ?? false)
-            this._TvDB = tvdbEpisodes.Select(tvdbEpisode => new TvDB(tvdbEpisode));
+            _TvDB = tvdbEpisodes.Select(tvdbEpisode => new TvDB(tvdbEpisode));
+        if (includeFiles)
+            Files = files.Select(f => new File(context, f, false, includeDataFrom, includeMediaInfo, includeAbsolutePaths));
     }
 
     internal static string GetEpisodeTitle(int anidbEpisodeID)

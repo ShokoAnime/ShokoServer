@@ -171,10 +171,17 @@ public class ReverseTreeController : BaseController
     /// Get the <see cref="Episode"/>s for the <see cref="File"/> with the given <paramref name="fileID"/>.
     /// </summary>
     /// <param name="fileID"><see cref="File"/> ID</param>
+    /// <param name="includeFiles">Include files with the episodes.</param>
+    /// <param name="includeMediaInfo">Include media info data.</param>
+    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("File/{fileID}/Episode")]
-    public ActionResult<List<Episode>> GetEpisodeFromFile([FromRoute] int fileID,
+    public ActionResult<List<Episode>> GetEpisodeFromFile(
+        [FromRoute] int fileID,
+        [FromQuery] bool includeFiles = false,
+        [FromQuery] bool includeMediaInfo = false,
+        [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
@@ -190,7 +197,7 @@ public class ReverseTreeController : BaseController
         }
 
         return episodes
-            .Select(a => new Episode(HttpContext, a, includeDataFrom))
+            .Select(a => new Episode(HttpContext, a, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths))
             .ToList();
     }
 

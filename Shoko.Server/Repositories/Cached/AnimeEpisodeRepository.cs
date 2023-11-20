@@ -89,19 +89,18 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
             .ToList();
     }
 
+    private const string IgnoreVariationsQuery =
+        @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
+    private const string CountVariationsQuery =
+        @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
+
     public List<SVR_AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
     {
         var ids = Lock(() =>
         {
-            const string ignoreVariationsQuery =
-                @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
-            const string countVariationsQuery =
-                @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
-
+            var query = ignoreVariations ? IgnoreVariationsQuery : CountVariationsQuery;
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return ignoreVariations
-                ? session.CreateSQLQuery(ignoreVariationsQuery).List<object>().Select(Convert.ToInt32)
-                : session.CreateSQLQuery(countVariationsQuery).List<object>().Select(Convert.ToInt32);
+            return session.CreateSQLQuery(query).List<object>().Select(Convert.ToInt32);
         });
 
         return ids.Select(GetByAniDBEpisodeID).Where(a => a != null).ToList();
