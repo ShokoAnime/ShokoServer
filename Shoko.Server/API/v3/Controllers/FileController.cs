@@ -280,6 +280,48 @@ public class FileController : BaseController
     }
 
     /// <summary>
+    /// Batch delete files using file ids.
+    /// </summary>
+    /// <param name="body">The body containing the file ids to delete.</param>
+    /// <returns></returns>
+    [HttpDelete]
+    public ActionResult DeleteFiles([FromBody] File.Input.BatchDeleteBody body = null)
+    {
+        if (body == null)
+            return ValidationProblem("Missing Body.");
+
+        if (body.fileIDs.Length == 0)
+            ModelState.AddModelError("fileIds", "Missing file ids.");
+
+        var files = body.fileIDs
+            .Select(fileId =>
+            {
+                var file = RepoFactory.VideoLocal.GetByID(fileId);
+                if (file == null)
+                    ModelState.AddModelError("fileIds", $"Unable to find a file with id {fileId}");
+                return file;
+            })
+            .OfType<SVR_VideoLocal>()
+            .ToList();
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        foreach (var file in files)
+        {
+            foreach (var place in file.Places)
+            {
+                if (body.removeFiles)
+                    place.RemoveRecordAndDeletePhysicalFile(body.removeFolders);
+                else
+                    place.RemoveRecord();
+            }
+        }
+
+        return Ok();
+    }
+
+    /// <summary>
     /// Get File Details
     /// </summary>
     /// <param name="fileID">Shoko VideoLocalID</param>

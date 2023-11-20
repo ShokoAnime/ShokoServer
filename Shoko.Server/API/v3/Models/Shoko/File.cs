@@ -560,6 +560,30 @@ public class File
             [Required]
             public int[] fileIDs { get; set; }
         }
+
+        public class BatchDeleteBody
+        {
+            /// <summary>
+            /// An array of file identifiers to unlink in batch.
+            /// </summary>
+            /// <value></value>
+            [Required]
+            public int[] fileIDs { get; set; }
+
+            /// <summary>
+            /// Remove all physical file locations and not just the file record.
+            /// </summary>
+            [DefaultValue(true)]
+            public bool removeFiles = true;
+
+            /// <summary>
+            /// This causes the empty folder removal to skipped if set to false.
+            /// This significantly speeds up batch deleting if you are deleting
+            /// many files in the same folder. It may be specified in the query.
+            /// </summary>
+            [DefaultValue(true)]
+            public bool removeFolders = true;
+        }
     }
 
     public enum FileSortCriteria
