@@ -250,7 +250,7 @@ public static class ModelHelper
                     {
                         sizes.Local.Episodes++;
                     }
-                    else if (!episode.IsHidden && airDate.HasValue && airDate.Value < now)
+                    else if (airDate.HasValue && airDate.Value < now)
                     {
                         sizes.Missing.Episodes++;
                     }
@@ -280,7 +280,7 @@ public static class ModelHelper
                     {
                         sizes.Local.Specials++;
                     }
-                    else if (!episode.IsHidden && airDate.HasValue && airDate.Value < now)
+                    else if (airDate.HasValue && airDate.Value < now)
                     {
                         sizes.Missing.Specials++;
                     }
