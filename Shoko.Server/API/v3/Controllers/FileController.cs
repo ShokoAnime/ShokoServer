@@ -509,7 +509,7 @@ public class FileController : BaseController
             return scrobbleFile;
         }
 
-        var physicalFile = PhysicalFile(fileInfo.FullName, contentType);
+        var physicalFile = PhysicalFile(fileInfo.FullName, contentType, enableRangeProcessing: true);
         physicalFile.FileDownloadName = filename ?? fileInfo.Name;
         return physicalFile;
     }
@@ -1463,7 +1463,7 @@ public class FileController : BaseController
     /// <returns></returns>
     [Obsolete("Use the universal file endpoint instead.")]
     [HttpGet("Linked")]
-    public ActionResult<ListResult<File>> GetManuellyLinkedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
+    public ActionResult<ListResult<File>> GetManuallyLinkedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
     {
         return RepoFactory.VideoLocal.GetManuallyLinkedVideos()
             .ToListResult(file => new File(HttpContext, file, includeXRefs), page, pageSize);
