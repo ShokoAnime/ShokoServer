@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 
@@ -19,10 +22,13 @@ public class WebUIFactory
     public Models.Shoko.WebUI.WebUISeriesExtra GetWebUISeriesExtra(SVR_AnimeSeries series)
     {
         var anime = series.GetAnime();
+        var animeEpisodes = anime.GetAniDBEpisodes();
+        var runtimeLength = GuessCorrectRuntimeLength(animeEpisodes);
         var cast = _seriesFactory.GetCast(anime.AnimeID, new () { Role.CreatorRoleType.Studio, Role.CreatorRoleType.Producer });
 
         var result = new Models.Shoko.WebUI.WebUISeriesExtra
         {
+            RuntimeLength = runtimeLength,
             FirstAirSeason = _filterFactory.GetFirstAiringSeasonGroupFilter(anime),
             Studios = cast.Where(role => role.RoleName == Role.CreatorRoleType.Studio).Select(role => role.Staff).ToList(),
             Producers = cast.Where(role => role.RoleName == Role.CreatorRoleType.Producer).Select(role => role.Staff).ToList(),
@@ -30,7 +36,29 @@ public class WebUIFactory
         };
         return result;
     }
-    
+
+    private static TimeSpan? GuessCorrectRuntimeLength(IReadOnlyList<AniDB_Episode> episodes)
+    {
+        // Return early if empty.
+        if (episodes == null || episodes.Count == 0)
+            return null;
+
+        // Filter the list and return if empty.
+        episodes = episodes
+            .Where(episode => episode.EpisodeType == (int)EpisodeType.Episode)
+            .ToList();
+        if (episodes.Count == 0)
+            return null;
+
+        // Get the runtime length of the only episode.
+        if (episodes.Count == 1)
+            return TimeSpan.FromSeconds(episodes[0].LengthSeconds);
+
+        // Get the runtime length of the episode in the middle of the stack.
+        var index = (int)Math.Round(episodes.Count / 2d);
+        return TimeSpan.FromSeconds(episodes[index].LengthSeconds);
+    }
+
     public Models.Shoko.WebUI.WebUIGroupExtra GetWebUIGroupExtra(SVR_AnimeGroup group, SVR_AnimeSeries series, SVR_AniDB_Anime anime,
         TagFilter.Filter filter = TagFilter.Filter.None, bool orderByName = false, int tagLimit = 30)
     {

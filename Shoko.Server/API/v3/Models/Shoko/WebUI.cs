@@ -134,6 +134,12 @@ public class WebUI
     public class WebUISeriesExtra
     {
         /// <summary>
+        /// Common runtime length for the episodes, if the series have any
+        /// episodes.
+        /// </summary>
+        public TimeSpan? RuntimeLength { get; set; }
+
+        /// <summary>
         /// The first season this show was aired in.
         /// </summary>
         /// <value></value>
