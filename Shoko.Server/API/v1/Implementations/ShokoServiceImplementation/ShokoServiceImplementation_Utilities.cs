@@ -1239,7 +1239,7 @@ public partial class ShokoServiceImplementation
                 }
             }
 
-            foreach (var ep in RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(ignoreVariations))
+            foreach (var ep in RepoFactory.AnimeEpisode.GetWithSoftDuplicates(ignoreVariations))
             {
                 if (onlyFinishedSeries)
                 {

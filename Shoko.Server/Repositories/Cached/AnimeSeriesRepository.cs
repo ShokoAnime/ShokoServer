@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Properties;
@@ -323,5 +324,29 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             ? Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList()
             : Cache.Values.Where(a => user.AllowedSeries(a)).OrderByDescending(a => a.DateTimeCreated).Take(maxResults)
                 .ToList());
+    }
+
+    private const string IgnoreVariationsQuery =
+        @"SELECT ani.AnimeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
+    private const string CountVariationsQuery =
+        @"SELECT ani.AnimeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
+
+    public List<SVR_AnimeSeries> GetWithSoftDuplicates(bool ignoreVariations)
+    {
+        var ids = Lock(() =>
+        {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+
+            var query = ignoreVariations ? IgnoreVariationsQuery : CountVariationsQuery;
+            return session.CreateSQLQuery(query)
+                .AddScalar("AnimeID", NHibernateUtil.Int32)
+                .List<int>();
+        });
+
+        return ids
+            .Distinct()
+            .Select(GetByAnimeID)
+            .Where(a => a != null)
+            .ToList();
     }
 }

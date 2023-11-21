@@ -284,14 +284,44 @@ public class WebUIController : BaseController
     /// Get the list of file ids to remove according to the file quality
     /// preference.
     /// </summary>
+    /// <param name="seriesID">Shoko Series ID</param>
+    /// <param name="animeID">AniDB Anime ID</param>
     /// <param name="ignoreVariations">Ignore manually toggled variations in the results.</param>
     /// <param name="onlyFinishedSeries">Only show finished series.</param>
     /// <returns></returns>
-    [HttpGet("Episode/WithMultipleFiles/FilesToDelete")]
-    public ActionResult<List<int>> GetFileIdsWithPreference([FromQuery] bool ignoreVariations = true, [FromQuery] bool onlyFinishedSeries = false)
+    [HttpGet("Episode/WithSoftDuplicates/FilesToDelete")]
+    public ActionResult<List<int>> GetFileIdsWithPreference(
+        [FromQuery] int? seriesID = null,
+        [FromQuery] int? animeID = null,
+        [FromQuery] bool ignoreVariations = true,
+        [FromQuery] bool onlyFinishedSeries = false
+    )
     {
-        IEnumerable<SVR_AnimeEpisode> enumerable =
-            RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(ignoreVariations);
+        if (seriesID.HasValue && !animeID.HasValue && seriesID.Value > 0)
+        {
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID.Value);
+            if (series == null)
+                return new List<int>();
+
+            if (!User.AllowedSeries(series))
+                return new List<int>();
+            animeID = series.AniDB_ID;
+        }
+        else if (animeID.HasValue && animeID.Value > 0)
+        {
+            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID.Value);
+            if (anime == null)
+                return new List<int>();
+
+            if (!User.AllowedAnime(anime))
+                return new List<int>();
+        }
+        else if (animeID.HasValue && animeID.Value == 0)
+        {
+            animeID = null;
+        }
+
+        IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetWithSoftDuplicates(ignoreVariations, animeID);
         if (onlyFinishedSeries)
         {
             var dictSeriesFinishedAiring = RepoFactory.AnimeSeries.GetAll()

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using NHibernate;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
@@ -89,21 +90,39 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
             .ToList();
     }
 
+    private const string IgnoreVariationsWithAnimeQuery =
+        @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE ani.AnimeID == :animeID AND vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
+    private const string CountVariationsAithAnimeQuery =
+        @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE ani.AnimeID == :animeID AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
     private const string IgnoreVariationsQuery =
         @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
     private const string CountVariationsQuery =
         @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
 
-    public List<SVR_AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
+    public List<SVR_AnimeEpisode> GetWithSoftDuplicates(bool ignoreVariations, int? animeID = null)
     {
         var ids = Lock(() =>
         {
-            var query = ignoreVariations ? IgnoreVariationsQuery : CountVariationsQuery;
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return session.CreateSQLQuery(query).List<object>().Select(Convert.ToInt32);
+            if (animeID.HasValue && animeID.Value > 0)
+            {
+                var animeQuery = ignoreVariations ? IgnoreVariationsWithAnimeQuery : CountVariationsAithAnimeQuery;
+                return session.CreateSQLQuery(animeQuery)
+                    .AddScalar("EpisodeID", NHibernateUtil.Int32)
+                    .SetParameter("animeID", animeID.Value)
+                    .List<int>();
+            }
+
+            var query = ignoreVariations ? IgnoreVariationsQuery : CountVariationsQuery;
+            return session.CreateSQLQuery(query)
+                .AddScalar("EpisodeID", NHibernateUtil.Int32)
+                .List<int>();
         });
 
-        return ids.Select(GetByAniDBEpisodeID).Where(a => a != null).ToList();
+        return ids
+            .Select(GetByAniDBEpisodeID)
+            .Where(a => a != null)
+            .ToList();
     }
 
     public List<SVR_AnimeEpisode> GetUnwatchedEpisodes(int seriesid, int userid)

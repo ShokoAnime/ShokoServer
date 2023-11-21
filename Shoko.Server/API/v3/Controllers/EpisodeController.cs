@@ -467,6 +467,8 @@ public class EpisodeController : BaseController
     /// <summary>
     /// Get episodes with multiple files attached.
     /// </summary>
+    /// <param name="seriesID">Shoko Series ID</param>
+    /// <param name="animeID">AniDB Anime ID</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="includeFiles">Include files with the episodes.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
@@ -476,8 +478,10 @@ public class EpisodeController : BaseController
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <returns></returns>
-    [HttpGet("WithMultipleFiles")]
+    [HttpGet("WithSoftDuplicates")]
     public ActionResult<ListResult<Episode>> GetSoftDuplicatesForEpisode(
+        [FromQuery] int? seriesID = null,
+        [FromQuery] int? animeID = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool includeFiles = true,
         [FromQuery] bool includeMediaInfo = true,
@@ -487,8 +491,32 @@ public class EpisodeController : BaseController
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
+        if (seriesID.HasValue && !animeID.HasValue && seriesID.Value > 0)
+        {
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID.Value);
+            if (series == null)
+                return new ListResult<Episode>();
+
+            if (!User.AllowedSeries(series))
+                return new ListResult<Episode>();
+            animeID = series.AniDB_ID;
+        }
+        else if (animeID.HasValue && animeID.Value > 0)
+        {
+            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID.Value);
+            if (anime == null)
+                return new ListResult<Episode>();
+
+            if (!User.AllowedAnime(anime))
+                return new ListResult<Episode>();
+        }
+        else if (animeID.HasValue && animeID.Value == 0)
+        {
+            animeID = null;
+        }
+
         IEnumerable<SVR_AnimeEpisode> enumerable =
-            RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(ignoreVariations);
+            RepoFactory.AnimeEpisode.GetWithSoftDuplicates(ignoreVariations, animeID);
         if (onlyFinishedSeries)
         {
             var dictSeriesFinishedAiring = RepoFactory.AnimeSeries.GetAll()

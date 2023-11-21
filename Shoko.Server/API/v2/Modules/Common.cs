@@ -902,7 +902,7 @@ public class Common : BaseController
         var results = new Dictionary<int, Serie>();
         try
         {
-            var list = RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(true).ToList();
+            var list = RepoFactory.AnimeEpisode.GetWithSoftDuplicates(true).ToList();
             foreach (var ep in list)
             {
                 var series = ep?.GetAnimeSeries();
