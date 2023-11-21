@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -12,6 +14,7 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Commands;
@@ -26,6 +29,7 @@ using Path = System.IO.Path;
 using MediaInfo = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 using Shoko.Server.Utilities;
+using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -472,15 +476,21 @@ public class FileController : BaseController
     /// Returns a file stream for the specified file ID.
     /// </summary>
     /// <param name="fileID">Shoko ID</param>
+    /// <param name="filename">Can use this to select a specific place (if the name is different). This is mostly used as a hint for players</param>
+    /// <param name="streamPositionScrobbling">If this is enabled, then the file is marked as watched when the stream reaches the end.
+    /// This is not a good way to scrobble, but it allows for players without plugin support to have an option to scrobble.
+    /// The readahead buffer on the player would determine the required percentage to scrobble.</param>
     /// <returns>A file stream for the specified file.</returns>
     [HttpGet("{fileID}/Stream")]
-    public ActionResult GetFileStream([FromRoute] int fileID)
+    [HttpGet("{fileID}/StreamDirectory/{filename}")]
+    public ActionResult GetFileStream([FromRoute] int fileID, [FromRoute] string filename = null, [FromQuery] bool streamPositionScrobbling = false)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var bestLocation = file.GetBestVideoLocalPlace();
+        var bestLocation = file.Places.FirstOrDefault(a => a.FileName.Equals(filename));
+        bestLocation ??= file.GetBestVideoLocalPlace();
 
         var fileInfo = bestLocation.GetFile();
         if (fileInfo == null)
@@ -490,7 +500,63 @@ public class FileController : BaseController
         if (!provider.TryGetContentType(fileInfo.FullName, out var contentType))
             contentType = "application/octet-stream";
 
-        return PhysicalFile(fileInfo.FullName, contentType, enableRangeProcessing: true);
+        if (streamPositionScrobbling)
+        {
+            var scrobbleFile = new ScrobblingFileResult(file, User.JMMUserID, fileInfo.FullName, contentType)
+            {
+                FileDownloadName = filename ?? fileInfo.Name
+            };
+            return scrobbleFile;
+        }
+
+        var physicalFile = PhysicalFile(fileInfo.FullName, contentType);
+        physicalFile.FileDownloadName = filename ?? fileInfo.Name;
+        return physicalFile;
+    }
+
+    /// <summary>
+    /// Returns the external subtitles for a file
+    /// </summary>
+    /// <param name="fileID">Shoko ID</param>
+    /// <returns>A file stream for the specified file.</returns>
+    [HttpGet("{fileID}/StreamDirectory/")]
+    public ActionResult GetFileStreamDirectory([FromRoute] int fileID)
+    {
+        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        var routeTemplate = Request.Scheme + "://" + Request.Host + "/api/v3/File/" + fileID + "/StreamDirectory/ExternalSub/";
+        return new ObjectResult("<table>" + string.Join(string.Empty,
+            file.Media.TextStreams.Where(a => a.External).Select(a => $"<tr><td><a href=\"{routeTemplate + a.Filename}\"/></td></tr>")) + "</table>");
+    }
+
+    /// <summary>
+    /// Gets an external subtitle file
+    /// </summary>
+    /// <param name="fileID"></param>
+    /// <param name="filename"></param>
+    /// <returns></returns>
+    [HttpGet("{fileID}/StreamDirectory/ExternalSub/{filename}")]
+    public ActionResult GetExternalSubtitle([FromRoute] int fileID, [FromRoute] string filename)
+    {
+        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        
+        foreach (var place in file.Places)
+        {
+            var path = place.GetFile()?.Directory?.FullName;
+            if (path == null) continue;
+            path = Path.Combine(path, filename);
+            var subFile = new FileInfo(path);
+            if (!subFile.Exists) continue;
+
+            return PhysicalFile(subFile.FullName, "application/octet-stream");
+        }
+
+        return NotFound();
     }
 
     /// <summary>
