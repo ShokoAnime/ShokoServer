@@ -481,6 +481,17 @@ public class SeriesSearchResult : Series
     public string Match { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// An extended model for use with the soft duplicate endpoint.
+/// </summary>
+public class SeriesWithDuplicatesResult : Series
+{
+    /// <summary>
+    /// Number of episodes in the series which have soft duplicates.
+    /// </summary>
+    public int EpisodesWithSoftDuplicates { get; set; }
+}
+
 public enum SeriesType
 {
     /// <summary>

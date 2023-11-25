@@ -866,4 +866,30 @@ public class SeriesFactory
         };
         return searchResult;
     }
+
+    public SeriesWithDuplicatesResult GetSeriesWithDuplicatesResult(
+        SVR_AnimeSeries animeSeries,
+        bool randomiseImages = false,
+        HashSet<DataSource> includeDataFrom = null,
+        bool ignoreVariations = true)
+    {
+        var series = GetSeries(animeSeries, randomiseImages, includeDataFrom);
+        var episodesWithSoftDuplicates = RepoFactory.AnimeEpisode.GetWithSoftDuplicates(ignoreVariations, animeSeries.AniDB_ID).Count;
+        return new()
+        {
+            Name = series.Name,
+            IDs = series.IDs,
+            Size = series.Size,
+            Sizes = series.Sizes,
+            Created = series.Created,
+            Updated = series.Updated,
+            AirsOn = series.AirsOn,
+            UserRating = series.UserRating,
+            Images = series.Images,
+            Links = series.Links,
+            _AniDB = series._AniDB,
+            _TvDB = series._TvDB,
+            EpisodesWithSoftDuplicates = episodesWithSoftDuplicates,
+        };
+    }
 }

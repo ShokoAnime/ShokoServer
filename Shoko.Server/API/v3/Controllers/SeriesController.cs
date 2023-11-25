@@ -2110,7 +2110,7 @@ public class SeriesController : BaseController
     /// <param name="page">Page number.</param>
     /// <returns></returns>
     [HttpGet("WithSoftDuplicates")]
-    public ActionResult<ListResult<Series>> GetSeriesWithSoftDuplicates(
+    public ActionResult<ListResult<SeriesWithDuplicatesResult>> GetSeriesWithSoftDuplicates(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool ignoreVariations = true,
         [FromQuery] bool onlyFinishedSeries = false,
@@ -2127,7 +2127,9 @@ public class SeriesController : BaseController
         }
 
         return enumerable
-            .ToListResult(series => _seriesFactory.GetSeries(series, false, includeDataFrom), page, pageSize);
+            .OrderBy(series => series.GetSeriesName())
+            .ThenBy(series => series.AniDB_ID)
+            .ToListResult(series => _seriesFactory.GetSeriesWithDuplicatesResult(series, false, includeDataFrom, ignoreVariations), page, pageSize);
     }
 
     #endregion
