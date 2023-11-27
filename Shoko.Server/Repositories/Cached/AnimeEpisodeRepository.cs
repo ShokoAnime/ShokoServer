@@ -91,9 +91,9 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
     }
 
     private const string IgnoreVariationsWithAnimeQuery =
-        @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE ani.AnimeID == :animeID AND vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
-    private const string CountVariationsAithAnimeQuery =
-        @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE ani.AnimeID == :animeID AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
+        @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE ani.AnimeID = :animeID AND vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
+    private const string CountVariationsWithAnimeQuery =
+        @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE ani.AnimeID = :animeID AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
     private const string IgnoreVariationsQuery =
         @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
     private const string CountVariationsQuery =
@@ -106,7 +106,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             if (animeID.HasValue && animeID.Value > 0)
             {
-                var animeQuery = ignoreVariations ? IgnoreVariationsWithAnimeQuery : CountVariationsAithAnimeQuery;
+                var animeQuery = ignoreVariations ? IgnoreVariationsWithAnimeQuery : CountVariationsWithAnimeQuery;
                 return session.CreateSQLQuery(animeQuery)
                     .AddScalar("EpisodeID", NHibernateUtil.Int32)
                     .SetParameter("animeID", animeID.Value)
