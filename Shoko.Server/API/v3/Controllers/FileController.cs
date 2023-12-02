@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -305,7 +304,7 @@ public class FileController : BaseController
                     ModelState.AddModelError("fileIds", $"Unable to find a file with id {fileId}");
                 return file;
             })
-            .OfType<SVR_VideoLocal>()
+            .Where(a => a != null)
             .ToList();
 
         if (!ModelState.IsValid)
@@ -481,6 +480,7 @@ public class FileController : BaseController
     /// This is not a good way to scrobble, but it allows for players without plugin support to have an option to scrobble.
     /// The readahead buffer on the player would determine the required percentage to scrobble.</param>
     /// <returns>A file stream for the specified file.</returns>
+    [AllowAnonymous]
     [HttpGet("{fileID}/Stream")]
     [HttpGet("{fileID}/StreamDirectory/{filename}")]
     public ActionResult GetFileStream([FromRoute] int fileID, [FromRoute] string filename = null, [FromQuery] bool streamPositionScrobbling = false)
@@ -519,6 +519,7 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="fileID">Shoko ID</param>
     /// <returns>A file stream for the specified file.</returns>
+    [AllowAnonymous]
     [HttpGet("{fileID}/StreamDirectory/")]
     public ActionResult GetFileStreamDirectory([FromRoute] int fileID)
     {
@@ -537,6 +538,7 @@ public class FileController : BaseController
     /// <param name="fileID"></param>
     /// <param name="filename"></param>
     /// <returns></returns>
+    [AllowAnonymous]
     [HttpGet("{fileID}/StreamDirectory/ExternalSub/{filename}")]
     public ActionResult GetExternalSubtitle([FromRoute] int fileID, [FromRoute] string filename)
     {
@@ -571,7 +573,7 @@ public class FileController : BaseController
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var mediaContainer = file?.Media;
+        var mediaContainer = file.Media;
         if (mediaContainer == null)
             return InternalError("Unable to find media container for File");
 
@@ -710,8 +712,8 @@ public class FileController : BaseController
         if (User.IsTraktUser == 0)
             return;
 
-        float percentage = 100 * (position / file.Duration);
-        ScrobblePlayingType scrobbleType = episode.GetAnimeSeries()?.GetAnime()?.AnimeType == (int)AnimeType.Movie
+        var percentage = 100 * ((float)position / file.Duration);
+        var scrobbleType = episode.GetAnimeSeries()?.GetAnime()?.AnimeType == (int)AnimeType.Movie
             ? ScrobblePlayingType.movie
             : ScrobblePlayingType.episode;
 
@@ -723,7 +725,7 @@ public class FileController : BaseController
     {
         if (!(watched ?? false) && resumePosition != null)
         {
-            var safeRP = resumePosition ?? 0;
+            var safeRP = resumePosition.Value;
             if (safeRP < 0) safeRP = 0;
 
             if (safeRP >= file.Duration)
@@ -734,7 +736,7 @@ public class FileController : BaseController
 
         if (watched != null)
         {
-            var safeWatched = watched ?? false;
+            var safeWatched = watched.Value;
             file.ToggleWatchedStatus(safeWatched, User.JMMUserID);
             if (safeWatched)
                 file.SetResumePosition(0, User.JMMUserID);
@@ -938,11 +940,11 @@ public class FileController : BaseController
         if (series == null)
             ModelState.AddModelError(nameof(body.SeriesID), $"Unable to find series with id {body.SeriesID}.");
 
-        var (rangeStart, startType, startErrorMessage) = Helpers.ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeStart);
+        var (rangeStart, startType, startErrorMessage) = ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeStart);
         if (!string.IsNullOrEmpty(startErrorMessage))
             ModelState.AddModelError(nameof(body.RangeStart), string.Format(startErrorMessage, nameof(body.RangeStart)));
 
-        var (rangeEnd, endType, endErrorMessage) = Helpers.ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeEnd);
+        var (rangeEnd, endType, endErrorMessage) = ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeEnd);
         if (!string.IsNullOrEmpty(endErrorMessage))
             ModelState.AddModelError(nameof(body.RangeEnd), string.Format(endErrorMessage, nameof(body.RangeEnd)));
 
@@ -954,7 +956,7 @@ public class FileController : BaseController
 
         // Validate that the ranges are valid for the series.
         var episodeType = startType ?? EpisodeType.Episode;
-        var totalEpisodes = Helpers.ModelHelper.GetTotalEpisodesForType(series.GetAnimeEpisodes(), episodeType);
+        var totalEpisodes = ModelHelper.GetTotalEpisodesForType(series!.GetAnimeEpisodes(), episodeType);
         if (rangeStart < 1)
             ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be lower then 1.");
 
@@ -972,7 +974,7 @@ public class FileController : BaseController
 
         // Validate the episodes.
         var episodeList = new List<SVR_AnimeEpisode>();
-        for (int episodeNumber = rangeStart; episodeNumber <= rangeEnd; episodeNumber++)
+        for (var episodeNumber = rangeStart; episodeNumber <= rangeEnd; episodeNumber++)
         {
             var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
             if (anidbEpisode == null)
@@ -1032,7 +1034,7 @@ public class FileController : BaseController
             .Select(episode => (Episode: episode, XRef: RepoFactory.CrossRef_File_Episode.GetByHashAndEpisodeID(file.Hash, episode.AniDB_EpisodeID)))
             .Where(obj => obj.XRef != null)
             .ToList();
-        foreach (var (episode, xref) in episodeList)
+        foreach (var (_, xref) in episodeList)
             if (xref.CrossRefSource == (int)CrossRefSource.AniDB)
                 ModelState.AddModelError("CrossReferences", $"Unable to remove AniDB cross-reference to anidb episode with id {xref.EpisodeID} for file with id {file.VideoLocalID}.");
 
@@ -1058,8 +1060,7 @@ public class FileController : BaseController
         foreach (var seriesID in seriesIDs)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (series != null)
-                series.QueueUpdateStats();
+            series?.QueueUpdateStats();
         }
 
         return Ok();
@@ -1094,7 +1095,7 @@ public class FileController : BaseController
         if (series == null)
             ModelState.AddModelError(nameof(body.SeriesID), $"Unable to find series with id {body.SeriesID}.");
 
-        var (rangeStart, startType, startErrorMessage) = Helpers.ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeStart);
+        var (rangeStart, startType, startErrorMessage) = ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeStart);
         if (!string.IsNullOrEmpty(startErrorMessage))
             ModelState.AddModelError(nameof(body.RangeStart), string.Format(startErrorMessage, nameof(body.RangeStart)));
 
@@ -1104,7 +1105,7 @@ public class FileController : BaseController
         // Validate the range.
         var episodeType = startType ?? EpisodeType.Episode;
         var rangeEnd = rangeStart + files.Count - 1;
-        var totalEpisodes = Helpers.ModelHelper.GetTotalEpisodesForType(series.GetAnimeEpisodes(), episodeType);
+        var totalEpisodes = ModelHelper.GetTotalEpisodesForType(series!.GetAnimeEpisodes(), episodeType);
         if (rangeStart < 1)
             ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be lower then 1.");
 
@@ -1160,7 +1161,7 @@ public class FileController : BaseController
                 }
             );
             if (singleEpisode)
-                command.Percentage = (int)Math.Round((double)(fileCount / files.Count * 100));
+                command.Percentage = (int)Math.Round((double)fileCount / files.Count * 100);
             else
                 episodeNumber++;
 
@@ -1203,7 +1204,7 @@ public class FileController : BaseController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var anidbEpisode = episode.AniDB_Episode;
+        var anidbEpisode = episode!.AniDB_Episode;
         if (anidbEpisode == null)
             return InternalError("Could not find the AniDB entry for episode");
 
@@ -1298,7 +1299,8 @@ public class FileController : BaseController
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <param name="limit">Limit the number of returned results.</param>
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
-    internal ActionResult<List<File>> PathEndsWithInternal(string path, bool includeXRefs,
+    [NonAction]
+    private ActionResult<List<File>> PathEndsWithInternal(string path, bool includeXRefs,
         HashSet<DataSource> includeDataFrom, int limit = 0)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -1324,12 +1326,12 @@ public class FileController : BaseController
 
         if (limit <= 0)
             return results
-                .Select(a => new File(HttpContext, a, true, includeDataFrom))
+                .Select(a => new File(HttpContext, a, includeXRefs, includeDataFrom))
                 .ToList();
 
         return results
             .Take(limit)
-            .Select(a => new File(HttpContext, a, true, includeDataFrom))
+            .Select(a => new File(HttpContext, a, includeXRefs, includeDataFrom))
             .ToList();
     }
 
@@ -1402,74 +1404,6 @@ public class FileController : BaseController
     }
 
     /// <summary>
-    /// Get recently added files.
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("Recent/{limit:int?}")]
-    [Obsolete("Use the universal file endpoint instead.")]
-    public ActionResult<ListResult<File>> GetRecentFilesObselete([FromRoute] [Range(0, 1000)] int limit = 100)
-        => GetRecentFiles(limit);
-
-    /// <summary>
-    /// Get recently added files.
-    /// </summary>
-    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
-    /// <param name="page">Page number.</param>
-    /// <param name="includeXRefs">Set to false to exclude series and episode cross-references.</param>
-    /// <returns></returns>
-    [Obsolete("Use the universal file endpoint instead.")]
-    [HttpGet("Recent")]
-    public ActionResult<ListResult<File>> GetRecentFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
-    {
-        return RepoFactory.VideoLocal.GetMostRecentlyAdded(-1, 0, User.JMMUserID)
-            .ToListResult(file => new File(HttpContext, file, includeXRefs), page, pageSize);
-    }
-
-    /// <summary>
-    /// Get ignored files.
-    /// </summary>
-    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
-    /// <param name="page">Page number.</param>
-    /// <returns></returns>
-    [Obsolete("Use the universal file endpoint instead.")]
-    [HttpGet("Ignored")]
-    public ActionResult<ListResult<File>> GetIgnoredFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
-    {
-        return RepoFactory.VideoLocal.GetIgnoredVideos()
-            .ToListResult(file => new File(HttpContext, file), page, pageSize);
-    }
-
-    /// <summary>
-    /// Get files with more than one location.
-    /// </summary>
-    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
-    /// <param name="page">Page number.</param>
-    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
-    /// <returns></returns>
-    [Obsolete("Use the universal file endpoint instead.")]
-    [HttpGet("Duplicates")]
-    public ActionResult<ListResult<File>> GetExactDuplicateFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = false)
-    {
-        return RepoFactory.VideoLocal.GetExactDuplicateVideos()
-            .ToListResult(file => new File(HttpContext, file, includeXRefs), page, pageSize);
-    }
-
-    /// <summary>
-    /// Get files with no cross-reference.
-    /// </summary>
-    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
-    /// <param name="page">Page number.</param>
-    /// <param name="includeXRefs">Set to false to exclude series and episode cross-references.</param>
-    /// <returns></returns>
-    [Obsolete("Use the universal file endpoint instead.")]
-    [HttpGet("Linked")]
-    public ActionResult<ListResult<File>> GetManuallyLinkedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1, [FromQuery] bool includeXRefs = true)
-    {
-        return RepoFactory.VideoLocal.GetManuallyLinkedVideos()
-            .ToListResult(file => new File(HttpContext, file, includeXRefs), page, pageSize);
-    }
-
-    /// <summary>
     /// Get all files with missing cross-references data.
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
@@ -1491,20 +1425,5 @@ public class FileController : BaseController
                 page,
                 pageSize
             );
-    }
-
-    /// <summary>
-    /// Get unrecognized files.
-    /// Use pageSize and page (index 0) in the query to enable pagination.
-    /// </summary>
-    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
-    /// <param name="page">Page number.</param>
-    /// <returns></returns>
-    [Obsolete("Use the universal file endpoint instead.")]
-    [HttpGet("Unrecognized")]
-    public ActionResult<ListResult<File>> GetUnrecognizedFiles([FromQuery] [Range(0, 1000)] int pageSize = 100, [FromQuery] [Range(1, int.MaxValue)] int page = 1)
-    {
-        return RepoFactory.VideoLocal.GetVideosWithoutEpisode()
-            .ToListResult(file => new File(HttpContext, file), page, pageSize);
     }
 }
