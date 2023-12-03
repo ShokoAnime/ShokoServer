@@ -28,7 +28,7 @@ public class FilterFactory
 
         _expressionTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
             .Where(a => a != typeof(FilterExpression) && !a.IsGenericType && typeof(FilterExpression).IsAssignableFrom(a) &&
-                        !typeof(SortingExpression).IsAssignableFrom(a)).ToDictionary(a => a.Name.Replace("Expression", "").Replace("Function", ""));
+                        !typeof(SortingExpression).IsAssignableFrom(a)).ToDictionary(a => a.Name.Replace("Expression", "").Replace("Function", "").Replace("Selector", ""));
 
         _sortingTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
             .Where(a => a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType && typeof(SortingExpression).IsAssignableFrom(a))
@@ -101,7 +101,7 @@ public class FilterFactory
         if (expression is null) return null;
         var result = new Filter.FilterCondition
         {
-            Type = expression.GetType().Name.Replace("Expression", "").Replace("Function", "")
+            Type = expression.GetType().Name.Replace("Expression", "").Replace("Function", "").Replace("Selector", "")
         };
 
         // Left/First
@@ -163,6 +163,7 @@ public class FilterFactory
     
     public FilterExpression<T> GetExpressionTree<T>(Filter.FilterCondition condition)
     {
+        if (condition is null) return null;
         if (!_expressionTypes.TryGetValue(condition.Type, out var type)) throw new ArgumentException($"FilterCondition type {condition.Type} was not found");
         var result = (FilterExpression<T>)Activator.CreateInstance(type);
 
