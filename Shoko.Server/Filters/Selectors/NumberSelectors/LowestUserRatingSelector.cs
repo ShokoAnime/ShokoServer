@@ -1,21 +1,21 @@
 using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
-public class WatchedDateSelector : FilterExpression<DateTime?>
+public class LowestUserRatingSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
-    public override string HelpDescription => "This returns the first date that a filterable was watched by the current user";
+    public override string HelpDescription => "This returns the lowest user rating in a filterable";
 
-    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         ArgumentNullException.ThrowIfNull(userInfo);
-        return userInfo.WatchedDate;
+        return Convert.ToDouble(userInfo.LowestUserRating);
     }
 
-    protected bool Equals(WatchedDateSelector other)
+    protected bool Equals(LowestUserRatingSelector other)
     {
         return base.Equals(other);
     }
@@ -37,7 +37,7 @@ public class WatchedDateSelector : FilterExpression<DateTime?>
             return false;
         }
 
-        return Equals((WatchedDateSelector)obj);
+        return Equals((LowestUserRatingSelector)obj);
     }
 
     public override int GetHashCode()
@@ -45,12 +45,12 @@ public class WatchedDateSelector : FilterExpression<DateTime?>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(WatchedDateSelector left, WatchedDateSelector right)
+    public static bool operator ==(LowestUserRatingSelector left, LowestUserRatingSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(WatchedDateSelector left, WatchedDateSelector right)
+    public static bool operator !=(LowestUserRatingSelector left, LowestUserRatingSelector right)
     {
         return !Equals(left, right);
     }

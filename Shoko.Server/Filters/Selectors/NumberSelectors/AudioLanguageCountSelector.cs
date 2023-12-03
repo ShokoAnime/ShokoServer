@@ -1,21 +1,19 @@
-using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
-public class HighestUserRatingSelector : FilterExpression<double>
+public class AudioLanguageCountSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
-    public override bool UserDependent => true;
-    public override string HelpDescription => "This returns the highest user rating in a filterable";
+    public override bool UserDependent => false;
+    public override string HelpDescription => "This returns how many distinct audio languages are present in all of the files in a filterable";
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        ArgumentNullException.ThrowIfNull(userInfo);
-        return Convert.ToDouble(userInfo.HighestUserRating);
+        return filterable.AudioLanguages.Count;
     }
 
-    protected bool Equals(HighestUserRatingSelector other)
+    protected bool Equals(AudioLanguageCountSelector other)
     {
         return base.Equals(other);
     }
@@ -37,7 +35,7 @@ public class HighestUserRatingSelector : FilterExpression<double>
             return false;
         }
 
-        return Equals((HighestUserRatingSelector)obj);
+        return Equals((AudioLanguageCountSelector)obj);
     }
 
     public override int GetHashCode()
@@ -45,12 +43,12 @@ public class HighestUserRatingSelector : FilterExpression<double>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(HighestUserRatingSelector left, HighestUserRatingSelector right)
+    public static bool operator ==(AudioLanguageCountSelector left, AudioLanguageCountSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(HighestUserRatingSelector left, HighestUserRatingSelector right)
+    public static bool operator !=(AudioLanguageCountSelector left, AudioLanguageCountSelector right)
     {
         return !Equals(left, right);
     }

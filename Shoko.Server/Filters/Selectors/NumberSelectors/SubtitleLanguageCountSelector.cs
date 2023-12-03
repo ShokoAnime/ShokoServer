@@ -1,20 +1,19 @@
-using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
-public class AverageAniDBRatingSelector : FilterExpression<double>
+public class SubtitleLanguageCountSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This returns the average AniDB rating in a filterable";
+    public override string HelpDescription => "This returns how many distinct subtitle languages are present in all of the files in a filterable";
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return Convert.ToDouble(filterable.AverageAniDBRating);
+        return filterable.SubtitleLanguages.Count;
     }
 
-    protected bool Equals(AverageAniDBRatingSelector other)
+    protected bool Equals(SubtitleLanguageCountSelector other)
     {
         return base.Equals(other);
     }
@@ -36,7 +35,7 @@ public class AverageAniDBRatingSelector : FilterExpression<double>
             return false;
         }
 
-        return Equals((AverageAniDBRatingSelector)obj);
+        return Equals((SubtitleLanguageCountSelector)obj);
     }
 
     public override int GetHashCode()
@@ -44,12 +43,12 @@ public class AverageAniDBRatingSelector : FilterExpression<double>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(AverageAniDBRatingSelector left, AverageAniDBRatingSelector right)
+    public static bool operator ==(SubtitleLanguageCountSelector left, SubtitleLanguageCountSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(AverageAniDBRatingSelector left, AverageAniDBRatingSelector right)
+    public static bool operator !=(SubtitleLanguageCountSelector left, SubtitleLanguageCountSelector right)
     {
         return !Equals(left, right);
     }

@@ -29,6 +29,7 @@ public class Filterable : IFilterable
     private readonly Lazy<int> _missingEpisodesCollecting;
     private readonly Lazy<string> _name;
     private readonly Lazy<IReadOnlySet<string>> _resolutions;
+    private readonly Lazy<IReadOnlySet<string>> _filePaths;
     private readonly Lazy<IReadOnlySet<(int year, AnimeSeason season)>> _seasons;
     private readonly Lazy<int> _seriesCount;
     private readonly Lazy<IReadOnlySet<string>> _sharedAudioLanguages;
@@ -272,5 +273,12 @@ public class Filterable : IFilterable
         {
             _resolutions = new Lazy<IReadOnlySet<string>>(value);
         }
+    }
+    
+    public IReadOnlySet<string> FilePaths => _filePaths.Value;
+
+    public Func<IReadOnlySet<string>> FilePathsDelegate
+    {
+        init => _filePaths = new Lazy<IReadOnlySet<string>>(value);
     }
 }

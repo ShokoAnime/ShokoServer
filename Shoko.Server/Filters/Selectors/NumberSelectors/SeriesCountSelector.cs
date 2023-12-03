@@ -1,20 +1,19 @@
-using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
-public class LastAddedDateSelector : FilterExpression<DateTime?>
+public class SeriesCountSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This returns the last date that any episode was added in a filterable";
+    public override string HelpDescription => "This returns the number of series in a filterable";
 
-    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.LastAddedDate;
+        return filterable.SeriesCount;
     }
 
-    protected bool Equals(LastAddedDateSelector other)
+    protected bool Equals(SeriesCountSelector other)
     {
         return base.Equals(other);
     }
@@ -36,7 +35,7 @@ public class LastAddedDateSelector : FilterExpression<DateTime?>
             return false;
         }
 
-        return Equals((LastAddedDateSelector)obj);
+        return Equals((SeriesCountSelector)obj);
     }
 
     public override int GetHashCode()
@@ -44,12 +43,12 @@ public class LastAddedDateSelector : FilterExpression<DateTime?>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(LastAddedDateSelector left, LastAddedDateSelector right)
+    public static bool operator ==(SeriesCountSelector left, SeriesCountSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(LastAddedDateSelector left, LastAddedDateSelector right)
+    public static bool operator !=(SeriesCountSelector left, SeriesCountSelector right)
     {
         return !Equals(left, right);
     }

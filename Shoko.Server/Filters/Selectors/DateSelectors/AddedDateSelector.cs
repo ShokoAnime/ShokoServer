@@ -1,19 +1,20 @@
+using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.DateSelectors;
 
-public class AudioLanguageCountSelector : FilterExpression<double>
+public class AddedDateSelector : FilterExpression<DateTime?>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This returns how many distinct audio languages are present in all of the files in a filterable";
+    public override string HelpDescription => "This returns the date that a filterable was created";
 
-    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.AudioLanguages.Count;
+        return filterable.AddedDate;
     }
 
-    protected bool Equals(AudioLanguageCountSelector other)
+    protected bool Equals(AddedDateSelector other)
     {
         return base.Equals(other);
     }
@@ -35,7 +36,7 @@ public class AudioLanguageCountSelector : FilterExpression<double>
             return false;
         }
 
-        return Equals((AudioLanguageCountSelector)obj);
+        return Equals((AddedDateSelector)obj);
     }
 
     public override int GetHashCode()
@@ -43,12 +44,12 @@ public class AudioLanguageCountSelector : FilterExpression<double>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(AudioLanguageCountSelector left, AudioLanguageCountSelector right)
+    public static bool operator ==(AddedDateSelector left, AddedDateSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(AudioLanguageCountSelector left, AudioLanguageCountSelector right)
+    public static bool operator !=(AddedDateSelector left, AddedDateSelector right)
     {
         return !Equals(left, right);
     }

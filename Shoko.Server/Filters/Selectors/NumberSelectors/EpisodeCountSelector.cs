@@ -1,21 +1,19 @@
-using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
-public class UnwatchedEpisodeCountSelector : FilterExpression<double>
+public class EpisodeCountSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
-    public override bool UserDependent => true;
-    public override string HelpDescription => "This returns the number of episodes in a filterable that have not been watched by the current user";
+    public override bool UserDependent => false;
+    public override string HelpDescription => "This returns the total number of episodes in a filterable";
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        ArgumentNullException.ThrowIfNull(userInfo);
-        return userInfo.UnwatchedEpisodes;
+        return filterable.EpisodeCount;
     }
 
-    protected bool Equals(UnwatchedEpisodeCountSelector other)
+    protected bool Equals(EpisodeCountSelector other)
     {
         return base.Equals(other);
     }
@@ -37,7 +35,7 @@ public class UnwatchedEpisodeCountSelector : FilterExpression<double>
             return false;
         }
 
-        return Equals((UnwatchedEpisodeCountSelector)obj);
+        return Equals((EpisodeCountSelector)obj);
     }
 
     public override int GetHashCode()
@@ -45,12 +43,12 @@ public class UnwatchedEpisodeCountSelector : FilterExpression<double>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(UnwatchedEpisodeCountSelector left, UnwatchedEpisodeCountSelector right)
+    public static bool operator ==(EpisodeCountSelector left, EpisodeCountSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(UnwatchedEpisodeCountSelector left, UnwatchedEpisodeCountSelector right)
+    public static bool operator !=(EpisodeCountSelector left, EpisodeCountSelector right)
     {
         return !Equals(left, right);
     }

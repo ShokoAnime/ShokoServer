@@ -1,20 +1,21 @@
 using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.DateSelectors;
 
-public class AddedDateSelector : FilterExpression<DateTime?>
+public class LastWatchedDateSelector : FilterExpression<DateTime?>
 {
     public override bool TimeDependent => false;
-    public override bool UserDependent => false;
-    public override string HelpDescription => "This returns the date that a filterable was created";
+    public override bool UserDependent => true;
+    public override string HelpDescription => "This returns the last date that a filterable was watched by the current user";
 
     public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.AddedDate;
+        ArgumentNullException.ThrowIfNull(userInfo);
+        return userInfo.LastWatchedDate;
     }
 
-    protected bool Equals(AddedDateSelector other)
+    protected bool Equals(LastWatchedDateSelector other)
     {
         return base.Equals(other);
     }
@@ -36,7 +37,7 @@ public class AddedDateSelector : FilterExpression<DateTime?>
             return false;
         }
 
-        return Equals((AddedDateSelector)obj);
+        return Equals((LastWatchedDateSelector)obj);
     }
 
     public override int GetHashCode()
@@ -44,12 +45,12 @@ public class AddedDateSelector : FilterExpression<DateTime?>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(AddedDateSelector left, AddedDateSelector right)
+    public static bool operator ==(LastWatchedDateSelector left, LastWatchedDateSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(AddedDateSelector left, AddedDateSelector right)
+    public static bool operator !=(LastWatchedDateSelector left, LastWatchedDateSelector right)
     {
         return !Equals(left, right);
     }

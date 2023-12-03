@@ -1,19 +1,19 @@
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
-public class TotalEpisodeCountSelector : FilterExpression<double>
+public class MissingEpisodeCountSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This returns the total number of episodes in a filterable";
+    public override string HelpDescription => "This returns the number of missing episodes from any release group in a filterable";
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.TotalEpisodeCount;
+        return filterable.MissingEpisodes;
     }
 
-    protected bool Equals(TotalEpisodeCountSelector other)
+    protected bool Equals(MissingEpisodeCountSelector other)
     {
         return base.Equals(other);
     }
@@ -35,7 +35,7 @@ public class TotalEpisodeCountSelector : FilterExpression<double>
             return false;
         }
 
-        return Equals((TotalEpisodeCountSelector)obj);
+        return Equals((MissingEpisodeCountSelector)obj);
     }
 
     public override int GetHashCode()
@@ -43,12 +43,12 @@ public class TotalEpisodeCountSelector : FilterExpression<double>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(TotalEpisodeCountSelector left, TotalEpisodeCountSelector right)
+    public static bool operator ==(MissingEpisodeCountSelector left, MissingEpisodeCountSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(TotalEpisodeCountSelector left, TotalEpisodeCountSelector right)
+    public static bool operator !=(MissingEpisodeCountSelector left, MissingEpisodeCountSelector right)
     {
         return !Equals(left, right);
     }

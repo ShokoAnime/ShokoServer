@@ -1,21 +1,21 @@
 using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
-public class LowestUserRatingSelector : FilterExpression<double>
+public class UnwatchedEpisodeCountSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
-    public override string HelpDescription => "This returns the lowest user rating in a filterable";
+    public override string HelpDescription => "This returns the number of episodes in a filterable that have not been watched by the current user";
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         ArgumentNullException.ThrowIfNull(userInfo);
-        return Convert.ToDouble(userInfo.LowestUserRating);
+        return userInfo.UnwatchedEpisodes;
     }
 
-    protected bool Equals(LowestUserRatingSelector other)
+    protected bool Equals(UnwatchedEpisodeCountSelector other)
     {
         return base.Equals(other);
     }
@@ -37,7 +37,7 @@ public class LowestUserRatingSelector : FilterExpression<double>
             return false;
         }
 
-        return Equals((LowestUserRatingSelector)obj);
+        return Equals((UnwatchedEpisodeCountSelector)obj);
     }
 
     public override int GetHashCode()
@@ -45,12 +45,12 @@ public class LowestUserRatingSelector : FilterExpression<double>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(LowestUserRatingSelector left, LowestUserRatingSelector right)
+    public static bool operator ==(UnwatchedEpisodeCountSelector left, UnwatchedEpisodeCountSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(LowestUserRatingSelector left, LowestUserRatingSelector right)
+    public static bool operator !=(UnwatchedEpisodeCountSelector left, UnwatchedEpisodeCountSelector right)
     {
         return !Equals(left, right);
     }

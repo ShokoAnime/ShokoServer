@@ -1,19 +1,20 @@
+using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.DateSelectors;
 
-public class MissingEpisodeCountSelector : FilterExpression<double>
+public class LastAirDateSelector : FilterExpression<DateTime?>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This returns the number of missing episodes from any release group in a filterable";
+    public override string HelpDescription => "This returns the last date that a filterable aired";
 
-    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.MissingEpisodes;
+        return filterable.LastAirDate;
     }
 
-    protected bool Equals(MissingEpisodeCountSelector other)
+    protected bool Equals(LastAirDateSelector other)
     {
         return base.Equals(other);
     }
@@ -35,7 +36,7 @@ public class MissingEpisodeCountSelector : FilterExpression<double>
             return false;
         }
 
-        return Equals((MissingEpisodeCountSelector)obj);
+        return Equals((LastAirDateSelector)obj);
     }
 
     public override int GetHashCode()
@@ -43,12 +44,12 @@ public class MissingEpisodeCountSelector : FilterExpression<double>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(MissingEpisodeCountSelector left, MissingEpisodeCountSelector right)
+    public static bool operator ==(LastAirDateSelector left, LastAirDateSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(MissingEpisodeCountSelector left, MissingEpisodeCountSelector right)
+    public static bool operator !=(LastAirDateSelector left, LastAirDateSelector right)
     {
         return !Equals(left, right);
     }

@@ -40,4 +40,5 @@ public class TestFilterable : IFilterable
     public IReadOnlySet<string> SubtitleLanguages { get; init; }
     public IReadOnlySet<string> SharedSubtitleLanguages { get; init; }
     public IReadOnlySet<string> Resolutions { get; init; }
+    public IReadOnlySet<string> FilePaths { get; init; }
 }

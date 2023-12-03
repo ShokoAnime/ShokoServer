@@ -30,7 +30,7 @@ public class ScrobblingFileResult : PhysicalFileResult
     public override async Task ExecuteResultAsync(ActionContext context)
     {
         await base.ExecuteResultAsync(context);
-        var (_, end) = GetRange(context.HttpContext, VideoLocal.FileSize);
+        var end = GetRange(context.HttpContext, VideoLocal.FileSize);
         if (end != VideoLocal.FileSize) return;
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         Task.Factory.StartNew(() => VideoLocal.ToggleWatchedStatus(true, UserID), new CancellationToken(), TaskCreationOptions.LongRunning,
@@ -38,14 +38,14 @@ public class ScrobblingFileResult : PhysicalFileResult
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
     }
 
-    private static (long start, long end) GetRange(HttpContext context, long length)
+    private static long GetRange(HttpContext context, long length)
     {
-        if (length == 0) return (0, 0);
+        if (length == 0) return 0;
         var requestHeaders = context.Request.GetTypedHeaders();
         var rangeHeader = requestHeaders.Range;
-        if (rangeHeader == null) return (0, length);
+        if (rangeHeader == null) return length;
         var ranges = rangeHeader.Ranges;
-        if (ranges.Count == 0) return (0, length);
+        if (ranges.Count == 0) return length;
 
         var range = ranges.First();
         var start = range.From;
@@ -57,7 +57,7 @@ public class ScrobblingFileResult : PhysicalFileResult
             if (start.Value >= length)
             {
                 // Not satisfiable, skip/discard.
-                return (0, length);
+                return length;
             }
             if (!end.HasValue || end.Value >= length)
             {
@@ -70,7 +70,7 @@ public class ScrobblingFileResult : PhysicalFileResult
             if (end.Value == 0)
             {
                 // Not satisfiable, skip/discard.
-                return (0, length);
+                return length;
             }
 
             var bytes = Math.Min(end.Value, length);
@@ -78,6 +78,6 @@ public class ScrobblingFileResult : PhysicalFileResult
             end = start + bytes - 1;
         }
 
-        return (start ?? 0, end ?? length);
+        return end ?? length;
     }
 }

@@ -1,20 +1,19 @@
-using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.StringSelectors;
 
-public class LastAirDateSelector : FilterExpression<DateTime?>
+public class FilePathSelector : FilterExpression<string>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This returns the last date that a filterable aired";
+    public override string HelpDescription => "This returns a comma separated list of the file paths in a filterable";
 
-    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override string Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.LastAirDate;
+        return string.Join(",", filterable.FilePaths);
     }
 
-    protected bool Equals(LastAirDateSelector other)
+    protected bool Equals(FilePathSelector other)
     {
         return base.Equals(other);
     }
@@ -36,7 +35,7 @@ public class LastAirDateSelector : FilterExpression<DateTime?>
             return false;
         }
 
-        return Equals((LastAirDateSelector)obj);
+        return Equals((FilePathSelector)obj);
     }
 
     public override int GetHashCode()
@@ -44,12 +43,12 @@ public class LastAirDateSelector : FilterExpression<DateTime?>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(LastAirDateSelector left, LastAirDateSelector right)
+    public static bool operator ==(FilePathSelector left, FilePathSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(LastAirDateSelector left, LastAirDateSelector right)
+    public static bool operator !=(FilePathSelector left, FilePathSelector right)
     {
         return !Equals(left, right);
     }

@@ -1,20 +1,19 @@
-using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
-public class LowestAniDBRatingSelector : FilterExpression<double>
+public class MissingEpisodeCollectingCountSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This returns the lowest AniDB rating in a filterable";
+    public override string HelpDescription => "This returns the number of missing episodes in a filterable that are from a release group that is already in the filterable";
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return Convert.ToDouble(filterable.LowestAniDBRating);
+        return filterable.MissingEpisodesCollecting;
     }
 
-    protected bool Equals(LowestAniDBRatingSelector other)
+    protected bool Equals(MissingEpisodeCollectingCountSelector other)
     {
         return base.Equals(other);
     }
@@ -36,7 +35,7 @@ public class LowestAniDBRatingSelector : FilterExpression<double>
             return false;
         }
 
-        return Equals((LowestAniDBRatingSelector)obj);
+        return Equals((MissingEpisodeCollectingCountSelector)obj);
     }
 
     public override int GetHashCode()
@@ -44,12 +43,12 @@ public class LowestAniDBRatingSelector : FilterExpression<double>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(LowestAniDBRatingSelector left, LowestAniDBRatingSelector right)
+    public static bool operator ==(MissingEpisodeCollectingCountSelector left, MissingEpisodeCollectingCountSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(LowestAniDBRatingSelector left, LowestAniDBRatingSelector right)
+    public static bool operator !=(MissingEpisodeCollectingCountSelector left, MissingEpisodeCollectingCountSelector right)
     {
         return !Equals(left, right);
     }

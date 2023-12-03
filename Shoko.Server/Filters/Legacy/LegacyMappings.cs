@@ -9,6 +9,8 @@ using Shoko.Server.Filters.Logic.DateTimes;
 using Shoko.Server.Filters.Logic.Expressions;
 using Shoko.Server.Filters.Logic.Numbers;
 using Shoko.Server.Filters.Selectors;
+using Shoko.Server.Filters.Selectors.DateSelectors;
+using Shoko.Server.Filters.Selectors.NumberSelectors;
 using Shoko.Server.Filters.User;
 
 namespace Shoko.Server.Filters.Legacy;

@@ -94,6 +94,9 @@ public static class FilterExtensions
             },
             ResolutionsDelegate = () =>
                 series.GetVideoLocals().Select(a => MediaInfoUtils.GetStandardResolution(Tuple.Create(a.Media.VideoStream.Width, a.Media.VideoStream.Height)))
+                    .ToHashSet(),
+            FilePathsDelegate = () =>
+                series.GetVideoLocals().Select(a => a.GetBestVideoLocalPlace().FilePath)
                     .ToHashSet()
         };
 
@@ -223,7 +226,8 @@ public static class FilterExtensions
             }).ToHashSet(),
             HasTvDBLinkDelegate = () => series.Any(a => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(a.AniDB_ID).Any()),
             HasMissingTvDbLinkDelegate = () => HasMissingTvDBLink(group),
-            HasTMDbLinkDelegate = () => movieDBLookup != null ? series.All(a => movieDBLookup.Contains(a.AniDB_ID)) : group.Contract?.Stat_HasMovieDBLink ?? false,
+            HasTMDbLinkDelegate =
+                () => movieDBLookup != null ? series.All(a => movieDBLookup.Contains(a.AniDB_ID)) : group.Contract?.Stat_HasMovieDBLink ?? false,
             HasMissingTMDbLinkDelegate = () => HasMissingTMDbLink(series, movieDBLookup),
             HasTraktLinkDelegate = () => series.Any(a => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(a.AniDB_ID).Any()),
             HasMissingTraktLinkDelegate = () => series.Any(a => !RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(a.AniDB_ID).Any()),
@@ -265,7 +269,8 @@ public static class FilterExtensions
                 return subtitles;
             },
             ResolutionsDelegate = () => series.SelectMany(a => a.GetVideoLocals()).Select(a =>
-                MediaInfoUtils.GetStandardResolution(Tuple.Create(a.Media.VideoStream.Width, a.Media.VideoStream.Height))).ToHashSet()
+                MediaInfoUtils.GetStandardResolution(Tuple.Create(a.Media.VideoStream.Width, a.Media.VideoStream.Height))).ToHashSet(),
+            FilePathsDelegate = () => series.SelectMany(s => s.GetVideoLocals().Select(a => a.GetBestVideoLocalPlace().FilePath)).ToHashSet()
         };
 
         return filterable;

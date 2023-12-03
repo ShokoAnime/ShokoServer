@@ -170,4 +170,9 @@ public interface IFilterable
     /// Resolutions
     /// </summary>
     IReadOnlySet<string> Resolutions { get; }
+
+    /// <summary>
+    /// Relative File Paths
+    /// </summary>
+    IReadOnlySet<string> FilePaths { get; }
 }

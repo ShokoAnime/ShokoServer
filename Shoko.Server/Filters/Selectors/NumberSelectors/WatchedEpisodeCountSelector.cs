@@ -1,19 +1,21 @@
+using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
-public class EpisodeCountSelector : FilterExpression<double>
+public class WatchedEpisodeCountSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
-    public override bool UserDependent => false;
-    public override string HelpDescription => "This returns the total number of episodes in a filterable";
+    public override bool UserDependent => true;
+    public override string HelpDescription => "This returns the number of episodes in a filterable that have been watched by the current user";
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.EpisodeCount;
+        ArgumentNullException.ThrowIfNull(userInfo);
+        return userInfo.WatchedEpisodes;
     }
 
-    protected bool Equals(EpisodeCountSelector other)
+    protected bool Equals(WatchedEpisodeCountSelector other)
     {
         return base.Equals(other);
     }
@@ -35,7 +37,7 @@ public class EpisodeCountSelector : FilterExpression<double>
             return false;
         }
 
-        return Equals((EpisodeCountSelector)obj);
+        return Equals((WatchedEpisodeCountSelector)obj);
     }
 
     public override int GetHashCode()
@@ -43,12 +45,12 @@ public class EpisodeCountSelector : FilterExpression<double>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(EpisodeCountSelector left, EpisodeCountSelector right)
+    public static bool operator ==(WatchedEpisodeCountSelector left, WatchedEpisodeCountSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(EpisodeCountSelector left, EpisodeCountSelector right)
+    public static bool operator !=(WatchedEpisodeCountSelector left, WatchedEpisodeCountSelector right)
     {
         return !Equals(left, right);
     }

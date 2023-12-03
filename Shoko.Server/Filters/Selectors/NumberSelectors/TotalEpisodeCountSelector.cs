@@ -1,20 +1,19 @@
-using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
-public class HighestAniDBRatingSelector : FilterExpression<double>
+public class TotalEpisodeCountSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This returns the highest AniDB rating in a filterable";
+    public override string HelpDescription => "This returns the total number of episodes in a filterable";
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return Convert.ToDouble(filterable.HighestAniDBRating);
+        return filterable.TotalEpisodeCount;
     }
 
-    protected bool Equals(HighestAniDBRatingSelector other)
+    protected bool Equals(TotalEpisodeCountSelector other)
     {
         return base.Equals(other);
     }
@@ -36,7 +35,7 @@ public class HighestAniDBRatingSelector : FilterExpression<double>
             return false;
         }
 
-        return Equals((HighestAniDBRatingSelector)obj);
+        return Equals((TotalEpisodeCountSelector)obj);
     }
 
     public override int GetHashCode()
@@ -44,12 +43,12 @@ public class HighestAniDBRatingSelector : FilterExpression<double>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(HighestAniDBRatingSelector left, HighestAniDBRatingSelector right)
+    public static bool operator ==(TotalEpisodeCountSelector left, TotalEpisodeCountSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(HighestAniDBRatingSelector left, HighestAniDBRatingSelector right)
+    public static bool operator !=(TotalEpisodeCountSelector left, TotalEpisodeCountSelector right)
     {
         return !Equals(left, right);
     }

@@ -1,7 +1,7 @@
 using System;
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.DateSelectors;
 
 public class AirDateSelector : FilterExpression<DateTime?>
 {

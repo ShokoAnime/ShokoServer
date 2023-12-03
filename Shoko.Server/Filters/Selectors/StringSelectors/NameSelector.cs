@@ -1,6 +1,6 @@
 using Shoko.Server.Filters.Interfaces;
 
-namespace Shoko.Server.Filters.Selectors;
+namespace Shoko.Server.Filters.Selectors.StringSelectors;
 
 public class NameSelector : FilterExpression<string>
 {
