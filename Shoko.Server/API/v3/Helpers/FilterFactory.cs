@@ -164,7 +164,8 @@ public class FilterFactory
     public FilterExpression<T> GetExpressionTree<T>(Filter.FilterCondition condition)
     {
         if (condition is null) return null;
-        if (!_expressionTypes.TryGetValue(condition.Type, out var type)) throw new ArgumentException($"FilterCondition type {condition.Type} was not found");
+        if (!_expressionTypes.TryGetValue(condition.Type.Replace("Expression", "").Replace("Function", "").Replace("Selector", ""), out var type))
+            throw new ArgumentException($"FilterCondition type {condition.Type} was not found");
         var result = (FilterExpression<T>)Activator.CreateInstance(type);
 
         // Left/First
