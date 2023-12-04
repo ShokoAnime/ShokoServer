@@ -336,7 +336,7 @@ public class FilterFactory
 
         existing.ParentFilterPresetID = filter.ParentID;
         existing.FilterType = filter.IsDirectory ? GroupFilterType.UserDefined | GroupFilterType.Directory : GroupFilterType.UserDefined;
-        existing.Name = filter.Name;
+        existing.Name = filter.Name ?? string.Empty;
         existing.Hidden = filter.IsHidden;
         existing.ApplyAtSeriesLevel = filter.ApplyAtSeriesLevel;
         if (!filter.IsDirectory)

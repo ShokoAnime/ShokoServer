@@ -260,8 +260,7 @@ public class Filter : BaseModel
             /// <summary>
             /// The filter name.
             /// </summary>
-            /// <value></value>
-            public string Name { get; set; } = string.Empty;
+            public string? Name { get; set; }
 
             /// <summary>
             /// The id of the parent filter. If you want to add/move this filter
