@@ -10,7 +10,6 @@ using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Filters.Logic.DateTimes;
 using Shoko.Server.Filters.Logic.Expressions;
 using Shoko.Server.Filters.Logic.Numbers;
-using Shoko.Server.Filters.Selectors;
 using Shoko.Server.Filters.Selectors.DateSelectors;
 using Shoko.Server.Filters.Selectors.NumberSelectors;
 using Shoko.Server.Filters.SortingSelectors;
@@ -68,11 +67,11 @@ public static class LegacyConditionConverter
 
     private static bool TryGetSingleCondition(FilterExpression expression, out GroupFilterCondition condition)
     {
+        if (TryGetGroupCondition(expression, out condition)) return true;
         if (TryGetIncludeCondition(expression, out condition)) return true;
         if (TryGetInCondition(expression, out condition)) return true;
         return TryGetComparatorCondition(expression, out condition);
     }
-
 
     private static bool TryGetConditionsRecursive<T>(FilterExpression expression, List<GroupFilterCondition> conditions) where T : IWithExpressionParameter, IWithSecondExpressionParameter
     {
@@ -85,6 +84,28 @@ public static class LegacyConditionConverter
 
         if (expression is T and) return TryGetConditionsRecursive<T>(and.Left, conditions) && TryGetConditionsRecursive<T>(and.Right, conditions);
         return false;
+    }
+
+    private static bool TryGetGroupCondition(FilterExpression expression, out GroupFilterCondition condition)
+    {
+        var conditionOperator = GroupFilterOperator.Equals;
+        if (expression is NotExpression not)
+        {
+            conditionOperator = GroupFilterOperator.Exclude;
+            expression = not.Left;
+        }
+
+        if (expression is not HasNameExpression nameExpression)
+        {
+            condition = null;
+            return false;
+        }
+
+        condition = new GroupFilterCondition
+        {
+            ConditionType = (int)GroupFilterConditionType.AnimeGroup, ConditionOperator = (int)conditionOperator, ConditionParameter = nameExpression.Parameter
+        };
+        return true;
     }
 
     private static bool TryGetIncludeCondition(FilterExpression expression, out GroupFilterCondition condition)

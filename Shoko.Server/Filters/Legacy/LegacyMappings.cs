@@ -4,14 +4,13 @@ using Shoko.Models.Enums;
 using Shoko.Server.Filters.Files;
 using Shoko.Server.Filters.Functions;
 using Shoko.Server.Filters.Info;
-using Shoko.Server.Filters.Logic;
 using Shoko.Server.Filters.Logic.DateTimes;
 using Shoko.Server.Filters.Logic.Expressions;
 using Shoko.Server.Filters.Logic.Numbers;
-using Shoko.Server.Filters.Selectors;
 using Shoko.Server.Filters.Selectors.DateSelectors;
 using Shoko.Server.Filters.Selectors.NumberSelectors;
 using Shoko.Server.Filters.User;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Filters.Legacy;
 
@@ -309,27 +308,52 @@ public class LegacyMappings
     public static FilterExpression<bool> GetGroupExpression(GroupFilterOperator op, string parameter, bool suppressErrors = false)
     {
         if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null : throw new ArgumentNullException(nameof(parameter));
-        var tags = parameter.Split(new[]
+        var groups = parameter.Split(new[]
         {
             '|', ','
-        }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(a =>
+        {
+            if (!int.TryParse(a, out var groupID))
+            {
+                if (RepoFactory.AnimeGroup.GetAll().Any(b => b.GroupName.Equals(a, StringComparison.InvariantCultureIgnoreCase))) return a;
+                throw new ArgumentOutOfRangeException(nameof(op), $@"ID {a} not found for Group");
+            }
+            var group = RepoFactory.AnimeGroup.GetByID(groupID);
+            if (group == null) throw new ArgumentOutOfRangeException(nameof(op), $@"ID {a} not found for Group");
+            return group.GroupName;
+        }).ToArray();
         switch (op)
         {
             case GroupFilterOperator.In:
             case GroupFilterOperator.Include:
                 {
-                    if (tags.Length <= 1) return new HasNameExpression(tags[0]);
+                    if (groups.Length <= 1) return new HasNameExpression(groups[0]);
 
-                    FilterExpression<bool> first = new HasNameExpression(tags[0]);
-                    return tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasNameExpression(b)));
+                    FilterExpression<bool> first = new HasNameExpression(groups[0]);
+                    return groups.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasNameExpression(b)));
                 }
             case GroupFilterOperator.NotIn:
             case GroupFilterOperator.Exclude:
                 {
-                    if (tags.Length <= 1) return new NotExpression(new HasNameExpression(tags[0]));
+                    if (groups.Length <= 1) return new NotExpression(new HasNameExpression(groups[0]));
 
-                    FilterExpression<bool> first = new HasNameExpression(tags[0]);
-                    return new NotExpression(tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasNameExpression(b))));
+                    FilterExpression<bool> first = new HasNameExpression(groups[0]);
+                    return new NotExpression(groups.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasNameExpression(b))));
+                }
+            case GroupFilterOperator.Equals:
+                {
+                    if (groups.Length > 1) throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Group Name and more than one value");
+                    return new HasNameExpression(groups[0]);
+                }
+            case GroupFilterOperator.NotEquals:
+                {
+                    if (groups.Length > 1) throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Group Name and more than one value");
+
+                    if (!int.TryParse(groups[0], out var groupID)) throw new ArgumentOutOfRangeException(nameof(op), $@"ID {groups[0]} not found for Group");
+                    var group = RepoFactory.AnimeGroup.GetByID(groupID);
+                    if (group == null) throw new ArgumentOutOfRangeException(nameof(op), $@"ID {groups[0]} not found for Group");
+
+                    return new NotExpression(new HasNameExpression(groups[0]));
                 }
             default:
                 return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Group Name");
