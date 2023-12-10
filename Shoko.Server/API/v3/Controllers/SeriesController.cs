@@ -462,18 +462,20 @@ public class SeriesController : BaseController
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <param name="showAll">If enabled will show recommendations across all the anidb available in Shoko, if disabled will only show for the user's collection.</param>
+    /// <param name="includeRestricted">Include restricted (H) series.</param>
     /// <param name="startDate">Start date to use if recommending for a watch period. Only setting the <paramref name="startDate"/> and not <paramref name="endDate"/> will result in using the watch history from the start date to the present date.</param>
     /// <param name="endDate">End date to use if recommending for a watch period.</param>
     /// <param name="approval">Minumum approval percentage for similar animes.</param>
     /// <returns></returns>
     [HttpGet("AniDB/RecommendedForYou")]
     public ActionResult<ListResult<Series.AniDBRecommendedForYou>> GetAnimeRecommendedForYou(
-        [FromQuery] [Range(0, 100)] int pageSize = 30,
-        [FromQuery] [Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, Range(0, 100)] int pageSize = 30,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool showAll = false,
+        [FromQuery] bool includeRestricted = false,
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
-        [FromQuery] [Range(0, 1)] double? approval = null
+        [FromQuery, Range(0, 1)] double? approval = null
     )
     {
         startDate = startDate?.ToLocalTime();
@@ -497,9 +499,9 @@ public class SeriesController : BaseController
             return ValidationProblem(ModelState);
 
         var user = User;
-        var watchedAnimeList = GetWatchedAnimeForPeriod(user, startDate, endDate);
+        var watchedAnimeList = GetWatchedAnimeForPeriod(user, includeRestricted, startDate, endDate);
         var unwatchedAnimeDict = GetUnwatchedAnime(user, showAll,
-            !startDate.HasValue && !endDate.HasValue ? watchedAnimeList : null);
+            includeRestricted, !startDate.HasValue && !endDate.HasValue ? watchedAnimeList : null);
         return watchedAnimeList
             .SelectMany(anime =>
             {
@@ -533,11 +535,15 @@ public class SeriesController : BaseController
     /// is omitted then it will return all watched anime for the <paramref name="user"/>.
     /// </summary>
     /// <param name="user">The user to get the watched anime for.</param>
+    /// <param name="includeRestricted">Include restricted (H) series.</param>
     /// <param name="startDate">The start date of the period.</param>
     /// <param name="endDate">The end date of the period.</param>
     /// <returns>The watched anime for the user.</returns>
     [NonAction]
-    private List<SVR_AniDB_Anime> GetWatchedAnimeForPeriod(SVR_JMMUser user, DateTime? startDate = null,
+    private List<SVR_AniDB_Anime> GetWatchedAnimeForPeriod(
+        SVR_JMMUser user,
+        bool includeRestricted = false,
+        DateTime? startDate = null,
         DateTime? endDate = null)
     {
         startDate = startDate?.ToLocalTime();
@@ -566,7 +572,7 @@ public class SeriesController : BaseController
             .Where(episode => episode != null)
             .DistinctBy(episode => episode.AnimeSeriesID)
             .Select(episode => episode.GetAnimeSeries().GetAnime())
-            .Where(anime => user.AllowedAnime(anime))
+            .Where(anime => user.AllowedAnime(anime) && (includeRestricted || anime.Restricted != 1))
             .ToList();
     }
 
@@ -575,10 +581,14 @@ public class SeriesController : BaseController
     /// </summary>
     /// <param name="user">The user to get the unwatched anime for.</param>
     /// <param name="showAll">If true will get a list of all available anime in shoko, regardless of if it's part of the user's collection or not.</param>
+    /// <param name="includeRestricted">Include restricted (H) series.</param>
     /// <param name="watchedAnime">Optional. Re-use an existing list of the watched anime.</param>
     /// <returns>The unwatched anime for the user.</returns>
     [NonAction]
-    private Dictionary<int, (SVR_AniDB_Anime, SVR_AnimeSeries)> GetUnwatchedAnime(SVR_JMMUser user, bool showAll,
+    private Dictionary<int, (SVR_AniDB_Anime, SVR_AnimeSeries)> GetUnwatchedAnime(
+        SVR_JMMUser user,
+        bool showAll,
+        bool includeRestricted = false,
         IEnumerable<SVR_AniDB_Anime> watchedAnime = null)
     {
         // Get all watched series (reuse if date is not set)
@@ -589,14 +599,16 @@ public class SeriesController : BaseController
         if (showAll)
         {
             return RepoFactory.AniDB_Anime.GetAll()
-                .Where(anime => user.AllowedAnime(anime) && !watchedSeriesSet.Contains(anime.AnimeID))
+                .Where(anime => user.AllowedAnime(anime) && !watchedSeriesSet.Contains(anime.AnimeID) && (includeRestricted || anime.Restricted != 1))
                 .ToDictionary<SVR_AniDB_Anime, int, (SVR_AniDB_Anime, SVR_AnimeSeries)>(anime => anime.AnimeID,
                     anime => (anime, null));
         }
 
         return RepoFactory.AnimeSeries.GetAll()
             .Where(series => user.AllowedSeries(series) && !watchedSeriesSet.Contains(series.AniDB_ID))
-            .ToDictionary(series => series.AniDB_ID, series => (series.GetAnime(), series));
+            .Select(series => (anime: series.GetAnime(), series))
+            .Where(tuple => includeRestricted || tuple.anime.Restricted != 1)
+            .ToDictionary(tuple => tuple.anime.AnimeID);
     }
 
     #endregion
