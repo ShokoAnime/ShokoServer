@@ -61,19 +61,8 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
-    /// <param name="includeMissing">Include missing files among the results.</param>
-    /// <param name="includeIgnored">Include ignored files among the results.</param>
-    /// <param name="includeVariations">Include files marked as a variation among the results.</param>
-    /// <param name="includeDuplicates">Include files with multiple locations (and thus have duplicates) among the results.</param>
-    /// <param name="includeUnrecognized">Include unrecognized files among the results.</param>
-    /// <param name="includeLinked">Include manually linked files among the results.</param>
-    /// <param name="includeViewed">Include previously viewed files among the results.</param>
-    /// <param name="includeWatched">Include previously watched files among the results</param>
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
-    /// <param name="includeMediaInfo">Include media info data.</param>
-    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
-    /// <param name="includeXRefs">Include series and episode cross-references.</param>
     /// <param name="seriesID">Filter the search to only files for a given shoko series.</param>
     /// <param name="episodeID">Filter the search to only files for a given shoko episode.</param>
     /// <param name="anidbSeriesID">Filter the search to only files for a given anidb series.</param>
@@ -85,19 +74,11 @@ public class FileController : BaseController
     public ActionResult<ListResult<File>> GetFiles(
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter includeIgnored = IncludeOnlyFilter.False,
-        [FromQuery] IncludeOnlyFilter includeVariations = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter includeDuplicates = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter includeUnrecognized = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter includeLinked = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter includeViewed = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[] exclude = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[] include_only = default,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string> sortOrder = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery] bool includeMediaInfo = false,
-        [FromQuery] bool includeAbsolutePaths = false,
-        [FromQuery] bool includeXRefs = false,
         [FromQuery] int? seriesID = null,
         [FromQuery] int? episodeID = null,
         [FromQuery] int? anidbSeriesID = null,
@@ -105,6 +86,10 @@ public class FileController : BaseController
         [FromQuery] string search = null,
         [FromQuery] bool fuzzy = true)
     {
+        include ??= Array.Empty<FileNonDefaultIncludeType>();
+        exclude ??= Array.Empty<FileExcludeTypes>();
+        include_only ??= Array.Empty<FileIncludeOnlyType>();
+
         // Map shoko series id to anidb series id and check if the series
         // exists.
         if (seriesID.HasValue)
@@ -151,16 +136,14 @@ public class FileController : BaseController
         }
         // Filtering.
         var user = User;
-        var includeLocations = includeDuplicates != IncludeOnlyFilter.True ||
-            !string.IsNullOrEmpty(search) ||
+        var includeLocations = exclude.Contains(FileExcludeTypes.Duplicates) || !string.IsNullOrEmpty(search) ||
             (sortOrder?.Any(criteria => criteria.Contains(FileSortCriteria.DuplicateCount.ToString())) ?? false);
-        var includeUserRecord = includeViewed != IncludeOnlyFilter.True ||
-            includeWatched != IncludeOnlyFilter.True ||
-            (sortOrder?.Any(criteria => criteria.Contains(FileSortCriteria.ViewedAt.ToString()) || criteria.Contains(FileSortCriteria.WatchedAt.ToString())) ?? false);
+        var includeUserRecord = exclude.Contains(FileExcludeTypes.Watched) || (sortOrder?.Any(criteria =>
+            criteria.Contains(FileSortCriteria.ViewedAt.ToString()) || criteria.Contains(FileSortCriteria.WatchedAt.ToString())) ?? false);
         var enumerable = RepoFactory.VideoLocal.GetAll()
             .Select(video => (
                 Video: video,
-                BestLocation: video.GetBestVideoLocalPlace(includeMissing != IncludeOnlyFilter.True),
+                BestLocation: video.GetBestVideoLocalPlace(),
                 Locations: includeLocations ? video.Places : null,
                 UserRecord: includeUserRecord ? video.GetUserRecord(user.JMMUserID) : null
             ))
@@ -194,67 +177,20 @@ public class FileController : BaseController
                         return false;
                 }
 
-                if (includeMissing != IncludeOnlyFilter.True)
-                {
-                    var shouldHideMissing = includeMissing == IncludeOnlyFilter.False;
-                    var fileIsMissing = bestLocation == null;
-                    if (shouldHideMissing == fileIsMissing)
-                        return false;
-                }
+                if (!include.Contains(FileNonDefaultIncludeType.Ignored) && video.IsIgnored) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Ignored) && !video.IsIgnored) return false;
 
-                if (includeIgnored != IncludeOnlyFilter.True)
-                {
-                    var shouldHideIgnored = includeIgnored == IncludeOnlyFilter.False;
-                    if (shouldHideIgnored == video.IsIgnored)
-                        return false;
-                }
+                if (exclude.Contains(FileExcludeTypes.Duplicates) && locations.Count > 1) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Duplicates) && locations.Count <= 1) return false;
 
-                if (includeVariations != IncludeOnlyFilter.True)
-                {
-                    var shouldHideVariation = includeVariations == IncludeOnlyFilter.False;
-                    if (shouldHideVariation == video.IsVariation)
-                        return false;
-                }
+                if (exclude.Contains(FileExcludeTypes.Unrecognized) && xrefs.Count == 0) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && xrefs.Count > 0) return false;
 
-                if (includeDuplicates != IncludeOnlyFilter.True)
-                {
-                    var shouldHideDuplicate = includeDuplicates == IncludeOnlyFilter.False;
-                    var hasDuplicates = locations.Count > 1;
-                    if (shouldHideDuplicate == hasDuplicates)
-                        return false;
-                }
+                if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 && xrefs.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB)) return false;
+                if (include_only.Contains(FileIncludeOnlyType.ManualLinks) && xrefs.Count == 0 || xrefs.Any(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)) return false;
 
-                if (includeUnrecognized != IncludeOnlyFilter.True)
-                {
-                    var shouldHideUnrecognized = includeUnrecognized == IncludeOnlyFilter.False;
-                    var fileIsUnrecognized = xrefs.Count == 0;
-                    if (shouldHideUnrecognized == fileIsUnrecognized)
-                        return false;
-                }
-
-                if (includeLinked != IncludeOnlyFilter.True)
-                {
-                    var shouldHideLinked = includeLinked == IncludeOnlyFilter.False;
-                    var fileIsLinked = xrefs.Count > 0 && xrefs.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB);
-                    if (shouldHideLinked == fileIsLinked)
-                        return false;
-                }
-
-                if (includeViewed != IncludeOnlyFilter.True)
-                {
-                    var shouldHideViewed = includeViewed == IncludeOnlyFilter.False;
-                    var fileIsViewed = userRecord != null;
-                    if (shouldHideViewed == fileIsViewed)
-                        return false;
-                }
-
-                if (includeWatched != IncludeOnlyFilter.True)
-                {
-                    var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
-                    var fileIsWatched = userRecord?.WatchedDate != null;
-                    if (shouldHideWatched == fileIsWatched)
-                        return false;
-                }
+                if (exclude.Contains(FileExcludeTypes.Watched) && userRecord?.WatchedDate != null) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Watched) && userRecord?.WatchedDate == null) return false;
 
                 return true;
             });
@@ -278,8 +214,9 @@ public class FileController : BaseController
             });
 
         // Skip and limit.
-        return enumerable
-            .ToListResult(tuple => new File(tuple.UserRecord, tuple.Video, includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths), page, pageSize);
+        return enumerable.ToListResult(
+            tuple => new File(tuple.UserRecord, tuple.Video, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+                include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)), page, pageSize);
     }
 
     /// <summary>
