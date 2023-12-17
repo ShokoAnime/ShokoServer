@@ -177,7 +177,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             var changes = ChangeTracker<int>.GetChainedChanges(
                 new List<ChangeTracker<int>>
                 {
-                    RepoFactory.FilterPreset.GetChangeTracker(),
                     RepoFactory.AnimeGroup.GetChangeTracker(),
                     RepoFactory.AnimeGroup_User.GetChangeTracker(userID),
                     RepoFactory.AnimeSeries.GetChangeTracker(),
@@ -186,46 +185,45 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             c.Filters = new CL_Changes<CL_GroupFilter>
             {
-                ChangedItems = legacyConverter.ToClient(changes[0].ChangedItems.Select(a => RepoFactory.FilterPreset.GetByID(a)).ToList(), userID)
-                    .Select(a => a.Value)
+                ChangedItems = legacyConverter.ToClient(RepoFactory.FilterPreset.GetAll(), userID)
                     .Where(a => a != null)
                     .ToList(),
-                RemovedItems = changes[0].RemovedItems.ToList(),
-                LastChange = changes[0].LastChange
+                RemovedItems = new List<int>(),
+                LastChange = DateTime.Now
             };
 
             c.Groups = new CL_Changes<CL_AnimeGroup_User>();
-            changes[1].ChangedItems.UnionWith(changes[2].ChangedItems);
-            changes[1].ChangedItems.UnionWith(changes[2].RemovedItems);
-            if (changes[2].LastChange > changes[1].LastChange)
+            changes[0].ChangedItems.UnionWith(changes[1].ChangedItems);
+            changes[0].ChangedItems.UnionWith(changes[1].RemovedItems);
+            if (changes[1].LastChange > changes[0].LastChange)
             {
-                changes[1].LastChange = changes[2].LastChange;
+                changes[0].LastChange = changes[1].LastChange;
             }
 
-            c.Groups.ChangedItems = changes[1]
+            c.Groups.ChangedItems = changes[0]
                 .ChangedItems.Select(a => RepoFactory.AnimeGroup.GetByID(a))
                 .Where(a => a != null)
                 .Select(a => a.GetUserContract(userID))
                 .ToList();
 
 
-            c.Groups.RemovedItems = changes[1].RemovedItems.ToList();
-            c.Groups.LastChange = changes[1].LastChange;
+            c.Groups.RemovedItems = changes[0].RemovedItems.ToList();
+            c.Groups.LastChange = changes[0].LastChange;
             c.Series = new CL_Changes<CL_AnimeSeries_User>();
-            changes[3].ChangedItems.UnionWith(changes[4].ChangedItems);
-            changes[3].ChangedItems.UnionWith(changes[4].RemovedItems);
-            if (changes[4].LastChange > changes[3].LastChange)
+            changes[2].ChangedItems.UnionWith(changes[3].ChangedItems);
+            changes[2].ChangedItems.UnionWith(changes[3].RemovedItems);
+            if (changes[3].LastChange > changes[2].LastChange)
             {
-                changes[3].LastChange = changes[4].LastChange;
+                changes[2].LastChange = changes[3].LastChange;
             }
 
-            c.Series.ChangedItems = changes[3]
+            c.Series.ChangedItems = changes[2]
                 .ChangedItems.Select(a => RepoFactory.AnimeSeries.GetByID(a))
                 .Where(a => a != null)
                 .Select(a => a.GetUserContract(userID))
                 .ToList();
-            c.Series.RemovedItems = changes[3].RemovedItems.ToList();
-            c.Series.LastChange = changes[3].LastChange;
+            c.Series.RemovedItems = changes[2].RemovedItems.ToList();
+            c.Series.LastChange = changes[2].LastChange;
             c.LastChange = c.Filters.LastChange;
             if (c.Groups.LastChange > c.LastChange)
             {
@@ -252,13 +250,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         try
         {
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
-            var changes = RepoFactory.FilterPreset.GetChangeTracker().GetChanges(date);
-            c.ChangedItems = legacyConverter.ToClient(changes.ChangedItems.Select(a => RepoFactory.FilterPreset.GetByID(a)).ToList())
-                .Select(a => a.Value)
+            c.ChangedItems = legacyConverter.ToClient(RepoFactory.FilterPreset.GetAll())
                 .Where(a => a != null)
                 .ToList();
-            c.RemovedItems = changes.RemovedItems.ToList();
-            c.LastChange = changes.LastChange;
+            c.RemovedItems = new List<int>();
+            c.LastChange = DateTime.Now;
         }
         catch (Exception ex)
         {

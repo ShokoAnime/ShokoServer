@@ -27,19 +27,6 @@ namespace Shoko.Server.Repositories.Cached;
 public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
 {
     private PocoIndex<int, FilterPreset, int> Parents;
-    private readonly ChangeTracker<int> Changes = new();
-
-    public FilterPresetRepository()
-    {
-        EndSaveCallback = obj =>
-        {
-            Changes.AddOrUpdate(obj.FilterPresetID);
-        };
-        EndDeleteCallback = obj =>
-        {
-            Changes.Remove(obj.FilterPresetID);
-        };
-    }
 
     protected override int SelectKey(FilterPreset entity)
     {
@@ -48,7 +35,6 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
 
     public override void PopulateIndexes()
     {
-        Changes.AddOrUpdateRange(Cache.Keys);
         Parents = Cache.CreateIndex(a => a.ParentFilterPresetID ?? 0);
     }
 
@@ -484,10 +470,5 @@ public class FilterPresetRepository : BaseCachedRepository<FilterPreset, int>
     public List<FilterPreset> GetTimeDependentFilters()
     {
         return ReadLock(() => GetAll().Where(a => a.Expression.TimeDependent).ToList());
-    }
-
-    public ChangeTracker<int> GetChangeTracker()
-    {
-        return Changes;
     }
 }

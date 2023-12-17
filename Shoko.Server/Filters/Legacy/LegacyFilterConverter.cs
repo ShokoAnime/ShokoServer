@@ -100,20 +100,20 @@ public class LegacyFilterConverter
         return contract;
     }
     
-    public Dictionary<FilterPreset, CL_GroupFilter> ToClient(IReadOnlyList<FilterPreset> filters, int? userID = null)
+    public List<CL_GroupFilter> ToClient(IReadOnlyList<FilterPreset> filters, int? userID = null)
     {
-        var result = new Dictionary<FilterPreset, CL_GroupFilter>();
+        var result = new List<CL_GroupFilter>();
         var userFilters = filters.Where(a => a?.Expression?.UserDependent ?? false).ToList();
         var otherFilters = filters.Except(userFilters).ToList();
 
         // batch evaluate each list, then build the mappings
-        if (userFilters.Count > 0) SetUserFilters(userID, userFilters, result);
-        if (otherFilters.Count > 0) SetOtherFilters(otherFilters, result);
+        if (userFilters.Count > 0) result.AddRange(SetUserFilters(userID, userFilters));
+        if (otherFilters.Count > 0) result.AddRange(SetOtherFilters(otherFilters));
 
         return result;
     }
 
-    private void SetOtherFilters(List<FilterPreset> otherFilters, Dictionary<FilterPreset, CL_GroupFilter> result)
+    private List<CL_GroupFilter> SetOtherFilters(List<FilterPreset> otherFilters)
     {
 
         var results = _evaluator.BatchEvaluateFilters(otherFilters, null, true);
@@ -132,7 +132,7 @@ public class LegacyFilterConverter
 
             LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
             conditions?.ForEach(condition => condition.GroupFilterID = filter.FilterPresetID);
-            return (Filter: filter, new CL_GroupFilter
+            return new CL_GroupFilter
             {
                 GroupFilterID = filter.FilterPresetID,
                 GroupFilterName = filter.Name,
@@ -149,13 +149,10 @@ public class LegacyFilterConverter
                 Childs = filter.FilterPresetID == 0
                     ? new HashSet<int>()
                     : RepoFactory.FilterPreset.GetByParentID(filter.FilterPresetID).Select(a => a.FilterPresetID).ToHashSet()
-            });
-        });
+            };
+        }).ToList();
 
-        foreach (var (filter, model) in models)
-        {
-            result[filter] = model;
-        }
+        return models;
     }
 
     /// <summary>
@@ -164,7 +161,7 @@ public class LegacyFilterConverter
     /// <param name="userID">if this is specified, it only calculates one user</param>
     /// <param name="userFilters"></param>
     /// <param name="result"></param>
-    private void SetUserFilters(int? userID, List<FilterPreset> userFilters, Dictionary<FilterPreset, CL_GroupFilter> result)
+    private List<CL_GroupFilter> SetUserFilters(int? userID, List<FilterPreset> userFilters)
     {
 
         var userResults = userID.HasValue
@@ -185,7 +182,7 @@ public class LegacyFilterConverter
             }
             LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
             conditions?.ForEach(condition => condition.GroupFilterID = filter.FilterPresetID);
-            return (Filter: filter, new CL_GroupFilter
+            return new CL_GroupFilter
             {
                 GroupFilterID = filter.FilterPresetID,
                 GroupFilterName = filter.Name,
@@ -202,12 +199,9 @@ public class LegacyFilterConverter
                 Childs = filter.FilterPresetID == 0
                     ? new HashSet<int>()
                     : RepoFactory.FilterPreset.GetByParentID(filter.FilterPresetID).Select(a => a.FilterPresetID).ToHashSet()
-            });
-        });
+            };
+        }).ToList();
 
-        foreach (var (filter, model) in userModels)
-        {
-            result[filter] = model;
-        }
+        return userModels;
     }
 }

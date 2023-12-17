@@ -3118,7 +3118,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             gfs = legacyConverter.ToClient(allGfs).Select(a => new CL_GroupFilterExtended
             {
-                GroupFilter = a.Value, GroupCount = a.Value.Groups[userID].Count
+                GroupFilter = a, GroupCount = a.Groups[userID].Count
             }).ToList();
         }
         catch (Exception ex)
@@ -3147,7 +3147,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             gfs = legacyConverter.ToClient(allGfs).Select(a => new CL_GroupFilterExtended
             {
-                GroupFilter = a.Value, GroupCount = a.Value.Groups.FirstOrDefault().Value.Count
+                GroupFilter = a, GroupCount = a.Groups.FirstOrDefault().Value.Count
             }).ToList();
         }
         catch (Exception ex)
@@ -3172,7 +3172,6 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             gfs = legacyConverter.ToClient(allGfs)
-                .Select(a => a.Value)
                 .Where(a => a != null)
                 .ToList();
         }
@@ -3197,7 +3196,6 @@ public partial class ShokoServiceImplementation : IShokoServer
             logger.Info("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             gfs = legacyConverter.ToClient(allGfs)
-                .Select(a => a.Value)
                 .Where(a => a != null)
                 .ToList();
         }
