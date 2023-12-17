@@ -61,14 +61,11 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="exclude">Exclude items of certain types</param>
+    /// <param name="include_only">Filter to only include items of certain types</param>
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
-    /// <param name="seriesID">Filter the search to only files for a given shoko series.</param>
-    /// <param name="episodeID">Filter the search to only files for a given shoko episode.</param>
-    /// <param name="anidbSeriesID">Filter the search to only files for a given anidb series.</param>
-    /// <param name="anidbEpisodeID">Filter the search to only files for a given anidb episode.</param>
-    /// <param name="search">An optional search query to filter files based on their absolute paths.</param>
-    /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns>A sliced part of the results for the current query.</returns>
     [HttpGet]
     public ActionResult<ListResult<File>> GetFiles(
@@ -78,65 +75,15 @@ public class FileController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[] exclude = default,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[] include_only = default,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string> sortOrder = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery] int? seriesID = null,
-        [FromQuery] int? episodeID = null,
-        [FromQuery] int? anidbSeriesID = null,
-        [FromQuery] int? anidbEpisodeID = null,
-        [FromQuery] string search = null,
-        [FromQuery] bool fuzzy = true)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         include ??= Array.Empty<FileNonDefaultIncludeType>();
         exclude ??= Array.Empty<FileExcludeTypes>();
         include_only ??= Array.Empty<FileIncludeOnlyType>();
 
-        // Map shoko series id to anidb series id and check if the series
-        // exists.
-        if (seriesID.HasValue)
-        {
-            if (seriesID.Value <= 0)
-                return new ListResult<File>();
-
-            var series = RepoFactory.AnimeSeries.GetByID(seriesID.Value);
-            if (series == null)
-                return new ListResult<File>();
-
-            anidbSeriesID = series.AniDB_ID;
-        }
-        // Map shoko episode id to anidb episode id and check if the episode
-        // exists.
-        if (episodeID.HasValue)
-        {
-            if (episodeID.Value <= 0)
-                return new ListResult<File>();
-
-            var episode = RepoFactory.AnimeEpisode.GetByID(episodeID.Value);
-            if (episode == null)
-                return new ListResult<File>();
-
-            anidbEpisodeID = episode.AniDB_EpisodeID;
-        }
-        // Check if the anidb episode exists locally, and if it is part of the
-        // same anidb series if both are provided.
-        if (anidbEpisodeID.HasValue)
-        {
-            var anidbEpisode = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID.Value);
-            if (anidbEpisode == null)
-                return new ListResult<File>();
-
-            if (anidbSeriesID.HasValue && anidbEpisode.AnimeID != anidbSeriesID.Value)
-                return new ListResult<File>();
-        }
-        // Check if the anidb anime exists locally.
-        else if (anidbSeriesID.HasValue)
-        {
-            var anidbSeries = RepoFactory.AniDB_Anime.GetByAnimeID(anidbSeriesID.Value);
-            if (anidbSeries == null)
-                return new ListResult<File>();
-        }
         // Filtering.
         var user = User;
-        var includeLocations = exclude.Contains(FileExcludeTypes.Duplicates) || !string.IsNullOrEmpty(search) ||
+        var includeLocations = exclude.Contains(FileExcludeTypes.Duplicates) ||
             (sortOrder?.Any(criteria => criteria.Contains(FileSortCriteria.DuplicateCount.ToString())) ?? false);
         var includeUserRecord = exclude.Contains(FileExcludeTypes.Watched) || (sortOrder?.Any(criteria =>
             criteria.Contains(FileSortCriteria.ViewedAt.ToString()) || criteria.Contains(FileSortCriteria.WatchedAt.ToString())) ?? false);
@@ -149,7 +96,7 @@ public class FileController : BaseController
             ))
             .Where(tuple =>
             {
-                var (video, bestLocation, locations, userRecord) = tuple;
+                var (video, _, locations, userRecord) = tuple;
                 var xrefs = video.EpisodeCrossRefs;
                 var isAnimeAllowed = xrefs
                     .Select(xref => xref.AnimeID)
@@ -160,22 +107,93 @@ public class FileController : BaseController
                 if (!isAnimeAllowed)
                     return false;
 
-                if (anidbSeriesID.HasValue || anidbEpisodeID.HasValue)
-                {
-                    var isLinkedToAnimeOrEpisode = xrefs
-                        .Where(
-                            anidbSeriesID.HasValue && anidbEpisodeID.HasValue ? (
-                                xref => xref.AnimeID == anidbSeriesID.Value && xref.EpisodeID == anidbEpisodeID.Value
-                            ) : anidbSeriesID.HasValue ? (
-                                xref => xref.AnimeID == anidbSeriesID.Value
-                            ) : (
-                                xref => xref.EpisodeID == anidbEpisodeID.Value
-                            )
-                         )
-                         .Any();
-                    if (!isLinkedToAnimeOrEpisode)
-                        return false;
-                }
+                if (!include.Contains(FileNonDefaultIncludeType.Ignored) && video.IsIgnored) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Ignored) && !video.IsIgnored) return false;
+
+                if (exclude.Contains(FileExcludeTypes.Duplicates) && locations.Count > 1) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Duplicates) && locations.Count <= 1) return false;
+
+                if (exclude.Contains(FileExcludeTypes.Unrecognized) && xrefs.Count == 0) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && xrefs.Count > 0) return false;
+
+                if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 && xrefs.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB)) return false;
+                if (include_only.Contains(FileIncludeOnlyType.ManualLinks) && xrefs.Count == 0 || xrefs.Any(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)) return false;
+
+                if (exclude.Contains(FileExcludeTypes.Watched) && userRecord?.WatchedDate != null) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Watched) && userRecord?.WatchedDate == null) return false;
+
+                return true;
+            });
+
+        // Sorting.
+        if (sortOrder != null && sortOrder.Count > 0)
+            enumerable = Models.Shoko.File.OrderBy(enumerable, sortOrder);
+        else
+            enumerable = Models.Shoko.File.OrderBy(enumerable, new()
+            {
+                // First sort by import folder from A-Z.
+                FileSortCriteria.ImportFolderName.ToString(),
+                // Then by the relative path inside the import folder, from A-Z.
+                FileSortCriteria.RelativePath.ToString(),
+            });
+
+        // Skip and limit.
+        return enumerable.ToListResult(
+            tuple => new File(tuple.UserRecord, tuple.Video, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+                include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)), page, pageSize);
+    }
+    
+    /// <summary>
+    /// Get or search through the files accessible to the current user.
+    /// </summary>
+    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+    /// <param name="page">Page number.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="exclude">Exclude items of certain types</param>
+    /// <param name="include_only">Filter to only include items of certain types</param>
+    /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="query">An optional search query to filter files based on their absolute paths.</param>
+    /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
+    /// <returns>A sliced part of the results for the current query.</returns>
+    [HttpGet("Search/{*query}")]
+    public ActionResult<ListResult<File>> Search([FromRoute] string query,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[] exclude = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[] include_only = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string> sortOrder = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery] bool fuzzy = true)
+    {
+        include ??= Array.Empty<FileNonDefaultIncludeType>();
+        exclude ??= Array.Empty<FileExcludeTypes>();
+        include_only ??= Array.Empty<FileIncludeOnlyType>();
+
+        // Filtering.
+        var user = User;
+        var includeUserRecord = exclude.Contains(FileExcludeTypes.Watched) || (sortOrder?.Any(criteria =>
+            criteria.Contains(FileSortCriteria.ViewedAt.ToString()) || criteria.Contains(FileSortCriteria.WatchedAt.ToString())) ?? false);
+        var enumerable = RepoFactory.VideoLocal.GetAll()
+            .Select(video => (
+                Video: video,
+                BestLocation: video.GetBestVideoLocalPlace(),
+                Locations: video.Places,
+                UserRecord: includeUserRecord ? video.GetUserRecord(user.JMMUserID) : null
+            ))
+            .Where(tuple =>
+            {
+                var (video, _, locations, userRecord) = tuple;
+                var xrefs = video.EpisodeCrossRefs;
+                var isAnimeAllowed = xrefs
+                    .Select(xref => xref.AnimeID)
+                    .Distinct()
+                    .Select(anidbID => RepoFactory.AniDB_Anime.GetByAnimeID(anidbID))
+                    .Where(anime => anime != null)
+                    .All(user.AllowedAnime);
+                if (!isAnimeAllowed)
+                    return false;
 
                 if (!include.Contains(FileNonDefaultIncludeType.Ignored) && video.IsIgnored) return false;
                 if (include_only.Contains(FileIncludeOnlyType.Ignored) && !video.IsIgnored) return false;
@@ -196,22 +214,13 @@ public class FileController : BaseController
             });
 
         // Search.
-        if (!string.IsNullOrEmpty(search))
-            enumerable = enumerable
-                .Search(search, tuple => tuple.Locations.Select(place => place.FullServerPath).Where(path => path != null), fuzzy)
-                .Select(result => result.Result);
+        enumerable = enumerable
+            .Search(query, tuple => tuple.Locations.Select(place => place.FullServerPath).Where(path => path != null), fuzzy)
+            .Select(result => result.Result);
 
         // Sorting.
         if (sortOrder != null && sortOrder.Count > 0)
             enumerable = Models.Shoko.File.OrderBy(enumerable, sortOrder);
-        else if (string.IsNullOrEmpty(search))
-            enumerable = Models.Shoko.File.OrderBy(enumerable, new()
-            {
-                // First sort by import folder from A-Z.
-                FileSortCriteria.ImportFolderName.ToString(),
-                // Then by the relative path inside the import folder, from A-Z.
-                FileSortCriteria.RelativePath.ToString(),
-            });
 
         // Skip and limit.
         return enumerable.ToListResult(

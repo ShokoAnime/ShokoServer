@@ -6,8 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -17,11 +15,8 @@ using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
-
-using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
-using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
+using FileSortCriteria = Shoko.Server.API.v3.Models.Shoko.File.FileSortCriteria;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -542,24 +537,33 @@ public class TreeController : BaseController
     /// Get the <see cref="File"/>s for the <see cref="Episode"/> with the given <paramref name="episodeID"/>.
     /// </summary>
     /// <param name="episodeID">Episode ID</param>
-    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+    /// <param name="page">Page number.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="exclude">Exclude items of certain types</param>
+    /// <param name="include_only">Filter to only include items of certain types</param>
+    /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
-    /// <param name="isManuallyLinked">Omit to select all files. Set to true to only select manually
-    /// linked files, or set to false to only select automatically linked files.</param>
-    /// <param name="includeMediaInfo">Include media info data.</param>
-    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/File")]
-    public ActionResult<List<File>> GetFilesForEpisode([FromRoute] int episodeID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery] bool? isManuallyLinked = null, [FromQuery] bool includeMediaInfo = false,
-        [FromQuery] bool includeAbsolutePaths = false)
+    public ActionResult<ListResult<File>> GetFilesForEpisode([FromRoute] int episodeID,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[] exclude = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[] include_only = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string> sortOrder = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
         {
             return NotFound(EpisodeController.EpisodeNotFoundWithEpisodeID);
         }
+
+        include ??= Array.Empty<FileNonDefaultIncludeType>();
+        exclude ??= Array.Empty<FileExcludeTypes>();
+        include_only ??= Array.Empty<FileIncludeOnlyType>();
 
         var series = episode.GetAnimeSeries();
         if (series == null)
@@ -572,9 +576,65 @@ public class TreeController : BaseController
             return Forbid(EpisodeController.EpisodeForbiddenForUser);
         }
 
-        return episode.GetVideoLocals(isManuallyLinked.HasValue ? isManuallyLinked.Value ? CrossRefSource.User : CrossRefSource.AniDB : null)
-            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths))
-            .ToList();
+        var user = User;
+        var includeLocations = exclude.Contains(FileExcludeTypes.Duplicates) ||
+            (sortOrder?.Any(criteria => criteria.Contains(FileSortCriteria.DuplicateCount.ToString())) ?? false);
+        var includeUserRecord = exclude.Contains(FileExcludeTypes.Watched) || (sortOrder?.Any(criteria =>
+            criteria.Contains(FileSortCriteria.ViewedAt.ToString()) || criteria.Contains(FileSortCriteria.WatchedAt.ToString())) ?? false);
+        var enumerable = episode.GetVideoLocals()
+            .Select(video => (
+                Video: video,
+                BestLocation: video.GetBestVideoLocalPlace(),
+                Locations: includeLocations ? video.Places : null,
+                UserRecord: includeUserRecord ? video.GetUserRecord(user.JMMUserID) : null
+            ))
+            .Where(tuple =>
+            {
+                var (video, bestLocation, locations, userRecord) = tuple;
+                var xrefs = video.EpisodeCrossRefs;
+                var isAnimeAllowed = xrefs
+                    .Select(xref => xref.AnimeID)
+                    .Distinct()
+                    .Select(anidbID => RepoFactory.AniDB_Anime.GetByAnimeID(anidbID))
+                    .Where(anime => anime != null)
+                    .All(user.AllowedAnime);
+                if (!isAnimeAllowed)
+                    return false;
+
+                if (!include.Contains(FileNonDefaultIncludeType.Ignored) && video.IsIgnored) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Ignored) && !video.IsIgnored) return false;
+
+                if (exclude.Contains(FileExcludeTypes.Duplicates) && locations.Count > 1) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Duplicates) && locations.Count <= 1) return false;
+
+                if (exclude.Contains(FileExcludeTypes.Unrecognized) && xrefs.Count == 0) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && xrefs.Count > 0) return false;
+
+                if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 && xrefs.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB)) return false;
+                if (include_only.Contains(FileIncludeOnlyType.ManualLinks) && xrefs.Count == 0 || xrefs.Any(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)) return false;
+
+                if (exclude.Contains(FileExcludeTypes.Watched) && userRecord?.WatchedDate != null) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Watched) && userRecord?.WatchedDate == null) return false;
+
+                return true;
+            });
+
+        // Sorting.
+        if (sortOrder != null && sortOrder.Count > 0)
+            enumerable = Models.Shoko.File.OrderBy(enumerable, sortOrder);
+        else
+            enumerable = Models.Shoko.File.OrderBy(enumerable, new()
+            {
+                // First sort by import folder from A-Z.
+                FileSortCriteria.ImportFolderName.ToString(),
+                // Then by the relative path inside the import folder, from A-Z.
+                FileSortCriteria.RelativePath.ToString(),
+            });
+
+        // Skip and limit.
+        return enumerable.ToListResult(
+            tuple => new File(tuple.UserRecord, tuple.Video, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+                include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)), page, pageSize);
     }
 
     #endregion
