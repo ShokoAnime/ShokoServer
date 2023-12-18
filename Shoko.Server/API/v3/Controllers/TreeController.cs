@@ -531,6 +531,45 @@ public class TreeController : BaseController
     }
 
     #endregion
+    
+    
+    /// <summary>
+    /// Get the <see cref="File"/>s for the <see cref="Series"/> with the given <paramref name="seriesID"/>.
+    /// </summary>
+    /// <param name="seriesID">Series ID</param>
+    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+    /// <param name="page">Page number.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="exclude">Exclude items of certain types</param>
+    /// <param name="include_only">Filter to only include items of certain types</param>
+    /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <returns></returns>
+    [HttpGet("{seriesID}/File")]
+    public ActionResult<ListResult<File>> GetFilesForSeries([FromRoute] int seriesID,
+    [FromQuery, Range(0, 1000)] int pageSize = 100,
+    [FromQuery, Range(1, int.MaxValue)] int page = 1,
+    [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
+    [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[] exclude = default,
+    [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[] include_only = default,
+    [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string> sortOrder = null,
+    [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+    {
+        var user = User;
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+        {
+            return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
+        }
+
+        if (!user.AllowedSeries(series))
+        {
+            return Forbid(SeriesController.SeriesForbiddenForUser);
+        }
+
+        return ModelHelper.FilterFiles(series.GetVideoLocals(), user, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
+    }
+    
     #region Episode
 
     /// <summary>
@@ -561,10 +600,6 @@ public class TreeController : BaseController
             return NotFound(EpisodeController.EpisodeNotFoundWithEpisodeID);
         }
 
-        include ??= Array.Empty<FileNonDefaultIncludeType>();
-        exclude ??= Array.Empty<FileExcludeTypes>();
-        include_only ??= Array.Empty<FileIncludeOnlyType>();
-
         var series = episode.GetAnimeSeries();
         if (series == null)
         {
@@ -576,65 +611,7 @@ public class TreeController : BaseController
             return Forbid(EpisodeController.EpisodeForbiddenForUser);
         }
 
-        var user = User;
-        var includeLocations = exclude.Contains(FileExcludeTypes.Duplicates) ||
-            (sortOrder?.Any(criteria => criteria.Contains(FileSortCriteria.DuplicateCount.ToString())) ?? false);
-        var includeUserRecord = exclude.Contains(FileExcludeTypes.Watched) || (sortOrder?.Any(criteria =>
-            criteria.Contains(FileSortCriteria.ViewedAt.ToString()) || criteria.Contains(FileSortCriteria.WatchedAt.ToString())) ?? false);
-        var enumerable = episode.GetVideoLocals()
-            .Select(video => (
-                Video: video,
-                BestLocation: video.GetBestVideoLocalPlace(),
-                Locations: includeLocations ? video.Places : null,
-                UserRecord: includeUserRecord ? video.GetUserRecord(user.JMMUserID) : null
-            ))
-            .Where(tuple =>
-            {
-                var (video, bestLocation, locations, userRecord) = tuple;
-                var xrefs = video.EpisodeCrossRefs;
-                var isAnimeAllowed = xrefs
-                    .Select(xref => xref.AnimeID)
-                    .Distinct()
-                    .Select(anidbID => RepoFactory.AniDB_Anime.GetByAnimeID(anidbID))
-                    .Where(anime => anime != null)
-                    .All(user.AllowedAnime);
-                if (!isAnimeAllowed)
-                    return false;
-
-                if (!include.Contains(FileNonDefaultIncludeType.Ignored) && video.IsIgnored) return false;
-                if (include_only.Contains(FileIncludeOnlyType.Ignored) && !video.IsIgnored) return false;
-
-                if (exclude.Contains(FileExcludeTypes.Duplicates) && locations.Count > 1) return false;
-                if (include_only.Contains(FileIncludeOnlyType.Duplicates) && locations.Count <= 1) return false;
-
-                if (exclude.Contains(FileExcludeTypes.Unrecognized) && xrefs.Count == 0) return false;
-                if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && xrefs.Count > 0) return false;
-
-                if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 && xrefs.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB)) return false;
-                if (include_only.Contains(FileIncludeOnlyType.ManualLinks) && xrefs.Count == 0 || xrefs.Any(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)) return false;
-
-                if (exclude.Contains(FileExcludeTypes.Watched) && userRecord?.WatchedDate != null) return false;
-                if (include_only.Contains(FileIncludeOnlyType.Watched) && userRecord?.WatchedDate == null) return false;
-
-                return true;
-            });
-
-        // Sorting.
-        if (sortOrder != null && sortOrder.Count > 0)
-            enumerable = Models.Shoko.File.OrderBy(enumerable, sortOrder);
-        else
-            enumerable = Models.Shoko.File.OrderBy(enumerable, new()
-            {
-                // First sort by import folder from A-Z.
-                FileSortCriteria.ImportFolderName.ToString(),
-                // Then by the relative path inside the import folder, from A-Z.
-                FileSortCriteria.RelativePath.ToString(),
-            });
-
-        // Skip and limit.
-        return enumerable.ToListResult(
-            tuple => new File(tuple.UserRecord, tuple.Video, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
-                include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)), page, pageSize);
+        return ModelHelper.FilterFiles(episode.GetVideoLocals(), User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
     }
 
     #endregion

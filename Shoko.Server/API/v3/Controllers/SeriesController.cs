@@ -1368,40 +1368,6 @@ public class SeriesController : BaseController
     #region File
 
     /// <summary>
-    /// Get the <see cref="File"/>s for the <see cref="Series"/> with the given <paramref name="seriesID"/>.
-    /// </summary>
-    /// <param name="seriesID">Series ID</param>
-    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
-    /// <param name="isManuallyLinked">Omit to select all files. Set to true to only select manually
-    /// linked files, or set to false to only select automatically linked files.</param>
-    /// <param name="includeMediaInfo">Include media info data.</param>
-    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
-    /// <returns></returns>
-    [HttpGet("{seriesID}/File")]
-    public ActionResult<List<File>> GetFilesForSeries([FromRoute] int seriesID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery] bool? isManuallyLinked = null, [FromQuery] bool includeMediaInfo = false,
-        [FromQuery] bool includeAbsolutePaths = false)
-    {
-        var user = User;
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
-        {
-            return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
-        }
-
-        if (!user.AllowedSeries(series))
-        {
-            return Forbid(SeriesController.SeriesForbiddenForUser);
-        }
-
-        return series.GetVideoLocals(isManuallyLinked.HasValue ? isManuallyLinked.Value ? CrossRefSource.User : CrossRefSource.AniDB : null)        
-            .Select(file => new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths))
-            .ToList();
-    }
-
-    /// <summary>
     /// Rescan all files for a series.
     /// </summary>
     /// <param name="seriesID">Series ID.</param>

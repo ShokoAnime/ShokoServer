@@ -6,6 +6,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using FileSource = Shoko.Server.API.v3.Models.Shoko.FileSource;
 using GroupSizes = Shoko.Server.API.v3.Models.Shoko.GroupSizes;
@@ -371,5 +372,74 @@ public static class ModelHelper
 
         sizes.SubGroups = subGroups;
         return sizes;
+    }
+
+    public static ListResult<File> FilterFiles(IEnumerable<SVR_VideoLocal> input, SVR_JMMUser user, int pageSize, int page, FileNonDefaultIncludeType[] include,
+        FileExcludeTypes[] exclude, FileIncludeOnlyType[] include_only, List<string> sortOrder, HashSet<DataSource> includeDataFrom)
+    {
+        include ??= Array.Empty<FileNonDefaultIncludeType>();
+        exclude ??= Array.Empty<FileExcludeTypes>();
+        include_only ??= Array.Empty<FileIncludeOnlyType>();
+
+        var includeLocations = exclude.Contains(FileExcludeTypes.Duplicates) ||
+                               (sortOrder?.Any(criteria => criteria.Contains(File.FileSortCriteria.DuplicateCount.ToString())) ?? false);
+        var includeUserRecord = exclude.Contains(FileExcludeTypes.Watched) || (sortOrder?.Any(criteria =>
+            criteria.Contains(File.FileSortCriteria.ViewedAt.ToString()) || criteria.Contains(File.FileSortCriteria.WatchedAt.ToString())) ?? false);
+        var enumerable = input
+            .Select(video => (
+                Video: video,
+                BestLocation: video.GetBestVideoLocalPlace(),
+                Locations: includeLocations ? video.Places : null,
+                UserRecord: includeUserRecord ? video.GetUserRecord(user.JMMUserID) : null
+            ))
+            .Where(tuple =>
+            {
+                var (video, _, locations, userRecord) = tuple;
+                var xrefs = video.EpisodeCrossRefs;
+                var isAnimeAllowed = xrefs
+                    .Select(xref => xref.AnimeID)
+                    .Distinct()
+                    .Select(anidbID => RepoFactory.AniDB_Anime.GetByAnimeID(anidbID))
+                    .Where(anime => anime != null)
+                    .All(user.AllowedAnime);
+                if (!isAnimeAllowed)
+                    return false;
+
+                if (!include.Contains(FileNonDefaultIncludeType.Ignored) && video.IsIgnored) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Ignored) && !video.IsIgnored) return false;
+
+                if (exclude.Contains(FileExcludeTypes.Duplicates) && locations.Count > 1) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Duplicates) && locations.Count <= 1) return false;
+
+                if (exclude.Contains(FileExcludeTypes.Unrecognized) && xrefs.Count == 0) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && xrefs.Count > 0) return false;
+
+                if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 &&
+                    xrefs.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB)) return false;
+                if (include_only.Contains(FileIncludeOnlyType.ManualLinks) &&
+                    (xrefs.Count == 0 || xrefs.Any(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB))) return false;
+
+                if (exclude.Contains(FileExcludeTypes.Watched) && userRecord?.WatchedDate != null) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Watched) && userRecord?.WatchedDate == null) return false;
+
+                return true;
+            });
+
+        // Sorting.
+        if (sortOrder != null && sortOrder.Count > 0)
+            enumerable = File.OrderBy(enumerable, sortOrder);
+        else
+            enumerable = File.OrderBy(enumerable, new()
+            {
+                // First sort by import folder from A-Z.
+                File.FileSortCriteria.ImportFolderName.ToString(),
+                // Then by the relative path inside the import folder, from A-Z.
+                File.FileSortCriteria.RelativePath.ToString(),
+            });
+
+        // Skip and limit.
+        return enumerable.ToListResult(
+            tuple => new File(tuple.UserRecord, tuple.Video, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+                include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)), page, pageSize);
     }
 }
