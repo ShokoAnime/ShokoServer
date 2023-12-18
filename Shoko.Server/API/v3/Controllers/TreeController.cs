@@ -545,7 +545,7 @@ public class TreeController : BaseController
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
-    [HttpGet("{seriesID}/File")]
+    [HttpGet("Series/{seriesID}/File")]
     public ActionResult<ListResult<File>> GetFilesForSeries([FromRoute] int seriesID,
     [FromQuery, Range(0, 1000)] int pageSize = 100,
     [FromQuery, Range(1, int.MaxValue)] int page = 1,
