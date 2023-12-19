@@ -82,57 +82,54 @@ public static class WebUIThemeProvider
     /// <returns>The updated theme metadata.</returns>
     public static async Task<ThemeDefinition> UpdateTheme(ThemeDefinition theme, bool preview = false)
     {
+        // Return the local theme if we don't have an update url.
         if (string.IsNullOrEmpty(theme.URL))
-        {
-            throw new ValidationException("Update URL is empty.");
-        }
+            if (preview)
+                throw new ValidationException("No update URL in existing theme definition.");
+            else
+                return theme;
 
         if (!(Uri.TryCreate(theme.URL, UriKind.Absolute, out var updateUrl) && (updateUrl.Scheme == Uri.UriSchemeHttp || updateUrl.Scheme == Uri.UriSchemeHttps)))
+            throw new ValidationException("Invalid update URL in existing theme definition.");
+
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromMinutes(1);
+        var response = await httpClient.GetAsync(updateUrl.AbsoluteUri);
+
+        // Check if the response was a success.
+        if (response.StatusCode != HttpStatusCode.OK)
+            throw new HttpRequestException("Failed to retrieve theme file.");
+
+        // Check if the response is using the correct content-type.
+        var contentType = response.Content.Headers.ContentType?.MediaType;
+        if (string.IsNullOrEmpty(contentType) || !AllowedMIMEs.Contains(contentType))
+            throw new HttpRequestException("Invalid content-type. Expected JSON.");
+
+        // Simple sanity check before parsing the response content.
+        var content = await response.Content.ReadAsStringAsync();
+        content = content?.Trim();
+        if (string.IsNullOrWhiteSpace(content) || content[0] != '{' || content[^1] != '}')
+            throw new HttpRequestException("Invalid theme file format.");
+
+        // Try to parse the updated theme.
+        var updatedTheme = ThemeDefinition.FromJson(content, theme.ID, theme.FileName, preview) ??
+            throw new HttpRequestException("Failed to parse the updated theme.");
+
+        // Save the updated theme file if we're not pre-viewing.
+        if (!preview)
         {
-            throw new ValidationException("Invalid update URL.");
+            var dirPath = Path.Combine(Utils.ApplicationPath, "themes");
+            if (!Directory.Exists(dirPath))
+                Directory.CreateDirectory(dirPath);
+
+            var filePath = Path.Combine(dirPath, theme.FileName);
+            await File.WriteAllTextAsync(filePath, content);
+
+            if (ThemeDict != null && !ThemeDict.TryAdd(theme.ID, updatedTheme))
+                ThemeDict[theme.ID] = updatedTheme;
         }
 
-        using (var httpClient = new HttpClient())
-        {
-            httpClient.Timeout = TimeSpan.FromMinutes(1);
-            var response = await httpClient.GetAsync(updateUrl.AbsoluteUri);
-
-            // Check if the response was a success.
-            if (response.StatusCode != HttpStatusCode.OK)
-                throw new HttpRequestException("Failed to retrieve theme file.");
-
-            // Check if the response is using the correct content-type.
-            var contentType = response.Content.Headers.ContentType?.MediaType;
-            if (string.IsNullOrEmpty(contentType) || !AllowedMIMEs.Contains(contentType))
-                throw new HttpRequestException("Invalid content-type. Expected JSON.");
-
-            // Simple sanity check before parsing the response content.
-            var content = await response.Content.ReadAsStringAsync();
-            content = content?.Trim();
-            if (string.IsNullOrWhiteSpace(content) || content[0] != '{' || content[content.Length - 1] != '}')
-                throw new HttpRequestException("Invalid theme file format.");
-
-            // Try to parse the updated theme.
-            var updatedTheme = ThemeDefinition.FromJson(content, theme.ID, theme.FileName, preview);
-            if (updatedTheme == null)
-                throw new HttpRequestException("Failed to parse the updated theme.");
-
-            // Save the updated theme file if we're not pre-viewing.
-            if (!preview)
-            {
-                var dirPath = Path.Combine(Utils.ApplicationPath, "themes");
-                if (!Directory.Exists(dirPath))
-                    Directory.CreateDirectory(dirPath);
-
-                var filePath = Path.Combine(dirPath, theme.FileName);
-                await File.WriteAllTextAsync(filePath, content);
-
-                if (ThemeDict != null && !ThemeDict.TryAdd(theme.ID, updatedTheme))
-                    ThemeDict[theme.ID] = updatedTheme;
-            }
-
-            return updatedTheme;
-        }
+        return updatedTheme;
     }
 
     /// <summary>
@@ -165,48 +162,45 @@ public static class WebUIThemeProvider
         if (string.IsNullOrEmpty(fileName) || !FileNameRegex.IsMatch(fileName))
             throw new ValidationException("Invalid theme file name.");
 
-        using (var httpClient = new HttpClient())
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromMinutes(1);
+        var response = await httpClient.GetAsync(updateUrl.AbsoluteUri);
+
+        // Check if the response was a success.
+        if (response.StatusCode != HttpStatusCode.OK)
+            throw new HttpRequestException("Failed to retrieve theme file.");
+
+        // Check if the response is using the correct content-type.
+        var contentType = response.Content.Headers.ContentType?.MediaType;
+        if (string.IsNullOrEmpty(contentType) || !AllowedMIMEs.Contains(contentType))
+            throw new HttpRequestException("Invalid content-type. Expected JSON.");
+
+        // Simple sanity check before parsing the response content.
+        var content = await response.Content.ReadAsStringAsync();
+        content = content?.Trim();
+        if (string.IsNullOrWhiteSpace(content) || content[0] != '{' || content[^1] != '}')
+            throw new HttpRequestException("Invalid theme file format.");
+
+        // Try to parse the new theme.
+        var id = FileNameToID(fileName);
+        var theme = ThemeDefinition.FromJson(content, id, fileName + extName, preview) ??
+            throw new HttpRequestException("Failed to parse the new theme.");
+
+        // Save the new theme file if we're not pre-viewing.
+        if (!preview)
         {
-            httpClient.Timeout = TimeSpan.FromMinutes(1);
-            var response = await httpClient.GetAsync(updateUrl.AbsoluteUri);
+            var dirPath = Path.Combine(Utils.ApplicationPath, "themes");
+            if (!Directory.Exists(dirPath))
+                Directory.CreateDirectory(dirPath);
 
-            // Check if the response was a success.
-            if (response.StatusCode != HttpStatusCode.OK)
-                throw new HttpRequestException("Failed to retrieve theme file.");
+            var filePath = Path.Combine(dirPath, fileName + extName);
+            await File.WriteAllTextAsync(filePath, content);
 
-            // Check if the response is using the correct content-type.
-            var contentType = response.Content.Headers.ContentType?.MediaType;
-            if (string.IsNullOrEmpty(contentType) || !AllowedMIMEs.Contains(contentType))
-                throw new HttpRequestException("Invalid content-type. Expected JSON.");
-
-            // Simple sanity check before parsing the response content.
-            var content = await response.Content.ReadAsStringAsync();
-            content = content?.Trim();
-            if (string.IsNullOrWhiteSpace(content) || content[0] != '{' || content[content.Length - 1] != '}')
-                throw new HttpRequestException("Invalid theme file format.");
-
-            // Try to parse the new theme.
-            var id = FileNameToID(fileName);
-            var theme = ThemeDefinition.FromJson(content, id, fileName + extName, preview);
-            if (theme == null)
-                throw new HttpRequestException("Failed to parse the new theme.");
-
-            // Save the new theme file if we're not pre-viewing.
-            if (!preview)
-            {
-                var dirPath = Path.Combine(Utils.ApplicationPath, "themes");
-                if (!Directory.Exists(dirPath))
-                    Directory.CreateDirectory(dirPath);
-
-                var filePath = Path.Combine(dirPath, fileName + extName);
-                await File.WriteAllTextAsync(filePath, content);
-
-                if (ThemeDict != null && !ThemeDict.TryAdd(id, theme))
-                    ThemeDict[id] = theme;
-            }
-
-            return theme;
+            if (ThemeDict != null && !ThemeDict.TryAdd(id, theme))
+                ThemeDict[id] = theme;
         }
+
+        return theme;
     }
 
     public class ThemeDefinitionInput
@@ -344,9 +338,7 @@ public static class WebUIThemeProvider
         }
 
         public string ToCSS()
-        {
-            return $".theme-{ID} {{{string.Join(" ", Values.Select(pair => $" --{pair.Key}: {pair.Value};"))} }}";
-        }
+            => $".theme-{ID} {{{string.Join(" ", Values.Select(pair => $" --{pair.Key}: {pair.Value};"))} }}";
 
         internal static IReadOnlyList<ThemeDefinition> FromDirectory(string dirPath)
         {
@@ -379,7 +371,7 @@ public static class WebUIThemeProvider
                 return null;
 
             // Safely try to read
-            string? fileContents = null;
+            string? fileContents;
             try
             {
                 fileContents = File.ReadAllText(filePath)?.Trim();
@@ -389,7 +381,7 @@ public static class WebUIThemeProvider
                 return null;
             }
             // Simple sanity check before parsing the file contents.
-            if (string.IsNullOrWhiteSpace(fileContents) || fileContents[0] != '{' || fileContents[fileContents.Length - 1] != '}')
+            if (string.IsNullOrWhiteSpace(fileContents) || fileContents[0] != '{' || fileContents[^1] != '}')
                 return null;
 
             var id = FileNameToID(fileName);
@@ -415,17 +407,17 @@ public static class WebUIThemeProvider
     }
 
     private static string FileNameToID(string fileName)
-    {
-        return fileName.ToLowerInvariant().Replace('_', '-');
-    }
+        => fileName.ToLowerInvariant().Replace('_', '-');
 
     private static string NameFromID(string id)
-    {
-        return string.Join(' ', id.Replace('_', '-').Replace('-', ' ').Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(segment => segment[0..1].ToUpperInvariant() + segment[1..].ToLowerInvariant()));
-    }
+        => string.Join(
+            ' ',
+            id.Replace('_', '-')
+                .Replace('-', ' ')
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(segment => segment[0..1].ToUpperInvariant() + segment[1..].ToLowerInvariant())
+        );
 
     public static string ToCSS(this IEnumerable<ThemeDefinition> list)
-    {
-        return string.Join(" ", list.Select(theme => theme.ToCSS()));
-    }
+        => string.Join(" ", list.Select(theme => theme.ToCSS()));
 }

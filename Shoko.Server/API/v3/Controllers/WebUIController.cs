@@ -160,16 +160,14 @@ public class WebUIController : BaseController
 
         return NoContent();
     }
-
     /// <summary>
-    /// Updates a theme by its ID.
+    /// Preview the update to a theme by its ID.
     /// </summary>
     /// <param name="themeID">The ID of the theme to update.</param>
-    /// <param name="preview">Flag indicating whether to enable preview mode.</param>
-    /// <returns>The updated theme.</returns>
-    [Authorize("admin")]
-    [HttpPost("Theme/{themeID}/Update")]
-    public async Task<ActionResult<WebUITheme>> UpdateTheme([FromRoute] string themeID, [FromQuery] bool preview = false)
+    /// <returns>The preview of the updated theme.</returns>
+    [ResponseCache(Duration = 60 /* 1 minute in seconds */)]
+    [HttpGet("Theme/{themeID}/Update")]
+    public async Task<ActionResult<WebUITheme>> PreviewUpdatedTheme([FromRoute] string themeID)
     {
         var theme = WebUIThemeProvider.GetTheme(themeID, true);
         if (theme == null)
@@ -177,7 +175,35 @@ public class WebUIController : BaseController
 
         try
         {
-            theme = await WebUIThemeProvider.UpdateTheme(theme, preview);
+            theme = await WebUIThemeProvider.UpdateTheme(theme, true);
+            return new WebUITheme(theme);
+        }
+        catch (ValidationException valEx)
+        {
+            return BadRequest(valEx.Message);
+        }
+        catch (HttpRequestException httpEx)
+        {
+            return InternalError(httpEx.Message);
+        }
+    }
+
+    /// <summary>
+    /// Updates a theme by its ID.
+    /// </summary>
+    /// <param name="themeID">The ID of the theme to update.</param>
+    /// <returns>The updated theme.</returns>
+    [Authorize("admin")]
+    [HttpPost("Theme/{themeID}/Update")]
+    public async Task<ActionResult<WebUITheme>> UpdateTheme([FromRoute] string themeID)
+    {
+        var theme = WebUIThemeProvider.GetTheme(themeID, true);
+        if (theme == null)
+            return NotFound("A theme with the given id was not found.");
+
+        try
+        {
+            theme = await WebUIThemeProvider.UpdateTheme(theme, false);
             return new WebUITheme(theme);
         }
         catch (ValidationException valEx)
