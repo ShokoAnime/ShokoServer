@@ -37,65 +37,68 @@ public class FolderController : BaseController
         "sysfs",
     };
 
+    [HttpGet("MountPoints")]
     [HttpGet("Drives")]
-    public ActionResult<IEnumerable<Drive>> GetDrives()
+    public ActionResult<IEnumerable<Drive>> GetMountPoints()
     {
-        return DriveInfo.GetDrives().Select(d =>
-        {
-            if (d.DriveType == DriveType.Unknown)
-                return null;
-
-            string fullName;
-            try
+        return DriveInfo.GetDrives()
+            .Select(d =>
             {
-                fullName = d.RootDirectory.FullName;
-            }
-            catch
-            {
-                return null;
-            }
-
-            string driveFormat;
-            try
-            {
-                driveFormat = d.DriveFormat;
-            }
-            catch
-            {
-                return null;
-            }
-
-            foreach (var format in ExcludedFormats)
-            {
-                if (driveFormat == format)
+                if (d.DriveType == DriveType.Unknown)
                     return null;
-            }
 
-            ChildItems childItems = null;
-            try
-            {
-                childItems = d.IsReady
-                    ? new ChildItems()
-                    {
-                        Files = d.RootDirectory.GetFiles()?.Length ?? 0,
-                        Folders = d.RootDirectory.GetDirectories()?.Length ?? 0,
-                    }
-                    : null;
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
+                string fullName;
+                try
+                {
+                    fullName = d.RootDirectory.FullName;
+                }
+                catch
+                {
+                    return null;
+                }
 
-            return new Drive()
-            {
-                Path = fullName,
-                IsAccessible = childItems != null,
-                Sizes = childItems,
-                Type = d.DriveType,
-            };
-        })
-        .Where(mountPoint => mountPoint != null)
-        .ToList();
+                string driveFormat;
+                try
+                {
+                    driveFormat = d.DriveFormat;
+                }
+                catch
+                {
+                    return null;
+                }
+
+                foreach (var format in ExcludedFormats)
+                {
+                    if (driveFormat == format)
+                        return null;
+                }
+
+                ChildItems childItems = null;
+                try
+                {
+                    childItems = d.IsReady
+                        ? new ChildItems()
+                        {
+                            Files = d.RootDirectory.GetFiles()?.Length ?? 0,
+                            Folders = d.RootDirectory.GetDirectories()?.Length ?? 0,
+                        }
+                        : null;
+                }
+                catch (UnauthorizedAccessException)
+                {
+                }
+
+                return new Drive()
+                {
+                    Path = fullName,
+                    IsAccessible = childItems != null,
+                    Sizes = childItems,
+                    Type = d.DriveType,
+                };
+            })
+            .Where(mountPoint => mountPoint != null)
+            .OrderBy(mountPoint => mountPoint.Path)
+            .ToList();
     }
 
     [HttpGet]
@@ -107,22 +110,25 @@ public class FolderController : BaseController
         }
 
         var root = new DirectoryInfo(path);
-        return root.GetDirectories().Select(dir =>
-        {
-            ChildItems childItems = null;
-            try
+        return root.GetDirectories()
+            .Select(dir =>
             {
-                childItems = new ChildItems()
+                ChildItems childItems = null;
+                try
                 {
-                    Files = dir.GetFiles()?.Length ?? 0, Folders = dir.GetDirectories()?.Length ?? 0
-                };
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
+                    childItems = new ChildItems()
+                    {
+                        Files = dir.GetFiles()?.Length ?? 0, Folders = dir.GetDirectories()?.Length ?? 0
+                    };
+                }
+                catch (UnauthorizedAccessException)
+                {
+                }
 
-            return new Folder() { Path = dir.FullName, IsAccessible = childItems != null, Sizes = childItems };
-        }).ToList();
+                return new Folder() { Path = dir.FullName, IsAccessible = childItems != null, Sizes = childItems };
+            })
+            .OrderBy(folder => folder.Path)
+            .ToList();
     }
 
     public FolderController(ISettingsProvider settingsProvider) : base(settingsProvider)
