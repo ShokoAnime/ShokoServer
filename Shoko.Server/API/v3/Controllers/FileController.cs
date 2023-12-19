@@ -315,7 +315,9 @@ public class FileController : BaseController
     /// <returns>A file stream for the specified file.</returns>
     [AllowAnonymous]
     [HttpGet("{fileID}/Stream")]
+    [HttpHead("{fileID}/Stream")]
     [HttpGet("{fileID}/StreamDirectory/{filename}")]
+    [HttpHead("{fileID}/StreamDirectory/{filename}")]
     public ActionResult GetFileStream([FromRoute] int fileID, [FromRoute] string filename = null, [FromQuery] bool streamPositionScrobbling = false)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
