@@ -2076,39 +2076,4 @@ public class SeriesController : BaseController
 
     #endregion
 
-    #region Utility
-
-    /// <summary>
-    /// Get series with soft duplicates.
-    /// </summary>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
-    /// <param name="ignoreVariations">Ignore manually toggled variations in the results.</param>
-    /// <param name="onlyFinishedSeries">Only show finished series.</param>
-    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
-    /// <param name="page">Page number.</param>
-    /// <returns></returns>
-    [HttpGet("WithSoftDuplicates")]
-    public ActionResult<ListResult<SeriesWithDuplicatesResult>> GetSeriesWithSoftDuplicates(
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery] bool ignoreVariations = true,
-        [FromQuery] bool onlyFinishedSeries = false,
-        [FromQuery, Range(0, 1000)] int pageSize = 100,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1)
-    {
-        IEnumerable<SVR_AnimeSeries> enumerable =
-            RepoFactory.AnimeSeries.GetWithSoftDuplicates(ignoreVariations);
-        if (onlyFinishedSeries)
-        {
-            var dictSeriesFinishedAiring = RepoFactory.AnimeSeries.GetAll()
-                .ToDictionary(a => a.AnimeSeriesID, a => a.GetAnime().GetFinishedAiring());
-            enumerable = enumerable.Where(a => a.GetAnime().GetFinishedAiring());
-        }
-
-        return enumerable
-            .OrderBy(series => series.GetSeriesName())
-            .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => _seriesFactory.GetSeriesWithDuplicatesResult(series, false, includeDataFrom, ignoreVariations), page, pageSize);
-    }
-
-    #endregion
 }

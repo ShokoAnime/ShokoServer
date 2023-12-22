@@ -867,14 +867,14 @@ public class SeriesFactory
         return searchResult;
     }
 
-    public SeriesWithDuplicatesResult GetSeriesWithDuplicatesResult(
+    public SeriesWithMultipleReleasesResult GetSeriesWithMultipleReleasesResult(
         SVR_AnimeSeries animeSeries,
         bool randomiseImages = false,
         HashSet<DataSource> includeDataFrom = null,
         bool ignoreVariations = true)
     {
         var series = GetSeries(animeSeries, randomiseImages, includeDataFrom);
-        var episodesWithSoftDuplicates = RepoFactory.AnimeEpisode.GetWithSoftDuplicates(ignoreVariations, animeSeries.AniDB_ID).Count;
+        var episodesWithMultipleReleases = RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations, animeSeries.AniDB_ID).Count;
         return new()
         {
             Name = series.Name,
@@ -889,7 +889,7 @@ public class SeriesFactory
             Links = series.Links,
             _AniDB = series._AniDB,
             _TvDB = series._TvDB,
-            EpisodesWithSoftDuplicates = episodesWithSoftDuplicates,
+            Episodes = episodesWithMultipleReleases,
         };
     }
 }

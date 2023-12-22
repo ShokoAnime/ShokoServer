@@ -484,12 +484,12 @@ public class SeriesSearchResult : Series
 /// <summary>
 /// An extended model for use with the soft duplicate endpoint.
 /// </summary>
-public class SeriesWithDuplicatesResult : Series
+public class SeriesWithMultipleReleasesResult : Series
 {
     /// <summary>
-    /// Number of episodes in the series which have soft duplicates.
+    /// Number of episodes in the series which have multiple releases.
     /// </summary>
-    public int EpisodesWithSoftDuplicates { get; set; }
+    public int Episodes { get; set; }
 }
 
 public enum SeriesType

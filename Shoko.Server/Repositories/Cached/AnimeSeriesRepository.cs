@@ -331,7 +331,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
     private const string CountVariationsQuery =
         @"SELECT ani.AnimeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
 
-    public List<SVR_AnimeSeries> GetWithSoftDuplicates(bool ignoreVariations)
+    public List<SVR_AnimeSeries> GetWithMultipleReleases(bool ignoreVariations)
     {
         var ids = Lock(() =>
         {
