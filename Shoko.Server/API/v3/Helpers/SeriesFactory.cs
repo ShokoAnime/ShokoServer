@@ -889,7 +889,7 @@ public class SeriesFactory
             Links = series.Links,
             _AniDB = series._AniDB,
             _TvDB = series._TvDB,
-            Episodes = episodesWithMultipleReleases,
+            EpisodeCount = episodesWithMultipleReleases,
         };
     }
 }

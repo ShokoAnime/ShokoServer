@@ -489,7 +489,7 @@ public class SeriesWithMultipleReleasesResult : Series
     /// <summary>
     /// Number of episodes in the series which have multiple releases.
     /// </summary>
-    public int Episodes { get; set; }
+    public int EpisodeCount { get; set; }
 }
 
 public enum SeriesType
