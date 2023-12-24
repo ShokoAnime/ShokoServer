@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "Started Shoko Server bootstrapping process…"
+
 # Set variable for the UID and GID based on env, else use default values
 PUID=${PUID:-1000}
 PGID=${PGID:-100}
