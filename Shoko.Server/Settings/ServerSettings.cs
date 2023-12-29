@@ -59,7 +59,7 @@ public class ServerSettings : IServerSettings
 
     public bool AutoGroupSeries { get; set; }
 
-    public List<string> AutoGroupSeriesRelationExclusions { get; set; } = new() { "same setting", "character" };
+    public List<string> AutoGroupSeriesRelationExclusions { get; set; } = new() { "same setting", "character", "other" };
 
     public bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
 
