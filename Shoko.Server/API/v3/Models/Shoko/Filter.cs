@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Filters;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -116,6 +117,18 @@ public class Filter : BaseModel
         /// </summary>
         [Required]
         public string Expression { get; init; }
+        
+        /// <summary>
+        /// The human readable name of the Expression
+        /// </summary>
+        [Required]
+        public string Name { get; init; }
+        
+        /// <summary>
+        /// The group that this filter expression belongs to. This can help with filtering the expression types
+        /// </summary>
+        [Required]
+        public FilterExpressionGroup Group { get; init; }
 
         /// <summary>
         /// A description of what the expression is doing, comparing, etc
@@ -213,6 +226,12 @@ public class Filter : BaseModel
         /// </summary>
         [Required]
         public string Type { get; init; }
+
+        /// <summary>
+        /// Human readable name
+        /// </summary>
+        [Required]
+        public string Name { get; set; }
 
         /// <summary>
         /// A description of what the expression is doing, comparing, etc

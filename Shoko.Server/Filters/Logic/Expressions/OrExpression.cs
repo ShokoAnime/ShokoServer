@@ -16,6 +16,7 @@ public class OrExpression : FilterExpression<bool>, IWithExpressionParameter, IW
     public override bool TimeDependent => Left.TimeDependent || Right.TimeDependent;
     public override bool UserDependent => Left.UserDependent || Right.UserDependent;
     public override string HelpDescription => "This passes if either the left expression or the right expression pass";
+    public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
     public FilterExpression<bool> Left { get; set; }
     public FilterExpression<bool> Right { get; set; }

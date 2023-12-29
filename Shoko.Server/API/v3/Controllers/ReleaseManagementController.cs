@@ -63,7 +63,7 @@ public class ReleaseManagementController : BaseController
     /// <returns></returns>
     [HttpGet("Series/{seriesID}")]
     public ActionResult<ListResult<Episode>> GetEpisodesForSeries(
-        int seriesID,
+        [FromRoute] int seriesID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool includeFiles = true,
         [FromQuery] bool includeMediaInfo = true,
@@ -79,7 +79,7 @@ public class ReleaseManagementController : BaseController
         if (!User.AllowedSeries(series))
             return new ListResult<Episode>();
 
-        IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations);
+        IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID);
 
         return enumerable
             .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths), page, pageSize);
@@ -121,7 +121,7 @@ public class ReleaseManagementController : BaseController
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/Episode/FilesToDelete")]
     public ActionResult<List<int>> GetFileIdsWithPreference(
-        int seriesID,
+        [FromRoute] int seriesID,
         [FromQuery] bool ignoreVariations = true
     )
     {
@@ -132,7 +132,7 @@ public class ReleaseManagementController : BaseController
         if (!User.AllowedSeries(series))
             return new List<int>();
 
-        IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations);
+        IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID);
 
         return enumerable
             .SelectMany(episode =>

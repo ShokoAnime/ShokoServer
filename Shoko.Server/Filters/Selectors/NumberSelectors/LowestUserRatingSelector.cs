@@ -8,6 +8,7 @@ public class LowestUserRatingSelector : FilterExpression<double>
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
     public override string HelpDescription => "This returns the lowest user rating in a filterable";
+    public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {

@@ -103,16 +103,12 @@ public class FileController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
         [FromQuery] bool fuzzy = true)
     {
-        var enumerable = ModelHelper.FilterFiles(RepoFactory.VideoLocal.GetAll(), User, pageSize, page, include, exclude, include_only, sortOrder,
-            includeDataFrom).List;
-
         // Search.
-        var searched = enumerable
-            .Search(query, tuple => tuple.Locations.Select(place => place.AbsolutePath).Where(path => path != null), fuzzy)
-            .Select(result => result.Result);
-
-        // Skip and limit.
-        return searched.ToListResult(page, pageSize);
+        var searched = RepoFactory.VideoLocal.GetAll()
+            .Search(query, tuple => tuple.Places.Select(place => place?.FilePath).Where(path => path != null), fuzzy)
+            .Select(result => result.Result).Skip((page-1)*pageSize).Take(pageSize).ToList();
+        return ModelHelper.FilterFiles(searched, User, pageSize, page, include, exclude, include_only, sortOrder,
+            includeDataFrom);
     }
 
     /// <summary>
@@ -161,21 +157,20 @@ public class FileController : BaseController
     /// Get File Details
     /// </summary>
     /// <param name="fileID">Shoko VideoLocalID</param>
-    /// <param name="includeXRefs">Set to true to include series and episode cross-references.</param>
+    /// <param name="include">Include items that are not included by default</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
-    /// <param name="includeMediaInfo">Include media info data.</param>
-    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <returns></returns>
     [HttpGet("{fileID}")]
-    public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
-        [FromQuery] bool includeMediaInfo = false, [FromQuery] bool includeAbsolutePaths = false)
+    public ActionResult<File> GetFile([FromRoute] int fileID, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        return new File(HttpContext, file, includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths);
+        include ??= Array.Empty<FileNonDefaultIncludeType>();
+        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
+            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
     }
 
     /// <summary>

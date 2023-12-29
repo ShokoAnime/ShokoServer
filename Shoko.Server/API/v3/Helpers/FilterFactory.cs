@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Models;
@@ -28,11 +29,11 @@ public class FilterFactory
 
         _expressionTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
             .Where(a => a != typeof(FilterExpression) && !a.IsGenericType && typeof(FilterExpression).IsAssignableFrom(a) &&
-                        !typeof(SortingExpression).IsAssignableFrom(a)).ToDictionary(a => a.Name.Replace("Expression", "").Replace("Function", "").Replace("Selector", ""));
+                        !typeof(SortingExpression).IsAssignableFrom(a)).ToDictionary(a => a.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector"));
 
         _sortingTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
             .Where(a => a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType && typeof(SortingExpression).IsAssignableFrom(a))
-            .ToDictionary(a => a.Name.Replace("SortingSelector", ""));
+            .ToDictionary(a => a.Name.TrimEnd("SortingSelector"));
     }
 
     public Filter GetFilter(FilterPreset groupFilter, bool fullModel = false)
@@ -101,7 +102,7 @@ public class FilterFactory
         if (expression is null) return null;
         var result = new Filter.FilterCondition
         {
-            Type = expression.GetType().Name.Replace("Expression", "").Replace("Function", "").Replace("Selector", "")
+            Type = expression.GetType().Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim()
         };
 
         // Left/First
@@ -164,7 +165,7 @@ public class FilterFactory
     public FilterExpression<T> GetExpressionTree<T>(Filter.FilterCondition condition)
     {
         if (condition is null) return null;
-        if (!_expressionTypes.TryGetValue(condition.Type.Replace("Expression", "").Replace("Function", "").Replace("Selector", ""), out var type))
+        if (!_expressionTypes.TryGetValue(condition.Type.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim(), out var type))
             throw new ArgumentException($"FilterCondition type {condition.Type} was not found");
         var result = (FilterExpression<T>)Activator.CreateInstance(type);
 
@@ -235,7 +236,7 @@ public class FilterFactory
 
         var result = new Filter.SortingCriteria
         {
-            Type = expression.GetType().Name.Replace("SortingSelector", ""),
+            Type = expression.GetType().Name.TrimEnd("SortingSelector"),
             IsInverted = expression.Descending
         };
 
@@ -245,7 +246,7 @@ public class FilterFactory
         {
             currentCriteria.Next = new Filter.SortingCriteria
             {
-                Type = currentExpression.GetType().Name.Replace("SortingSelector", ""),
+                Type = currentExpression.GetType().Name.TrimEnd("SortingSelector"),
                 IsInverted = currentExpression.Descending
             };
             currentCriteria = currentCriteria.Next;

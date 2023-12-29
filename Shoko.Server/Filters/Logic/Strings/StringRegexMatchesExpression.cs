@@ -25,6 +25,7 @@ public class StringRegexMatchesExpression : FilterExpression<bool>, IWithStringS
     public override bool TimeDependent => Left.TimeDependent;
     public override bool UserDependent => Left.UserDependent;
     public override string HelpDescription => "This passes if the left selector matches the regular expression given in the parameter";
+    public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {

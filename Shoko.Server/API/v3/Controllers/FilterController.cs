@@ -10,6 +10,7 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Models;
@@ -150,7 +151,9 @@ public class FilterController : BaseController
             };
             return new Filter.FilterExpressionHelp
             {
-                Expression = a.Name.Replace("Expression", "").Replace("Function", ""),
+                Expression = a.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim(),
+                Name = expression.Name,
+                Group = expression.Group,
                 Description = expression.HelpDescription,
                 PossibleParameters = expression.HelpPossibleParameters,
                 PossibleSecondParameters = expression.HelpPossibleSecondParameters,
@@ -186,7 +189,9 @@ public class FilterController : BaseController
                 if (criteria == null) return null;
                 return new Filter.SortingCriteriaHelp
                 {
-                    Type = a.Name.Replace("SortingSelector", ""), Description = criteria.HelpDescription
+                    Type = a.Name.TrimEnd("SortingSelector").Trim(),
+                    Name = criteria.Name,
+                    Description = criteria.HelpDescription
                 };
             }).Where(a => a != null).ToArray();
         return _sortingTypes;

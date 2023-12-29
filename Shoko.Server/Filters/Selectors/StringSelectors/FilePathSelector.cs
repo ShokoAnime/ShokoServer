@@ -7,6 +7,7 @@ public class FilePathSelector : FilterExpression<string>
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns a comma separated list of the file paths in a filterable";
+    public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
     public override string Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {

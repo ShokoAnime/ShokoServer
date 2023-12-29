@@ -7,6 +7,7 @@ public class MissingEpisodeCountSelector : FilterExpression<double>
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns the number of missing episodes from any release group in a filterable";
+    public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {

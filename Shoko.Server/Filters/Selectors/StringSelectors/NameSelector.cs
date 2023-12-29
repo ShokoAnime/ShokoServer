@@ -7,6 +7,7 @@ public class NameSelector : FilterExpression<string>
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns the name of a filterable";
+    public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
     public override string Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {

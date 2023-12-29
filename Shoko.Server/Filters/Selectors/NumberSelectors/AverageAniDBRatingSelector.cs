@@ -8,6 +8,7 @@ public class AverageAniDBRatingSelector : FilterExpression<double>
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
     public override string HelpDescription => "This returns the average AniDB rating in a filterable";
+    public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {

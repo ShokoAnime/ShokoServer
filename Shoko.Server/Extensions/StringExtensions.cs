@@ -75,4 +75,43 @@ public static class StringExtensions
     {
         return value1.Equals(value2, StringComparison.InvariantCultureIgnoreCase);
     }
+    
+    public static string CamelCaseToNatural(this string text, bool preserveAcronyms=true)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+        StringBuilder newText = new StringBuilder(text.Length * 2);
+        newText.Append(text[0]);
+        for (int i = 1; i < text.Length; i++)
+        {
+            if (char.IsUpper(text[i]))
+                if ((text[i - 1] != ' ' && !char.IsUpper(text[i - 1])) ||
+                    (preserveAcronyms && char.IsUpper(text[i - 1]) && 
+                     i < text.Length - 1 && !char.IsUpper(text[i + 1])))
+                    newText.Append(' ');
+            newText.Append(text[i]);
+        }
+        return newText.ToString();
+    }
+    
+    public static string TrimStart(this string inputText, string value, StringComparison comparisonType = StringComparison.CurrentCultureIgnoreCase)
+    {
+        if (string.IsNullOrEmpty(value)) return inputText;
+        while (!string.IsNullOrEmpty(inputText) && inputText.StartsWith(value, comparisonType)) inputText = inputText[(value.Length - 1)..];
+
+        return inputText;
+    }
+
+    public static string TrimEnd(this string inputText, string value, StringComparison comparisonType = StringComparison.CurrentCultureIgnoreCase)
+    {
+        if (string.IsNullOrEmpty(value)) return inputText;
+        while (!string.IsNullOrEmpty(inputText) && inputText.EndsWith(value, comparisonType)) inputText = inputText[..^value.Length];
+
+        return inputText;
+    }
+
+    public static string Trim(this string inputText, string value, StringComparison comparisonType = StringComparison.CurrentCultureIgnoreCase)
+    {
+        return TrimStart(TrimEnd(inputText, value, comparisonType), value, comparisonType);
+    }
 }

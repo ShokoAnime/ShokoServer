@@ -25,6 +25,7 @@ public class StringStartsWithExpression : FilterExpression<bool>, IWithStringSel
     public override bool TimeDependent => Left.TimeDependent || (Right?.TimeDependent ?? false);
     public override bool UserDependent => Left.UserDependent || (Right?.UserDependent ?? false);
     public override string HelpDescription => "This passes if the left selector starts with either the right selector or the parameter";
+    public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {

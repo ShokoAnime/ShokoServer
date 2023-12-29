@@ -23,6 +23,7 @@ public class NumberNotEqualsExpression : FilterExpression<bool>, IWithNumberSele
     public override bool TimeDependent => Left.TimeDependent || (Right?.TimeDependent ?? false);
     public override bool UserDependent => Left.UserDependent || (Right?.UserDependent ?? false);
     public override string HelpDescription => "This passes if the left selector is not equal to either the right selector or the parameter";
+    public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
