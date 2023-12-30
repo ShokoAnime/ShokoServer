@@ -40,49 +40,46 @@ public static class SeriesSearch
         return value.CompactWhitespaces();
     }
 
+    // This forces ASCII, because it's faster to stop caring if ss and ß are the same
+    // No it's not perfect, but it works better for those who just want to do lazy searching
+    private static string ForceASCII(this string value) =>
+        value.FilterSearchCharacters()
+            .Replace('_', ' ')
+            .Replace('-', ' ')
+            .CompactWhitespaces()
+            // Case insensitive. We just removed the fancy characters, so latin
+            // alphabet lowercase is all we should have.
+            .ToLowerInvariant();
+
     private static readonly IStringDistance DiceSearch = new SorensenDice();
 
     public static SearchResult<T> DiceFuzzySearch<T>(string text, string pattern, T value)
     {
         if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(pattern))
             return new();
-        // This forces ASCII, because it's faster to stop caring if ss and ß are the same
-        // No it's not perfect, but it works better for those who just want to do lazy searching
-        string inputString = text.FilterSearchCharacters();
-        string query = pattern.FilterSearchCharacters();
-        inputString = inputString.Replace('_', ' ').Replace('-', ' ');
-        query = query.Replace('_', ' ').Replace('-', ' ');
-        query = query.CompactWhitespaces();
-        inputString = inputString.CompactWhitespaces();
-        // Case insensitive. We just removed the fancy characters, so latin alphabet lowercase is all we should have
-        query = query.ToLowerInvariant();
-        inputString = inputString.ToLowerInvariant();
-
-        if (string.IsNullOrWhiteSpace(query) || string.IsNullOrWhiteSpace(inputString))
-            return new();
 
         // Shortcut
-        var lengthDiff = Math.Abs(query.Length - inputString.Length);
-        int index = inputString.IndexOf(query, StringComparison.Ordinal);
+        var index = text.IndexOf(pattern, StringComparison.Ordinal);
         if (index > -1)
             return new()
             {
                 ExactMatch = true,
                 Index = index,
-                LengthDifference = lengthDiff,
+                LengthDifference = Math.Abs(pattern.Length - text.Length),
                 Match = text,
                 Result = value,
             };
 
+        var inputString = text.ForceASCII();
+        var query = pattern.ForceASCII();
+        if (string.IsNullOrWhiteSpace(query) || string.IsNullOrWhiteSpace(inputString))
+            return new();
+
         // always search the longer string for the shorter one
         if (query.Length > inputString.Length)
-        {
-            string temp = query;
-            query = inputString;
-            inputString = temp;
-        }
+            (inputString, query) = (query, inputString);
 
-        double result = DiceSearch.Distance(inputString, query);
+        var result = DiceSearch.Distance(inputString, query);
 
         // Don't count an error as liberally when the title is short
         if (inputString.Length < 5 && result > 0.5)
@@ -94,7 +91,7 @@ public static class SeriesSearch
         return new()
         {
             Distance = result,
-            LengthDifference = lengthDiff,
+            LengthDifference = Math.Abs(query.Length - inputString.Length),
             Match = text,
             Result = value,
         };
