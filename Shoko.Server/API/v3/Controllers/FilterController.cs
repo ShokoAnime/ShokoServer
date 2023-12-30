@@ -102,68 +102,74 @@ public class FilterController : BaseController
     /// Left, Right, Parameter, and SecondParameter show what type the expression supports as parameters.  
     /// Left and Right are Expressions or Selectors. Parameters are constants.
     /// </remarks>
+    /// <param name="types">Optional. The Expression types to return</param>
+    /// <param name="groups">Optional. The Expression groups to return</param>
     [HttpGet("Expressions")]
-    public ActionResult<Filter.FilterExpressionHelp[]> GetExpressions()
+    public ActionResult<Filter.FilterExpressionHelp[]> GetExpressions([FromQuery]Filter.FilterExpressionHelp.FilterExpressionParameterType[] types = null, [FromQuery]FilterExpressionGroup[] groups = null)
     {
+        types ??= Array.Empty<Filter.FilterExpressionHelp.FilterExpressionParameterType>();
+        groups ??= Array.Empty<FilterExpressionGroup>();
+
         // get all classes that derive from FilterExpression, but not SortingExpression
         _expressionTypes ??= AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
-            .Where(a => a != typeof(FilterExpression) && !a.IsGenericType && typeof(FilterExpression).IsAssignableFrom(a) && !typeof(SortingExpression).IsAssignableFrom(a))
+            .Where(a => a != typeof(FilterExpression) && !a.IsGenericType && typeof(FilterExpression).IsAssignableFrom(a) &&
+                        !typeof(SortingExpression).IsAssignableFrom(a))
             .OrderBy(a => a.FullName).Select(a =>
-        {
-            var expression = (FilterExpression)Activator.CreateInstance(a);
-            if (expression == null) return null;
-            Filter.FilterExpressionHelp.FilterExpressionParameterType? left = expression switch
             {
-                IWithExpressionParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Expression,
-                IWithDateSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
-                IWithNumberSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
-                IWithStringSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
-                _ => null
-            };
-            Filter.FilterExpressionHelp.FilterExpressionParameterType? right = expression switch
-            {
-                IWithSecondExpressionParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Expression,
-                IWithSecondDateSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
-                IWithSecondNumberSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
-                IWithSecondStringSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
-                _ => null
-            };
-            Filter.FilterExpressionHelp.FilterExpressionParameterType? parameter = expression switch
-            {
-                IWithDateParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Date,
-                IWithNumberParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Number,
-                IWithStringParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.String,
-                IWithTimeSpanParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.TimeSpan,
-                _ => null
-            };
-            Filter.FilterExpressionHelp.FilterExpressionParameterType? secondParameter = expression switch
-            {
-                IWithSecondStringParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.String,
-                _ => null
-            };
-            var type = expression switch
-            {
-                FilterExpression<bool> => Filter.FilterExpressionHelp.FilterExpressionParameterType.Expression,
-                FilterExpression<DateTime?> => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
-                FilterExpression<double> => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
-                FilterExpression<string> => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
-                _ => throw new Exception($"Expression {a.Name} is not a handled type for Filter Expression Help")
-            };
-            return new Filter.FilterExpressionHelp
-            {
-                Expression = a.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim(),
-                Name = expression.Name,
-                Group = expression.Group,
-                Description = expression.HelpDescription,
-                PossibleParameters = expression.HelpPossibleParameters,
-                PossibleSecondParameters = expression.HelpPossibleSecondParameters,
-                Left = left,
-                Right = right,
-                Parameter = parameter,
-                SecondParameter = secondParameter,
-                Type = type
-            };
-        }).Where(a => a != null).ToArray();
+                var expression = (FilterExpression)Activator.CreateInstance(a);
+                if (expression == null) return null;
+                Filter.FilterExpressionHelp.FilterExpressionParameterType? left = expression switch
+                {
+                    IWithExpressionParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Expression,
+                    IWithDateSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
+                    IWithNumberSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
+                    IWithStringSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
+                    _ => null
+                };
+                Filter.FilterExpressionHelp.FilterExpressionParameterType? right = expression switch
+                {
+                    IWithSecondExpressionParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Expression,
+                    IWithSecondDateSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
+                    IWithSecondNumberSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
+                    IWithSecondStringSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
+                    _ => null
+                };
+                Filter.FilterExpressionHelp.FilterExpressionParameterType? parameter = expression switch
+                {
+                    IWithDateParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Date,
+                    IWithNumberParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Number,
+                    IWithStringParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.String,
+                    IWithTimeSpanParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.TimeSpan,
+                    _ => null
+                };
+                Filter.FilterExpressionHelp.FilterExpressionParameterType? secondParameter = expression switch
+                {
+                    IWithSecondStringParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.String,
+                    _ => null
+                };
+                var type = expression switch
+                {
+                    FilterExpression<bool> => Filter.FilterExpressionHelp.FilterExpressionParameterType.Expression,
+                    FilterExpression<DateTime?> => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
+                    FilterExpression<double> => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
+                    FilterExpression<string> => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
+                    _ => throw new Exception($"Expression {a.Name} is not a handled type for Filter Expression Help")
+                };
+                return new Filter.FilterExpressionHelp
+                {
+                    Expression = a.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim(),
+                    Name = expression.Name,
+                    Group = expression.Group,
+                    Description = expression.HelpDescription,
+                    PossibleParameters = expression.HelpPossibleParameters,
+                    PossibleSecondParameters = expression.HelpPossibleSecondParameters,
+                    Left = left,
+                    Right = right,
+                    Parameter = parameter,
+                    SecondParameter = secondParameter,
+                    Type = type
+                };
+            }).Where(a => a != null && (types.Length == 0 || types.Contains(a.Type)) && (groups.Length == 0 || groups.Contains(a.Group))).ToArray();
         return _expressionTypes;
     }
 
