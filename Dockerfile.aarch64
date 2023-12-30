@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:6.0
+FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:6.0 AS build
 
 ARG version
 ARG channel
@@ -29,7 +29,7 @@ RUN echo "deb https://mediaarea.net/repo/deb/debian/ buster main" | tee -a /etc/
 RUN apt-get update && apt-get install -y apt-utils gosu jq unzip mediainfo librhash-dev
 
 WORKDIR /usr/src/app/build
-COPY --from=0 /usr/src/app/build .
+COPY --from=build /usr/src/app/build .
 COPY ./dockerentry.sh /dockerentry.sh
 
 WORKDIR /usr/src/app/build/webui
