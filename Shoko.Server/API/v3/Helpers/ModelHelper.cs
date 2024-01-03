@@ -412,7 +412,9 @@ public static class ModelHelper
                 if (include_only.Contains(FileIncludeOnlyType.Duplicates) && locations.Count <= 1) return false;
 
                 if (exclude.Contains(FileExcludeTypes.Unrecognized) && xrefs.Count == 0) return false;
-                if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && xrefs.Count > 0) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && xrefs.Count > 0 && xrefs.Any(x =>
+                        RepoFactory.AnimeSeries.GetByAnimeID(x.AnimeID) != null &&
+                        RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(x.EpisodeID) != null)) return false;
 
                 if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 &&
                     xrefs.Any(xref => xref.CrossRefSource != (int)CrossRefSource.AniDB)) return false;
