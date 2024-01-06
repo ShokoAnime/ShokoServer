@@ -1,5 +1,6 @@
 using System;
 using System.Data.SqlClient;
+using System.IO;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
@@ -40,6 +41,8 @@ public static class QuartzStartup
         q.UsePersistentStore(options =>
         {
             var settings = Utils.SettingsProvider.GetSettings();
+            if (string.IsNullOrEmpty(settings.Quartz?.ConnectionString))
+                throw new ArgumentNullException(nameof(settings.Quartz.ConnectionString), @"The connection string for Quartz was null");
             if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
             {
                 EnsureQuartzDatabaseExists_SQLServer(settings.Quartz.ConnectionString);
@@ -650,6 +653,8 @@ commit;";
     private static void EnsureQuartzDatabaseExists_SQLite(string connectionString)
     {
         using var conn = new SqliteConnection(connectionString);
+        var path = Path.GetDirectoryName(conn.DataSource);
+        Directory.CreateDirectory(path!);
         conn.Open();
         var existsCommand = new SqliteCommand("SELECT COUNT(name) FROM sqlite_master WHERE type='table' AND name='QRTZ_TRIGGERS'", conn);
         var result = (long)existsCommand.ExecuteScalar()!;
