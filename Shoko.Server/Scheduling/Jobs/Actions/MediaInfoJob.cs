@@ -9,7 +9,7 @@ using QuartzJobFactory.Attributes;
 using Shoko.Server.Commands;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Scheduling.Jobs;
+namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 [JobKeyMember("MediaInfo")]
 [JobKeyGroup("Legacy")]

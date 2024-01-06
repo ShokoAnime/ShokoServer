@@ -7,25 +7,24 @@ using System.Threading.Tasks;
 using Quartz;
 using QuartzJobFactory.Attributes;
 
-namespace Shoko.Server.Scheduling.Jobs;
+namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
-[JobKeyMember("RemoveMissingFiles")]
-[JobKeyGroup("Legacy")]
-[DisallowConcurrentExecution]
-internal class RemoveMissingFilesJob : IJob
+[JobKeyMember("ScanFolder")]
+[JobKeyGroup("Actions")]
+internal class ScanFolderJob : IJob
 {
     [JobKeyMember]
-    public bool RemoveMyList { get; set; }
+    public int ImportFolderID { get; set; }
 
     public Task Execute(IJobExecutionContext context)
     {
         try
         {
-            Importer.RemoveRecordsWithoutPhysicalFiles(RemoveMyList);
+            Importer.RunImport_ScanFolder(ImportFolderID);
         }
         catch (Exception ex)
         {
-            // TODO: Logging
+            //logger.Error(ex, ex.ToString());
             // do you want the job to refire?
             throw new JobExecutionException(msg: "", refireImmediately: false, cause: ex);
         }

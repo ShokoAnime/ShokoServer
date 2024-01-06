@@ -6,7 +6,7 @@ using MySqlConnector;
 using Quartz;
 using Quartz.AspNetCore;
 using QuartzJobFactory;
-using Shoko.Server.Scheduling.Jobs;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
@@ -19,14 +19,9 @@ public static class QuartzStartup
         services.AddQuartz(q =>
         {
             q.UseDatabase();
-            // as of 3.3.2 this also injects scoped services (like EF DbContext) without problems
-            q.UseMicrosoftDependencyInjectionJobFactory();
-
-            // use the database that we have selected for quartz
-            //q.UseDatabase();
 
             // Register the connectivity monitor job with a trigger that executes every 5 minutes
-            q.ScheduleJob<ConnectivityMonitorJob>(
+            q.ScheduleJob<CheckNetworkAvailabilityJob>(
                 trigger => trigger.WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(),
                 j => j.DisallowConcurrentExecution().WithGeneratedIdentity());
 

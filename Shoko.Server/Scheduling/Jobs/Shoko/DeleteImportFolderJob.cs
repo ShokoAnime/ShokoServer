@@ -7,20 +7,19 @@ using System.Threading.Tasks;
 using Quartz;
 using QuartzJobFactory.Attributes;
 
-namespace Shoko.Server.Scheduling.Jobs;
+namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
-[JobKeyMember("ScanFolder")]
+[JobKeyMember("DeleteImportFolder")]
 [JobKeyGroup("Actions")]
-internal class ScanFolderJob : IJob
+internal class DeleteImportFolderJob : IJob
 {
-    [JobKeyMember]
     public int ImportFolderID { get; set; }
 
     public Task Execute(IJobExecutionContext context)
     {
         try
         {
-            Importer.RunImport_ScanFolder(ImportFolderID);
+            Importer.DeleteImportFolder(ImportFolderID);
         }
         catch (Exception ex)
         {

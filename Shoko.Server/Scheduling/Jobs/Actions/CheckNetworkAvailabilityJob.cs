@@ -8,21 +8,21 @@ using Quartz;
 using QuartzJobFactory.Attributes;
 using Shoko.Plugin.Abstractions.Services;
 
-namespace Shoko.Server.Scheduling.Jobs;
+namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 [JobKeyMember("UptimeMonitor")]
 [JobKeyGroup("System")]
 [DisallowConcurrentExecution]
-public class ConnectivityMonitorJob : IJob
+public class CheckNetworkAvailabilityJob : IJob
 {
     private readonly IConnectivityService _connectivityService;
 
-    public ConnectivityMonitorJob(IConnectivityService connectivityService)
+    public CheckNetworkAvailabilityJob(IConnectivityService connectivityService)
     {
         _connectivityService = connectivityService;
     }
 
-    protected ConnectivityMonitorJob() { }
+    protected CheckNetworkAvailabilityJob() { }
 
     public async Task Execute(IJobExecutionContext context)
     {

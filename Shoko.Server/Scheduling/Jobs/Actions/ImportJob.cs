@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Quartz;
 using QuartzJobFactory.Attributes;
 
-namespace Shoko.Server.Scheduling.Jobs;
+namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 [JobKeyMember("Import")]
 [JobKeyGroup("Legacy")]
