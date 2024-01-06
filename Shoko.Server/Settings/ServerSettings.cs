@@ -40,6 +40,7 @@ public class ServerSettings : IServerSettings
     public LogRotatorSettings LogRotator { get; set; } = new();
 
     public DatabaseSettings Database { get; set; } = new();
+    public QuartzSettings Quartz { get; set; } = new();
 
     public AniDbSettings AniDb { get; set; } = new();
 

@@ -91,7 +91,8 @@
     <PackageReference Include="NLog" Version="5.0.4" />
     <PackageReference Include="NLog.Web.AspNetCore" Version="5.1.4" />
     <PackageReference Include="Polly" Version="7.2.3" />
-    <PackageReference Include="Quartz.AspNetCore" Version="3.6.3" />
+    <PackageReference Include="Quartz.AspNetCore" Version="3.8.0" />
+    <PackageReference Include="Quartz.Serialization.Json" Version="3.8.0" />
     <PackageReference Include="QuartzJobFactory" Version="2.1.2" />
     <PackageReference Include="Sentry" Version="3.29.0" />
     <PackageReference Include="Sentry.AspNetCore" Version="3.29.0" />

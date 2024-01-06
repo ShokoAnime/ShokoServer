@@ -14,6 +14,7 @@ public interface IServerSettings
     int LegacyRenamerMaxEpisodeLength { get; set; }
     LogRotatorSettings LogRotator { get; set; }
     DatabaseSettings Database { get; set; }
+    QuartzSettings Quartz { get; set; }
     AniDbSettings AniDb { get; set; }
     WebCacheSettings WebCache { get; set; }
     TvDBSettings TvDB { get; set; }

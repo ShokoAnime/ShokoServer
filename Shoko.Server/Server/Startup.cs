@@ -5,9 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
-using Quartz;
-using Quartz.AspNetCore;
-using QuartzJobFactory;
 using Shoko.Commons.Properties;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Services;
@@ -20,6 +17,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Services.Connectivity;
 using Shoko.Server.Settings;
@@ -69,27 +67,7 @@ public class Startup
             services.AddTransient<RemoveMissingFilesJob>();
             services.AddTransient<MediaInfoJob>();
 
-            services.AddQuartz(q =>
-            {
-                // as of 3.3.2 this also injects scoped services (like EF DbContext) without problems
-                q.UseMicrosoftDependencyInjectionJobFactory();
-
-                // use the database that we have selected for quartz
-                //q.UseDatabase();
-
-                // Register the connectivity monitor job with a trigger that executes every 5 minutes
-                q.ScheduleJob<ConnectivityMonitorJob>(
-                    trigger => trigger.WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(),
-                    j => j.DisallowConcurrentExecution().WithGeneratedIdentity());
-
-                // TODO, in the future, when commands are Jobs, we'll use a AddCommands() extension like below for those, but manual registration for scheduled tasks like above
-            });
-
-            services.AddQuartzServer(options =>
-            {
-                // when shutting down we want jobs to complete gracefully
-                options.WaitForJobsToComplete = true;
-            });
+            services.AddQuartz();
 
             services.AddAniDB();
             services.AddCommands();

@@ -4,9 +4,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Quartz;
-using Shoko.Server.Databases;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Server;
 
@@ -57,22 +54,5 @@ public static class StartupExtensions
         var isDevelopment = context.HostingEnvironment.IsDevelopment();
         options.ValidateScopes  = isDevelopment;
         options.ValidateOnBuild = isDevelopment;
-    }
-    
-    internal static void UseDatabase(this IServiceCollectionQuartzConfigurator q)
-    {
-        q.UsePersistentStore(options =>
-        {
-            var settings = Utils.SettingsProvider.GetSettings();
-            // TODO Make these their own settings. SQLite should support putting Quartz in its own db. Will help with locking
-            // TODO, take the scripts from here and execute the SQL Scripts if the Quartz tables don't exist
-            // https://github.com/quartznet/quartznet/tree/main/database/tables
-            if (settings.Database.Type.Trim().Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
-                options.UseSqlServer(DatabaseFactory.Instance.GetConnectionString());
-            else if (settings.Database.Type.Trim().Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
-                options.UseMySqlConnector(c => c.ConnectionString = DatabaseFactory.Instance.GetConnectionString());
-            else if (settings.Database.Type.Trim().Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
-                options.UseMicrosoftSQLite(DatabaseFactory.Instance.GetConnectionString());
-        });
     }
 }
