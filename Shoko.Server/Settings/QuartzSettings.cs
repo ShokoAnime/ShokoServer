@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -15,4 +16,15 @@ public class QuartzSettings
     /// The connection string for the database
     /// </summary>
     public string ConnectionString { get; set; } = $"Data Source={Path.Combine(Utils.ApplicationPath, "SQLite", "Quartz.db3")};Mode=ReadWriteCreate;";
+
+    /// <summary>
+    /// A map of Type (yes, you need to look at the source code, under ./Shoko.Server/Scheduling/Jobs) to the number of allowed concurrent jobs of the same type.
+    /// Some types will not be able to have a lower limit, due to API restrictions. HashFileJob is included as an example.
+    /// </summary>
+    public Dictionary<string, int> LimitedConcurrencyOverrides { get; set; } = new()
+    {
+        {
+            "HashFileJob", 2
+        }
+    };
 }

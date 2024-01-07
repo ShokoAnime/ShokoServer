@@ -62,11 +62,6 @@ public class Startup
             services.AddSingleton<IConnectivityMonitor, MozillaConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, WeChatConnectivityMonitor>();
             services.AddSingleton<IConnectivityService, ConnectivityService>();
-            services.AddTransient<ScanFolderJob>();
-            services.AddTransient<DeleteImportFolderJob>();
-            services.AddTransient<ScanDropFoldersJob>();
-            services.AddTransient<RemoveMissingFilesJob>();
-            services.AddTransient<MediaInfoJob>();
 
             services.AddQuartz();
 

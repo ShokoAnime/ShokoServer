@@ -143,39 +143,12 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             RenameExternalSubtitles(fullFileName, renamed);
 
             logger.Info($"Renaming file SUCCESS! From \"{fullFileName}\" to \"{newFullName}\"");
-            var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
-            if (tup == null)
+            var (folder, filePath) = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
+            if (folder == null)
             {
                 logger.Error($"Unable to LOCATE file \"{newFullName}\" inside the import folders");
                 Utils.ShokoServer.RemoveFileWatcherExclusion(newFullName);
                 return (false, renamed, "Error: Unable to resolve new path");
-            }
-
-            // Before we change all references, remap Duplicate Files
-            var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
-            if (dups != null && dups.Count > 0)
-            {
-                foreach (var dup in dups)
-                {
-                    var dupchanged = false;
-                    if (dup.FilePathFile1.Equals(FilePath, StringComparison.InvariantCultureIgnoreCase) &&
-                        dup.ImportFolderIDFile1 == ImportFolderID)
-                    {
-                        dup.FilePathFile1 = tup.Item2;
-                        dupchanged = true;
-                    }
-                    else if (dup.FilePathFile2.Equals(FilePath, StringComparison.InvariantCultureIgnoreCase) &&
-                             dup.ImportFolderIDFile2 == ImportFolderID)
-                    {
-                        dup.FilePathFile2 = tup.Item2;
-                        dupchanged = true;
-                    }
-
-                    if (dupchanged)
-                    {
-                        RepoFactory.DuplicateFile.Save(dup);
-                    }
-                }
             }
 
             // Rename hash xrefs
@@ -192,7 +165,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 RepoFactory.FileNameHash.Save(fnhash);
             }
 
-            FilePath = tup.Item2;
+            FilePath = filePath;
             RepoFactory.VideoLocalPlace.Save(this);
             // just in case
             VideoLocal.FileName = renamed;
@@ -216,12 +189,7 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
         var seriesToUpdate = new List<SVR_AnimeSeries>();
         var v = VideoLocal;
-        List<DuplicateFile> dupFiles = null;
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        if (!string.IsNullOrEmpty(FilePath))
-        {
-            dupFiles = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
-        }
 
         using (var session = DatabaseFactory.SessionFactory.OpenSession())
         {
@@ -276,8 +244,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
                         .Select(a => a.GetAnimeSeries()));
                     RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, v);
-
-                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(s, a));
                     transaction.Commit();
                 });
             }
@@ -296,7 +262,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 {
                     using var transaction = s.BeginTransaction();
                     RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, this);
-                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(s, a));
                     transaction.Commit();
                 });
             }
@@ -315,12 +280,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
         var v = VideoLocal;
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-
-        List<DuplicateFile> dupFiles = null;
-        if (!string.IsNullOrEmpty(FilePath) && removeDuplicateFileEntries)
-        {
-            dupFiles = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
-        }
 
         if (v?.Places?.Count <= 1)
         {
@@ -374,8 +333,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                 using var transaction = session.BeginTransaction();
                 RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
                 RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
-                dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
-
                 transaction.Commit();
             });
         }
@@ -394,7 +351,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
             {
                 using var transaction = session.BeginTransaction();
                 RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-                dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                 transaction.Commit();
             });
         }
@@ -782,8 +738,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         var originalFileName = FullServerPath;
         var oldPath = FilePath;
 
-        MoveDuplicateFiles(newFilePath, destFolder);
-
         ImportFolderID = destFolder.ImportFolderID;
         FilePath = newFilePath;
         RepoFactory.VideoLocalPlace.Save(this);
@@ -982,8 +936,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                         return false;
                     }
 
-                    MoveDuplicateFiles(newFilePath, destFolder);
-
                     ImportFolderID = destFolder.ImportFolderID;
                     FilePath = newFilePath;
                     RepoFactory.VideoLocalPlace.Save(this);
@@ -1010,8 +962,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
                     Utils.ShokoServer.RemoveFileWatcherExclusion(newFullServerPath);
                     return false;
                 }
-
-                MoveDuplicateFiles(newFilePath, destFolder);
 
                 ImportFolderID = destFolder.ImportFolderID;
                 FilePath = newFilePath;
@@ -1146,39 +1096,6 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         catch (Exception ex)
         {
             logger.Error(ex, ex.ToString());
-        }
-    }
-
-    private void MoveDuplicateFiles(string newFilePath, SVR_ImportFolder destFolder)
-    {
-        var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)
-            .ToList();
-
-        foreach (var dup in dups)
-        {
-            // Move source
-            if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
-            {
-                dup.FilePathFile1 = newFilePath;
-                dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
-            }
-            else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
-            {
-                dup.FilePathFile2 = newFilePath;
-                dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
-            }
-
-            // validate the dup file
-            // There are cases where a dup file was not cleaned up before, so we'll do it here, too
-            if (!dup.GetFullServerPath1()
-                    .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-            {
-                RepoFactory.DuplicateFile.Save(dup);
-            }
-            else
-            {
-                RepoFactory.DuplicateFile.Delete(dup);
-            }
         }
     }
 

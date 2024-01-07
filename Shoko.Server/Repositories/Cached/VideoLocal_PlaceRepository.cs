@@ -18,19 +18,6 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
     private PocoIndex<int, SVR_VideoLocal_Place, int> ImportFolders;
     private PocoIndex<int, SVR_VideoLocal_Place, string> Paths;
 
-    public VideoLocal_PlaceRepository()
-    {
-        BeginDeleteCallback = place =>
-        {
-            // Remove associated duplicate file records
-            var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(place.FilePath, place.ImportFolderID);
-            if (dups is { Count: > 0 })
-            {
-                dups.ForEach(RepoFactory.DuplicateFile.Delete);
-            }
-        };
-    }
-
     protected override int SelectKey(SVR_VideoLocal_Place entity)
     {
         return entity.VideoLocal_Place_ID;
@@ -79,7 +66,7 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
         return ReadLock(() => Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID));
     }
 
-    public static Tuple<SVR_ImportFolder, string> GetFromFullPath(string fullPath)
+    public static (SVR_ImportFolder folder, string relativePath) GetFromFullPath(string fullPath)
     {
         var shares = RepoFactory.ImportFolder.GetAll();
 
@@ -98,11 +85,11 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
             {
                 var filePath = fullPath.Replace(importLocation, string.Empty);
                 filePath = filePath.TrimStart(Path.DirectorySeparatorChar);
-                return new Tuple<SVR_ImportFolder, string>(ifolder, filePath);
+                return (ifolder, filePath);
             }
         }
 
-        return null;
+        return default;
     }
 
     public List<SVR_VideoLocal_Place> GetByVideoLocal(int videolocalid)

@@ -8,6 +8,7 @@ using Quartz;
 using Quartz.AspNetCore;
 using QuartzJobFactory;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
@@ -17,6 +18,8 @@ public static class QuartzStartup
 {
     internal static void AddQuartz(this IServiceCollection services)
     {
+        services.AddSingleton<ThreadPooledJobStore>();
+        services.AddJobs();
         services.AddQuartz(q =>
         {
             q.UseDatabase();
@@ -25,8 +28,6 @@ public static class QuartzStartup
             q.ScheduleJob<CheckNetworkAvailabilityJob>(
                 trigger => trigger.WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(),
                 j => j.DisallowConcurrentExecution().WithGeneratedIdentity());
-
-            // TODO, in the future, when commands are Jobs, we'll use a AddCommands() extension like below for those, but manual registration for scheduled tasks like above
         });
 
         services.AddQuartzServer(options =>
@@ -36,9 +37,20 @@ public static class QuartzStartup
         });
     }
 
+    private static void AddJobs(this IServiceCollection services)
+    {
+        services.AddTransient<ScanFolderJob>();
+        services.AddTransient<DeleteImportFolderJob>();
+        services.AddTransient<ScanDropFoldersJob>();
+        services.AddTransient<RemoveMissingFilesJob>();
+        services.AddTransient<MediaInfoJob>();
+        services.AddTransient<DiscoverFileJob>();
+        services.AddTransient<HashFileJob>();
+    }
+
     private static void UseDatabase(this IServiceCollectionQuartzConfigurator q)
     {
-        q.UsePersistentStore(options =>
+        q.UsePersistentStore<ThreadPooledJobStore>(options =>
         {
             var settings = Utils.SettingsProvider.GetSettings();
             if (string.IsNullOrEmpty(settings.Quartz?.ConnectionString))

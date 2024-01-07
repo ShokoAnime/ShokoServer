@@ -33,7 +33,6 @@ public static class RepoFactory
     public static MovieDb_MovieRepository MovieDb_Movie { get; } = new();
     public static IgnoreAnimeRepository IgnoreAnime { get; } = new();
     public static FileNameHashRepository FileNameHash { get; } = new();
-    public static DuplicateFileRepository DuplicateFile { get; } = new();
     public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate { get; } = new();
     public static AniDB_FileUpdateRepository AniDB_FileUpdate { get; } = new();
     public static CrossRef_Subtitles_AniDB_FileRepository CrossRef_Subtitles_AniDB_File { get; } = new();

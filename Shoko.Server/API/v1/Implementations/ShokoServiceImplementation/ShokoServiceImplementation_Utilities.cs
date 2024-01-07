@@ -1139,7 +1139,46 @@ public partial class ShokoServiceImplementation
         var dupFiles = new List<CL_DuplicateFile>();
         try
         {
-            return RepoFactory.DuplicateFile.GetAll().Select(a => a.ToClient()).ToList();
+            var files = RepoFactory.VideoLocalPlace.GetAll().GroupBy(a => a.VideoLocalID).Where(a => a.Count() > 1).ToList();
+            foreach (var group in files)
+            {
+                var groupFiles = group.OrderBy(a => a.VideoLocal_Place_ID).ToList();
+                var first = groupFiles.FirstOrDefault();
+                var vl = first.VideoLocal;
+                SVR_AniDB_Anime anime = null;
+                AniDB_Episode episode = null;
+                var xref = RepoFactory.CrossRef_File_Episode.GetByHash(vl.Hash);
+                if (xref.Count > 0)
+                {
+                    anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref[0].AnimeID);
+                    episode = RepoFactory.AniDB_Episode.GetByEpisodeID(xref[0].EpisodeID);
+                }
+                
+                foreach (var other in groupFiles.Skip(1))
+                {
+                    dupFiles.Add(new CL_DuplicateFile
+                    {
+                        Hash = vl.Hash,
+                        File1VideoLocalPlaceID = first.VideoLocal_Place_ID,
+                        ImportFolder1 = first.ImportFolder,
+                        ImportFolderIDFile1 = first.ImportFolderID,
+                        FilePathFile1 = first.FilePath,
+                        File2VideoLocalPlaceID = other.VideoLocal_Place_ID,
+                        ImportFolder2 = other.ImportFolder,
+                        ImportFolderIDFile2 = other.ImportFolderID,
+                        FilePathFile2 = other.FilePath,
+                        AnimeID = anime?.AnimeID,
+                        AnimeName = anime?.MainTitle,
+                        EpisodeType = episode?.EpisodeType,
+                        EpisodeNumber = episode?.EpisodeNumber,
+                        EpisodeName = episode?.GetEnglishTitle(),
+                        DuplicateFileID = vl.VideoLocalID,
+                        DateTimeUpdated = DateTime.Now
+                    });
+                }
+            }
+
+            return dupFiles;
         }
         catch (Exception ex)
         {
@@ -1151,37 +1190,14 @@ public partial class ShokoServiceImplementation
     /// <summary>
     /// Delete a duplicate file entry, and also one of the physical files
     /// </summary>
-    /// <param name="duplicateFileID"></param>
-    /// <param name="fileNumber">0 = Don't delete any physical files, 1 = Delete file 1, 2 = Deleet file 2</param>
+    /// <param name="videoLocalPlaceID"></param>
     /// <returns></returns>
-    [HttpDelete("File/Duplicated/{duplicateFileID}/{fileNumber}")]
-    public string DeleteDuplicateFile(int duplicateFileID, int fileNumber)
+    [HttpDelete("File/Duplicated/{videoLocalPlaceID}")]
+    public string DeleteDuplicateFile(int videoLocalPlaceID)
     {
         try
         {
-            var df = RepoFactory.DuplicateFile.GetByID(duplicateFileID);
-            if (df == null) return "Database entry does not exist";
-
-            if (fileNumber != 1 && fileNumber != 2) return string.Empty;
-            SVR_VideoLocal_Place place;
-            switch (fileNumber)
-            {
-                case 1:
-                    place =
-                        RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(df.FilePathFile1,
-                            df.ImportFolderIDFile1);
-                    break;
-                case 2:
-                    place =
-                        RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(df.FilePathFile2,
-                            df.ImportFolderIDFile2);
-                    break;
-                default:
-                    place = null;
-                    break;
-            }
-            if (place == null) return "Unable to get VideoLocal_Place";
-
+            var place = RepoFactory.VideoLocalPlace.GetByID(videoLocalPlaceID);
             return place.RemoveAndDeleteFile().Item2;
         }
         catch (Exception ex)
@@ -1268,42 +1284,7 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            foreach (var df in RepoFactory.DuplicateFile.GetAll())
-            {
-                if (df.GetImportFolder1() == null || df.GetImportFolder2() == null)
-                {
-                    var msg =
-                        string.Format(
-                            "Deleting duplicate file record as one of the import folders can't be found: {0} --- {1}",
-                            df.FilePathFile1, df.FilePathFile2);
-                    logger.Info(msg);
-                    RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
-                    continue;
-                }
-
-                // make sure that they are not actually the same file
-                if (df.GetFullServerPath1()
-                    .Equals(df.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                {
-                    var msg =
-                        string.Format(
-                            "Deleting duplicate file record as they are actually point to the same file: {0}",
-                            df.GetFullServerPath1());
-                    logger.Info(msg);
-                    RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
-                }
-
-                // check if both files still exist
-                if (!System.IO.File.Exists(df.GetFullServerPath1()) || !System.IO.File.Exists(df.GetFullServerPath2()))
-                {
-                    var msg =
-                        string.Format(
-                            "Deleting duplicate file record as one of the files can't be found: {0} --- {1}",
-                            df.GetFullServerPath1(), df.GetFullServerPath2());
-                    logger.Info(msg);
-                    RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
-                }
-            }
+            // Noop
         }
         catch (Exception ex)
         {

@@ -156,8 +156,6 @@ public class ImportFolderController : BaseController
         if (!removeRecords)
         {
             // These are annoying to clean up later, so do it now. We can easily recreate them.
-            RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder1(folderID));
-            RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder2(folderID));
             RepoFactory.ImportFolder.Delete(folderID);
             return Ok();
         }

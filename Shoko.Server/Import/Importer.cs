@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 using FluentNHibernate.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using Quartz;
+using QuartzJobFactory;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -21,6 +23,7 @@ using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using Utils = Shoko.Server.Utilities.Utils;
@@ -377,6 +380,10 @@ public static class Importer
             var tup = VideoLocal_PlaceRepository.GetFromFullPath(fileName);
             ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(fileName));
 
+            /*var schedulerFactory = Utils.ServiceContainer.GetService<ISchedulerFactory>();
+            var scheduler = schedulerFactory.GetScheduler().Result;
+            scheduler.StartJob(JobBuilder<DiscoverFileJob>.Create().UsingJobData(a => a.FileName = fileName).WithGeneratedIdentity().Build()).GetAwaiter()
+                .GetResult();*/
             commandFactory.CreateAndSave<CommandRequest_HashFile>(c => c.FileName = fileName);
         }
 
@@ -1110,10 +1117,6 @@ public static class Importer
             Logger.Info($"Deleting {vids.Count} video local records");
             using var session = DatabaseFactory.SessionFactory.OpenSession();
             vids.ForEach(vid => vid.RemoveRecordWithOpenTransaction(session, affectedSeries, removeFromMyList, false));
-
-            // delete any duplicate file records which reference this folder
-            RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder1(importFolderID));
-            RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder2(importFolderID));
 
             // delete the import folder
             RepoFactory.ImportFolder.Delete(importFolderID);
