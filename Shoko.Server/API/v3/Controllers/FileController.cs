@@ -106,7 +106,8 @@ public class FileController : BaseController
         // Search.
         var searched = RepoFactory.VideoLocal.GetAll()
             .Search(query, tuple => tuple.Places.Select(place => place?.FilePath).Where(path => path != null), fuzzy)
-            .Select(result => result.Result).Skip((page-1)*pageSize).Take(pageSize).ToList();
+            .Select(result => result.Result)
+            .ToList();
         return ModelHelper.FilterFiles(searched, User, pageSize, page, include, exclude, include_only, sortOrder,
             includeDataFrom);
     }
