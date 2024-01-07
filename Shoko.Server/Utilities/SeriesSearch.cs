@@ -40,15 +40,17 @@ public static class SeriesSearch
         return value.CompactWhitespaces();
     }
 
+    private static string SanitizeSearchInput(this string value) =>
+        value.Replace('_', ' ')
+            .Replace('-', ' ')
+            .CompactWhitespaces()
+            .ToLowerInvariant();
+
     // This forces ASCII, because it's faster to stop caring if ss and ß are the same
     // No it's not perfect, but it works better for those who just want to do lazy searching
     private static string ForceASCII(this string value) =>
         value.FilterSearchCharacters()
-            .Replace('_', ' ')
-            .Replace('-', ' ')
             .CompactWhitespaces()
-            // Case insensitive. We just removed the fancy characters, so latin
-            // alphabet lowercase is all we should have.
             .ToLowerInvariant();
 
     private static readonly IStringDistance DiceSearch = new SorensenDice();
@@ -58,11 +60,13 @@ public static class SeriesSearch
         if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(pattern))
             return new();
 
-        // Case insensitive.
-        text = text.ToLowerInvariant();
-        pattern = pattern.ToLowerInvariant();
+        // Sanitize inputs before use.
+        text = text.SanitizeSearchInput();
+        pattern = pattern.SanitizeSearchInput();
+        if (string.IsNullOrWhiteSpace(pattern) || string.IsNullOrWhiteSpace(text))
+            return new();
 
-        // Shortcut
+        // Strict search for any text (e.g. ASCII, Japanese Kanji/Kana, etc.).
         var index = text.IndexOf(pattern, StringComparison.Ordinal);
         if (index > -1)
             return new()
@@ -74,19 +78,20 @@ public static class SeriesSearch
                 Result = value,
             };
 
-        var inputString = text.ForceASCII();
-        var query = pattern.ForceASCII();
-        if (string.IsNullOrWhiteSpace(query) || string.IsNullOrWhiteSpace(inputString))
+        // If strict search didn't work, then force ASCII and do a fuzzy search.
+        text = text.ForceASCII();
+        pattern = pattern.ForceASCII();
+        if (string.IsNullOrWhiteSpace(pattern) || string.IsNullOrWhiteSpace(text))
             return new();
 
-        // always search the longer string for the shorter one
-        if (query.Length > inputString.Length)
-            (inputString, query) = (query, inputString);
+        // Always search the longer string for the shorter one.
+        if (pattern.Length > text.Length)
+            (text, pattern) = (pattern, text);
 
-        var result = DiceSearch.Distance(inputString, query);
+        var result = DiceSearch.Distance(text, pattern);
 
-        // Don't count an error as liberally when the title is short
-        if (inputString.Length < 5 && result > 0.5)
+        // Don't count an error as liberally when the title is short.
+        if (text.Length < 5 && result > 0.5)
             return new();
 
         if (result >= 0.8)
@@ -95,7 +100,7 @@ public static class SeriesSearch
         return new()
         {
             Distance = result,
-            LengthDifference = Math.Abs(query.Length - inputString.Length),
+            LengthDifference = Math.Abs(pattern.Length - text.Length),
             Match = text,
             Result = value,
         };
