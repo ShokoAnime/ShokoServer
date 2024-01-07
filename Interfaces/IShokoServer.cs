@@ -316,8 +316,8 @@ namespace Shoko.Models.Interfaces
         [Rest("File/Duplicated", Verbs.Get)]
         List<CL_DuplicateFile> GetAllDuplicateFiles();
 
-        [Rest("File/Duplicated/{duplicateFileID}/{fileNumber}", Verbs.Delete)]
-        string DeleteDuplicateFile(int duplicateFileID, int fileNumber);
+        [Rest("File/Duplicated/{videoLocalPlaceID}", Verbs.Delete)]
+        string DeleteDuplicateFile(int videoLocalPlaceID);
 
         [Rest("File/ManuallyLinked/{userID}", Verbs.Get)]
         List<CL_VideoLocal> GetAllManuallyLinkedFiles(int userID);
