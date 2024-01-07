@@ -109,7 +109,7 @@ public class FileController : BaseController
             .Select(result => result.Result)
             .ToList();
         return ModelHelper.FilterFiles(searched, User, pageSize, page, include, exclude, include_only, sortOrder,
-            includeDataFrom);
+            includeDataFrom, skipSort: true);
     }
 
     /// <summary>

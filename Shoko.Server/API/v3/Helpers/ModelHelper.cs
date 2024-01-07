@@ -375,7 +375,7 @@ public static class ModelHelper
     }
 
     public static ListResult<File> FilterFiles(IEnumerable<SVR_VideoLocal> input, SVR_JMMUser user, int pageSize, int page, FileNonDefaultIncludeType[] include,
-        FileExcludeTypes[] exclude, FileIncludeOnlyType[] include_only, List<string> sortOrder, HashSet<DataSource> includeDataFrom)
+        FileExcludeTypes[] exclude, FileIncludeOnlyType[] include_only, List<string> sortOrder, HashSet<DataSource> includeDataFrom, bool skipSort = false)
     {
         include ??= Array.Empty<FileNonDefaultIncludeType>();
         exclude ??= Array.Empty<FileExcludeTypes>();
@@ -430,7 +430,7 @@ public static class ModelHelper
         // Sorting.
         if (sortOrder != null && sortOrder.Count > 0)
             enumerable = File.OrderBy(enumerable, sortOrder);
-        else
+        else if (skipSort)
             enumerable = File.OrderBy(enumerable, new()
             {
                 // First sort by import folder from A-Z.
