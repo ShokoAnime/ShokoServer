@@ -94,7 +94,7 @@ public static class SeriesSearch
         if (text.Length < 5 && result > 0.5)
             return new();
 
-        if (result >= 0.8)
+        if (result > 1.0)
             return new();
 
         return new()
