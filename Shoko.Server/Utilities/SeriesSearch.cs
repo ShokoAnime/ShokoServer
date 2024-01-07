@@ -197,7 +197,7 @@ public static class SeriesSearch
         var forbiddenTags = user.GetHideCategories();
 
         //search by anime id
-        if (int.TryParse(query, out int animeID))
+        if (int.TryParse(query, out var animeID))
         {
             var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
             var anime = series.GetAnime();
@@ -205,7 +205,7 @@ public static class SeriesSearch
             if (anime != null && !tags.FindInEnumerable(forbiddenTags))
                 return new List<SearchResult<SVR_AnimeSeries>>
                 {
-                    new SearchResult<SVR_AnimeSeries>
+                    new()
                     {
                         ExactMatch = true,
                         Match = series.AniDB_ID.ToString(),
@@ -284,7 +284,7 @@ public static class SeriesSearch
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
                     var anime = series?.GetAnime();
                     var tags = anime?.GetAllTags();
-                    if (anime == null || (tags.Count == 0 || tags.FindInEnumerable(forbiddenTags)))
+                    if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
                     return new SearchResult<SVR_AnimeSeries>
@@ -310,7 +310,7 @@ public static class SeriesSearch
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
                     var anime = series?.GetAnime();
                     var tags = anime?.GetAllTags();
-                    if (anime == null || (tags.Count == 0 || tags.FindInEnumerable(forbiddenTags)))
+                    if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
                     return new SearchResult<SVR_AnimeSeries>
@@ -358,7 +358,7 @@ public static class SeriesSearch
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
                     var anime = series?.GetAnime();
                     var tags = anime?.GetAllTags();
-                    if (anime == null || (tags.Count == 0 || tags.FindInEnumerable(forbiddenTags)))
+                    if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
                     return new SearchResult<SVR_AnimeSeries>
@@ -396,7 +396,7 @@ public static class SeriesSearch
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
                     var anime = series?.GetAnime();
                     var tags = anime?.GetAllTags();
-                    if (anime == null || (tags.Count == 0 || tags.FindInEnumerable(forbiddenTags)))
+                    if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
                     return new SearchResult<SVR_AnimeSeries>
@@ -492,19 +492,19 @@ public static class SeriesSearch
             if (otherIsEmpty)
                 return -1;
 
-            int exactMatchComparison = ExactMatch == other.ExactMatch ? 0 : ExactMatch ? -1 : 1;
+            var exactMatchComparison = ExactMatch == other.ExactMatch ? 0 : ExactMatch ? -1 : 1;
             if (exactMatchComparison != 0)
                 return exactMatchComparison;
 
-            int indexComparison = Index.CompareTo(other.Index);
+            var indexComparison = Index.CompareTo(other.Index);
             if (indexComparison != 0)
                 return indexComparison;
 
-            int distanceComparison = Distance.CompareTo(other.Distance);
+            var distanceComparison = Distance.CompareTo(other.Distance);
             if (distanceComparison != 0)
                 return distanceComparison;
 
-            int lengthDifferenceComparison = LengthDifference.CompareTo(other.LengthDifference);
+            var lengthDifferenceComparison = LengthDifference.CompareTo(other.LengthDifference);
             if (lengthDifferenceComparison != 0)
                 return lengthDifferenceComparison;
 
