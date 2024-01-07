@@ -58,6 +58,10 @@ public static class SeriesSearch
         if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(pattern))
             return new();
 
+        // Case insensitive.
+        text = text.ToLowerInvariant();
+        pattern = pattern.ToLowerInvariant();
+
         // Shortcut
         var index = text.IndexOf(pattern, StringComparison.Ordinal);
         if (index > -1)
