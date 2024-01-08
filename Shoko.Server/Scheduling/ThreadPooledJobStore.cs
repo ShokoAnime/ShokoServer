@@ -102,19 +102,19 @@ public class ThreadPooledJobStore : JobStoreTX
 
                     if (ObjectUtils.IsAttributePresent(jobType, typeof(DisallowConcurrentExecutionAttribute)))
                     {
-                        if (acquiredJobKeysForNoConcurrentExec.ContainsKey(jobType)) continue;
-                        acquiredJobKeysForNoConcurrentExec[jobType] += 1;
+                        if (acquiredJobKeysForNoConcurrentExec.TryGetValue(jobType, out var number) && number >= 1) continue;
+                        acquiredJobKeysForNoConcurrentExec[jobType] = number + 1;
                     }
                     else if (jobType.GetCustomAttributes().FirstOrDefault(a => a is LimitConcurrencyAttribute) is LimitConcurrencyAttribute attribute)
                     {
                         if (!_typeConcurrencyCache.TryGetValue(jobType, out var maxConcurrentJobs)) maxConcurrentJobs = attribute.MaxConcurrentJobs;
                         if (acquiredJobKeysForNoConcurrentExec.TryGetValue(jobType, out var number) && number >= maxConcurrentJobs) continue;
-                        acquiredJobKeysForNoConcurrentExec[jobType] += 1;
+                        acquiredJobKeysForNoConcurrentExec[jobType] = number + 1;
                     }
                     else if (_typeConcurrencyCache.TryGetValue(jobType, out var maxJobs) && maxJobs > 0)
                     {
                         if (acquiredJobKeysForNoConcurrentExec.TryGetValue(jobType, out var number) && number >= maxJobs) continue;
-                        acquiredJobKeysForNoConcurrentExec[jobType] += 1;
+                        acquiredJobKeysForNoConcurrentExec[jobType] = number + 1;
                     }
 
                     var nextFireTimeUtc = nextTrigger.GetNextFireTimeUtc();
