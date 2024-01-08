@@ -9,34 +9,27 @@ public class DateAddFunction : FilterExpression<DateTime?>, IWithDateSelectorPar
     {
     }
 
-    public DateAddFunction(FilterExpression<DateTime?> selector, TimeSpan parameter)
+    public DateAddFunction(FilterExpression<DateTime?> left, TimeSpan parameter)
     {
-        Selector = selector;
+        Left = left;
         Parameter = parameter;
     }
 
-    public FilterExpression<DateTime?> Selector { get; set; }
+    public FilterExpression<DateTime?> Left { get; set; }
     public TimeSpan Parameter { get; set; }
 
-    public override bool TimeDependent => Selector.TimeDependent;
-    public override bool UserDependent => Selector.UserDependent;
+    public override bool TimeDependent => Left.TimeDependent;
+    public override bool UserDependent => Left.UserDependent;
     public override string HelpDescription => "This adds a timespan to a date selector";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Function;
-
-    public FilterExpression<DateTime?> Left
-    {
-        get => Selector;
-        set => Selector = value;
-    }
-
     public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return Selector.Evaluate(filterable, userInfo) + Parameter;
+        return Left.Evaluate(filterable, userInfo) + Parameter;
     }
 
     protected bool Equals(DateAddFunction other)
     {
-        return base.Equals(other) && Equals(Selector, other.Selector) && Parameter.Equals(other.Parameter);
+        return base.Equals(other) && Equals(Left, other.Left) && Parameter.Equals(other.Parameter);
     }
 
     public override bool Equals(object obj)
@@ -61,7 +54,7 @@ public class DateAddFunction : FilterExpression<DateTime?>, IWithDateSelectorPar
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(base.GetHashCode(), Selector, Parameter);
+        return HashCode.Combine(base.GetHashCode(), Left, Parameter);
     }
 
     public static bool operator ==(DateAddFunction left, DateAddFunction right)
@@ -76,6 +69,6 @@ public class DateAddFunction : FilterExpression<DateTime?>, IWithDateSelectorPar
 
     public override bool IsType(FilterExpression expression)
     {
-        return expression is DateAddFunction exp && Left.IsType(exp.Left) && Selector.IsType(exp.Selector);
+        return expression is DateAddFunction exp && Left.IsType(exp.Left);
     }
 }
