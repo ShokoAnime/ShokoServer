@@ -1297,7 +1297,7 @@ public partial class ShokoServiceImplementation
         string resolution,
         string videoSource, int videoBitDepth, int userID)
     {
-        relGroupName = relGroupName == null ? null : Uri.UnescapeDataString(relGroupName.Replace("+", " "));
+        relGroupName = relGroupName == null || relGroupName.EqualsInvariantIgnoreCase("null") ? null : Uri.UnescapeDataString(relGroupName.Replace("+", " "));
         videoSource = videoSource == null ? null : Uri.UnescapeDataString(videoSource.Replace("+", " "));
         logger.Trace($"GetFilesByGroupAndResolution -- relGroupName: {relGroupName}");
         logger.Trace($"GetFilesByGroupAndResolution -- videoSource: {videoSource}");
@@ -1330,7 +1330,7 @@ public partial class ShokoServiceImplementation
                 var sourceMatches =
                     "Manual Link".EqualsInvariantIgnoreCase(videoSource) ||
                     "unknown".EqualsInvariantIgnoreCase(videoSource);
-                var groupMatches = Constants.NO_GROUP_INFO.EqualsInvariantIgnoreCase(relGroupName);
+                var groupMatches = Constants.NO_GROUP_INFO.EqualsInvariantIgnoreCase(relGroupName) || "null".EqualsInvariantIgnoreCase(relGroupName) || relGroupName == null;
                 logger.Trace($"GetFilesByGroupAndResolution -- sourceMatches (manual/unkown): {sourceMatches}");
                 logger.Trace($"GetFilesByGroupAndResolution -- groupMatches (NO GROUP INFO): {groupMatches}");
                 
@@ -1352,8 +1352,8 @@ public partial class ShokoServiceImplementation
 
                     if (!"raw".Equals(aniFile.Anime_GroupNameShort) &&
                         ((aniFile.Anime_GroupName?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false) ||
-                         (aniFile.Anime_GroupNameShort?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false)))
-                        groupMatches = Constants.NO_GROUP_INFO.EqualsInvariantIgnoreCase(relGroupName);
+                         (aniFile.Anime_GroupNameShort?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false)) || aniFile.Anime_GroupName == null)
+                        groupMatches = Constants.NO_GROUP_INFO.EqualsInvariantIgnoreCase(relGroupName) || relGroupName == null || "null".EqualsInvariantIgnoreCase(relGroupName);
 
                     logger.Trace($"GetFilesByGroupAndResolution -- sourceMatches (aniFile): {sourceMatches}");
                     logger.Trace($"GetFilesByGroupAndResolution -- groupMatches (aniFile): {groupMatches}");
