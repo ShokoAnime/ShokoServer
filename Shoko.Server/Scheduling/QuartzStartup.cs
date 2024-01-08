@@ -26,7 +26,7 @@ public static class QuartzStartup
 
             // Register the connectivity monitor job with a trigger that executes every 5 minutes
             q.ScheduleJob<CheckNetworkAvailabilityJob>(
-                trigger => trigger.WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(),
+                trigger => trigger.WithIdentity("UptimeMonitor", "System").WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(),
                 j => j.DisallowConcurrentExecution().WithGeneratedIdentity());
         });
 
