@@ -9,6 +9,7 @@ using Quartz;
 using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
 using Quartz.Util;
+using Shoko.Server.Scheduling.Delegates;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling;
@@ -54,8 +55,9 @@ public class ThreadPooledJobStore : JobStoreTX
             context.CurrentLoopCount++;
             try
             {
-                var results = await Delegate.SelectTriggerToAcquire(conn, noLaterThan + timeWindow, MisfireTime, maxCount, cancellationToken)
-                    .ConfigureAwait(false);
+                var typesToExclude = GetTypesToExclude();
+                var results = await (Delegate as IFilteredDriverDelegate)!
+                    .SelectTriggerToAcquire(conn, noLaterThan + timeWindow, MisfireTime, maxCount, typesToExclude, cancellationToken).ConfigureAwait(false);
 
                 // No trigger is ready to fire yet.
                 if (results.Count == 0)
@@ -96,13 +98,6 @@ public class ThreadPooledJobStore : JobStoreTX
                         continue;
                     }
 
-                    // We can choose to not select a trigger for whatever reason, like it's running, and it's set to not allow concurrency
-                    // rate limiting, database not available, etc
-                    // TODO we might move some of this to the delegated SQL for performance reasons.
-                    // Concurrency changes fast enough to not be worth it, but network availability and whatnot could result in many queries
-                    // We could do this by building a map of types like the current queue does and filtering on QRTZ_JOB_DETAILS.JobClass
-                    // We would need to override SQLiteDelegate, SqlServerDelegate, and MySQLDelegate
-                    // QuartzStartup needs to have UseGenericDatabase<Delegate> for each instead of UseSqlServer, etc
                     if (!JobAllowed(context)) continue;
 
                     var nextFireTimeUtc = nextTrigger.GetNextFireTimeUtc();
@@ -163,6 +158,12 @@ public class ThreadPooledJobStore : JobStoreTX
 
         // Return the acquired trigger list
         return acquiredTriggers;
+    }
+
+    private Type[] GetTypesToExclude()
+    {
+        // TODO We can get the status of things and add things to exclude
+        return Array.Empty<Type>();
     }
 
     private bool JobAllowed(TriggerAcquisitionContext context)

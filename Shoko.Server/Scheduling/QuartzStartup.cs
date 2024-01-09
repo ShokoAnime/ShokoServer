@@ -7,6 +7,7 @@ using MySqlConnector;
 using Quartz;
 using Quartz.AspNetCore;
 using QuartzJobFactory;
+using Shoko.Server.Scheduling.Delegates;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
@@ -58,17 +59,17 @@ public static class QuartzStartup
             if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
             {
                 EnsureQuartzDatabaseExists_SQLServer(settings.Quartz.ConnectionString);
-                options.UseSqlServer(c => c.ConnectionString = settings.Quartz.ConnectionString);
+                options.UseGenericDatabase<SqlServerDelegate>("SqlServer", c => c.ConnectionString = settings.Quartz.ConnectionString);
             }
             else if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
             {
                 EnsureQuartzDatabaseExists_MySQL(settings.Quartz.ConnectionString);
-                options.UseMySqlConnector(c => c.ConnectionString = settings.Quartz.ConnectionString);
+                options.UseGenericDatabase<MySQLDelegate>("MySqlConnector", c => c.ConnectionString = settings.Quartz.ConnectionString);
             }
             else if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
             {
                 EnsureQuartzDatabaseExists_SQLite(settings.Quartz.ConnectionString);
-                options.UseMicrosoftSQLite(c => c.ConnectionString = settings.Quartz.ConnectionString);
+                options.UseGenericDatabase<SQLiteDelegate>("SQLite-Microsoft", c => c.ConnectionString = settings.Quartz.ConnectionString);
             }
             options.UseNewtonsoftJsonSerializer();
         });
