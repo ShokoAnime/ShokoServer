@@ -11,7 +11,7 @@ using Shoko.Plugin.Abstractions.Services;
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 [JobKeyMember("UptimeMonitor")]
-[JobKeyGroup("System")]
+[JobKeyGroup(JobKeyGroup.System)]
 [DisallowConcurrentExecution]
 public class CheckNetworkAvailabilityJob : IJob
 {

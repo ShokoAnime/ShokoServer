@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using QuartzJobFactory.Attributes;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -15,6 +16,7 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling.Acquisition;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -22,7 +24,9 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
+[DatabaseRequired]
 [LimitConcurrency]
+[JobKeyGroup(JobKeyGroup.Import)]
 public class HashFileJob : BaseJob
 {
     public virtual string FileName { get; set; }

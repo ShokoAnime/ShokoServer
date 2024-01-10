@@ -5,17 +5,21 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using QuartzJobFactory;
+using QuartzJobFactory.Attributes;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling.Acquisition;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
+[DatabaseRequired]
+[JobKeyGroup(JobKeyGroup.Import)]
 public class DiscoverFileJob : BaseJob
 {
     public virtual string FileName { get; set; }

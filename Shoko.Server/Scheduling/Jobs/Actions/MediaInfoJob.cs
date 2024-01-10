@@ -8,11 +8,13 @@ using Quartz;
 using QuartzJobFactory.Attributes;
 using Shoko.Server.Commands;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling.Acquisition;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
+[DatabaseRequired]
 [JobKeyMember("MediaInfo")]
-[JobKeyGroup("Legacy")]
+[JobKeyGroup(JobKeyGroup.Legacy)]
 internal class MediaInfoJob : IJob
 {
     private readonly ICommandRequestFactory _commandRequestFactory;

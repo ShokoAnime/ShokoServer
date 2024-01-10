@@ -6,11 +6,13 @@ using System;
 using System.Threading.Tasks;
 using Quartz;
 using QuartzJobFactory.Attributes;
+using Shoko.Server.Scheduling.Acquisition;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
+[DatabaseRequired]
 [JobKeyMember("DeleteImportFolder")]
-[JobKeyGroup("Actions")]
+[JobKeyGroup(JobKeyGroup.Actions)]
 internal class DeleteImportFolderJob : IJob
 {
     public int ImportFolderID { get; set; }

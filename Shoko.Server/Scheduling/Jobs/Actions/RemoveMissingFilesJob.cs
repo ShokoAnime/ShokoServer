@@ -6,11 +6,13 @@ using System;
 using System.Threading.Tasks;
 using Quartz;
 using QuartzJobFactory.Attributes;
+using Shoko.Server.Scheduling.Acquisition;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
+[DatabaseRequired]
 [JobKeyMember("RemoveMissingFiles")]
-[JobKeyGroup("Legacy")]
+[JobKeyGroup(JobKeyGroup.Legacy)]
 [DisallowConcurrentExecution]
 internal class RemoveMissingFilesJob : IJob
 {

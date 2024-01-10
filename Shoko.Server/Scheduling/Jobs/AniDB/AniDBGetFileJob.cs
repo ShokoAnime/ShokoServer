@@ -3,7 +3,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
+using QuartzJobFactory.Attributes;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
@@ -16,12 +16,15 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling.Acquisition;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
+[DatabaseRequired, NetworkRequired, AniDBUDPRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
+[JobKeyGroup(JobKeyGroup.AniDB)]
 [Command(CommandRequestType.AniDB_GetFileUDP)]
 public class AniDBGetFileJob : BaseJob
 {
