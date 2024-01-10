@@ -6,8 +6,6 @@ using System.Text.RegularExpressions;
 using FluentNHibernate.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
-using Quartz;
-using QuartzJobFactory;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;

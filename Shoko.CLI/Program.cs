@@ -1,14 +1,9 @@
 ﻿#region
 using System;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using Shoko.Server.Commands;
-using Shoko.Server.Filters;
-using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -18,7 +13,7 @@ namespace Shoko.CLI;
 
 public static class Program
 {
-    private static ILogger _logger;
+    private static ILogger _logger = null!;
     public static void Main()
     {
         try
@@ -31,7 +26,7 @@ public static class Program
         }
         Utils.SetInstance();
         Utils.InitLogger();
-        var logFactory = new LoggerFactory().AddNLog();
+        var logFactory = LoggerFactory.Create(o => o.AddNLog());
         _logger = logFactory.CreateLogger("Main");
 
         try
@@ -98,7 +93,7 @@ public static class Program
     private static void OnInstanceOnPropertyChanged(object? _, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
-            Console.WriteLine("Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
+            Console.WriteLine(@"Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
     }
 
     private static void OnUtilsOnYesNoRequired(object? _, Utils.CancelReasonEventArgs e) => e.Cancel = true;

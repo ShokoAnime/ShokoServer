@@ -2,13 +2,17 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
+using Quartz;
 using Shoko.Server;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -23,11 +27,9 @@ public partial class App
 {
     private static TaskbarIcon? _icon;
     private ILogger _logger = null!;
-    private static App s_instance = null!;
 
     private void OnStartup(object a, StartupEventArgs e)
     {
-        s_instance = this;
         Console.CancelKeyPress += OnConsoleOnCancelKeyPress;
         InitialiseTaskbarIcon();
         
@@ -41,22 +43,11 @@ public partial class App
             Console.WriteLine(ex.ToString());
         }
 
-        Mutex mutex;
-        try
-        {
-            mutex = Mutex.OpenExisting(Utils.DefaultInstance + "Mutex");
-            Shutdown();
-        }
-        catch (Exception ex)
-        {
-            // since we didn't find a mutex with that name, create one
-            Debug.WriteLine("Exception thrown:" + ex.Message + " Creating a new mutex...");
-            mutex = new Mutex(true, Utils.DefaultInstance + "Mutex");
-        }
+        if (Mutex.TryOpenExisting(Utils.DefaultInstance + "Mutex", out _)) Shutdown();
 
         Utils.SetInstance();
         Utils.InitLogger();
-        var logFactory = new LoggerFactory().AddNLog();
+        var logFactory = LoggerFactory.Create(o => o.AddNLog());
         _logger = logFactory.CreateLogger("App.xaml");
 
         try
@@ -71,18 +62,15 @@ public partial class App
         catch (Exception exception)
         {
             _logger.LogCritical(exception, "The server has failed to start");
-            s_instance.Shutdown();
+            Shutdown();
         }
     }
 
     private void AddEventHandlers()
     {
-        ShokoEventHandler.Instance.Shutdown += OnInstanceOnServerShutdown;
+        ShokoEventHandler.Instance.Shutdown += (_, _) => DispatchShutdown();
         Utils.YesNoRequired += (_, args) => args.Cancel = true;
     }
-
-    public static void OnInstanceOnServerShutdown(object? o, EventArgs eventArgs) 
-        => s_instance.Shutdown();
 
     private void InitialiseTaskbarIcon()
     {
@@ -101,18 +89,15 @@ public partial class App
     {
         var menu = new ContextMenu();
         var webui = new MenuItem{Header = "Open WebUI"};
-        webui.Click += OnWebuiOpenWebUIClick;
+        webui.Click += OnTrayOpenWebUIClick;
         menu.Items.Add(webui);
         webui = new MenuItem{Header = "Exit"};
-        webui.Click += OnWebuiExit;
+        webui.Click += OnTrayExit;
         menu.Items.Add(webui);
         return menu;
     }
-    
-    private void OnWebuiExit(object? sender, RoutedEventArgs args) 
-        => Dispatcher.Invoke(Shutdown);
 
-    private void OnWebuiOpenWebUIClick(object? sender, RoutedEventArgs args)
+    private void OnTrayOpenWebUIClick(object? sender, RoutedEventArgs args)
     {
         try
         {
@@ -125,13 +110,43 @@ public partial class App
         }
     }
 
+    private void OnTrayExit(object? sender, RoutedEventArgs args)
+    {
+        var lifetime = Utils.ServiceContainer.GetRequiredService<IHostApplicationLifetime>();
+        Task.Run(() => lifetime.StopApplication());
+        // stupid
+        Task.Run(async () => await ShutdownQuartz());
+    }
+
+    private async Task ShutdownQuartz()
+    {
+        var quartz = Utils.ServiceContainer.GetServices<IHostedService>().FirstOrDefault(a => a is QuartzHostedService);
+        if (quartz == null)
+        {
+            _logger.LogError("Could not get QuartzHostedService");
+            return;
+        }
+
+        await quartz.StopAsync(default);
+    }
+
     private void OnConsoleOnCancelKeyPress(object? sender, ConsoleCancelEventArgs args)
-        => Dispatcher.Invoke(() =>
-                             {
-                                 args.Cancel = true;
-                                 Shutdown();
-                             }
-                            );
+    {
+        args.Cancel = true;
+        DispatchShutdown();
+    }
+
+    private void DispatchShutdown()
+    {
+        try
+        {
+            Dispatcher.Invoke(Shutdown);
+        }
+        catch (TaskCanceledException)
+        {
+            // ignore
+        }
+    }
 
     protected override void OnExit(ExitEventArgs e)
     {

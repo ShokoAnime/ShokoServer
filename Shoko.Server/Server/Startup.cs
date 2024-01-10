@@ -18,8 +18,6 @@ using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services.Connectivity;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
