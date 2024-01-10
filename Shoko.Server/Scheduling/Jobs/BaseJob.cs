@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Microsoft.Extensions.Logging;
@@ -12,7 +13,19 @@ namespace Shoko.Server.Scheduling.Jobs;
 /// </summary>
 public abstract class BaseJob : IJob
 {
-    public abstract Task Execute(IJobExecutionContext context);
+    public async Task Execute(IJobExecutionContext context)
+    {
+        try
+        {
+            await Process(context);
+        }
+        catch (Exception ex)
+        {
+            throw new JobExecutionException(msg: ex.Message, refireImmediately: false, cause: ex);
+        }
+    }
+
+    protected abstract Task Process(IJobExecutionContext context);
  
     [XmlIgnore][JsonIgnore] protected readonly ILogger Logger;
     [XmlIgnore][JsonIgnore] public abstract QueueStateStruct Description { get; }

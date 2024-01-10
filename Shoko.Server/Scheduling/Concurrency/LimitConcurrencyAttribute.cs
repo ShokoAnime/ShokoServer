@@ -1,6 +1,6 @@
 using System;
 
-namespace Shoko.Server.Scheduling;
+namespace Shoko.Server.Scheduling.Concurrency;
 
 public class LimitConcurrencyAttribute : Attribute
 {
@@ -14,8 +14,9 @@ public class LimitConcurrencyAttribute : Attribute
     /// </summary>
     public int MaxAllowedConcurrentJobs { get; set; }
 
-    public LimitConcurrencyAttribute(int maxConcurrentJobs = 4)
+    public LimitConcurrencyAttribute(int maxConcurrentJobs = 4, int maxAllowedConcurrentJobs = 0)
     {
         MaxConcurrentJobs = maxConcurrentJobs;
+        MaxAllowedConcurrentJobs = maxAllowedConcurrentJobs;
     }
 }

@@ -9,6 +9,7 @@ using Quartz;
 using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
 using Quartz.Util;
+using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Delegates;
 using Shoko.Server.Utilities;
 
@@ -169,22 +170,27 @@ public class ThreadPooledJobStore : JobStoreTX
     private bool JobAllowed(TriggerAcquisitionContext context)
     {
         var jobType = context.CurrentJobType;
-        var acquiredJobTypesWithLimitedConcurrency = context.AcquiredJobTypesWithLimitedConcurrency;
+        var acquiredJobTypesWithLimitedConcurrency = context.AcquiredJobsWithLimitedConcurrency;
         if (ObjectUtils.IsAttributePresent(jobType, typeof(DisallowConcurrentExecutionAttribute)))
         {
-            if (acquiredJobTypesWithLimitedConcurrency.TryGetValue(jobType, out var number) && number >= 1) return false;
-            acquiredJobTypesWithLimitedConcurrency[jobType] = number + 1;
+            if (acquiredJobTypesWithLimitedConcurrency.TryGetValue(jobType.Name, out var number) && number >= 1) return false;
+            acquiredJobTypesWithLimitedConcurrency[jobType.Name] = number + 1;
         }
-        else if (jobType.GetCustomAttributes().FirstOrDefault(a => a is LimitConcurrencyAttribute) is LimitConcurrencyAttribute attribute)
+        else if (jobType.GetCustomAttributes().FirstOrDefault(a => a is DisallowConcurrencyGroupAttribute) is DisallowConcurrencyGroupAttribute concurrencyAttribute)
         {
-            if (!_typeConcurrencyCache.TryGetValue(jobType, out var maxConcurrentJobs)) maxConcurrentJobs = attribute.MaxConcurrentJobs;
-            if (acquiredJobTypesWithLimitedConcurrency.TryGetValue(jobType, out var number) && number >= maxConcurrentJobs) return false;
-            acquiredJobTypesWithLimitedConcurrency[jobType] = number + 1;
+            if (acquiredJobTypesWithLimitedConcurrency.TryGetValue(concurrencyAttribute.Group, out var number)) return false;
+            acquiredJobTypesWithLimitedConcurrency[concurrencyAttribute.Group] = number + 1;
         }
         else if (_typeConcurrencyCache.TryGetValue(jobType, out var maxJobs) && maxJobs > 0)
         {
-            if (acquiredJobTypesWithLimitedConcurrency.TryGetValue(jobType, out var number) && number >= maxJobs) return false;
-            acquiredJobTypesWithLimitedConcurrency[jobType] = number + 1;
+            if (acquiredJobTypesWithLimitedConcurrency.TryGetValue(jobType.Name, out var number) && number >= maxJobs) return false;
+            acquiredJobTypesWithLimitedConcurrency[jobType.Name] = number + 1;
+        }
+        else if (jobType.GetCustomAttributes().FirstOrDefault(a => a is LimitConcurrencyAttribute) is LimitConcurrencyAttribute limitConcurrencyAttribute)
+        {
+            if (!_typeConcurrencyCache.TryGetValue(jobType, out var maxConcurrentJobs)) maxConcurrentJobs = limitConcurrencyAttribute.MaxConcurrentJobs;
+            if (acquiredJobTypesWithLimitedConcurrency.TryGetValue(jobType.Name, out var number) && number >= maxConcurrentJobs) return false;
+            acquiredJobTypesWithLimitedConcurrency[jobType.Name] = number + 1;
         }
 
         return true;
@@ -211,7 +217,7 @@ public class ThreadPooledJobStore : JobStoreTX
             if (type == null) continue;
             var value = kv.Value;
             var attribute = type.GetCustomAttribute<LimitConcurrencyAttribute>();
-            if (attribute != null && attribute.MaxAllowedConcurrentJobs < kv.Value) value = attribute.MaxAllowedConcurrentJobs;
+            if (attribute is { MaxAllowedConcurrentJobs: > 0 } && attribute.MaxAllowedConcurrentJobs < kv.Value) value = attribute.MaxAllowedConcurrentJobs;
             _typeConcurrencyCache[type] = value;
         }
     }
@@ -220,7 +226,20 @@ public class ThreadPooledJobStore : JobStoreTX
     {
         public readonly int MaxDoLoopRetry = 3;
         public int CurrentLoopCount { get; set; }
-        public Dictionary<Type, int> AcquiredJobTypesWithLimitedConcurrency { get; }= new();
+        public Dictionary<string, int> AcquiredJobsWithLimitedConcurrency { get; } = new();
         public Type CurrentJobType { get; set; }
+    }
+
+    protected override async Task<TriggerFiredBundle> TriggerFired(ConnectionAndTransactionHolder conn, IOperableTrigger trigger, CancellationToken cancellationToken = new CancellationToken())
+    {
+        // notify some sort of callback listener for UI to add a job as running
+        return await base.TriggerFired(conn, trigger, cancellationToken);
+    }
+
+    protected override async Task TriggeredJobComplete(ConnectionAndTransactionHolder conn, IOperableTrigger trigger, IJobDetail jobDetail, SchedulerInstruction triggerInstCode,
+        CancellationToken cancellationToken = new CancellationToken())
+    {
+        // notify some sort of callback listener for UI to set a job as finished
+        await base.TriggeredJobComplete(conn, trigger, jobDetail, triggerInstCode, cancellationToken);
     }
 }

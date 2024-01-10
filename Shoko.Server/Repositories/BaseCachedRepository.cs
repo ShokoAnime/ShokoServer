@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Properties;
@@ -166,6 +167,16 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         WriteLock(() => DeleteFromCacheUnsafe(cr));
     }
 
+    public virtual async Task DeleteWithOpenTransactionAsync(ISession session, T cr)
+    {
+        if (cr == null) return;
+
+        DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+        await Lock(async () => await session.DeleteAsync(cr));
+
+        WriteLock(() => DeleteFromCacheUnsafe(cr));
+    }
+
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
     public void DeleteWithOpenTransaction(ISession session, List<T> objs)
     {
@@ -178,6 +189,19 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         {
             DeleteWithOpenTransactionCallback?.Invoke(session, cr);
             Lock(() => session.Delete(cr));
+        }
+
+        WriteLock(() => objs.ForEach(DeleteFromCacheUnsafe));
+    }
+    
+    public async Task DeleteWithOpenTransactionAsync(ISession session, List<T> objs)
+    {
+        if (objs.Count == 0) return;
+
+        foreach (var cr in objs)
+        {
+            DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+            await Lock(async () => await session.DeleteAsync(cr));
         }
 
         WriteLock(() => objs.ForEach(DeleteFromCacheUnsafe));
@@ -291,6 +315,29 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             foreach (var obj in objs)
             {
                 session.SaveOrUpdate(obj);
+            }
+        });
+
+        foreach (var obj in objs)
+        {
+            SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
+        }
+
+        foreach (var obj in objs)
+        {
+            WriteLock(() => UpdateCacheUnsafe(obj));
+        }
+    }
+    
+    public async Task SaveWithOpenTransactionAsync(ISession session, List<T> objs)
+    {
+        if (objs.Count == 0) return;
+
+        await Lock(async () =>
+        {
+            foreach (var obj in objs)
+            {
+                await session.SaveOrUpdateAsync(obj);
             }
         });
 

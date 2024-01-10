@@ -10,10 +10,12 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
+using Shoko.Server.Databases;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -46,87 +48,78 @@ public class HashFileJob : BaseJob
     protected HashFileJob() {
     }
 
-    public override async Task Execute(IJobExecutionContext context)
+    protected override async Task Process(IJobExecutionContext context)
     {
-        try
+        var (shouldSave, vlocal, vlocalplace, folder) = GetVideoLocal();
+        Exception e = null;
+        var filename = vlocalplace.FileName;
+        var fileSize = GetFileInfo(folder, ref e);
+        if (fileSize == 0 && e != null)
         {
-            var (shouldSave, vlocal, vlocalplace, folder) = GetVideoLocal();
-            Exception e = null;
-            var filename = vlocalplace.FileName;
-            var fileSize = GetFileInfo(folder, ref e);
-            if (fileSize == 0 && e != null)
-            {
-                Logger.LogError(e, "Could not access file. Exiting");
-                return;
-            }
+            Logger.LogError(e, "Could not access file. Exiting");
+            return;
+        }
 
-            var (newFile, needEd2K, needCRC32, needMD5, needSHA1) = ShouldHash(vlocal);
-            if (!needEd2K && !ForceHash) return;
-            shouldSave |= !newFile;
-            FillMissingHashes(vlocal, needMD5, needSHA1, needCRC32, ForceHash);
+        var (newFile, needEd2K, needCRC32, needMD5, needSHA1) = ShouldHash(vlocal);
+        if (!needEd2K && !ForceHash) return;
+        shouldSave |= !newFile;
+        FillMissingHashes(vlocal, needMD5, needSHA1, needCRC32, ForceHash);
 
-            // We should have a hash by now
-            // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
-            // TODO change this back to lookup by hash and filesize, but it'll need database migration and changes to other lookups
-            var tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
+        // We should have a hash by now
+        // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
+        // TODO change this back to lookup by hash and filesize, but it'll need database migration and changes to other lookups
+        var tlocal = RepoFactory.VideoLocal.GetByHash(vlocal.Hash);
 
-            if (tlocal != null)
-            {
-                Logger.LogTrace("Found existing VideoLocal with hash, merging info from it");
-                // Merge hashes and save, regardless of duplicate file
-                shouldSave |= MergeInfoFrom(tlocal, vlocal);
-                vlocal = tlocal;
-            }
+        if (tlocal != null)
+        {
+            Logger.LogTrace("Found existing VideoLocal with hash, merging info from it");
+            // Merge hashes and save, regardless of duplicate file
+            shouldSave |= MergeInfoFrom(tlocal, vlocal);
+            vlocal = tlocal;
+        }
 
-            if (shouldSave)
-            {
-                Logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FileName, vlocal.Hash);
-                RepoFactory.VideoLocal.Save(vlocal, true);
-            }
+        if (shouldSave)
+        {
+            Logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FileName, vlocal.Hash);
+            RepoFactory.VideoLocal.Save(vlocal, true);
+        }
 
-            vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-            RepoFactory.VideoLocalPlace.Save(vlocalplace);
+        vlocalplace.VideoLocalID = vlocal.VideoLocalID;
+        RepoFactory.VideoLocalPlace.Save(vlocalplace);
 
-            var duplicate = ProcessDuplicates(vlocal, vlocalplace);
-            if (duplicate)
-            {
-                var crProcfile3 = _commandFactory.Create<CommandRequest_ProcessFile>(
-                    c =>
-                    {
-                        c.VideoLocalID = vlocal.VideoLocalID;
-                        c.ForceAniDB = false;
-                    }
-                );
-                _commandFactory.Save(crProcfile3);
-                return;
-            }
-
-            SaveFileNameHash(filename, vlocal);
-
-            if ((vlocal.Media?.GeneralStream?.Duration ?? 0) == 0 || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
-            {
-                if (vlocalplace.RefreshMediaInfo())
-                {
-                    RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
-                }
-            }
-
-            ShokoEventHandler.Instance.OnFileHashed(folder, vlocalplace);
-
-            // now add a command to process the file
-            _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(c =>
+        var duplicate = await ProcessDuplicates(vlocal, vlocalplace);
+        if (duplicate)
+        {
+            var crProcfile3 = _commandFactory.Create<CommandRequest_ProcessFile>(
+                c =>
                 {
                     c.VideoLocalID = vlocal.VideoLocalID;
-                    c.ForceAniDB = ForceHash;
-                    c.SkipMyList = SkipMyList;
-                });
+                    c.ForceAniDB = false;
+                }
+            );
+            _commandFactory.Save(crProcfile3);
+            return;
         }
-        catch (Exception ex)
+
+        SaveFileNameHash(filename, vlocal);
+
+        if ((vlocal.Media?.GeneralStream?.Duration ?? 0) == 0 || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
         {
-            //logger.Error(ex, ex.ToString());
-            // do you want the job to refire?
-            throw new JobExecutionException(msg: ex.Message, refireImmediately: false, cause: ex);
+            if (vlocalplace.RefreshMediaInfo())
+            {
+                RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
+            }
         }
+
+        ShokoEventHandler.Instance.OnFileHashed(folder, vlocalplace);
+
+        // now add a command to process the file
+        _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(c =>
+            {
+                c.VideoLocalID = vlocal.VideoLocalID;
+                c.ForceAniDB = ForceHash;
+                c.SkipMyList = SkipMyList;
+            });
     }
     
     private (bool existing, SVR_VideoLocal, SVR_VideoLocal_Place, SVR_ImportFolder) GetVideoLocal()
@@ -456,26 +449,23 @@ public class HashFileJob : BaseJob
         return changed;
     }
 
-    private bool ProcessDuplicates(SVR_VideoLocal vlocal, SVR_VideoLocal_Place vlocalplace)
+    private async Task<bool> ProcessDuplicates(SVR_VideoLocal vlocal, SVR_VideoLocal_Place vlocalplace)
     {
         if (vlocal == null) return false;
         // If the VideoLocalID == 0, then it's a new file that wasn't merged after hashing, so it can't be a dupe
         if (vlocal.VideoLocalID == 0) return false;
 
-        var preps = vlocal.Places.Where(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath)).ToList();
-        foreach (var prep in preps)
+        var preps = vlocal.Places.Where(a =>
         {
-            if (prep == null) continue;
-
-            // clean up, if there is a 'duplicate file' that is invalid, remove it.
-            if (prep.FullServerPath == null)
-            {
-                RepoFactory.VideoLocalPlace.Delete(prep);
-                continue;
-            }
-
-            if (File.Exists(prep.FullServerPath)) continue;
-            RepoFactory.VideoLocalPlace.Delete(prep);
+            if (vlocalplace.FullServerPath.Equals(a.FullServerPath)) return false;
+            if (a.FullServerPath == null) return true;
+            return !File.Exists(a.FullServerPath);
+        }).ToList();
+        using (var session = DatabaseFactory.SessionFactory.OpenSession())
+        {
+            using var transaction = session.BeginTransaction();
+            await RepoFactory.VideoLocalPlace.DeleteWithOpenTransactionAsync(session, preps);
+            await transaction.CommitAsync();
         }
 
         var dupPlace = vlocal.Places.FirstOrDefault(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath));
