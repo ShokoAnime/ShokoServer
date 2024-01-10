@@ -56,7 +56,7 @@ public class AniDBGetFileJob : BaseJob
         }
     }
 
-    protected override async Task Process(IJobExecutionContext context)
+    public override async Task Process()
     {
         Logger.LogInformation("Get AniDB file info: {VideoLocalID}", VideoLocalID);
 

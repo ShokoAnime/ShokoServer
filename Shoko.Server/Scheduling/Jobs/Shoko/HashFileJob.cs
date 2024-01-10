@@ -48,7 +48,7 @@ public class HashFileJob : BaseJob
     protected HashFileJob() {
     }
 
-    protected override async Task Process(IJobExecutionContext context)
+    public override async Task Process()
     {
         var (shouldSave, vlocal, vlocalplace, folder) = GetVideoLocal();
         Exception e = null;

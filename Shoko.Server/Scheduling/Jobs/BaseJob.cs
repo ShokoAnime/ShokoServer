@@ -17,7 +17,7 @@ public abstract class BaseJob : IJob
     {
         try
         {
-            await Process(context);
+            await Process();
         }
         catch (Exception ex)
         {
@@ -25,7 +25,7 @@ public abstract class BaseJob : IJob
         }
     }
 
-    protected abstract Task Process(IJobExecutionContext context);
+    public abstract Task Process();
  
     [XmlIgnore][JsonIgnore] protected readonly ILogger Logger;
     [XmlIgnore][JsonIgnore] public abstract QueueStateStruct Description { get; }

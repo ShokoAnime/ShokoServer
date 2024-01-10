@@ -39,7 +39,7 @@ public class DiscoverFileJob : BaseJob
 
     protected DiscoverFileJob() { }
 
-    protected override async Task Process(IJobExecutionContext context)
+    public override async Task Process()
     {
         // The flow has changed.
         // Check for previous existence, merge info if needed
