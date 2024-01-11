@@ -205,22 +205,10 @@ public class PlexHelper
 
     private PlexKey GetPlexKey()
     {
-        if (_key != null)
-        {
-            if (_key.ExpiresAt > DateTime.Now)
-            {
-                return _key;
-            }
-
-            if (_key.ExpiresAt <= DateTime.Now)
-            {
-                _key = null;
-            }
-        }
+        if (_key != null && _key.ExpiresAt > DateTime.Now) return _key;
 
         var (_, content) = RequestAsync("https://plex.tv/api/v2/pins?strong=true", HttpMethod.Post).Result;
-        _key = JsonConvert.DeserializeObject<PlexKey>(content);
-        return _key;
+        return _key = JsonConvert.DeserializeObject<PlexKey>(content);
     }
 
     private string GetPlexToken()
