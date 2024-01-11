@@ -493,6 +493,7 @@ public class PlexHelper
     {
         _user.PlexToken = string.Empty;
         isAuthenticated = false;
+        _key = null;
         SaveUser(_user);
     }
 }
