@@ -16,7 +16,7 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Scheduling.Acquisition;
+using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;

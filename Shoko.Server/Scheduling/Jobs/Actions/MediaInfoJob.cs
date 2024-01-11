@@ -9,6 +9,7 @@ using QuartzJobFactory.Attributes;
 using Shoko.Server.Commands;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition;
+using Shoko.Server.Scheduling.Acquisition.Attributes;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 

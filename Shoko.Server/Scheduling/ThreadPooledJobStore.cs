@@ -9,6 +9,7 @@ using Quartz;
 using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
 using Quartz.Util;
+using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Delegates;
 using Shoko.Server.Utilities;
@@ -20,10 +21,12 @@ public class ThreadPooledJobStore : JobStoreTX
     private readonly ILogger<ThreadPooledJobStore> _logger;
     private ITypeLoadHelper _typeLoadHelper = null!;
     private Dictionary<Type, int> _typeConcurrencyCache;
+    private readonly IAcquisitionFilter[] _acquisitionFilters;
     
-    public ThreadPooledJobStore(ILogger<ThreadPooledJobStore> logger)
+    public ThreadPooledJobStore(ILogger<ThreadPooledJobStore> logger, IEnumerable<IAcquisitionFilter> acquisitionFilters)
     {
         _logger = logger;
+        _acquisitionFilters = acquisitionFilters.ToArray();
         InitConcurrencyCache();
     }
 
@@ -36,6 +39,7 @@ public class ThreadPooledJobStore : JobStoreTX
         await base.Initialize(loadHelper, signaler, cancellationToken);
     }
 
+    // TODO We may need a way to notify quartz of a state change, or else it waits like 5 seconds to check again (or is notified by new jobs)
     protected override async Task<IReadOnlyCollection<IOperableTrigger>> AcquireNextTrigger(
             ConnectionAndTransactionHolder conn,
             DateTimeOffset noLaterThan,
@@ -163,8 +167,13 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private Type[] GetTypesToExclude()
     {
-        // TODO We can get the status of things and add things to exclude
-        return Array.Empty<Type>();
+        var result = new List<Type>();
+        foreach (var filter in _acquisitionFilters)
+        {
+            result.AddRange(filter.GetTypesToExclude());
+        }
+
+        return result.Distinct().ToArray();
     }
 
     private bool JobAllowed(TriggerAcquisitionContext context)
@@ -200,7 +209,7 @@ public class ThreadPooledJobStore : JobStoreTX
     {
         _typeConcurrencyCache = new Dictionary<Type, int>();
         var types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
-            .Where(a => typeof(IJob).IsAssignableFrom(a)).ToList();
+            .Where(a => typeof(IJob).IsAssignableFrom(a) && !a.IsAbstract).ToList();
 
         foreach (var type in types)
         {

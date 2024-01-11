@@ -12,7 +12,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Scheduling.Acquisition;
+using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 

@@ -17,12 +17,13 @@ using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition;
+using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
-[DatabaseRequired, NetworkRequired, AniDBUDPRateLimited]
+[DatabaseRequired, NetworkRequired, AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
 [Command(CommandRequestType.AniDB_GetFileUDP)]

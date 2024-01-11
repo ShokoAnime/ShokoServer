@@ -359,8 +359,6 @@ public class ShokoServer
 
             StartWatchingFiles();
 
-            var folders = RepoFactory.ImportFolder.GetAll();
-
             if (settings.Import.ScanDropFoldersOnStart)
             {
                 ScanDropFolders();

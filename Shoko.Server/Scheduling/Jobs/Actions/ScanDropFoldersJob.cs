@@ -6,7 +6,7 @@ using System;
 using System.Threading.Tasks;
 using Quartz;
 using QuartzJobFactory.Attributes;
-using Shoko.Server.Scheduling.Acquisition;
+using Shoko.Server.Scheduling.Acquisition.Attributes;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 

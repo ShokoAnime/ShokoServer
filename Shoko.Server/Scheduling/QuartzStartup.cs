@@ -7,6 +7,7 @@ using MySqlConnector;
 using Quartz;
 using Quartz.AspNetCore;
 using QuartzJobFactory;
+using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Delegates;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -20,6 +21,10 @@ public static class QuartzStartup
     internal static void AddQuartz(this IServiceCollection services)
     {
         services.AddSingleton<ThreadPooledJobStore>();
+        services.AddSingleton<IAcquisitionFilter, AniDBHttpRateLimitedAcquisitionFilter>();
+        services.AddSingleton<IAcquisitionFilter, AniDBUdpRateLimitedAcquisitionFilter>();
+        services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
+        services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
         services.AddJobs();
         services.AddQuartz(q =>
         {
