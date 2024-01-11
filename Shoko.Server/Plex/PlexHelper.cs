@@ -164,9 +164,6 @@ public class PlexHelper
     {
         get
         {
-            if (string.IsNullOrEmpty(_user.PlexToken))
-                return false;
-            
             if (isAuthenticated is true)
             {
                 return isAuthenticated.GetValueOrDefault(false);
