@@ -103,9 +103,9 @@ public class AuthenticationController : BaseController
     [HttpDelete]
     public ActionResult Delete(string apikey)
     {
-        var token = RepoFactory.AuthTokens.GetAll().FirstOrDefault(a => a.UserID == User.JMMUserID && a.DeviceName.EqualsInvariantIgnoreCase(apikey));
+        var token = RepoFactory.AuthTokens.GetAll().FirstOrDefault(a => a.UserID == User?.JMMUserID && a.DeviceName.EqualsInvariantIgnoreCase(apikey));
         token ??= RepoFactory.AuthTokens.GetByToken(apikey);
-        if (User.JMMUserID != token.UserID && User.IsAdmin != 1) return Unauthorized("Cannot delete a token for another user");
+        if (User?.JMMUserID != token.UserID && User?.IsAdmin != 1) return Unauthorized("Cannot delete a token for another user");
         RepoFactory.AuthTokens.Delete(token);
         return Ok();
     }
