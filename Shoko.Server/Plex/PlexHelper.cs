@@ -297,7 +297,7 @@ public class PlexHelper
             jmmUser.IsAdmin = user.IsAdmin;
             jmmUser.Username = user.Username;
             jmmUser.CanEditServerSettings = user.CanEditServerSettings;
-            jmmUser.PlexUsers = string.Join(",", user.PlexUsers);
+            jmmUser.PlexUsers = user.PlexUsers;
             jmmUser.PlexToken = user.PlexToken;
             if (string.IsNullOrEmpty(user.Password))
             {

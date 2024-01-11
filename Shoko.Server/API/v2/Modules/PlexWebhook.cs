@@ -62,7 +62,7 @@ public class PlexWebhook : BaseController
         switch (payload.Event)
         {
             case "media.scrobble":
-                Scrobble(payload);
+                Scrobble(payload, User);
                 break;
             case "media.resume":
             case "media.play":
@@ -107,7 +107,7 @@ public class PlexWebhook : BaseController
     }
 
     [NonAction]
-    private void Scrobble(PlexEvent data)
+    private void Scrobble(PlexEvent data, SVR_JMMUser user)
     {
         var metadata = data.Metadata;
         (var episode, var anime) = GetEpisode(metadata);
@@ -118,13 +118,12 @@ public class PlexWebhook : BaseController
             return;
         }
 
-        _logger.LogTrace($"Got anime: {anime}, ep: {episode.AniDB_Episode.EpisodeNumber}");
+        _logger.LogTrace("Got anime: {Anime}, ep: {EpisodeNumber}", anime, episode.AniDB_Episode.EpisodeNumber);
 
-        var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
+        user ??= RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
         if (user == null)
         {
-            _logger.LogInformation(
-                $"Unable to determine who \"{data.Account.Title}\" is in Shoko, make sure this is set under user settings in Desktop");
+            _logger.LogInformation("Unable to determine who \"{AccountTitle}\" is in Shoko, make sure this is set under user settings in Desktop", data.Account.Title);
             return; //At this point in time, we don't want to scrobble for unknown users
         }
 
