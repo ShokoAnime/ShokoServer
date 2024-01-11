@@ -47,10 +47,7 @@ public class ThreadPooledJobStore : JobStoreTX
             TimeSpan timeWindow,
             CancellationToken cancellationToken = default)
     {
-        if (timeWindow < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(timeWindow));
-        }
+        if (timeWindow < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(timeWindow));
 
         var acquiredTriggers = new List<IOperableTrigger>();
         var context = new TriggerAcquisitionContext();
@@ -65,11 +62,7 @@ public class ThreadPooledJobStore : JobStoreTX
                     .SelectTriggerToAcquire(conn, noLaterThan + timeWindow, MisfireTime, maxCount, typesToExclude, cancellationToken).ConfigureAwait(false);
 
                 // No trigger is ready to fire yet.
-                if (results.Count == 0)
-                {
-                    return acquiredTriggers;
-                }
-
+                if (results.Count == 0) return acquiredTriggers;
                 var batchEnd = noLaterThan;
 
                 foreach (var result in results)
@@ -78,10 +71,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
                     // If our trigger is no longer available, try a new one.
                     var nextTrigger = await RetrieveTrigger(conn, triggerKey, cancellationToken).ConfigureAwait(false);
-                    if (nextTrigger == null)
-                    {
-                        continue; // next trigger
-                    }
+                    if (nextTrigger == null) continue; // next trigger
 
                     // If trigger's job is set as @DisallowConcurrentExecution, and it has already been added to result, then
                     // put it back into the timeTriggers set and continue to search for next trigger.
@@ -118,18 +108,13 @@ public class ThreadPooledJobStore : JobStoreTX
                         continue;
                     }
 
-                    if (nextFireTimeUtc > batchEnd)
-                    {
-                        break;
-                    }
+                    if (nextFireTimeUtc > batchEnd) break;
 
                     // We now have a acquired trigger, let's add to return list.
                     // If our trigger was no longer in the expected state, try a new one.
                     var rowsUpdated = await Delegate.UpdateTriggerStateFromOtherStateWithNextFireTime(conn, triggerKey, StateAcquired, StateWaiting, nextFireTimeUtc.Value, cancellationToken).ConfigureAwait(false);
-                    if (rowsUpdated <= 0)
-                    {
-                        continue; // next trigger
-                    }
+                    if (rowsUpdated <= 0) continue; // next trigger
+
                     nextTrigger.FireInstanceId = GetFiredTriggerRecordId();
                     await Delegate.InsertFiredTrigger(conn, nextTrigger, StateAcquired, null, cancellationToken).ConfigureAwait(false);
 
@@ -147,10 +132,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
                 // if we didn't end up with any trigger to fire from that first
                 // batch, try again for another batch. We allow with a max retry count.
-                if (acquiredTriggers.Count == 0 && context.CurrentLoopCount < context.MaxDoLoopRetry)
-                {
-                    continue;
-                }
+                if (acquiredTriggers.Count == 0 && context.CurrentLoopCount < context.MaxDoLoopRetry) continue;
 
                 // We are done with the while loop.
                 break;
@@ -168,10 +150,7 @@ public class ThreadPooledJobStore : JobStoreTX
     private Type[] GetTypesToExclude()
     {
         var result = new List<Type>();
-        foreach (var filter in _acquisitionFilters)
-        {
-            result.AddRange(filter.GetTypesToExclude());
-        }
+        foreach (var filter in _acquisitionFilters) result.AddRange(filter.GetTypesToExclude());
 
         return result.Distinct().ToArray();
     }
