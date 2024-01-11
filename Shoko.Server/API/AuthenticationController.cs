@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.API.v2.Models.core;
@@ -15,6 +18,15 @@ public class AuthenticationController : BaseController
 {
     private readonly ILogger<AuthenticationController> _logger;
 
+    [HttpGet]
+    [Authorize]
+    public ActionResult<List<(string Device, string Username, string apikey)>> GetApikeys()
+    {
+        if (User == null || User.IsAdmin == 0) return Unauthorized("Only Admins can list apikeys");
+        var users = RepoFactory.JMMUser.GetAll().ToDictionary(a => a.JMMUserID, a => a.Username);
+        return RepoFactory.AuthTokens.GetAll().Select(a => (a.DeviceName, users.TryGetValue(a.UserID, out var user) ? user : null, a.Token)).ToList();
+    }
+    
     /// <summary>
     /// Get an authentication token for the user.
     /// </summary>
@@ -74,10 +86,12 @@ public class AuthenticationController : BaseController
     ///Delete an APIKey from the database.
     ///</summary>
     ///<param name="apikey">The API key to delete.</param>
-    [HttpDelete("")]
+    [HttpDelete]
     public ActionResult Delete(string apikey)
     {
-        RepoFactory.AuthTokens.DeleteWithToken(apikey);
+        var token = RepoFactory.AuthTokens.GetByToken(apikey);
+        if (User.JMMUserID != token.UserID && User.IsAdmin != 1) return Unauthorized("Cannot delete a token for another user");
+        RepoFactory.AuthTokens.Delete(token);
         return Ok();
     }
 
