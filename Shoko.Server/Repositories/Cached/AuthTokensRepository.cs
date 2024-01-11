@@ -69,38 +69,33 @@ public class AuthTokensRepository : BaseCachedRepository<AuthTokens, int>
 
     public string ValidateUser(string username, string password, string device)
     {
-        JMMUser userrecord = RepoFactory.JMMUser.AuthenticateUser(username, password);
+        JMMUser user = RepoFactory.JMMUser.AuthenticateUser(username, password);
+        return CreateNewApikey(user, device);
+    }
 
-        if (userrecord == null)
-        {
-            return string.Empty;
-        }
+    public string CreateNewApikey(JMMUser user, string device)
+    {
+        if (user == null) return string.Empty;
 
-        var uid = userrecord.JMMUserID;
+        // get tokens that are invalid
+        var uid = user.JMMUserID;
         var ids = ReadLock(() => UserIDs.GetMultiple(uid));
-        var tokens = ids.Where(a => string.IsNullOrEmpty(a.Token) ||
-                                    a.DeviceName.Trim().Equals(device.Trim(),
-                                        StringComparison.InvariantCultureIgnoreCase))
+        var tokens = ids.Where(a => !string.IsNullOrEmpty(a.Token) && a.DeviceName.Trim().Equals(device.Trim(), StringComparison.InvariantCultureIgnoreCase))
             .ToList();
-        var auth = tokens.FirstOrDefault(a => !string.IsNullOrEmpty(a.Token) &&
-                                              a.DeviceName.Trim().Equals(device.Trim(),
-                                                  StringComparison.InvariantCultureIgnoreCase));
+        var auth = tokens.FirstOrDefault();
         if (tokens.Count > 1)
         {
-            if (auth != null)
-            {
-                tokens.Remove(auth);
-            }
+            if (auth != null) tokens.Remove(auth);
 
-            tokens.ForEach(Delete);
+            Delete(tokens);
         }
+
+        var invalidTokens = ids.Where(a => string.IsNullOrEmpty(a.Token)).ToList();
+        Delete(invalidTokens);
 
         var apiKey = auth?.Token.ToLowerInvariant().Trim() ?? string.Empty;
 
-        if (!string.IsNullOrEmpty(apiKey))
-        {
-            return apiKey;
-        }
+        if (!string.IsNullOrEmpty(apiKey)) return apiKey;
 
         apiKey = Guid.NewGuid().ToString().ToLowerInvariant().Trim();
         var newToken = new AuthTokens { UserID = uid, DeviceName = device.Trim().ToLowerInvariant(), Token = apiKey };
@@ -108,4 +103,6 @@ public class AuthTokensRepository : BaseCachedRepository<AuthTokens, int>
 
         return apiKey;
     }
+
+
 }

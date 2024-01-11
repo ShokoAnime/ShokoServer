@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
@@ -18,15 +19,38 @@ public class AuthenticationController : BaseController
 {
     private readonly ILogger<AuthenticationController> _logger;
 
+    /// <summary>
+    /// Lists all apikeys and the user that they are associated with.
+    /// Admins can list all apikeys. Otherwise, the current user's apikeys are listed.
+    /// </summary>
+    /// <returns></returns>
     [HttpGet]
     [Authorize]
-    public ActionResult<List<(string Device, string Username, string apikey)>> GetApikeys()
+    public ActionResult<List<ApikeyResult>> GetApikeys()
     {
-        if (User == null || User.IsAdmin == 0) return Unauthorized("Only Admins can list apikeys");
+        // Only admins can list all apikeys, otherwise, just the current user
+        if (User.IsAdmin == 0)
+            return RepoFactory.AuthTokens.GetAll().Where(a => a.UserID == User.JMMUserID).Select(a => new ApikeyResult(a.UserID, User.Username, a.DeviceName))
+                .ToList();
+
         var users = RepoFactory.JMMUser.GetAll().ToDictionary(a => a.JMMUserID, a => a.Username);
-        return RepoFactory.AuthTokens.GetAll().Select(a => (a.DeviceName, users.TryGetValue(a.UserID, out var user) ? user : null, a.Token)).ToList();
+        return RepoFactory.AuthTokens.GetAll().Select(a => new ApikeyResult(a.UserID, users.TryGetValue(a.UserID, out var user) ? user : null, a.DeviceName))
+            .ToList();
     }
-    
+
+    /// <summary>
+    /// Creates a new apikey for the current user with a given "device"
+    /// </summary>
+    /// <param name="device">A unique identifier for this apikey. Can be anything, but creating a new key with the same device will invalidate previous keys</param>
+    /// <returns>The new apikey</returns>
+    [HttpPost("apikey")]
+    [Authorize]
+    public ActionResult<string> GenerateApikey([FromBody]string device)
+    {
+        if (string.IsNullOrWhiteSpace(device)) return BadRequest("device cannot be empty");
+        return RepoFactory.AuthTokens.CreateNewApikey(User, device);
+    }
+
     /// <summary>
     /// Get an authentication token for the user.
     /// </summary>
@@ -38,24 +62,13 @@ public class AuthenticationController : BaseController
     [ProducesResponseType(200)]
     public ActionResult<object> Login(AuthUser auth)
     {
-        if (!ModelState.IsValid || string.IsNullOrEmpty(auth.user?.Trim()))
-        {
-            return BadRequest(ModelState);
-        }
-
-        if (auth.pass == null)
-        {
-            auth.pass = string.Empty;
-        }
+        if (!ModelState.IsValid || string.IsNullOrEmpty(auth.user?.Trim())) return BadRequest(ModelState);
+        auth.pass ??= string.Empty;
 
         //create and save new token for authenticated user or return known one
         var apiKey = RepoFactory.AuthTokens.ValidateUser(auth.user.Trim(), auth.pass.Trim(), auth.device.Trim());
 
-        if (!string.IsNullOrEmpty(apiKey))
-        {
-            return Ok(new { apikey = apiKey });
-        }
-
+        if (!string.IsNullOrEmpty(apiKey)) return Ok(new { apikey = apiKey });
         return Unauthorized();
     }
 
@@ -85,11 +98,12 @@ public class AuthenticationController : BaseController
     ///<summary>
     ///Delete an APIKey from the database.
     ///</summary>
-    ///<param name="apikey">The API key to delete.</param>
+    ///<param name="apikey">The Apikey or device to delete.</param>
     [HttpDelete]
     public ActionResult Delete(string apikey)
     {
-        var token = RepoFactory.AuthTokens.GetByToken(apikey);
+        var token = RepoFactory.AuthTokens.GetAll().FirstOrDefault(a => a.UserID == User.JMMUserID && a.DeviceName.EqualsInvariantIgnoreCase(apikey));
+        token ??= RepoFactory.AuthTokens.GetByToken(apikey);
         if (User.JMMUserID != token.UserID && User.IsAdmin != 1) return Unauthorized("Cannot delete a token for another user");
         RepoFactory.AuthTokens.Delete(token);
         return Ok();
@@ -99,4 +113,6 @@ public class AuthenticationController : BaseController
     {
         _logger = logger;
     }
+
+    public record ApikeyResult(int UserID, string Username, string Device);
 }
