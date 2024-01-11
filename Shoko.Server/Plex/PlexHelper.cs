@@ -192,14 +192,14 @@ public class PlexHelper
 
     private static void SetupHttpClient(HttpClient client, TimeSpan timeout)
     {
+        var assemblyName = Assembly.GetEntryAssembly()?.GetName();
         client.DefaultRequestHeaders.Add("X-Plex-Client-Identifier", ClientIdentifier);
         client.DefaultRequestHeaders.Add("X-Plex-Platform-Version", ServerState.Instance.ApplicationVersion);
         client.DefaultRequestHeaders.Add("X-Plex-Platform", "Shoko Server");
         client.DefaultRequestHeaders.Add("X-Plex-Device-Name", "Shoko Server Sync");
         client.DefaultRequestHeaders.Add("X-Plex-Product", "Shoko Server Sync");
         client.DefaultRequestHeaders.Add("X-Plex-Device", "Shoko");
-        client.DefaultRequestHeaders.Add("User-Agent",
-            $"{Assembly.GetEntryAssembly().GetName().Name} v${Assembly.GetEntryAssembly().GetName().Version}");
+        client.DefaultRequestHeaders.Add("User-Agent", $"{assemblyName?.Name} v${assemblyName?.Version}");
         client.Timeout = timeout;
     }
 
@@ -225,24 +225,16 @@ public class PlexHelper
 
     private string GetPlexToken()
     {
-        if (!string.IsNullOrEmpty(_user?.PlexToken))
-        {
-            return _user.PlexToken;
-        }
+        if (!string.IsNullOrEmpty(_user?.PlexToken)) return _user.PlexToken;
 
-        if (_key == null)
-        {
-            GetPlexKey();
-        }
+        _key ??= GetPlexKey();
+        if (_key == null) return null;
+        if (_key.AuthToken != null) return _key.AuthToken;
 
-        if (_key.AuthToken != null)
-        {
-            return _key?.AuthToken;
-        }
-
-        var (_, content) = RequestAsync($"https://plex.tv/api/v2/pins/{_key.Id}", HttpMethod.Get).Result;
+        string content = null;
         try
         {
+            (_, content) = RequestAsync($"https://plex.tv/api/v2/pins/{_key.Id}", HttpMethod.Get).Result;
             _key = JsonConvert.DeserializeObject<PlexKey>(content);
         }
         catch
@@ -250,24 +242,26 @@ public class PlexHelper
             Logger.Trace($"Unable to deserialize Plex Key from server. Response was \n{content}");
         }
 
-        if (_key == null)
+        if (_key == null) return null;
+
+        if (_user == null)
         {
-            return null;
+            Logger.Error(@$"Could not get cached user in {nameof(GetPlexToken)}. The plex token will not persist");
+            return _key.AuthToken;
         }
 
         _user.PlexToken = _key.AuthToken;
-
         SaveUser(_user);
         return _user.PlexToken;
     }
 
-    public void SaveUser(JMMUser user)
+    private void SaveUser(JMMUser user)
     {
         try
         {
             var existingUser = false;
             var updateStats = false;
-            SVR_JMMUser jmmUser = null;
+            SVR_JMMUser jmmUser;
             if (user.JMMUserID != 0)
             {
                 jmmUser = RepoFactory.JMMUser.GetByID(user.JMMUserID);
@@ -363,7 +357,7 @@ public class PlexHelper
 
     public static PlexHelper GetForUser(JMMUser user)
     {
-        return Cache.GetOrAdd(user.JMMUserID, u => new PlexHelper(user));
+        return Cache.GetOrAdd(user.JMMUserID, _ => new PlexHelper(user));
     }
 
     private async Task<(HttpStatusCode status, string content)> RequestAsync(string url, HttpMethod method,
@@ -412,24 +406,22 @@ public class PlexHelper
 
         if (!IsAuthenticated)
         {
-            _plexMediaDevices = new MediaDevice[0];
+            _plexMediaDevices = Array.Empty<MediaDevice>();
             return _plexMediaDevices;
         }
 
         var (_, content) = RequestAsync("https://plex.tv/api/resources?includeHttps=1", HttpMethod.Get,
             AuthenticationHeaders).Result;
         var serializer = new XmlSerializer(typeof(MediaContainer));
-        using (TextReader reader = new StringReader(content))
+        using TextReader reader = new StringReader(content);
+        try
         {
-            try
-            {
-                return ((MediaContainer)serializer.Deserialize(reader)).Device ?? new MediaDevice[0];
-            }
-            catch
-            {
-                Logger.Trace($"Unable to deserialize Plex Devices from server. Response was \n{reader}");
-                return new MediaDevice[0];
-            }
+            return ((MediaContainer)serializer.Deserialize(reader)!).Device ?? Array.Empty<MediaDevice>();
+        }
+        catch
+        {
+            Logger.Trace($"Unable to deserialize Plex Devices from server. Response was \n{reader}");
+            return Array.Empty<MediaDevice>();
         }
     }
 
@@ -466,7 +458,7 @@ public class PlexHelper
     {
         if (ServerCache == null)
         {
-            return new Directory[0];
+            return Array.Empty<Directory>();
         }
 
         try
@@ -474,11 +466,11 @@ public class PlexHelper
             var (_, data) = RequestFromPlexAsync("/library/sections").Result;
             return JsonConvert
                 .DeserializeObject<MediaContainer<Shoko.Models.Plex.Libraries.MediaContainer>>(data, SerializerSettings)
-                .Container.Directory ?? new Directory[0];
+                .Container.Directory ?? Array.Empty<Directory>();
         }
         catch (Exception) //I really just don't care now.
         {
-            return new Directory[0];
+            return Array.Empty<Directory>();
         }
     }
 
