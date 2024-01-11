@@ -78,6 +78,7 @@ public class AuthenticationController : BaseController
     /// <param name="newPassword"></param>
     /// <returns></returns>
     [HttpPost("ChangePassword")]
+    [Authorize]
     public ActionResult ChangePassword([FromBody] string newPassword)
     {
         try
