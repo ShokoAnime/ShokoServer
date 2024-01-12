@@ -177,7 +177,6 @@ public class Scanner : INotifyPropertyChangedExt
 
         var files = ActiveErrorFiles.ToList();
         ActiveErrorFiles.Clear();
-        var episodesToUpdate = new HashSet<SVR_AnimeEpisode>();
         var seriesToUpdate = new HashSet<SVR_AnimeSeries>();
         var service = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
         using (var session = DatabaseFactory.SessionFactory.OpenSession())

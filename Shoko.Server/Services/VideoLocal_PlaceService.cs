@@ -148,7 +148,7 @@ public class VideoLocal_PlaceService
 
         // actually rename the file
         var path = Path.GetDirectoryName(fullFileName);
-        var newFullName = Path.Combine(path, renamed);
+        var newFullName = Path.Combine(path!, renamed);
 
         try
         {
@@ -200,20 +200,22 @@ public class VideoLocal_PlaceService
             var filenameHash = RepoFactory.FileNameHash.GetByHash(place.VideoLocal.Hash);
             if (!filenameHash.Any(a => a.FileName.Equals(renamed)))
             {
-                var fnhash = new FileNameHash
+                var fnHash = new FileNameHash
                 {
                     DateTimeUpdated = DateTime.Now,
                     FileName = renamed,
                     FileSize = place.VideoLocal.FileSize,
                     Hash = place.VideoLocal.Hash
                 };
-                RepoFactory.FileNameHash.Save(fnhash);
+                RepoFactory.FileNameHash.Save(fnHash);
             }
 
             place.FilePath = filePath;
             RepoFactory.VideoLocalPlace.Save(place);
             // just in case
+#pragma warning disable CS0618 // Type or member is obsolete
             place.VideoLocal.FileName = renamed;
+#pragma warning restore CS0618 // Type or member is obsolete
             RepoFactory.VideoLocal.Save(place.VideoLocal, false);
             
             ShokoEventHandler.Instance.OnFileRenamed(place.ImportFolder, Path.GetFileName(fullFileName), renamed, place);
@@ -241,7 +243,7 @@ public class VideoLocal_PlaceService
                 continue;
             }
 
-            var oldSubPath = Path.Combine(path, sub.Filename);
+            var oldSubPath = Path.Combine(path!, sub.Filename);
 
             if (!File.Exists(oldSubPath))
             {
@@ -437,11 +439,11 @@ public class VideoLocal_PlaceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Unable to move subtitles for \"{Place}\": {Ex}", originalFileName, ex.ToString());
         }
     }
 
-    private void RecursiveDeleteEmptyDirectories(string dir, bool importfolder)
+    private void RecursiveDeleteEmptyDirectories(string dir, bool importFolder)
     {
         try
         {
@@ -451,7 +453,7 @@ public class VideoLocal_PlaceService
 
             if (IsDirectoryEmpty(dir))
             {
-                if (importfolder) return;
+                if (importFolder) return;
 
                 try
                 {
@@ -480,7 +482,7 @@ public class VideoLocal_PlaceService
         }
     }
 
-    public static bool IsDirectoryEmpty(string path)
+    private static bool IsDirectoryEmpty(string path)
     {
         try
         {
@@ -565,13 +567,7 @@ public class VideoLocal_PlaceService
         }
         catch (FileNotFoundException)
         {
-            if (deleteFolder)
-            {
-                RecursiveDeleteEmptyDirectories(place.ImportFolder?.ImportFolderLocation, true);
-            }
-
-            RemoveRecord(place);
-            return;
+            // ignore
         }
         catch (Exception ex)
         {
@@ -581,15 +577,14 @@ public class VideoLocal_PlaceService
 
         if (deleteFolder)
         {
-            RecursiveDeleteEmptyDirectories(place.ImportFolder?.ImportFolderLocation, true);
+            RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), true);
         }
 
         RemoveRecord(place);
     }
 
-    public void RemoveAndDeleteFileWithOpenTransaction(ISession session, SVR_VideoLocal_Place place, HashSet<SVR_AnimeSeries> seriesToUpdate)
+    public void RemoveAndDeleteFileWithOpenTransaction(ISession session, SVR_VideoLocal_Place place, HashSet<SVR_AnimeSeries> seriesToUpdate, bool updateMyList = true, bool deleteFolders = true)
     {
-        // TODO Make this take an argument to disable removing empty dirs. It's slow, and should only be done if needed
         try
         {
             _logger.LogInformation("Deleting video local place record and file: {Place}", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString());
@@ -597,7 +592,7 @@ public class VideoLocal_PlaceService
             if (!File.Exists(place.FullServerPath))
             {
                 _logger.LogInformation("Unable to find file. Removing Record: {FullServerPath}", place.FullServerPath);
-                RemoveRecordWithOpenTransaction(session, place, seriesToUpdate);
+                RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
                 return;
             }
 
@@ -606,26 +601,24 @@ public class VideoLocal_PlaceService
                 File.Delete(place.FullServerPath);
                 DeleteExternalSubtitles(place.FullServerPath);
             }
+            catch (FileNotFoundException)
+            {
+                // ignore
+            }
             catch (Exception ex)
             {
-                if (ex is FileNotFoundException)
-                {
-                    RecursiveDeleteEmptyDirectories(place.ImportFolder?.ImportFolderLocation, true);
-                    RemoveRecordWithOpenTransaction(session, place, seriesToUpdate);
-                    return;
-                }
-
                 _logger.LogError(ex, "Unable to delete file \'{Place}\': {Ex}", place.FullServerPath, ex);
                 return;
             }
 
-            RecursiveDeleteEmptyDirectories(place.ImportFolder?.ImportFolderLocation, true);
-            RemoveRecordWithOpenTransaction(session, place, seriesToUpdate);
+            if (deleteFolders) RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), true);
+            RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
             // For deletion of files from Trakt, we will rely on the Daily sync
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
+            _logger.LogError(ex, "Could not delete file and remove record for \"{Place}\": {Ex}", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString(),
+                ex);
         }
     }
 
@@ -749,7 +742,6 @@ public class VideoLocal_PlaceService
         }
     }
 
-
     public void RemoveRecordWithOpenTransaction(ISession session, SVR_VideoLocal_Place place, ICollection<SVR_AnimeSeries> seriesToUpdate,
         bool updateMyListStatus = true)
     {
@@ -791,7 +783,7 @@ public class VideoLocal_PlaceService
                 }
             }
 
-            var eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
+            var eps = v.GetAnimeEpisodes()?.Where(a => a != null).ToList();
             eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
 
             try
