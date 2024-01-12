@@ -15,7 +15,7 @@ public class XorExpression : FilterExpression<bool>, IWithExpressionParameter, I
 
     public override bool TimeDependent => Left.TimeDependent || Right.TimeDependent;
     public override bool UserDependent => Left.UserDependent || Right.UserDependent;
-    public override string HelpDescription => "This passes if either the left expression or the right expression pass, but not both";
+    public override string HelpDescription => "This condition passes if either the left expression or the right expression pass, but not both";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
     public FilterExpression<bool> Left { get; set; }

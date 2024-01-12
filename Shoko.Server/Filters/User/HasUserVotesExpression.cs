@@ -7,7 +7,7 @@ public class HasUserVotesExpression : FilterExpression<bool>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => true;
-    public override string HelpDescription => "This passes if the filterable has a user vote";
+    public override string HelpDescription => "This condition passes if the filterable has a user vote";
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {

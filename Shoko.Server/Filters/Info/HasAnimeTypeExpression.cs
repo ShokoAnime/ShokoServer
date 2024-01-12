@@ -15,7 +15,7 @@ public class HasAnimeTypeExpression : FilterExpression<bool>, IWithStringParamet
     public string Parameter { get; set; }
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This passes if any of the anime in a filterable are of the type given in the parameter";
+    public override string HelpDescription => "This condition passes if any of the anime are of the specified type";
     public override string[] HelpPossibleParameters => new[]
     {
         AnimeType.TVSeries.ToString(),

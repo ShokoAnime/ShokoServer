@@ -13,7 +13,7 @@ public class NotExpression : FilterExpression<bool>, IWithExpressionParameter
     public NotExpression() { }
     public override bool TimeDependent => Left.TimeDependent;
     public override bool UserDependent => Left.UserDependent;
-    public override string HelpDescription => "This passes if the left expression does not pass, e.g. an inverse";
+    public override string HelpDescription => "This condition passes if the left expression does not pass, e.g. an inverse";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
     public FilterExpression<bool> Left { get; set; }

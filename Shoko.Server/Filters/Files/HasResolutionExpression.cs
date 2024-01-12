@@ -14,7 +14,7 @@ public class HasResolutionExpression : FilterExpression<bool>, IWithStringParame
     public string Parameter { get; set; }
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This passes if any of the files have the video resolution provided in the parameter";
+    public override string HelpDescription => "This condition passes if any of the files have the specified video resolution";
     public override string[] HelpPossibleParameters => new[]
     {
         "2160p","1080p","720p","480p","UWHD","UWQHD","1440p","576p","360p","240p"

@@ -15,7 +15,7 @@ public class HasSharedAudioLanguageExpression : FilterExpression<bool>, IWithStr
     public string Parameter { get; set; }
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This passes if all of the files have the audio language provided in the parameter";
+    public override string HelpDescription => "This condition passes if all of the files have the specified audio language";
     public override string[] HelpPossibleParameters => SVR_AniDB_File.GetPossibleAudioLanguages();
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)

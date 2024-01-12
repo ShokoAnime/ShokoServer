@@ -15,7 +15,7 @@ public class AndExpression : FilterExpression<bool>, IWithExpressionParameter, I
 
     public override bool TimeDependent => Left.TimeDependent || Right.TimeDependent;
     public override bool UserDependent => Left.UserDependent || Right.UserDependent;
-    public override string HelpDescription => "This passes if both the left expression and the right expression pass";
+    public override string HelpDescription => "This condition passes if both the left expression and the right expression pass";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
     public FilterExpression<bool> Left { get; set; }

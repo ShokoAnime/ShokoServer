@@ -14,7 +14,7 @@ public class HasTagExpression : FilterExpression<bool>, IWithStringParameter
     public string Parameter { get; set; }
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This passes if any of the anime have a tag that matches the parameter";
+    public override string HelpDescription => "This condition passes if any of the anime have the specified tag";
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {

@@ -15,7 +15,7 @@ public class HasVideoSourceExpression : FilterExpression<bool>, IWithStringParam
     public string Parameter { get; set; }
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This passes if any of the files have the video source provided in the parameter";
+    public override string HelpDescription => "This condition passes if any of the files have the specified video source";
     public override string[] HelpPossibleParameters => new[]
     {
         GetFile_Source.BluRay.ToString(), GetFile_Source.DVD.ToString(),

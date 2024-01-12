@@ -6,7 +6,7 @@ public class HasMissingEpisodesExpression : FilterExpression<bool>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This passes if any of the anime have missing episodes from any known release group";
+    public override string HelpDescription => "This condition passes if any of the anime have missing episodes from any known release group";
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {

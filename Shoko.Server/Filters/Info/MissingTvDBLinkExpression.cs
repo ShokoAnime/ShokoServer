@@ -10,7 +10,7 @@ public class MissingTvDBLinkExpression : FilterExpression<bool>
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
     public override string Name => "Missing TvDB Link";
-    public override string HelpDescription => "This passes if any of the anime should have a TvDB link but does not have one";
+    public override string HelpDescription => "This condition passes if any of the anime should have a TvDB link but does not have one";
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {

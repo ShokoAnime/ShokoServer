@@ -22,7 +22,7 @@ public class StringEqualsExpression : FilterExpression<bool>, IWithStringSelecto
     public string Parameter { get; set; }
     public override bool TimeDependent => Left.TimeDependent || (Right?.TimeDependent ?? false);
     public override bool UserDependent => Left.UserDependent || (Right?.UserDependent ?? false);
-    public override string HelpDescription => "This passes if the left selector equals either the right selector or the parameter";
+    public override string HelpDescription => "This condition passes if the left selector equals either the right selector or the parameter";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
