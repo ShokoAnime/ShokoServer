@@ -1438,49 +1438,41 @@ public static class Importer
         try
         {
             var settings = Utils.SettingsProvider.GetSettings();
-            if (!settings.TraktTv.Enabled)
+            if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.TokenExpirationDate))
             {
                 return;
             }
 
             var traktHelper = Utils.ServiceContainer.GetRequiredService<TraktTVHelper>();
-            // by updating the Trakt token regularly, the user won't need to authorize again
-            var freqHours = 24; // we need to update this daily
 
-            var sched =
-                RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktToken);
-            if (sched != null)
+            // Convert the Unix timestamp to DateTime directly
+            var expirationDate = DateTimeOffset.FromUnixTimeSeconds(long.Parse(settings.TraktTv.TokenExpirationDate)).DateTime;
+
+            // Check if force refresh is requested or the token is expired
+            if (forceRefresh || DateTime.Now.Add(TimeSpan.FromDays(45)) >= expirationDate)
             {
-                // if we have run this in the last xxx hours and are not forcing it, then exit
-                var tsLastRun = DateTime.Now - sched.LastUpdate;
-                Logger.Trace("Last Trakt Token Update: {0} minutes ago", tsLastRun.TotalMinutes);
-                if (tsLastRun.TotalHours < freqHours)
-                {
-                    if (!forceRefresh)
-                    {
-                        return;
-                    }
-                }
-            }
+                traktHelper.RefreshAuthToken();
 
-            traktHelper.RefreshAuthToken();
-            if (sched == null)
+                // Update the last token refresh timestamp
+                var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktToken)
+                            ?? new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.TraktToken, UpdateDetails = string.Empty };
+
+                sched.LastUpdate = DateTime.Now;
+                RepoFactory.ScheduledUpdate.Save(sched);
+
+                Logger.Info("Trakt token refreshed successfully. Expiry date: {0}", expirationDate);
+            }
+            else
             {
-                sched = new ScheduledUpdate
-                {
-                    UpdateType = (int)ScheduledUpdateType.TraktToken, UpdateDetails = string.Empty
-                };
+                Logger.Info("Trakt token is still valid. Expiry date: {0}", expirationDate);
             }
-
-            sched.LastUpdate = DateTime.Now;
-            RepoFactory.ScheduledUpdate.Save(sched);
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Error in CheckForTraktTokenUpdate: " + ex);
         }
     }
-
+    
     public static void CheckForAniDBFileUpdate(bool forceRefresh)
     {
         var settings = Utils.SettingsProvider.GetSettings();
