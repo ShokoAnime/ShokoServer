@@ -7,6 +7,7 @@ using Shoko.Server.Commands.Attributes;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands;
@@ -15,6 +16,7 @@ namespace Shoko.Server.Commands;
 [Command(CommandRequestType.ReadMediaInfo)]
 public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
 {
+    private readonly VideoLocal_PlaceService _vlPlaceService;
     public virtual int VideoLocalID { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
@@ -38,7 +40,7 @@ public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
             return;
         }
 
-        if (place.RefreshMediaInfo())
+        if (_vlPlaceService.RefreshMediaInfo(place))
         {
             RepoFactory.VideoLocal.Save(place.VideoLocal, true);
         }
@@ -68,11 +70,10 @@ public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
         return true;
     }
 
-    public CommandRequest_ReadMediaInfo(ILoggerFactory loggerFactory) : base(loggerFactory)
+    public CommandRequest_ReadMediaInfo(ILoggerFactory loggerFactory, VideoLocal_PlaceService vlPlaceService) : base(loggerFactory)
     {
+        _vlPlaceService = vlPlaceService;
     }
 
-    protected CommandRequest_ReadMediaInfo()
-    {
-    }
+    protected CommandRequest_ReadMediaInfo() { }
 }

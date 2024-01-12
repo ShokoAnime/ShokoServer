@@ -15,6 +15,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -25,10 +26,9 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_ProcessFile : CommandRequestImplementation
 {
     private readonly ICommandRequestFactory _commandFactory;
-
     private readonly IServerSettings _settings;
-
     private readonly IUDPConnectionHandler _udpConnectionHandler;
+    private readonly VideoLocal_PlaceService _vlPlaceService;
 
     public virtual int VideoLocalID { get; set; }
 
@@ -84,7 +84,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
         var aniFile = ProcessFile_AniDB(vlocal);
 
         // Rename and/or move the physical file(s) if needed.
-        vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
+        vlocal.Places.ForEach(a => { _vlPlaceService.RenameAndMoveAsRequired(a); });
 
         // Check if an AniDB file is now available and if the cross-references changed.
         var newXRefs = vlocal.EpisodeCrossRefs
@@ -157,7 +157,7 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
 
             videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
 
-            videoLocals.ForEach(a => a.Places.ForEach(b => b.RemoveRecordAndDeletePhysicalFile()));
+            videoLocals.ForEach(a => a.Places.ForEach(b => _vlPlaceService.RemoveRecordAndDeletePhysicalFile(b)));
         }
         
         // we have an AniDB File, so check the release group info
@@ -453,15 +453,14 @@ public class CommandRequest_ProcessFile : CommandRequestImplementation
         return true;
     }
 
-    public CommandRequest_ProcessFile(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider, IUDPConnectionHandler udpConnectionHandler) :
+    public CommandRequest_ProcessFile(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider, IUDPConnectionHandler udpConnectionHandler, VideoLocal_PlaceService vlPlaceService) :
         base(loggerFactory)
     {
         _commandFactory = commandFactory;
         _settings = settingsProvider.GetSettings();
         _udpConnectionHandler = udpConnectionHandler;
+        _vlPlaceService = vlPlaceService;
     }
 
-    protected CommandRequest_ProcessFile()
-    {
-    }
+    protected CommandRequest_ProcessFile() { }
 }

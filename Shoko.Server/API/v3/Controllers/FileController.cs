@@ -18,6 +18,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Commands;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 using CommandRequestPriority = Shoko.Server.Server.CommandRequestPriority;
@@ -44,13 +45,14 @@ public class FileController : BaseController
     internal const string FileNotFoundWithFileID = "No File entry for the given fileID";
 
     private readonly TraktTVHelper _traktHelper;
-
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly VideoLocal_PlaceService _vlPlaceService;
 
-    public FileController(TraktTVHelper traktHelper, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public FileController(TraktTVHelper traktHelper, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlPlaceService) : base(settingsProvider)
     {
         _traktHelper = traktHelper;
         _commandFactory = commandFactory;
+        _vlPlaceService = vlPlaceService;
     }
 
     internal const string FileForbiddenForUser = "Accessing File is not allowed for the current user";
@@ -145,9 +147,9 @@ public class FileController : BaseController
             foreach (var place in file.Places)
             {
                 if (body.removeFiles)
-                    place.RemoveRecordAndDeletePhysicalFile(body.removeFolders);
+                    _vlPlaceService.RemoveRecordAndDeletePhysicalFile(place, body.removeFolders);
                 else
-                    place.RemoveRecord();
+                    _vlPlaceService.RemoveRecord(place);
             }
         }
 
@@ -193,9 +195,9 @@ public class FileController : BaseController
 
         foreach (var place in file.Places)
             if (removeFiles)
-                place.RemoveRecordAndDeletePhysicalFile(removeFolder);
+                _vlPlaceService.RemoveRecordAndDeletePhysicalFile(place, removeFolder);
             else
-                place.RemoveRecord();
+                _vlPlaceService.RemoveRecord(place);
         return Ok();
     }
 

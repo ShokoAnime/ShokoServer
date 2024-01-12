@@ -12,6 +12,7 @@ using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -23,6 +24,7 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
 {
     private readonly ICommandRequestFactory _commandFactory;
     private readonly IServerSettings _settings;
+    private readonly VideoLocal_PlaceService _vlPlaceService;
     public virtual int VideoLocalID { get; set; }
     public virtual int EpisodeID { get; set; }
     public virtual int Percentage { get; set; }
@@ -73,7 +75,7 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
 
         ProcessFileQualityFilter();
 
-        _vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
+        _vlocal.Places.ForEach(a => { _vlPlaceService.RenameAndMoveAsRequired(a); });
 
         // Set the import date.
         _vlocal.DateTimeImported = DateTime.Now;
@@ -115,7 +117,7 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
 
         videoLocals = videoLocals.Where(FileQualityFilter.CheckFileKeep).ToList();
 
-        foreach (var toDelete in videoLocals) toDelete.Places.ForEach(a => a.RemoveRecordAndDeletePhysicalFile());
+        foreach (var toDelete in videoLocals) toDelete.Places.ForEach(a => _vlPlaceService.RemoveRecordAndDeletePhysicalFile(a));
     }
 
     /// <summary>
@@ -156,14 +158,13 @@ public class CommandRequest_LinkFileManually : CommandRequestImplementation
         return true;
     }
 
-    public CommandRequest_LinkFileManually(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) :
+    public CommandRequest_LinkFileManually(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlPlaceService) :
         base(loggerFactory)
     {
         _commandFactory = commandFactory;
+        _vlPlaceService = vlPlaceService;
         _settings = settingsProvider.GetSettings();
     }
 
-    protected CommandRequest_LinkFileManually()
-    {
-    }
+    protected CommandRequest_LinkFileManually() { }
 }

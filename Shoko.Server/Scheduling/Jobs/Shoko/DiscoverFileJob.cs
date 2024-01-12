@@ -14,6 +14,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
@@ -34,14 +35,18 @@ public class DiscoverFileJob : BaseJob
 
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly VideoLocal_PlaceService _vlPlaceService;
 
-    public DiscoverFileJob(ILoggerFactory loggerFactory, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory) : base(loggerFactory)
+    public DiscoverFileJob(ILoggerFactory loggerFactory, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_PlaceService vlPlaceService) : base(loggerFactory)
     {
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
+        _vlPlaceService = vlPlaceService;
     }
 
-    protected DiscoverFileJob() { }
+    protected DiscoverFileJob(VideoLocal_PlaceService vlPlaceService) {
+        _vlPlaceService = vlPlaceService;
+    }
 
     public override async Task Process()
     {
@@ -368,7 +373,7 @@ public class DiscoverFileJob : BaseJob
         var settings = _settingsProvider.GetSettings();
         if (settings.Import.AutomaticallyDeleteDuplicatesOnImport)
         {
-            vlocalplace.RemoveRecordAndDeletePhysicalFile();
+            _vlPlaceService.RemoveRecordAndDeletePhysicalFile(vlocalplace);
             return true;
         }
         return false;

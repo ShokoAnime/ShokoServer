@@ -16,6 +16,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.LZ4;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.MediaInfoLib;
 
@@ -234,7 +235,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         }
 
         var place = obj.GetBestVideoLocalPlace(true);
-        place?.RefreshMediaInfo();
+        if (place != null) Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>().RefreshMediaInfo(place);
     }
 
     public override void Delete(SVR_VideoLocal obj)

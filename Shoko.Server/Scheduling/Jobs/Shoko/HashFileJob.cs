@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using QuartzJobFactory.Attributes;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -19,6 +18,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -42,14 +42,18 @@ public class HashFileJob : BaseJob
 
     private readonly ISettingsProvider _settingsProvider;
     private readonly ICommandRequestFactory _commandFactory;
+    private readonly VideoLocal_PlaceService _vlPlaceService;
 
-    public HashFileJob(ILoggerFactory loggerFactory, ISettingsProvider settingsProvider, ICommandRequestFactory commandFactory) : base(loggerFactory)
+    public HashFileJob(ILoggerFactory loggerFactory, ISettingsProvider settingsProvider, ICommandRequestFactory commandFactory, VideoLocal_PlaceService vlPlaceService) : base(loggerFactory)
     {
         _settingsProvider = settingsProvider;
         _commandFactory = commandFactory;
+        _vlPlaceService = vlPlaceService;
     }
 
-    protected HashFileJob() {
+    protected HashFileJob(VideoLocal_PlaceService vlPlaceService)
+    {
+        this._vlPlaceService = vlPlaceService;
     }
 
     public override async Task Process()
@@ -109,7 +113,7 @@ public class HashFileJob : BaseJob
 
         if ((vlocal.Media?.GeneralStream?.Duration ?? 0) == 0 || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
         {
-            if (vlocalplace.RefreshMediaInfo())
+            if (_vlPlaceService.RefreshMediaInfo(vlocalplace))
             {
                 RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
             }
@@ -482,7 +486,7 @@ public class HashFileJob : BaseJob
         Logger.LogWarning("---------------------------------------------");
 
         var settings = _settingsProvider.GetSettings();
-        if (settings.Import.AutomaticallyDeleteDuplicatesOnImport) vlocalplace.RemoveRecordAndDeletePhysicalFile();
+        if (settings.Import.AutomaticallyDeleteDuplicatesOnImport) _vlPlaceService.RemoveRecordAndDeletePhysicalFile(vlocalplace);
         return true;
     }
 

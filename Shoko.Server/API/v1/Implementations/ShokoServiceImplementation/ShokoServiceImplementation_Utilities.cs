@@ -24,6 +24,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -184,9 +185,21 @@ public partial class ShokoServiceImplementation
             }
 
             var result = true;
+            var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
             foreach (var toDelete in videosToDelete)
             {
-                result &= toDelete.Places.All(a => a.RemoveAndDeleteFile().Item1);
+                result &= toDelete.Places.All(a =>
+                {
+                    try
+                    {
+                        service.RemoveRecordAndDeletePhysicalFile(a);
+                        return true;
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                });
             }
             return result;
         }
@@ -471,24 +484,25 @@ public partial class ShokoServiceImplementation
             var errorCount = 0;
             var errorString = string.Empty;
             var name = Path.GetFileName(vid.GetBestVideoLocalPlace().FilePath);
+            var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
 
             foreach (var place in vid.Places)
             {
                 if (move)
                 {
-                    var resultString = place.MoveWithResultString(scriptName);
-                    if (!string.IsNullOrEmpty(resultString.Item2))
+                    var result = service.MoveFile(place, scriptName: scriptName);
+                    if (!result.IsSuccess)
                     {
                         errorCount++;
-                        errorString = resultString.Item2;
+                        errorString = result.ErrorMessage;
                         continue;
                     }
-                    ret.NewDestination = resultString.Item1;
+                    ret.NewDestination = result.NewFolder;
                 }
 
-                var output = place.RenameFile(false, scriptName);
-                var error = output.Item3;
-                if (string.IsNullOrEmpty(error)) name = output.Item2;
+                var output = service.RenameFile(place, scriptName: scriptName);
+                var error = output.ErrorMessage;
+                if (string.IsNullOrEmpty(error)) name = output.NewFilename;
                 else
                 {
                     errorCount++;
@@ -502,8 +516,8 @@ public partial class ShokoServiceImplementation
                 ret.NewFileName = errorString;
                 return ret;
             }
-            if (ret.VideoLocal == null)
-                ret.VideoLocal = new CL_VideoLocal {VideoLocalID = videoLocalID };
+
+            ret.VideoLocal ??= new CL_VideoLocal { VideoLocalID = videoLocalID };
         }
         catch (Exception ex)
         {
@@ -1198,7 +1212,9 @@ public partial class ShokoServiceImplementation
         try
         {
             var place = RepoFactory.VideoLocalPlace.GetByID(videoLocalPlaceID);
-            return place.RemoveAndDeleteFile().Item2;
+            var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
+            service.RemoveRecordAndDeletePhysicalFile(place, false);
+            return string.Empty;
         }
         catch (Exception ex)
         {

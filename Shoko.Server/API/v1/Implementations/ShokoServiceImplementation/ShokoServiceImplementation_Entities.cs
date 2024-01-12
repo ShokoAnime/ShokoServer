@@ -15,6 +15,7 @@ using Shoko.Server.Filters;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 
@@ -974,7 +975,9 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Database entry does not exist";
             }
 
-            return place.RemoveAndDeleteFile().Item2;
+            var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
+            service.RemoveRecordAndDeletePhysicalFile(place);
+            return string.Empty;
         }
         catch (Exception ex)
         {
@@ -999,7 +1002,9 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Database entry does not exist";
             }
 
-            return place.RemoveAndDeleteFile(false).Item2;
+            var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
+            service.RemoveRecordAndDeletePhysicalFile(place);
+            return string.Empty;
         }
         catch (Exception ex)
         {
@@ -2609,6 +2614,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var animeGroupID = ser.AnimeGroupID;
+            var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
 
             foreach (var ep in ser.GetAnimeEpisodes())
             {
@@ -2620,25 +2626,18 @@ public partial class ShokoServiceImplementation : IShokoServer
                         var place = places[index];
                         if (deleteFiles)
                         {
-                            bool success;
-                            string result;
-                            if (index < places.Count - 1)
+                            try
                             {
-                                (success, result) = place.RemoveAndDeleteFile(false);
+                                service.RemoveRecordAndDeletePhysicalFile(place, index >= places.Count - 1);
                             }
-                            else
+                            catch (Exception e)
                             {
-                                (success, result) = place.RemoveAndDeleteFile();
-                            }
-
-                            if (!success)
-                            {
-                                return result;
+                                return e.Message;
                             }
                         }
                         else
                         {
-                            place.RemoveRecord();
+                            service.RemoveRecord(place);
                         }
                     }
                 }

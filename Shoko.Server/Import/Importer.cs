@@ -23,6 +23,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Utils = Shoko.Server.Utilities.Utils;
 
@@ -148,6 +149,7 @@ public static class Importer
     {
         var settings = Utils.SettingsProvider.GetSettings();
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var vlPlaceService = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
         // get a complete list of files
         var fileList = new List<string>();
         int filesFound = 0, videosFound = 0;
@@ -194,11 +196,11 @@ public static class Importer
             {
                 i++;
 
-                if (dictFilesExisting.ContainsKey(fileName))
+                if (dictFilesExisting.TryGetValue(fileName, out var value))
                 {
                     if (fldr.IsDropSource == 1)
                     {
-                        dictFilesExisting[fileName].RenameAndMoveAsRequired();
+                        vlPlaceService.RenameAndMoveAsRequired(value);
                     }
                 }
 
@@ -294,6 +296,7 @@ public static class Importer
     {
         var settings = Utils.SettingsProvider.GetSettings();
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var vlPlaceService = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
         // first build a list of files that we already know about, as we don't want to process them again
         var filesAll = RepoFactory.VideoLocalPlace.GetAll();
         var dictFilesExisting = new Dictionary<string, SVR_VideoLocal_Place>();
@@ -304,7 +307,7 @@ public static class Importer
                 if (vl.FullServerPath == null)
                 {
                     Logger.Info("Invalid File Path found. Removing: " + vl.VideoLocal_Place_ID);
-                    vl.RemoveRecord();
+                    vlPlaceService.RemoveRecord(vl);
                     continue;
                 }
 
@@ -899,6 +902,7 @@ public static class Importer
     public static void RemoveRecordsWithoutPhysicalFiles(bool removeMyList = true)
     {
         var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var vlPlaceService = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
         Logger.Info("Remove Missing Files: Start");
         var seriesToUpdate = new HashSet<SVR_AnimeSeries>();
         using var session = DatabaseFactory.SessionFactory.OpenSession();
@@ -919,7 +923,7 @@ public static class Importer
 
                 // delete video local record
                 Logger.Info("Removing Missing File: {0}", vl.VideoLocalID);
-                vl.RemoveRecordWithOpenTransaction(session, seriesToUpdate);
+                vlPlaceService.RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate);
             }
         }
 
@@ -1110,11 +1114,12 @@ public static class Importer
     {
         try
         {
+            var vlPlaceService = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
             var affectedSeries = new HashSet<SVR_AnimeSeries>();
             var vids = RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID);
             Logger.Info($"Deleting {vids.Count} video local records");
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            vids.ForEach(vid => vid.RemoveRecordWithOpenTransaction(session, affectedSeries, removeFromMyList, false));
+            vids.ForEach(vid => vlPlaceService.RemoveRecordWithOpenTransaction(session, vid, affectedSeries, removeFromMyList));
 
             // delete the import folder
             RepoFactory.ImportFolder.Delete(importFolderID);

@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using AnimeTitle = Shoko.Plugin.Abstractions.DataModels.AnimeTitle;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -168,10 +170,11 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
         
     public void RemoveVideoLocals(bool deleteFiles)
     {
-        GetVideoLocals().SelectMany(a => a.Places).ForEach(place =>
+        var service = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
+        GetVideoLocals().SelectMany(a => a.Places).Where(a => a != null).ForEach(place =>
         {
-            if (!deleteFiles) place?.RemoveRecord();
-            else place?.RemoveRecordAndDeletePhysicalFile(false);
+            if (deleteFiles) service.RemoveRecordAndDeletePhysicalFile(place, false);
+            else service.RemoveRecord(place);
         });
     }
 

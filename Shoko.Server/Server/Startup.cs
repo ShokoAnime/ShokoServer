@@ -18,6 +18,7 @@ using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Services;
 using Shoko.Server.Services.Connectivity;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -53,6 +54,7 @@ public class Startup
             services.AddSingleton<MovieDBHelper>();
             services.AddSingleton<FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
+            services.AddSingleton<VideoLocal_PlaceService>();
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
             services.AddSingleton<ICommandRequestFactory, CommandRequestFactory>();
             services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();

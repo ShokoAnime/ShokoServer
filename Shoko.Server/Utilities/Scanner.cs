@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
 using Shoko.Commons.Queue;
@@ -16,6 +17,7 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Utilities;
 
@@ -177,12 +179,13 @@ public class Scanner : INotifyPropertyChangedExt
         ActiveErrorFiles.Clear();
         var episodesToUpdate = new HashSet<SVR_AnimeEpisode>();
         var seriesToUpdate = new HashSet<SVR_AnimeSeries>();
+        var service = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
         using (var session = DatabaseFactory.SessionFactory.OpenSession())
         {
             files.ForEach(file =>
             {
                 var place = RepoFactory.VideoLocalPlace.GetByID(file.VideoLocal_Place_ID);
-                place.RemoveAndDeleteFileWithOpenTransaction(session, seriesToUpdate);
+                service.RemoveAndDeleteFileWithOpenTransaction(session, place, seriesToUpdate);
             });
             // update everything we modified
             foreach (var ser in seriesToUpdate)

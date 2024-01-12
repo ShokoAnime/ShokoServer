@@ -15,6 +15,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -26,6 +27,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
 {
     private readonly ICommandRequestFactory _commandFactory;
     private readonly ISettingsProvider _settingsProvider;
+    private readonly VideoLocal_PlaceService _vlPlaceService;
     public virtual string FileName { get; set; }
     public virtual bool ForceHash { get; set; }
     public virtual bool SkipMyList { get; set; }
@@ -121,7 +123,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
 
         if ((vlocal.Media?.GeneralStream?.Duration ?? 0) == 0 || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
         {
-            if (vlocalplace.RefreshMediaInfo())
+            if (_vlPlaceService.RefreshMediaInfo(vlocalplace))
             {
                 RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
             }
@@ -534,7 +536,7 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         Logger.LogWarning("---------------------------------------------");
 
         var settings = _settingsProvider.GetSettings();
-        if (settings.Import.AutomaticallyDeleteDuplicatesOnImport) vlocalplace.RemoveRecordAndDeletePhysicalFile();
+        if (settings.Import.AutomaticallyDeleteDuplicatesOnImport) _vlPlaceService.RemoveRecordAndDeletePhysicalFile(vlocalplace);
         return true;
     }
 
@@ -584,14 +586,13 @@ public class CommandRequest_HashFile : CommandRequestImplementation
         return FileName.Trim().Length > 0;
     }
 
-    public CommandRequest_HashFile(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) :
+    public CommandRequest_HashFile(ILoggerFactory loggerFactory, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlPlaceService) :
         base(loggerFactory)
     {
         _commandFactory = commandFactory;
         _settingsProvider = settingsProvider;
+        _vlPlaceService = vlPlaceService;
     }
 
-    protected CommandRequest_HashFile()
-    {
-    }
+    protected CommandRequest_HashFile() { }
 }
