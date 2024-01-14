@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using NHibernate.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -15,46 +16,26 @@ public class AniDB_ReleaseGroupRepository : BaseCachedRepository<AniDB_ReleaseGr
         return ReadLock(() => GroupIDs.GetOne(id));
     }
 
-    const string UsedReleaseGroupsQuery = @"SELECT {g.*}
-FROM AniDB_File f
-INNER JOIN AniDB_ReleaseGroup g ON f.GroupID = g.GroupID
-INNER JOIN CrossRef_File_Episode x ON x.Hash = f.Hash
-GROUP BY g.GroupID
-ORDER BY g.GroupName ASC";
-
     public IReadOnlyList<AniDB_ReleaseGroup> GetUsedReleaseGroups()
     {
         var results = Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return session.CreateSQLQuery(UsedReleaseGroupsQuery).AddEntity("g", typeof(AniDB_ReleaseGroup))
-                .List<object>();
+            return session.Query<AniDB_ReleaseGroup>().Where(a => a.GroupName != "raw/unknown").Join(session.Query<AniDB_File>(), a => a.GroupID, a => a.GroupID, (a, b) => new { Group = a, File = b })
+                .Join(session.Query<CrossRef_File_Episode>(), a => a.File.Hash, a => a.Hash, (a, b) => a.Group).OrderBy(a => a.GroupName).ToList();
         });
-        return results
-            .Select(result => (AniDB_ReleaseGroup)result)
-            .Where(result => !string.Equals(result.GroupName, "raw/unknown", System.StringComparison.InvariantCultureIgnoreCase))
-            .ToList();
+        return results;
     }
-
-    const string UnusedReleaseGroupsQuery = @"SELECT {g.*}
-FROM AniDB_ReleaseGroup g
-LEFT JOIN AniDB_File f ON f.GroupID = g.GroupID
-WHERE f.GroupID IS NULL
-GROUP BY g.GroupID
-ORDER BY g.GroupName ASC";
 
     public IReadOnlyList<AniDB_ReleaseGroup> GetUnusedReleaseGroups()
     {
         var results = Lock(() =>
         {
             using var session = DatabaseFactory.SessionFactory.OpenSession();
-            return session.CreateSQLQuery(UnusedReleaseGroupsQuery).AddEntity("g", typeof(AniDB_ReleaseGroup))
-                .List<object>();
+            return session.Query<AniDB_ReleaseGroup>().Where(a => a.GroupName != "raw/unknown").LeftJoin(session.Query<AniDB_File>(), a => a.GroupID, a => a.GroupID,
+                (a, b) => new { Group = a, File = b }).Where(a => a.File == null).Select(a => a.Group).OrderBy(a => a.GroupName).ToList();
         });
-        return results
-            .Select(result => (AniDB_ReleaseGroup)result)
-            .Where(result => !string.Equals(result.GroupName, "raw/unknown", System.StringComparison.InvariantCultureIgnoreCase))
-            .ToList();
+        return results;
     }
 
     public override void PopulateIndexes()
