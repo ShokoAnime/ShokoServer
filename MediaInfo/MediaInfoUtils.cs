@@ -41,41 +41,41 @@ namespace Shoko.Models.MediaInfo
             };
         }
 
-        const double sixteenNine = 1.777778;
-        const double fourThirds = 1.333333;
-        const double twentyOneNine = 2.333333;
+        private const double SixteenNine = 1.777778;
+        public const double FourThirds = 1.333333;
+        public const double TwentyOneNine = 2.333333;
 
-        private static readonly double[] Ratios =
+        private static readonly double[] s_ratios =
         {
-            fourThirds, sixteenNine, twentyOneNine
+            FourThirds, SixteenNine, TwentyOneNine
         };
 
         public static string GetStandardResolution(Tuple<int, int> res)
         {
             if (res == null) return null;
             // not precise, but we are rounding and calculating distance anyway
-            double ratio = (double) res.Item1 / res.Item2;
+            var ratio = (double) res.Item1 / res.Item2;
 
-            double nearest = FindClosest(Ratios, ratio);
+            var nearest = FindClosest(s_ratios, ratio);
 
             switch (nearest)
             {
                 default:
                 {
-                    int area = res.Item1 * res.Item2;
-                    int key = FindClosest(ResolutionArea.Keys.ToArray(), area);
+                    var area = res.Item1 * res.Item2;
+                    var key = FindClosest(ResolutionArea.Keys.ToArray(), area);
                     return ResolutionArea[key];
                 }
-                case fourThirds:
+                case FourThirds:
                 {
-                    int area = res.Item1 * res.Item2;
-                    int key = FindClosest(ResolutionArea43.Keys.ToArray(), area);
+                    var area = res.Item1 * res.Item2;
+                    var key = FindClosest(ResolutionArea43.Keys.ToArray(), area);
                     return ResolutionArea43[key];
                 }
-                case twentyOneNine:
+                case TwentyOneNine:
                 {
-                    int area = res.Item1 * res.Item2;
-                    int key = FindClosest(ResolutionArea219.Keys.ToArray(), area);
+                    var area = res.Item1 * res.Item2;
+                    var key = FindClosest(ResolutionArea219.Keys.ToArray(), area);
                     return ResolutionArea219[key];
                 }
             }
@@ -99,8 +99,8 @@ namespace Shoko.Models.MediaInfo
                 Math.Abs(current - value) < Math.Abs(next - value) ? current : next);
         }
         
-        [SuppressMessage("ReSharper", "StringLiteralTypo")] 
-        public static readonly Dictionary<string, Tuple<string, string>> LanguageMapping_2_1_Name = new Dictionary<string, Tuple<string, string>>
+        [SuppressMessage("ReSharper", "StringLiteralTypo")]
+        private static readonly Dictionary<string, Tuple<string, string>> LanguageMapping_2_1_Name = new Dictionary<string, Tuple<string, string>>
         {
             {"aa", Tuple.Create("aar", "Afar")},
             {"ab", Tuple.Create("abk", "Abkhazian")},
@@ -297,41 +297,36 @@ namespace Shoko.Models.MediaInfo
             {"sgn", Tuple.Create("sgn", "Signs")},
         };
 
-        public static readonly ILookup<string, Tuple<string, string>> LanguageMapping_1_2_Name =
+        private static readonly ILookup<string, Tuple<string, string>> LanguageMapping_1_2_Name =
             LanguageMapping_2_1_Name.ToLookup(a => a.Value.Item1, a => Tuple.Create(a.Key, a.Value.Item2));
-        
-        public static readonly ILookup<string, Tuple<string, string>> LanguageMapping_Name_2_1 =
+
+        private static readonly ILookup<string, Tuple<string, string>> LanguageMapping_Name_2_1 =
             LanguageMapping_2_1_Name.ToLookup(a => a.Value.Item2.ToLowerInvariant(), a => Tuple.Create(a.Key, a.Value.Item1));
 
         public static string GetLanguageFromCode(string code)
         {
-            if (LanguageMapping_1_2_Name.Contains(code)) return LanguageMapping_1_2_Name[code].FirstOrDefault()?.Item1;
-            return null;
+            return LanguageMapping_1_2_Name.Contains(code) ? LanguageMapping_1_2_Name[code].FirstOrDefault()?.Item1 : null;
         }
         
         public static string GetLanguageFromName(string code)
         {
             code = code.ToLowerInvariant();
-            if (LanguageMapping_Name_2_1.Contains(code)) return LanguageMapping_Name_2_1[code].FirstOrDefault()?.Item1;
-            return null;
+            return LanguageMapping_Name_2_1.Contains(code) ? LanguageMapping_Name_2_1[code].FirstOrDefault()?.Item1 : null;
         }
 
         public static string GetLanguageCode(string language)
         {
-            if (LanguageMapping_2_1_Name.ContainsKey(language)) return LanguageMapping_2_1_Name[language].Item1;
-            return null;
+            return LanguageMapping_2_1_Name.TryGetValue(language, out var value) ? value.Item1 : null;
         }
 
         public static string GetLanguageName(string language)
         {
-            if (LanguageMapping_2_1_Name.ContainsKey(language)) return LanguageMapping_2_1_Name[language].Item1;
-            return null;
+            return LanguageMapping_2_1_Name.TryGetValue(language, out var value) ? value.Item1 : null;
         }
 
         public static Tuple<string, string> GetLanguageMapping(string language)
         {
-            if (LanguageMapping_2_1_Name.ContainsKey(language)) return LanguageMapping_2_1_Name[language];
-            return null;
+            return LanguageMapping_2_1_Name.TryGetValue(language, out var mapping) ? mapping : null;
         }
     }
 
@@ -340,10 +335,10 @@ namespace Shoko.Models.MediaInfo
         public static string TranslateCodec(Stream stream)
         {
             if (stream?.Codec == null && stream?.CodecID == null) return null;
-            string codec = stream.Codec?.ToLower();
-            if (codec != null && CodecIDs.ContainsKey(codec)) return CodecIDs[codec].ToUpper();
+            var codec = stream.Codec?.ToLower();
+            if (codec != null && CodecIDs.TryGetValue(codec, out var d)) return d.ToUpper();
             codec = stream.CodecID?.ToLower();
-            if (codec != null && CodecIDs.ContainsKey(codec)) return CodecIDs[codec].ToUpper();
+            if (codec != null && CodecIDs.TryGetValue(codec, out var iD)) return iD.ToUpper();
             if (stream is TextStream textStream)
                 return GetSubFormat(textStream.CodecID, textStream.Format)?.ToUpper();
             return stream.CodecID?.ToUpper();
@@ -352,8 +347,8 @@ namespace Shoko.Models.MediaInfo
         public static string TranslateFrameRate(MediaContainer m)
         {
             if ((m.VideoStream?.FrameRate ?? 0) == 0) return null;
-            float fr = System.Convert.ToSingle(m.VideoStream.FrameRate, CultureInfo.InvariantCulture);
-            string frs = ((int) Math.Round(fr)).ToString(CultureInfo.InvariantCulture);
+            var fr = System.Convert.ToSingle(m.VideoStream.FrameRate, CultureInfo.InvariantCulture);
+            var frs = ((int) Math.Round(fr)).ToString(CultureInfo.InvariantCulture);
             if (!string.IsNullOrEmpty(m.VideoStream.ScanType))
             {
                 if (m.VideoStream.ScanType.ToLower().Contains("int"))
@@ -401,7 +396,7 @@ namespace Shoko.Models.MediaInfo
             level = level.Replace(".", string.Empty).ToLowerInvariant();
             if (level.StartsWith("l"))
             {
-                int.TryParse(level.Substring(1), out int lll);
+                int.TryParse(level.Substring(1), out var lll);
                 if (lll != 0)
                     level = lll.ToString(CultureInfo.InvariantCulture);
                 else if (level.StartsWith("lm"))
@@ -423,7 +418,7 @@ namespace Shoko.Models.MediaInfo
         {
             if (container == null) return null;
             container = container.ToLowerInvariant();
-            foreach (string k in FileContainers.Keys)
+            foreach (var k in FileContainers.Keys)
             {
                 if (container.Contains(k))
                 {
@@ -436,9 +431,9 @@ namespace Shoko.Models.MediaInfo
 
         public static PlexAndKodi.Stream TranslateVideoStream(MediaContainer c)
         {
-            VideoStream m = c?.VideoStream;
+            var m = c?.VideoStream;
             if (m == null) return null;
-            PlexAndKodi.Stream s = new PlexAndKodi.Stream
+            var s = new PlexAndKodi.Stream
             {
                 Id = m.ID,
                 Codec = TranslateCodec(m),
@@ -485,17 +480,17 @@ namespace Shoko.Models.MediaInfo
             }
 
 
-            string fProfile = m.Format_Profile;
+            var fProfile = m.Format_Profile;
             if (!string.IsNullOrEmpty(fProfile))
             {
-                int a = fProfile.ToLower(CultureInfo.InvariantCulture).IndexOf("@", StringComparison.Ordinal);
+                var a = fProfile.ToLower(CultureInfo.InvariantCulture).IndexOf("@", StringComparison.Ordinal);
                 if (a > 0)
                 {
                     s.Profile = TranslateProfile(s.Codec,
                         fProfile.ToLower(CultureInfo.InvariantCulture).Substring(0, a));
                     if (int.TryParse(
                         TranslateLevel(fProfile.ToLower(CultureInfo.InvariantCulture).Substring(a + 1)),
-                        out int level)) s.Level = level;
+                        out var level)) s.Level = level;
                 }
                 else
                     s.Profile = TranslateProfile(s.Codec, fProfile.ToLower(CultureInfo.InvariantCulture));
@@ -508,11 +503,11 @@ namespace Shoko.Models.MediaInfo
 
         public static List<PlexAndKodi.Stream> TranslateAudioStreams(MediaContainer c)
         {
-            List<PlexAndKodi.Stream> output = new List<PlexAndKodi.Stream>();
+            var output = new List<PlexAndKodi.Stream>();
             if (c == null) return output;
-            foreach (AudioStream m in c.AudioStreams)
+            foreach (var m in c.AudioStreams)
             {
-                PlexAndKodi.Stream s = new PlexAndKodi.Stream
+                var s = new PlexAndKodi.Stream
                 {
                     Id = m.ID,
                     CodecID = m.CodecID,
@@ -533,7 +528,7 @@ namespace Shoko.Models.MediaInfo
                     Forced = (byte) (m.Forced ? 1 : 0)
                 };
 
-                string fProfile = m.Format_Profile;
+                var fProfile = m.Format_Profile;
                 if (!string.IsNullOrEmpty(fProfile))
                 {
                     if ((fProfile.ToLower() != "layer 3") && (fProfile.ToLower() != "dolby digital") &&
@@ -544,7 +539,7 @@ namespace Shoko.Models.MediaInfo
                         s.Profile = "ma";
                 }
 
-                string fSettings = m.Format_Settings;
+                var fSettings = m.Format_Settings;
                 if (!string.IsNullOrEmpty(fSettings))
                 {
                     switch (fSettings)
@@ -593,7 +588,7 @@ namespace Shoko.Models.MediaInfo
             if (!string.IsNullOrEmpty(codecID))
             {
                 var codec = codecID.ToLower();
-                if (SubFormats.ContainsKey(codec)) return SubFormats[codec].ToUpper();
+                if (SubFormats.TryGetValue(codec, out var subFormat)) return subFormat.ToUpper();
             }
 
             codecID = format;
