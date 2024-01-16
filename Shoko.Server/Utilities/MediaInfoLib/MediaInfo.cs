@@ -9,7 +9,6 @@ using Newtonsoft.Json.Converters;
 using NLog;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.Extensions;
-using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities.MediaInfoLib;
 
@@ -17,7 +16,7 @@ public static class MediaInfo
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    private static MediaContainer GetMediaInfo_New(string filename)
+    private static MediaContainer GetMediaInfo_Internal(string filename)
     {
         try
         {
@@ -79,7 +78,7 @@ public static class MediaInfo
                 var languages = MediaInfoUtils.GetLanguageMapping(a.Language);
                 if (languages == null)
                 {
-                    Logger.Error($"{filename} had a missing language code: {a.Language}");
+                    Logger.Warn($"{filename} had a missing language code: {a.Language}");
                     return;
                 }
 
@@ -117,10 +116,10 @@ public static class MediaInfo
     private static string GetMediaInfoPathForOS()
     {
         var envVar = Environment.GetEnvironmentVariable("MEDIAINFO_PATH");
-        var path = string.Empty;
+        string path;
         if (!string.IsNullOrEmpty(envVar))
         {
-            // Allow spesifying an executable name other than "mediainfo"
+            // Allow specifying an executable name other than "mediainfo"
             if (!envVar.Contains(Path.DirectorySeparatorChar) && !envVar.Contains(Path.AltDirectorySeparatorChar))
                 return envVar;
             // Resolve the path from the application's data directory if the
@@ -142,7 +141,7 @@ public static class MediaInfo
         var appPath = Path.Combine(exeDir, "MediaInfo", "MediaInfo.exe");
         if (!File.Exists(appPath)) return null;
 
-        if (path == null)
+        if (settings.Import.MediaInfoPath == null)
         {
             settings.Import.MediaInfoPath = appPath;
             Utils.SettingsProvider.SaveSettings();
@@ -154,7 +153,7 @@ public static class MediaInfo
     public static MediaContainer GetMediaInfo(string filename)
     {
         MediaContainer m = null;
-        var mediaTask = Task.FromResult(GetMediaInfo_New(filename));
+        var mediaTask = Task.FromResult(GetMediaInfo_Internal(filename));
 
         var timeout = Utils.SettingsProvider.GetSettings().Import.MediaInfoTimeoutMinutes;
         if (timeout > 0)
@@ -202,7 +201,7 @@ public static class MediaInfo
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Unable to get MediaInfo verion");
+            Logger.Error(e, "Unable to get MediaInfo version");
         }
 
         return null;
