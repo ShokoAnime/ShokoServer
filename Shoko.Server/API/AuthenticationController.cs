@@ -101,11 +101,12 @@ public class AuthenticationController : BaseController
     ///</summary>
     ///<param name="apikey">The Apikey or device to delete.</param>
     [HttpDelete]
-    public ActionResult Delete(string apikey)
+    public ActionResult Delete([FromBody]string apikey)
     {
-        var token = RepoFactory.AuthTokens.GetAll().FirstOrDefault(a => a.UserID == User?.JMMUserID && a.DeviceName.EqualsInvariantIgnoreCase(apikey));
+        if (apikey == null) return BadRequest("Must provide an apikey or device name to delete");
+        var token = RepoFactory.AuthTokens.GetAll().FirstOrDefault(a => a.UserID == User?.JMMUserID && apikey.EqualsInvariantIgnoreCase(a.DeviceName));
         token ??= RepoFactory.AuthTokens.GetByToken(apikey);
-        if (User?.JMMUserID != token.UserID && User?.IsAdmin != 1) return Unauthorized("Cannot delete a token for another user");
+        if (token == null) return BadRequest("Could not find apikey or device name to delete");
         RepoFactory.AuthTokens.Delete(token);
         return Ok();
     }
