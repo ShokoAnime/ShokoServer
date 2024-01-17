@@ -76,16 +76,20 @@ public class AuthenticationController : BaseController
     /// Change the password. Invalidates the current user's apikeys. Reauth after using this!
     /// </summary>
     /// <param name="newPassword"></param>
+    /// <param name="userID">Optionally, an admin can change another user's passowrd</param>
     /// <returns></returns>
     [HttpPost("ChangePassword")]
     [Authorize]
-    public ActionResult ChangePassword([FromBody] string newPassword)
+    public ActionResult ChangePassword([FromBody] string newPassword, [FromQuery] int? userID = null)
     {
         try
         {
-            User.Password = Digest.Hash(newPassword.Trim());
-            RepoFactory.JMMUser.Save(User);
-            RepoFactory.AuthTokens.DeleteAllWithUserID(User.JMMUserID);
+            var user = User;
+            if (userID != null && User.IsAdmin == 1) user = RepoFactory.JMMUser.GetByID(userID.Value);
+            if (user == null) return BadRequest("Could not get user");
+            user.Password = Digest.Hash(newPassword.Trim());
+            RepoFactory.JMMUser.Save(user);
+            RepoFactory.AuthTokens.DeleteAllWithUserID(user.JMMUserID);
             return Ok();
         }
         catch (Exception ex)
