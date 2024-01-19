@@ -24,3 +24,5 @@ jobs:
             that we can investigate further. You can also reach out to us on Discord:
             https://discord.gg/vpeHDsg
           daysUntilClose: 30
+          responseRequiredLabel: More Information Required
+          responseRequiredColor: 844B5A
