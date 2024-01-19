@@ -20,6 +20,7 @@ using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Connectivity;
+using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
@@ -62,6 +63,7 @@ public class Startup
             services.AddSingleton<IConnectivityMonitor, MozillaConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, WeChatConnectivityMonitor>();
             services.AddSingleton<IConnectivityService, ConnectivityService>();
+            services.AddSingleton<SentryInit>();
 
             services.AddQuartz();
 
@@ -144,38 +146,13 @@ public class Startup
                 logging.AddFilter("Shoko.Server.API", LogLevel.Warning);
 #endif
             }).UseNLog();
-
-        // Only try to set up Sentry if the user DID NOT OPT __OUT__.
-        if (!settings.SentryOptOut && Constants.SentryDsn.StartsWith("https://"))
-        {
-            // Get the release and extra info from the assembly.
-            var extraInfo = Utils.GetApplicationExtraVersion();
-
-            // Only initialize the SDK if we're not on a debug build.
-            //
-            // If the release channel is not set or if it's set to "debug" then
-            // it's considered to be a debug build.
-            if (extraInfo.TryGetValue("channel", out var environment) && environment != "debug")
-                builder = builder.UseSentry(opts =>
-                {
-                    // Assign the DSN key and release version.
-                    opts.Dsn = Constants.SentryDsn;
-                    opts.Environment = environment;
-                    opts.Release = Utils.GetApplicationVersion();
-
-                    // Conditionally assign the extra info if they're included in the assembly.
-                    if (extraInfo.TryGetValue("commit", out var gitCommit))
-                        opts.DefaultTags.Add("commit", gitCommit);
-                    if (extraInfo.TryGetValue("tag", out var gitTag))
-                        opts.DefaultTags.Add("commit.tag", gitTag);
-
-                    // Append the release channel for the release on non-stable branches.
-                    if (environment != "stable")
-                        opts.Release += string.IsNullOrEmpty(gitCommit) ? $"-{environment}" : $"-{environment}-{gitCommit[0..7]}";
-                });
-        }
+        
 
         var result = builder.Build();
+        
+        // Init Sentry
+        result.Services.GetRequiredService<SentryInit>().Init();
+        
         Utils.SettingsProvider = result.Services.GetRequiredService<ISettingsProvider>();
         Utils.ServiceContainer = result.Services;
         return result;

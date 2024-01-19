@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Timers;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +28,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.FileSystemWatcher;
@@ -41,11 +43,11 @@ public class ShokoServer
     private readonly ILogger<ShokoServer> logger;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly SentryInit _sentryInit;
 
     public static DateTime? StartTime;
 
     public static TimeSpan? UpTime => StartTime == null ? null : DateTime.Now - StartTime;
-    private static IDisposable _sentry;
 
     public static string PathAddressREST = "api/Image";
     public static string PathAddressPlex = "api/Plex";
@@ -63,11 +65,13 @@ public class ShokoServer
     private BackgroundWorker downloadImagesWorker = new();
 
 
-    public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory)
+    public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, SentryInit sentryInit)
     {
         this.logger = logger;
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
+        _sentryInit = sentryInit;
+
         var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
@@ -81,42 +85,15 @@ public class ShokoServer
 
     ~ShokoServer()
     {
-        _sentry?.Dispose();
         ShokoEventHandler.Instance.Shutdown -= ShutDown;
     }
 
     public bool StartUpServer()
     {
         var settings = _settingsProvider.GetSettings();
-        // Only try to set up Sentry if the user DID NOT OPT __OUT__.
-        if (!settings.SentryOptOut && Constants.SentryDsn.StartsWith("https://"))
-        {
-            // Get the release and extra info from the assembly.
-            var extraInfo = Utils.GetApplicationExtraVersion();
+        
+        _sentryInit.Init(); 
 
-            // Only initialize the SDK if we're not on a debug build.
-            //
-            // If the release channel is not set or if it's set to "debug" then
-            // it's considered to be a debug build.
-            if (extraInfo.TryGetValue("channel", out var environment) && environment != "debug")
-                _sentry = SentrySdk.Init(opts =>
-                {
-                    // Assign the DSN key and release version.
-                    opts.Dsn = Constants.SentryDsn;
-                    opts.Environment = environment;
-                    opts.Release = Utils.GetApplicationVersion();
-
-                    // Conditionally assign the extra info if they're included in the assembly.
-                    if (extraInfo.TryGetValue("commit", out var gitCommit))
-                        opts.DefaultTags.Add("commit", gitCommit);
-                    if (extraInfo.TryGetValue("tag", out var gitTag))
-                        opts.DefaultTags.Add("commit.tag", gitTag);
-
-                    // Append the release channel for the release on non-stable branches.
-                    if (environment != "stable")
-                        opts.Release += string.IsNullOrEmpty(gitCommit) ? $"-{environment}" : $"-{environment}-{gitCommit[0..7]}";
-                });
-        }
 
         // Check if any of the DLL are blocked, common issue with daily builds
         if (!CheckBlockedFiles())
