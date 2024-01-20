@@ -745,8 +745,8 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new DatabaseCommand(119, 3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
         new DatabaseCommand(119, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
         new DatabaseCommand(119, 5, DatabaseFixes.DropGroupFilter),
-        new DatabaseCommand(120, 1, "ALTER TABLE AnimeGroup DROP COLUMN SortName;"),
-        new DatabaseCommand(121, 1, "ALTER TABLE AnimeEpisode DROP COLUMN PlexContractVersion;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractSize;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractSize;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractSize;"),
+        new DatabaseCommand(120, 1, "ALTER TABLE AnimeGroup DROP COLUMN IF EXISTS SortName;"),
+        new DatabaseCommand(121, 1, "ALTER TABLE AnimeEpisode DROP COLUMN IF EXISTS PlexContractVersion; ALTER TABLE AnimeEpisode DROP COLUMN IF EXISTS PlexContractBlob; ALTER TABLE AnimeEpisode DROP COLUMN IF EXISTS PlexContractSize; ALTER TABLE AnimeGroup_User DROP COLUMN IF EXISTS PlexContractVersion; ALTER TABLE AnimeGroup_User DROP COLUMN IF EXISTS PlexContractBlob; ALTER TABLE AnimeGroup_User DROP COLUMN IF EXISTS PlexContractSize; ALTER TABLE AnimeSeries_User DROP COLUMN IF EXISTS PlexContractVersion; ALTER TABLE AnimeSeries_User DROP COLUMN IF EXISTS PlexContractBlob; ALTER TABLE AnimeSeries_User DROP COLUMN IF EXISTS PlexContractSize;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
