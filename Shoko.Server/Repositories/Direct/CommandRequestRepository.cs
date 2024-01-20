@@ -188,7 +188,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         return false;
     }
 
-    public IEnumerable<CommandRequest> GetGeneralCommandsUnsafe(ISession session, bool includeDisabled = false)
+    public IOrderedQueryable<CommandRequest> GetGeneralCommandsUnsafe(ISession session, bool includeDisabled = false)
     {
         try
         {
@@ -205,7 +205,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
             return null;
         }
     }
-    public IEnumerable<CommandRequest> GetHasherCommandsUnsafe(ISession session, bool includeDisabled = false)
+    public IOrderedQueryable<CommandRequest> GetHasherCommandsUnsafe(ISession session, bool includeDisabled = false)
     {
         try
         {
@@ -223,7 +223,7 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         }
     }
 
-    public IEnumerable<CommandRequest> GetImageCommandsUnsafe(ISession session, bool includeDisabled = false)
+    public IOrderedQueryable<CommandRequest> GetImageCommandsUnsafe(ISession session, bool includeDisabled = false)
     {
         try
         {

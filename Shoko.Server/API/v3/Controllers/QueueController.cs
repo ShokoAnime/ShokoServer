@@ -12,9 +12,11 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Databases;
+using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -204,7 +206,7 @@ public class QueueController : BaseController
 
         return BaseRepository.Lock(processor, _connectivityService, (commandProcessor, service) =>
         {
-            var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
             return queueName.ToLowerInvariant() switch
             {
                 "general" => RepoFactory.CommandRequest.GetGeneralCommandsUnsafe(session, showAll)
@@ -235,7 +237,7 @@ public class QueueController : BaseController
     {
         return BaseRepository.Lock(() =>
         {
-            var session = DatabaseFactory.SessionFactory.OpenSession();
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
             return queueName.ToLowerInvariant() switch
             {
                 "general" => RepoFactory.CommandRequest.GetGeneralCommandsUnsafe(session, true)

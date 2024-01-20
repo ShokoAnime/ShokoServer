@@ -10,7 +10,6 @@ using Shoko.Server.Repositories;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using FileSource = Shoko.Server.API.v3.Models.Shoko.FileSource;
 using GroupSizes = Shoko.Server.API.v3.Models.Shoko.GroupSizes;
-using Series = Shoko.Server.API.v3.Models.Shoko.Series;
 using SeriesSizes = Shoko.Server.API.v3.Models.Shoko.SeriesSizes;
 using SeriesType = Shoko.Server.API.v3.Models.Shoko.SeriesType;
 
@@ -20,30 +19,28 @@ public static class ModelHelper
 {
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable)
     {
-        var list = enumerable as IReadOnlyList<T> ?? enumerable.ToList();
         return new ListResult<T>
         {
-            Total = list.Count,
-            List = list
+            Total = enumerable.Count(),
+            List = enumerable.ToList()
         };
     }
 
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable, int page, int pageSize)
     {
-        var list = enumerable as IReadOnlyList<T> ?? enumerable.ToList();
         if (pageSize <= 0)
         {
             return new ListResult<T>
             {
-                Total = list.Count,
-                List = list
+                Total = enumerable.Count(),
+                List = enumerable.ToList()
             };
         }
 
         return new ListResult<T>
         {
-            Total = list.Count,
-            List = list
+            Total = enumerable.Count(),
+            List = enumerable.AsQueryable()
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
                 .ToList()
@@ -53,13 +50,12 @@ public static class ModelHelper
     public static ListResult<U> ToListResult<T, U>(this IEnumerable<T> enumerable, Func<T, U> mapper, int page,
         int pageSize)
     {
-        var list = enumerable as IReadOnlyList<T> ?? enumerable.ToList();
         if (pageSize <= 0)
         {
             return new ListResult<U>
             {
-                Total = list.Count,
-                List = list
+                Total = enumerable.Count(),
+                List = enumerable.ToList()
                     .Select(mapper)
                     .ToList()
             };
@@ -67,10 +63,11 @@ public static class ModelHelper
 
         return new ListResult<U>
         {
-            Total = list.Count,
-            List = list
+            Total = enumerable.Count(),
+            List = enumerable.AsQueryable()
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
+                .ToList()
                 .Select(mapper)
                 .ToList()
         };
@@ -93,7 +90,7 @@ public static class ModelHelper
         return new ListResult<U>
         {
             Total = total,
-            List = enumerable
+            List = enumerable.AsQueryable()
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
                 .ToList()
@@ -137,8 +134,7 @@ public static class ModelHelper
     {
         return episodeList
             .Select(episode => episode.AniDB_Episode)
-            .Where(anidbEpisode => anidbEpisode != null && (EpisodeType)anidbEpisode.EpisodeType == episodeType)
-            .Count();
+            .Count(anidbEpisode => anidbEpisode != null && (EpisodeType)anidbEpisode.EpisodeType == episodeType);
     }
 
     public static string ToDataURL(byte[] byteArray, string contentType, string fieldName = "ByteArrayToDataUrl", ModelStateDictionary modelState = null)

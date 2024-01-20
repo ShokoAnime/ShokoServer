@@ -7,6 +7,7 @@ using Shoko.Models.Queue;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Databases;
+using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -43,7 +44,7 @@ public class CommandProcessorImages : CommandProcessor
             return BaseRepository.Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
-                return RepoFactory.CommandRequest.GetImageCommandsUnsafe(session).Take(1).SingleOrDefault();
+                return RepoFactory.CommandRequest.GetImageCommandsUnsafe(session).FirstOrDefault();
             });
         }
         catch (Exception e)

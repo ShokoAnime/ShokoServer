@@ -43,7 +43,7 @@ public class CommandProcessorGeneral : CommandProcessor
             return BaseRepository.Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
-                return RepoFactory.CommandRequest.GetGeneralCommandsUnsafe(session).Take(1).SingleOrDefault();
+                return RepoFactory.CommandRequest.GetGeneralCommandsUnsafe(session).FirstOrDefault();
             });
         }
         catch (Exception e)

@@ -43,7 +43,7 @@ public class CommandProcessorHasher : CommandProcessor
             return BaseRepository.Lock(() =>
             {
                 using var session = DatabaseFactory.SessionFactory.OpenSession();
-                return RepoFactory.CommandRequest.GetHasherCommandsUnsafe(session).Take(1).SingleOrDefault();
+                return RepoFactory.CommandRequest.GetHasherCommandsUnsafe(session).FirstOrDefault();
             });
         }
         catch (Exception e)
