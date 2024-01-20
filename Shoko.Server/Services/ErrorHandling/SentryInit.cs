@@ -86,7 +86,7 @@ public class SentryInit : IDisposable
     
     private SentryEvent? BeforeSentrySend(SentryEvent arg)
     {
-        if (arg.Exception is not null && IgnoredEvents.Contains(arg.Exception?.GetType()))
+        if (arg.Exception is not null && IgnoredEvents.Contains(arg.Exception.GetType()))
             return null;
 
         if (arg.Exception is WebException ex)
