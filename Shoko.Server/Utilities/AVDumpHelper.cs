@@ -135,13 +135,13 @@ public static class AVDumpHelper
     /// Run AVDump for a file, streaming events from the process, and also
     /// storing some results in the database if successful.
     /// </summary>
-    /// <param name="videos">The assosiated video for the file.</param>
+    /// <param name="videos">The associated video for the file.</param>
     /// <param name="commandId">The command id if this operation was ran from
     /// the queue.</param>
     /// <returns>The dump results for v1 compatibility.</returns>
     public static AVDumpSession DumpFiles(IEnumerable<KeyValuePair<int, string>> videos, int? commandId = null)
     {
-        // Guard against stupidity and/or unforseen errors.
+        // Guard against stupidity and/or unforeseen errors.
         var videoDict = videos.ToDictionary(v => v.Key, v => v.Value);
         if (videoDict.Count == 0)
             return new("Cannot dump 0 files.");
