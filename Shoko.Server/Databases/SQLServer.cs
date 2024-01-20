@@ -23,7 +23,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 114;
+    public override int RequiredVersion { get; } = 115;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -691,6 +691,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(113, 1, "ALTER TABLE AnimeGroup DROP COLUMN SortName;"),
         new DatabaseCommand(114, 1, "ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob;"),
         new DatabaseCommand(114, 2, DropPlexContractColumns),
+        new DatabaseCommand(115, 1, "CREATE INDEX IX_CommandRequest_CommandType ON CommandRequest(CommandType); CREATE INDEX IX_CommandRequest_Priority_Date ON CommandRequest(Priority, DateTimeUpdated);"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

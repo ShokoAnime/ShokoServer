@@ -202,22 +202,22 @@ public class QueueController : BaseController
         if (processor == null)
             return NotFound(NoQueueWithName);
 
-        return BaseRepository.Lock(() =>
+        return BaseRepository.Lock(processor, _connectivityService, (commandProcessor, service) =>
         {
             var session = DatabaseFactory.SessionFactory.OpenSession();
             return queueName.ToLowerInvariant() switch
             {
                 "general" => RepoFactory.CommandRequest.GetGeneralCommandsUnsafe(session, showAll)
-                    .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService),
-                        RepoFactory.CommandRequest.GetQueuedCommandCountImages(), page, pageSize),
+                    .ToListResult(queueItem => new Queue.QueueItem(commandProcessor, queueItem, service),
+                        ServerInfo.Instance.GeneralQueueCount, page, pageSize),
 
                 "hasher" => RepoFactory.CommandRequest.GetHasherCommandsUnsafe(session, showAll)
-                    .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService),
-                        RepoFactory.CommandRequest.GetQueuedCommandCountImages(), page, pageSize),
+                    .ToListResult(queueItem => new Queue.QueueItem(commandProcessor, queueItem, service),
+                        ServerInfo.Instance.HasherQueueCount, page, pageSize),
 
                 "image" => RepoFactory.CommandRequest.GetImageCommandsUnsafe(session, showAll)
-                    .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService),
-                        RepoFactory.CommandRequest.GetQueuedCommandCountImages(), page, pageSize),
+                    .ToListResult(queueItem => new Queue.QueueItem(commandProcessor, queueItem, service),
+                        ServerInfo.Instance.ImagesQueueCount, page, pageSize),
 
                 _ => (ActionResult<ListResult<Queue.QueueItem>>)NotFound(NoQueueWithName)
             };
