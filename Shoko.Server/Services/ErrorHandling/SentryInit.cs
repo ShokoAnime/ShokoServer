@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Reflection;
 using NLog;
 using Sentry;
@@ -18,19 +19,19 @@ public class SentryInit : IDisposable
 {
     private readonly ISettingsProvider _settingsProvider;
     private IDisposable? _sentry;
-    
+
     public SentryInit(ISettingsProvider settingsProvider)
     {
         _settingsProvider = settingsProvider;
     }
-    
+
     public void Init()
     {
         if (_sentry is not null)
             return;
-        
+
         var settings = _settingsProvider.GetSettings();
-        
+
         // Only try to set up Sentry if the user DID NOT OPT __OUT__.
         if (settings.SentryOptOut || !Constants.SentryDsn.StartsWith("https://"))
             return;
@@ -45,7 +46,7 @@ public class SentryInit : IDisposable
         if (extraInfo.TryGetValue("channel", out var environment) && environment != "debug")
             Init(environment, extraInfo);
     }
-    
+
     private void Init(string environment, Dictionary<string, string> extraInfo)
     {
         _sentry = SentrySdk.Init(opts =>
@@ -66,7 +67,7 @@ public class SentryInit : IDisposable
                 opts.Release += string.IsNullOrEmpty(gitCommit) ? $"-{environment}" : $"-{environment}-{gitCommit[0..7]}";
 
             opts.SampleRate = 0.5f;
-            
+
             opts.BeforeSend += BeforeSentrySend;
         });
 
@@ -75,28 +76,33 @@ public class SentryInit : IDisposable
             o.MinimumEventLevel = LogLevel.Fatal;
         });
     }
+
+    private readonly List<Type> IgnoredEvents = new List<Type> {
+        typeof(FileNotFoundException),
+        typeof(DirectoryNotFoundException),
+        typeof(UnauthorizedAccessException),
+        typeof(HttpRequestException)
+    };
     
     private SentryEvent? BeforeSentrySend(SentryEvent arg)
     {
-        if (arg.Exception is FileNotFoundException)
+        if (arg.Exception is not null && IgnoredEvents.Contains(arg.Exception?.GetType()))
             return null;
 
-        if (arg.Exception is DirectoryNotFoundException)
-            return null;
-        
-        if (arg.Exception is UnauthorizedAccessException)
-            return null;
-        
-        if (arg.Exception is HttpRequestException)
-            return null;
-        
-        if (arg.Exception is WebException ex && ex.Response is HttpWebResponse resp && resp.StatusCode == HttpStatusCode.NotFound)
-            return null;
-        
-        if (arg.Exception is WebException ex && ex.Status == WebExceptionStatus.ConnectFailure)
-            return null;
-        
+        if (arg.Exception is WebException ex)
+        {
+            if (ex.Response is HttpWebResponse resp && resp.StatusCode == HttpStatusCode.NotFound)
+                return null;
+
+            if (ex.Status == WebExceptionStatus.ConnectFailure)
+                return null;
+        }
+
         if (arg.Exception?.GetType().GetCustomAttribute<SentryIgnoreAttribute>() is not null)
+            return null;
+        
+        //This should never happen, but this is to be 100% sure
+        if (arg.Logger is not null && arg.Level < SentryLevel.Fatal)
             return null;
 
         return arg;
