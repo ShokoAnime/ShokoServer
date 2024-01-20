@@ -20,7 +20,7 @@ public static class ModelHelper
 {
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable)
     {
-        var list = enumerable is IReadOnlyList<T> l ? l : enumerable.ToList();
+        var list = enumerable as IReadOnlyList<T> ?? enumerable.ToList();
         return new ListResult<T>
         {
             Total = list.Count,
@@ -30,7 +30,7 @@ public static class ModelHelper
 
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable, int page, int pageSize)
     {
-        var list = enumerable is IReadOnlyList<T> l ? l : enumerable.ToList();
+        var list = enumerable as IReadOnlyList<T> ?? enumerable.ToList();
         if (pageSize <= 0)
         {
             return new ListResult<T>
@@ -53,7 +53,7 @@ public static class ModelHelper
     public static ListResult<U> ToListResult<T, U>(this IEnumerable<T> enumerable, Func<T, U> mapper, int page,
         int pageSize)
     {
-        var list = enumerable is IReadOnlyList<T> l ? l : enumerable.ToList();
+        var list = enumerable as IReadOnlyList<T> ?? enumerable.ToList();
         if (pageSize <= 0)
         {
             return new ListResult<U>
@@ -71,6 +71,32 @@ public static class ModelHelper
             List = list
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
+                .Select(mapper)
+                .ToList()
+        };
+    }
+
+    public static ListResult<U> ToListResult<T, U>(this IEnumerable<T> enumerable, Func<T, U> mapper, int total, int page,
+        int pageSize)
+    {
+        if (pageSize <= 0)
+        {
+            return new ListResult<U>
+            {
+                Total = total,
+                List = enumerable.ToList()
+                    .Select(mapper)
+                    .ToList()
+            };
+        }
+
+        return new ListResult<U>
+        {
+            Total = total,
+            List = enumerable
+                .Skip(pageSize * (page - 1))
+                .Take(pageSize)
+                .ToList()
                 .Select(mapper)
                 .ToList()
         };

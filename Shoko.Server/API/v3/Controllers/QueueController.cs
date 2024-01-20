@@ -11,6 +11,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands.Generic;
+using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -35,11 +36,11 @@ public class QueueController : BaseController
         ShokoService.CmdProcessorImages,
     };
 
-    private readonly ILogger<InitController> _logger;
+    private readonly ILogger<QueueController> _logger;
 
     private readonly IConnectivityService _connectivityService;
 
-    public QueueController(ILogger<InitController> logger, ISettingsProvider settingsProvider, IConnectivityService connectivityService) : base(settingsProvider)
+    public QueueController(ILogger<QueueController> logger, ISettingsProvider settingsProvider, IConnectivityService connectivityService) : base(settingsProvider)
     {
         _logger = logger;
         _connectivityService = connectivityService;
@@ -201,19 +202,26 @@ public class QueueController : BaseController
         if (processor == null)
             return NotFound(NoQueueWithName);
 
-        return queueName.ToLowerInvariant() switch
+        return BaseRepository.Lock(() =>
         {
-            "general" => RepoFactory.CommandRequest.GetNextGeneralCommandRequests(_connectivityService, showAll)
-                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService), page, pageSize),
+            var session = DatabaseFactory.SessionFactory.OpenSession();
+            return queueName.ToLowerInvariant() switch
+            {
+                "general" => RepoFactory.CommandRequest.GetGeneralCommandsUnsafe(session, showAll)
+                    .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService),
+                        RepoFactory.CommandRequest.GetQueuedCommandCountImages(), page, pageSize),
 
-            "hasher" => RepoFactory.CommandRequest.GetNextHasherCommandRequests(_connectivityService, showAll)
-                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService), page, pageSize),
+                "hasher" => RepoFactory.CommandRequest.GetHasherCommandsUnsafe(session, showAll)
+                    .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService),
+                        RepoFactory.CommandRequest.GetQueuedCommandCountImages(), page, pageSize),
 
-            "image" => RepoFactory.CommandRequest.GetNextImagesCommandRequests(_connectivityService, showAll)
-                .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService), page, pageSize),
+                "image" => RepoFactory.CommandRequest.GetImageCommandsUnsafe(session, showAll)
+                    .ToListResult(queueItem => new Queue.QueueItem(processor, queueItem, _connectivityService),
+                        RepoFactory.CommandRequest.GetQueuedCommandCountImages(), page, pageSize),
 
-            _ => NotFound(NoQueueWithName),
-        };
+                _ => (ActionResult<ListResult<Queue.QueueItem>>)NotFound(NoQueueWithName)
+            };
+        });
     }
 
     /// <summary>
@@ -225,22 +233,26 @@ public class QueueController : BaseController
     [HttpGet("{queueName}/Items/Types")]
     public ActionResult<Dictionary<CommandRequestType, int>> GetTypesForItemsInQueueByName([FromRoute] string queueName)
     {
-        return queueName.ToLowerInvariant() switch
+        return BaseRepository.Lock(() =>
         {
-            "general" => RepoFactory.CommandRequest.GetNextGeneralCommandRequests(_connectivityService, true)
-                .GroupBy(a => (CommandRequestType)a.CommandType)
-                .ToDictionary(a => a.Key, a => a.Count()),
+            var session = DatabaseFactory.SessionFactory.OpenSession();
+            return queueName.ToLowerInvariant() switch
+            {
+                "general" => RepoFactory.CommandRequest.GetGeneralCommandsUnsafe(session, true)
+                    .GroupBy(a => (CommandRequestType)a.CommandType)
+                    .ToDictionary(a => a.Key, a => a.Count()),
 
-            "hasher" => RepoFactory.CommandRequest.GetNextHasherCommandRequests(_connectivityService, true)
-                .GroupBy(a => (CommandRequestType)a.CommandType)
-                .ToDictionary(a => a.Key, a => a.Count()),
+                "hasher" => RepoFactory.CommandRequest.GetHasherCommandsUnsafe(session, true)
+                    .GroupBy(a => (CommandRequestType)a.CommandType)
+                    .ToDictionary(a => a.Key, a => a.Count()),
 
-            "image" => RepoFactory.CommandRequest.GetNextImagesCommandRequests(_connectivityService, true)
-                .GroupBy(a => (CommandRequestType)a.CommandType)
-                .ToDictionary(a => a.Key, a => a.Count()),
+                "image" => RepoFactory.CommandRequest.GetImageCommandsUnsafe(session, true)
+                    .GroupBy(a => (CommandRequestType)a.CommandType)
+                    .ToDictionary(a => a.Key, a => a.Count()),
 
-            _ => NotFound(NoQueueWithName),
-        };
+                _ => (ActionResult<Dictionary<CommandRequestType, int>>)NotFound(NoQueueWithName)
+            };
+        });
     }
 
     /// <summary>

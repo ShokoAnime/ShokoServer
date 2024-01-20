@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Commands.Generic;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -34,5 +37,19 @@ public class CommandProcessorHasher : CommandProcessor
     }
 
     protected override CommandRequest GetNextCommandRequest()
-        => RepoFactory.CommandRequest.GetNextDBCommandRequestHasher(ConnectivityService);
+    {
+        try
+        {
+            return BaseRepository.Lock(() =>
+            {
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                return RepoFactory.CommandRequest.GetHasherCommandsUnsafe(session).Take(1).SingleOrDefault();
+            });
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "There was an error retrieving the next commands for the Hasher Queue: {Ex}", e);
+            return null;
+        }
+    }
 }

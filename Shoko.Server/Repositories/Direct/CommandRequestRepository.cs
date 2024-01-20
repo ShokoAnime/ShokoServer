@@ -2,6 +2,8 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using NHibernate;
 using NHibernate.Linq;
 using NLog;
 using Shoko.Models.Server;
@@ -11,6 +13,7 @@ using Shoko.Server.Commands.Generic;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Direct;
 
@@ -185,20 +188,16 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         return false;
     }
 
-    public List<CommandRequest> GetNextGeneralCommandRequests(IConnectivityService connectivityService, bool showAll = false)
+    public IEnumerable<CommandRequest> GetGeneralCommandsUnsafe(ISession session, bool includeDisabled = false)
     {
         try
         {
-            var types = showAll ? CommandTypesGeneralArray : GetExecutableCommands(CommandTypesGeneralArray, connectivityService);
-            return Lock(() =>
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                return session.Query<CommandRequest>()
-                    .Where(a => types.Contains(a.CommandType))
-                    .OrderBy(r => r.Priority)
-                    .ThenBy(r => r.DateTimeUpdated)
-                    .ToList();
-            });
+            var connectivityService = Utils.ServiceContainer.GetRequiredService<IConnectivityService>();
+            var types = includeDisabled ? CommandTypesGeneralArray : GetExecutableCommands(CommandTypesGeneralArray, connectivityService);
+            return session.Query<CommandRequest>()
+                .Where(a => types.Contains(a.CommandType))
+                .OrderBy(r => r.Priority)
+                .ThenBy(r => r.DateTimeUpdated);
         }
         catch (Exception e)
         {
@@ -206,44 +205,16 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
             return null;
         }
     }
-
-    public CommandRequest GetNextDBCommandRequestGeneral(IConnectivityService connectivityService)
+    public IEnumerable<CommandRequest> GetHasherCommandsUnsafe(ISession session, bool includeDisabled = false)
     {
         try
         {
-            var types = GetExecutableCommands(CommandTypesGeneralArray, connectivityService);
-            return Lock(() =>
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                return session.Query<CommandRequest>()
-                    .Where(a => types.Contains(a.CommandType))
-                    .OrderBy(r => r.Priority)
-                    .ThenBy(r => r.DateTimeUpdated)
-                    .Take(1)
-                    .SingleOrDefault();
-            });
-        }
-        catch (Exception e)
-        {
-            _logger.Error($"There was an error retrieving the next command for the General Queue: {e}");
-            return null;
-        }
-    }
-
-    public List<CommandRequest> GetNextHasherCommandRequests(IConnectivityService connectivityService, bool showAll)
-    {
-        try
-        {
-            var types = showAll ? CommandTypesHasherArray : GetExecutableCommands(CommandTypesHasherArray, connectivityService);
-            return Lock(() =>
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                return session.Query<CommandRequest>()
-                    .Where(a => types.Contains(a.CommandType))
-                    .OrderBy(r => r.Priority)
-                    .ThenBy(r => r.DateTimeUpdated)
-                    .ToList();
-            });
+            var connectivityService = Utils.ServiceContainer.GetRequiredService<IConnectivityService>();
+            var types = includeDisabled ? CommandTypesHasherArray : GetExecutableCommands(CommandTypesHasherArray, connectivityService);
+            return session.Query<CommandRequest>()
+                .Where(a => types.Contains(a.CommandType))
+                .OrderBy(r => r.Priority)
+                .ThenBy(r => r.DateTimeUpdated);
         }
         catch (Exception e)
         {
@@ -252,71 +223,20 @@ public class CommandRequestRepository : BaseDirectRepository<CommandRequest, int
         }
     }
 
-    public CommandRequest GetNextDBCommandRequestHasher(IConnectivityService connectivityService)
+    public IEnumerable<CommandRequest> GetImageCommandsUnsafe(ISession session, bool includeDisabled = false)
     {
         try
         {
-            var types = GetExecutableCommands(CommandTypesHasherArray, connectivityService);
-            return Lock(() =>
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                return session.Query<CommandRequest>()
-                    .Where(a => types.Contains(a.CommandType))
-                    .OrderBy(cr => cr.Priority)
-                    .ThenBy(cr => cr.DateTimeUpdated)
-                    .Take(1)
-                    .SingleOrDefault();
-            });
-        }
-        catch (Exception e)
-        {
-            _logger.Error($"There was an error retrieving the next command for the Hasher Queue: {e}");
-            return null;
-        }
-    }
-
-
-    public List<CommandRequest> GetNextImagesCommandRequests(IConnectivityService connectivityService, bool showAll)
-    {
-        try
-        {
-            var types = showAll ? CommandTypesImagesArray : GetExecutableCommands(CommandTypesImagesArray, connectivityService);
-            return Lock(() =>
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                return session.Query<CommandRequest>()
-                    .Where(a => types.Contains(a.CommandType))
-                    .OrderBy(r => r.Priority)
-                    .ThenBy(r => r.DateTimeUpdated)
-                    .ToList();
-            });
+            var connectivityService = Utils.ServiceContainer.GetRequiredService<IConnectivityService>();
+            var types = includeDisabled ? CommandTypesImagesArray : GetExecutableCommands(CommandTypesImagesArray, connectivityService);
+            return session.Query<CommandRequest>()
+                .Where(a => types.Contains(a.CommandType))
+                .OrderBy(r => r.Priority)
+                .ThenBy(r => r.DateTimeUpdated);
         }
         catch (Exception e)
         {
             _logger.Error($"There was an error retrieving the next commands for the Image Queue: {e}");
-            return null;
-        }
-    }
-
-    public CommandRequest GetNextDBCommandRequestImages(IConnectivityService connectivityService)
-    {
-        try
-        {
-            var types = GetExecutableCommands(CommandTypesImagesArray, connectivityService);
-            return Lock(() =>
-            {
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                return session.Query<CommandRequest>()
-                    .Where(a => types.Contains(a.CommandType))
-                    .OrderBy(cr => cr.Priority)
-                    .ThenBy(cr => cr.DateTimeUpdated)
-                    .Take(1)
-                    .SingleOrDefault();
-            });
-        }
-        catch (Exception e)
-        {
-            _logger.Error($"There was an error retrieving the next command for the Image Queue: {e}");
             return null;
         }
     }

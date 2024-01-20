@@ -4,6 +4,7 @@ using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Commands.Generic;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
 using QueueStateEnum = Shoko.Models.Queue.QueueStateEnum;
@@ -107,7 +108,7 @@ public class Queue
             Type = (CommandRequestType)request.CommandType;
             Description = request.PrettyDescription.formatMessage();
             IsRunning = processor.CurrentCommand != null && processor.CurrentCommand.CommandRequestID == request.CommandRequestID;
-            IsDisabled = Repositories.RepoFactory.CommandRequest.CheckIfCommandRequestIsDisabled(Type, connectivityService);
+            IsDisabled = RepoFactory.CommandRequest.CheckIfCommandRequestIsDisabled(Type, connectivityService);
         }
     }
 
