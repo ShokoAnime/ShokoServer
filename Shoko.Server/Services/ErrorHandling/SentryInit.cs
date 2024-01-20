@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Reflection;
 using NLog;
 using Sentry;
@@ -81,6 +82,18 @@ public class SentryInit : IDisposable
             return null;
 
         if (arg.Exception is DirectoryNotFoundException)
+            return null;
+        
+        if (arg.Exception is UnauthorizedAccessException)
+            return null;
+        
+        if (arg.Exception is HttpRequestException)
+            return null;
+        
+        if (arg.Exception is WebException ex && ex.Response is HttpWebResponse resp && resp.StatusCode == HttpStatusCode.NotFound)
+            return null;
+        
+        if (arg.Exception is WebException ex && ex.Status == WebExceptionStatus.ConnectFailure)
             return null;
         
         if (arg.Exception?.GetType().GetCustomAttribute<SentryIgnoreAttribute>() is not null)

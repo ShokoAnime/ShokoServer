@@ -1,8 +1,9 @@
 ﻿using System;
+using Shoko.Server.Services.ErrorHandling;
 
 namespace Shoko.Server.Providers.AniDB;
 
-[Serializable]
+[Serializable, SentryIgnore]
 public class AniDBBannedException : Exception
 {
     public UpdateType BanType { get; set; }
