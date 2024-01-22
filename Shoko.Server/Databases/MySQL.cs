@@ -745,8 +745,16 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new DatabaseCommand(119, 3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
         new DatabaseCommand(119, 4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
         new DatabaseCommand(119, 5, DatabaseFixes.DropGroupFilter),
-        new DatabaseCommand(120, 1, "ALTER TABLE AnimeGroup DROP COLUMN IF EXISTS SortName;"),
-        new DatabaseCommand(121, 1, "ALTER TABLE AnimeEpisode DROP COLUMN IF EXISTS PlexContractVersion; ALTER TABLE AnimeEpisode DROP COLUMN IF EXISTS PlexContractBlob; ALTER TABLE AnimeEpisode DROP COLUMN IF EXISTS PlexContractSize; ALTER TABLE AnimeGroup_User DROP COLUMN IF EXISTS PlexContractVersion; ALTER TABLE AnimeGroup_User DROP COLUMN IF EXISTS PlexContractBlob; ALTER TABLE AnimeGroup_User DROP COLUMN IF EXISTS PlexContractSize; ALTER TABLE AnimeSeries_User DROP COLUMN IF EXISTS PlexContractVersion; ALTER TABLE AnimeSeries_User DROP COLUMN IF EXISTS PlexContractBlob; ALTER TABLE AnimeSeries_User DROP COLUMN IF EXISTS PlexContractSize;"),
+        new DatabaseCommand(120, 1, "IF EXISTS (SELECT * FROM information_schema.columns WHERE table_name = 'AnimeGroup' AND column_name = 'SortName') THEN ALTER TABLE AnimeGroup DROP COLUMN SortName; END IF;"),
+        new DatabaseCommand(121, 1, "IF EXISTS (SELECT * FROM information_schema.columns WHERE table_name = 'AnimeEpisode' AND column_name = 'PlexContractVersion') THEN ALTER TABLE AnimeEpisode DROP COLUMN PlexContractVersion; END IF;"),
+        new DatabaseCommand(121, 2, "IF EXISTS (SELECT * FROM information_schema.columns WHERE table_name = 'AnimeEpisode' AND column_name = 'PlexContractBlob') THEN ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob; END IF;"),
+        new DatabaseCommand(121, 3, "IF EXISTS (SELECT * FROM information_schema.columns WHERE table_name = 'AnimeEpisode' AND column_name = 'PlexContractSize') THEN ALTER TABLE AnimeEpisode DROP COLUMN PlexContractSize; END IF;"),
+        new DatabaseCommand(121, 4, "IF EXISTS (SELECT * FROM information_schema.columns WHERE table_name = 'AnimeGroup_User' AND column_name = 'PlexContractVersion') THEN ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractVersion; END IF;"),
+        new DatabaseCommand(121, 5, "IF EXISTS (SELECT * FROM information_schema.columns WHERE table_name = 'AnimeGroup_User' AND column_name = 'PlexContractBlob') THEN ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob; END IF;"),
+        new DatabaseCommand(121, 6, "IF EXISTS (SELECT * FROM information_schema.columns WHERE table_name = 'AnimeGroup_User' AND column_name = 'PlexContractSize') THEN ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractSize; END IF;"),
+        new DatabaseCommand(121, 7, "IF EXISTS (SELECT * FROM information_schema.columns WHERE table_name = 'AnimeSeries_User' AND column_name = 'PlexContractVersion') THEN ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractVersion; END IF;"),
+        new DatabaseCommand(121, 8, "IF EXISTS (SELECT * FROM information_schema.columns WHERE table_name = 'AnimeSeries_User' AND column_name = 'PlexContractBlob') THEN ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob; END IF;"),
+        new DatabaseCommand(121, 9, "IF EXISTS (SELECT * FROM information_schema.columns WHERE table_name = 'AnimeSeries_User' AND column_name = 'PlexContractSize') THEN ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractSize; END IF;"),
         new DatabaseCommand(122, 1, "ALTER TABLE CommandRequest ADD INDEX IX_CommandRequest_CommandType (CommandType); ALTER TABLE CommandRequest ADD INDEX IX_CommandRequest_Priority_Date (Priority, DateTimeUpdated);"),
     };
 
