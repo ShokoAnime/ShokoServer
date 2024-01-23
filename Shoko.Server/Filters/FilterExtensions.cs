@@ -31,7 +31,7 @@ public static class FilterExtensions
                 () => series.GetAnime()?.GetCustomTagsForAnime().Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase) ??
                       new HashSet<string>(),
             YearsDelegate = () => GetYears(series),
-            SeasonsDelegate = () => series.GetAnime()?.GetSeasons().ToHashSet(),
+            SeasonsDelegate = () => series.GetAnime()?.GetSeasons().ToHashSet() ?? new HashSet<(int Year, AnimeSeason Season)>(),
             HasTvDBLinkDelegate = () => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(series.AniDB_ID).Any(),
             HasMissingTvDbLinkDelegate = () => HasMissingTvDBLink(series),
             // expensive, as these are direct
@@ -221,7 +221,7 @@ public static class FilterExtensions
             {
                 var parts = a.Split(' ');
                 return (int.Parse(parts[1]), Enum.Parse<AnimeSeason>(parts[0]));
-            }).ToHashSet(),
+            }).ToHashSet() ?? new HashSet<(int, AnimeSeason)>(),
             HasTvDBLinkDelegate = () => series.Any(a => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(a.AniDB_ID).Any()),
             HasMissingTvDbLinkDelegate = () => HasMissingTvDBLink(group),
             HasTMDbLinkDelegate =
