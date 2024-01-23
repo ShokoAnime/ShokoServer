@@ -173,6 +173,8 @@ public class HttpAnimeParser
             {
                 anime.EndDate = date;
             }
+
+            if (anime.EndDate != null && anime.AirDate != null && anime.EndDate < anime.AirDate) anime.EndDate = anime.AirDate;
         }
 
         anime.BeginYear = anime.AirDate?.Year ?? 0;
