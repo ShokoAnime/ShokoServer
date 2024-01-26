@@ -1313,7 +1313,7 @@ public partial class ShokoServiceImplementation
         string resolution,
         string videoSource, int videoBitDepth, int userID)
     {
-        relGroupName = relGroupName == null || relGroupName.EqualsInvariantIgnoreCase("null") ? null : Uri.UnescapeDataString(relGroupName.Replace("+", " "));
+        relGroupName = relGroupName == null || relGroupName.EqualsInvariantIgnoreCase("null") || relGroupName.Equals(string.Empty) ? null : Uri.UnescapeDataString(relGroupName.Replace("+", " "));
         videoSource = videoSource == null ? null : Uri.UnescapeDataString(videoSource.Replace("+", " "));
         logger.Trace($"GetFilesByGroupAndResolution -- relGroupName: {relGroupName}");
         logger.Trace($"GetFilesByGroupAndResolution -- videoSource: {videoSource}");
@@ -1395,7 +1395,7 @@ public partial class ShokoServiceImplementation
     [HttpGet("File/ByGroup/{animeID}/{relGroupName}/{userID}")]
     public List<CL_VideoDetailed> GetFilesByGroup(int animeID, string relGroupName, int userID)
     {
-        var grpName = relGroupName == null ? null : Uri.UnescapeDataString(relGroupName.Replace("+", " "));
+        var grpName = relGroupName == null || "null".EqualsInvariantIgnoreCase(relGroupName) || relGroupName.Equals(string.Empty) ? null : Uri.UnescapeDataString(relGroupName.Replace("+", " "));
         var vids = new List<CL_VideoDetailed>();
 
         try
