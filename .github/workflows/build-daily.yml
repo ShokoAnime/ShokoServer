@@ -90,7 +90,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r ${{ matrix.rid }} ${{ matrix.build_props }} Shoko.CLI "/p:Version=\"${{ needs.current_info.outputs.version }}\",InformationalVersion=\"channel=dev,commit=${{ needs.current_info.outputs.sha }},date=${{ needs.current_info.outputs.date }}\""
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=dev,commit=${{ needs.current_info.outputs.sha }},date=${{ needs.current_info.outputs.date }}\""
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -138,7 +138,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService "/p:Version=\`"${{ needs.current_info.outputs.version }}\`",InformationalVersion=\`"channel=dev,commit=${{ needs.current_info.outputs.sha }},date=${{ needs.current_info.outputs.date }}\`""
+      - run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2cdate=${{ needs.current_info.outputs.date }}" # %2c is comma, blame windows/pwsh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
