@@ -1,9 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net6.0-windows</TargetFramework>
+        <TargetFramework>net8.0-windows7.0</TargetFramework>
         <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-        <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
+        <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
         <Platforms>x64;AnyCPU</Platforms>
         <Deterministic>false</Deterministic>
         <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
@@ -37,7 +37,8 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
-        <PackageReference Include="NLog" Version="5.0.4" />
+        <PackageReference Include="NLog" Version="5.0.4" />        
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.1" />
     </ItemGroup>
     <ItemGroup>
         <Resource Include="..\Shoko.Server\db.ico">
