@@ -427,7 +427,8 @@ public static class ModelHelper
                 if (!isAnimeAllowed)
                     return false;
 
-                if (!include.Contains(FileNonDefaultIncludeType.Ignored) && video.IsIgnored) return false;
+                // this one is special because ignored files are excluded by default
+                if (!include_only.Contains(FileIncludeOnlyType.Ignored) && !include.Contains(FileNonDefaultIncludeType.Ignored) && video.IsIgnored) return false;
                 if (include_only.Contains(FileIncludeOnlyType.Ignored) && !video.IsIgnored) return false;
 
                 if (exclude.Contains(FileExcludeTypes.Duplicates) && locations.Count > 1) return false;

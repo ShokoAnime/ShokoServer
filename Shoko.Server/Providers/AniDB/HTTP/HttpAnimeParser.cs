@@ -159,6 +159,22 @@ public class HttpAnimeParser
             {
                 anime.EndDate = date;
             }
+            else if (DateTime.TryParseExact(
+                         dateString, "yyyy-MM", CultureInfo.InvariantCulture,
+                         DateTimeStyles.AssumeUniversal, out date
+                     ) && date != DateTime.UnixEpoch)
+            {
+                anime.EndDate = date;
+            }
+            else if (DateTime.TryParseExact(
+                         dateString, "yyyy", CultureInfo.InvariantCulture,
+                         DateTimeStyles.AssumeUniversal, out date
+                     ) && date != DateTime.UnixEpoch)
+            {
+                anime.EndDate = date;
+            }
+
+            if (anime.EndDate != null && anime.AirDate != null && anime.EndDate < anime.AirDate) anime.EndDate = anime.AirDate;
         }
 
         anime.BeginYear = anime.AirDate?.Year ?? 0;
