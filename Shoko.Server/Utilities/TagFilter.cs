@@ -170,7 +170,9 @@ public static class TagFilter
         // Tags that involve the setting, a time or place in which the story occurs.
         // I've seen more that fall under this that AniDB hasn't listed
         "1920s",
+        "1950s",
         "1960s",
+        "1990s",
         "africa",
         "akihabara",
         "alternative past",
