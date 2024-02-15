@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using Quartz;
 using Quartz.AspNetCore;
-using Quartz.Impl;
 using QuartzJobFactory;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Delegates;
@@ -27,6 +26,7 @@ public static class QuartzStartup
         // this lets us inject the shoko JobFactory explicitly, instead of only IJobFactory
         services.AddSingleton<JobFactory>();
         services.AddSingleton<ThreadPooledJobStore>();
+        services.AddSingleton<QueueHandler>();
         services.AddSingleton<QueueStateEventHandler>();
         services.AddSingleton<IAcquisitionFilter, AniDBHttpRateLimitedAcquisitionFilter>();
         services.AddSingleton<IAcquisitionFilter, AniDBUdpRateLimitedAcquisitionFilter>();
