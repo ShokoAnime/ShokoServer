@@ -36,8 +36,8 @@ public static class Program
             settingsProvider.LoadSettings();
             Utils.SettingsProvider = settingsProvider;
             var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
+            startup.AboutToStart += (_, args) => AddEventHandlers(args.ServiceProvider);
             startup.Start();
-            AddEventHandlers();
             startup.WaitForShutdown();
         }
         catch (Exception e)
@@ -46,11 +46,11 @@ public static class Program
         }
     }
     
-    private static void AddEventHandlers()
+    private static void AddEventHandlers(IServiceProvider provider)
     {
         Utils.YesNoRequired += OnUtilsOnYesNoRequired;
         ServerState.Instance.PropertyChanged += OnInstanceOnPropertyChanged;
-        var queueStateEventHandler = Utils.ServiceContainer.GetRequiredService<QueueStateEventHandler>();
+        var queueStateEventHandler = provider.GetRequiredService<QueueStateEventHandler>();
         queueStateEventHandler.QueueChanged += QueueStateEventHandlerOnQueueChanged;
     }
 

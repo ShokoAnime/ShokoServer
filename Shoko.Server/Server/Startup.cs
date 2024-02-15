@@ -32,6 +32,7 @@ public class Startup
     private readonly ILogger<Startup> _logger;
     private readonly ISettingsProvider _settingsProvider;
     private IWebHost _webHost;
+    public event EventHandler<ServerAboutToStartEventArgs> AboutToStart; 
 
     public Startup(ILogger<Startup> logger, ISettingsProvider settingsProvider)
     {
@@ -108,6 +109,10 @@ public class Startup
         try
         {
             _webHost ??= InitWebHost(settingsProvider);
+            AboutToStart?.Invoke(null, new ServerAboutToStartEventArgs
+            {
+                ServiceProvider = Utils.ServiceContainer
+            });
             _webHost.Start();
             return true;
         }
