@@ -499,10 +499,10 @@ public class ThreadPooledJobStore : JobStoreTX
         lock (_executingJobs)
             executing = _executingJobs.Select(a =>
             {
-                var job = _jobFactory.CreateJob(jobDetail);
+                var job = _jobFactory.CreateJob(a.Value);
                 return new QueueItem
                 {
-                    Key = a.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage()
+                    Key = a.Key.ToString(), JobType = job?.Name ?? a.Value.JobType.Name, Description = job?.Description.formatMessage()
                 };
             }).ToArray();
 

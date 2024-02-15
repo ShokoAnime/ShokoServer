@@ -31,7 +31,6 @@ public class QueueStateEventHandler
         QueueStarted?.Invoke(null, EventArgs.Empty);
     }
 
-    // TODO fire when jobs are added and keep track of executing jobs
     public void OnJobExecuting(IJobDetail jobDetail, QueueStateContext queueContext)
     {
         var job = _jobFactory.CreateJob(jobDetail);
@@ -42,7 +41,7 @@ public class QueueStateEventHandler
             {
                 new()
                 {
-                    Key = jobDetail.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage()
+                    Key = jobDetail.Key.ToString(), JobType = job?.Name ?? jobDetail.JobType.Name, Description = job?.Description.formatMessage()
                 }
             },
             WaitingJobsCount = queueContext.WaitingTriggersCount,
@@ -62,7 +61,7 @@ public class QueueStateEventHandler
             {
                 new()
                 {
-                    Key = jobDetail.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage()
+                    Key = jobDetail.Key.ToString(), JobType = job?.Name ?? jobDetail.JobType.Name, Description = job?.Description.formatMessage()
                 }
             },
             WaitingJobsCount = queueContext.WaitingTriggersCount,
