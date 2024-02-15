@@ -6,18 +6,18 @@ using System.Text;
 using MessagePack;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using Quartz;
 using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Media = Shoko.Models.PlexAndKodi.Media;
 using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
@@ -250,7 +250,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
         bool syncTrakt, bool updateWatchedDate, DateTime? lastUpdated = null)
     {
         var settings = Utils.SettingsProvider.GetSettings();
-        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
         var user = RepoFactory.JMMUser.GetByID(userID);
         if (user == null) return;
 
@@ -270,7 +270,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
                 if ((watched && settings.AniDb.MyList_SetWatched) ||
                     (!watched && settings.AniDb.MyList_SetUnwatched))
                 {
-                    commandFactory.CreateAndSave<CommandRequest_UpdateMyListFileStatus>(
+                    scheduler.StartJob<UpdateMyListFileStatusJob>(
                         c =>
                         {
                             c.Hash = Hash;
@@ -278,7 +278,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
                             c.UpdateSeriesStats = false;
                             c.WatchedDateAsSecs = AniDB.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime());
                         }
-                    );
+                    ).GetAwaiter().GetResult();
                 }
         }
 
@@ -332,13 +332,13 @@ public class SVR_VideoLocal : VideoLocal, IHash
                     if (syncTrakt && settings.TraktTv.Enabled &&
                         !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
                     {
-                        commandFactory.CreateAndSave<CommandRequest_TraktHistoryEpisode>(
+                        scheduler.StartJob<SyncTraktEpisodeHistoryJob>(
                             c =>
                             {
                                 c.AnimeEpisodeID = ep.AnimeEpisodeID;
-                                c.Action = (int)TraktSyncAction.Add;
+                                c.Action = TraktSyncAction.Add;
                             }
-                        );
+                        ).GetAwaiter().GetResult();
                     }
                 }
             }
@@ -382,13 +382,13 @@ public class SVR_VideoLocal : VideoLocal, IHash
                     if (syncTrakt && settings.TraktTv.Enabled &&
                         !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
                     {
-                        commandFactory.CreateAndSave<CommandRequest_TraktHistoryEpisode>(
+                        scheduler.StartJob<SyncTraktEpisodeHistoryJob>(
                             c =>
                             {
                                 c.AnimeEpisodeID = ep.AnimeEpisodeID;
-                                c.Action = (int)TraktSyncAction.Remove;
+                                c.Action = TraktSyncAction.Remove;
                             }
-                        );
+                        ).GetAwaiter().GetResult();
                     }
                 }
             }

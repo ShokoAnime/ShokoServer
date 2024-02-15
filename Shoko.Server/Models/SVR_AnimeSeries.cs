@@ -3,24 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
+using Quartz;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
-using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Server;
-using Shoko.Server.Settings;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -787,7 +788,7 @@ public class SVR_AnimeSeries : AnimeSeries
         SeriesNameOverride = string.Empty;
     }
 
-    public void CreateAnimeEpisodes(SVR_AniDB_Anime anime = null)
+    public async Task CreateAnimeEpisodes(SVR_AniDB_Anime anime = null)
     {
         anime ??= GetAnime();
         if (anime == null)
@@ -802,11 +803,17 @@ public class SVR_AnimeSeries : AnimeSeries
             .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(a.AniDB_EpisodeID)).ToList();
         var vlIDsToUpdate = filesToUpdate.Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash)?.VideoLocalID)
             .Where(a => a != null).Select(a => a.Value).ToList();
-        var requestFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         // remove existing xrefs
         RepoFactory.CrossRef_File_Episode.Delete(filesToUpdate);
+
         // queue rescan for the files
-        vlIDsToUpdate.ForEach(id => requestFactory.CreateAndSave<CommandRequest_ProcessFile>(a => a.VideoLocalID = id));
+        var schedulerFactory = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>();
+        var scheduler = await schedulerFactory.GetScheduler();
+        foreach (var id in vlIDsToUpdate)
+        {
+            await scheduler.StartJob<ProcessFileJob>(a => a.VideoLocalID = id);
+        }
+
         RepoFactory.AnimeEpisode.Delete(epsToRemove);
 
         var one_forth = (int)Math.Round(eps.Count / 4D, 0, MidpointRounding.AwayFromZero);
@@ -1581,8 +1588,8 @@ public class SVR_AnimeSeries : AnimeSeries
 
     public void QueueUpdateStats()
     {
-        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        commandFactory.CreateAndSave<CommandRequest_RefreshAnime>(c => c.AnimeID = AniDB_ID);
+        var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
+        scheduler.StartJob<RefreshAnimeStatsJob>(c => c.AnimeID = AniDB_ID).GetAwaiter().GetResult();
     }
 
     public void UpdateStats(bool watchedStats, bool missingEpsStats)
@@ -1960,13 +1967,19 @@ public class SVR_AnimeSeries : AnimeSeries
         return results;
     }
 
-    public void DeleteSeries(bool deleteFiles, bool updateGroups, bool completelyRemove = false)
+    public async Task DeleteSeries(bool deleteFiles, bool updateGroups, bool completelyRemove = false)
     {
-        GetAnimeEpisodes().ForEach(ep =>
+        foreach (var ep in GetAnimeEpisodes())
         {
-            ep.RemoveVideoLocals(deleteFiles);
+            var service = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
+            foreach (var place in GetVideoLocals().SelectMany(a => a.Places).Where(a => a != null))
+            {
+                if (deleteFiles) await service.RemoveRecordAndDeletePhysicalFile(place, false);
+                else await service.RemoveRecord(place);
+            }
+
             RepoFactory.AnimeEpisode.Delete(ep.AnimeEpisodeID);
-        });
+        }
         RepoFactory.AnimeSeries.Delete(this);
 
         if (!updateGroups)

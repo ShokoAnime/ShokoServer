@@ -1,7 +1,3 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
-
 using System;
 using System.Net.NetworkInformation;
 using System.Text;
@@ -31,7 +27,8 @@ public abstract class PingConnectivityMonitor : IConnectivityMonitor
         // Only trigger every 15 minutes
         if (_lastRunTimestamp is not null && _lastRunTimestamp.Value.AddMinutes(15) < DateTime.Now)
             return;
-        
+
+        var lastState = _lastState;
         // TODO: Use polly for retry and backoff
         var pingSender = new Ping();
         var pingOptions = new PingOptions(128, true); // Use the default ttl of 128 but don't fragment the packets
@@ -39,7 +36,10 @@ public abstract class PingConnectivityMonitor : IConnectivityMonitor
         var reply = await pingSender.SendPingAsync(_target, 120, buffer, pingOptions).WaitAsync(token);
         _lastState = reply.Status == IPStatus.Success;
         _lastRunTimestamp = DateTime.Now;
+
+        if (lastState != _lastState) StateChanged?.Invoke(null, EventArgs.Empty);
     }
 
     public bool HasConnected => _lastState;
+    public event EventHandler StateChanged;
 }

@@ -198,10 +198,11 @@ public class DashboardController : BaseController
     /// <returns></returns>
     [HttpGet("QueueSummary")]
     [Obsolete("Use /api/v3/Queue/Types instead.")]
-    public Dictionary<CommandRequestType, int> GetQueueSummary()
+    public Dictionary<string, int> GetQueueSummary()
     {
-        return RepoFactory.CommandRequest.GetAll().GroupBy(a => a.CommandType)
-            .ToDictionary(a => (CommandRequestType)a.Key, a => a.Count());
+        // TODO this
+        // count by type
+        return null;
     }
 
     /// <summary>

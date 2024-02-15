@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
-using Quartz;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
 using Shoko.Models;
 using Shoko.Models.Client;
@@ -14,15 +14,14 @@ using Shoko.Models.Enums;
 using Shoko.Models.Metro;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Settings;
 using Constants = Shoko.Server.Server.Constants;
 
@@ -33,20 +32,20 @@ namespace Shoko.Server;
 [ApiVersion("1.0", Deprecated = true)]
 public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAccessor
 {
-    private readonly ICommandRequestFactory _commandFactory;
     private readonly TraktTVHelper _traktHelper;
     private readonly ShokoServiceImplementation _service;
     private readonly ISettingsProvider _settingsProvider;
+    private readonly JobFactory _jobFactory;
     public HttpContext HttpContext { get; set; }
 
-    private static Logger logger = LogManager.GetCurrentClassLogger();
+    private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    public ShokoServiceImplementationMetro(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
+    public ShokoServiceImplementationMetro(TraktTVHelper traktHelper, ISettingsProvider settingsProvider, ShokoServiceImplementation service, JobFactory jobFactory)
     {
-        _commandFactory = commandFactory;
         _traktHelper = traktHelper;
         _settingsProvider = settingsProvider;
-        _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory, schedulerFactory, settingsProvider);
+        _service = service;
+        _jobFactory = jobFactory;
     }
 
     [HttpGet("Server/Status")]
@@ -58,49 +57,38 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
         {
             var httpHandler = HttpContext.RequestServices.GetRequiredService<IHttpConnectionHandler>();
             var udpHandler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
-            var hasherQueueState = !ShokoService.CmdProcessorHasher.Paused ? (
-                ShokoService.CmdProcessorHasher.QueueState
-            ) : (
-                new()
+            var hasherQueueState = 
+                new QueueStateStruct
                 {
-                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
-                    message = "Paused",
-                    extraParams = new string[0],
-                }
-            );
-            contract.HashQueueCount = ShokoService.CmdProcessorHasher.QueueCount;
+                    queueState = Shoko.Models.Queue.QueueStateEnum.Idle,
+                    message = "Idle",
+                    extraParams = Array.Empty<string>(),
+                };
+            contract.HashQueueCount = 0;
             contract.HashQueueMessage = hasherQueueState.formatMessage();
             contract.HashQueueState = hasherQueueState.formatMessage(); // Deprecated since 3.6.0.0
             contract.HashQueueStateId = (int)hasherQueueState.queueState;
             contract.HashQueueStateParams = hasherQueueState.extraParams;
 
-            var generalQueueState = !ShokoService.CmdProcessorGeneral.Paused ? (
-                ShokoService.CmdProcessorGeneral.QueueState
-            ) : (
-                new()
-                {
-                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
-                    message = "Paused",
-                    extraParams = new string[0],
-                }
-            );
-            contract.GeneralQueueCount = ShokoService.CmdProcessorGeneral.QueueCount;
+            var generalQueueState = new QueueStateStruct
+            {
+                queueState = Shoko.Models.Queue.QueueStateEnum.Idle,
+                message = "Idle",
+                extraParams = Array.Empty<string>(),
+            };
+            contract.GeneralQueueCount = 0;
             contract.GeneralQueueMessage = generalQueueState.formatMessage();
             contract.GeneralQueueState = generalQueueState.formatMessage(); // Deprecated since 3.6.0.0
             contract.GeneralQueueStateId = (int)generalQueueState.queueState;
             contract.GeneralQueueStateParams = generalQueueState.extraParams;
 
-            var imagesQueueState = !ShokoService.CmdProcessorImages.Paused ? (
-                ShokoService.CmdProcessorImages.QueueState
-            ) : (
-                new()
-                {
-                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
-                    message = "Paused",
-                    extraParams = new string[0],
-                }
-            );
-            contract.ImagesQueueCount = ShokoService.CmdProcessorImages.QueueCount;
+            var imagesQueueState = new QueueStateStruct
+            {
+                queueState = Shoko.Models.Queue.QueueStateEnum.Idle,
+                message = "Idle",
+                extraParams = Array.Empty<string>(),
+            };
+            contract.ImagesQueueCount = 0;
             contract.ImagesQueueMessage = imagesQueueState.formatMessage();
             contract.ImagesQueueState = imagesQueueState.formatMessage(); // Deprecated since 3.6.0.0
             contract.ImagesQueueStateId = (int)imagesQueueState.queueState;
@@ -1121,15 +1109,13 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 if (animeLink == null)
                 {
                     // try getting it from anidb now
-                    var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+                    var command = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
                     {
-                        c.BubbleExceptions = true;
                         c.DownloadRelations = false;
                         c.AnimeID = link.RelatedAnimeID;
                         c.CreateSeriesEntry = false;
                     });
-                    command.ProcessCommand();
-                    animeLink = command.Result;
+                    animeLink = command.Process().Result;
                 }
 
                 if (animeLink == null)
@@ -1178,17 +1164,16 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 if (animeLink == null)
                 {
                     // try getting it from anidb now
-                    var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(
+                    var command = _jobFactory.CreateJob<GetAniDBAnimeJob>(
                         c =>
                         {
-                            c.BubbleExceptions = true;
                             c.DownloadRelations = false;
                             c.AnimeID = link.SimilarAnimeID;
                             c.CreateSeriesEntry = false;
                         }
                     );
-                    command.ProcessCommand();
-                    animeLink = command.Result;
+
+                    animeLink = command.Process().Result;
                 }
 
                 if (animeLink == null)
@@ -1299,15 +1284,14 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
     {
         try
         {
-            var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+            var command = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
             {
-                c.BubbleExceptions = true;
                 c.ForceRefresh = true;
                 c.DownloadRelations = false;
                 c.AnimeID = animeID;
                 c.CreateSeriesEntry = false;
             });
-            command.ProcessCommand();
+            command.Process().GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {

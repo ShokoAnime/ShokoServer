@@ -2,9 +2,10 @@ using System;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Timers;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Commands;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Connection;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
@@ -19,6 +20,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 {
     private readonly IRequestFactory _requestFactory;
     private IAniDBSocketHandler _socketHandler;
+    private static readonly Regex s_logMask = new("(?<=(\\bpass=|&pass=\\bs=|&s=))[^&]+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public event EventHandler LoginFailed;
 
@@ -26,7 +28,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     public override string Type => "UDP";
     public override UpdateType BanEnum => UpdateType.UDPBan;
 
-    public string SessionID { get; set; }
+    public string SessionID { get; private set; }
 
     private string _cdnDomain = Constants.URLS.AniDB_Images_Domain;
 
@@ -70,18 +72,17 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         LastAniDBMessageNonPing < LastAniDBPing ? LastAniDBPing : LastAniDBMessageNonPing;
 
     public AniDBUDPConnectionHandler(IRequestFactory requestFactory, ILoggerFactory loggerFactory,
-        CommandProcessorGeneral queue, ISettingsProvider settings, UDPRateLimiter rateLimiter) : base(loggerFactory,
-        queue, rateLimiter)
+        ISettingsProvider settings, UDPRateLimiter rateLimiter) : base(loggerFactory, rateLimiter)
     {
         _requestFactory = requestFactory;
         SettingsProvider = settings;
-        InitInternal();
+        InitInternal().GetAwaiter().GetResult();
     }
 
     ~AniDBUDPConnectionHandler()
     {
         Logger.LogInformation("Disposing AniDBUDPConnectionHandler...");
-        CloseConnections();
+        CloseConnections().GetAwaiter().GetResult();
     }
 
     public new void ExtendBanTimer(int time, string message)
@@ -89,13 +90,13 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         base.ExtendBanTimer(time, message);
     }
 
-    public bool Init(string username, string password, string serverName, ushort serverPort, ushort clientPort)
+    public async Task<bool> Init(string username, string password, string serverName, ushort serverPort, ushort clientPort)
     {
         var settings = SettingsProvider.GetSettings();
         settings.AniDb.ServerAddress = serverName;
         settings.AniDb.ServerPort = serverPort;
         settings.AniDb.ClientPort = clientPort;
-        InitInternal();
+        await InitInternal();
 
         if (!ValidAniDBCredentials(username, password))
         {
@@ -106,11 +107,11 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         return true;
     }
 
-    private void InitInternal()
+    private async Task InitInternal()
     {
         if (_socketHandler != null)
         {
-            _socketHandler.Dispose();
+            await _socketHandler.DisposeAsync();
             _socketHandler = null;
         }
 
@@ -119,7 +120,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             settings.AniDb.ClientPort);
         _isLoggedOn = false;
 
-        IsNetworkAvailable = _socketHandler.TryConnection();
+        IsNetworkAvailable = await _socketHandler.TryConnection();
 
         _pulseTimer = new Timer { Interval = 5000, Enabled = true, AutoReset = true };
         _pulseTimer.Elapsed += PulseTimerElapsed;
@@ -128,7 +129,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         _pulseTimer.Start();
     }
 
-    private void PulseTimerElapsed(object sender, ElapsedEventArgs e)
+    private async void PulseTimerElapsed(object sender, ElapsedEventArgs e)
     {
         try
         {
@@ -159,12 +160,12 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                 !IsBanned && !ExtendPauseSecs.HasValue)
             {
                 var ping = _requestFactory.Create<RequestPing>();
-                ping.Execute();
+                await ping.Send();
             }
 
             if (nonPingTimestamp.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
             {
-                ForceLogout();
+                await ForceLogout();
             }
         }
         catch (Exception exception)
@@ -178,11 +179,9 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     /// </summary>
     /// <param name="command">The request to be made (AUTH user=baka&amp;pass....)</param>
     /// <param name="needsUnicode">Only for Login, specify whether to ask for UTF16</param>
-    /// <param name="disableLogging">Some commands have sensitive data</param>
     /// <param name="isPing">is it a ping command</param>
     /// <returns></returns>
-    public string CallAniDBUDP(string command, bool needsUnicode = true, bool disableLogging = false,
-        bool isPing = false)
+    public async Task<string> CallAniDBUDP(string command, bool needsUnicode = true, bool isPing = false)
     {
         // Steps:
         // 1. Check Ban state and throw if Banned
@@ -208,17 +207,16 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
 
         // Check Login State
-        if (!Login())
+        if (!await Login())
         {
             throw new NotLoggedInException();
         }
 
         // Actually Call AniDB
-        return CallAniDBUDPDirectly(command, needsUnicode, disableLogging, isPing);
+        return await CallAniDBUDPDirectly(command, needsUnicode, isPing);
     }
 
-    public string CallAniDBUDPDirectly(string command, bool needsUnicode = true, bool disableLogging = false,
-        bool isPing = false)
+    public async Task<string> CallAniDBUDPDirectly(string command, bool needsUnicode = true, bool isPing = false)
     {
         // 1. Call AniDB
         // 2. Decode the response, converting Unicode and decompressing, as needed
@@ -233,14 +231,11 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         RateLimiter.EnsureRate();
         var start = DateTime.Now;
 
-        if (!disableLogging)
-        {
-            Logger.LogTrace("AniDB UDP Call: (Using {Unicode}) {Command}", needsUnicode ? "Unicode" : "ASCII", command);
-        }
+        Logger.LogTrace("AniDB UDP Call: (Using {Unicode}) {Command}", needsUnicode ? "Unicode" : "ASCII", MaskLog(command));
 
         var sendByteAdd = encoding.GetBytes(command);
         StampLastMessage(isPing);
-        var byReceivedAdd = _socketHandler.Send(sendByteAdd);
+        var byReceivedAdd = await _socketHandler.Send(sendByteAdd);
         StampLastMessage(isPing);
 
         if (byReceivedAdd.All(a => a == 0))
@@ -261,19 +256,16 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
 
         var ts = DateTime.Now - start;
-        if (!disableLogging)
-        {
-            Logger.LogTrace("AniDB Response: Received in {Time:ss'.'ffff}s\n{DecodedString}", ts, decodedString);
-        }
+        Logger.LogTrace("AniDB Response: Received in {Time:ss'.'ffff}s\n{DecodedString}", ts, MaskLog(decodedString));
 
         return decodedString;
     }
 
-    public void ForceReconnection()
+    public async Task ForceReconnection()
     {
         try
         {
-            ForceLogout();
+            await ForceLogout();
         }
         catch (Exception ex)
         {
@@ -282,7 +274,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
         try
         {
-            CloseConnections();
+            await CloseConnections();
         }
         catch (Exception ex)
         {
@@ -311,7 +303,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
     }
 
-    public void ForceLogout()
+    public async Task ForceLogout()
     {
         if (!_isLoggedOn)
         {
@@ -328,7 +320,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         Logger.LogTrace("Logging Out");
         try
         {
-            _requestFactory.Create<RequestLogout>().Execute();
+            await _requestFactory.Create<RequestLogout>().Send();
         }
         catch
         {
@@ -339,7 +331,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         SessionID = null;
     }
 
-    public void CloseConnections()
+    public async Task CloseConnections()
     {
         _pulseTimer?.Stop();
         _pulseTimer = null;
@@ -349,14 +341,14 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
 
         Logger.LogInformation("AniDB UDP Socket Disposing...");
-        _socketHandler.Dispose();
+        await _socketHandler.DisposeAsync();
         _socketHandler = null;
     }
 
-    public bool Login()
+    public async Task<bool> Login()
     {
         var settings = SettingsProvider.GetSettings();
-        if (Login(settings.AniDb.Username, settings.AniDb.Password))
+        if (await Login(settings.AniDb.Username, settings.AniDb.Password))
         {
             return true;
         }
@@ -364,8 +356,8 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         try
         {
             Logger.LogTrace("Failed to login to AniDB. Issuing a Logout command and retrying");
-            ForceLogout();
-            return Login(settings.AniDb.Username, settings.AniDb.Password);
+            await ForceLogout();
+            return await Login(settings.AniDb.Username, settings.AniDb.Password);
         }
         catch (Exception e)
         {
@@ -375,7 +367,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         return false;
     }
 
-    private bool Login(string username, string password)
+    private async Task<bool> Login(string username, string password)
     {
         // check if we are already logged in
         if (IsLoggedOn)
@@ -393,7 +385,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         UDPResponse<ResponseLogin> response;
         try
         {
-            response = LoginWithFallbacks(username, password);
+            response = await LoginWithFallbacks(username, password);
         }
         catch (Exception e)
         {
@@ -426,7 +418,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         return false;
     }
 
-    private UDPResponse<ResponseLogin> LoginWithFallbacks(string username, string password)
+    private async Task<UDPResponse<ResponseLogin>> LoginWithFallbacks(string username, string password)
     {
         try
         {
@@ -437,7 +429,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                     r.Password = password;
                 }
             );
-            return login.Execute();
+            return await login.Send();
         }
         catch (UnexpectedUDPResponseException)
         {
@@ -451,42 +443,41 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                     r.UseUnicode = true;
                 }
             );
-            return login.Execute();
+            return await login.Send();
+        }
+        catch (SocketException e)
+            when (e.SocketErrorCode == SocketError.TimedOut)
+        {
+            Logger.LogTrace("Received a Timeout on Login. Restarting Socket and relogging");
+            await ForceReconnection();
+            var login = _requestFactory.Create<RequestLogin>(
+                r =>
+                {
+                    r.Username = username;
+                    r.Password = password;
+                    r.UseUnicode = true;
+                }
+            );
+            return await login.Send();
         }
         catch (SocketException e)
         {
-            if (e.SocketErrorCode == SocketError.TimedOut)
-            {
-                Logger.LogTrace(
-                    "Received a Timeout on Login. Restarting Socket and relogging");
-                ForceReconnection();
-                var login = _requestFactory.Create<RequestLogin>(
-                    r =>
-                    {
-                        r.Username = username;
-                        r.Password = password;
-                        r.UseUnicode = true;
-                    }
-                );
-                return login.Execute();
-            }
-
             Logger.LogError(e, "Unable to login to AniDB");
             return new UDPResponse<ResponseLogin>();
         }
     }
 
-    public bool TestLogin(string username, string password)
+    public async Task<bool> TestLogin(string username, string password)
     {
         if (!ValidAniDBCredentials(username, password))
         {
             return false;
         }
 
-        var result = Login(username, password);
+        var result = await Login(username, password);
         if (result)
         {
-            ForceLogout();
+            await ForceLogout();
         }
 
         return result;
@@ -519,5 +510,10 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
 
         return true;
+    }
+
+    private static string MaskLog(string input)
+    {
+        return s_logMask.Replace(input, "****");
     }
 }

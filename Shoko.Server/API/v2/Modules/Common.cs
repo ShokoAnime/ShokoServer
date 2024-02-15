@@ -11,23 +11,24 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using NLog;
 using Quartz;
-using QuartzJobFactory;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Server;
+using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using APIFilters = Shoko.Server.API.v2.Models.common.Filters;
@@ -41,15 +42,17 @@ namespace Shoko.Server.API.v2.Modules;
 [ApiController]
 public class Common : BaseController
 {
-    private readonly ICommandRequestFactory _commandFactory;
     private readonly ShokoServiceImplementation _service;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly ActionService _actionService;
+    private readonly QueueHandler _queueHandler;
 
-    public Common(ICommandRequestFactory commandFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public Common(ISchedulerFactory schedulerFactory, ActionService actionService, ISettingsProvider settingsProvider, QueueHandler queueHandler, ShokoServiceImplementation service) : base(settingsProvider)
     {
-        _commandFactory = commandFactory;
         _schedulerFactory = schedulerFactory;
-        _service = new ShokoServiceImplementation(null, null, null, commandFactory, schedulerFactory, settingsProvider);
+        _actionService = actionService;
+        _queueHandler = queueHandler;
+        _service = service;
     }
     //class will be found automagically thanks to inherits also class need to be public (or it will 404)
 
@@ -143,7 +146,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpPost("folder/delete")]
-    public ActionResult DeleteFolder(int folderId)
+    public async Task<ActionResult> DeleteFolder(int folderId)
     {
         if (folderId == 0)
         {
@@ -154,7 +157,7 @@ public class Common : BaseController
         if (importFolder == null)
             return new APIMessage(404, "ImportFolder missing");
 
-        var res = Importer.DeleteImportFolder(importFolder.ImportFolderID);
+        var res = await _actionService.DeleteImportFolder(importFolder.ImportFolderID);
         return string.IsNullOrEmpty(res) ? Ok() : InternalError(res);
     }
 
@@ -167,7 +170,7 @@ public class Common : BaseController
     public async Task<ActionResult> RunImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().WithGeneratedIdentity().Build());
+        await scheduler.StartJob<ImportJob>();
         return Ok();
     }
 
@@ -177,9 +180,9 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("folder/scan")]
-    public ActionResult ScanDropFolders()
+    public async Task<ActionResult> ScanDropFolders()
     {
-        Importer.RunImport_DropFolders();
+        await _actionService.RunImport_DropFolders();
         return Ok();
     }
 
@@ -207,7 +210,7 @@ public class Common : BaseController
     [HttpGet("stats_update")]
     public ActionResult UpdateStats()
     {
-        Importer.UpdateAllStats();
+        _actionService.UpdateAllStats();
         return Ok();
     }
 
@@ -240,7 +243,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("rescan")]
-    public ActionResult RescanVideoLocal(int id)
+    public async Task<ActionResult> RescanVideoLocal(int id)
     {
         if (id == 0)
         {
@@ -260,7 +263,8 @@ public class Common : BaseController
                 return BadRequest("Could not Update a cloud file without hash, hash it locally first");
             }
 
-            _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
+            var scheduler = await _schedulerFactory.GetScheduler();
+            await scheduler.StartJobNow<ProcessFileJob>(
                 c =>
                 {
                     c.VideoLocalID = vid.VideoLocalID;
@@ -280,16 +284,17 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("rescanunlinked")]
-    public ActionResult RescanUnlinked()
+    public async Task<ActionResult> RescanUnlinked()
     {
         try
         {
             // files which have been hashed, but don't have an associated episode
             var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
 
+            var scheduler = await _schedulerFactory.GetScheduler();
             foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
-                _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
+                await scheduler.StartJobNow<ProcessFileJob>(
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
@@ -311,16 +316,17 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("rescanmanuallinks")]
-    public ActionResult RescanManualLinks()
+    public async Task<ActionResult> RescanManualLinks()
     {
         try
         {
             // files which have been hashed, but don't have an associated episode
             var filesWithoutEpisode = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
 
+            var scheduler = await _schedulerFactory.GetScheduler();
             foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
-                _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
+                await scheduler.StartJobNow<ProcessFileJob>(
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
@@ -343,7 +349,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("rehash")]
-    public ActionResult RehashVideoLocal(int id)
+    public async Task<ActionResult> RehashVideoLocal(int id)
     {
         if (id == 0)
         {
@@ -362,7 +368,8 @@ public class Common : BaseController
             return NotFound("videolocal_place not found");
         }
 
-        _commandFactory.CreateAndSave<CommandRequest_HashFile>(
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJobNow<HashFileJob>(
             c =>
             {
                 c.FileName = pl.FullServerPath;
@@ -378,10 +385,11 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("rehashunlinked")]
-    public ActionResult RehashUnlinked()
+    public async Task<ActionResult> RehashUnlinked()
     {
         try
         {
+            var scheduler = await _schedulerFactory.GetScheduler();
             // files which have been hashed, but don't have an associated episode
             foreach (var vl in RepoFactory.VideoLocal.GetVideosWithoutEpisode())
             {
@@ -391,7 +399,7 @@ public class Common : BaseController
                     continue;
                 }
 
-                _commandFactory.CreateAndSave<CommandRequest_HashFile>(
+                await scheduler.StartJobNow<HashFileJob>(
                     c =>
                     {
                         c.FileName = pl.FullServerPath;
@@ -413,10 +421,11 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("rehashmanuallinks")]
-    public ActionResult RehashManualLinks()
+    public async Task<ActionResult> RehashManualLinks()
     {
         try
         {
+            var scheduler = await _schedulerFactory.GetScheduler();
             // files which have been hashed, but don't have an associated episode
             foreach (var vl in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
             {
@@ -426,7 +435,7 @@ public class Common : BaseController
                     continue;
                 }
 
-                _commandFactory.CreateAndSave<CommandRequest_HashFile>(
+                await scheduler.StartJobNow<HashFileJob>(
                     c =>
                     {
                         c.FileName = pl.FullServerPath;
@@ -594,12 +603,12 @@ public class Common : BaseController
     /// </summary>
     /// <returns><see cref="Dictionary{String,QueueInfo}" /></returns>
     [HttpGet("queue/get")]
-    public ActionResult<Dictionary<string, QueueInfo>> GetQueue()
+    public async Task<ActionResult<Dictionary<string, QueueInfo>>> GetQueue()
     {
         var queues = new Dictionary<string, QueueInfo>();
-        queues.Add("hasher", GetHasherQueue().Value);
-        queues.Add("general", GetGeneralQueue().Value);
-        queues.Add("images", GetImagesQueue().Value);
+        queues.Add("hasher", (await GetHasherQueue()).Value);
+        queues.Add("general", (await GetGeneralQueue()).Value);
+        queues.Add("images", (await GetImagesQueue()).Value);
         return queues;
     }
 
@@ -608,11 +617,9 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("queue/pause")]
-    public ActionResult PauseQueue()
+    public async Task<ActionResult> PauseQueue()
     {
-        ShokoService.CmdProcessorHasher.Paused = true;
-        ShokoService.CmdProcessorGeneral.Paused = true;
-        ShokoService.CmdProcessorImages.Paused = true;
+        await _queueHandler.Pause();
         return Ok();
     }
 
@@ -621,11 +628,9 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("queue/start")]
-    public ActionResult StartQueue()
+    public async Task<ActionResult> StartQueue()
     {
-        ShokoService.CmdProcessorHasher.Paused = false;
-        ShokoService.CmdProcessorGeneral.Paused = false;
-        ShokoService.CmdProcessorImages.Paused = false;
+        await _queueHandler.Resume();
         return Ok();
     }
 
@@ -634,14 +639,15 @@ public class Common : BaseController
     /// </summary>
     /// <returns>QueueInfo</returns>
     [HttpGet("queue/hasher/get")]
-    public ActionResult<QueueInfo> GetHasherQueue()
+    public async Task<ActionResult<QueueInfo>> GetHasherQueue()
     {
+        var scheduler = await _schedulerFactory.GetScheduler();
         var queue = new QueueInfo
         {
-            count = ServerInfo.Instance.HasherQueueCount,
-            state = ServerInfo.Instance.HasherQueueState,
-            isrunning = ServerInfo.Instance.HasherQueueRunning,
-            ispause = ServerInfo.Instance.HasherQueuePaused
+            count = 0,
+            state = "Obsolete",
+            isrunning = scheduler.IsStarted && !scheduler.InStandbyMode,
+            ispause = scheduler.InStandbyMode
         };
         return queue;
     }
@@ -651,14 +657,15 @@ public class Common : BaseController
     /// </summary>
     /// <returns>QueueInfo</returns>
     [HttpGet("queue/general/get")]
-    public ActionResult<QueueInfo> GetGeneralQueue()
+    public async Task<ActionResult<QueueInfo>> GetGeneralQueue()
     {
+        var scheduler = await _schedulerFactory.GetScheduler();
         var queue = new QueueInfo
         {
-            count = ServerInfo.Instance.GeneralQueueCount,
-            state = ServerInfo.Instance.GeneralQueueState,
-            isrunning = ServerInfo.Instance.GeneralQueueRunning,
-            ispause = ServerInfo.Instance.GeneralQueuePaused
+            count = 0,
+            state = "Obsolete",
+            isrunning = scheduler.IsStarted && !scheduler.InStandbyMode,
+            ispause = scheduler.InStandbyMode
         };
         return queue;
     }
@@ -668,14 +675,15 @@ public class Common : BaseController
     /// </summary>
     /// <returns>QueueInfo</returns>
     [HttpGet("queue/images/get")]
-    public ActionResult<QueueInfo> GetImagesQueue()
+    public async Task<ActionResult<QueueInfo>> GetImagesQueue()
     {
+        var scheduler = await _schedulerFactory.GetScheduler();
         var queue = new QueueInfo
         {
-            count = ServerInfo.Instance.ImagesQueueCount,
-            state = ServerInfo.Instance.ImagesQueueState,
-            isrunning = ServerInfo.Instance.ImagesQueueRunning,
-            ispause = ServerInfo.Instance.ImagesQueuePaused
+            count = 0,
+            state = "Obsolete",
+            isrunning = scheduler.IsStarted && !scheduler.InStandbyMode,
+            ispause = scheduler.InStandbyMode
         };
         return queue;
     }
@@ -685,9 +693,9 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("queue/hasher/pause")]
-    public ActionResult PauseHasherQueue()
+    public async Task<ActionResult> PauseHasherQueue()
     {
-        ShokoService.CmdProcessorHasher.Paused = true;
+        await _queueHandler.Pause();
         return Ok();
     }
 
@@ -696,9 +704,9 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("queue/general/pause")]
-    public ActionResult PauseGeneralQueue()
+    public async Task<ActionResult> PauseGeneralQueue()
     {
-        ShokoService.CmdProcessorGeneral.Paused = true;
+        await _queueHandler.Pause();
         return Ok();
     }
 
@@ -707,9 +715,10 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("queue/images/pause")]
-    public ActionResult PauseImagesQueue()
+    public async Task<ActionResult> PauseImagesQueue()
     {
-        ShokoService.CmdProcessorImages.Paused = true;
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.Standby();
         return Ok();
     }
 
@@ -718,9 +727,9 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("queue/hasher/start")]
-    public ActionResult StartHasherQueue()
+    public async Task<ActionResult> StartHasherQueue()
     {
-        ShokoService.CmdProcessorHasher.Paused = false;
+        await _queueHandler.Resume();
         return Ok();
     }
 
@@ -729,9 +738,9 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("queue/general/start")]
-    public ActionResult StartGeneralQueue()
+    public async Task<ActionResult> StartGeneralQueue()
     {
-        ShokoService.CmdProcessorGeneral.Paused = false;
+        await _queueHandler.Resume();
         return Ok();
     }
 
@@ -740,9 +749,9 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("queue/images/start")]
-    public ActionResult StartImagesQueue()
+    public async Task<ActionResult> StartImagesQueue()
     {
-        ShokoService.CmdProcessorImages.Paused = false;
+        await _queueHandler.Resume();
         return Ok();
     }
 
@@ -751,12 +760,11 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("queue/hasher/clear")]
-    public ActionResult ClearHasherQueue()
+    public async Task<ActionResult> ClearHasherQueue()
     {
         try
         {
-            ShokoService.CmdProcessorHasher.Clear();
-
+            // TODO Clear queue
             return Ok();
         }
         catch
@@ -774,8 +782,7 @@ public class Common : BaseController
     {
         try
         {
-            ShokoService.CmdProcessorGeneral.Clear();
-
+            // TODO Clear queue
             return Ok();
         }
         catch
@@ -793,8 +800,7 @@ public class Common : BaseController
     {
         try
         {
-            ShokoService.CmdProcessorImages.Clear();
-
+            // TODO queue
             return Ok();
         }
         catch
@@ -853,24 +859,23 @@ public class Common : BaseController
         var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
             .ToDictionary(a => a, a => a.GetAniDBFile());
         var logger = LogManager.GetCurrentClassLogger();
-        Task.Factory.StartNew(() =>
-        {
-            var list = allvids.Keys.Select(vid => new { vid, anidb = allvids[vid] })
-                .Where(tuple => tuple.anidb != null)
-                .Where(tuple => !tuple.anidb.IsDeprecated)
-                .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != tuple.anidb.IsChaptered)
-                .Select(_tuple => new { Path = _tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath, Video = _tuple.vid })
-                .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToList();
 
-            foreach (var obj in list)
+        var list = allvids.Keys.Select(vid => new
             {
-                _commandFactory.CreateAndSave<CommandRequest_AVDumpFile>(
-                    c => c.Videos = new() { { obj.Video.VideoLocalID, obj.Path } }
-                );
-            }
+                vid, anidb = allvids[vid]
+            })
+            .Where(tuple => tuple.anidb != null)
+            .Where(tuple => !tuple.anidb.IsDeprecated)
+            .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != tuple.anidb.IsChaptered)
+            .Select(_tuple => new
+            {
+                Path = _tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath, Video = _tuple.vid
+            })
+            .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToDictionary(a => a.Video.VideoLocalID, a => a.Path);
 
-            logger.Info($"Queued {list.Count} files for avdumping.");
-        });
+        AVDumpHelper.DumpFiles(list);
+
+        logger.Info($"Queued {list.Count} files for avdumping.");
 
         return Ok();
     }
@@ -1802,11 +1807,11 @@ public class Common : BaseController
     /// </summary>
     /// <returns>API status</returns>
     [HttpGet("serie/calendar/refresh")]
-    public ActionResult SerieCalendarRefresh()
+    public async Task<ActionResult> SerieCalendarRefresh()
     {
         try
         {
-            Importer.CheckForCalendarUpdate(true);
+            await _actionService.CheckForCalendarUpdate(true);
             return Ok();
         }
         catch (Exception ex)
@@ -1969,7 +1974,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("serie/vote")]
-    public ActionResult VoteOnSerie(int id, int score)
+    public async Task<ActionResult> VoteOnSerie(int id, int score)
     {
         JMMUser user = HttpContext.GetUser();
 
@@ -1977,7 +1982,7 @@ public class Common : BaseController
         {
             if (score != 0)
             {
-                return SerieVote(id, score, user.JMMUserID);
+                return await SerieVote(id, score, user.JMMUserID);
             }
 
             return BadRequest("missing 'score'");
@@ -2598,7 +2603,7 @@ public class Common : BaseController
     /// <param name="score">rating score as 1-10 or 100-1000</param>
     /// <param name="uid"></param>
     /// <returns>APIStatus</returns>
-    internal ActionResult SerieVote(int id, int score, int uid)
+    internal async Task<ActionResult> SerieVote(int id, int score, int uid)
     {
         if (id <= 0)
         {
@@ -2631,7 +2636,7 @@ public class Common : BaseController
 
         if (score <= 10)
         {
-            score = score * 100;
+            score *= 100;
         }
 
         thisVote.VoteValue = score;
@@ -2639,11 +2644,12 @@ public class Common : BaseController
 
         RepoFactory.AniDB_Vote.Save(thisVote);
 
-        _commandFactory.CreateAndSave<CommandRequest_VoteAnime>(
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJobNow<VoteAniDBAnimeJob>(
             c =>
             {
                 c.AnimeID = ser.AniDB_ID;
-                c.VoteType = voteType;
+                c.VoteType = (AniDBVoteType)voteType;
                 c.VoteValue = Convert.ToDecimal(score / 100);
             }
         );
@@ -2684,7 +2690,7 @@ public class Common : BaseController
     public async Task<ActionResult> RunCloudImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().WithGeneratedIdentity().Build());
+        await scheduler.StartJob<ImportJob>();
         return Ok();
     }
 

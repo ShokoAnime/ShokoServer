@@ -1,10 +1,11 @@
 using System;
+using System.Threading.Tasks;
 
 namespace Shoko.Server.Providers.AniDB.Interfaces;
 
-public interface IAniDBSocketHandler : IDisposable
+public interface IAniDBSocketHandler : IDisposable, IAsyncDisposable
 {
     bool IsLocked { get; }
-    byte[] Send(byte[] payload);
-    bool TryConnection();
+    Task<byte[]> Send(byte[] payload);
+    Task<bool> TryConnection();
 }

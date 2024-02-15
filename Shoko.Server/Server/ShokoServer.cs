@@ -4,30 +4,26 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using QuartzJobFactory;
-using Sentry;
 using Shoko.Commons.Properties;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Scheduling.Jobs.Plex;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Services;
 using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -45,15 +41,11 @@ public class ShokoServer
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly SentryInit _sentryInit;
 
-    public static DateTime? StartTime;
+    private static DateTime? StartTime;
 
     public static TimeSpan? UpTime => StartTime == null ? null : DateTime.Now - StartTime;
 
-    public static string PathAddressREST = "api/Image";
-    public static string PathAddressPlex = "api/Plex";
-    public static string PathAddressKodi = "Kodi";
-
-    internal static BackgroundWorker workerSetupDB = new();
+    private readonly BackgroundWorker _workerSetupDB = new();
 
     // TODO Move all of these to Quartz
     private static Timer autoUpdateTimer;
@@ -119,10 +111,10 @@ public class ShokoServer
         downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
         downloadImagesWorker.WorkerSupportsCancellation = true;
         
-        workerSetupDB.WorkerReportsProgress = true;
-        workerSetupDB.ProgressChanged += (_, _) => WorkerSetupDB_ReportProgress();
-        workerSetupDB.DoWork += WorkerSetupDB_DoWork;
-        workerSetupDB.RunWorkerCompleted += WorkerSetupDB_RunWorkerCompleted;
+        _workerSetupDB.WorkerReportsProgress = true;
+        _workerSetupDB.ProgressChanged += (_, _) => WorkerSetupDB_ReportProgress();
+        _workerSetupDB.DoWork += WorkerSetupDB_DoWork;
+        _workerSetupDB.RunWorkerCompleted += WorkerSetupDB_RunWorkerCompleted;
 
         ServerState.Instance.LoadSettings(settings);
 
@@ -207,35 +199,20 @@ public class ShokoServer
         if (string.IsNullOrEmpty(settings.AniDb.Username) ||
             string.IsNullOrEmpty(settings.AniDb.Password))
         {
-            LoginFormNeeded?.Invoke(this, null);
+            LoginFormNeeded?.Invoke(this, EventArgs.Empty);
         }
 
-        DBSetupCompleted?.Invoke(this, null);
-        
-        // Start queues
-        ShokoService.CmdProcessorGeneral.Paused = false;
-        ShokoService.CmdProcessorHasher.Paused = false;
-        ShokoService.CmdProcessorImages.Paused = false;
+        DBSetupCompleted?.Invoke(this, EventArgs.Empty);
     }
 
     private void ShowDatabaseSetup()
     {
-        DatabaseSetup?.Invoke(this, null);
-    }
-
-    public void RestartAniDBSocket()
-    {
-        AniDBDispose();
-        SetupAniDBProcessor();
-    }
-
-    public void StartAniDBSocket()
-    {
-        SetupAniDBProcessor();
+        DatabaseSetup?.Invoke(this, EventArgs.Empty);
     }
 
     private void WorkerSetupDB_DoWork(object sender, DoWorkEventArgs e)
     {
+        ServerState.Instance.DatabaseAvailable = false;
         var settings = _settingsProvider.GetSettings();
 
         try
@@ -247,25 +224,6 @@ public class ShokoServer
             ServerState.Instance.ServerStartingStatus = Resources.Server_Cleaning;
 
             StopWatchingFiles();
-
-            ShokoService.CmdProcessorGeneral.Stop();
-            ShokoService.CmdProcessorHasher.Stop();
-            ShokoService.CmdProcessorImages.Stop();
-
-
-            // wait until the queue count is 0
-            // ie the cancel has actually worked
-            while (true)
-            {
-                if (ShokoService.CmdProcessorGeneral.QueueCount == 0 &&
-                    ShokoService.CmdProcessorHasher.QueueCount == 0 &&
-                    ShokoService.CmdProcessorImages.QueueCount == 0)
-                {
-                    break;
-                }
-
-                Thread.Sleep(250);
-            }
 
             if (autoUpdateTimer != null)
             {
@@ -305,14 +263,6 @@ public class ShokoServer
             //init session factory
             ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingSession;
             var _ = DatabaseFactory.SessionFactory;
-
-            Scanner.Instance.Init();
-
-            ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingQueue;
-            ShokoService.CmdProcessorGeneral.Init(Utils.ServiceContainer);
-            ShokoService.CmdProcessorHasher.Init(Utils.ServiceContainer);
-            ShokoService.CmdProcessorImages.Init(Utils.ServiceContainer);
-
             ServerState.Instance.DatabaseAvailable = true;
 
 
@@ -336,20 +286,12 @@ public class ShokoServer
 
             StartWatchingFiles();
 
-            if (settings.Import.ScanDropFoldersOnStart)
-            {
-                ScanDropFolders();
-            }
-
-            if (settings.Import.RunOnStart)
-            {
-                var scheduler = _schedulerFactory.GetScheduler().Result;
-                scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().WithGeneratedIdentity().Build()).GetAwaiter()
-                    .GetResult();
-            }
+            var scheduler = _schedulerFactory.GetScheduler().Result;
+            if (settings.Import.ScanDropFoldersOnStart) scheduler.StartJob<ScanDropFoldersJob>().GetAwaiter().GetResult();
+            if (settings.Import.RunOnStart) scheduler.StartJob<ImportJob>().GetAwaiter().GetResult();
 
             ServerState.Instance.ServerOnline = true;
-            workerSetupDB.ReportProgress(100);
+            _workerSetupDB.ReportProgress(100);
 
             StartTime = DateTime.Now;
 
@@ -372,7 +314,7 @@ public class ShokoServer
     public void RefreshAllMediaInfo()
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob(JobBuilder<MediaInfoJob>.Create().DisallowConcurrentExecution().WithGeneratedIdentity().Build()).GetAwaiter().GetResult();
+        scheduler.StartJob<MediaInfoAllFilesJob>().GetAwaiter().GetResult();
     }
 
     #endregion
@@ -387,96 +329,9 @@ public class ShokoServer
 
     private void DownloadImagesWorker_DoWork(object sender, DoWorkEventArgs e)
     {
-        Importer.RunImport_GetImages();
+        var actionService = Utils.ServiceContainer.GetRequiredService<ActionService>();
+        actionService.RunImport_GetImages().GetAwaiter().GetResult();
     }
-
-    public class UpdateEventArgs : EventArgs
-    {
-        public UpdateEventArgs(long newVersion, long oldVersion, bool force)
-        {
-            NewVersion = newVersion;
-            OldVersion = oldVersion;
-            Forced = force;
-        }
-
-        public bool Forced { get; }
-
-        public long OldVersion { get; }
-        public long NewVersion { get; }
-    }
-
-    public event EventHandler<UpdateEventArgs> UpdateAvailable;
-
-    public void CheckForUpdatesNew(bool forceShowForm)
-    {
-        try
-        {
-            long verCurrent = 0;
-            long verNew = 0;
-
-            // get the latest version as according to the release
-
-            // get the user's version
-            var a = Assembly.GetEntryAssembly();
-            if (a == null)
-            {
-                logger.LogError("Could not get current version");
-                return;
-            }
-
-            var an = a.GetName();
-
-            //verNew = verInfo.versions.ServerVersionAbs;
-
-            var settings = _settingsProvider.GetSettings();
-            verNew =
-                JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(
-                    JMMAutoUpdatesHelper.GetLatestVersionNumber(settings.UpdateChannel))
-                ;
-            verCurrent = an.Version.Revision * 100 +
-                         an.Version.Build * 100 * 100 +
-                         an.Version.Minor * 100 * 100 * 100 +
-                         an.Version.Major * 100 * 100 * 100 * 100;
-
-            if (forceShowForm || verNew > verCurrent)
-            {
-                UpdateAvailable?.Invoke(this, new UpdateEventArgs(verNew, verCurrent, forceShowForm));
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, ex.ToString());
-        }
-    }
-
-    #region UI events and methods
-
-    internal static string GetLocalIPv4(NetworkInterfaceType _type)
-    {
-        var output = string.Empty;
-        foreach (var item in NetworkInterface.GetAllNetworkInterfaces())
-        {
-            if (item.NetworkInterfaceType == _type && item.OperationalStatus == OperationalStatus.Up)
-            {
-                var adapterProperties = item.GetIPProperties();
-
-                if (adapterProperties.GatewayAddresses.FirstOrDefault() != null)
-                {
-                    foreach (var ip in adapterProperties.UnicastAddresses)
-                    {
-                        if (ip.Address.AddressFamily == AddressFamily.InterNetwork)
-                        {
-                            output = ip.Address.ToString();
-                        }
-                    }
-                }
-            }
-        }
-
-        return output;
-    }
-
-    #endregion
 
     private void AutoUpdateTimerShort_Elapsed(object sender, ElapsedEventArgs e)
     {
@@ -512,7 +367,6 @@ public class ShokoServer
     private void ShutDown()
     {
         StopWatchingFiles();
-        ShokoService.CancelAndWaitForQueues();
         AniDBDispose();
     }
 
@@ -520,14 +374,14 @@ public class ShokoServer
 
     private static void AutoUpdateTimer_Elapsed(object sender, ElapsedEventArgs e)
     {
-        Importer.CheckForCalendarUpdate(false);
-        Importer.CheckForAnimeUpdate(false);
-        Importer.CheckForTvDBUpdates(false);
-        Importer.CheckForMyListSyncUpdate(false);
-        Importer.CheckForTraktAllSeriesUpdate(false);
-        Importer.CheckForTraktTokenUpdate(false);
-        Importer.CheckForMyListStatsUpdate(false);
-        Importer.CheckForAniDBFileUpdate(false);
+        var actionService = Utils.ServiceContainer.GetRequiredService<ActionService>();
+        actionService.CheckForCalendarUpdate(false).GetAwaiter().GetResult();
+        actionService.CheckForAnimeUpdate().GetAwaiter().GetResult();
+        actionService.CheckForTvDBUpdates(false).GetAwaiter().GetResult();
+        actionService.CheckForMyListSyncUpdate(false).GetAwaiter().GetResult();
+        actionService.CheckForTraktAllSeriesUpdate(false).GetAwaiter().GetResult();
+        actionService.CheckForTraktTokenUpdate(false);
+        actionService.CheckForAniDBFileUpdate(false).GetAwaiter().GetResult();
     }
 
     public void StartWatchingFiles()
@@ -579,14 +433,13 @@ public class ShokoServer
 
     private void FileAdded(object sender, string path)
     {
-        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
         if (!File.Exists(path)) return;
         if (!FileHashHelper.IsVideo(path)) return;
 
-        logger.LogInformation("Found file {0}", path);
+        logger.LogInformation("Found file {Path}", path);
         var tup = VideoLocal_PlaceRepository.GetFromFullPath(path);
         ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
-        commandFactory.CreateAndSave<CommandRequest_HashFile>(c => c.FileName = path);
+        _schedulerFactory.GetScheduler().Result.StartJob<DiscoverFileJob>(a => a.FileName = path).GetAwaiter().GetResult();
     }
 
     public void AddFileWatcherExclusion(string path)
@@ -621,43 +474,10 @@ public class ShokoServer
         _fileWatchers.Clear();
     }
 
-    public void ScanDropFolders()
-    {
-        var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob(JobBuilder<ScanDropFoldersJob>.Create().DisallowConcurrentExecution().WithGeneratedIdentity().Build()).GetAwaiter().GetResult();
-    }
-
-    public void ScanFolder(int importFolderID)
-    {
-        var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob(JobBuilder<ScanFolderJob>.Create()
-                .DisallowConcurrentExecution()
-                .UsingJobData(a => a.ImportFolderID = importFolderID)
-                .WithGeneratedIdentity()
-                .Build()).GetAwaiter().GetResult();
-    }
-
     public void RemoveMissingFiles(bool removeMyList = true)
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob(JobBuilder<RemoveMissingFilesJob>.Create()
-            .UsingJobData(a => a.RemoveMyList = removeMyList)
-            .WithGeneratedIdentity()
-            .Build()).GetAwaiter().GetResult();
-    }
-
-    public static void SyncMyList()
-    {
-        Importer.CheckForMyListSyncUpdate(true);
-    }
-
-    public void DeleteImportFolder(int importFolderID)
-    {
-        var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob(JobBuilder<DeleteImportFolderJob>.Create()
-                .UsingJobData(a => a.ImportFolderID = importFolderID)
-                .WithGeneratedIdentity()
-                .Build()).GetAwaiter().GetResult();
+        scheduler.StartJob<RemoveMissingFilesJob>(a => a.RemoveMyList = removeMyList).GetAwaiter().GetResult();
     }
 
     private void SetupAniDBProcessor()
@@ -686,26 +506,22 @@ public class ShokoServer
     /// Sync plex watch status.
     /// </summary>
     /// <returns>true if there was any commands added to the queue, flase otherwise</returns>
-    public bool SyncPlex()
+    public async Task<bool> SyncPlex()
     {
-        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var scheduler = await _schedulerFactory.GetScheduler();
         var flag = false;
         foreach (var user in RepoFactory.JMMUser.GetAll())
         {
-            if (string.IsNullOrEmpty(user.PlexToken))
-            {
-                continue;
-            }
-
+            if (string.IsNullOrEmpty(user.PlexToken)) continue;
             flag = true;
-            commandFactory.CreateAndSave<CommandRequest_PlexSyncWatched>(c => c.User = user);
+            await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = user);
         }
 
         return flag;
     }
 
-    public static void RunWorkSetupDB()
+    public void RunWorkSetupDB()
     {
-        workerSetupDB.RunWorkerAsync();
+        _workerSetupDB.RunWorkerAsync();
     }
 }

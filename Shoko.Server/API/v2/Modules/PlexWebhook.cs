@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Plex.Collection;
@@ -17,14 +18,14 @@ using Shoko.Models.Plex.Connections;
 using Shoko.Models.Plex.Libraries;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.Plex;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
 using Shoko.Server.Plex.Libraries;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Plex;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -36,14 +37,14 @@ namespace Shoko.Server.API.v2.Modules;
 public class PlexWebhook : BaseController
 {
     private readonly ILogger<PlexWebhook> _logger;
-    private readonly ICommandRequestFactory _commandFactory;
     private readonly TraktTVHelper _traktHelper;
+    private readonly ISchedulerFactory _schedulerFactory;
 
-    public PlexWebhook(ICommandRequestFactory commandFactory, ILogger<PlexWebhook> logger, TraktTVHelper traktHelper, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public PlexWebhook(ILogger<PlexWebhook> logger, TraktTVHelper traktHelper, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory) : base(settingsProvider)
     {
-        _commandFactory = commandFactory;
         _logger = logger;
         _traktHelper = traktHelper;
+        _schedulerFactory = schedulerFactory;
     }
 
     //The second one is to just make sure 
@@ -247,23 +248,24 @@ public class PlexWebhook : BaseController
 
     [Authorize]
     [HttpGet("sync")]
-    public ActionResult Sync()
+    public async Task<ActionResult> Sync()
     {
-        _commandFactory.CreateAndSave<CommandRequest_PlexSyncWatched>(c => c.User = HttpContext.GetUser());
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = HttpContext.GetUser());
         return APIStatus.OK();
     }
 
     [Authorize("admin")]
     [HttpGet("sync/all")]
-    public ActionResult SyncAll()
+    public async Task<ActionResult> SyncAll()
     {
-        Utils.ShokoServer.SyncPlex();
+        await Utils.ShokoServer.SyncPlex();
         return APIStatus.OK();
     }
 
     [Authorize("admin")]
     [HttpGet("sync/{id:int}")]
-    public ActionResult SyncForUser(int id)
+    public async Task<ActionResult> SyncForUser(int id)
     {
         var user = RepoFactory.JMMUser.GetByID(id);
         if (string.IsNullOrEmpty(user.PlexToken))
@@ -271,7 +273,8 @@ public class PlexWebhook : BaseController
             return APIStatus.BadRequest("Invalid User ID");
         }
 
-        _commandFactory.CreateAndSave<CommandRequest_PlexSyncWatched>(c => c.User = user);
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = HttpContext.GetUser());
         return APIStatus.OK();
     }
 

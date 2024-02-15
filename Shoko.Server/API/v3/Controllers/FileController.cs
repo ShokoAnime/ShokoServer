@@ -4,10 +4,12 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.StaticFiles;
+using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -16,12 +18,12 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Commands;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
-using CommandRequestPriority = Shoko.Server.Server.CommandRequestPriority;
 using AVDump = Shoko.Server.API.v3.Models.Shoko.AVDump;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using Path = System.IO.Path;
@@ -45,14 +47,14 @@ public class FileController : BaseController
     internal const string FileNotFoundWithFileID = "No File entry for the given fileID";
 
     private readonly TraktTVHelper _traktHelper;
-    private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISchedulerFactory _schedulerFactory;
     private readonly VideoLocal_PlaceService _vlPlaceService;
 
-    public FileController(TraktTVHelper traktHelper, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlPlaceService) : base(settingsProvider)
+    public FileController(TraktTVHelper traktHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, VideoLocal_PlaceService vlPlaceService) : base(settingsProvider)
     {
         _traktHelper = traktHelper;
-        _commandFactory = commandFactory;
         _vlPlaceService = vlPlaceService;
+        _schedulerFactory = schedulerFactory;
     }
 
     internal const string FileForbiddenForUser = "Accessing File is not allowed for the current user";
@@ -120,7 +122,7 @@ public class FileController : BaseController
     /// <param name="body">The body containing the file ids to delete.</param>
     /// <returns></returns>
     [HttpDelete]
-    public ActionResult DeleteFiles([FromBody] File.Input.BatchDeleteBody body = null)
+    public async Task<ActionResult> DeleteFiles([FromBody] File.Input.BatchDeleteBody body = null)
     {
         if (body == null)
             return ValidationProblem("Missing Body.");
@@ -147,9 +149,9 @@ public class FileController : BaseController
             foreach (var place in file.Places)
             {
                 if (body.removeFiles)
-                    _vlPlaceService.RemoveRecordAndDeletePhysicalFile(place, body.removeFolders);
+                    await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(place, body.removeFolders);
                 else
-                    _vlPlaceService.RemoveRecord(place);
+                    await _vlPlaceService.RemoveRecord(place);
             }
         }
 
@@ -187,7 +189,7 @@ public class FileController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{fileID}")]
-    public ActionResult DeleteFile([FromRoute] int fileID, [FromQuery] bool removeFiles = true, [FromQuery] bool removeFolder = true)
+    public async Task<ActionResult> DeleteFile([FromRoute] int fileID, [FromQuery] bool removeFiles = true, [FromQuery] bool removeFolder = true)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -195,9 +197,9 @@ public class FileController : BaseController
 
         foreach (var place in file.Places)
             if (removeFiles)
-                _vlPlaceService.RemoveRecordAndDeletePhysicalFile(place, removeFolder);
+                await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(place, removeFolder);
             else
-                _vlPlaceService.RemoveRecord(place);
+                await _vlPlaceService.RemoveRecord(place);
         return Ok();
     }
 
@@ -276,7 +278,7 @@ public class FileController : BaseController
     /// <param name="priority">Increase the priority to the max for the queued command.</param>
     /// <returns></returns>
     [HttpPost("AniDB/{anidbFileID}/Rescan")]
-    public ActionResult RescanFileByAniDBFileID([FromRoute] int anidbFileID, [FromQuery] bool priority = false)
+    public async Task<ActionResult> RescanFileByAniDBFileID([FromRoute] int anidbFileID, [FromQuery] bool priority = false)
     {
         var anidb = RepoFactory.AniDB_File.GetByFileID(anidbFileID);
         if (anidb == null)
@@ -290,15 +292,21 @@ public class FileController : BaseController
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
-        _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
-            c =>
-            {
-                c.VideoLocalID = file.VideoLocalID;
-                c.ForceAniDB = true;
-                if (priority)
-                    c.Priority = (int)CommandRequestPriority.Priority1;
-            }
-        );
+        var scheduler = await _schedulerFactory.GetScheduler();
+        if (priority)
+            await scheduler.StartJobNow<ProcessFileJob>(c =>
+                {
+                    c.VideoLocalID = file.VideoLocalID;
+                    c.ForceAniDB = true;
+                }
+            );
+        else
+            await scheduler.StartJob<ProcessFileJob>(c =>
+                {
+                    c.VideoLocalID = file.VideoLocalID;
+                    c.ForceAniDB = true;
+                }
+            );
         return Ok();
     }
 
@@ -624,25 +632,8 @@ public class FileController : BaseController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var command = _commandFactory.Create<CommandRequest_AVDumpFile>(
-            c => c.Videos = new() { { file.VideoLocalID, filePath } }
-        );
-        if (immediate)
-        {
-            command.BubbleExceptions = true;
-            command.ProcessCommand();
-            var result = command.Result;
-            return new AVDump.Result
-            {
-                FullOutput = result.StandardOutput,
-                Ed2k = result.ED2Ks.FirstOrDefault(),
-            };
-        }
-
-        if (priority)
-            command.Priority = (int) CommandRequestPriority.Priority1;
-
-        _commandFactory.Save(command);
+        var files = new Dictionary<int, string> { { file.VideoLocalID, filePath } };
+        AVDumpHelper.DumpFiles(files, synchronous: immediate);
         return Ok();
     }
 
@@ -653,7 +644,7 @@ public class FileController : BaseController
     /// <param name="priority">Increase the priority to the max for the queued command.</param>
     /// <returns></returns>
     [HttpPost("{fileID}/Rescan")]
-    public ActionResult RescanFile([FromRoute] int fileID, [FromQuery] bool priority = false)
+    public async Task<ActionResult> RescanFile([FromRoute] int fileID, [FromQuery] bool priority = false)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -663,15 +654,21 @@ public class FileController : BaseController
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
-        _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
-            c =>
-            {
-                c.VideoLocalID = file.VideoLocalID;
-                c.ForceAniDB = true;
-                if (priority)
-                    c.Priority = (int)CommandRequestPriority.Priority1;
-            }
-        );
+        var scheduler = await _schedulerFactory.GetScheduler();
+        if (priority)
+            await scheduler.StartJobNow<ProcessFileJob>(c =>
+                {
+                    c.VideoLocalID = file.VideoLocalID;
+                    c.ForceAniDB = true;
+                }
+            );
+        else
+            await scheduler.StartJob<ProcessFileJob>(c =>
+                {
+                    c.VideoLocalID = file.VideoLocalID;
+                    c.ForceAniDB = true;
+                }
+            );
         return Ok();
     }
 
@@ -679,9 +676,10 @@ public class FileController : BaseController
     /// Rehash a file.
     /// </summary>
     /// <param name="fileID">VideoLocal ID</param>
+    /// <param name="priority">Whether to start the job immediately. Default true</param>
     /// <returns></returns>
     [HttpPost("{fileID}/Rehash")]
-    public ActionResult RehashFile([FromRoute] int fileID)
+    public async Task<ActionResult> RehashFile([FromRoute] int fileID, [FromQuery] bool priority = true)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -691,13 +689,21 @@ public class FileController : BaseController
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
 
-        _commandFactory.CreateAndSave<CommandRequest_HashFile>(
-            c =>
-            {
-                c.FileName = filePath;
-                c.ForceHash = true;
-            }
-        );
+        var scheduler = await _schedulerFactory.GetScheduler();
+        if (priority)
+            await scheduler.StartJobNow<HashFileJob>(c =>
+                {
+                    c.FileName = filePath;
+                    c.ForceHash = true;
+                }
+            );
+        else
+            await scheduler.StartJob<HashFileJob>(c =>
+                {
+                    c.FileName = filePath;
+                    c.ForceHash = true;
+                }
+            );
 
         return Ok();
     }
@@ -709,7 +715,7 @@ public class FileController : BaseController
     /// <param name="body">The body.</param>
     /// <returns></returns>
     [HttpPost("{fileID}/Link")]
-    public ActionResult LinkSingleEpisodeToFile([FromRoute] int fileID, [FromBody] File.Input.LinkEpisodesBody body)
+    public async Task<ActionResult> LinkSingleEpisodeToFile([FromRoute] int fileID, [FromBody] File.Input.LinkEpisodesBody body)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -736,10 +742,10 @@ public class FileController : BaseController
 
         // Remove any old links and schedule the linking commands.
         RemoveXRefsForFile(file);
+        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var episode in episodeList)
         {
-            _commandFactory.CreateAndSave<CommandRequest_LinkFileManually>(
-                c =>
+            await scheduler.StartJobNow<ManualLinkJob>(c =>
                 {
                     c.VideoLocalID = fileID;
                     c.EpisodeID = episode.AnimeEpisodeID;
@@ -757,7 +763,7 @@ public class FileController : BaseController
     /// <param name="body">The body.</param>
     /// <returns></returns>
     [HttpPost("{fileID}/LinkFromSeries")]
-    public ActionResult LinkMultipleEpisodesToFile([FromRoute] int fileID, [FromBody] File.Input.LinkSeriesBody body)
+    public async Task<ActionResult> LinkMultipleEpisodesToFile([FromRoute] int fileID, [FromBody] File.Input.LinkSeriesBody body)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -831,10 +837,10 @@ public class FileController : BaseController
 
         // Remove any old links and schedule the linking commands.
         RemoveXRefsForFile(file);
+        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var episode in episodeList)
         {
-            _commandFactory.CreateAndSave<CommandRequest_LinkFileManually>(
-                c =>
+            await scheduler.StartJobNow<ManualLinkJob>(c =>
                 {
                     c.VideoLocalID = fileID;
                     c.EpisodeID = episode.AnimeEpisodeID;
@@ -905,7 +911,7 @@ public class FileController : BaseController
     /// <param name="body">The body.</param>
     /// <returns></returns>
     [HttpPost("LinkFromSeries")]
-    public ActionResult LinkMultipleFiles([FromBody] File.Input.LinkSeriesMultipleBody body)
+    public async Task<ActionResult> LinkMultipleFiles([FromBody] File.Input.LinkSeriesMultipleBody body)
     {
         // Validate the file ids, series ids, and the range syntax.
         var files = body.FileIDs
@@ -955,7 +961,6 @@ public class FileController : BaseController
             return ValidationProblem(ModelState);
 
         // Validate the episodes.
-        var fileCount = 1;
         var singleEpisode = body.SingleEpisode;
         var episodeNumber = rangeStart;
         var episodeList = new List<(SVR_VideoLocal, SVR_AnimeEpisode)>();
@@ -982,24 +987,18 @@ public class FileController : BaseController
             return ValidationProblem(ModelState);
 
         // Remove any old links and schedule the linking commands.
+        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var (file, episode) in episodeList)
         {
             RemoveXRefsForFile(file);
 
-            var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
-                c =>
+            await scheduler.StartJobNow<ManualLinkJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
                     c.EpisodeID = episode.AnimeEpisodeID;
+                    c.Percentage = singleEpisode ? (int)Math.Round(1D / files.Count * 100) : 0;
                 }
             );
-            if (singleEpisode)
-                command.Percentage = (int)Math.Round((double)fileCount / files.Count * 100);
-            else
-                episodeNumber++;
-
-            fileCount++;
-            _commandFactory.Save(command);
         }
 
         return Ok();
@@ -1011,7 +1010,7 @@ public class FileController : BaseController
     /// <param name="body">The body.</param>
     /// <returns></returns>
     [HttpPost("Link")]
-    public ActionResult LinkMultipleFiles([FromBody] File.Input.LinkMultipleFilesBody body)
+    public async Task<ActionResult> LinkMultipleFiles([FromBody] File.Input.LinkMultipleFilesBody body)
     {
         // Validate the file ids and episode id.
         var files = body.FileIDs
@@ -1042,22 +1041,18 @@ public class FileController : BaseController
             return InternalError("Could not find the AniDB entry for episode");
 
         // Remove any old links and schedule the linking commands.
-        var fileCount = 1;
+        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in files)
         {
             RemoveXRefsForFile(file);
 
-            var command = _commandFactory.Create<CommandRequest_LinkFileManually>(
-                c =>
+            await scheduler.StartJobNow<ManualLinkJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
                     c.EpisodeID = episode.AnimeEpisodeID;
+                    c.Percentage = (int)Math.Round(1D / files.Count * 100);
                 }
             );
-            command.Percentage = (int)Math.Round((double)fileCount / files.Count * 100);
-
-            fileCount++;
-            _commandFactory.Save(command);
         }
 
         return Ok();

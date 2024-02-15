@@ -7,20 +7,20 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using QuartzJobFactory;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Server;
+using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Scheduling.Jobs.Trakt;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
@@ -34,21 +34,25 @@ namespace Shoko.Server.API.v3.Controllers;
 public class ActionController : BaseController
 {
     private readonly ILogger<ActionController> _logger;
-    private readonly ICommandRequestFactory _commandFactory;
+    private readonly AnimeGroupCreator _groupCreator;
+    private readonly ActionService _actionService;
     private readonly TraktTVHelper _traktHelper;
     private readonly MovieDBHelper _movieDBHelper;
-    private readonly IHttpConnectionHandler _httpHandler;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly JobFactory _jobFactory;
+    private readonly SeriesFactory _seriesFactory;
 
-    public ActionController(ILogger<ActionController> logger, ICommandRequestFactory commandFactory,
-        TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, IHttpConnectionHandler httpHandler, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public ActionController(ILogger<ActionController> logger, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, ISchedulerFactory schedulerFactory,
+        ISettingsProvider settingsProvider, JobFactory jobFactory, ActionService actionService, SeriesFactory seriesFactory, AnimeGroupCreator groupCreator) : base(settingsProvider)
     {
         _logger = logger;
-        _commandFactory = commandFactory;
         _traktHelper = traktHelper;
         _movieDBHelper = movieDBHelper;
-        _httpHandler = httpHandler;
         _schedulerFactory = schedulerFactory;
+        _jobFactory = jobFactory;
+        _actionService = actionService;
+        _seriesFactory = seriesFactory;
+        _groupCreator = groupCreator;
     }
 
     #region Common Actions
@@ -61,7 +65,7 @@ public class ActionController : BaseController
     public async Task<ActionResult> RunImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().WithGeneratedIdentity().Build());
+        await scheduler.StartJob<ImportJob>();
         return Ok();
     }
 
@@ -70,9 +74,9 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("ImportNewFiles")]
-    public ActionResult ImportNewFiles()
+    public async Task<ActionResult> ImportNewFiles()
     {
-        Importer.RunImport_NewFiles();
+        await _actionService.RunImport_NewFiles();
         return Ok();
     }
 
@@ -91,9 +95,10 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("SyncVotes")]
-    public ActionResult SyncVotes()
+    public async Task<ActionResult> SyncVotes()
     {
-        _commandFactory.CreateAndSave<CommandRequest_SyncMyVotes>();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<SyncAniDBVotesJob>();
         return Ok();
     }
 
@@ -102,7 +107,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("SyncTrakt")]
-    public ActionResult SyncTrakt()
+    public async Task<ActionResult> SyncTrakt()
     {
         var settings = SettingsProvider.GetSettings().TraktTv;
         if (!settings.Enabled ||
@@ -111,7 +116,8 @@ public class ActionController : BaseController
             return BadRequest();
         }
 
-        _commandFactory.CreateAndSave<CommandRequest_TraktSyncCollection>(c => c.ForceRefresh = true);
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJobNow<SyncTraktCollectionJob>(c => c.ForceRefresh = true);
 
         return Ok();
     }
@@ -132,9 +138,9 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("UpdateAllTvDBInfo")]
-    public ActionResult UpdateAllTvDBInfo()
+    public async Task<ActionResult> UpdateAllTvDBInfo()
     {
-        Importer.RunImport_UpdateTvDB(false);
+        await _actionService.RunImport_UpdateTvDB(false);
         return Ok();
     }
 
@@ -156,7 +162,8 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllMovieDBInfo")]
     public ActionResult UpdateAllMovieDBInfo()
     {
-        Task.Factory.StartNew(() => _movieDBHelper.UpdateAllMovieInfo(true));
+        // fire and forget
+        Task.Factory.StartNew(async () => await _movieDBHelper.UpdateAllMovieInfo(true));
         return Ok();
     }
 
@@ -183,9 +190,10 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("ValidateAllImages")]
-    public ActionResult ValidateAllImages()
+    public async Task<ActionResult> ValidateAllImages()
     {
-        _commandFactory.CreateAndSave<CommandRequest_ValidateAllImages>();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJobNow<ValidateAllImagesJob>();
         return Ok();
     }
 
@@ -207,20 +215,15 @@ public class ActionController : BaseController
 
         var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
             .ToDictionary(a => a, a => a.GetAniDBFile());
-        Task.Factory.StartNew(() =>
-        {
-            var list = allvids.Keys.Select(vid => new { Video = vid, AniDB = allvids[vid] })
-                .Where(_tuple => _tuple.AniDB is { IsDeprecated: false } && _tuple.Video.Media?.MenuStreams.Any() != _tuple.AniDB.IsChaptered)
-                .Select(_tuple => new { Path = _tuple.Video.GetBestVideoLocalPlace(true)?.FullServerPath, Video = _tuple.Video })
-                .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToList();
 
-            foreach (var obj in list)
-            {
-                _commandFactory.CreateAndSave<CommandRequest_AVDumpFile>(c => c.Videos = new() { { obj.Video.VideoLocalID, obj.Path } });
-            }
+        var list = allvids.Keys.Select(vid => new { Video = vid, AniDB = allvids[vid] })
+            .Where(_tuple => _tuple.AniDB is { IsDeprecated: false } && _tuple.Video.Media?.MenuStreams.Any() != _tuple.AniDB.IsChaptered)
+            .Select(_tuple => new { Path = _tuple.Video.GetBestVideoLocalPlace(true)?.FullServerPath, _tuple.Video })
+            .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToDictionary(a =>a.Video.VideoLocalID, a => a.Path);
 
-            _logger.LogInformation("Queued {QueuedAnimeCount} files for avdumping.", list.Count);
-        });
+        AVDumpHelper.DumpFiles(list);
+
+        _logger.LogInformation("Queued {QueuedAnimeCount} files for avdumping", list.Count);
 
         return Ok();
     }
@@ -234,7 +237,7 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("DownloadMissingAniDBAnimeData")]
-    public ActionResult UpdateMissingAniDBXML()
+    public async Task<ActionResult> UpdateMissingAniDBXML()
     {
         // Check existing anime.
         var index = 0;
@@ -250,12 +253,12 @@ public class ActionController : BaseController
                 _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files — {CurrentCount}/{AllAnimeCount}", localAnimeSet.Count, index + 1, localAnimeSet.Count);
 
             var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
-            var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
+            var rawXml = await xmlUtils.LoadAnimeHTTPFromFile(animeID);
 
             if (rawXml != null)
                 continue;
 
-            SeriesFactory.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, true, false, false);
+            await _seriesFactory.QueueAniDBRefresh(_schedulerFactory, _jobFactory, animeID, true, false, false);
             queuedAnimeSet.Add(animeID);
         }
 
@@ -275,11 +278,11 @@ public class ActionController : BaseController
             if (++index % 10 == 1)
                 _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
 
-            SeriesFactory.QueueAniDBRefresh(_commandFactory, _httpHandler, animeID, false, true, true);
+            await _seriesFactory.QueueAniDBRefresh(_schedulerFactory, _jobFactory, animeID, false, true, true);
             queuedAnimeSet.Add(animeID);
         }
 
-        _logger.LogInformation("Queued {QueuedAnimeCount} anime for an online refresh.", queuedAnimeSet.Count);
+        _logger.LogInformation("Queued {QueuedAnimeCount} anime for an online refresh", queuedAnimeSet.Count);
         return Ok();
     }
 
@@ -315,9 +318,10 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("SyncMyList")]
-    public ActionResult SyncMyList()
+    public async Task<ActionResult> SyncMyList()
     {
-        ShokoServer.SyncMyList();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<SyncAniDBMyListJob>();
         return Ok();
     }
 
@@ -327,9 +331,9 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("UpdateAllAniDBInfo")]
-    public ActionResult UpdateAllAniDBInfo()
+    public async Task<ActionResult> UpdateAllAniDBInfo()
     {
-        Importer.RunImport_UpdateAllAniDB();
+        await _actionService.RunImport_UpdateAllAniDB();
         return Ok();
     }
 
@@ -353,7 +357,7 @@ public class ActionController : BaseController
     [HttpGet("UpdateSeriesStats")]
     public ActionResult UpdateSeriesStats()
     {
-        Importer.UpdateAllStats();
+        _actionService.UpdateAllStats();
         return Ok();
     }
 
@@ -366,9 +370,9 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("UpdateMissingAniDBFileInfo")]
-    public ActionResult UpdateMissingAniDBFileInfo([FromQuery] bool missingInfo = true, [FromQuery] bool outOfDate = false)
+    public async Task<ActionResult> UpdateMissingAniDBFileInfo([FromQuery] bool missingInfo = true, [FromQuery] bool outOfDate = false)
     {
-        Importer.UpdateAniDBFileData(missingInfo, outOfDate, false);
+        await _actionService.UpdateAniDBFileData(missingInfo, outOfDate, false);
         return Ok();
     }
 
@@ -378,9 +382,9 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("UpdateAniDBCalendar")]
-    public ActionResult UpdateAniDBCalendarData()
+    public async Task<ActionResult> UpdateAniDBCalendarData()
     {
-        Importer.CheckForCalendarUpdate(true);
+        await _actionService.CheckForCalendarUpdate(true);
         return Ok();
     }
 
@@ -395,7 +399,7 @@ public class ActionController : BaseController
     [HttpGet("RecreateAllGroups")]
     public ActionResult RecreateAllGroups()
     {
-        Task.Factory.StartNew(() => new AnimeGroupCreator().RecreateAllGroups()).ConfigureAwait(false);
+        Task.Factory.StartNew(() => _groupCreator.RecreateAllGroups()).ConfigureAwait(false);
         return Ok();
     }
 
@@ -411,7 +415,7 @@ public class ActionController : BaseController
     [HttpGet("RenameAllGroups")]
     public ActionResult RenameAllGroups()
     {
-        Task.Factory.StartNew(() => SVR_AnimeGroup.RenameAllGroups()).ConfigureAwait(false);
+        Task.Factory.StartNew(SVR_AnimeGroup.RenameAllGroups).ConfigureAwait(false);
         return Ok();
     }
 
@@ -421,9 +425,9 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("PlexSyncAll")]
-    public ActionResult PlexSyncAll()
+    public async Task<ActionResult> PlexSyncAll()
     {
-        Utils.ShokoServer.SyncPlex();
+        await Utils.ShokoServer.SyncPlex();
         return Ok();
     }
     
@@ -433,11 +437,16 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("AddAllManualLinksToMyList")]
-    public ActionResult AddAllManualLinksToMyList()
+    public async Task<ActionResult> AddAllManualLinksToMyList()
     {
-        var cmds = RepoFactory.VideoLocal.GetManuallyLinkedVideos().Select(a => _commandFactory.Create<CommandRequest_AddFileToMyList>(c => c.Hash = a.Hash)).ToList();
-        cmds.ForEach(a => _commandFactory.Save(a));
-        return Ok($"Saved {cmds.Count} AddToMyList Commands");
+        var scheduler = await _schedulerFactory.GetScheduler();
+        var files = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
+        foreach (var vl in files)
+        {
+            await scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = vl.Hash);
+        }
+
+        return Ok($"Saved {files.Count} AddToMyList Commands");
     }
 
     #endregion

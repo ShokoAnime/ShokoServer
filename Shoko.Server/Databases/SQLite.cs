@@ -12,6 +12,7 @@ using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Databases.SqliteFixes;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
@@ -22,7 +23,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name { get; } = "SQLite";
 
-    public override int RequiredVersion { get; } = 108;
+    public override int RequiredVersion { get; } = 109;
 
 
     public override void BackupDatabase(string fullfilename)
@@ -68,7 +69,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         return Fluently.Configure()
             .Database(MsSqliteConfiguration.Standard.ConnectionString(c => c.Is(GetConnectionString()))
                 .Dialect<SqliteDialectFix>().Driver<SqliteDriverFix>())
-            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
+            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoServer>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
                 // uncomment this for SQL output
@@ -539,7 +540,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(62, 2, DatabaseFixes.FixCharactersWithGrave),
         new(63, 1, DatabaseFixes.RefreshAniDBInfoFromXML),
         new(64, 1, DatabaseFixes.MakeTagsApplyToSeries),
-        new(64, 2, Importer.UpdateAllStats),
+        new(64, 2, DatabaseFixes.UpdateAllStats),
         new(65, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
         new(66, 1,
             "CREATE TABLE AniDB_AnimeUpdate ( AniDB_AnimeUpdateID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, UpdatedAt timestamp NOT NULL )"),
@@ -562,7 +563,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(72, 1, DropAniDB_EpisodeTitles),
         new(72, 2,
             "CREATE TABLE AniDB_Episode_Title ( AniDB_Episode_TitleID INTEGER PRIMARY KEY AUTOINCREMENT, AniDB_EpisodeID int NOT NULL, Language text NOT NULL, Title text NOT NULL ); "),
-        new(72, 3, DatabaseFixes.DummyMigrationOfObsoletion),
+        new(72, 3, DatabaseFixes.DummyMigrationOfObsolescence),
         new(73, 1, "DROP INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID;"),
         // SQLite is stupid, so we need to create a new table and copy the contents to it
         new(73, 2, RenameCrossRef_AniDB_TvDB_Episode),
@@ -682,6 +683,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new DatabaseCommand(106, 1, "ALTER TABLE AnimeGroup DROP COLUMN SortName;"),
         new DatabaseCommand(107, 1, "ALTER TABLE AnimeEpisode DROP COLUMN PlexContractVersion;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractSize;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractSize;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractSize;"),
         new DatabaseCommand(108, 1, "CREATE INDEX IX_CommandRequest_CommandType ON CommandRequest(CommandType); CREATE INDEX IX_CommandRequest_Priority_Date ON CommandRequest(Priority, DateTimeUpdated);"),
+        new DatabaseCommand(109, 1, "DROP TABLE CommandRequest"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

@@ -1,9 +1,9 @@
 using System;
 using System.IO;
-using System.Net;
+using System.Net.Http;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Commands;
 using Shoko.Server.Providers.AniDB.Interfaces;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
@@ -15,19 +15,18 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
     public override string Type => "HTTP";
     public override UpdateType BanEnum => UpdateType.HTTPBan;
 
-    public AniDBHttpConnectionHandler(ILoggerFactory loggerFactory, CommandProcessorGeneral queue,
-        HttpRateLimiter rateLimiter) : base(loggerFactory, queue, rateLimiter)
+    public AniDBHttpConnectionHandler(ILoggerFactory loggerFactory, HttpRateLimiter rateLimiter) : base(loggerFactory, rateLimiter)
     {
     }
 
-    public HttpResponse<string> GetHttp(string url)
+    public async Task<HttpResponse<string>> GetHttp(string url)
     {
-        var response = GetHttpDirectly(url);
+        var response = await GetHttpDirectly(url);
 
         return response;
     }
 
-    public HttpResponse<string> GetHttpDirectly(string url)
+    public async Task<HttpResponse<string>> GetHttpDirectly(string url)
     {
         if (IsBanned)
         {
@@ -39,25 +38,22 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
 
         RateLimiter.EnsureRate();
 
-        var webReq = (HttpWebRequest)WebRequest.Create(url);
-        webReq.Timeout = 20000; // 20 seconds
-        webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
-        webReq.UserAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1";
+        var client = new HttpClient();
+        client.Timeout = TimeSpan.FromSeconds(20);
+        client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
+        client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("deflate"));
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1");
 
-        webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-        using var webResponse = (HttpWebResponse)webReq.GetResponse();
-        if (webResponse.StatusCode == HttpStatusCode.OK && webResponse.ContentLength == 0)
-        {
-            throw new EndOfStreamException("Response Body was expected, but none returned");
-        }
+        using var response = await client.GetAsync(url);
+        response.EnsureSuccessStatusCode();
 
-        using var responseStream = webResponse.GetResponseStream();
+        var responseStream = await response.Content.ReadAsStreamAsync();
         if (responseStream == null)
         {
             throw new EndOfStreamException("Response Body was expected, but none returned");
         }
 
-        var charset = webResponse.CharacterSet;
+        var charset = response.Content.Headers.ContentType?.CharSet;
         Encoding encoding = null;
         if (!string.IsNullOrEmpty(charset))
         {
@@ -65,9 +61,8 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
         }
 
         encoding ??= Encoding.UTF8;
-        var reader = new StreamReader(responseStream, encoding);
-
-        var output = reader.ReadToEnd();
+        using var reader = new StreamReader(responseStream, encoding);
+        var output = await reader.ReadToEndAsync();
 
         if (CheckForBan(output))
         {
@@ -77,7 +72,7 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
             };
         }
 
-        return new HttpResponse<string> { Response = output, Code = webResponse.StatusCode };
+        return new HttpResponse<string> { Response = output, Code = response.StatusCode };
     }
 
     private bool CheckForBan(string xmlResult)

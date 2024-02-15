@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
@@ -26,9 +27,9 @@ public class RequestPing : UDPRequest<Void>
         // Don't set the session for pings
     }
 
-    public override UDPResponse<Void> Execute()
+    public override async Task<UDPResponse<Void>> Send()
     {
-        var rawResponse = Handler.CallAniDBUDPDirectly(BaseCommand, true, true, true);
+        var rawResponse = await Handler.CallAniDBUDPDirectly(BaseCommand, true, true);
         var response = ParseResponse(rawResponse);
         var parsedResponse = ParseResponse(response);
         return parsedResponse;

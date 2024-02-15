@@ -4,6 +4,7 @@ using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,14 +13,15 @@ using Quartz;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -32,15 +34,17 @@ namespace Shoko.Server.API.v2.Modules;
 public class Core : BaseController
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-    private readonly ICommandRequestFactory _commandFactory;
     private readonly ShokoServiceImplementation _service;
     private readonly IServerSettings _settings;
+    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly ActionService _actionService;
 
-    public Core(ICommandRequestFactory commandFactory, TraktTVHelper traktHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public Core(ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, ActionService actionService, ShokoServiceImplementation service) : base(settingsProvider)
     {
-        _commandFactory = commandFactory;
+        _schedulerFactory = schedulerFactory;
+        _actionService = actionService;
+        _service = service;
         _settings = settingsProvider.GetSettings();
-        _service = new ShokoServiceImplementation(null, traktHelper, null, commandFactory, schedulerFactory, settingsProvider);
     }
 
     #region 01.Settings
@@ -199,19 +203,19 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("anidb/test")]
-    public ActionResult TestAniDB()
+    public async Task<ActionResult> TestAniDB()
     {
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
-        handler.ForceLogout();
-        handler.CloseConnections();
+        await handler.ForceLogout();
+        await handler.CloseConnections();
 
-        handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
+        await handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
             _settings.AniDb.ServerAddress,
             _settings.AniDb.ServerPort, _settings.AniDb.ClientPort);
 
-        if (handler.Login())
+        if (await handler.Login())
         {
-            handler.ForceLogout();
+            await handler.ForceLogout();
             return APIStatus.OK();
         }
 
@@ -238,10 +242,10 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("anidb/votes/sync")]
-    public ActionResult SyncAniDBVotes()
+    public async Task<ActionResult> SyncAniDBVotes()
     {
-        //TODO APIv2: Command should be split into AniDb/MAL separate
-        _commandFactory.CreateAndSave<CommandRequest_SyncMyVotes>();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<SyncAniDBVotesJob>();
         return APIStatus.OK();
     }
 
@@ -250,9 +254,10 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("anidb/list/sync")]
-    public ActionResult SyncAniDBList()
+    public async Task<ActionResult> SyncAniDBList()
     {
-        ShokoServer.SyncMyList();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<SyncAniDBMyListJob>();
         return APIStatus.OK();
     }
 
@@ -261,18 +266,19 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("anidb/update")]
-    public ActionResult UpdateAllAniDB()
+    public async Task<ActionResult> UpdateAllAniDB()
     {
-        Importer.RunImport_UpdateAllAniDB();
+        await _actionService.RunImport_UpdateAllAniDB();
         return APIStatus.OK();
     }
 
     [Obsolete]
     [HttpGet("anidb/updatemissingcache")]
-    public ActionResult UpdateMissingAniDBXML()
+    public async Task<ActionResult> UpdateMissingAniDBXML()
     {
         try
         {
+            var scheduler = await _schedulerFactory.GetScheduler();
             var allAnime = RepoFactory.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
             logger.Info($"Starting the check for {allAnime.Count} anime XML files");
             var updatedAnime = 0;
@@ -285,17 +291,18 @@ public class Core : BaseController
                 }
 
                 var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
-                var rawXml = xmlUtils.LoadAnimeHTTPFromFile(animeID);
+                var rawXml = await xmlUtils.LoadAnimeHTTPFromFile(animeID);
 
                 if (rawXml != null)
                 {
                     continue;
                 }
 
-                _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP_Force>(
+                await scheduler.StartJob<GetAniDBAnimeJob>(
                     c =>
                     {
                         c.AnimeID = animeID;
+                        c.ForceRefresh = true;
                     }
                 );
                 updatedAnime++;
@@ -354,11 +361,12 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("trakt/sync")]
-    public ActionResult SyncTrakt()
+    public async Task<ActionResult> SyncTrakt()
     {
         if (_settings.TraktTv.Enabled && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken))
         {
-            _commandFactory.CreateAndSave<CommandRequest_TraktSyncCollection>(c => c.ForceRefresh = true);
+            var scheduler = await _schedulerFactory.GetScheduler();
+            await scheduler.StartJob<SyncTraktCollectionJob>(c => c.ForceRefresh = true);
             return APIStatus.OK();
         }
 
@@ -372,7 +380,7 @@ public class Core : BaseController
     [HttpGet("trakt/scan")]
     public ActionResult ScanTrakt()
     {
-        Importer.RunImport_ScanTrakt();
+        _actionService.RunImport_ScanTrakt();
         return APIStatus.OK();
     }
 
@@ -392,9 +400,9 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("tvdb/update")]
-    public ActionResult ScanTvDB()
+    public async Task<ActionResult> ScanTvDB()
     {
-        Importer.RunImport_ScanTvDB();
+        await _actionService.RunImport_ScanTvDB();
         return APIStatus.OK();
     }
 
@@ -592,9 +600,9 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("moviedb/update")]
-    public ActionResult ScanMovieDB()
+    public async Task<ActionResult> ScanMovieDB()
     {
-        Importer.RunImport_ScanMovieDB();
+        await _actionService.RunImport_ScanMovieDB();
         return APIStatus.OK();
     }
 
@@ -708,6 +716,7 @@ public class Core : BaseController
     /// Return OSFolder object of directory that was given via
     /// </summary>
     /// <param name="folder"></param>
+    /// <param name="dir"></param>
     /// <returns></returns>
     [HttpPost("/os/folder")]
     public ActionResult<OSFolder> GetOSFolder([FromQuery] string folder, OSFolder dir)
@@ -859,9 +868,9 @@ public class Core : BaseController
     #region 11. Image Actions
 
     [HttpGet("images/update")]
-    public ActionResult UpdateImages()
+    public async Task<ActionResult> UpdateImages()
     {
-        Importer.RunImport_UpdateTvDB(true);
+        await _actionService.RunImport_UpdateTvDB(true);
         Utils.ShokoServer.DownloadAllImages();
 
         return APIStatus.OK();

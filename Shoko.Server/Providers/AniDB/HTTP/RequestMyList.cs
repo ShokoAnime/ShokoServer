@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -19,7 +20,7 @@ public class RequestMyList : HttpRequest<List<ResponseMyList>>
     public string Username { private get; set; }
     public string Password { private get; set; }
 
-    protected override HttpResponse<List<ResponseMyList>> ParseResponse(HttpResponse<string> data)
+    protected override Task<HttpResponse<List<ResponseMyList>>> ParseResponse(HttpResponse<string> data)
     {
         try
         {
@@ -72,12 +73,12 @@ public class RequestMyList : HttpRequest<List<ResponseMyList>>
                     };
                 }
             ).ToList();
-            return new HttpResponse<List<ResponseMyList>> { Code = data.Code, Response = responses };
+            return Task.FromResult(new HttpResponse<List<ResponseMyList>> { Code = data.Code, Response = responses });
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, ex.Message);
-            return new HttpResponse<List<ResponseMyList>> { Code = data.Code, Response = null };
+            return Task.FromResult(new HttpResponse<List<ResponseMyList>> { Code = data.Code, Response = null });
         }
     }
 

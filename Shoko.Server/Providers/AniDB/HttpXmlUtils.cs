@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Utilities;
 
@@ -14,7 +15,7 @@ public class HttpXmlUtils
         _logger = logger;
     }
 
-    public string LoadAnimeHTTPFromFile(int animeID)
+    public async Task<string> LoadAnimeHTTPFromFile(int animeID)
     {
         var filePath = Utils.AnimeXmlDirectory;
         var fileName = $"AnimeDoc_{animeID}.xml";
@@ -35,12 +36,12 @@ public class HttpXmlUtils
 
         using var re = File.OpenText(fileNameWithPath);
         _logger.LogTrace("File exists. Loading anime XML from cache: {FileNameWithPath}", fileNameWithPath);
-        var rawXml = re.ReadToEnd();
+        var rawXml = await re.ReadToEndAsync();
 
         return rawXml;
     }
 
-    public void WriteAnimeHTTPToFile(int animeID, string xml)
+    public async Task WriteAnimeHTTPToFile(int animeID, string xml)
     {
         try
         {
@@ -66,8 +67,8 @@ public class HttpXmlUtils
             // Check again and only if write-able we create it
             _logger.LogTrace("Can write to {FilePath}. Writing xml file {FileNameWithPath}", filePath,
                 fileNameWithPath);
-            using var sw = File.CreateText(fileNameWithPath);
-            sw.Write(xml);
+            await using var sw = File.CreateText(fileNameWithPath);
+            await sw.WriteAsync(xml);
         }
         catch (Exception ex)
         {

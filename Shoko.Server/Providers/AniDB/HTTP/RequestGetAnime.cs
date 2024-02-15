@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -32,17 +33,16 @@ public class RequestGetAnime : HttpRequest<ResponseGetAnime>
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="provider"></param>
     /// <param name="receivedData"></param>
     /// <returns></returns>
     /// <exception cref="AniDBBannedException">Will throw if banned. Won't extend ban, so it's safe to use this as a check</exception>
-    protected override HttpResponse<ResponseGetAnime> ParseResponse(HttpResponse<string> receivedData)
+    protected override async Task<HttpResponse<ResponseGetAnime>> ParseResponse(HttpResponse<string> receivedData)
     {
         UpdateAccessTime(AnimeID);
 
         // save a file cache of the response
         var rawXml = receivedData.Response.Trim();
-        _xmlUtils.WriteAnimeHTTPToFile(AnimeID, rawXml);
+        await _xmlUtils.WriteAnimeHTTPToFile(AnimeID, rawXml);
 
         var response = _parser.Parse(AnimeID, receivedData.Response);
         return new HttpResponse<ResponseGetAnime> { Code = receivedData.Code, Response = response };

@@ -7,11 +7,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NHibernate;
 using NLog;
+using Quartz;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.ImageDownload;
@@ -19,7 +18,11 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 
@@ -29,6 +32,14 @@ public class DatabaseFixes
 {
     private static Logger logger = LogManager.GetCurrentClassLogger();
 
+    public static void UpdateAllStats()
+    {
+        foreach (var ser in RepoFactory.AnimeSeries.GetAll())
+        {
+            ser.QueueUpdateStats();
+        }
+    }
+    
     public static void MigrateGroupFilterToFilterPreset()
     {
         var legacyConverter = Utils.ServiceContainer.GetRequiredService<LegacyFilterConverter>();
@@ -524,7 +535,8 @@ public class DatabaseFixes
         var i = 0;
         var list = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.Description))
             .Select(a => a.AnimeID).Distinct().ToList();
-        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+
+        var jobFactory = Utils.ServiceContainer.GetRequiredService<JobFactory>();
         foreach (var animeID in list)
         {
             if (i % 10 == 0)
@@ -537,15 +549,14 @@ public class DatabaseFixes
             i++;
             try
             {
-                var command = commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+                var command = jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
                 {
                     c.CacheOnly = true;
                     c.DownloadRelations = false;
                     c.AnimeID = animeID;
                     c.CreateSeriesEntry = false;
-                    c.BubbleExceptions = true;
                 });
-                command.ProcessCommand();
+                command.Process().GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
@@ -618,10 +629,11 @@ public class DatabaseFixes
 
     public static void UpdateAllTvDBSeries()
     {
-        Importer.RunImport_UpdateTvDB(true);
+        var service = Utils.ServiceContainer.GetRequiredService<ActionService>();
+        service.RunImport_UpdateTvDB(true).GetAwaiter().GetResult();
     }
 
-    public static void DummyMigrationOfObsoletion()
+    public static void DummyMigrationOfObsolescence()
     {
     }
 
@@ -630,7 +642,7 @@ public class DatabaseFixes
         var emptyGroups = RepoFactory.AnimeGroup.GetAll().Where(a => a.GetAllSeries().Count == 0).ToArray();
         RepoFactory.AnimeGroup.Delete(emptyGroups);
         var orphanedSeries = RepoFactory.AnimeSeries.GetAll().Where(a => a.AnimeGroup == null).ToArray();
-        var groupCreator = new AnimeGroupCreator();
+        var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
         using var session = DatabaseFactory.SessionFactory.OpenSession();
         foreach (var series in orphanedSeries)
         {
@@ -760,7 +772,7 @@ public class DatabaseFixes
             if (++count % 10 == 0)
                 logger.Info($"Updating tags for local anidb anime entries... ({count}/{animeList.Count})");
 
-            var xml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID);
+            var xml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID).Result;
             if (string.IsNullOrEmpty(xml))
             {
                 logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
@@ -821,8 +833,7 @@ public class DatabaseFixes
     {
         var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
         var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
-        var animeCreator = Utils.ServiceContainer.GetRequiredService<AnimeCreator>();
-        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
         var anidbAnimeDict = RepoFactory.AniDB_Anime.GetAll()
             .ToDictionary(an => an.AnimeID);
         var anidbEpisodeDict = RepoFactory.AniDB_Episode.GetAll()
@@ -856,7 +867,7 @@ public class DatabaseFixes
             if (++progressCount % 10 == 0)
                 logger.Info($"Updating last updated episode timestamps for local anidb anime entries... ({progressCount}/{anidbAnimeIDs.Count})");
 
-            var xml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID);
+            var xml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID).Result;
             if (string.IsNullOrEmpty(xml))
             {
                 logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
@@ -917,11 +928,12 @@ public class DatabaseFixes
         // the faulty episodes after the update.
         foreach (var animeID in animeToUpdateSet)
         {
-            commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP_Force>(c =>
+            scheduler.StartJob<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = animeID;
                 c.DownloadRelations = false;
-            });
+                c.ForceRefresh = true;
+            }).GetAwaiter().GetResult();
         }
 
         logger.Info($"Done updating last updated episode timestamps for {anidbAnimeIDs.Count} local anidb anime entries. Updated {updatedCount} episodes, reset {resetCount} episodes and queued anime {animeToUpdateSet.Count} updates for {faultyCount} faulty episodes.");
@@ -943,7 +955,7 @@ public class DatabaseFixes
 
     public static void FixOrphanedShokoEpisodes()
     {
-        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+        var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
         var allSeries = RepoFactory.AnimeSeries.GetAll()
             .ToDictionary(series => series.AnimeSeriesID);
         var allSeriesAnidbId = allSeries.Values
@@ -1029,12 +1041,12 @@ public class DatabaseFixes
         logger.Trace($"Scheduling {videosToRefetch.Count} videos for a re-fetch.");
         foreach (var video in videosToRefetch)
         {
-            commandFactory.CreateAndSave<CommandRequest_ProcessFile>(c =>
+            scheduler.StartJob<ProcessFileJob>(c =>
             {
                 c.VideoLocalID = video.VideoLocalID;
                 c.SkipMyList = true;
                 c.ForceAniDB = true;
-            });
+            }).GetAwaiter().GetResult();
         }
 
         logger.Trace($"Deleting {shokoEpisodesToRemove.Count} orphaned shoko episodes.");

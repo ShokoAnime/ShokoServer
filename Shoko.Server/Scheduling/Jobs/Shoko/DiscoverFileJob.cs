@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using QuartzJobFactory;
 using QuartzJobFactory.Attributes;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -23,9 +22,14 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [JobKeyGroup(JobKeyGroup.Import)]
 public class DiscoverFileJob : BaseJob
 {
-    public virtual string FileName { get; set; }
-    public virtual bool SkipMyList { get; set; }
+    private readonly ISettingsProvider _settingsProvider;
+    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly VideoLocal_PlaceService _vlPlaceService;
 
+    public string FileName { get; set; }
+    public bool SkipMyList { get; set; }
+
+    public override string Name => "Discover File";
     public override QueueStateStruct Description => new()
     {
         message = "Checking File for Hashes: {0}",
@@ -33,51 +37,36 @@ public class DiscoverFileJob : BaseJob
         queueState = QueueStateEnum.CheckingFile
     };
 
-    private readonly ISettingsProvider _settingsProvider;
-    private readonly ISchedulerFactory _schedulerFactory;
-    private readonly VideoLocal_PlaceService _vlPlaceService;
-
-    public DiscoverFileJob(ILoggerFactory loggerFactory, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_PlaceService vlPlaceService) : base(loggerFactory)
-    {
-        _settingsProvider = settingsProvider;
-        _schedulerFactory = schedulerFactory;
-        _vlPlaceService = vlPlaceService;
-    }
-
-    protected DiscoverFileJob(VideoLocal_PlaceService vlPlaceService) {
-        _vlPlaceService = vlPlaceService;
-    }
-
     public override async Task Process()
     {
         // The flow has changed.
         // Check for previous existence, merge info if needed
         // If it's a new file or info is missing, queue a hash
         // HashFileJob will create the records for a new file, so don't save an empty record.
-        Logger.LogTrace("Checking File For Hashes: {Filename}", FileName);
+        _logger.LogInformation("Checking File For Hashes: {Filename}", FileName);
 
         var (shouldSave, vlocal, vlocalplace) = GetVideoLocal();
         if (vlocal == null || vlocalplace == null)
         {
-            Logger.LogTrace("Could not get or create VideoLocal. exiting");
+            _logger.LogWarning("Could not get or create VideoLocal. exiting");
             return;
         }
 
         var filename = vlocalplace.FileName;
 
-        Logger.LogTrace("No existing hash in VideoLocal (or forced), checking XRefs");
+        _logger.LogTrace("No existing hash in VideoLocal (or forced), checking XRefs");
         if (vlocal.HasAnyEmptyHashes())
         {
             // try getting the hash from the CrossRef
             if (TrySetHashFromXrefs(filename, vlocal))
             {
                 shouldSave = true;
-                Logger.LogTrace("Found Hash in CrossRef_File_Episode: {Hash}", vlocal.Hash);
+                _logger.LogTrace("Found Hash in CrossRef_File_Episode: {Hash}", vlocal.Hash);
             }
             else if (TrySetHashFromFileNameHash(filename, vlocal))
             {
                 shouldSave = true;
-                Logger.LogTrace("Found Hash in FileNameHash: {Hash}", vlocal.Hash);
+                _logger.LogTrace("Found Hash in FileNameHash: {Hash}", vlocal.Hash);
             }
 
             if (string.IsNullOrEmpty(vlocal.Hash) || string.IsNullOrEmpty(vlocal.CRC32) || string.IsNullOrEmpty(vlocal.MD5) ||
@@ -87,18 +76,27 @@ public class DiscoverFileJob : BaseJob
 
         var (needEd2k, needCRC32, needMD5, needSHA1) = ShouldHash(vlocal);
         var shouldHash = needEd2k || needCRC32 || needMD5 || needSHA1;
+        var scheduler = await _schedulerFactory.GetScheduler();
         if (!shouldHash && !shouldSave)
         {
-            Logger.LogTrace("Hashes were not necessary for file, so exiting: {File}, Hash: {Hash}", FileName, vlocal.Hash);
+            var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash);
+            if (xrefs.Count != 0)
+            {
+                _logger.LogTrace("Hashes were not necessary for file, so exiting: {File}, Hash: {Hash}", FileName, vlocal.Hash);
+                return;
+            }
+
+            _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FileName, vlocal.Hash);
+            await scheduler.StartJobNow<ProcessFileJob>(a => a.VideoLocalID = vlocal.VideoLocalID);
             return;
         }
 
         if (shouldSave)
         {
-            Logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FileName, vlocal.Hash);
+            _logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FileName, vlocal.Hash);
             RepoFactory.VideoLocal.Save(vlocal, true);
 
-            Logger.LogTrace("Saving VideoLocal_Place: Path: {Path}", FileName);
+            _logger.LogTrace("Saving VideoLocal_Place: Path: {Path}", FileName);
             vlocalplace.VideoLocalID = vlocal.VideoLocalID;
             RepoFactory.VideoLocalPlace.Save(vlocalplace);
             
@@ -109,12 +107,11 @@ public class DiscoverFileJob : BaseJob
 
         if (shouldHash)
         {
-            var scheduler = await _schedulerFactory.GetScheduler();
-            await scheduler.StartJob(JobBuilder<HashFileJob>.Create().UsingJobData(a =>
+            await scheduler.StartJobNow<HashFileJob>(a =>
             {
                 a.FileName = FileName;
                 a.SkipMyList = SkipMyList;
-            }).WithGeneratedIdentity().Build());
+            });
         }
     }
 
@@ -124,7 +121,7 @@ public class DiscoverFileJob : BaseJob
         var (folder, filePath) = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
         if (folder == null)
         {
-            Logger.LogError("Unable to locate Import Folder for {FileName}", FileName);
+            _logger.LogError("Unable to locate Import Folder for {FileName}", FileName);
             return default;
         }
 
@@ -132,7 +129,7 @@ public class DiscoverFileJob : BaseJob
 
         if (!File.Exists(FileName))
         {
-            Logger.LogError("File does not exist: {Filename}", FileName);
+            _logger.LogError("File does not exist: {Filename}", FileName);
             return default;
         }
 
@@ -149,7 +146,7 @@ public class DiscoverFileJob : BaseJob
             if (vlocal != null)
             {
                 existing = true;
-                Logger.LogTrace("VideoLocal record found in database: {Filename}", FileName);
+                _logger.LogTrace("VideoLocal record found in database: {Filename}", FileName);
 
                 // This will only happen with DB corruption, so just clean up the mess.
                 if (vlocalplace.FullServerPath == null)
@@ -168,7 +165,7 @@ public class DiscoverFileJob : BaseJob
 
         if (vlocal == null)
         {
-            Logger.LogTrace("No existing VideoLocal, creating temporary record");
+            _logger.LogTrace("No existing VideoLocal, creating temporary record");
             vlocal = new SVR_VideoLocal
             {
                 DateTimeUpdated = DateTime.Now,
@@ -185,7 +182,7 @@ public class DiscoverFileJob : BaseJob
 
         if (vlocalplace == null)
         {
-            Logger.LogTrace("No existing VideoLocal_Place, creating a new record");
+            _logger.LogTrace("No existing VideoLocal_Place, creating a new record");
             vlocalplace = new SVR_VideoLocal_Place
             {
                 FilePath = filePath, ImportFolderID = nshareID, ImportFolderType = folder.ImportFolderType
@@ -205,7 +202,7 @@ public class DiscoverFileJob : BaseJob
 
         vlocal.Hash = crossRefs[0].Hash;
         vlocal.HashSource = (int)HashSource.DirectHash;
-        Logger.LogTrace("Got hash from xrefs: {Filename} ({Hash})", FileName, crossRefs[0].Hash);
+        _logger.LogTrace("Got hash from xrefs: {Filename} ({Hash})", FileName, crossRefs[0].Hash);
         return true;
     }
 
@@ -228,7 +225,7 @@ public class DiscoverFileJob : BaseJob
 
         if (fnhashes is not { Count: 1 }) return false;
 
-        Logger.LogTrace("Got hash from LOCAL cache: {Filename} ({Hash})", FileName, fnhashes[0].Hash);
+        _logger.LogTrace("Got hash from LOCAL cache: {Filename} ({Hash})", FileName, fnhashes[0].Hash);
         vlocal.Hash = fnhashes[0].Hash;
         vlocal.HashSource = (int)HashSource.WebCacheFileName;
         return true;
@@ -364,18 +361,27 @@ public class DiscoverFileJob : BaseJob
         var dupPlace = vlocal.Places.FirstOrDefault(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath));
         if (dupPlace == null) return false;
 
-        Logger.LogWarning("Found Duplicate File");
-        Logger.LogWarning("---------------------------------------------");
-        Logger.LogWarning("New File: {FullServerPath}", vlocalplace.FullServerPath);
-        Logger.LogWarning("Existing File: {FullServerPath}", dupPlace.FullServerPath);
-        Logger.LogWarning("---------------------------------------------");
+        _logger.LogWarning("Found Duplicate File");
+        _logger.LogWarning("---------------------------------------------");
+        _logger.LogWarning("New File: {FullServerPath}", vlocalplace.FullServerPath);
+        _logger.LogWarning("Existing File: {FullServerPath}", dupPlace.FullServerPath);
+        _logger.LogWarning("---------------------------------------------");
 
         var settings = _settingsProvider.GetSettings();
         if (settings.Import.AutomaticallyDeleteDuplicatesOnImport)
         {
-            _vlPlaceService.RemoveRecordAndDeletePhysicalFile(vlocalplace);
+            await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(vlocalplace);
             return true;
         }
         return false;
     }
+
+    public DiscoverFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_PlaceService vlPlaceService)
+    {
+        _settingsProvider = settingsProvider;
+        _schedulerFactory = schedulerFactory;
+        _vlPlaceService = vlPlaceService;
+    }
+
+    protected DiscoverFileJob() { }
 }

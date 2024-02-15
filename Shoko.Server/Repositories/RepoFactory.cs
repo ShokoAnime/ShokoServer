@@ -21,7 +21,6 @@ public static class RepoFactory
     // Declare in order of dependency. Direct Repos don't have dependencies, so do them first
     //Direct Ones
     public static VersionsRepository Versions { get; } = new();
-    public static CommandRequestRepository CommandRequest { get; } = new();
     public static Trakt_ShowRepository Trakt_Show { get; } = new();
     public static Trakt_SeasonRepository Trakt_Season { get; } = new();
     public static Trakt_EpisodeRepository Trakt_Episode { get; } = new();

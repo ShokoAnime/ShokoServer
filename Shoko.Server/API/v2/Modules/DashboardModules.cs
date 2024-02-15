@@ -19,12 +19,12 @@ namespace Shoko.Server.API.v2.Modules;
 [ApiVersion("2.0")]
 public class DashboardModules : BaseController
 {
-    // class will be found automagicly thanks to inherits also class need to be public (or it will 404)  
+    // class will be found automagically thanks to inherits also class need to be public (or it will 404)  
 
     /// <summary>
-    /// Return Dictionary with nesesery items for Dashboard inside Webui
+    /// Return Dictionary with necessary items for Dashboard inside Webui
     /// </summary>
-    /// <returns>Dictionary<string, object></returns>
+    /// <returns><see cref="Dictionary{String, Object}"/></returns>
     [HttpGet]
     public object GetStats()
     {
@@ -99,9 +99,10 @@ public class DashboardModules : BaseController
 
         return new Dictionary<string, object>
         {
+            // TODO make the database stuff for this
+            // count by type
             {
-                "queue", RepoFactory.CommandRequest.GetAll().GroupBy(a => a.CommandType)
-                    .ToDictionary(a => (CommandRequestType)a.Key, a => a.Count())
+                "queue", new Dictionary<string, int>()
             },
             { "file_count", file_count },
             { "series_count", series_count },

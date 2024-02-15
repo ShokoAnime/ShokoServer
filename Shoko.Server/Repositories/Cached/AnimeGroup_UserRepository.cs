@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
@@ -65,7 +66,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
     /// <param name="session">The NHibernate session.</param>
     /// <param name="groupUsers">The batch of <see cref="SVR_AnimeGroup_User"/> to insert into the database.</param>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupUsers"/> is <c>null</c>.</exception>
-    public void InsertBatch(ISessionWrapper session, IEnumerable<SVR_AnimeGroup_User> groupUsers)
+    public async Task InsertBatch(ISessionWrapper session, IEnumerable<SVR_AnimeGroup_User> groupUsers)
     {
         if (session == null)
         {
@@ -80,7 +81,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
         using var trans = session.BeginTransaction();
         foreach (var groupUser in groupUsers)
         {
-            session.Insert(groupUser);
+            await session.InsertAsync(groupUser);
 
             UpdateCache(groupUser);
             if (!Changes.TryGetValue(groupUser.JMMUserID, out var changeTracker))
@@ -91,7 +92,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
 
             changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
         }
-        trans.Commit();
+        await trans.CommitAsync();
     }
 
     /// <summary>
@@ -104,7 +105,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
     /// <param name="session">The NHibernate session.</param>
     /// <param name="groupUsers">The batch of <see cref="SVR_AnimeGroup_User"/> to insert into the database.</param>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupUsers"/> is <c>null</c>.</exception>
-    public void UpdateBatch(ISessionWrapper session, IEnumerable<SVR_AnimeGroup_User> groupUsers)
+    public async Task UpdateBatch(ISessionWrapper session, IEnumerable<SVR_AnimeGroup_User> groupUsers)
     {
         if (session == null)
         {
@@ -119,7 +120,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
         using var trans = session.BeginTransaction();
         foreach (var groupUser in groupUsers)
         {
-            session.Update(groupUser);
+            await session.UpdateAsync(groupUser);
             UpdateCache(groupUser);
 
             if (!Changes.TryGetValue(groupUser.JMMUserID, out var changeTracker))
@@ -130,7 +131,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
 
             changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
         }
-        trans.Commit();
+        await trans.CommitAsync();
     }
 
     /// <summary>
@@ -141,7 +142,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
     /// </remarks>
     /// <param name="session">The NHibernate session.</param>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-    public void DeleteAll(ISessionWrapper session)
+    public async Task DeleteAll(ISessionWrapper session)
     {
         if (session == null)
         {
@@ -152,7 +153,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<SVR_AnimeGroup_Use
         var usrGrpMap = GetAll().GroupBy(g => g.JMMUserID, g => g.AnimeGroupID);
 
         // Then, actually delete the AnimeGroup_Users
-        Lock(() => session.CreateQuery("delete SVR_AnimeGroup_User agu").ExecuteUpdate());
+        await Lock(async () => await session.CreateQuery("delete SVR_AnimeGroup_User agu").ExecuteUpdateAsync());
 
         // Now, update the change trackers with all removed records
         foreach (var grp in usrGrpMap)

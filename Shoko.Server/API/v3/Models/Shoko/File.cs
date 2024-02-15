@@ -11,6 +11,7 @@ using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -375,10 +376,7 @@ public class File
         public FileUserStats MergeWithExisting(SVR_VideoLocal_User existing, SVR_VideoLocal file = null)
         {
             // Get the file assosiated with the user entry.
-            if (file == null)
-            {
-                file = existing.GetVideoLocal();
-            }
+            file ??= existing.GetVideoLocal();
 
             // Sync the watch date and aggregate the data up to the episode if needed.
             file.ToggleWatchedStatus(LastWatchedAt.HasValue, true, LastWatchedAt?.ToLocalTime(), true, existing.JMMUserID, true, true, LastUpdatedAt.ToLocalTime());

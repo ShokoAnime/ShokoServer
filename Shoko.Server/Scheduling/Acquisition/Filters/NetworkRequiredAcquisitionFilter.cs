@@ -16,9 +16,27 @@ public class NetworkRequiredAcquisitionFilter : IAcquisitionFilter
     public NetworkRequiredAcquisitionFilter(IEnumerable<IConnectivityMonitor> connectivityMonitors)
     {
         _connectivityMonitors = connectivityMonitors.ToArray();
+        foreach (var monitor in _connectivityMonitors)
+        {
+            monitor.StateChanged += MonitorOnStateChanged;
+        }
         _types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a =>
             typeof(IJob).IsAssignableFrom(a) && !a.IsAbstract && ObjectUtils.IsAttributePresent(a, typeof(NetworkRequiredAttribute))).ToArray();
     }
 
-    public Type[] GetTypesToExclude() => _connectivityMonitors.Any(a => a.HasConnected) ? Array.Empty<Type>() : _types;
+    ~NetworkRequiredAcquisitionFilter()
+    {
+        foreach (var monitor in _connectivityMonitors)
+        {
+            monitor.StateChanged -= MonitorOnStateChanged;
+        }
+    }
+
+    private void MonitorOnStateChanged(object sender, EventArgs e)
+    {
+        StateChanged?.Invoke(null, EventArgs.Empty);
+    }
+
+    public IEnumerable<Type> GetTypesToExclude() => _connectivityMonitors.Any(a => a.HasConnected) ? Array.Empty<Type>() : _types;
+    public event EventHandler StateChanged;
 }

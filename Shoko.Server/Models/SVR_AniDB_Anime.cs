@@ -3,24 +3,28 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.TMDB;
+using Shoko.Server.Scheduling.Jobs.Trakt;
+using Shoko.Server.Scheduling.Jobs.TvDB;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
@@ -653,60 +657,6 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
     public SVR_AniDB_Anime()
     {
     }
-
-    #region Init and Populate
-
-    public SVR_AnimeSeries CreateAnimeSeriesAndGroup(SVR_AnimeSeries existingSeries = null, int? existingGroupID = null)
-    {
-        var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
-        // Create a new AnimeSeries record
-        var series = existingSeries ?? new SVR_AnimeSeries();
-
-        series.Populate(this);
-        // Populate before making a group to ensure IDs and stats are set for group filters.
-        RepoFactory.AnimeSeries.Save(series, false, false, true);
-
-        if (existingGroupID == null)
-        {
-            var grp = new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(series);
-            series.AnimeGroupID = grp.AnimeGroupID;
-        }
-        else
-        {
-            var grp = RepoFactory.AnimeGroup.GetByID(existingGroupID.Value) ??
-                      new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(series);
-            series.AnimeGroupID = grp.AnimeGroupID;
-        }
-
-        RepoFactory.AnimeSeries.Save(series, false, false, true);
-
-        // check for TvDB associations
-        if (Restricted == 0)
-        {
-            var settings = Utils.SettingsProvider.GetSettings();
-            if (settings.TvDB.AutoLink && !series.IsTvDBAutoMatchingDisabled)
-            {
-                commandFactory.CreateAndSave<CommandRequest_TvDBSearchAnime>(c => c.AnimeID = AnimeID);
-            }
-
-            // check for Trakt associations
-            if (settings.TraktTv.Enabled &&
-                !string.IsNullOrEmpty(settings.TraktTv.AuthToken) &&
-                !series.IsTraktAutoMatchingDisabled)
-            {
-                commandFactory.CreateAndSave<CommandRequest_TraktSearchAnime>(c => c.AnimeID = AnimeID);
-            }
-
-            if (AnimeType == (int)Shoko.Models.Enums.AnimeType.Movie && !series.IsTMDBAutoMatchingDisabled)
-            {
-                commandFactory.CreateAndSave<CommandRequest_MovieDBSearchAnime>(c => c.AnimeID = AnimeID);
-            }
-        }
-
-        return series;
-    }
-
-    #endregion
 
     #region Contracts
 

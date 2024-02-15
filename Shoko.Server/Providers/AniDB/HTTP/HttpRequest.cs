@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 
@@ -21,13 +22,13 @@ public abstract class HttpRequest<T> : IRequest, IRequest<HttpResponse<T>, T> wh
     /// </summary>
     protected abstract string BaseCommand { get; }
 
-    protected abstract HttpResponse<T> ParseResponse(HttpResponse<string> receivedData);
+    protected abstract Task<HttpResponse<T>> ParseResponse(HttpResponse<string> receivedData);
 
-    public virtual HttpResponse<T> Execute()
+    public virtual async Task<HttpResponse<T>> Send()
     {
         Command = BaseCommand.Trim();
-        var rawResponse = _handler.GetHttp(Command);
-        var response = ParseResponse(rawResponse);
+        var rawResponse = await _handler.GetHttp(Command);
+        var response = await ParseResponse(rawResponse);
         PostExecute(response);
         return response;
     }
@@ -36,8 +37,8 @@ public abstract class HttpRequest<T> : IRequest, IRequest<HttpResponse<T>, T> wh
     {
     }
 
-    object IRequest.Execute()
+    object IRequest.Send()
     {
-        return Execute();
+        return Send();
     }
 }

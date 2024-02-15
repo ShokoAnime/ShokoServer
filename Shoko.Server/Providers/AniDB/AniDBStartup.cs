@@ -12,6 +12,7 @@ public static class AniDBStartup
     public static IServiceCollection AddAniDB(this IServiceCollection services)
     {
         services.AddSingleton<HttpAnimeParser>();
+        services.AddSingleton<ImageHttpClientFactory>();
         services.AddSingleton<AnimeCreator>();
         services.AddSingleton<HttpXmlUtils>();
         services.AddSingleton<UDPRateLimiter>();

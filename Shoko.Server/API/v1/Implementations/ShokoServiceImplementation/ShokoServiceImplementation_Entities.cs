@@ -3,20 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
-using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server;
@@ -69,7 +70,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return null;
         }
     }
@@ -95,7 +96,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return null;
         }
     }
@@ -119,7 +120,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ret;
         }
     }
@@ -151,7 +152,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return null;
         }
     }
@@ -203,7 +204,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return retEps;
@@ -232,7 +233,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var allSeriesUser = RepoFactory.AnimeSeries_User.GetMostRecentlyWatched(userID);
 
             var ts = DateTime.Now - start;
-            logger.Info(string.Format("GetEpisodesToWatch_RecentlyWatched:Series: {0}", ts.TotalMilliseconds));
+            _logger.LogInformation("GetEpisodesToWatch_RecentlyWatched:Series: {Milliseconds}", ts.TotalMilliseconds);
             start = DateTime.Now;
 
             foreach (var userRecord in allSeriesUser)
@@ -257,19 +258,18 @@ public partial class ShokoServiceImplementation : IShokoServer
                     if (retEps.Count == maxRecords)
                     {
                         ts = DateTime.Now - start;
-                        logger.Info(string.Format("GetEpisodesToWatch_RecentlyWatched:Episodes: {0}",
-                            ts.TotalMilliseconds));
+                        _logger.LogInformation("GetEpisodesToWatch_RecentlyWatched:Episodes: {Milliseconds}", ts.TotalMilliseconds);
                         return retEps;
                     }
                 }
             }
 
             ts = DateTime.Now - start;
-            logger.Info(string.Format("GetEpisodesToWatch_RecentlyWatched:Episodes: {0}", ts.TotalMilliseconds));
+            _logger.LogInformation("GetEpisodesToWatch_RecentlyWatched:Episodes: {Milliseconds}", ts.TotalMilliseconds);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return retEps;
@@ -288,52 +288,10 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return retEps;
-    }
-
-    [NonAction]
-    public IReadOnlyList<SVR_VideoLocal> GetAllFiles()
-    {
-        try
-        {
-            return RepoFactory.VideoLocal.GetAll();
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-            return new List<SVR_VideoLocal>();
-        }
-    }
-
-    [NonAction]
-    public SVR_VideoLocal GetFileByID(int id)
-    {
-        try
-        {
-            return RepoFactory.VideoLocal.GetByID(id);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-            return new SVR_VideoLocal();
-        }
-    }
-
-    [NonAction]
-    public List<SVR_VideoLocal> GetFilesRecentlyAdded(int max_records)
-    {
-        try
-        {
-            return RepoFactory.VideoLocal.GetMostRecentlyAdded(max_records, 0);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-            return new List<SVR_VideoLocal>();
-        }
     }
 
     [HttpGet("Episode/RecentlyAdded/{maxRecords}/{userID}")]
@@ -368,7 +326,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return retEps;
@@ -393,10 +351,9 @@ public partial class ShokoServiceImplementation : IShokoServer
 
 
             var ts2 = DateTime.Now - start;
-            logger.Info("GetEpisodesRecentlyAddedSummary:RawData in {0} ms", ts2.TotalMilliseconds);
+            _logger.LogInformation("GetEpisodesRecentlyAddedSummary:RawData in {Milliseconds} ms", ts2.TotalMilliseconds);
             start = DateTime.Now;
 
-            var numEps = 0;
             foreach (var res in results)
             {
                 var ser = RepoFactory.AnimeSeries.GetByID(res);
@@ -426,26 +383,23 @@ public partial class ShokoServiceImplementation : IShokoServer
                 if (epContract != null)
                 {
                     retEps.Add(epContract);
-                    numEps++;
 
                     // Lets only return the specified amount
                     if (retEps.Count == maxRecords)
                     {
                         ts2 = DateTime.Now - start;
-                        logger.Info("GetEpisodesRecentlyAddedSummary:Episodes in {0} ms", ts2.TotalMilliseconds);
-                        start = DateTime.Now;
+                        _logger.LogInformation("GetEpisodesRecentlyAddedSummary:Episodes in {Time} ms", ts2.TotalMilliseconds);
                         return retEps;
                     }
                 }
             }
 
             ts2 = DateTime.Now - start;
-            logger.Info("GetEpisodesRecentlyAddedSummary:Episodes in {0} ms", ts2.TotalMilliseconds);
-            start = DateTime.Now;
+            _logger.LogInformation("GetEpisodesRecentlyAddedSummary:Episodes in {Time} ms", ts2.TotalMilliseconds);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return retEps;
@@ -468,7 +422,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return retSeries;
@@ -484,7 +438,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return null;
@@ -499,7 +453,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return null;
         }
     }
@@ -513,7 +467,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return null;
         }
     }
@@ -527,7 +481,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return null;
         }
     }
@@ -590,7 +544,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -612,7 +566,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -634,7 +588,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -681,18 +635,19 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             RemoveXRefsForFile(videoLocalID);
-            _commandFactory.CreateAndSave<CommandRequest_LinkFileManually>(
+            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+            scheduler.StartJob<ManualLinkJob>(
                 c =>
                 {
                     c.VideoLocalID = videoLocalID;
                     c.EpisodeID = animeEpisodeID;
                 }
-            );
+            ).GetAwaiter().GetResult();
             return string.Empty;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return string.Empty;
@@ -723,6 +678,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             RemoveXRefsForFile(videoLocalID);
+            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
 
             for (var i = startingEpisodeNumber; i <= endEpisodeNumber; i++)
             {
@@ -738,20 +694,20 @@ public partial class ShokoServiceImplementation : IShokoServer
                     return "Could not find episode record";
                 }
 
-                _commandFactory.CreateAndSave<CommandRequest_LinkFileManually>(
+                scheduler.StartJob<ManualLinkJob>(
                     c =>
                     {
                         c.VideoLocalID = videoLocalID;
                         c.EpisodeID = ep.AnimeEpisodeID;
                     }
-                );
+                ).GetAwaiter().GetResult();
             }
 
             return string.Empty;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return string.Empty;
@@ -763,6 +719,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
+            startingEpisodeNumber ??= "1";
             var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
             if (ser == null)
             {
@@ -800,7 +757,6 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var total = epNumber + videoLocalIDs.Count - 1;
-            var count = 1;
 
             foreach (var videoLocalID in videoLocalIDs)
             {
@@ -831,21 +787,16 @@ public partial class ShokoServiceImplementation : IShokoServer
                 }
 
                 RemoveXRefsForFile(videoLocalID);
-                var com = _commandFactory.Create<CommandRequest_LinkFileManually>(
+                var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+                scheduler.StartJob<ManualLinkJob>(
                     c =>
                     {
                         c.VideoLocalID = videoLocalID;
                         c.EpisodeID = ep.AnimeEpisodeID;
+                        if (singleEpisode) c.Percentage = (int)Math.Round(1D / total * 100);
                     }
-                );
-                if (singleEpisode)
-                {
-                    com.Percentage = (int)Math.Round((double)count / total * 100);
-                }
+                ).GetAwaiter().GetResult();
 
-                _commandFactory.Save(com);
-
-                count++;
                 if (!singleEpisode)
                 {
                     epNumber++;
@@ -854,7 +805,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return string.Empty;
@@ -865,11 +816,11 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return Importer.UpdateAniDBFileData(missingInfo, outOfDate, countOnly);
+            return _actionService.UpdateAniDBFileData(missingInfo, outOfDate, countOnly).Result;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return 0;
         }
     }
@@ -885,17 +836,18 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "File could not be found";
             }
 
-            _commandFactory.CreateAndSave<CommandRequest_GetFile>(
+            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+            scheduler.StartJobNow<GetAniDBFileJob>(
                 c =>
                 {
                     c.VideoLocalID = vid.VideoLocalID;
                     c.ForceAniDB = true;
                 }
-            );
+            ).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
 
@@ -918,17 +870,18 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not Update a cloud file without hash, hash it locally first";
             }
 
-            _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
+            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+            scheduler.StartJobNow<ProcessFileJob>(
                 c =>
                 {
                     c.VideoLocalID = vid.VideoLocalID;
                     c.ForceAniDB = true;
                 }
-            );
+            ).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.Message);
+            _logger.LogError(ex, ex.Message);
             return ex.Message;
         }
 
@@ -945,17 +898,18 @@ public partial class ShokoServiceImplementation : IShokoServer
             var pl = vl.GetBestVideoLocalPlace(true);
             if (pl == null)
             {
-                logger.Error("Unable to hash videolocal with id = {videoLocalID}, it has no assigned place", videoLocalID);
+                _logger.LogError("Unable to hash videolocal with id = {VideoLocalID}, it has no assigned place", videoLocalID);
                 return;
             }
 
-            _commandFactory.CreateAndSave<CommandRequest_HashFile>(
+            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+            scheduler.StartJobNow<HashFileJob>(
                 c =>
                 {
                     c.FileName = pl.FullServerPath;
                     c.ForceHash = true;
                 }
-            );
+            ).GetAwaiter().GetResult();
         }
     }
 
@@ -976,12 +930,12 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
-            service.RemoveRecordAndDeletePhysicalFile(place);
+            service.RemoveRecordAndDeletePhysicalFile(place).GetAwaiter().GetResult();
             return string.Empty;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -1003,12 +957,12 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
-            service.RemoveRecordAndDeletePhysicalFile(place);
+            service.RemoveRecordAndDeletePhysicalFile(place).GetAwaiter().GetResult();
             return string.Empty;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -1029,7 +983,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -1049,7 +1003,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             try
             {
                 // Two checks because the Where doesn't guarantee that First will not be null, only that a not-null value exists
@@ -1078,7 +1032,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return null;
@@ -1143,7 +1097,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
     }
 
@@ -1156,13 +1110,14 @@ public partial class ShokoServiceImplementation : IShokoServer
             return;
         }
 
-        _commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(
+        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+        scheduler.StartJobNow<DeleteFileFromMyListJob>(
             c =>
             {
                 c.Hash = vl.Hash;
                 c.FileSize = vl.FileSize;
             }
-        );
+        ).GetAwaiter().GetResult();
     }
 
     [HttpPost("AniDB/MyList/{hash}")]
@@ -1170,11 +1125,12 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            _commandFactory.CreateAndSave<CommandRequest_AddFileToMyList>(c => c.Hash = hash);
+            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+            scheduler.StartJobNow<AddFileToMyListJob>(c => c.Hash = hash).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
     }
 
@@ -1191,7 +1147,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return new List<CL_AniDB_Episode>();
@@ -1209,80 +1165,10 @@ public partial class ShokoServiceImplementation : IShokoServer
                     .Select(a => a.GetUserContract(userID))
                     .Where(a => a != null)
                     .ToList();
-            /*
-                            DateTime start = DateTime.Now;
-                            AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                            AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
-                            VideoLocalRepository repVids = new VideoLocalRepository();
-                            CrossRef_File_EpisodeRepository repCrossRefs = new CrossRef_File_EpisodeRepository();
-
-                            // get all the data first
-                            // we do this to reduce the amount of database calls, which makes it a lot faster
-                            AnimeSeries series = repAnimeSer.GetByID(animeSeriesID);
-                            if (series == null) return eps;
-
-                            List<AnimeEpisode> epList = repEps.GetBySeriesID(animeSeriesID);
-                            List<AnimeEpisode_User> userRecordList = repEpUsers.GetByUserIDAndSeriesID(userID, animeSeriesID);
-                            Dictionary<int, AnimeEpisode_User> dictUserRecords = new Dictionary<int, AnimeEpisode_User>();
-                            foreach (AnimeEpisode_User epuser in userRecordList)
-                                dictUserRecords[epuser.AnimeEpisodeID] = epuser;
-
-                            AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-                            List<AniDB_Episode> aniEpList = repAniEps.GetByAnimeID(series.AniDB_ID);
-                            Dictionary<int, AniDB_Episode> dictAniEps = new Dictionary<int, AniDB_Episode>();
-                            foreach (AniDB_Episode aniep in aniEpList)
-                                dictAniEps[aniep.EpisodeID] = aniep;
-
-                            // get all the video local records and cross refs
-                            List<VideoLocal> vids = repVids.GetByAniDBAnimeID(series.AniDB_ID);
-                            List<CrossRef_File_Episode> crossRefs = repCrossRefs.GetByAnimeID(series.AniDB_ID);
-
-                            TimeSpan ts = DateTime.Now - start;
-                            logger.Info("GetEpisodesForSeries: {0} (Database) in {1} ms", series.GetAnime().MainTitle, ts.TotalMilliseconds);
-
-
-                            start = DateTime.Now;
-                            foreach (AnimeEpisode ep in epList)
-                            {
-                                if (dictAniEps.ContainsKey(ep.AniDB_EpisodeID))
-                                {
-                                    List<VideoLocal> epVids = new List<VideoLocal>();
-                                    foreach (CrossRef_File_Episode xref in crossRefs)
-                                    {
-                                        if (xref.EpisodeID == dictAniEps[ep.AniDB_EpisodeID].EpisodeID)
-                                        {
-                                            // don't add the same file twice, this will occur when
-                                            // one file appears over more than one episodes
-                                            Dictionary<string, string> addedFiles = new Dictionary<string, string>();
-                                            foreach (VideoLocal vl in vids)
-                                            {
-                                                if (string.Equals(xref.Hash, vl.Hash, StringComparison.InvariantCultureIgnoreCase))
-                                                {
-                                                    if (!addedFiles.ContainsKey(xref.Hash.Trim().ToUpper()))
-                                                    {
-                                                        addedFiles[xref.Hash.Trim().ToUpper()] = xref.Hash.Trim().ToUpper();
-                                                        epVids.Add(vl);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    AnimeEpisode_User epuser = null;
-                                    if (dictUserRecords.ContainsKey(ep.AnimeEpisodeID))
-                                        epuser = dictUserRecords[ep.AnimeEpisodeID];
-
-                                    eps.Add(ep.ToContract(dictAniEps[ep.AniDB_EpisodeID], epVids, epuser, null));
-                                }
-                            }
-
-                            ts = DateTime.Now - start;
-                            logger.Info("GetEpisodesForSeries: {0} (Contracts) in {1} ms", series.GetAnime().MainTitle, ts.TotalMilliseconds);
-                            */
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return eps;
@@ -1301,58 +1187,10 @@ public partial class ShokoServiceImplementation : IShokoServer
             {
                 return GetEpisodesForSeries(animeSeriesID, user.JMMUserID);
             }
-            /*
-                            JMMUser u
-
-                            DateTime start = DateTime.Now;
-                            AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-                            AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
-                            CrossRef_File_EpisodeRepository repCrossRefs = new CrossRef_File_EpisodeRepository();
-
-
-                            // get all the data first
-                            // we do this to reduce the amount of database calls, which makes it a lot faster
-                            AnimeSeries series = repAnimeSer.GetByID(animeSeriesID);
-                            if (series == null) return eps;
-
-                            List<AnimeEpisode> epList = repEps.GetBySeriesID(animeSeriesID);
-
-                            AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-                            List<AniDB_Episode> aniEpList = repAniEps.GetByAnimeID(series.AniDB_ID);
-                            Dictionary<int, AniDB_Episode> dictAniEps = new Dictionary<int, AniDB_Episode>();
-                            foreach (AniDB_Episode aniep in aniEpList)
-                                dictAniEps[aniep.EpisodeID] = aniep;
-
-                            List<CrossRef_File_Episode> crossRefList = repCrossRefs.GetByAnimeID(series.AniDB_ID);
-
-
-
-
-                            TimeSpan ts = DateTime.Now - start;
-                            logger.Info("GetEpisodesForSeries: {0} (Database) in {1} ms", series.GetAnime().MainTitle, ts.TotalMilliseconds);
-
-
-                            start = DateTime.Now;
-                            foreach (AnimeEpisode ep in epList)
-                            {
-                                List<CrossRef_File_Episode> xrefs = new List<CrossRef_File_Episode>();
-                                foreach (CrossRef_File_Episode xref in crossRefList)
-                                {
-                                    if (ep.AniDB_EpisodeID == xref.EpisodeID)
-                                        xrefs.Add(xref);
-                                }
-
-                                if (dictAniEps.ContainsKey(ep.AniDB_EpisodeID))
-                                    eps.Add(ep.ToContractOld(dictAniEps[ep.AniDB_EpisodeID]));
-                            }
-
-                            ts = DateTime.Now - start;
-                            logger.Info("GetEpisodesForSeries: {0} (Contracts) in {1} ms", series.GetAnime().MainTitle, ts.TotalMilliseconds);
-                            */
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return eps;
@@ -1375,7 +1213,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return new List<CL_VideoDetailed>();
@@ -1398,7 +1236,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return contracts;
@@ -1420,7 +1258,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -1453,7 +1291,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             response.ErrorMessage = ex.Message;
             return response;
         }
@@ -1474,7 +1312,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return null;
         }
     }
@@ -1504,7 +1342,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return contracts;
         }
     }
@@ -1579,11 +1417,11 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var ts = DateTime.Now - start;
-            logger.Info("GetMyReleaseGroupsForAniDBEpisode  in {0} ms", ts.TotalMilliseconds);
+            _logger.LogInformation("GetMyReleaseGroupsForAniDBEpisode  in {Milli} ms", ts.TotalMilliseconds);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return relGroups;
@@ -1602,7 +1440,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return null;
@@ -1637,7 +1475,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return new List<CL_AnimeSeries_User>();
@@ -1651,22 +1489,16 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("AniDB/Vote/{animeID}/{voteType}")]
     public void VoteAnime(int animeID, [FromForm] decimal voteValue, int voteType)
     {
-        var msg = $"Voting for anime: {animeID} - Value: {voteValue}";
-        logger.Info(msg);
+        _logger.LogInformation("Voting for anime: {AnimeID} - Value: {VoteValue}", animeID, voteValue);
 
         // lets save to the database and assume it will work
         var thisVote =
-            RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.AnimeTemp) ??
-            RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.Anime);
-
-        if (thisVote == null)
-        {
-            thisVote = new AniDB_Vote { EntityID = animeID };
-        }
+            (RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.AnimeTemp) ??
+             RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.Anime)) ?? new AniDB_Vote { EntityID = animeID };
 
         thisVote.VoteType = voteType;
 
-        var iVoteValue = 0;
+        int iVoteValue;
         if (voteValue > 0)
         {
             iVoteValue = (int)(voteValue * 100);
@@ -1676,20 +1508,20 @@ public partial class ShokoServiceImplementation : IShokoServer
             iVoteValue = (int)voteValue;
         }
 
-        msg = $"Voting for anime Formatted: {animeID} - Value: {iVoteValue}";
-        logger.Info(msg);
+        _logger.LogInformation("Voting for anime Formatted: {AnimeID} - Value: {VoteValue}", animeID, iVoteValue);
 
         thisVote.VoteValue = iVoteValue;
         RepoFactory.AniDB_Vote.Save(thisVote);
 
-        _commandFactory.CreateAndSave<CommandRequest_VoteAnime>(
+        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+        scheduler.StartJobNow<VoteAniDBAnimeJob>(
             c =>
             {
                 c.AnimeID = animeID;
-                c.VoteType = voteType;
+                c.VoteType = (AniDBVoteType)voteType;
                 c.VoteValue = voteValue;
             }
-        );
+        ).GetAwaiter().GetResult();
     }
 
     [HttpDelete("AniDB/Vote/{animeID}")]
@@ -1714,14 +1546,15 @@ public partial class ShokoServiceImplementation : IShokoServer
             return;
         }
 
-        _commandFactory.CreateAndSave<CommandRequest_VoteAnime>(
+        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+        scheduler.StartJobNow<VoteAniDBAnimeJob>(
             c =>
             {
                 c.AnimeID = animeID;
-                c.VoteType = thisVote.VoteType;
+                c.VoteType = (AniDBVoteType)thisVote.VoteType;
                 c.VoteValue = -1;
             }
-        );
+        ).GetAwaiter().GetResult();
 
         RepoFactory.AniDB_Vote.Delete(thisVote.AniDB_VoteID);
     }
@@ -1732,8 +1565,10 @@ public partial class ShokoServiceImplementation : IShokoServer
     /// <param name="animeSeriesID"></param>
     /// <param name="watchedStatus"></param>
     /// <param name="maxEpisodeNumber">Use this to specify a max episode number to apply to</param>
+    /// <param name="episodeType"></param>
+    /// <param name="userID"></param>
     /// <returns></returns>
-    [HttpPost("Series/Watch/{animeSeriesID}/{watchedStatus}/{maxEpisodeNumber}/{episodeType}/{userID}")]
+    [HttpPost("Series/Watch/{animeSeriesID}/{watchedStatus}/{maxEpisodeNumber}/{episodeType:int}/{userID}")]
     public string SetWatchedStatusOnSeries(int animeSeriesID, bool watchedStatus, int maxEpisodeNumber, int episodeType,
         int userID)
     {
@@ -1757,12 +1592,12 @@ public partial class ShokoServiceImplementation : IShokoServer
                     AnimeEpisode_User epUser = ep.GetUserRecord(userID);
                     if (epUser != null)
                     {
-                        currentStatus = epUser.WatchedCount > 0 ? true : false;
+                        currentStatus = epUser.WatchedCount > 0;
                     }
 
                     if (currentStatus != watchedStatus)
                     {
-                        logger.Info("Updating episode: {0} to {1}", ep.AniDB_Episode.EpisodeNumber, watchedStatus);
+                        _logger.LogInformation("Updating episode: {Num} to {Watched}", ep.AniDB_Episode.EpisodeNumber, watchedStatus);
                         ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID, false);
                     }
                 }
@@ -1782,64 +1617,9 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
-    }
-
-    [NonAction]
-    public List<CL_AnimeSeries_FileStats> GetSeriesFileStatsByFolderID(int FolderID, int userID, int max)
-    {
-        try
-        {
-            var limit = 0;
-            var list = new Dictionary<int, CL_AnimeSeries_FileStats>();
-            foreach (var vi in RepoFactory.VideoLocal.GetByImportFolder(FolderID))
-            {
-                foreach (var ae in GetEpisodesForFile(vi.VideoLocalID, userID))
-                {
-                    var ase = GetSeries(ae.AnimeSeriesID, userID);
-                    //check if series is in list if not add it
-                    if (list.TryGetValue(ase.AnimeSeriesID, out var asfs) == false)
-                    {
-                        limit++;
-                        if (limit >= max)
-                        {
-                            continue;
-                        }
-
-                        asfs = new CL_AnimeSeries_FileStats
-                        {
-                            AnimeSeriesName = ase.AniDBAnime.AniDBAnime.MainTitle,
-                            FileCount = 0,
-                            FileSize = 0,
-                            Folders = new List<string>(),
-                            AnimeSeriesID = ase.AnimeSeriesID
-                        };
-                        list.Add(ase.AnimeSeriesID, asfs);
-                    }
-
-                    asfs.FileCount++;
-                    asfs.FileSize += vi.FileSize;
-
-                    //string filePath = Pri.LongPath.Path.GetDirectoryName(vi.FilePath).Replace(importLocation, "");
-                    //filePath = filePath.TrimStart('\\');
-                    var filePath = RepoFactory.VideoLocalPlace.GetByVideoLocal(vi.VideoLocalID)[0].FilePath;
-                    if (!asfs.Folders.Contains(filePath))
-                    {
-                        asfs.Folders.Add(filePath);
-                    }
-                }
-            }
-
-            return list.Values.ToList();
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
-        }
-
-        return new List<CL_AnimeSeries_FileStats>();
     }
 
     [HttpGet("Series/ForAnime/{animeID}/{userID}")]
@@ -1851,7 +1631,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return null;
@@ -1872,7 +1652,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return true;
@@ -1891,7 +1671,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return grps;
@@ -1919,7 +1699,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return grps;
@@ -1946,7 +1726,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return grps;
@@ -1961,7 +1741,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return null;
@@ -1972,11 +1752,11 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            new AnimeGroupCreator().RecreateAllGroups();
+            _groupCreator.RecreateAllGroups().GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
     }
 
@@ -1989,7 +1769,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
 
@@ -2018,7 +1798,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -2066,7 +1846,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return retGroups;
@@ -2080,7 +1860,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     /// <param name="allSeries"></param>
     /// <returns></returns>
     [HttpGet("Series/ForGroup/{animeGroupID}/{userID}")]
-    public static SVR_AnimeSeries GetSeriesForGroup(int animeGroupID, List<SVR_AnimeSeries> allSeries)
+    public SVR_AnimeSeries GetSeriesForGroup(int animeGroupID, List<SVR_AnimeSeries> allSeries)
     {
         try
         {
@@ -2096,7 +1876,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return null;
         }
     }
@@ -2107,7 +1887,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         var contractout = new CL_Response<CL_AnimeGroup_User> { ErrorMessage = string.Empty, Result = null };
         try
         {
-            SVR_AnimeGroup grp = null;
+            SVR_AnimeGroup grp;
             if (contract.AnimeGroupID.HasValue && contract.AnimeGroupID != 0)
             {
                 grp = RepoFactory.AnimeGroup.GetByID(contract.AnimeGroupID.Value);
@@ -2165,7 +1945,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             contractout.ErrorMessage = ex.Message;
             return contractout;
         }
@@ -2198,7 +1978,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
             if (anime == null)
             {
-                contractout.ErrorMessage = string.Format("Could not find anime record with ID: {0}", ser.AniDB_ID);
+                contractout.ErrorMessage = $"Could not find anime record with ID: {ser.AniDB_ID}";
                 return contractout;
             }
 
@@ -2208,7 +1988,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             contractout.ErrorMessage = ex.Message;
             return contractout;
         }
@@ -2220,7 +2000,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         var contractout = new CL_Response<CL_AnimeSeries_User> { ErrorMessage = string.Empty, Result = null };
         try
         {
-            SVR_AnimeSeries ser = null;
+            SVR_AnimeSeries ser;
 
             int? oldGroupID = null;
             if (contract.AnimeSeriesID.HasValue)
@@ -2228,8 +2008,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 ser = RepoFactory.AnimeSeries.GetByID(contract.AnimeSeriesID.Value);
                 if (ser == null)
                 {
-                    contractout.ErrorMessage = "Could not find existing series with ID: " +
-                                               contract.AnimeSeriesID.Value;
+                    contractout.ErrorMessage = "Could not find existing series with ID: " + contract.AnimeSeriesID.Value;
                     return contractout;
                 }
 
@@ -2284,7 +2063,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             contractout.ErrorMessage = ex.Message;
             return contractout;
         }
@@ -2317,17 +2096,16 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             // make sure the anime exists first
             var settings = _settingsProvider.GetSettings();
-            var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+            var jobFactory = Utils.ServiceContainer.GetRequiredService<JobFactory>();
+            var job = jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = animeID;
                 c.ForceRefresh = false;
                 c.DownloadRelations = settings.AutoGroupSeries ||
                                       settings.AniDb.DownloadRelatedAnime;
                 c.CreateSeriesEntry = true;
-                c.BubbleExceptions = true;
             });
-            command.ProcessCommand();
-            var anime = command.Result;
+            var anime = job.Process().Result;
 
             if (anime == null)
             {
@@ -2341,7 +2119,8 @@ public partial class ShokoServiceImplementation : IShokoServer
             // if not we will download it now
             if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
             {
-                _commandFactory.CreateAndSave<CommandRequest_GetReleaseGroupStatus>(c => c.AnimeID = anime.AnimeID);
+                var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+                scheduler.StartJob<GetAniDBReleaseGroupStatusJob>(c => c.AnimeID = anime.AnimeID).GetAwaiter().GetResult();
             }
 
             response.Result = ser.GetUserContract(userID);
@@ -2349,7 +2128,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             response.ErrorMessage = ex.Message;
         }
 
@@ -2361,15 +2140,17 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            _commandFactory.CreateAndSave<CommandRequest_GetAnimeHTTP_Force>(c =>
+            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+            scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = animeID;
                 c.DownloadRelations = false;
-            });
+                c.ForceRefresh = true;
+            }).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return string.Empty;
@@ -2380,30 +2161,30 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+            var jobFactory = Utils.ServiceContainer.GetRequiredService<JobFactory>();
+            var command = jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = animeID;
                 c.ForceRefresh = true;
                 c.DownloadRelations = false;
-                c.BubbleExceptions = true;
             });
-            command.ProcessCommand();
-            var anime = command.Result;
+            var anime = command.Process().Result;
 
             // update group status information
-            _commandFactory.CreateAndSave<CommandRequest_GetReleaseGroupStatus>(
+            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+            scheduler.StartJobNow<GetAniDBReleaseGroupStatusJob>(
                 c =>
                 {
                     c.AnimeID = animeID;
                     c.ForceRefresh = true;
                 }
-            );
+            ).GetAwaiter().GetResult();
 
             return anime?.Contract;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return null;
@@ -2412,7 +2193,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("AniDB/Anime/ExternalLinksFlag/{animeID}/{flags}")]
     public void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags)
     {
-        logger.Trace("UpdateAnimeDisableExternalLinksFlag is deprecated.");
+        _logger.LogTrace("UpdateAnimeDisableExternalLinksFlag is deprecated");
     }
 
     [HttpPost("Group/DefaultSeries/{animeGroupID}/{animeSeriesID}")]
@@ -2436,7 +2217,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
     }
 
@@ -2455,7 +2236,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
     }
 
@@ -2468,7 +2249,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return null;
@@ -2502,7 +2283,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
     }
 
@@ -2546,7 +2327,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return links;
         }
     }
@@ -2591,7 +2372,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return links;
         }
     }
@@ -2628,7 +2409,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                         {
                             try
                             {
-                                service.RemoveRecordAndDeletePhysicalFile(place, index >= places.Count - 1);
+                                service.RemoveRecordAndDeletePhysicalFile(place, index >= places.Count - 1).GetAwaiter().GetResult();
                             }
                             catch (Exception e)
                             {
@@ -2637,7 +2418,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                         }
                         else
                         {
-                            service.RemoveRecord(place);
+                            service.RemoveRecord(place).GetAwaiter().GetResult();
                         }
                     }
                 }
@@ -2665,7 +2446,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -2680,7 +2461,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return null;
@@ -2695,7 +2476,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return new List<CL_AniDB_Anime>();
@@ -2864,7 +2645,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return contracts;
@@ -2879,7 +2660,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return new List<CL_AniDB_AnimeDetailed>();
@@ -2894,7 +2675,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return new List<CL_AnimeSeries_User>();
@@ -2909,7 +2690,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return null;
         }
     }
@@ -2939,7 +2720,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return retGroups;
@@ -2970,7 +2751,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return series;
         }
     }
@@ -3000,7 +2781,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return series;
         }
     }
@@ -3062,7 +2843,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -3095,7 +2876,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return null;
@@ -3122,7 +2903,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return gfs;
@@ -3151,7 +2932,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return gfs;
@@ -3167,7 +2948,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             var allGfs = RepoFactory.FilterPreset.GetAll();
             var ts = DateTime.Now - start;
-            logger.Info("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
+            _logger.LogInformation("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
 
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             gfs = legacyConverter.ToClient(allGfs)
@@ -3176,7 +2957,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return gfs;
@@ -3192,7 +2973,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             var allGfs = gfparentid == 0 ? RepoFactory.FilterPreset.GetTopLevel() : RepoFactory.FilterPreset.GetByParentID(gfparentid);
             var ts = DateTime.Now - start;
-            logger.Info("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
+            _logger.LogInformation("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             gfs = legacyConverter.ToClient(allGfs)
                 .Where(a => a != null)
@@ -3200,7 +2981,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return gfs;
@@ -3216,7 +2997,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return null;
@@ -3234,7 +3015,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return new CL_GroupFilter();
         }
     }
@@ -3252,7 +3033,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return new List<Playlist>();
@@ -3299,7 +3080,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             contractRet.ErrorMessage = ex.Message;
             return contractRet;
         }
@@ -3324,7 +3105,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -3338,7 +3119,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return null;
         }
     }
@@ -3356,7 +3137,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return new List<CustomTag>();
         }
     }
@@ -3393,7 +3174,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             contractRet.ErrorMessage = ex.Message;
             return contractRet;
         }
@@ -3418,7 +3199,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -3442,7 +3223,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -3485,7 +3266,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             contractRet.ErrorMessage = ex.Message;
             return contractRet;
         }
@@ -3520,7 +3301,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -3534,7 +3315,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return null;
         }
     }
@@ -3552,7 +3333,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return new List<JMMUser>();
         }
     }
@@ -3567,7 +3348,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return null;
         }
     }
@@ -3598,7 +3379,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
 
@@ -3711,7 +3492,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
 
@@ -3761,7 +3542,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
 
@@ -3781,7 +3562,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return new List<ImportFolder>();
@@ -3797,7 +3578,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception e)
         {
-            logger.Error(e);
+            _logger.LogError(e, "{Ex}", e);
             folder.ErrorMessage = e.Message;
         }
 
@@ -3807,7 +3588,8 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpDelete("Folder/{importFolderID}")]
     public string DeleteImportFolder(int importFolderID)
     {
-        Utils.ShokoServer.DeleteImportFolder(importFolderID);
+        var scheduler = _schedulerFactory.GetScheduler().Result;
+        scheduler.StartJob<DeleteImportFolderJob>(a => a.ImportFolderID = importFolderID).GetAwaiter().GetResult();
         return string.Empty;
     }
 

@@ -6,6 +6,7 @@ using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -228,7 +229,7 @@ public class Init : BaseController
         if (ServerState.Instance.ServerStarting) return APIStatus.BadRequest("Already Starting");
         try
         {
-            ShokoServer.RunWorkSetupDB();
+            Utils.ShokoServer.RunWorkSetupDB();
         }
         catch (Exception e)
         {
@@ -273,20 +274,20 @@ public class Init : BaseController
     /// <returns></returns>
     [Authorize("init")]
     [HttpGet("anidb/test")]
-    public ActionResult TestAniDB()
+    public async Task<ActionResult> TestAniDB()
     {
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
-        handler.ForceLogout();
-        handler.CloseConnections();
+        await handler.ForceLogout();
+        await handler.CloseConnections();
 
         Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(_settings.Culture);
 
-        handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
+        await handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
             _settings.AniDb.ServerAddress,
             _settings.AniDb.ServerPort, _settings.AniDb.ClientPort);
 
-        if (!handler.Login()) return APIStatus.BadRequest("Failed to log in");
-        handler.ForceLogout();
+        if (!await handler.Login()) return APIStatus.BadRequest("Failed to log in");
+        await handler.ForceLogout();
 
         return APIStatus.OK();
     }
