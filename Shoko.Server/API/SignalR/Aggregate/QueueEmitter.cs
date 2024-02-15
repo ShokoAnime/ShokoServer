@@ -1,32 +1,34 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Commons.Notification;
 using Shoko.Server.API.SignalR.Models;
-using Shoko.Server.Commands;
+using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class QueueEmitter : BaseEmitter, IDisposable
 {
+    private readonly QueueStateEventHandler _queueStateEventHandler;
+    private readonly QueueHandler _queueHandler;
     private readonly Dictionary<string, object> _lastState = new();
 
-    public QueueEmitter(IHubContext<AggregateHub> hub) : base(hub)
+    public QueueEmitter(IHubContext<AggregateHub> hub, QueueStateEventHandler queueStateEventHandler, QueueHandler queueHandler) : base(hub)
     {
-        ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnGeneralQueueStateChangedEvent;
-        ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += OnHasherQueueStateChangedEvent;
-        ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += OnImageQueueStateChangedEvent;
+        _queueStateEventHandler = queueStateEventHandler;
+        _queueHandler = queueHandler;
+        _queueStateEventHandler.QueueChanged += OnQueueStateChangedEvent;
         ServerState.Instance.PropertyChanged += ServerStatePropertyChanged;
     }
 
     public void Dispose()
     {
-        ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent -= OnGeneralQueueStateChangedEvent;
-        ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent -= OnHasherQueueStateChangedEvent;
-        ShokoService.CmdProcessorImages.OnQueueStateChangedEvent -= OnImageQueueStateChangedEvent;
+        _queueStateEventHandler.QueueChanged -= OnQueueStateChangedEvent;
         ServerState.Instance.PropertyChanged -= ServerStatePropertyChanged;
     }
 
@@ -40,20 +42,23 @@ public class QueueEmitter : BaseEmitter, IDisposable
         }
     }
 
-    private async void OnGeneralQueueStateChangedEvent(QueueStateEventArgs e)
+    private async void OnQueueStateChangedEvent(object sender, QueueChangedEventArgs e)
     {
-        await StateChangedAsync("QueueStateChanged", "GeneralQueueState",
-            new QueueStateSignalRModel(e));
-    }
-
-    private async void OnHasherQueueStateChangedEvent(QueueStateEventArgs e)
-    {
-        await StateChangedAsync("QueueStateChanged", "HasherQueueState", new QueueStateSignalRModel(e));
-    }
-
-    private async void OnImageQueueStateChangedEvent(QueueStateEventArgs e)
-    {
-        await StateChangedAsync("QueueStateChanged", "ImageQueueState", new QueueStateSignalRModel(e));
+        await StateChangedAsync("QueueStateChanged", "QueueState",
+            new QueueStateSignalRModel
+            {
+                WaitingCount = e.WaitingJobsCount,
+                BlockedCount = e.BlockedJobsCount,
+                TotalCount = e.WaitingJobsCount + e.BlockedJobsCount,
+                ThreadCount = e.ThreadCount,
+                CurrentlyExecuting = e.ExecutingItems.Select(a => new Queue.QueueItem
+                {
+                    Key = a.Key,
+                    Type = a.JobType,
+                    Description = a.Description,
+                    IsRunning = true
+                }).ToList()
+            });
     }
 
     private async Task StateChangedAsync(string method, string property, object currentState)
@@ -69,9 +74,15 @@ public class QueueEmitter : BaseEmitter, IDisposable
     {
         return new Dictionary<string, object>
         {
-            { "GeneralQueueState", new QueueStateSignalRModel(ShokoService.CmdProcessorGeneral) },
-            { "HasherQueueState",  new QueueStateSignalRModel(ShokoService.CmdProcessorHasher) },
-            { "ImageQueueState", new QueueStateSignalRModel(ShokoService.CmdProcessorImages) },
+            {
+                "QueueState", new QueueStateSignalRModel
+                {
+                    WaitingCount = _queueHandler.WaitingCount,
+                    BlockedCount = _queueHandler.BlockedCount,
+                    TotalCount = _queueHandler.Count,
+                    ThreadCount = _queueHandler.ThreadCount
+                }
+            },
         };
     }
 }

@@ -4,13 +4,13 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
@@ -20,20 +20,19 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
-using File = Shoko.Server.API.v3.Models.Shoko.File;
-using NHibernate.Util;
+using Quartz;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -43,15 +42,17 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class SeriesController : BaseController
 {
-    private readonly ICommandRequestFactory _commandFactory;
     private readonly SeriesFactory _seriesFactory;
     private readonly IHttpConnectionHandler _httpHandler;
+    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly JobFactory _jobFactory;
 
-    public SeriesController(ICommandRequestFactory commandFactory, IHttpConnectionHandler httpHandler, ISettingsProvider settingsProvider, SeriesFactory seriesFactory) : base(settingsProvider)
+    public SeriesController(IHttpConnectionHandler httpHandler, ISettingsProvider settingsProvider, SeriesFactory seriesFactory, ISchedulerFactory schedulerFactory, JobFactory jobFactory) : base(settingsProvider)
     {
-        _commandFactory = commandFactory;
         _httpHandler = httpHandler;
         _seriesFactory = seriesFactory;
+        _schedulerFactory = schedulerFactory;
+        _jobFactory = jobFactory;
     }
 
     #region Return messages
@@ -143,7 +144,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{seriesID}")]
-    public ActionResult DeleteSeries([FromRoute] int seriesID, [FromQuery] bool deleteFiles = false, [FromQuery] bool completelyRemove = false)
+    public async Task<ActionResult> DeleteSeries([FromRoute] int seriesID, [FromQuery] bool deleteFiles = false, [FromQuery] bool completelyRemove = false)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -151,7 +152,7 @@ public class SeriesController : BaseController
             return NotFound(SeriesNotFoundWithSeriesID);
         }
 
-        series.DeleteSeries(deleteFiles, true, completelyRemove);
+        await series.DeleteSeries(deleteFiles, true, completelyRemove);
 
         return Ok();
     }
@@ -329,7 +330,6 @@ public class SeriesController : BaseController
     public ActionResult<ListResult<SeriesRelation>> GetAnidbRelations([FromQuery] [Range(0, 100)] int pageSize = 50,
         [FromQuery] [Range(1, int.MaxValue)] int page = 1)
     {
-        var user = User;
         return RepoFactory.AniDB_Anime_Relation.GetAll()
             .OrderBy(a => a.AnimeID)
             .ThenBy(a => a.RelatedAnimeID)
@@ -747,7 +747,7 @@ public class SeriesController : BaseController
     /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
     /// <returns>True if the refresh was performed at once, otherwise false if it was queued.</returns>
     [HttpPost("AniDB/{anidbID}/Refresh")]
-    public ActionResult<bool> RefreshAniDBByAniDBID([FromRoute] int anidbID, [FromQuery] bool force = false,
+    public async Task<ActionResult<bool>> RefreshAniDBByAniDBID([FromRoute] int anidbID, [FromQuery] bool force = false,
         [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
         [FromQuery] bool immediate = false, [FromQuery] bool cacheOnly = false)
     {
@@ -758,7 +758,7 @@ public class SeriesController : BaseController
         }
 
         // TODO No
-        return SeriesFactory.QueueAniDBRefresh(_commandFactory, _httpHandler, anidbID, force, downloadRelations,
+        return await _seriesFactory.QueueAniDBRefresh(_schedulerFactory, _jobFactory, anidbID, force, downloadRelations,
             createSeriesEntry.Value, immediate, cacheOnly);
     }
 
@@ -777,7 +777,7 @@ public class SeriesController : BaseController
     /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
     /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
     [HttpPost("{seriesID}/AniDB/Refresh")]
-    public ActionResult<bool> RefreshAniDBBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false,
+    public async Task<ActionResult<bool>> RefreshAniDBBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false,
         [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
         [FromQuery] bool immediate = false, [FromQuery] bool cacheOnly = false)
     {
@@ -805,7 +805,7 @@ public class SeriesController : BaseController
         }
 
         // TODO No
-        return SeriesFactory.QueueAniDBRefresh(_commandFactory, _httpHandler, anidb.AnimeID, force, downloadRelations,
+        return await _seriesFactory.QueueAniDBRefresh(_schedulerFactory, _jobFactory, anidb.AnimeID, force, downloadRelations,
             createSeriesEntry.Value, immediate, cacheOnly);
     }
 
@@ -816,8 +816,8 @@ public class SeriesController : BaseController
     /// <returns>True if the refresh is done, otherwise false if it failed.</returns>
     [HttpPost("{seriesID}/AniDB/Refresh/ForceFromXML")]
     [Obsolete]
-    public ActionResult<bool> RefreshAniDBFromXML([FromRoute] int seriesID)
-        => RefreshAniDBBySeriesID(seriesID, false, false, true, true, true);
+    public async Task<ActionResult<bool>> RefreshAniDBFromXML([FromRoute] int seriesID)
+        => await RefreshAniDBBySeriesID(seriesID, false, false, true, true, true);
 
     #endregion
 
@@ -853,7 +853,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/TvDB")]
-    public ActionResult LinkTvDB([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkCommonBody body)
+    public async Task<ActionResult> LinkTvDB([FromRoute] int seriesID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkCommonBody body)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -863,7 +863,7 @@ public class SeriesController : BaseController
             return Forbid(TvdbForbiddenForUser);
 
         var tvdbHelper = Utils.ServiceContainer.GetService<TvDBApiHelper>();
-        tvdbHelper.LinkAniDBTvDB(series.AniDB_ID, body.ID, !body.Replace);
+        await tvdbHelper.LinkAniDBTvDB(series.AniDB_ID, body.ID, !body.Replace);
 
         return Ok();
     }
@@ -903,7 +903,7 @@ public class SeriesController : BaseController
     /// <param name="force">Forcefully retrive updated data from TvDB</param>
     /// <returns></returns>
     [HttpPost("{seriesID}/TvDB/Refresh")]
-    public ActionResult RefreshSeriesTvdbBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false)
+    public async Task<ActionResult> RefreshSeriesTvdbBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -919,7 +919,7 @@ public class SeriesController : BaseController
         var tvSeriesList = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(series.AniDB_ID);
         // TODO No
         foreach (var crossRef in tvSeriesList)
-            SeriesFactory.QueueTvDBRefresh(_commandFactory, crossRef.TvDBID, force);
+            await _seriesFactory.QueueTvDBRefresh(crossRef.TvDBID, force);
 
         return Ok();
     }
@@ -967,10 +967,10 @@ public class SeriesController : BaseController
     /// <param name="immediate">Try to immediately refresh the data.</param>
     /// <returns></returns>
     [HttpPost("TvDB/{tvdbID}/Refresh")]
-    public ActionResult<bool> RefreshSeriesTvdbByTvdbId([FromRoute] int tvdbID, [FromQuery] bool force = false, [FromQuery] bool immediate = false)
+    public async Task<ActionResult<bool>> RefreshSeriesTvdbByTvdbId([FromRoute] int tvdbID, [FromQuery] bool force = false, [FromQuery] bool immediate = false)
     {
         // TODO No
-        return SeriesFactory.QueueTvDBRefresh(_commandFactory, tvdbID,force, immediate);
+        return await _seriesFactory.QueueTvDBRefresh(tvdbID,force, immediate);
     }
 
     /// <summary>
@@ -1375,7 +1375,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/File/Rescan")]
-    public ActionResult RescanSeriesFiles([FromRoute] int seriesID, [FromQuery] bool priority = false)
+    public async Task<ActionResult> RescanSeriesFiles([FromRoute] int seriesID, [FromQuery] bool priority = false)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -1384,15 +1384,24 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
+        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in series.GetVideoLocals())
-            _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
-                c =>
-                {
-                    c.VideoLocalID = file.VideoLocalID;
-                    c.ForceAniDB = true;
-                    if (priority) c.Priority = (int)CommandRequestPriority.Priority1;
-                }
-            );
+        {
+            if (priority)
+                await scheduler.StartJobNow<ProcessFileJob>(c =>
+                    {
+                        c.VideoLocalID = file.VideoLocalID;
+                        c.ForceAniDB = true;
+                    }
+                );
+            else
+                await scheduler.StartJob<ProcessFileJob>(c =>
+                    {
+                        c.VideoLocalID = file.VideoLocalID;
+                        c.ForceAniDB = true;
+                    }
+                );
+        }
 
         return Ok();
     }
@@ -1404,7 +1413,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/File/Rehash")]
-    public ActionResult RehashSeriesFiles([FromRoute] int seriesID)
+    public async Task<ActionResult> RehashSeriesFiles([FromRoute] int seriesID)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -1413,14 +1422,14 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
+        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in series.GetVideoLocals())
         {
             var filePath = file.GetBestVideoLocalPlace(true)?.FullServerPath;
             if (string.IsNullOrEmpty(filePath))
                 continue;
 
-            _commandFactory.CreateAndSave<CommandRequest_HashFile>(
-                c =>
+            await scheduler.StartJobNow<HashFileJob>(c =>
                 {
                     c.FileName = filePath;
                     c.ForceHash = true;
@@ -1442,7 +1451,7 @@ public class SeriesController : BaseController
     /// <param name="vote"></param>
     /// <returns></returns>
     [HttpPost("{seriesID}/Vote")]
-    public ActionResult PostSeriesUserVote([FromRoute] int seriesID, [FromBody] Vote vote)
+    public async Task<ActionResult> PostSeriesUserVote([FromRoute] int seriesID, [FromBody] Vote vote)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -1454,7 +1463,7 @@ public class SeriesController : BaseController
         if (vote.Value > vote.MaxValue)
             return ValidationProblem($"Value must be less than or equal to the set max value ({vote.MaxValue}).", nameof(vote.Value));
 
-        SeriesFactory.AddSeriesVote(_commandFactory, series, User.JMMUserID, vote);
+        await SeriesFactory.AddSeriesVote(_schedulerFactory, series, User.JMMUserID, vote);
 
         return NoContent();
     }

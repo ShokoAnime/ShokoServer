@@ -5,8 +5,10 @@ using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using NLog;
+using Microsoft.Extensions.Logging;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
@@ -15,6 +17,8 @@ using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Properties;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 using Mime = MimeMapping.MimeUtility;
 
@@ -26,12 +30,14 @@ namespace Shoko.Server.API.v2.Modules;
 [ApiVersion("2.0")]
 public class Image : BaseController
 {
-    private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+    private readonly ILogger<Image> _logger;
+    private readonly ISchedulerFactory _schedulerFactory;
 
     [HttpGet("validateall")]
-    public ActionResult ValidateAll()
+    public async Task<ActionResult> ValidateAll()
     {
-        Importer.ValidateAllImages();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJobNow<ValidateAllImagesJob>();
         return APIStatus.OK();
     }
 
@@ -174,7 +180,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find AniDB_Cover image: {0}", anime.PosterPath);
+                    _logger.LogTrace("Could not find AniDB_Cover image: {Poster}", anime.PosterPath);
                 }
 
                 break;
@@ -195,7 +201,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find AniDB_Character image: {0}", chr.GetPosterPath());
+                    _logger.LogTrace("Could not find AniDB_Character image: {Poster}", chr.GetPosterPath());
                 }
 
                 break;
@@ -216,7 +222,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find AniDB_Creator image: {0}", creator.GetPosterPath());
+                    _logger.LogTrace("Could not find AniDB_Creator image: {Poster}", creator.GetPosterPath());
                 }
 
                 break;
@@ -237,7 +243,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find TvDB_Banner image: {0}", wideBanner.GetFullImagePath());
+                    _logger.LogTrace("Could not find TvDB_Banner image: {Poster}", wideBanner.GetFullImagePath());
                 }
 
                 break;
@@ -258,7 +264,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find TvDB_Cover image: {0}", poster.GetFullImagePath());
+                    _logger.LogTrace("Could not find TvDB_Cover image: {Poster}", poster.GetFullImagePath());
                 }
 
                 break;
@@ -279,7 +285,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find TvDB_Episode image: {0}", ep.GetFullImagePath());
+                    _logger.LogTrace("Could not find TvDB_Episode image: {Poster}", ep.GetFullImagePath());
                 }
 
                 break;
@@ -299,7 +305,7 @@ public class Image : BaseController
                 }
 
                 path = string.Empty;
-                logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
+                _logger.LogTrace("Could not find TvDB_FanArt image: {Poster}", fanart.GetFullImagePath());
                 break;
 
             // 8
@@ -324,7 +330,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find MovieDB_FanArt image: {0}", mFanart.GetFullImagePath());
+                    _logger.LogTrace("Could not find MovieDB_FanArt image: {Poster}", mFanart.GetFullImagePath());
                 }
 
                 break;
@@ -351,7 +357,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find MovieDB_Poster image: {0}", mPoster.GetFullImagePath());
+                    _logger.LogTrace("Could not find MovieDB_Poster image: {Poster}", mPoster.GetFullImagePath());
                 }
 
                 break;
@@ -371,9 +377,8 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find Character image: {0}",
-                        ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar +
-                        character.ImagePath);
+                    _logger.LogTrace("Could not find Character image: {Poster}",
+                        ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar + character.ImagePath);
                 }
 
                 break;
@@ -393,7 +398,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find Staff image: {0}",
+                    _logger.LogTrace("Could not find Staff image: {Poster}",
                         ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar + staff.ImagePath);
                 }
 
@@ -451,7 +456,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find AniDB_Cover image: {0}", anime.PosterPath);
+                    _logger.LogTrace("Could not find AniDB_Cover image: {Poster}", anime.PosterPath);
                 }
 
                 break;
@@ -475,7 +480,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find AniDB_Character image: {0}", chr.GetPosterPath());
+                    _logger.LogTrace("Could not find AniDB_Character image: {Poster}", chr.GetPosterPath());
                 }
 
                 break;
@@ -501,7 +506,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find AniDB_Creator image: {0}", creator.GetPosterPath());
+                    _logger.LogTrace("Could not find AniDB_Creator image: {Poster}", creator.GetPosterPath());
                 }
 
                 break;
@@ -523,7 +528,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find TvDB_Banner image: {0}", wideBanner.GetFullImagePath());
+                    _logger.LogTrace("Could not find TvDB_Banner image: {Poster}", wideBanner.GetFullImagePath());
                 }
 
                 break;
@@ -545,7 +550,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find TvDB_Cover image: {0}", poster.GetFullImagePath());
+                    _logger.LogTrace("Could not find TvDB_Cover image: {Poster}", poster.GetFullImagePath());
                 }
 
                 break;
@@ -567,7 +572,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find TvDB_Episode image: {0}", ep.GetFullImagePath());
+                    _logger.LogTrace("Could not find TvDB_Episode image: {Poster}", ep.GetFullImagePath());
                 }
 
                 break;
@@ -588,7 +593,7 @@ public class Image : BaseController
                 }
 
                 path = string.Empty;
-                logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
+                _logger.LogTrace("Could not find TvDB_FanArt image: {Poster}", fanart.GetFullImagePath());
                 break;
 
             // 8
@@ -607,7 +612,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find MovieDB_FanArt image: {0}", mFanart.GetFullImagePath());
+                    _logger.LogTrace("Could not find MovieDB_FanArt image: {Poster}", mFanart.GetFullImagePath());
                 }
 
                 break;
@@ -628,7 +633,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find MovieDB_Poster image: {0}", mPoster.GetFullImagePath());
+                    _logger.LogTrace("Could not find MovieDB_Poster image: {Poster}", mPoster.GetFullImagePath());
                 }
 
                 break;
@@ -652,7 +657,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find Character image: {0}",
+                    _logger.LogTrace("Could not find Character image: {Poster}",
                         ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar +
                         character.ImagePath);
                 }
@@ -677,7 +682,7 @@ public class Image : BaseController
                 else
                 {
                     path = string.Empty;
-                    logger.Trace("Could not find Staff image: {0}",
+                    _logger.LogTrace("Could not find Staff image: {Poster}",
                         ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar + staff.ImagePath);
                 }
 
@@ -770,7 +775,9 @@ public class Image : BaseController
         return ms;
     }
 
-    public Image(ISettingsProvider settingsProvider) : base(settingsProvider)
+    public Image(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, ILogger<Image> logger) : base(settingsProvider)
     {
+        _schedulerFactory = schedulerFactory;
+        _logger = logger;
     }
 }

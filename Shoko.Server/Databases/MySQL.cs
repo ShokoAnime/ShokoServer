@@ -11,6 +11,7 @@ using Shoko.Commons.Properties;
 using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
@@ -21,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 122;
+    public override int RequiredVersion { get; } = 123;
 
 
     private List<DatabaseCommand> createVersionTable = new()
@@ -598,7 +599,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(72, 2, DatabaseFixes.FixCharactersWithGrave),
         new(73, 1, DatabaseFixes.RefreshAniDBInfoFromXML),
         new(74, 1, DatabaseFixes.MakeTagsApplyToSeries),
-        new(74, 2, Importer.UpdateAllStats),
+        new(74, 2, DatabaseFixes.UpdateAllStats),
         new(75, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
         new(76, 1,
             "CREATE TABLE `AniDB_AnimeUpdate` ( `AniDB_AnimeUpdateID` INT NOT NULL AUTO_INCREMENT, `AnimeID` INT NOT NULL, `UpdatedAt` datetime NOT NULL, PRIMARY KEY (`AniDB_AnimeUpdateID`) );"),
@@ -618,7 +619,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(83, 2, "ALTER TABLE `AniDB_Episode` DROP COLUMN `RomajiName`"),
         new(83, 3,
             "CREATE TABLE `AniDB_Episode_Title` ( `AniDB_Episode_TitleID` INT NOT NULL AUTO_INCREMENT, `AniDB_EpisodeID` int NOT NULL, `Language` varchar(50) character set utf8 NOT NULL, `Title` varchar(500) character set utf8 NOT NULL, PRIMARY KEY (`AniDB_Episode_TitleID`) ) ; "),
-        new(83, 4, DatabaseFixes.DummyMigrationOfObsoletion),
+        new(83, 4, DatabaseFixes.DummyMigrationOfObsolescence),
         new(84, 1,
             "ALTER TABLE `CrossRef_AniDB_TvDB_Episode` DROP INDEX `UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID`;"),
         new(84, 2, "RENAME TABLE `CrossRef_AniDB_TvDB_Episode` TO `CrossRef_AniDB_TvDB_Episode_Override`;"),
@@ -756,6 +757,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new DatabaseCommand(121, 8, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeSeries_User' AND COLUMN_NAME='PlexContractBlob' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
         new DatabaseCommand(121, 9, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeSeries_User' AND COLUMN_NAME='PlexContractSize' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractSize', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
         new DatabaseCommand(122, 1, "ALTER TABLE CommandRequest ADD INDEX IX_CommandRequest_CommandType (CommandType); ALTER TABLE CommandRequest ADD INDEX IX_CommandRequest_Priority_Date (Priority, DateTimeUpdated);"),
+        new DatabaseCommand(123, 1, "DROP TABLE CommandRequest"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
@@ -1029,7 +1031,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
                     .Username(settings.Database.Username)
                     .Password(settings.Database.Password))
                 .Driver<MySqlConnectorDriver>())
-            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
+            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoServer>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
                 // uncomment this for SQL output

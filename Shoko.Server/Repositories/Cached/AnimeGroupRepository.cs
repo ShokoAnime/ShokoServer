@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
@@ -136,7 +137,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         }
     }
 
-    public void InsertBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
+    public async Task InsertBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
     {
         if (session == null)
         {
@@ -151,15 +152,15 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         using var trans = session.BeginTransaction();
         foreach (var group in groups)
         {
-            session.Insert(group);
+            await session.InsertAsync(group);
             UpdateCache(group);
         }
-        trans.Commit();
+        await trans.CommitAsync();
 
         Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
     }
 
-    public void UpdateBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
+    public async Task UpdateBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
     {
         if (session == null)
         {
@@ -174,10 +175,10 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         using var trans = session.BeginTransaction();
         foreach (var group in groups)
         {
-            session.Update(group);
+            await session.UpdateAsync(group);
             UpdateCache(group);
         }
-        trans.Commit();
+        await trans.CommitAsync();
 
         Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
     }
@@ -191,7 +192,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
     /// <param name="session">The NHibernate session.</param>
     /// <param name="excludeGroupId">The ID of the AnimeGroup to exclude from deletion.</param>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-    public void DeleteAll(ISessionWrapper session, int? excludeGroupId = null)
+    public async Task DeleteAll(ISessionWrapper session, int? excludeGroupId = null)
     {
         if (session == null)
         {
@@ -201,19 +202,19 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         // First, get all of the current groups so that we can inform the change tracker that they have been removed later
         var allGrps = GetAll();
 
-        Lock(() =>
+        await Lock(async () =>
         {
             // Then, actually delete the AnimeGroups
             if (excludeGroupId != null)
             {
-                session.CreateQuery("delete SVR_AnimeGroup ag where ag.id <> :excludeId")
+                await session.CreateQuery("delete SVR_AnimeGroup ag where ag.id <> :excludeId")
                     .SetInt32("excludeId", excludeGroupId.Value)
-                    .ExecuteUpdate();
+                    .ExecuteUpdateAsync();
             }
             else
             {
-                session.CreateQuery("delete SVR_AnimeGroup ag")
-                    .ExecuteUpdate();
+                await session.CreateQuery("delete SVR_AnimeGroup ag")
+                    .ExecuteUpdateAsync();
             }
         });
 

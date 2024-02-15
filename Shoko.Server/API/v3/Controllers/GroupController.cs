@@ -23,6 +23,8 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class GroupController : BaseController
 {
+    private readonly AnimeGroupCreator _groupCreator;
+
     #region Return messages
 
     internal const string GroupNotFound = "No Group entry for the given groupID";
@@ -304,7 +306,7 @@ public class GroupController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{groupID}")]
-    public ActionResult DeleteGroup(int groupID, bool deleteSeries = false, bool deleteFiles = false)
+    public async Task<ActionResult> DeleteGroup(int groupID, bool deleteSeries = false, bool deleteFiles = false)
     {
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
@@ -321,7 +323,7 @@ public class GroupController : BaseController
 
         foreach (var series in seriesList)
         {
-            series.DeleteSeries(deleteFiles, false);
+            await series.DeleteSeries(deleteFiles, false);
         }
 
         group.DeleteGroup();
@@ -339,7 +341,7 @@ public class GroupController : BaseController
     /// <param name="groupID"></param>
     /// <returns></returns>
     [HttpPost("{groupID}/Recalculate")]
-    public ActionResult RecalculateStats(int groupID)
+    public async Task<ActionResult> RecalculateStats(int groupID)
     {
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
@@ -347,8 +349,7 @@ public class GroupController : BaseController
             return NotFound(GroupNotFound);
         }
 
-        var groupCreator = new AnimeGroupCreator();
-        groupCreator.RecalculateStatsContractsForGroup(group);
+        await _groupCreator.RecalculateStatsContractsForGroup(group);
         return Ok();
     }
 
@@ -365,13 +366,14 @@ public class GroupController : BaseController
     [Obsolete]
     public ActionResult RecreateAllGroups()
     {
-        Task.Run(() => new AnimeGroupCreator().RecreateAllGroups());
+        Task.Run(async () => await _groupCreator.RecreateAllGroups());
         return Ok("Check the server status via init/status or SignalR's Events hub");
     }
 
     #endregion
 
-    public GroupController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    public GroupController(ISettingsProvider settingsProvider, AnimeGroupCreator groupCreator) : base(settingsProvider)
     {
+        _groupCreator = groupCreator;
     }
 }

@@ -46,6 +46,12 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Remove="Commands\Import\CommandRequest_DownloadAniDBImages.cs" />
+    <Compile Remove="Commands\Import\CommandRequest_DownloadImage.cs" />
+    <Compile Remove="Commands\Import\CommandRequest_HashFile.cs" />
+    <Compile Remove="Commands\Import\CommandRequest_LinkFileManually.cs" />
+    <Compile Remove="Commands\Import\CommandRequest_ReadMediaInfo.cs" />
+    <Compile Remove="Commands\Import\CommandRequest_ValidateAllImages.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
@@ -90,10 +96,10 @@
     <PackageReference Include="NHibernate.Driver.MySqlConnector" Version="2.0.4" />
     <PackageReference Include="NLog" Version="5.0.4" />
     <PackageReference Include="NLog.Web.AspNetCore" Version="5.1.4" />
-    <PackageReference Include="Polly" Version="7.2.3" />
+    <PackageReference Include="Polly" Version="8.2.1" />
     <PackageReference Include="Quartz.AspNetCore" Version="3.8.0" />
     <PackageReference Include="Quartz.Serialization.Json" Version="3.8.0" />
-    <PackageReference Include="QuartzJobFactory" Version="2.1.2" />
+    <PackageReference Include="QuartzJobFactory" Version="2.2.6" />
     <PackageReference Include="Sentry" Version="3.29.0" />
     <PackageReference Include="Sentry.AspNetCore" Version="3.29.0" />
     <PackageReference Include="Sentry.Extensions.Logging" Version="3.29.0" />
@@ -107,12 +113,15 @@
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.1" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
     <PackageReference Include="System.Diagnostics.EventLog" Version="6.0.0" />
-    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.1" />
     <!-- This needs to be explicit because of https://github.com/MySqlBackupNET/MySqlBackup.Net/issues/61 -->
     <PackageReference Include="System.Threading.ThreadPool" Version="4.3.0" />
     <PackageReference Include="TaskScheduler" Version="2.10.1" />
     <PackageReference Include="TMDbLib" Version="1.6.0" />
     <PackageReference Include="Trinet.Core.IO.Ntfs" Version="4.1.1" />
     <PackageReference Include="TvDbSharper" Version="3.2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Import\" />
   </ItemGroup>
 </Project>

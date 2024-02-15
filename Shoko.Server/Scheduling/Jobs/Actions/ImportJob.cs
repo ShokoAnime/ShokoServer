@@ -1,13 +1,9 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
-
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Quartz;
 using QuartzJobFactory.Attributes;
-using Shoko.Server.Scheduling.Acquisition;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
@@ -15,41 +11,46 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [JobKeyMember("Import")]
 [JobKeyGroup(JobKeyGroup.Legacy)]
 [DisallowConcurrentExecution]
-internal class ImportJob : IJob
+public class ImportJob : IJob
 {
-    public Task Execute(IJobExecutionContext context)
+    private readonly ActionService _service;
+
+    public async Task Execute(IJobExecutionContext context)
     {
-        // TODO: Make everything asynchronous
         try
         {
-            Importer.RunImport_NewFiles();
-            Importer.RunImport_IntegrityCheck();
+            await _service.RunImport_NewFiles();
+            await _service.RunImport_IntegrityCheck();
 
             // drop folder
-            Importer.RunImport_DropFolders();
+            await _service.RunImport_DropFolders();
 
             // TvDB association checks
-            Importer.RunImport_ScanTvDB();
+            await _service.RunImport_ScanTvDB();
 
             // Trakt association checks
-            Importer.RunImport_ScanTrakt();
+            _service.RunImport_ScanTrakt();
 
             // MovieDB association checks
-            Importer.RunImport_ScanMovieDB();
+            await _service.RunImport_ScanMovieDB();
 
             // Check for missing images
-            Importer.RunImport_GetImages();
+            await _service.RunImport_GetImages();
 
             // Check for previously ignored files
-            Importer.CheckForPreviouslyIgnored();
+            _service.CheckForPreviouslyIgnored();
         }
         catch (Exception ex)
         {
-            // TODO: Logging
             // do you want the job to refire?
             throw new JobExecutionException(msg: "", refireImmediately: false, cause: ex);
         }
-
-        return Task.CompletedTask;
     }
+
+    public ImportJob(ActionService service)
+    {
+        _service = service;
+    }
+
+    protected ImportJob() { }
 }

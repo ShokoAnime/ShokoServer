@@ -13,6 +13,7 @@ using Shoko.Commons.Properties;
 using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -23,7 +24,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 115;
+    public override int RequiredVersion { get; } = 116;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -85,7 +86,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
     {
         return Fluently.Configure()
             .Database(MsSqlConfiguration.MsSql2008.ConnectionString(GetConnectionString()))
-            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
+            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoServer>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
                 prop.Batcher<NonBatchingBatcherFactory>();
@@ -564,7 +565,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(66, 2, DatabaseFixes.FixCharactersWithGrave),
         new DatabaseCommand(67, 1, DatabaseFixes.RefreshAniDBInfoFromXML),
         new DatabaseCommand(68, 1, DatabaseFixes.MakeTagsApplyToSeries),
-        new DatabaseCommand(68, 2, Importer.UpdateAllStats),
+        new DatabaseCommand(68, 2, DatabaseFixes.UpdateAllStats),
         new DatabaseCommand(69, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
         new DatabaseCommand(70, 1, "ALTER TABLE AniDB_Character ALTER COLUMN CharName nvarchar(max) NOT NULL"),
         new DatabaseCommand(71, 1, "CREATE TABLE AniDB_AnimeUpdate ( AniDB_AnimeUpdateID INT IDENTITY(1,1) NOT NULL, AnimeID INT NOT NULL, UpdatedAt datetime NOT NULL )"),
@@ -581,7 +582,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(77, 1, "ALTER TABLE AniDB_Episode DROP COLUMN EnglishName"),
         new DatabaseCommand(77, 2, "ALTER TABLE AniDB_Episode DROP COLUMN RomajiName"),
         new DatabaseCommand(77, 3, "CREATE TABLE AniDB_Episode_Title ( AniDB_Episode_TitleID int IDENTITY(1,1) NOT NULL, AniDB_EpisodeID int NOT NULL, Language nvarchar(50) NOT NULL, Title nvarchar(500) NOT NULL )"),
-        new DatabaseCommand(77, 4, DatabaseFixes.DummyMigrationOfObsoletion),
+        new DatabaseCommand(77, 4, DatabaseFixes.DummyMigrationOfObsolescence),
         new DatabaseCommand(78, 1, "DROP INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID ON CrossRef_AniDB_TvDB_Episode;"),
         new DatabaseCommand(78, 2, "exec sp_rename CrossRef_AniDB_TvDB_Episode, CrossRef_AniDB_TvDB_Episode_Override;"),
         new DatabaseCommand(78, 3, "ALTER TABLE CrossRef_AniDB_TvDB_Episode_Override DROP COLUMN AnimeID"),
@@ -692,6 +693,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(114, 1, "ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob;"),
         new DatabaseCommand(114, 2, DropPlexContractColumns),
         new DatabaseCommand(115, 1, "CREATE INDEX IX_CommandRequest_CommandType ON CommandRequest(CommandType); CREATE INDEX IX_CommandRequest_Priority_Date ON CommandRequest(Priority, DateTimeUpdated);"),
+        new DatabaseCommand(116, 1, "DROP TABLE CommandRequest"),
     };
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)

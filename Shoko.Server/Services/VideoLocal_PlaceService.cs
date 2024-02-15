@@ -3,20 +3,22 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NHibernate;
 using Polly;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.Models;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -26,13 +28,13 @@ public class VideoLocal_PlaceService
 {
     private readonly ILogger<VideoLocal_PlaceService> _logger;
     private readonly ISettingsProvider _settingsProvider;
-    private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISchedulerFactory _schedulerFactory;
 
-    public VideoLocal_PlaceService(ILogger<VideoLocal_PlaceService> logger, ISettingsProvider settingsProvider, ICommandRequestFactory commandRequestFactory)
+    public VideoLocal_PlaceService(ILogger<VideoLocal_PlaceService> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
-        _commandFactory = commandRequestFactory;
+        _schedulerFactory = schedulerFactory;
     }
 
     private enum DelayInUse
@@ -549,14 +551,14 @@ public class VideoLocal_PlaceService
         return false;
     }
 
-    public void RemoveRecordAndDeletePhysicalFile(SVR_VideoLocal_Place place, bool deleteFolder = true)
+    public async Task RemoveRecordAndDeletePhysicalFile(SVR_VideoLocal_Place place, bool deleteFolder = true)
     {
         _logger.LogInformation("Deleting video local place record and file: {Place}", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString());
 
         if (!File.Exists(place.FullServerPath))
         {
             _logger.LogInformation("Unable to find file. Removing Record: {Place}", place.FullServerPath ?? place.FilePath);
-            RemoveRecord(place);
+            await RemoveRecord(place);
             return;
         }
 
@@ -580,10 +582,10 @@ public class VideoLocal_PlaceService
             RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), true);
         }
 
-        RemoveRecord(place);
+        await RemoveRecord(place);
     }
 
-    public void RemoveAndDeleteFileWithOpenTransaction(ISession session, SVR_VideoLocal_Place place, HashSet<SVR_AnimeSeries> seriesToUpdate, bool updateMyList = true, bool deleteFolders = true)
+    public async Task RemoveAndDeleteFileWithOpenTransaction(ISession session, SVR_VideoLocal_Place place, HashSet<SVR_AnimeSeries> seriesToUpdate, bool updateMyList = true, bool deleteFolders = true)
     {
         try
         {
@@ -592,7 +594,7 @@ public class VideoLocal_PlaceService
             if (!File.Exists(place.FullServerPath))
             {
                 _logger.LogInformation("Unable to find file. Removing Record: {FullServerPath}", place.FullServerPath);
-                RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
+                await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
                 return;
             }
 
@@ -612,7 +614,7 @@ public class VideoLocal_PlaceService
             }
 
             if (deleteFolders) RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.FullServerPath), true);
-            RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
+            await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
             // For deletion of files from Trakt, we will rely on the Daily sync
         }
         catch (Exception ex)
@@ -654,11 +656,12 @@ public class VideoLocal_PlaceService
         }
     }
 
-    public void RemoveRecord(SVR_VideoLocal_Place place, bool updateMyListStatus = true)
+    public async Task RemoveRecord(SVR_VideoLocal_Place place, bool updateMyListStatus = true)
     {
         _logger.LogInformation("Removing VideoLocal_Place record for: {Place}", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString());
         var seriesToUpdate = new List<SVR_AnimeSeries>();
         var v = place.VideoLocal;
+        var scheduler = await _schedulerFactory.GetScheduler();
 
         using (var session = DatabaseFactory.SessionFactory.OpenSession())
         {
@@ -674,8 +677,7 @@ public class VideoLocal_PlaceService
                             var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                             if (ep == null) continue;
 
-                            _commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(
-                                c =>
+                            await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                                 {
                                     c.AnimeID = xref.AnimeID;
                                     c.EpisodeType = ep.GetEpisodeTypeEnum();
@@ -686,8 +688,7 @@ public class VideoLocal_PlaceService
                     }
                     else
                     {
-                        _commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(
-                            c =>
+                        await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                             {
                                 c.Hash = v.Hash;
                                 c.FileSize = v.FileSize;
@@ -742,7 +743,7 @@ public class VideoLocal_PlaceService
         }
     }
 
-    public void RemoveRecordWithOpenTransaction(ISession session, SVR_VideoLocal_Place place, ICollection<SVR_AnimeSeries> seriesToUpdate,
+    public async Task RemoveRecordWithOpenTransaction(ISession session, SVR_VideoLocal_Place place, ICollection<SVR_AnimeSeries> seriesToUpdate,
         bool updateMyListStatus = true)
     {
         _logger.LogInformation("Removing VideoLocal_Place record for: {Place}", place.FullServerPath ?? place.VideoLocal_Place_ID.ToString());
@@ -752,6 +753,7 @@ public class VideoLocal_PlaceService
         {
             if (updateMyListStatus)
             {
+                var scheduler = await _schedulerFactory.GetScheduler();
                 if (RepoFactory.AniDB_File.GetByHash(v.Hash) == null)
                 {
                     var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
@@ -763,7 +765,7 @@ public class VideoLocal_PlaceService
                             continue;
                         }
 
-                        _commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(c =>
+                        await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                         {
                             c.AnimeID = xref.AnimeID;
                             c.EpisodeType = ep.GetEpisodeTypeEnum();
@@ -773,8 +775,7 @@ public class VideoLocal_PlaceService
                 }
                 else
                 {
-                    _commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(
-                        c =>
+                    await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                         {
                             c.Hash = v.Hash;
                             c.FileSize = v.FileSize;

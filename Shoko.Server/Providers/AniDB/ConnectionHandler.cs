@@ -1,8 +1,6 @@
 using System;
 using System.Timers;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.Generic;
 
 namespace Shoko.Server.Providers.AniDB;
 
@@ -11,7 +9,6 @@ public abstract class ConnectionHandler
     protected readonly ILoggerFactory _loggerFactory;
     protected ILogger Logger { get; set; }
     internal IServiceProvider ServiceProvider { get; set; }
-    protected CommandProcessor GeneralQueue { get; set; }
     protected AniDBRateLimiter RateLimiter { get; set; }
     public abstract double BanTimerResetLength { get; }
     public abstract string Type { get; }
@@ -47,10 +44,10 @@ public abstract class ConnectionHandler
             if (value)
             {
                 BanTime = DateTime.Now;
-                Logger.LogWarning($"AniDB {Type} Banned!");
+                Logger.LogWarning("AniDB {Type} Banned!", Type);
                 if (BanResetTimer.Enabled)
                 {
-                    Logger.LogWarning($"AniDB {Type} ban timer was already running, ban time extending");
+                    Logger.LogWarning("AniDB {Type} ban timer was already running, ban time extending", Type);
                     BanResetTimer.Stop(); //re-start implies stop
                 }
 
@@ -68,18 +65,7 @@ public abstract class ConnectionHandler
                 if (BanResetTimer.Enabled)
                 {
                     BanResetTimer.Stop();
-                    Logger.LogInformation($"AniDB {Type} ban timer stopped. Resuming queue if not paused.");
-                    // Skip if paused
-                    if (!GeneralQueue.Paused)
-                    {
-                        // Needs to have something to do first
-                        if (GeneralQueue.QueueCount > 0)
-                        {
-                            // Not really a new command, but this will start the queue if it's not running,
-                            // with handling for problems
-                            GeneralQueue.NotifyOfNewCommand();
-                        }
-                    }
+                    Logger.LogInformation("AniDB {Type} ban timer stopped. Resuming queue if not paused", Type);
                 }
 
                 State = new AniDBStateUpdate { Value = false, UpdateType = BanEnum, UpdateTime = DateTime.Now };
@@ -87,11 +73,10 @@ public abstract class ConnectionHandler
         }
     }
 
-    public ConnectionHandler(ILoggerFactory loggerFactory, CommandProcessorGeneral queue, AniDBRateLimiter rateLimiter)
+    public ConnectionHandler(ILoggerFactory loggerFactory, AniDBRateLimiter rateLimiter)
     {
         _loggerFactory = loggerFactory;
         Logger = loggerFactory.CreateLogger(GetType());
-        GeneralQueue = queue;
         RateLimiter = rateLimiter;
         BanResetTimer = new Timer
         {
@@ -107,7 +92,7 @@ public abstract class ConnectionHandler
 
     private void BanResetTimerElapsed(object sender, ElapsedEventArgs e)
     {
-        Logger.LogInformation($"AniDB {Type} ban ({BanTimerResetLength}h) is over");
+        Logger.LogInformation("AniDB {Type} ban ({BanTimerResetLength}h) is over", Type, BanTimerResetLength);
         IsBanned = false;
     }
 

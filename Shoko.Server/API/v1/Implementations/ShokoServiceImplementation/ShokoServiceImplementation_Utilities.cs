@@ -3,29 +3,28 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using F23.StringSimilarity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server;
@@ -45,22 +44,6 @@ public partial class ShokoServiceImplementation
         return series.Select(a => a.Result).Select(ser => ser.GetUserContract(uid)).ToList();
     }
 
-    /// <summary>
-    /// Join a string like string.Join but
-    /// </summary>
-    /// <param name="seperator"></param>
-    /// <param name="values"></param>
-    /// <param name="replaceinvalid"></param>
-    /// <returns></returns>
-    internal string Join(string seperator, IEnumerable<string> values, bool replaceinvalid)
-    {
-        if (!replaceinvalid) return string.Join(seperator, values);
-
-        var newItems = values.Select(s => SanitizeFuzzy(s, replaceinvalid)).ToList();
-
-        return string.Join(seperator, newItems);
-    }
-
     private static readonly char[] InvalidPathChars =
         $"{new string(Path.GetInvalidFileNameChars())}{new string(Path.GetInvalidPathChars())}".ToCharArray();
 
@@ -73,18 +56,6 @@ public partial class ShokoServiceImplementation
     {
         return Regex.Replace(input, Regex.Escape(search), replacement.Replace("$", "$$"),
             RegexOptions.IgnoreCase);
-    }
-
-    private static string RemoveSubgroups(string value)
-    {
-        var originalLength = value.Length;
-        var releaseGroups = RepoFactory.AniDB_ReleaseGroup.GetUsedReleaseGroups().Select(r => r.GroupName);
-        foreach (var releaseGroup in releaseGroups)
-        {
-            value = ReplaceCaseInsensitive(value, releaseGroup, string.Empty);
-            if (originalLength > value.Length) break;
-        }
-        return value;
     }
 
     internal static string SanitizeFuzzy(string value, bool replaceInvalid)
@@ -192,7 +163,7 @@ public partial class ShokoServiceImplementation
                 {
                     try
                     {
-                        service.RemoveRecordAndDeletePhysicalFile(a);
+                        service.RemoveRecordAndDeletePhysicalFile(a).GetAwaiter().GetResult();
                         return true;
                     }
                     catch
@@ -205,7 +176,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error Deleting Files");
+            _logger.LogError(ex, "Error Deleting Files");
             return false;
         }
     }
@@ -325,33 +296,10 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
         }
         return new List<CL_VideoLocal>();
     }
-
-    /*public List<Contract_VideoLocalRenamed> RandomFileRenamePreview(int maxResults, int userID, string renameRules)
-    {
-        List<Contract_VideoLocalRenamed> ret = new List<Contract_VideoLocalRenamed>();
-        try
-        {
-            VideoLocalRepo.Instance.itory repVids = new VideoLocalRepo.Instance.itory();
-            foreach (VideoLocal vid in repVids.GetRandomFiles(maxResults))
-            {
-                Contract_VideoLocalRenamed vidRen = new Contract_VideoLocalRenamed();
-                vidRen.VideoLocalID = vid.VideoLocalID;
-                vidRen.VideoLocal = vid.ToContract(userID);
-                vidRen.NewFileName = RenameFileHelper.GetNewFileName(vid, renameRules);
-                ret.Add(vidRen);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Error( ex,ex.ToString());
-
-        }
-        return ret;
-    }*/
 
     [HttpGet("File/Rename/RandomPreview/{maxResults}/{userID}")]
     public List<CL_VideoLocal> RandomFileRenamePreview(int maxResults, int userID)
@@ -362,7 +310,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
             return new List<CL_VideoLocal>();
         }
     }
@@ -387,14 +335,14 @@ public partial class ShokoServiceImplementation
             else
             {
                 ret.VideoLocal = null;
-                if (string.IsNullOrEmpty(vid?.GetBestVideoLocalPlace(true)?.FullServerPath))
+                if (string.IsNullOrEmpty(vid.GetBestVideoLocalPlace(true)?.FullServerPath))
                 {
                     ret.VideoLocal = null;
                     ret.Success = false;
                     ret.NewFileName = "ERROR: The file could not be found.";
                     return ret;
                 }
-                ret.NewFileName = RenameFileHelper.GetFilename(vid?.GetBestVideoLocalPlace(), Shoko.Models.Constants.Renamer.TempFileName);
+                ret.NewFileName = RenameFileHelper.GetFilename(vid.GetBestVideoLocalPlace(), Shoko.Models.Constants.Renamer.TempFileName);
 
                 if (string.IsNullOrEmpty(ret.NewFileName))
                 {
@@ -415,7 +363,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
             ret.VideoLocal = null;
             ret.NewFileName = $"ERROR: {ex.Message}";
             ret.Success = false;
@@ -455,7 +403,7 @@ public partial class ShokoServiceImplementation
                 return ret;
             }
 
-            ret.NewFileName = RenameFileHelper.GetFilename(vid?.GetBestVideoLocalPlace(), scriptName);
+            ret.NewFileName = RenameFileHelper.GetFilename(vid.GetBestVideoLocalPlace(), scriptName);
 
             if (string.IsNullOrEmpty(ret.NewFileName))
             {
@@ -517,32 +465,15 @@ public partial class ShokoServiceImplementation
                 return ret;
             }
 
+            ret.NewFileName = name;
             ret.VideoLocal ??= new CL_VideoLocal { VideoLocalID = videoLocalID };
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
             ret.VideoLocal = null;
             ret.NewFileName = $"ERROR: {ex.Message}";
             ret.Success = false;
-        }
-        return ret;
-    }
-
-    [NonAction]
-    public List<CL_VideoLocal_Renamed> RenameFiles(List<int> videoLocalIDs, string renameRules)
-    {
-        var ret = new List<CL_VideoLocal_Renamed>();
-        try
-        {
-            foreach (var vid in videoLocalIDs)
-            {
-                ret.Add(RenameFile(vid, renameRules));
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, ex.ToString());
         }
         return ret;
     }
@@ -558,7 +489,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
         }
         return new List<RenameScript>();
     }
@@ -573,7 +504,7 @@ public partial class ShokoServiceImplementation
         };
         try
         {
-            RenameScript script = null;
+            RenameScript script;
             if (contract.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
             {
                 script = RepoFactory.RenameScript.GetByName(Shoko.Models.Constants.Renamer.TempFileName) ??
@@ -633,7 +564,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
             response.ErrorMessage = ex.Message;
             return response;
         }
@@ -651,7 +582,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
             return ex.Message;
         }
     }
@@ -684,15 +615,13 @@ public partial class ShokoServiceImplementation
 
                 // try the local database first
                 // if not download the data from AniDB now
-                var command = _commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+                var command = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = aid;
-                    c.BubbleExceptions = true;
                     c.ForceRefresh = false;
                     c.DownloadRelations = false;
                 });
-                command.ProcessCommand();
-                var anime = command.Result;
+                var anime = command.Process().Result;
 
                 if (anime != null)
                 {
@@ -745,7 +674,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
         }
 
         return retTitles;
@@ -763,7 +692,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
         }
 
         return new List<CL_IgnoreAnime>();
@@ -779,7 +708,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
         }
     }
 
@@ -857,7 +786,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
         }
         return result;
     }
@@ -881,7 +810,7 @@ public partial class ShokoServiceImplementation
                     r.Password = settings.AniDb.Password;
                 }
             );
-            var response = request.Execute();
+            var response = request.Send().Result;
             if (response.Response != null)
             {
                 foreach (var myitem in response.Response)
@@ -906,7 +835,7 @@ public partial class ShokoServiceImplementation
                         }
                     }
 
-                    var fileMissing = false;
+                    bool fileMissing;
                     if (string.IsNullOrEmpty(hash))
                         fileMissing = true;
                     else
@@ -928,7 +857,7 @@ public partial class ShokoServiceImplementation
                     if (fileMissing)
                     {
                         // this means we can't find the file
-                        SVR_AniDB_Anime anime = null;
+                        SVR_AniDB_Anime anime;
                         if (myitem.AnimeID != null)
                         {
                             if (animeCache.ContainsKey(myitem.AnimeID.Value))
@@ -939,7 +868,7 @@ public partial class ShokoServiceImplementation
                                 animeCache[myitem.AnimeID.Value] = anime;
                             }
 
-                            SVR_AnimeSeries ser = null;
+                            SVR_AnimeSeries ser;
                             if (animeSeriesCache.ContainsKey(myitem.AnimeID.Value))
                                 ser = animeSeriesCache[myitem.AnimeID.Value];
                             else
@@ -975,7 +904,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
         }
         return contracts;
     }
@@ -984,17 +913,18 @@ public partial class ShokoServiceImplementation
     public void RemoveMissingMyListFiles(List<CL_MissingFile> myListFiles)
     {
         // TODO maybe rework this
+        var scheduler = _schedulerFactory.GetScheduler().Result;
         foreach (var missingFile in myListFiles)
         {
             var vl = RepoFactory.VideoLocal.GetByMyListID(missingFile.FileID);
             if (vl == null) continue;
-            _commandFactory.CreateAndSave<CommandRequest_DeleteFileFromMyList>(
+            scheduler.StartJob<DeleteFileFromMyListJob>(
                 c =>
                 {
                     c.Hash = vl.Hash;
                     c.FileSize = vl.FileSize;
                 }
-            );
+            ).GetAwaiter().GetResult();
 
             // For deletion of files from Trakt, we will rely on the Daily sync
             // lets also try removing from the users trakt collection
@@ -1020,7 +950,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
         }
         return contracts;
     }
@@ -1040,7 +970,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
         }
         return new List<CL_AnimeSeries_User>();
     }
@@ -1058,7 +988,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
         }
         return contracts;
     }
@@ -1077,7 +1007,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
         }
         return contracts;
     }
@@ -1092,7 +1022,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex.ToString());
         }
         return contracts;
     }
@@ -1105,20 +1035,21 @@ public partial class ShokoServiceImplementation
             // files which have been hashed, but don't have an associated episode
             var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
 
+            var scheduler = _schedulerFactory.GetScheduler().Result;
             foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
-                _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
+                scheduler.StartJob<ProcessFileJob>(
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
                         c.ForceAniDB = true;
                     }
-                );
+                ).GetAwaiter().GetResult();
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.Message);
+            _logger.LogError(ex, "{Ex}", ex.Message);
         }
     }
 
@@ -1130,20 +1061,21 @@ public partial class ShokoServiceImplementation
             // files which have been hashed, but don't have an associated episode
             var files = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
 
+            var scheduler = _schedulerFactory.GetScheduler().Result;
             foreach (var vl in files.Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
-                _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(
+                scheduler.StartJob<ProcessFileJob>(
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
                         c.ForceAniDB = true;
                     }
-                );
+                ).GetAwaiter().GetResult();
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.Message);
+            _logger.LogError(ex, "{Ex}", ex.Message);
         }
     }
 
@@ -1157,7 +1089,7 @@ public partial class ShokoServiceImplementation
             foreach (var group in files)
             {
                 var groupFiles = group.OrderBy(a => a.VideoLocal_Place_ID).ToList();
-                var first = groupFiles.FirstOrDefault();
+                var first = groupFiles.First();
                 var vl = first.VideoLocal;
                 SVR_AniDB_Anime anime = null;
                 AniDB_Episode episode = null;
@@ -1196,7 +1128,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return dupFiles;
         }
     }
@@ -1213,12 +1145,12 @@ public partial class ShokoServiceImplementation
         {
             var place = RepoFactory.VideoLocalPlace.GetByID(videoLocalPlaceID);
             var service = HttpContext.RequestServices.GetRequiredService<VideoLocal_PlaceService>();
-            service.RemoveRecordAndDeletePhysicalFile(place, false);
+            service.RemoveRecordAndDeletePhysicalFile(place, false).GetAwaiter().GetResult();
             return string.Empty;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -1238,7 +1170,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return manualFiles;
         }
     }
@@ -1290,7 +1222,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return eps;
         }
     }
@@ -1304,7 +1236,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
     }
 
@@ -1315,8 +1247,8 @@ public partial class ShokoServiceImplementation
     {
         relGroupName = relGroupName == null || relGroupName.EqualsInvariantIgnoreCase("null") || relGroupName.Equals(string.Empty) ? null : Uri.UnescapeDataString(relGroupName.Replace("+", " "));
         videoSource = videoSource == null ? null : Uri.UnescapeDataString(videoSource.Replace("+", " "));
-        logger.Trace($"GetFilesByGroupAndResolution -- relGroupName: {relGroupName}");
-        logger.Trace($"GetFilesByGroupAndResolution -- videoSource: {videoSource}");
+        _logger.LogTrace("GetFilesByGroupAndResolution -- relGroupName: {GroupName}", relGroupName);
+        _logger.LogTrace("GetFilesByGroupAndResolution -- videoSource: {VideoSource}", videoSource);
 
         var vids = new List<CL_VideoDetailed>();
 
@@ -1334,11 +1266,11 @@ public partial class ShokoServiceImplementation
                 // Sometimes, especially with older files, the info doesn't quite match for resolution
                 var vidResInfo = vid.VideoResolution;
                 
-                logger.Trace($"GetFilesByGroupAndResolution -- thisBitDepth: {thisBitDepth}");
-                logger.Trace($"GetFilesByGroupAndResolution -- videoBitDepth: {videoBitDepth}");
+                _logger.LogTrace("GetFilesByGroupAndResolution -- thisBitDepth: {BitDepth}", thisBitDepth);
+                _logger.LogTrace("GetFilesByGroupAndResolution -- videoBitDepth: {BitDepth}", videoBitDepth);
 
-                logger.Trace($"GetFilesByGroupAndResolution -- vidResInfo: {vidResInfo}");
-                logger.Trace($"GetFilesByGroupAndResolution -- resolution: {resolution}");
+                _logger.LogTrace("GetFilesByGroupAndResolution -- vidResInfo: {VidResInfo}", vidResInfo);
+                _logger.LogTrace("GetFilesByGroupAndResolution -- resolution: {Resolution}", resolution);
 
                 var eps = vid.GetAnimeEpisodes();
                 if (eps.Count == 0) continue;
@@ -1347,17 +1279,17 @@ public partial class ShokoServiceImplementation
                     "Manual Link".EqualsInvariantIgnoreCase(videoSource) ||
                     "unknown".EqualsInvariantIgnoreCase(videoSource);
                 var groupMatches = Constants.NO_GROUP_INFO.EqualsInvariantIgnoreCase(relGroupName) || "null".EqualsInvariantIgnoreCase(relGroupName) || relGroupName == null;
-                logger.Trace($"GetFilesByGroupAndResolution -- sourceMatches (manual/unkown): {sourceMatches}");
-                logger.Trace($"GetFilesByGroupAndResolution -- groupMatches (NO GROUP INFO): {groupMatches}");
+                _logger.LogTrace("GetFilesByGroupAndResolution -- sourceMatches (manual/unkown): {SourceMatches}", sourceMatches);
+                _logger.LogTrace("GetFilesByGroupAndResolution -- groupMatches (NO GROUP INFO): {GroupMatches}", groupMatches);
                 
                 // get the anidb file info
                 var aniFile = vid.GetAniDBFile();
                 if (aniFile != null)
                 {
-                    logger.Trace($"GetFilesByGroupAndResolution -- aniFile is not null");
-                    logger.Trace($"GetFilesByGroupAndResolution -- aniFile.File_Source: {aniFile.File_Source}");
-                    logger.Trace($"GetFilesByGroupAndResolution -- aniFile.Anime_GroupName: {aniFile.Anime_GroupName}");
-                    logger.Trace($"GetFilesByGroupAndResolution -- aniFile.Anime_GroupNameShort: {aniFile.Anime_GroupNameShort}");
+                    _logger.LogTrace($"GetFilesByGroupAndResolution -- aniFile is not null");
+                    _logger.LogTrace("GetFilesByGroupAndResolution -- aniFile.File_Source: {FileSource}", aniFile.File_Source);
+                    _logger.LogTrace("GetFilesByGroupAndResolution -- aniFile.Anime_GroupName: {GroupName}", aniFile.Anime_GroupName);
+                    _logger.LogTrace("GetFilesByGroupAndResolution -- aniFile.Anime_GroupNameShort: {GroupNameShort}", aniFile.Anime_GroupNameShort);
                     sourceMatches = string.Equals(videoSource, aniFile.File_Source, StringComparison.InvariantCultureIgnoreCase) || !sourceMatches &&
                         (aniFile.File_Source?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false) &&
                         string.Equals("unknown", videoSource, StringComparison.InvariantCultureIgnoreCase);
@@ -1371,15 +1303,15 @@ public partial class ShokoServiceImplementation
                          (aniFile.Anime_GroupNameShort?.Contains("unk", StringComparison.InvariantCultureIgnoreCase) ?? false)) || aniFile.Anime_GroupName == null)
                         groupMatches = Constants.NO_GROUP_INFO.EqualsInvariantIgnoreCase(relGroupName) || relGroupName == null || "null".EqualsInvariantIgnoreCase(relGroupName);
 
-                    logger.Trace($"GetFilesByGroupAndResolution -- sourceMatches (aniFile): {sourceMatches}");
-                    logger.Trace($"GetFilesByGroupAndResolution -- groupMatches (aniFile): {groupMatches}");
+                    _logger.LogTrace("GetFilesByGroupAndResolution -- sourceMatches (aniFile): {Matches}", sourceMatches);
+                    _logger.LogTrace("GetFilesByGroupAndResolution -- groupMatches (aniFile): {Matches}", groupMatches);
                 }
 
                 // match based on group / video source / video res
                 if (groupMatches && sourceMatches && thisBitDepth == videoBitDepth &&
                     string.Equals(resolution, vidResInfo, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    logger.Trace($"GetFilesByGroupAndResolution -- File Matched: {vid.FileName}");
+                    _logger.LogTrace("GetFilesByGroupAndResolution -- File Matched: {FileName}", vid.FileName);
                     vids.Add(vid.ToClientDetailed(userID));
                 }
             }
@@ -1387,7 +1319,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return vids;
         }
     }
@@ -1435,28 +1367,9 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return vids;
         }
-    }
-
-    /// <summary>
-    /// www is usually not used correctly
-    /// </summary>
-    /// <param name="origSource"></param>
-    /// <returns></returns>
-    private string SimplifyVideoSource(string origSource)
-    {
-        //return origSource;
-
-        if (origSource.EqualsInvariantIgnoreCase("DTV") ||
-            origSource.EqualsInvariantIgnoreCase("HDTV") ||
-            origSource.EqualsInvariantIgnoreCase("www"))
-        {
-            return "TV";
-        }
-
-        return origSource;
     }
 
     [HttpGet("AniDB/ReleaseGroup/Quality/{animeID}")]
@@ -1538,7 +1451,7 @@ public partial class ShokoServiceImplementation
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return new List<CL_GroupFileSummary>();
         }
     }
@@ -1558,17 +1471,20 @@ public partial class ShokoServiceImplementation
             return "Unable to get file location for VideoLocal with id: " + video.VideoLocalID;
         }
 
-        var command = _commandFactory.Create<CommandRequest_AVDumpFile>(
-            c => c.Videos = new() { { vidLocalID, filePath } }
-        );
-        command.BubbleExceptions = true;
-        command.ProcessCommand();
+        var session = AVDumpHelper.DumpFiles(new Dictionary<int, string>
+        {
+            {
+                vidLocalID, filePath
+            }
+        }, synchronous: true);
 
-        var output = command.Result.StandardOutput.Replace("\n", "\r\n");
-        if (command.Result.IsSuccess)
-            output += $"--------------------------------------------------------------------------------\r\n\r\n{string.Join("\r\n", command.Result.ED2Ks)}\r\n\r\nDumping successful.";
+        var output = session.StandardOutput.Replace("\n", "\r\n");
+        if (session.IsSuccess)
+            output +=
+                $"--------------------------------------------------------------------------------\r\n\r\n{string.Join("\r\n", session.ED2Ks)}\r\n\r\nDumping successful.";
         else
-            output += $"--------------------------------------------------------------------------------\r\n\r\nFailed to complete AVDump session {command.Result.SessionID}:\r\n\r\nFiles:\r\n{string.Join("\r\n", command.Result.AbsolutePaths)}\r\n\r\nStandard Output:\r\n{command.Result.StandardOutput}{(command.Result.StandardError.Length > 0 ? $"\r\nStandard Error:\r\n{command.Result.StandardError}" : "")}";
+            output +=
+                $"--------------------------------------------------------------------------------\r\n\r\nFailed to complete AVDump session {session.SessionID}:\r\n\r\nFiles:\r\n{string.Join("\r\n", session.AbsolutePaths)}\r\n\r\nStandard Output:\r\n{session.StandardOutput}{(session.StandardError.Length > 0 ? $"\r\nStandard Error:\r\n{session.StandardError}" : "")}";
         return output;
     }
 }

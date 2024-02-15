@@ -31,25 +31,25 @@ public static class AVDumpHelper
 
     private static readonly string AVDumpExecutable = Path.Combine(WorkingDirectory,  Utils.IsRunningOnLinuxOrMac() ? "AVDump3CL.dll" : "AVDump3CL.exe");
 
-    private static ConcurrentDictionary<int, AVDumpSession> ActiveSessions = new();
+    private static readonly ConcurrentDictionary<int, AVDumpSession> ActiveSessions = new();
 
-    private static Regex ProgressRegex = new Regex(@"^\s*(?<currentFiles>\d+)\/(?<totalFiles>\d+)\s+Files\s+\|\s+(?<currentBytes>\d+)\/(?<totalBytes>\d+)\s+\w{1,4}\s+\|", RegexOptions.Compiled);
+    private static readonly Regex ProgressRegex = new Regex(@"^\s*(?<currentFiles>\d+)\/(?<totalFiles>\d+)\s+Files\s+\|\s+(?<currentBytes>\d+)\/(?<totalBytes>\d+)\s+\w{1,4}\s+\|", RegexOptions.Compiled);
 
-    private static Regex SummaryRegex = new Regex(@"^\s*Total\s+\[(?<progress>[\s#]+)\]\s+(?<speed1m>\-?\d+)\s+(?<speed5m>\-?\d+)\s+(?<speed15m>\-?\d+)(?<speedUnit>[A-Za-z]+)/s\s*$", RegexOptions.Compiled);
+    private static readonly Regex SummaryRegex = new Regex(@"^\s*Total\s+\[(?<progress>[\s#]+)\]\s+(?<speed1m>\-?\d+)\s+(?<speed5m>\-?\d+)\s+(?<speed15m>\-?\d+)(?<speedUnit>[A-Za-z]+)/s\s*$", RegexOptions.Compiled);
 
-    private static Regex SeperatorRegex = new Regex(@"^\s*\-+\s*$", RegexOptions.Compiled);
+    private static readonly Regex SeperatorRegex = new Regex(@"^\s*\-+\s*$", RegexOptions.Compiled);
 
-    private static Regex InvalidCredentialsRegex = new Regex(@"\s+\(WrongUsernameOrApiKey\)$", RegexOptions.Compiled);
+    private static readonly Regex InvalidCredentialsRegex = new Regex(@"\s+\(WrongUsernameOrApiKey\)$", RegexOptions.Compiled);
 
-    private static Regex TimeoutRegex = new Regex(@"\s+\(Timeout\)$", RegexOptions.Compiled);
+    private static readonly Regex TimeoutRegex = new Regex(@"\s+\(Timeout\)$", RegexOptions.Compiled);
 
-    private static Regex AnidbCreqRegex = new Regex(@"^\s*ACreq\(Done:\s+(?<succeeded>\d+)\s+Failed:\s+(?<failed>\d+)\s+Pending:\s+(?<pending>\d+)\)\s*$", RegexOptions.Compiled);
+    private static readonly Regex AnidbCreqRegex = new Regex(@"^\s*ACreq\(Done:\s+(?<succeeded>\d+)\s+Failed:\s+(?<failed>\d+)\s+Pending:\s+(?<pending>\d+)\)\s*$", RegexOptions.Compiled);
 
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    private static object _prepareLock = new();
+    private static readonly object _prepareLock = new();
 
-    private static object _startLock = new();
+    private static readonly object _startLock = new();
 
     #endregion
     #region Public Variables
@@ -110,19 +110,7 @@ public static class AVDumpHelper
     public static AVDumpSession? GetSessionForVideo(SVR_VideoLocal video)
     {
         // Check if we have an active session for the video (x1).
-        if (ActiveSessions.TryGetValue(video.VideoLocalID, out var session))
-            return session;
-
-        // Check if a request exists for the video.
-        var commandRequest = RepoFactory.CommandRequest.GetByCommandID($"CommandRequest_AVDumpFile_{video.VideoLocalID}");
-        if (commandRequest == null)
-            return null;
-
-        // Check if an active session was created in another thread while we checked the database.
-        if (ActiveSessions.TryGetValue(video.VideoLocalID, out session))
-            return session;
-
-        return new(commandRequest.CommandRequestID, new int[] { video.VideoLocalID }, new string[] { }, false);
+        return ActiveSessions.TryGetValue(video.VideoLocalID, out var session) ? session : null;
     }
 
     /// <summary>
@@ -136,11 +124,12 @@ public static class AVDumpHelper
     /// storing some results in the database if successful.
     /// </summary>
     /// <param name="videos">The associated video for the file.</param>
-    /// <param name="commandId">The command id if this operation was ran from
-    /// the queue.</param>
+    /// <param name="commandId">The command id if this operation was ran from the queue.</param>
+    /// <param name="synchronous">Wait for completion</param>
     /// <returns>The dump results for v1 compatibility.</returns>
-    public static AVDumpSession DumpFiles(IEnumerable<KeyValuePair<int, string>> videos, int? commandId = null)
+    public static AVDumpSession DumpFiles(IEnumerable<KeyValuePair<int, string>> videos, int? commandId = null, bool synchronous = false)
     {
+        
         // Guard against stupidity and/or unforeseen errors.
         var videoDict = videos.ToDictionary(v => v.Key, v => v.Value);
         if (videoDict.Count == 0)
@@ -172,13 +161,13 @@ public static class AVDumpHelper
             var checkedIds = new HashSet<int>();
             foreach (var videoId in videoDict.Keys)
             {
-                if (ActiveSessions.TryGetValue(videoId, out var otherSession) ||
+                if (ActiveSessions.TryGetValue(videoId, out _) ||
                     !ActiveSessions.TryAdd(videoId, session))
                 {
                     var message = "Unable start an AVDump session for a VideoLocal already in a session.";
                     logger.Warn(message);
                     foreach (var checkedVideoId in checkedIds)
-                        ActiveSessions.TryRemove(checkedVideoId, out otherSession);
+                        ActiveSessions.TryRemove(checkedVideoId, out _);
 
                     session.IsRunning = false;
                     session.StandardOutput = message;
@@ -189,159 +178,162 @@ public static class AVDumpHelper
             }
         }
 
-        ShokoEventHandler.Instance.OnAVDumpStart(session);
-
-        try
+        var task = Task.Factory.StartNew(() =>
         {
-            // Prepare the sub-process and attach the event handler.
-            var stdOutBuilder = new StringBuilder();
-            var stdErrBuilder = new StringBuilder();
-            DataReceivedEventHandler onStdOutData = (sender, eventArgs) =>
+            ShokoEventHandler.Instance.OnAVDumpStart(session);
+
+            try
             {
-                // Last event (when the stream is closing) will send `null`.
-                // Ignore empty lines, seperators, the summary, or creq updates in the output for now.
-                if (string.IsNullOrWhiteSpace(eventArgs.Data) || SeperatorRegex.IsMatch(eventArgs.Data) || SummaryRegex.IsMatch(eventArgs.Data))
-                    return;
+                // Prepare the sub-process and attach the event handler.
+                var stdOutBuilder = new StringBuilder();
+                var stdErrBuilder = new StringBuilder();
+                using var subProcess = GetSubProcessForOS(
+                    new[]
+                    {
+                        $"--Timeout={settings.AniDb.AVDump.CreqTimeout}:{settings.AniDb.AVDump.CreqMaxRetries}",
+                        $"--Concurrent={settings.AniDb.AVDump.MaxConcurrency}", "--HideBuffers=true",
+                        "--HideFileProgress=true", "--DisableFileMove=true",
+                        "--DisableFileRename=true", "--Consumers=ED2K",
+                        $"--Auth={settings.AniDb.Username.Trim()}:{settings.AniDb.AVDumpKey?.Trim()}",
+                        // Workaround for when we try to start multiple dump sessions.
+                        $"--LPort={(preExistingSessions == 0 ? settings.AniDb.AVDumpClientPort : 0)}", "--PrintEd2kLink=true",
+                    }.Concat(videoDict.Values).ToArray()
+                );
+                subProcess.OutputDataReceived += (_, eventArgs) => OnStdOutMessage(eventArgs, session, stdOutBuilder);
+                subProcess.ErrorDataReceived += (_, eventArgs) => OnStdErrMessage(eventArgs, session, stdOutBuilder);
 
-                // Calculate overall progress.
-                var result = ProgressRegex.Match(eventArgs.Data);
-                if (result.Success)
+                // Start dumping.
+                logger.Info($"Running AVDump session with id {session.SessionID}: \"{string.Join("\", \"", videoDict.Values)}\"");
+                subProcess.Start();
+                subProcess.BeginOutputReadLine();
+                subProcess.BeginErrorReadLine();
+                subProcess.WaitForExit();
+
+                // Post-process the output.
+                session.IsRunning = false;
+                session.StandardOutput = stdOutBuilder.ToString();
+                session.StandardError = stdErrBuilder.ToString();
+                session.IsSuccess = string.IsNullOrEmpty(session.StandardError) &&
+                                    session.ED2Ks.Count == session.VideoIDs.Count &&
+                                    session.SucceededCreqCount == session.VideoIDs.Count &&
+                                    session.FailedCreqCount == 0 &&
+                                    session.PendingCreqCount == 0;
+                session.EndedAt = DateTime.Now;
+                if (session.IsSuccess)
                 {
-                    var currentBytes = double.Parse(result.Groups["currentBytes"].Value);
-                    var totalBytes = double.Parse(result.Groups["totalBytes"].Value);
-                    var currentProgress = currentBytes / totalBytes * 100;
-                    if (currentProgress <= session.Progress)
-                        return;
+                    foreach (var videoId in videoDict.Keys)
+                    {
+                        var video = RepoFactory.VideoLocal.GetByID(videoId);
+                        if (video == null)
+                            continue;
 
-                    session.Progress = currentProgress;
-                    ShokoEventHandler.Instance.OnAVDumpProgress(session, currentProgress);
-                    return;
+                        video.LastAVDumped = session.EndedAt;
+                        video.LastAVDumpVersion = InstalledAVDumpVersion;
+                        RepoFactory.VideoLocal.Save(video);
+                    }
+                }
+                else
+                {
+                    logger.Warn(
+                        $"Failed to complete AVDump session {session.SessionID}:\n\nFiles:\n{string.Join("\n", videoDict.Values)}\n\nStandard Output:\n{session.StandardOutput}{(session.StandardError.Length > 0 ? $"\nStandard Error:\n{session.StandardError}" : "")}");
                 }
 
-                result = AnidbCreqRegex.Match(eventArgs.Data);
-                if (result.Success)
-                {
-                    var succeeded = int.Parse(result.Groups["succeeded"].Value);
-                    var failed = int.Parse(result.Groups["failed"].Value);
-                    var pending = int.Parse(result.Groups["pending"].Value);
-                    if (succeeded == session.SucceededCreqCount && failed == session.FailedCreqCount && pending == session.PendingCreqCount)
-                        return;
-
-                    session.SucceededCreqCount = succeeded;
-                    session.FailedCreqCount = failed;
-                    session.PendingCreqCount = pending;
-                    ShokoEventHandler.Instance.OnAVDumpCreqUpdate(session, succeeded, failed, pending);
-                    return;
-                }
-
-                // Emit an invalid credentials event if we couldn't authenticate with AniDB.
-                if (InvalidCredentialsRegex.IsMatch(eventArgs.Data))
-                    ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.InvalidCredentials);
-
-                // Emit a timeout event if the connection to anidb timed out.
-                if (TimeoutRegex.IsMatch(eventArgs.Data))
-                    ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.Timeout);
-
-                if (eventArgs.Data.Trim().StartsWith("ed2k://|file|"))
-                {
-                    var ed2kLink = eventArgs.Data.Trim();
-                    session.ED2Ks.Add(ed2kLink);
-                    ShokoEventHandler.Instance.OnAVDumpMessage(session, AVDumpEventType.ED2KLink, ed2kLink);
-                    return;
-                }
-
-                // Append everything else to the outputs. We use \r\n for v1 compatibility.
-                stdOutBuilder.Append(eventArgs.Data + "\n");
-                ShokoEventHandler.Instance.OnAVDumpMessage(session, AVDumpEventType.Message, eventArgs.Data);
-            };
-            DataReceivedEventHandler onStdErrData = (sender, eventArgs) =>
-            {
-                // Last event (when the stream is closing) will send `null`.
-                // Also ignore any empty lines sent to standard error.
-                if (string.IsNullOrWhiteSpace(eventArgs.Data))
-                    return;
-
-                stdErrBuilder.Append(eventArgs.Data.Trim() + "\n");
-                ShokoEventHandler.Instance.OnAVDumpMessage(session, AVDumpEventType.Error, eventArgs.Data);
-            };
-            using var subProcess = GetSubProcessForOS(
-                new string[] {
-                    $"--Timeout={settings.AniDb.AVDump.CreqTimeout}:{settings.AniDb.AVDump.CreqMaxRetries}",
-                    $"--Concurrent={settings.AniDb.AVDump.MaxConcurrency}",
-                    "--HideBuffers=true",
-                    "--HideFileProgress=true",
-                    "--DisableFileMove=true",
-                    "--DisableFileRename=true",
-                    "--Consumers=ED2K",
-                    $"--Auth={settings.AniDb.Username.Trim()}:{settings.AniDb.AVDumpKey?.Trim()}",
-                    // Workaround for when we try to start multiple dump sessions.
-                    $"--LPort={(preExistingSessions == 0 ? settings.AniDb.AVDumpClientPort : 0)}",
-                    "--PrintEd2kLink=true",
-                }.Concat(videoDict.Values).ToArray()
-            );
-            subProcess.OutputDataReceived += onStdOutData;
-            subProcess.ErrorDataReceived += onStdErrData;
-
-            // Start dumping.
-            logger.Info($"Running AVDump session with id {session.SessionID}: \"{string.Join("\", \"", videoDict.Values)}\"");
-            subProcess.Start();
-            subProcess.BeginOutputReadLine();
-            subProcess.BeginErrorReadLine();
-            subProcess.WaitForExit();
-
-            // Post-process the output.
-            session.IsRunning = false;
-            session.StandardOutput = stdOutBuilder.ToString();
-            session.StandardError = stdErrBuilder.ToString();
-            session.IsSuccess = string.IsNullOrEmpty(session.StandardError) &&
-                session.ED2Ks.Count == session.VideoIDs.Count &&
-                session.SucceededCreqCount == session.VideoIDs.Count &&
-                session.FailedCreqCount == 0 &&
-                session.PendingCreqCount == 0;
-            session.EndedAt = DateTime.Now;
-            if (session.IsSuccess) {
-                foreach (var videoId in videoDict.Keys)
-                {
-                    var video = RepoFactory.VideoLocal.GetByID(videoId);
-                    if (video == null)
-                        continue;
-
-                    video.LastAVDumped = session.EndedAt;
-                    video.LastAVDumpVersion = InstalledAVDumpVersion;
-                    RepoFactory.VideoLocal.Save(video);
-                }
+                // Report the results.
+                ShokoEventHandler.Instance.OnAVDumpEnd(session);
             }
-            // Print errors to log file if it was unsuccessful.
-            else
+            catch (Exception ex)
             {
-                logger.Warn($"Failed to complete AVDump session {session.SessionID}:\n\nFiles:\n{string.Join("\n", videoDict.Values)}\n\nStandard Output:\n{session.StandardOutput}{(session.StandardError.Length > 0 ? $"\nStandard Error:\n{session.StandardError}" : "")}");
+                var message =
+                    $"An error occurred while running AVDump session {session.SessionID}:\n\nFiles:\n{string.Join("\n", videoDict.Values)}\n\nStack Trace:\n{ex.StackTrace}";
+
+                // Update the session.
+                session.IsRunning = false;
+                session.StandardOutput = message;
+                session.StandardError = ex.StackTrace ?? string.Empty;
+                session.IsSuccess = false;
+                session.EndedAt = DateTime.Now;
+
+                logger.Error(message);
+                ShokoEventHandler.Instance.OnAVDumpGenericException(session, ex);
             }
-
-            // Report the results.
-            ShokoEventHandler.Instance.OnAVDumpEnd(session);
-        }
-        catch (Exception ex)
-        {
-            var message = $"An error occurred while running AVDump session {session.SessionID}:\n\nFiles:\n{string.Join("\n", videoDict.Values)}\n\nStack Trace:\n{ex.StackTrace}";
-
-            // Update the session.
-            session.IsRunning = false;
-            session.StandardOutput = message;
-            session.StandardError = ex.StackTrace ?? string.Empty;
-            session.IsSuccess = false;
-            session.EndedAt = DateTime.Now;
-
-            logger.Error(message);
-            ShokoEventHandler.Instance.OnAVDumpGenericException(session, ex);
-        }
-        finally
-        {
-            lock (_startLock)
-                foreach (var videoId in videoDict.Keys)
-                    ActiveSessions.TryRemove(videoId, out var otherSession);
-        }
+            finally
+            {
+                lock (_startLock)
+                    foreach (var videoId in videoDict.Keys)
+                        ActiveSessions.TryRemove(videoId, out _);
+            }
+        }).ConfigureAwait(false);
+        if (synchronous) task.GetAwaiter().GetResult();
 
         return session;
+    }
+
+    private static void OnStdErrMessage(DataReceivedEventArgs eventArgs, AVDumpSession session, StringBuilder stdErrBuilder)
+    {
+        // Last event (when the stream is closing) will send `null`.
+        // Also ignore any empty lines sent to standard error.
+        if (string.IsNullOrWhiteSpace(eventArgs.Data))
+            return;
+
+        stdErrBuilder.Append(eventArgs.Data.Trim() + "\n");
+        ShokoEventHandler.Instance.OnAVDumpMessage(session, AVDumpEventType.Error, eventArgs.Data);
+    }
+
+    private static void OnStdOutMessage(DataReceivedEventArgs eventArgs, AVDumpSession session, StringBuilder stdOutBuilder)
+    {
+        // Last event (when the stream is closing) will send `null`.
+        // Ignore empty lines, separators, the summary, or creq updates in the output for now.
+        if (string.IsNullOrWhiteSpace(eventArgs.Data) || SeperatorRegex.IsMatch(eventArgs.Data) || SummaryRegex.IsMatch(eventArgs.Data)) return;
+
+        // Calculate overall progress.
+        var result = ProgressRegex.Match(eventArgs.Data);
+        if (result.Success)
+        {
+            var currentBytes = double.Parse(result.Groups["currentBytes"].Value);
+            var totalBytes = double.Parse(result.Groups["totalBytes"].Value);
+            var currentProgress = currentBytes / totalBytes * 100;
+            if (currentProgress <= session.Progress) return;
+
+            session.Progress = currentProgress;
+            ShokoEventHandler.Instance.OnAVDumpProgress(session, currentProgress);
+            return;
+        }
+
+        result = AnidbCreqRegex.Match(eventArgs.Data);
+        if (result.Success)
+        {
+            var succeeded = int.Parse(result.Groups["succeeded"].Value);
+            var failed = int.Parse(result.Groups["failed"].Value);
+            var pending = int.Parse(result.Groups["pending"].Value);
+            if (succeeded == session.SucceededCreqCount && failed == session.FailedCreqCount && pending == session.PendingCreqCount)
+                return;
+
+            session.SucceededCreqCount = succeeded;
+            session.FailedCreqCount = failed;
+            session.PendingCreqCount = pending;
+            ShokoEventHandler.Instance.OnAVDumpCreqUpdate(session, succeeded, failed, pending);
+            return;
+        }
+
+        // Emit an invalid credentials event if we couldn't authenticate with AniDB.
+        if (InvalidCredentialsRegex.IsMatch(eventArgs.Data))
+            ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.InvalidCredentials);
+
+        // Emit a timeout event if the connection to anidb timed out.
+        if (TimeoutRegex.IsMatch(eventArgs.Data))
+            ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.Timeout);
+
+        if (eventArgs.Data.Trim().StartsWith("ed2k://|file|"))
+        {
+            var ed2kLink = eventArgs.Data.Trim();
+            session.ED2Ks.Add(ed2kLink);
+            ShokoEventHandler.Instance.OnAVDumpMessage(session, AVDumpEventType.ED2KLink, ed2kLink);
+            return;
+        }
+
+        // Append everything else to the outputs. We use \r\n for v1 compatibility.
+        stdOutBuilder.Append(eventArgs.Data + "\n");
+        ShokoEventHandler.Instance.OnAVDumpMessage(session, AVDumpEventType.Message, eventArgs.Data);
     }
 
     #endregion

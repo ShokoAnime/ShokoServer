@@ -33,6 +33,7 @@ public abstract class GetConnectivityMonitor : IConnectivityMonitor
         if (_lastRunTimestamp is not null && _lastRunTimestamp.Value.AddMinutes(15) < DateTime.Now)
             return;
 
+        var lastState = _lastState;
         _logger.LogTrace("Trying to connect to {Service}", Service);
         // TODO: Use polly for retry and backoff
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(_target));
@@ -58,7 +59,10 @@ public abstract class GetConnectivityMonitor : IConnectivityMonitor
         {
             _lastRunTimestamp = DateTime.Now;
         }
+
+        if (lastState != _lastState) StateChanged?.Invoke(null, EventArgs.Empty);
     }
 
     public bool HasConnected => _lastState;
+    public event EventHandler StateChanged;
 }

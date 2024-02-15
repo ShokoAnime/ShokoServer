@@ -3,9 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Commands;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 #nullable enable
@@ -20,11 +18,8 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class AVDumpController : BaseController
 {
-    private readonly ICommandRequestFactory _commandFactory;
-
-    public AVDumpController(ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public AVDumpController(ISettingsProvider settingsProvider) : base(settingsProvider)
     {
-        _commandFactory = commandFactory;
     }
 
     /// <summary>
@@ -101,12 +96,7 @@ public class AVDumpController : BaseController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var command = _commandFactory.Create<CommandRequest_AVDumpFile>(
-            c => c.Videos = fileDictionary
-        );
-        if (body.Priority)
-            command.Priority = (int)CommandRequestPriority.Priority1;
-        _commandFactory.Save(command);
+        AVDumpHelper.DumpFiles(fileDictionary);
 
         return Ok();
     }

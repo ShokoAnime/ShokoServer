@@ -1,6 +1,8 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -17,7 +19,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
     private readonly ushort _serverPort;
     private readonly ushort _clientPort;
     private readonly ILogger<AniDBSocketHandler> _logger;
-    private static readonly object Lock = new();
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private bool Locked { get; set; }
     public bool IsLocked => Locked;
 
@@ -30,45 +32,48 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         _clientPort = clientPort;
     }
 
-    public byte[] Send(byte[] payload)
+    public async Task<byte[]> Send(byte[] payload)
     {
-        lock (Lock)
-        {
-            // this doesn't need to be bigger than 1400, but meh, better safe than sorry
-            var result = new byte[1600];
-            Locked = true;
+        await _semaphore.WaitAsync();
+        // this doesn't need to be bigger than 1400, but meh, better safe than sorry
+        var result = new byte[1600];
+        Locked = true;
 
+        try
+        {
             try
             {
-                try
-                {
-                    result = SendUnsafe(payload, result);
-                }
-                catch (SocketException e)
-                {
-                    if (e.SocketErrorCode == SocketError.TimedOut)
-                    {
-                        // we will retry once and only once.
-                        result = SendUnsafe(payload, result);
-                    }
-                }
+                result = await SendUnsafe(payload, result);
             }
-            catch (Exception e)
+            catch (SocketException e)
             {
-                _logger.LogError(e, "{Ex}", e);
+                if (e.SocketErrorCode == SocketError.TimedOut)
+                {
+                    // we will retry once and only once.
+                    result = await SendUnsafe(payload, result);
+                }
             }
-
-            Locked = false;
-            return result;
         }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "{Ex}", e);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+
+        Locked = false;
+        return result;
     }
 
-    private byte[] SendUnsafe(byte[] payload, byte[] result)
+    private async Task<byte[]> SendUnsafe(byte[] payload, byte[] result)
     {
         EmptyBuffer();
-        _aniDBSocket.SendTo(payload, _remoteIpEndPoint);
+        await _aniDBSocket.SendToAsync(payload, SocketFlags.None, _remoteIpEndPoint);
         EndPoint temp = _remoteIpEndPoint;
-        var received = _aniDBSocket.ReceiveFrom(result, ref temp);
+        var receivedResult = await _aniDBSocket.ReceiveFromAsync(result, SocketFlags.None, temp);
+        var received = receivedResult.ReceivedBytes;
 
         if (received > 2 && result[0] == 0 && result[1] == 0)
         {
@@ -109,85 +114,118 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         }
     }
 
-    public bool TryConnection()
+    public async Task<bool> TryConnection()
     {
-        lock (Lock)
+        await _semaphore.WaitAsync();
+        // Dont send Expect 100 requests. These requests aren't always supported by remote internet devices, in which case can cause failure.
+        ServicePointManager.Expect100Continue = false;
+
+        try
         {
-            // Dont send Expect 100 requests. These requests aren't always supported by remote internet devices, in which case can cause failure.
-            ServicePointManager.Expect100Continue = false;
+            _localIpEndPoint = new IPEndPoint(IPAddress.Any, _clientPort);
 
-            try
-            {
-                _localIpEndPoint = new IPEndPoint(IPAddress.Any, _clientPort);
+            // we use bind() here (normally only for servers, not clients) instead of connect() because of this:
+            /*
+             * Local Port
+             *  A client should select a fixed local port >1024 at install time and reuse it for local UDP Sockets. If the API sees too many different UDP Ports from one IP within ~1 hour it will ban the IP. (So make sure you're reusing your UDP ports also for testing/debugging!)
+             *  The local port may be hardcoded, however, an option to manually specify another port should be offered.
+             */
+            _aniDBSocket.Bind(_localIpEndPoint);
+            _aniDBSocket.ReceiveTimeout = 30000; // 30 seconds
 
-                // we use bind() here (normally only for servers, not clients) instead of connect() because of this:
-                /*
-                 * Local Port
-                 *  A client should select a fixed local port >1024 at install time and reuse it for local UDP Sockets. If the API sees too many different UDP Ports from one IP within ~1 hour it will ban the IP. (So make sure you're reusing your UDP ports also for testing/debugging!)
-                 *  The local port may be hardcoded, however, an option to manually specify another port should be offered.
-                 */
-                _aniDBSocket.Bind(_localIpEndPoint);
-                _aniDBSocket.ReceiveTimeout = 30000; // 30 seconds
-
-                _logger.LogInformation("Bound to local address: {Local} - Port: {ClientPort} ({Family})", _localIpEndPoint,
-                    _clientPort, _localIpEndPoint.AddressFamily);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Could not bind to local port");
-                return false;
-            }
-
-            try
-            {
-                var remoteHostEntry = Dns.GetHostEntry(_serverHost);
-                _remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], _serverPort);
-
-                _logger.LogInformation("Bound to remote address: {Address} : {Port}", _remoteIpEndPoint.Address,
-                    _remoteIpEndPoint.Port);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Could not bind to remote port");
-                return false;
-            }
-
-            return true;
+            _logger.LogInformation("Bound to local address: {Local} - Port: {ClientPort} ({Family})", _localIpEndPoint,
+                _clientPort, _localIpEndPoint.AddressFamily);
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not bind to local port");
+            _semaphore.Release();
+            return false;
+        }
+
+        try
+        {
+            var remoteHostEntry = await Dns.GetHostEntryAsync(_serverHost);
+            _remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], _serverPort);
+
+            _logger.LogInformation("Bound to remote address: {Address} : {Port}", _remoteIpEndPoint.Address,
+                _remoteIpEndPoint.Port);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not bind to remote port");
+            _semaphore.Release();
+            return false;
+        }
+
+        _semaphore.Release();
+        return true;
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        await _semaphore.WaitAsync();
+        GC.SuppressFinalize(this);
+        if (_aniDBSocket == null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (_aniDBSocket.Connected)
+            {
+                _aniDBSocket.Shutdown(SocketShutdown.Both);
+            }
+
+            // should not be the case
+            if (_aniDBSocket.Connected)
+            {
+                await _aniDBSocket.DisconnectAsync(false);
+            }
+        }
+        catch (SocketException ex)
+        {
+            _logger.LogError(ex, "Failed to Shutdown and Disconnect the connection to AniDB");
+        }
+        finally
+        {
+            _aniDBSocket.Close();
+            _logger.LogInformation("Closed AniDB Connection");
+            _semaphore.Release();
+            _semaphore.Dispose();
+        }
+    }
+    
     public void Dispose()
     {
-        lock (Lock)
+        _semaphore.Wait();
+        GC.SuppressFinalize(this);
+        if (_aniDBSocket == null) return;
+
+        try
         {
-            GC.SuppressFinalize(this);
-            if (_aniDBSocket == null)
+            if (_aniDBSocket.Connected)
             {
-                return;
+                _aniDBSocket.Shutdown(SocketShutdown.Both);
             }
 
-            try
+            // should not be the case
+            if (_aniDBSocket.Connected)
             {
-                if (_aniDBSocket.Connected)
-                {
-                    _aniDBSocket.Shutdown(SocketShutdown.Both);
-                }
-
-                // should not be the case
-                if (_aniDBSocket.Connected)
-                {
-                    _aniDBSocket.Disconnect(false);
-                }
+                _aniDBSocket.Disconnect(false);
             }
-            catch (SocketException ex)
-            {
-                _logger.LogError(ex, "Failed to Shutdown and Disconnect the connection to AniDB");
-            }
-            finally
-            {
-                _aniDBSocket.Close();
-                _logger.LogInformation("Closed AniDB Connection");
-            }
+        }
+        catch (SocketException ex)
+        {
+            _logger.LogError(ex, "Failed to Shutdown and Disconnect the connection to AniDB");
+        }
+        finally
+        {
+            _aniDBSocket.Close();
+            _logger.LogInformation("Closed AniDB Connection");
+            _semaphore.Release();
+            _semaphore.Dispose();
         }
     }
 }

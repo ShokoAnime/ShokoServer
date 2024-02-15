@@ -1,7 +1,5 @@
-using Newtonsoft.Json;
-using Shoko.Models.Queue;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.Generic;
+using System.Collections.Generic;
+using Shoko.Server.API.v3.Models.Shoko;
 
 #nullable enable
 namespace Shoko.Server.API.SignalR.Models;
@@ -9,83 +7,23 @@ namespace Shoko.Server.API.SignalR.Models;
 public class QueueStateSignalRModel
 {
     /// <summary>
-    /// The current state of the queue, as an enum value.
+    /// The number of jobs waiting to execute, but nothing is blocking it except available threads
     /// </summary>
-    public QueueStateEnum State { get; }
-
+    public int WaitingCount { get; set; }
     /// <summary>
-    /// This is the verbose version of the current state of the queue, and the
-    /// description of what is happening to the current command in the queue.
+    /// The number of jobs that can't run due to various circumstances, such as concurrency limits or bans
     /// </summary>
-    public string Description { get; }
-
+    public int BlockedCount { get; set; }
     /// <summary>
-    /// The current command id. Makes it easier knowing when we switched to
-    /// processing a new command.
+    /// The total number of jobs waiting to execute, regardless of state
     /// </summary>
-    public int? CurrentCommandID { get; }
-
+    public int TotalCount { get; set; }
     /// <summary>
-    /// The current number of commands in the queue.
+    /// The number of threads that the queue will use. This is the maximum number of concurrent jobs
     /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public int? QueueCount { get; }
-
+    public int ThreadCount { get; set; }
     /// <summary>
-    /// The queue status.
+    /// The currently executing jobs and their details
     /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public string? Status { get; }
-
-    public QueueStateSignalRModel(QueueStateEventArgs eventArgs, bool legacy = false)
-    {
-        if (legacy)
-        {
-            State = eventArgs.IsPaused ? QueueStateEnum.Paused : eventArgs.QueueState.queueState;
-            Description = eventArgs.IsPaused ? "Paused" : eventArgs.QueueState.formatMessage();
-        }
-        else {
-            State = eventArgs.QueueState.queueState;
-            Description = eventArgs.QueueState.formatMessage();
-            CurrentCommandID = eventArgs.CommandRequestID;
-            QueueCount = eventArgs.QueueCount;
-            Status = eventArgs.IsPaused ? (
-                // Check if it's still running even though it should be stopped.
-                CurrentCommandID != null ? "Pausing" : "Paused"
-            ) : eventArgs.QueueState.queueState == QueueStateEnum.Idle ? (
-                // Check if it's actually idle, or if it's waiting to resume work.
-                eventArgs.QueueCount > 0 ? "Waiting" : "Idle"
-            ) : (
-                // It's currently running a command.
-                "Running"
-            );
-        }
-    }
-
-    public QueueStateSignalRModel(CommandProcessor processor, bool legacy = false)
-    {
-        // only create a deep-copy of the queue state once, then re-use it.
-        var queueState = processor.QueueState;
-        if (legacy)
-        {
-            State = processor.Paused ? QueueStateEnum.Paused : queueState.queueState;
-            Description = processor.Paused ? "Paused" : queueState.formatMessage();
-        }
-        else {
-            State = queueState.queueState;
-            Description = queueState.formatMessage();
-            CurrentCommandID = processor.CurrentCommand?.CommandRequestID;
-            QueueCount = processor.QueueCount;
-            Status = processor.Paused ? (
-                // Check if it's still running even though it should be stopped.
-                CurrentCommandID != null ? "Pausing" : "Paused"
-            ) : queueState.queueState == QueueStateEnum.Idle ? (
-                // Check if it's actually idle, or if it's waiting to resume work.
-                processor.QueueCount > 0 ? "Waiting" : "Idle"
-            ) : (
-                // It's currently running a command.
-                "Running"
-            );
-        }
-    }
+    public List<Queue.QueueItem> CurrentlyExecuting { get; set; }
 }

@@ -1,20 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Scheduling.Jobs.TvDB;
 using Shoko.Server.Utilities;
 using AniDBAnimeType = Shoko.Models.Enums.AnimeType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -32,9 +34,13 @@ public class SeriesFactory
     private readonly CustomTagRepository _customTagRepository;
     private readonly AniDB_TagRepository _aniDBTagRepository;
     private readonly AniDB_Anime_TagRepository _aniDBAnimeTagRepository;
+    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly JobFactory _jobFactory;
 
-    public SeriesFactory(IHttpContextAccessor context)
+    public SeriesFactory(IHttpContextAccessor context, ISchedulerFactory schedulerFactory, JobFactory jobFactory)
     {
+        _schedulerFactory = schedulerFactory;
+        _jobFactory = jobFactory;
         _context = context.HttpContext;
         _crossRefAnimeStaffRepository = RepoFactory.CrossRef_Anime_Staff;
         _animeCharacterRepository = RepoFactory.AnimeCharacter;
@@ -51,7 +57,7 @@ public class SeriesFactory
         var animeType = (AniDBAnimeType)anime.AnimeType;
 
         var result = new Series();
-        AddBasicAniDBInfo(result, ser, anime);
+        AddBasicAniDBInfo(result, anime);
 
         var ael = ser.GetAnimeEpisodes();
         var contract = ser.Contract;
@@ -82,7 +88,7 @@ public class SeriesFactory
         return result;
     }
 
-    private void AddBasicAniDBInfo(Series result, SVR_AnimeSeries series, SVR_AniDB_Anime anime)
+    private void AddBasicAniDBInfo(Series result, SVR_AniDB_Anime anime)
     {
         if (anime == null)
         {
@@ -149,91 +155,68 @@ public class SeriesFactory
         }
     }
 
-    public static bool QueueAniDBRefresh(ICommandRequestFactory commandFactory, IHttpConnectionHandler handler,
+    public async Task<bool> QueueAniDBRefresh(ISchedulerFactory schedulerFactory, JobFactory jobFactory,
         int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
         bool cacheOnly = false)
     {
-        if (force)
-            return QueueForcedAniDBRefresh(commandFactory, handler, animeID, downloadRelations, createSeriesEntry, immediate);
+        if (immediate)
+        {
+            var command = jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
+            {
+                c.AnimeID = animeID;
+                c.DownloadRelations = downloadRelations;
+                c.ForceRefresh = force;
+                c.CacheOnly = !force && cacheOnly;
+                c.CreateSeriesEntry = createSeriesEntry;
+            });
 
-        var command = commandFactory.Create<CommandRequest_GetAnimeHTTP>(c =>
+            try
+            {
+                return await command.Process() != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        var scheduler = await schedulerFactory.GetScheduler();
+        await scheduler.StartJob<GetAniDBAnimeJob>(c =>
         {
             c.AnimeID = animeID;
             c.DownloadRelations = downloadRelations;
             c.ForceRefresh = force;
             c.CacheOnly = !force && cacheOnly;
             c.CreateSeriesEntry = createSeriesEntry;
-            c.BubbleExceptions = immediate;
         });
+        return false;
+    }
+
+    public async Task<bool> QueueTvDBRefresh(int tvdbID, bool force, bool immediate = false)
+    {
         if (immediate)
         {
             try
             {
-                command.ProcessCommand();
+                var job = _jobFactory.CreateJob<GetTvDBSeriesJob>(c =>
+                {
+                    c.TvDBSeriesID = tvdbID;
+                    c.ForceRefresh = force;
+                });
+                return await job.Process() != null;
             }
             catch
             {
                 return false;
             }
-
-            return command.Result != null;
         }
 
-        commandFactory.Save(command);
-        return false;
-    }
-
-    private static bool QueueForcedAniDBRefresh(ICommandRequestFactory commandFactory, IHttpConnectionHandler handler,
-        int animeID, bool downloadRelations, bool createSeriesEntry, bool immediate = false)
-    {
-        var command = commandFactory.Create<CommandRequest_GetAnimeHTTP_Force>(c =>
-        {
-            c.AnimeID = animeID;
-            c.DownloadRelations = downloadRelations;
-            c.CreateSeriesEntry = createSeriesEntry;
-            c.BubbleExceptions = immediate;
-        });
-        if (immediate && !handler.IsBanned)
-        {
-            try
-            {
-                command.ProcessCommand();
-            }
-            catch
-            {
-                return false;
-            }
-
-            return command.Result != null;
-        }
-
-        commandFactory.Save(command);
-        return false;
-    }
-
-    public static bool QueueTvDBRefresh(ICommandRequestFactory commandFactory, int tvdbID, bool force, bool immediate = false)
-    {
-        var command = commandFactory.Create<CommandRequest_TvDBUpdateSeries>(c =>
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<GetTvDBSeriesJob>(c =>
         {
             c.TvDBSeriesID = tvdbID;
             c.ForceRefresh = force;
-            c.BubbleExceptions = immediate;
         });
-        if (immediate)
-        {
-            try
-            {
-                command.ProcessCommand();
-            }
-            catch
-            {
-                return false;
-            }
-
-            return command.Result != null;
-        }
-
-        commandFactory.Save(command);
         return false;
     }
 
@@ -342,13 +325,13 @@ public class SeriesFactory
             .ToList();
     }
 
-    public static void AddSeriesVote(ICommandRequestFactory commandFactory, SVR_AnimeSeries ser, int userID, Vote vote)
+    public static async Task AddSeriesVote(ISchedulerFactory schedulerFactory, SVR_AnimeSeries ser, int userID, Vote vote)
     {
         var voteType = (vote.Type?.ToLowerInvariant() ?? "") switch
         {
-            "temporary" => (int)AniDBVoteType.AnimeTemp,
-            "permanent" => (int)AniDBVoteType.Anime,
-            _ => ser.GetAnime()?.GetFinishedAiring() ?? false ? (int)AniDBVoteType.Anime : (int)AniDBVoteType.AnimeTemp
+            "temporary" => AniDBVoteType.AnimeTemp,
+            "permanent" => AniDBVoteType.Anime,
+            _ => ser.GetAnime()?.GetFinishedAiring() ?? false ? AniDBVoteType.Anime : AniDBVoteType.AnimeTemp
         };
 
         var dbVote = RepoFactory.AniDB_Vote.GetByEntityAndType(ser.AniDB_ID, AniDBVoteType.AnimeTemp) ??
@@ -360,12 +343,12 @@ public class SeriesFactory
         }
 
         dbVote.VoteValue = (int)Math.Floor(vote.GetRating(1000));
-        dbVote.VoteType = voteType;
+        dbVote.VoteType = (int)voteType;
 
         RepoFactory.AniDB_Vote.Save(dbVote);
 
-        commandFactory.CreateAndSave<CommandRequest_VoteAnime>(
-            c =>
+        var scheduler = await schedulerFactory.GetScheduler();
+        await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
             {
                 c.AnimeID = ser.AniDB_ID;
                 c.VoteType = voteType;

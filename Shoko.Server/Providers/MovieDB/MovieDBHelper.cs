@@ -1,16 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using System.Web;
 using Microsoft.Extensions.Logging;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Utilities;
 using TMDbLib.Client;
 
@@ -19,17 +22,18 @@ namespace Shoko.Server.Providers.MovieDB;
 public class MovieDBHelper
 {
     private readonly ILogger<MovieDBHelper> _logger;
-    private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISchedulerFactory _schedulerFactory;
     private const string APIKey = "8192e8032758f0ef4f7caa1ab7b32dd3";
 
-    public MovieDBHelper(ILogger<MovieDBHelper> logger, ICommandRequestFactory commandFactory)
+    public MovieDBHelper(ILogger<MovieDBHelper> logger, ISchedulerFactory schedulerFactory)
     {
         _logger = logger;
-        _commandFactory = commandFactory;
+        _schedulerFactory = schedulerFactory;
     }
 
-    private void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages, bool isTrakt)
+    private async Task SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages, bool isTrakt)
     {
+        var scheduler = await _schedulerFactory.GetScheduler();
         // save to the DB
         var movie = RepoFactory.MovieDb_Movie.GetByOnlineID(searchResult.MovieID) ?? new MovieDB_Movie();
         movie.Populate(searchResult);
@@ -92,11 +96,11 @@ public class MovieDBHelper
                         continue;
                     }
 
-                    _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
+                    await scheduler.StartJob<DownloadTMDBImageJob>(
                         c =>
                         {
-                            c.EntityID = poster.MovieDB_PosterID;
-                            c.EntityType = (int)ImageEntityType.MovieDB_Poster;
+                            c.ImageID = poster.MovieDB_PosterID;
+                            c.ImageType = ImageEntityType.MovieDB_Poster;
                         }
                     );
                     numPostersDownloaded++;
@@ -127,11 +131,11 @@ public class MovieDBHelper
                         continue;
                     }
 
-                    _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
+                    await scheduler.StartJob<DownloadTMDBImageJob>(
                         c =>
                         {
-                            c.EntityID = fanart.MovieDB_FanartID;
-                            c.EntityType = (int)ImageEntityType.MovieDB_FanArt;
+                            c.ImageID = fanart.MovieDB_FanartID;
+                            c.ImageType = ImageEntityType.MovieDB_FanArt;
                         }
                     );
                     numFanartDownloaded++;
@@ -150,7 +154,7 @@ public class MovieDBHelper
         }
     }
 
-    public List<MovieDB_Movie_Result> Search(string criteria)
+    public async Task<List<MovieDB_Movie_Result>> Search(string criteria)
     {
         var results = new List<MovieDB_Movie_Result>();
 
@@ -168,7 +172,7 @@ public class MovieDBHelper
                 var imgs = client.GetMovieImages(result.Id);
                 searchResult.Populate(movie, imgs);
                 results.Add(searchResult);
-                SaveMovieToDatabase(searchResult, false, false);
+                await SaveMovieToDatabase(searchResult, false, false);
             }
         }
         catch (Exception ex)
@@ -179,7 +183,7 @@ public class MovieDBHelper
         return results;
     }
 
-    public void UpdateAllMovieInfo(bool saveImages)
+    public async Task UpdateAllMovieInfo(bool saveImages)
     {
         using var session = DatabaseFactory.SessionFactory.OpenSession();
         var all = RepoFactory.MovieDb_Movie.GetAll();
@@ -191,7 +195,7 @@ public class MovieDBHelper
             {
                 i++;
                 _logger.LogInformation("Updating MovieDB Movie {I}/{Max}", i, max);
-                UpdateMovieInfo(movie.MovieId, saveImages);
+                await UpdateMovieInfo(movie.MovieId, saveImages);
             }
             catch (Exception e)
             {
@@ -200,7 +204,7 @@ public class MovieDBHelper
         }
     }
 
-    public void UpdateMovieInfo(int movieID, bool saveImages)
+    public async Task UpdateMovieInfo(int movieID, bool saveImages)
     {
         try
         {
@@ -212,7 +216,7 @@ public class MovieDBHelper
             searchResult.Populate(movie, imgs);
 
             // save to the DB
-            SaveMovieToDatabase(searchResult, saveImages, false);
+            await SaveMovieToDatabase(searchResult, saveImages, false);
         }
         catch (Exception ex)
         {
@@ -220,7 +224,7 @@ public class MovieDBHelper
         }
     }
 
-    public void LinkAniDBMovieDB(int animeID, int movieDBID, bool fromWebCache)
+    public async Task LinkAniDBMovieDB(int animeID, int movieDBID, bool fromWebCache)
     {
         // check if we have this information locally
         // if not download it now
@@ -229,7 +233,7 @@ public class MovieDBHelper
         {
             // we download the series info here just so that we have the basic info in the
             // database before the queued task runs later
-            UpdateMovieInfo(movieDBID, false);
+            await UpdateMovieInfo(movieDBID, false);
             movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieDBID);
             if (movie == null)
             {
@@ -238,7 +242,7 @@ public class MovieDBHelper
         }
 
         // download and update series info and images
-        UpdateMovieInfo(movieDBID, true);
+        await UpdateMovieInfo(movieDBID, true);
 
         var xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB) ??
                    new CrossRef_AniDB_Other();
@@ -281,9 +285,10 @@ public class MovieDBHelper
         RepoFactory.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);
     }
 
-    public void ScanForMatches()
+    public async Task ScanForMatches()
     {
         var allSeries = RepoFactory.AnimeSeries.GetAll();
+        var scheduler = await _schedulerFactory.GetScheduler();
 
         foreach (var ser in allSeries)
         {
@@ -308,7 +313,7 @@ public class MovieDBHelper
 
             _logger.LogTrace("Found anime movie without MovieDB association: {MainTitle}", anime.MainTitle);
 
-            _commandFactory.CreateAndSave<CommandRequest_MovieDBSearchAnime>(c => c.AnimeID = ser.AniDB_ID);
+            await scheduler.StartJob<SearchTMDBSeriesJob>(c => c.AnimeID = ser.AniDB_ID);
         }
     }
 }

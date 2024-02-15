@@ -8,16 +8,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NHibernate;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -26,14 +28,14 @@ namespace Shoko.Server.Providers.TraktTV;
 public class TraktTVHelper
 {
     private readonly ILogger<TraktTVHelper> _logger;
-    private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISchedulerFactory _schedulerFactory;
     private readonly ISettingsProvider _settingsProvider;
 
-    public TraktTVHelper(ILogger<TraktTVHelper> logger, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider)
+    public TraktTVHelper(ILogger<TraktTVHelper> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory)
     {
         _logger = logger;
-        _commandFactory = commandFactory;
         _settingsProvider = settingsProvider;
+        _schedulerFactory = schedulerFactory;
     }
 
     #region Helpers
@@ -530,6 +532,7 @@ public class TraktTVHelper
             alreadyLinked.Add(xref.AnimeID);
         }
 
+        var scheduler = _schedulerFactory.GetScheduler().Result;
         foreach (var ser in allSeries)
         {
             if (ser.IsTraktAutoMatchingDisabled || alreadyLinked.Contains(ser.AniDB_ID))
@@ -541,7 +544,7 @@ public class TraktTVHelper
 
             _logger.LogTrace("Found anime without Trakt association: {MaintTitle}", anime.MainTitle);
 
-            _commandFactory.CreateAndSave<CommandRequest_TraktSearchAnime>(c => c.AnimeID = ser.AniDB_ID);
+            scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = ser.AniDB_ID).GetAwaiter().GetResult();
         }
     }
 
@@ -1465,9 +1468,10 @@ public class TraktTVHelper
         }
 
         var allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
+        var scheduler = _schedulerFactory.GetScheduler().Result;
         foreach (var xref in allCrossRefs)
         {
-            _commandFactory.CreateAndSave<CommandRequest_TraktUpdateInfo>(c => c.TraktID = xref.TraktID);
+            scheduler.StartJob<GetTraktSeriesJob>(c => c.TraktID = xref.TraktID).GetAwaiter().GetResult();
         }
     }
 

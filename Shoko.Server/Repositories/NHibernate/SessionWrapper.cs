@@ -2,6 +2,7 @@
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using NHibernate;
 
 namespace Shoko.Server.Repositories.NHibernate;
@@ -51,6 +52,11 @@ internal class SessionWrapper : ISessionWrapper
         return _session.Get<TObj>(id);
     }
 
+    public Task<TObj> GetAsync<TObj>(object id)
+    {
+        return _session.GetAsync<TObj>(id);
+    }
+
     public ITransaction BeginTransaction()
     {
         return _session.BeginTransaction();
@@ -61,14 +67,29 @@ internal class SessionWrapper : ISessionWrapper
         _session.Save(entity);
     }
 
+    public Task InsertAsync(object entity)
+    {
+        return _session.SaveAsync(entity);
+    }
+    
     public void Update(object entity)
     {
         _session.Update(entity);
     }
 
+    public Task UpdateAsync(object entity)
+    {
+        return _session.UpdateAsync(entity);
+    }
+
     public void Delete(object entity)
     {
         _session.Delete(entity);
+    }
+
+    public Task DeleteAsync(object entity)
+    {
+        return _session.DeleteAsync(entity);
     }
 
     public IDbConnection Connection => _session.Connection;

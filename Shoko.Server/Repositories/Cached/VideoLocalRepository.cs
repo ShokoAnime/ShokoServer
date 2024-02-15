@@ -6,15 +6,17 @@ using FluentNHibernate.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NutzCode.InMemoryIndex;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.LZ4;
 using Shoko.Server.Models;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
@@ -119,11 +121,11 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
                 .ToList();
             max = list.Count;
 
-            var commandFactory = Utils.ServiceContainer.GetRequiredService<ICommandRequestFactory>();
+            var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
             list.ForEach(
                 a =>
                 {
-                    commandFactory.CreateAndSave<CommandRequest_ReadMediaInfo>(c => c.VideoLocalID = a.VideoLocalID);
+                    scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = a.VideoLocalID).GetAwaiter().GetResult();
                     count++;
                     ServerState.Instance.ServerStartingStatus = string.Format(
                         Resources.Database_Validating, nameof(VideoLocal),

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
 using Shoko.Commons.Queue;
@@ -23,6 +24,7 @@ namespace Shoko.Server.Utilities;
 
 public class Scanner : INotifyPropertyChangedExt
 {
+    // TODO this needs to be completely rewritten
     private BackgroundWorker workerIntegrityScanner = new();
 
     public Scanner()
@@ -208,8 +210,8 @@ public class Scanner : INotifyPropertyChangedExt
     {
         if (RunScan != null && RunScan.GetScanStatus() != ScanStatus.Finish)
         {
-            var paused = ShokoService.CmdProcessorHasher.Paused;
-            ShokoService.CmdProcessorHasher.Paused = true;
+            var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
+            scheduler.PauseAll();
             var s = RunScan;
             s.Status = (int)ScanStatus.Running;
             RepoFactory.Scan.Save(s);
@@ -233,12 +235,6 @@ public class Scanner : INotifyPropertyChangedExt
                         }
                         else
                         {
-                            ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
-                            {
-                                message = "Hashing File: {0}",
-                                queueState = QueueStateEnum.HashingFile,
-                                extraParams = new[] { sf.FullName }
-                            };
                             var hashes =
                                 FileHashHelper.GetHashInfo(sf.FullName, true, OnHashProgress, false, false, false);
                             if (string.IsNullOrEmpty(hashes.ED2K))
@@ -293,7 +289,6 @@ public class Scanner : INotifyPropertyChangedExt
             RepoFactory.Scan.Save(s);
             Refresh();
             RunScan = null;
-            ShokoService.CmdProcessorHasher.Paused = paused;
         }
     }
 }

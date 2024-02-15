@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -275,7 +276,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         }
     }
 
-    public void UpdateBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeSeries> seriesBatch)
+    public async Task UpdateBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeSeries> seriesBatch)
     {
         if (session == null)
         {
@@ -294,7 +295,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
 
         foreach (var series in seriesBatch)
         {
-            Lock(() => session.Update(series));
+            await Lock(async () => await session.UpdateAsync(series));
             UpdateCache(series);
             Changes.AddOrUpdate(series.AnimeSeriesID);
         }

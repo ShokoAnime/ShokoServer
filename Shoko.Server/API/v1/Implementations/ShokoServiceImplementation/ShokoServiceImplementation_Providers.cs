@@ -2,18 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.TvDB;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Trakt;
+using Shoko.Server.Scheduling.Jobs.TvDB;
 
 namespace Shoko.Server;
 
@@ -144,7 +146,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return result;
         }
     }
@@ -172,7 +174,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<Azure_AdminMessage>();
         }
     }
@@ -238,17 +240,17 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            _commandFactory.CreateAndSave<CommandRequest_TvDBUpdateSeries>(
+            _schedulerFactory.GetScheduler().Result.StartJobNow<GetTvDBSeriesJob>(
                 c =>
                 {
                     c.TvDBSeriesID = seriesID;
                     c.ForceRefresh = true;
                 }
-            );
+            ).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
         }
 
         return string.Empty;
@@ -259,11 +261,11 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return _tvdbHelper.GetLanguages();
+            return _tvdbHelper.GetLanguagesAsync().Result;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
         }
 
         return new List<TvDB_Language>();
@@ -278,7 +280,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<Azure_CrossRef_AniDB_TvDB>();
         }
     }
@@ -292,7 +294,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<CrossRef_AniDB_TvDBV2>();
         }
     }
@@ -312,7 +314,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<CrossRef_AniDB_TvDB_Episode_Override>();
         }
     }
@@ -322,11 +324,11 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            return _tvdbHelper.SearchSeries(criteria);
+            return _tvdbHelper.SearchSeriesAsync(criteria).Result;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<TVDB_Series_Search_Response>();
         }
     }
@@ -338,7 +340,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             // refresh data from TvDB
-            _tvdbHelper.UpdateSeriesInfoAndImages(seriesID, true, false);
+            _tvdbHelper.UpdateSeriesInfoAndImages(seriesID, true, false).GetAwaiter().GetResult();
 
             seasonNumbers = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(seriesID);
 
@@ -346,7 +348,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return seasonNumbers;
         }
     }
@@ -372,20 +374,19 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
-            _commandFactory.CreateAndSave<CommandRequest_LinkAniDBTvDB>(
-                c =>
+            _schedulerFactory.GetScheduler().Result.StartJobNow<LinkTvDBSeriesJob>(c =>
                 {
                     c.AnimeID = link.AnimeID;
                     c.TvDBID = link.TvDBID;
                     c.AdditiveLink = link.IsAdditive;
                 }
-            );
+            ).GetAwaiter().GetResult();
 
             return string.Empty;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return ex.Message;
         }
     }
@@ -407,7 +408,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return ex.Message;
         }
     }
@@ -459,7 +460,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return ex.Message;
         }
     }
@@ -497,7 +498,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return ex.Message;
         }
     }
@@ -529,7 +530,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return ex.Message;
         }
     }
@@ -549,7 +550,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<TvDB_ImagePoster>();
         }
     }
@@ -568,7 +569,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<TvDB_ImageWideBanner>();
         }
     }
@@ -587,7 +588,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<TvDB_ImageFanart>();
         }
     }
@@ -606,7 +607,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<TvDB_Episode>();
         }
     }
@@ -629,7 +630,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<Trakt_Episode>();
         }
     }
@@ -649,7 +650,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<Trakt_Episode>();
         }
     }
@@ -663,7 +664,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<Azure_CrossRef_AniDB_Trakt>();
         }
     }
@@ -710,7 +711,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return ex.Message;
         }
     }
@@ -724,7 +725,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<CrossRef_AniDB_TraktV2>();
         }
     }
@@ -752,7 +753,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return results;
         }
     }
@@ -791,7 +792,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return ex.Message;
         }
     }
@@ -828,7 +829,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return ex.Message;
         }
     }
@@ -857,7 +858,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return seasonNumbers;
         }
     }
@@ -873,7 +874,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error( ex,"Error in TraktFriendRequestDeny: " + ex.ToString());
+            logger.LogError( ex,"Error in TraktFriendRequestDeny: " + ex.ToString());
             returnMessage = ex.Message;
             return false;
         }*/
@@ -890,7 +891,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error( ex,"Error in TraktFriendRequestDeny: " + ex.ToString());
+            logger.LogError( ex,"Error in TraktFriendRequestDeny: " + ex.ToString());
             returnMessage = ex.Message;
             return false;
         }*/
@@ -939,7 +940,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return 500;
         }
     }
@@ -953,7 +954,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
         }
 
         return string.Empty;
@@ -975,19 +976,14 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not find Anime Series";
             }
 
-            _commandFactory.CreateAndSave<CommandRequest_TraktSyncCollectionSeries>(
-                c =>
-                {
-                    c.AnimeSeriesID = ser.AnimeSeriesID;
-                    c.SeriesName = ser.GetSeriesName();
-                }
-            );
+            var scheduler = _schedulerFactory.GetScheduler().Result;
+            scheduler.StartJob<SyncTraktCollectionSeriesJob>(c => c.AnimeSeriesID = ser.AnimeSeriesID).GetAwaiter().GetResult();
 
             return string.Empty;
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return ex.Message;
         }
     }
@@ -1007,7 +1003,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
         }
 
         return false;
@@ -1022,7 +1018,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
         }
 
         return new List<CrossRef_AniDB_TraktV2>();
@@ -1044,7 +1040,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error in GetTraktDeviceCode: " + ex);
+            _logger.LogError(ex, "Error in GetTraktDeviceCode: " + ex);
             return null;
         }
     }
@@ -1062,7 +1058,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return null;
         }
     }
@@ -1076,7 +1072,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return null;
         }
     }
@@ -1099,7 +1095,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return ex.Message;
         }
     }
@@ -1141,7 +1137,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return ex.Message;
         }
     }
@@ -1156,7 +1152,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         var results = new List<CL_MovieDBMovieSearch_Response>();
         try
         {
-            var movieResults = _movieDBHelper.Search(criteria);
+            var movieResults = _movieDBHelper.Search(criteria).Result;
 
             foreach (var res in movieResults)
             {
@@ -1167,7 +1163,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return results;
         }
     }
@@ -1186,7 +1182,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<MovieDB_Poster>();
         }
     }
@@ -1205,7 +1201,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
             return new List<MovieDB_Fanart>();
         }
     }
@@ -1219,7 +1215,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, ex.ToString());
         }
 
         return string.Empty;

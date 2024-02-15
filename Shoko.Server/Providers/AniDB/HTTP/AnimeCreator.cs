@@ -4,18 +4,20 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
@@ -24,17 +26,17 @@ public class AnimeCreator
 {
     private readonly ILogger<AnimeCreator> _logger;
     private readonly ISettingsProvider _settingsProvider;
-    private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISchedulerFactory _schedulerFactory;
 
-    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings, ICommandRequestFactory commandFactory)
+    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings, ISchedulerFactory schedulerFactory)
     {
         _logger = logger;
         _settingsProvider = settings;
-        _commandFactory = commandFactory;
+        _schedulerFactory = schedulerFactory;
     }
 
 
-    public void CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
+    public async Task CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
         var settings = _settingsProvider.GetSettings();
         _logger.LogTrace("------------------------------------------------");
@@ -65,7 +67,7 @@ public class AnimeCreator
         _logger.LogTrace("PopulateAnime in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
 
-        CreateEpisodes(response.Episodes, anime);
+        await CreateEpisodes(response.Episodes, anime);
         taskTimer.Stop();
         _logger.LogTrace("CreateEpisodes in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
@@ -151,7 +153,7 @@ public class AnimeCreator
         return true;
     }
 
-    private void CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
+    private async Task CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
     {
         if (rawEpisodeList == null)
             return;
@@ -378,9 +380,10 @@ public class AnimeCreator
         // Schedule a refetch of any video files affected by the removal of the
         // episodes. They were likely moved to another episode entry so let's
         // try and fetch that.
+        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var video in videosToRefetch)
         {
-            _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(c =>
+            await scheduler.StartJob<ProcessFileJob>(c =>
             {
                 c.VideoLocalID = video.VideoLocalID;
                 c.SkipMyList = true;
@@ -441,7 +444,7 @@ public class AnimeCreator
     /// <remarks>
     /// We use the tag name since the id _can_ change sometimes.
     /// </remarks>
-    internal static Dictionary<string, string> TagNameOverrideDict = new()
+    private static Dictionary<string, string> TagNameOverrideDict = new()
     {
         {"new", "original work"},
         {"original work", "source material"},
@@ -461,9 +464,7 @@ public class AnimeCreator
             // There are situations in which an ID may have changed, this is
             // usually due to it being moved, but may be for other reasons.
             var existingTags = RepoFactory.AniDB_Tag.GetBySourceName(rawTag.TagName);
-            var lastUpdatedTag = existingTags
-                .OrderByDescending(existingTag => existingTag.LastUpdated)
-                .FirstOrDefault();
+            var lastUpdatedTag = existingTags.MaxBy(existingTag => existingTag.LastUpdated);
 
             // One (or more, but idc) of the existing tags are more recently
             // updated than the tag we're trying to create, so skip creating

@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 
 namespace Shoko.Server.Scheduling.Acquisition.Filters;
 
 public interface IAcquisitionFilter
 {
-    Type[] GetTypesToExclude();
+    IEnumerable<Type> GetTypesToExclude();
+    event EventHandler StateChanged;
 }

@@ -33,7 +33,6 @@ using QueueEmitter = Shoko.Server.API.SignalR.Aggregate.QueueEmitter;
 using AVDumpEmitter = Shoko.Server.API.SignalR.Aggregate.AVDumpEmitter;
 using NetworkEmitter = Shoko.Server.API.SignalR.Aggregate.NetworkEmitter;
 using LegacyAniDBEmitter = Shoko.Server.API.SignalR.Legacy.AniDBEmitter;
-using LegacyQueueEmitter = Shoko.Server.API.SignalR.Legacy.QueueEmitter;
 using LegacyShokoEventEmitter = Shoko.Server.API.SignalR.Legacy.ShokoEventEmitter;
 
 namespace Shoko.Server.API;
@@ -43,7 +42,6 @@ public static class APIExtensions
     public static IServiceCollection AddAPI(this IServiceCollection services)
     {
         services.AddSingleton<LoggingEmitter>();
-        services.AddSingleton<LegacyQueueEmitter>();
         services.AddSingleton<LegacyAniDBEmitter>();
         services.AddSingleton<LegacyShokoEventEmitter>();
         services.AddSingleton<AniDBEmitter>();
@@ -317,12 +315,10 @@ public static class APIExtensions
         app.UseRouting();
         app.UseEndpoints(conf =>
         {
-            conf.MapHub<QueueHub>("/signalr/events");
             conf.MapHub<AniDBHub>("/signalr/anidb");
             conf.MapHub<LoggingHub>("/signalr/logging");
             conf.MapHub<ShokoEventHub>("/signalr/shoko");
             conf.MapHub<AggregateHub>("/signalr/aggregate");
-            ;
         });
 
         app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());

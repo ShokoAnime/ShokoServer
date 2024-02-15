@@ -5,18 +5,16 @@ using System.Linq;
 using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using NLog;
+using Microsoft.Extensions.Logging;
 using Quartz;
-using QuartzJobFactory;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Queue;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
@@ -26,9 +24,13 @@ using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Server;
+using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server;
@@ -41,23 +43,27 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 {
     //TODO Split this file into subfiles with partial class, Move #region functionality from the interface to those subfiles
 
-    private static Logger logger = LogManager.GetCurrentClassLogger();
+    private readonly ILogger<ShokoServiceImplementation> _logger;
+    private readonly AnimeGroupCreator _groupCreator;
+    private readonly JobFactory _jobFactory;
     private readonly TvDBApiHelper _tvdbHelper;
     private readonly TraktTVHelper _traktHelper;
     private readonly MovieDBHelper _movieDBHelper;
-    private readonly ICommandRequestFactory _commandFactory;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly ActionService _actionService;
 
-    public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper,
-        ICommandRequestFactory commandFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
+    public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, ILogger<ShokoServiceImplementation> logger, ActionService actionService, AnimeGroupCreator groupCreator, JobFactory jobFactory)
     {
         _tvdbHelper = tvdbHelper;
         _traktHelper = traktHelper;
         _movieDBHelper = movieDBHelper;
-        _commandFactory = commandFactory;
         _schedulerFactory = schedulerFactory;
         _settingsProvider = settingsProvider;
+        _logger = logger;
+        _actionService = actionService;
+        _groupCreator = groupCreator;
+        _jobFactory = jobFactory;
     }
 
     #region Bookmarks
@@ -72,7 +78,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return baList;
@@ -84,7 +90,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         var contractRet = new CL_Response<CL_BookmarkedAnime> { ErrorMessage = string.Empty };
         try
         {
-            BookmarkedAnime ba = null;
+            BookmarkedAnime ba;
             if (contract.BookmarkedAnimeID != 0)
             {
                 ba = RepoFactory.BookmarkedAnime.GetByID(contract.BookmarkedAnimeID);
@@ -120,7 +126,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             contractRet.ErrorMessage = ex.Message;
             return contractRet;
         }
@@ -144,7 +150,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -158,7 +164,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return null;
         }
     }
@@ -236,7 +242,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return c;
@@ -257,7 +263,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return c;
@@ -271,49 +277,37 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
         try
         {
-            var hasherQueueState = !ShokoService.CmdProcessorHasher.Paused ? (
-                ShokoService.CmdProcessorHasher.QueueState
-            ) : (
-                new()
-                {
-                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
-                    message = "Paused",
-                    extraParams = new string[0],
-                }
-            );
-            contract.HashQueueCount = ShokoService.CmdProcessorHasher.QueueCount;
+            var hasherQueueState = new QueueStateStruct
+            {
+                queueState = Shoko.Models.Queue.QueueStateEnum.Idle,
+                message = "Idle",
+                extraParams = Array.Empty<string>(),
+            };
+            contract.HashQueueCount = 0;
             contract.HashQueueMessage = hasherQueueState.formatMessage();
             contract.HashQueueState = hasherQueueState.formatMessage(); // Deprecated since 3.6.0.0
             contract.HashQueueStateId = (int)hasherQueueState.queueState;
             contract.HashQueueStateParams = hasherQueueState.extraParams;
 
-            var generalQueueState = !ShokoService.CmdProcessorGeneral.Paused ? (
-                ShokoService.CmdProcessorGeneral.QueueState
-            ) : (
-                new()
-                {
-                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
-                    message = "Paused",
-                    extraParams = new string[0],
-                }
-            );
-            contract.GeneralQueueCount = ShokoService.CmdProcessorGeneral.QueueCount;
+            var generalQueueState = new QueueStateStruct
+            {
+                queueState = Shoko.Models.Queue.QueueStateEnum.Idle,
+                message = "Idle",
+                extraParams = Array.Empty<string>(),
+            };
+            contract.GeneralQueueCount = 0;
             contract.GeneralQueueMessage = generalQueueState.formatMessage();
             contract.GeneralQueueState = generalQueueState.formatMessage(); // Deprecated since 3.6.0.0
             contract.GeneralQueueStateId = (int)generalQueueState.queueState;
             contract.GeneralQueueStateParams = generalQueueState.extraParams;
 
-            var imagesQueueState = !ShokoService.CmdProcessorImages.Paused ? (
-                ShokoService.CmdProcessorImages.QueueState
-            ) : (
-                new()
-                {
-                    queueState = Shoko.Models.Queue.QueueStateEnum.Paused,
-                    message = "Paused",
-                    extraParams = new string[0],
-                }
-            );
-            contract.ImagesQueueCount = ShokoService.CmdProcessorImages.QueueCount;
+            var imagesQueueState = new QueueStateStruct
+            {
+                queueState = Shoko.Models.Queue.QueueStateEnum.Idle,
+                message = "Idle",
+                extraParams = Array.Empty<string>(),
+            };
+            contract.ImagesQueueCount = 0;
             contract.ImagesQueueMessage = imagesQueueState.formatMessage();
             contract.ImagesQueueState = imagesQueueState.formatMessage(); // Deprecated since 3.6.0.0
             contract.ImagesQueueStateId = (int)imagesQueueState.queueState;
@@ -342,7 +336,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return contract;
@@ -358,7 +352,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return null;
@@ -438,11 +432,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
 
             var ts = DateTime.Now - start;
-            logger.Info("GetAllTagNames  in {0} ms", ts.TotalMilliseconds);
+            _logger.LogInformation("GetAllTagNames  in {Time} ms", ts.TotalMilliseconds);
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return allTagNames;
@@ -465,7 +459,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return new List<string>();
@@ -661,7 +655,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Save server settings exception:\n " + ex);
+            _logger.LogError(ex, "Save server settings exception:\\n {Ex}", ex);
             contract.ErrorMessage = ex.Message;
         }
 
@@ -680,7 +674,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return contract;
@@ -694,7 +688,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     public async void RunImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob(JobBuilder<ImportJob>.Create().DisallowConcurrentExecution().WithGeneratedIdentity().Build());
+        await scheduler.StartJob<ImportJob>();
     }
 
     [HttpPost("File/Hashes/Sync")]
@@ -705,13 +699,14 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     [HttpPost("Folder/Scan")]
     public void ScanDropFolders()
     {
-        Importer.RunImport_DropFolders();
+        Utils.ServiceContainer.GetRequiredService<ActionService>().RunImport_DropFolders().GetAwaiter().GetResult();
     }
 
     [HttpPost("Folder/Scan/{importFolderID}")]
     public void ScanFolder(int importFolderID)
     {
-        Utils.ShokoServer.ScanFolder(importFolderID);
+        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+        scheduler.StartJob<ScanFolderJob>(a => a.ImportFolderID = importFolderID).GetAwaiter().GetResult();
     }
 
     [HttpPost("Folder/RemoveMissing")]
@@ -729,13 +724,15 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     [HttpPost("AniDB/MyList/Sync")]
     public void SyncMyList()
     {
-        ShokoServer.SyncMyList();
+        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+        scheduler.StartJobNow<SyncAniDBMyListJob>(c => c.ForceRefresh = true).GetAwaiter().GetResult();
     }
 
     [HttpPost("AniDB/Vote/Sync")]
     public void SyncVotes()
     {
-        _commandFactory.CreateAndSave<CommandRequest_SyncMyVotes>();
+        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+        scheduler.StartJob<SyncAniDBMyListJob>().GetAwaiter().GetResult();
     }
 
     #endregion
@@ -745,19 +742,16 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     [HttpPost("CommandQueue/Hasher/{paused}")]
     public void SetCommandProcessorHasherPaused(bool paused)
     {
-        ShokoService.CmdProcessorHasher.Paused = paused;
     }
 
     [HttpPost("CommandQueue/General/{paused}")]
     public void SetCommandProcessorGeneralPaused(bool paused)
     {
-        ShokoService.CmdProcessorGeneral.Paused = paused;
     }
 
     [HttpPost("CommandQueue/Images/{paused}")]
     public void SetCommandProcessorImagesPaused(bool paused)
     {
-        ShokoService.CmdProcessorImages.Paused = paused;
     }
 
     [HttpDelete("CommandQueue/Hasher")]
@@ -765,11 +759,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            ShokoService.CmdProcessorHasher.Clear();
+            
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
     }
 
@@ -778,11 +772,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            ShokoService.CmdProcessorImages.Clear();
+            
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
     }
 
@@ -791,11 +785,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            ShokoService.CmdProcessorGeneral.Clear();
+            
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
     }
 
@@ -819,7 +813,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 settings.AniDb.ServerPort, settings.AniDb.ClientPort);
 
             log += "Login..." + Environment.NewLine;
-            if (handler.Login())
+            if (handler.Login().Result)
             {
                 log += "Login Success!" + Environment.NewLine;
                 log += "Logout..." + Environment.NewLine;
@@ -850,7 +844,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return new List<string>();
         }
     }
@@ -865,7 +859,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return new List<string>();
         }
     }
@@ -880,7 +874,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return new List<string>();
         }
     }
@@ -998,7 +992,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -1064,7 +1058,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
             return ex.Message;
         }
     }
@@ -1103,7 +1097,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return animeList;
@@ -1143,7 +1137,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return animeList;
@@ -1154,11 +1148,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            Importer.CheckForCalendarUpdate(true);
+            Utils.ServiceContainer.GetRequiredService<ActionService>().CheckForCalendarUpdate(true).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return string.Empty;
@@ -1185,7 +1179,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error( ex,ex.ToString());
+            logger.LogError( ex,ex.ToString());
         }
         return animeList;
     }*/
@@ -1243,7 +1237,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
             var dictRecs = new Dictionary<int, CL_Recommendation>();
 
-            var animeVotes = new List<AniDB_Vote>();
             foreach (var vote in allVotes)
             {
                 if (vote.VoteType != (int)AniDBVoteType.Anime &&
@@ -1400,7 +1393,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return recs;
@@ -1522,7 +1515,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return relGroups;
@@ -1540,7 +1533,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return chars;
@@ -1582,7 +1575,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return chars;
@@ -1597,7 +1590,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         }
         catch (Exception ex)
         {
-            logger.Error(ex, ex.ToString());
+            _logger.LogError(ex, "{Ex}", ex);
         }
 
         return null;

@@ -9,7 +9,6 @@ using Shoko.Commons.Properties;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API;
-using Shoko.Server.Commands;
 using Shoko.Server.Filters;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Plugin;
@@ -22,6 +21,7 @@ using Shoko.Server.Services;
 using Shoko.Server.Services.Connectivity;
 using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;
+using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
@@ -45,19 +45,17 @@ public class Startup
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton<ISettingsProvider, SettingsProvider>();
+            services.AddScoped<AnimeGroupCreator>();
             services.AddSingleton<ShokoServer>();
-            services.AddSingleton(_ => ShokoService.CmdProcessorGeneral);
-            services.AddSingleton(_ => ShokoService.CmdProcessorHasher);
-            services.AddSingleton(_ => ShokoService.CmdProcessorImages);
             services.AddSingleton<LogRotator>();
             services.AddSingleton<TraktTVHelper>();
             services.AddSingleton<TvDBApiHelper>();
             services.AddSingleton<MovieDBHelper>();
             services.AddSingleton<FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
+            services.AddSingleton<ActionService>();
             services.AddSingleton<VideoLocal_PlaceService>();
             services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
-            services.AddSingleton<ICommandRequestFactory, CommandRequestFactory>();
             services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, MicrosoftConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, MozillaConnectivityMonitor>();
@@ -68,7 +66,6 @@ public class Startup
             services.AddQuartz();
 
             services.AddAniDB();
-            services.AddCommands();
             services.AddPlugins();
             services.AddAPI();
         }
@@ -101,7 +98,7 @@ public class Startup
 
         var settings = _settingsProvider?.GetSettings();
         if (settings?.FirstRun is false)
-            ShokoServer.RunWorkSetupDB();
+            Utils.ShokoServer.RunWorkSetupDB();
         else
             _logger.LogWarning("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
     }

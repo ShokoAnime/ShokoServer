@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -50,22 +51,22 @@ public class DebugController : BaseController
     /// <param name="request">The AniDB UDP Request to make.</param>
     /// <returns>An AniDB UDP Response.</returns>
     [HttpPost("AniDB/UDP/Call")]
-    public AnidbUdpResponse CallAniDB([FromBody] AnidbUdpRequest request)
+    public async Task<AnidbUdpResponse> CallAniDB([FromBody] AnidbUdpRequest request)
     {
         try
         {
             _logger.LogDebug("Got command {Command}", request.Command);
             if (request.NeedAuth)
             {
-                if (string.IsNullOrEmpty(_udpHandler.SessionID) && !_udpHandler.Login())
+                if (string.IsNullOrEmpty(_udpHandler.SessionID) && !await _udpHandler.Login())
                     return new() { Code = UDPReturnCode.NOT_LOGGED_IN };
                 request.Payload ??= new();
                 request.Payload.Add("s", _udpHandler.SessionID);
             }
 
             var fullResponse = request.Unsafe ?
-                _udpHandler.CallAniDBUDPDirectly(request.Command, isPing: request.IsPing) :
-                _udpHandler.CallAniDBUDP(request.Command, isPing: request.IsPing);
+                await _udpHandler.CallAniDBUDPDirectly(request.Command, isPing: request.IsPing) :
+                await _udpHandler.CallAniDBUDP(request.Command, isPing: request.IsPing);
             var decodedParts = fullResponse.Split('\n');
             var decodedResponse = string.Join('\n',
                 fullResponse.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

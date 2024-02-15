@@ -1,14 +1,18 @@
 using System;
 using System.Data.SqlClient;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using Quartz;
 using Quartz.AspNetCore;
+using Quartz.Impl;
 using QuartzJobFactory;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Delegates;
+using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
@@ -20,7 +24,10 @@ public static class QuartzStartup
 {
     internal static void AddQuartz(this IServiceCollection services)
     {
+        // this lets us inject the shoko JobFactory explicitly, instead of only IJobFactory
+        services.AddSingleton<JobFactory>();
         services.AddSingleton<ThreadPooledJobStore>();
+        services.AddSingleton<QueueStateEventHandler>();
         services.AddSingleton<IAcquisitionFilter, AniDBHttpRateLimitedAcquisitionFilter>();
         services.AddSingleton<IAcquisitionFilter, AniDBUdpRateLimitedAcquisitionFilter>();
         services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
@@ -29,11 +36,14 @@ public static class QuartzStartup
         services.AddQuartz(q =>
         {
             q.UseDatabase();
+            q.MaxBatchSize = (int) Math.Round(Environment.ProcessorCount * 1.25D, MidpointRounding.AwayFromZero);
+            q.BatchTriggerAcquisitionFireAheadTimeWindow = TimeSpan.FromSeconds(30);
+            q.UseJobFactory<JobFactory>();
 
             // Register the connectivity monitor job with a trigger that executes every 5 minutes
             q.ScheduleJob<CheckNetworkAvailabilityJob>(
                 trigger => trigger.WithIdentity("UptimeMonitor", "System").WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(),
-                j => j.DisallowConcurrentExecution().WithGeneratedIdentity());
+                j => j.WithGeneratedIdentity());
         });
 
         services.AddQuartzServer(options =>
@@ -49,9 +59,11 @@ public static class QuartzStartup
         services.AddTransient<DeleteImportFolderJob>();
         services.AddTransient<ScanDropFoldersJob>();
         services.AddTransient<RemoveMissingFilesJob>();
-        services.AddTransient<MediaInfoJob>();
-        services.AddTransient<DiscoverFileJob>();
-        services.AddTransient<HashFileJob>();
+        services.AddTransient<MediaInfoAllFilesJob>();
+
+        // Add commands
+        foreach (var type in Assembly.GetExecutingAssembly().GetTypes().Where(a => typeof(BaseJob).IsAssignableFrom(a) && !a.IsAbstract))
+            services.AddTransient(type);
     }
 
     private static void UseDatabase(this IServiceCollectionQuartzConfigurator q)

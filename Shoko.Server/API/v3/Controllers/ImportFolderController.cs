@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -17,6 +19,8 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class ImportFolderController : BaseController
 {
+    private readonly ActionService _actionService;
+
     /// <summary>
     /// List all Import Folders
     /// </summary>
@@ -145,7 +149,7 @@ public class ImportFolderController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{folderID}")]
-    public ActionResult DeleteImportFolderByFolderID([FromRoute] int folderID, [FromQuery] bool removeRecords = true,
+    public async Task<ActionResult> DeleteImportFolderByFolderID([FromRoute] int folderID, [FromQuery] bool removeRecords = true,
         [FromQuery] bool updateMyList = true)
     {
         if (folderID == 0)
@@ -164,7 +168,7 @@ public class ImportFolderController : BaseController
         if (importFolder == null)
             return NotFound("Folder not found.");
 
-        var errorMessage = Importer.DeleteImportFolder(importFolder.ImportFolderID, updateMyList);
+        var errorMessage = await _actionService.DeleteImportFolder(importFolder.ImportFolderID, updateMyList);
         if (!string.IsNullOrEmpty(errorMessage))
             return InternalError(errorMessage);
 
@@ -177,17 +181,18 @@ public class ImportFolderController : BaseController
     /// <param name="folderID">Import Folder ID</param>
     /// <returns></returns>
     [HttpGet("{folderID}/Scan")]
-    public ActionResult ScanImportFolderByFolderID([FromRoute] int folderID)
+    public async Task<ActionResult> ScanImportFolderByFolderID([FromRoute] int folderID)
     {
         var folder = RepoFactory.ImportFolder.GetByID(folderID);
         if (folder == null)
-            return NotFound("Folder not found.");
+            return NotFound("Folder not found");
 
-        Importer.RunImport_ScanFolder(folderID);
+        await _actionService.RunImport_ScanFolder(folderID);
         return Ok();
     }
 
-    public ImportFolderController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    public ImportFolderController(ISettingsProvider settingsProvider, ActionService actionService) : base(settingsProvider)
     {
+        _actionService = actionService;
     }
 }

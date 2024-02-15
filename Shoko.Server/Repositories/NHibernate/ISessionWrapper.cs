@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Linq;
+using System.Threading.Tasks;
 using NHibernate;
 
 namespace Shoko.Server.Repositories.NHibernate;
@@ -19,6 +20,7 @@ public interface ISessionWrapper : IDisposable
     IQueryable<T> Query<T>() where T : class;
 
     TObj Get<TObj>(object id);
+    Task<TObj> GetAsync<TObj>(object id);
 
     ITransaction BeginTransaction();
 
@@ -27,6 +29,12 @@ public interface ISessionWrapper : IDisposable
     void Update(object entity);
 
     void Delete(object entity);
+
+    Task InsertAsync(object entity);
+
+    Task UpdateAsync(object entity);
+
+    Task DeleteAsync(object entity);
 
     IDbConnection Connection { get; }
 }

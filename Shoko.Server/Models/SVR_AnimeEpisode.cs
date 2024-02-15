@@ -170,12 +170,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
         
     public void RemoveVideoLocals(bool deleteFiles)
     {
-        var service = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
-        GetVideoLocals().SelectMany(a => a.Places).Where(a => a != null).ForEach(place =>
-        {
-            if (deleteFiles) service.RemoveRecordAndDeletePhysicalFile(place, false);
-            else service.RemoveRecord(place);
-        });
+        
     }
 
     public string Title

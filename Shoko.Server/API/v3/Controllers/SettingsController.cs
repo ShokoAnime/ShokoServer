@@ -65,7 +65,7 @@ public class SettingsController : BaseController
     /// <param name="credentials">POST the body as a <see cref="Credentials"/> object</param>
     /// <returns></returns>
     [HttpPost("AniDB/TestLogin")]
-    public ActionResult TestAniDB([FromBody] Credentials credentials)
+    public async Task<ActionResult> TestAniDB([FromBody] Credentials credentials)
     {
         if (string.IsNullOrWhiteSpace(credentials.Username))
             ModelState.AddModelError(nameof(credentials.Username), "Username cannot be empty.");
@@ -77,9 +77,9 @@ public class SettingsController : BaseController
             return ValidationProblem(ModelState);
 
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
-        handler.ForceLogout();
+        await handler.ForceLogout();
 
-        if (!handler.TestLogin(credentials.Username, credentials.Password))
+        if (!await handler.TestLogin(credentials.Username, credentials.Password))
             return ValidationProblem("Failed to log in.", "Connection");
 
         return Ok();

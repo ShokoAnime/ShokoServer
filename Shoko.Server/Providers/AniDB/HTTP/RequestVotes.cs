@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
@@ -21,7 +22,7 @@ public class RequestVotes : HttpRequest<List<ResponseVote>>
     public string Username { private get; set; }
     public string Password { private get; set; }
 
-    protected override HttpResponse<List<ResponseVote>> ParseResponse(HttpResponse<string> data)
+    protected override Task<HttpResponse<List<ResponseVote>>> ParseResponse(HttpResponse<string> data)
     {
         var results = new List<ResponseVote>();
         try
@@ -48,12 +49,12 @@ public class RequestVotes : HttpRequest<List<ResponseVote>>
                 results.AddRange(myitems.Cast<XmlNode>().Select(GetEpisode).Where(vote => vote != null));
             }
 
-            return new HttpResponse<List<ResponseVote>> { Code = data.Code, Response = results };
+            return Task.FromResult(new HttpResponse<List<ResponseVote>> { Code = data.Code, Response = results });
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "{Message}", ex.Message);
-            return new HttpResponse<List<ResponseVote>> { Code = data.Code, Response = null };
+            return Task.FromResult(new HttpResponse<List<ResponseVote>> { Code = data.Code, Response = null });
         }
     }
 

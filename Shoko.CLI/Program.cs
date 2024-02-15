@@ -1,9 +1,10 @@
 ﻿#region
 using System;
 using System.ComponentModel;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
-using Shoko.Server.Commands;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -49,45 +50,30 @@ public static class Program
     {
         Utils.YesNoRequired += OnUtilsOnYesNoRequired;
         ServerState.Instance.PropertyChanged += OnInstanceOnPropertyChanged;
-        ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnCmdProcessorGeneralOnQueueStateChangedEvent;
-        ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += OnCmdProcessorImagesOnQueueStateChangedEvent;
-        ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += OnCmdProcessorHasherOnQueueStateChangedEvent;
+        var queueStateEventHandler = Utils.ServiceContainer.GetRequiredService<QueueStateEventHandler>();
+        queueStateEventHandler.QueueChanged += QueueStateEventHandlerOnQueueChanged;
     }
 
-    private static string LastGeneralQueueMessage = string.Empty;
-
-    private static void OnCmdProcessorGeneralOnQueueStateChangedEvent(QueueStateEventArgs ev) 
+    private static void QueueStateEventHandlerOnQueueChanged(object? sender, QueueChangedEventArgs e)
     {
-        var message = ev.QueueState.formatMessage();
-        if (!string.Equals(LastGeneralQueueMessage, message))
+        if (e.AddedItems is { Count: > 0 })
         {
-            LastGeneralQueueMessage = message;
-            Console.WriteLine($@"General Queue state change: {message}");
+            foreach (var addedItem in e.AddedItems)
+            {
+                _logger.LogTrace("Job Started: {Type} | {Details}", addedItem.JobType ?? addedItem.Key, addedItem.Description);
+            }
         }
-    }
 
-    private static string LastImagesQueueMessage = string.Empty;
-
-    private static void OnCmdProcessorImagesOnQueueStateChangedEvent(QueueStateEventArgs ev) 
-    {
-        var message = ev.QueueState.formatMessage();
-        if (!string.Equals(LastImagesQueueMessage, message))
+        if (e.RemovedItems is { Count: > 0 })
         {
-            LastImagesQueueMessage = message;
-            Console.WriteLine($@"Images Queue state change: {message}");
+            foreach (var removedItem in e.RemovedItems)
+            {
+                _logger.LogTrace("Job Completed: {Type} | {Details}", removedItem.JobType, removedItem.Description);
+            }
         }
-    }
 
-    private static string LastHasherQueueMessage = string.Empty;
-
-    private static void OnCmdProcessorHasherOnQueueStateChangedEvent(QueueStateEventArgs ev) 
-    {
-        var message = ev.QueueState.formatMessage();
-        if (!string.Equals(LastHasherQueueMessage, message))
-        {
-            LastHasherQueueMessage = message; 
-            Console.WriteLine($@"Hasher Queue state change: {message}");
-        }
+        _logger.LogTrace("Waiting: {Waiting} | Blocked: {Blocked} | ThreadPoolSize: {Pool} | Currently Executing: {Executing}", e.WaitingJobsCount,
+            e.BlockedJobsCount, e.ThreadCount, e.ExecutingItems?.Count ?? 0);
     }
 
     private static void OnInstanceOnPropertyChanged(object? _, PropertyChangedEventArgs e)

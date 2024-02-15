@@ -1,12 +1,9 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
-
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Quartz;
 using QuartzJobFactory.Attributes;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
@@ -16,22 +13,28 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [DisallowConcurrentExecution]
 internal class RemoveMissingFilesJob : IJob
 {
+    private readonly ActionService _actionService;
+
     [JobKeyMember]
     public bool RemoveMyList { get; set; }
 
-    public Task Execute(IJobExecutionContext context)
+    public async Task Execute(IJobExecutionContext context)
     {
         try
         {
-            Importer.RemoveRecordsWithoutPhysicalFiles(RemoveMyList);
+            await _actionService.RemoveRecordsWithoutPhysicalFiles(RemoveMyList);
         }
         catch (Exception ex)
         {
-            // TODO: Logging
             // do you want the job to refire?
             throw new JobExecutionException(msg: "", refireImmediately: false, cause: ex);
         }
-
-        return Task.CompletedTask;
     }
+
+    public RemoveMissingFilesJob(ActionService actionService)
+    {
+        _actionService = actionService;
+    }
+
+    protected RemoveMissingFilesJob() { }
 }

@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Quartz;
 using QuartzJobFactory.Attributes;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
@@ -29,32 +29,21 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [JobKeyGroup(JobKeyGroup.Import)]
 public class HashFileJob : BaseJob
 {
-    public virtual string FileName { get; set; }
-    public virtual bool ForceHash { get; set; }
-    public virtual bool SkipMyList { get; set; }
+    private readonly ISettingsProvider _settingsProvider;
+    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly VideoLocal_PlaceService _vlPlaceService;
 
+    public string FileName { get; set; }
+    public bool ForceHash { get; set; }
+    public bool SkipMyList { get; set; }
+
+    public override string Name => "Hash File";
     public override QueueStateStruct Description => new()
     {
         message = "Hashing File: {0}",
         extraParams = new[] { FileName },
         queueState = QueueStateEnum.HashingFile
     };
-
-    private readonly ISettingsProvider _settingsProvider;
-    private readonly ICommandRequestFactory _commandFactory;
-    private readonly VideoLocal_PlaceService _vlPlaceService;
-
-    public HashFileJob(ILoggerFactory loggerFactory, ISettingsProvider settingsProvider, ICommandRequestFactory commandFactory, VideoLocal_PlaceService vlPlaceService) : base(loggerFactory)
-    {
-        _settingsProvider = settingsProvider;
-        _commandFactory = commandFactory;
-        _vlPlaceService = vlPlaceService;
-    }
-
-    protected HashFileJob(VideoLocal_PlaceService vlPlaceService)
-    {
-        this._vlPlaceService = vlPlaceService;
-    }
 
     public override async Task Process()
     {
@@ -64,10 +53,12 @@ public class HashFileJob : BaseJob
         var fileSize = GetFileInfo(folder, ref e);
         if (fileSize == 0 && e != null)
         {
-            Logger.LogError(e, "Could not access file. Exiting");
+            _logger.LogError(e, "Could not access file. Exiting");
             return;
         }
 
+        var scheduler = await _schedulerFactory.GetScheduler();
+        if (vlocal.FileSize == 0) vlocal.FileSize = fileSize;
         var (newFile, needEd2K, needCRC32, needMD5, needSHA1) = ShouldHash(vlocal);
         if (!needEd2K && !ForceHash) return;
         shouldSave |= !newFile;
@@ -80,7 +71,7 @@ public class HashFileJob : BaseJob
 
         if (tlocal != null)
         {
-            Logger.LogTrace("Found existing VideoLocal with hash, merging info from it");
+            _logger.LogTrace("Found existing VideoLocal with hash, merging info from it");
             // Merge hashes and save, regardless of duplicate file
             shouldSave |= MergeInfoFrom(tlocal, vlocal);
             vlocal = tlocal;
@@ -88,7 +79,8 @@ public class HashFileJob : BaseJob
 
         if (shouldSave)
         {
-            Logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FileName, vlocal.Hash);
+            vlocal.FileSize = fileSize;
+            _logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FileName, vlocal.Hash);
             RepoFactory.VideoLocal.Save(vlocal, true);
         }
 
@@ -98,14 +90,13 @@ public class HashFileJob : BaseJob
         var duplicate = await ProcessDuplicates(vlocal, vlocalplace);
         if (duplicate)
         {
-            var crProcfile3 = _commandFactory.Create<CommandRequest_ProcessFile>(
+            await scheduler.StartJob<ProcessFileJob>(
                 c =>
                 {
                     c.VideoLocalID = vlocal.VideoLocalID;
                     c.ForceAniDB = false;
                 }
             );
-            _commandFactory.Save(crProcfile3);
             return;
         }
 
@@ -122,7 +113,7 @@ public class HashFileJob : BaseJob
         ShokoEventHandler.Instance.OnFileHashed(folder, vlocalplace);
 
         // now add a command to process the file
-        _commandFactory.CreateAndSave<CommandRequest_ProcessFile>(c =>
+        await scheduler.StartJobNow<ProcessFileJob>(c =>
             {
                 c.VideoLocalID = vlocal.VideoLocalID;
                 c.ForceAniDB = ForceHash;
@@ -136,7 +127,7 @@ public class HashFileJob : BaseJob
         var (folder, filePath) = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
         if (folder == null)
         {
-            Logger.LogError("Unable to locate Import Folder for {FileName}", FileName);
+            _logger.LogError("Unable to locate Import Folder for {FileName}", FileName);
             return default;
         }
 
@@ -144,7 +135,7 @@ public class HashFileJob : BaseJob
 
         if (!File.Exists(FileName))
         {
-            Logger.LogError("File does not exist: {Filename}", FileName);
+            _logger.LogError("File does not exist: {Filename}", FileName);
             return default;
         }
 
@@ -161,7 +152,7 @@ public class HashFileJob : BaseJob
             if (vlocal != null)
             {
                 existing = true;
-                Logger.LogTrace("VideoLocal record found in database: {Filename}", FileName);
+                _logger.LogTrace("VideoLocal record found in database: {Filename}", FileName);
 
                 // This will only happen with DB corruption, so just clean up the mess.
                 if (vlocalplace.FullServerPath == null)
@@ -185,7 +176,7 @@ public class HashFileJob : BaseJob
 
         if (vlocal == null)
         {
-            Logger.LogTrace("No existing VideoLocal, creating temporary record");
+            _logger.LogTrace("No existing VideoLocal, creating temporary record");
             vlocal = new SVR_VideoLocal
             {
                 DateTimeUpdated = DateTime.Now,
@@ -202,7 +193,7 @@ public class HashFileJob : BaseJob
 
         if (vlocalplace == null)
         {
-            Logger.LogTrace("No existing VideoLocal_Place, creating a new record");
+            _logger.LogTrace("No existing VideoLocal_Place, creating a new record");
             vlocalplace = new SVR_VideoLocal_Place
             {
                 FilePath = filePath, ImportFolderID = nshareID, ImportFolderType = folder.ImportFolderType
@@ -213,87 +204,64 @@ public class HashFileJob : BaseJob
         
         return (existing, vlocal, vlocalplace, folder);
     }
-
+    
     private long GetFileInfo(SVR_ImportFolder folder, ref Exception e)
     {
-        // TODO it is bad to spin wait in Quartz, as it blocks the queue. We can schedule a hash for a minute in the future
-        // it might just need testing, because we don't know if it'll block for 1.5s or a minute
-        long filesize;
         var settings = _settingsProvider.GetSettings();
+        var access = folder.IsDropSource == 1 ? FileAccess.ReadWrite : FileAccess.Read;
+
         if (settings.Import.FileLockChecking)
         {
-            var numAttempts = 0;
-            var writeAccess = folder.IsDropSource == 1;
-
-            // At least 1s between to ensure that size has the chance to change
             var waitTime = settings.Import.FileLockWaitTimeMS;
-            if (waitTime < 1000)
+
+            waitTime = waitTime < 1000 ? 4000 : waitTime;
+            settings.Import.FileLockWaitTimeMS = waitTime;
+            _settingsProvider.SaveSettings();
+
+            var policy = Policy
+                .HandleResult<long>(result => result == 0)
+                .Or<IOException>()
+                .Or<UnauthorizedAccessException>(HandleReadOnlyException)
+                .Or<Exception>(ex =>
+                {
+                    _logger.LogError(ex, "Could not access file: {Filename}", FileName);
+                    return false;
+                })
+                .WaitAndRetry(60, _ => TimeSpan.FromMilliseconds(waitTime), (_, _, count, _) =>
+                {
+                    _logger.LogTrace("Failed to access, (or filesize is 0) Attempt # {NumAttempts}, {FileName}", count, FileName);
+                });
+
+            
+            var result = policy.ExecuteAndCapture(() => GetFileSize(FileName, access));
+            if (result.Outcome == OutcomeType.Failure)
             {
-                waitTime = settings.Import.FileLockWaitTimeMS = 4000;
-                _settingsProvider.SaveSettings();
-            }
-
-            // We do checks in the file watcher, but we want to make sure we can still access the file
-            // Wait 1 minute before giving up on trying to access the file
-            while ((filesize = CanAccessFile(FileName, writeAccess, ref e)) == 0 && numAttempts < 60)
-            {
-                numAttempts++;
-                Thread.Sleep(waitTime);
-                Logger.LogTrace("Failed to access, (or filesize is 0) Attempt # {NumAttempts}, {FileName}",
-                    numAttempts, FileName);
-            }
-
-            // if we failed to access the file, return
-            if (numAttempts >= 60 || filesize == 0)
-            {
-                Logger.LogError("Could not access file: {Filename}", FileName);
-                return filesize;
+                if (result.FinalException is not null)
+                {
+                    _logger.LogError(result.FinalException, "Could not access file: {Filename}", FileName);
+                    e = result.FinalException;
+                }
+                else
+                    _logger.LogError("Could not access file: {Filename}", FileName);
             }
         }
 
-        if (!File.Exists(FileName))
+        if (File.Exists(FileName))
         {
-            Logger.LogError("Could not access file: {Filename}", FileName);
-            return 0;
-        }
-
-        return 0;
-    }
-    
-    private long CanAccessFile(string fileName, bool writeAccess, ref Exception e)
-    {
-        var accessType = writeAccess ? FileAccess.ReadWrite : FileAccess.Read;
-        try
-        {
-            return GetFileSize(fileName, accessType);
-        }
-        catch (IOException)
-        {
-            return 0;
-        }
-        catch (Exception ex)
-        {
-            // This shouldn't cause a recursion, as it'll throw if failing
-            Logger.LogTrace("File {FileName} is Read-Only, attempting to unmark", fileName);
             try
             {
-                var info = new FileInfo(fileName);
-                if (info.IsReadOnly) info.IsReadOnly = false;
-
-                // check to see if it stuck. On linux, we can't just winapi hack our way out, so don't recurse in that case, anyway
-                if (!new FileInfo(fileName).IsReadOnly && !Utils.IsRunningOnLinuxOrMac())
-                {
-                    return GetFileSize(fileName, accessType);
-                }
+                return GetFileSize(FileName, access);
             }
-            catch
+            catch (Exception exception)
             {
-                // ignore, we tried
+                _logger.LogError(exception, "Could not access file: {Filename}", FileName);
+                e = exception;
+                return 0;
             }
-
-            e = ex;
-            return 0;
         }
+
+        _logger.LogError("Could not access file: {Filename}", FileName);
+        return 0;
     }
 
     private static long GetFileSize(string fileName, FileAccess accessType)
@@ -301,6 +269,27 @@ public class HashFileJob : BaseJob
         using var fs = File.Open(fileName, FileMode.Open, accessType, FileShare.ReadWrite);
         var size = fs.Seek(0, SeekOrigin.End);
         return size;
+    }
+
+    private bool HandleReadOnlyException(Exception ex)
+    {
+        _logger.LogTrace("File {FileName} is Read-Only, attempting to unmark", FileName);
+        try
+        {
+            var info = new FileInfo(FileName);
+            if (info.IsReadOnly) info.IsReadOnly = false;
+
+            if (!info.IsReadOnly && !Utils.IsRunningOnLinuxOrMac())
+            {
+                return true;
+            }
+        }
+        catch
+        {
+            // ignore, we tried
+        }
+
+        return false;
     }
 
     private (bool changed, bool needEd2k, bool needCRC32, bool needMD5, bool needSHA1) ShouldHash(SVR_VideoLocal vlocal)
@@ -327,20 +316,20 @@ public class HashFileJob : BaseJob
         if (needMD5) tp.Add("MD5");
         if (needCRC32) tp.Add("CRC32");
 
-        Logger.LogTrace("Calculating missing {Filename} hashes for: {Types}", FileName, string.Join(",", tp));
+        _logger.LogTrace("Calculating missing {Filename} hashes for: {Types}", FileName, string.Join(",", tp));
         // update the VideoLocal record with the Hash, since cloud support we calculate everything
         var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{Path.DirectorySeparatorChar}"), true,
             ShokoServer.OnHashProgress,
             needCRC32, needMD5, needSHA1);
         var ts = DateTime.Now - start;
-        Logger.LogTrace("Hashed file in {TotalSeconds:#0.0} seconds --- {Filename} ({Size})", ts.TotalSeconds,
+        _logger.LogTrace("Hashed file in {TotalSeconds:#0.0} seconds --- {Filename} ({Size})", ts.TotalSeconds,
             FileName, Utils.FormatByteSize(vlocal.FileSize));
 
         if (string.IsNullOrEmpty(vlocal.Hash) || force) vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
         if (needSHA1) vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();
         if (needMD5) vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
         if (needCRC32) vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
-        Logger.LogTrace("Hashed file {Filename} ({Size}): Hash: {Hash}, CRC: {CRC}, SHA1: {SHA1}, MD5: {MD5}", FileName, Utils.FormatByteSize(vlocal.FileSize),
+        _logger.LogTrace("Hashed file {Filename} ({Size}): Hash: {Hash}, CRC: {CRC}, SHA1: {SHA1}, MD5: {MD5}", FileName, Utils.FormatByteSize(vlocal.FileSize),
             vlocal.Hash, vlocal.CRC32, vlocal.SHA1, vlocal.MD5);
     }
 
@@ -479,14 +468,14 @@ public class HashFileJob : BaseJob
         var dupPlace = vlocal.Places.FirstOrDefault(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath));
         if (dupPlace == null) return false;
 
-        Logger.LogWarning("Found Duplicate File");
-        Logger.LogWarning("---------------------------------------------");
-        Logger.LogWarning("New File: {FullServerPath}", vlocalplace.FullServerPath);
-        Logger.LogWarning("Existing File: {FullServerPath}", dupPlace.FullServerPath);
-        Logger.LogWarning("---------------------------------------------");
+        _logger.LogWarning("Found Duplicate File");
+        _logger.LogWarning("---------------------------------------------");
+        _logger.LogWarning("New File: {FullServerPath}", vlocalplace.FullServerPath);
+        _logger.LogWarning("Existing File: {FullServerPath}", dupPlace.FullServerPath);
+        _logger.LogWarning("---------------------------------------------");
 
         var settings = _settingsProvider.GetSettings();
-        if (settings.Import.AutomaticallyDeleteDuplicatesOnImport) _vlPlaceService.RemoveRecordAndDeletePhysicalFile(vlocalplace);
+        if (settings.Import.AutomaticallyDeleteDuplicatesOnImport) await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(vlocalplace);
         return true;
     }
 
@@ -510,4 +499,13 @@ public class HashFileJob : BaseJob
         fnhash.DateTimeUpdated = DateTime.Now;
         RepoFactory.FileNameHash.Save(fnhash);
     }
+
+    public HashFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_PlaceService vlPlaceService)
+    {
+        _settingsProvider = settingsProvider;
+        _schedulerFactory = schedulerFactory;
+        _vlPlaceService = vlPlaceService;
+    }
+
+    protected HashFileJob() { }
 }

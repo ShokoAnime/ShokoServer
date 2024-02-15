@@ -6,16 +6,19 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Plugin.Abstractions.Extensions;
-using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Trakt;
+using Shoko.Server.Scheduling.Jobs.TvDB;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using TvDbSharper;
@@ -29,16 +32,16 @@ public class TvDBApiHelper
 {
     private readonly ITvDbClient _client;
     private readonly ILogger<TvDBApiHelper> _logger;
-    private readonly ICommandRequestFactory _commandFactory;
+    private readonly ISchedulerFactory _schedulerFactory;
     private readonly ISettingsProvider _settingsProvider;
     private readonly IConnectivityService _connectivityService;
 
-    public TvDBApiHelper(ILogger<TvDBApiHelper> logger, ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider, IConnectivityService connectivityService)
+    public TvDBApiHelper(ILogger<TvDBApiHelper> logger, ISettingsProvider settingsProvider, IConnectivityService connectivityService, ISchedulerFactory schedulerFactory)
     {
         _logger = logger;
-        _commandFactory = commandFactory;
         _settingsProvider = settingsProvider;
         _connectivityService = connectivityService;
+        _schedulerFactory = schedulerFactory;
         _client = new TvDbClient();
         _client.BaseUrl = "https://api-beta.thetvdb.com";
     }
@@ -75,12 +78,7 @@ public class TvDBApiHelper
         }
     }
 
-    public TvDB_Series GetSeriesInfoOnline(int seriesID, bool forceRefresh)
-    {
-        return GetSeriesInfoOnlineAsync(seriesID, forceRefresh).Result;
-    }
-
-    private async Task<TvDB_Series> GetSeriesInfoOnlineAsync(int seriesID, bool forceRefresh)
+    public async Task<TvDB_Series> GetSeriesInfoOnlineAsync(int seriesID, bool forceRefresh)
     {
         try
         {
@@ -132,11 +130,6 @@ public class TvDBApiHelper
         }
 
         return null;
-    }
-
-    public List<TVDB_Series_Search_Response> SearchSeries(string criteria)
-    {
-        return Task.Run(async () => await SearchSeriesAsync(criteria)).Result;
     }
 
     public async Task<List<TVDB_Series_Search_Response>> SearchSeriesAsync(string criteria)
@@ -198,7 +191,7 @@ public class TvDBApiHelper
         return results;
     }
 
-    public void LinkAniDBTvDB(int animeID, int tvDBID, bool additiveLink, bool isAutomatic = false)
+    public async Task LinkAniDBTvDB(int animeID, int tvDBID, bool additiveLink, bool isAutomatic = false)
     {
         if (!additiveLink)
         {
@@ -210,12 +203,13 @@ public class TvDBApiHelper
         // check if we have this information locally
         // if not download it now
         var tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(tvDBID);
+        var scheduler = await _schedulerFactory.GetScheduler();
 
         if (tvSeries != null || !_connectivityService.NetworkAvailability.HasInternet())
         {
             // download and update series info, episode info and episode images
             // will also download fanart, posters and wide banners
-            _commandFactory.CreateAndSave<CommandRequest_TvDBUpdateSeries>(c => c.TvDBSeriesID = tvDBID);
+            await scheduler.StartJob<GetTvDBSeriesJob>(c => c.TvDBSeriesID = tvDBID);
         }
         else
         {
@@ -253,7 +247,7 @@ public class TvDBApiHelper
                 }
             }
 
-            _commandFactory.CreateAndSave<CommandRequest_TraktSearchAnime>(c => c.AnimeID = animeID);
+            await scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = animeID);
         }
     }
 
@@ -286,12 +280,7 @@ public class TvDBApiHelper
         }
     }
 
-    public List<TvDB_Language> GetLanguages()
-    {
-        return Task.Run(async () => await GetLanguagesAsync()).Result;
-    }
-
-    private async Task<List<TvDB_Language>> GetLanguagesAsync()
+    public async Task<List<TvDB_Language>> GetLanguagesAsync()
     {
         var languages = new List<TvDB_Language>();
 
@@ -348,20 +337,15 @@ public class TvDBApiHelper
         return languages;
     }
 
-    public void DownloadAutomaticImages(int seriesID, bool forceDownload)
+    public async Task DownloadAutomaticImages(int seriesID, bool forceDownload)
     {
-        var summary = GetSeriesImagesCounts(seriesID);
+        var summary = await GetSeriesImagesCountsAsync(seriesID);
         if (summary == null) return;
 
         var settings = _settingsProvider.GetSettings();
-        if (summary.Fanart > 0 && settings.TvDB.AutoFanart) DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
-        if (summary.Poster > 0 && settings.TvDB.AutoPosters) DownloadAutomaticImages(GetPosterOnline(seriesID), seriesID, forceDownload);
-        if (summary.Season > 0 && settings.TvDB.AutoWideBanners) DownloadAutomaticImages(GetBannerOnline(seriesID), seriesID, forceDownload);
-    }
-
-    private ImagesSummary GetSeriesImagesCounts(int seriesID)
-    {
-        return Task.Run(async () => await GetSeriesImagesCountsAsync(seriesID)).Result;
+        if (summary.Fanart > 0 && settings.TvDB.AutoFanart) await DownloadAutomaticImages(await GetFanartOnlineAsync(seriesID), seriesID, forceDownload);
+        if (summary.Poster > 0 && settings.TvDB.AutoPosters) await DownloadAutomaticImages(await GetPosterOnlineAsync(seriesID), seriesID, forceDownload);
+        if (summary.Season > 0 && settings.TvDB.AutoWideBanners) await DownloadAutomaticImages(await GetBannerOnlineAsync(seriesID), seriesID, forceDownload);
     }
 
     private async Task<ImagesSummary> GetSeriesImagesCountsAsync(int seriesID)
@@ -441,11 +425,6 @@ public class TvDBApiHelper
         return new Image[] { };
     }
 
-    private List<TvDB_ImageFanart> GetFanartOnline(int seriesID)
-    {
-        return Task.Run(async () => await GetFanartOnlineAsync(seriesID)).Result;
-    }
-
     private async Task<List<TvDB_ImageFanart>> GetFanartOnlineAsync(int seriesID)
     {
         var validIDs = new List<int>();
@@ -517,11 +496,6 @@ public class TvDBApiHelper
         }
 
         return tvImages;
-    }
-
-    private List<TvDB_ImagePoster> GetPosterOnline(int seriesID)
-    {
-        return Task.Run(async () => await GetPosterOnlineAsync(seriesID)).Result;
     }
 
     private async Task<List<TvDB_ImagePoster>> GetPosterOnlineAsync(int seriesID)
@@ -601,12 +575,7 @@ public class TvDBApiHelper
         return tvImages;
     }
 
-    public List<TvDB_ImageWideBanner> GetBannerOnline(int seriesID)
-    {
-        return Task.Run(async () => await GetBannerOnlineAsync(seriesID)).Result;
-    }
-
-    public async Task<List<TvDB_ImageWideBanner>> GetBannerOnlineAsync(int seriesID)
+    private async Task<List<TvDB_ImageWideBanner>> GetBannerOnlineAsync(int seriesID)
     {
         var validIDs = new List<int>();
         var tvImages = new List<TvDB_ImageWideBanner>();
@@ -683,9 +652,10 @@ public class TvDBApiHelper
         return tvImages;
     }
 
-    public void DownloadAutomaticImages(List<TvDB_ImageFanart> images, int seriesID, bool forceDownload)
+    private async Task DownloadAutomaticImages(List<TvDB_ImageFanart> images, int seriesID, bool forceDownload)
     {
         var settings = _settingsProvider.GetSettings();
+        var scheduler = await _schedulerFactory.GetScheduler();
         if (!settings.TvDB.AutoFanart) return;
         // find out how many images we already have locally
         var imageCount = RepoFactory.TvDB_ImageFanart.GetBySeriesID(seriesID).Count(fanart =>
@@ -698,11 +668,10 @@ public class TvDBApiHelper
                 var fileExists = File.Exists(img.GetFullImagePath());
                 if (fileExists && !forceDownload) continue;
 
-                _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
-                    c =>
+                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
-                        c.EntityID = img.TvDB_ImageFanartID;
-                        c.EntityType = (int)ImageEntityType.TvDB_FanArt;
+                        c.ImageID = img.TvDB_ImageFanartID;
+                        c.ImageType = ImageEntityType.TvDB_FanArt;
                         c.ForceDownload = forceDownload;
                     }
                 );
@@ -721,7 +690,7 @@ public class TvDBApiHelper
         }
     }
 
-    public void DownloadAutomaticImages(List<TvDB_ImagePoster> images, int seriesID, bool forceDownload)
+    private async Task DownloadAutomaticImages(List<TvDB_ImagePoster> images, int seriesID, bool forceDownload)
     {
         var settings = _settingsProvider.GetSettings();
         if (!settings.TvDB.AutoPosters) return;
@@ -729,6 +698,7 @@ public class TvDBApiHelper
         var imageCount = RepoFactory.TvDB_ImagePoster.GetBySeriesID(seriesID).Count(fanart =>
             !string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()));
 
+        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var img in images)
         {
             if (imageCount < settings.TvDB.AutoPostersAmount && !string.IsNullOrEmpty(img.GetFullImagePath()))
@@ -736,11 +706,10 @@ public class TvDBApiHelper
                 var fileExists = File.Exists(img.GetFullImagePath());
                 if (fileExists && !forceDownload) continue;
 
-                _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
-                    c =>
+                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
-                        c.EntityID = img.TvDB_ImagePosterID;
-                        c.EntityType = (int)ImageEntityType.TvDB_Cover;
+                        c.ImageID = img.TvDB_ImagePosterID;
+                        c.ImageType = ImageEntityType.TvDB_Cover;
                         c.ForceDownload = forceDownload;
                     }
                 );
@@ -758,8 +727,8 @@ public class TvDBApiHelper
             }
         }
     }
-    
-    public void DownloadAutomaticImages(List<TvDB_ImageWideBanner> images, int seriesID, bool forceDownload)
+
+    private async Task DownloadAutomaticImages(List<TvDB_ImageWideBanner> images, int seriesID, bool forceDownload)
     {
         var settings = _settingsProvider.GetSettings();
         // find out how many images we already have locally
@@ -767,17 +736,17 @@ public class TvDBApiHelper
         var imageCount = RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(seriesID).Count(banner =>
             !string.IsNullOrEmpty(banner.GetFullImagePath()) && File.Exists(banner.GetFullImagePath()));
 
+        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var img in images)
         {
             if (imageCount < settings.TvDB.AutoWideBannersAmount && !string.IsNullOrEmpty(img.GetFullImagePath()))
             {
                 var fileExists = File.Exists(img.GetFullImagePath());
                 if (fileExists && !forceDownload) continue;
-                _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
-                    c =>
+                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
-                        c.EntityID = img.TvDB_ImageWideBannerID;
-                        c.EntityType = (int)ImageEntityType.TvDB_Banner;
+                        c.ImageID = img.TvDB_ImageWideBannerID;
+                        c.ImageType = ImageEntityType.TvDB_Banner;
                         c.ForceDownload = forceDownload;
                     }
                 );
@@ -792,11 +761,6 @@ public class TvDBApiHelper
                     RepoFactory.TvDB_ImageWideBanner.Delete(img);
             }
         }
-    }
-
-    public List<EpisodeRecord> GetEpisodesOnline(int seriesID)
-    {
-        return Task.Run(async () => await GetEpisodesOnlineAsync(seriesID)).Result;
     }
 
     private async Task<List<EpisodeRecord>> GetEpisodesOnlineAsync(int seriesID)
@@ -861,23 +825,22 @@ public class TvDBApiHelper
         return apiEpisodes;
     }
 
-    public TvDB_Series UpdateSeriesInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
+    public async Task<TvDB_Series> UpdateSeriesInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
     {
         try
         {
             // update the series info
-            var tvSeries = GetSeriesInfoOnline(seriesID, forceRefresh);
+            var scheduler = await _schedulerFactory.GetScheduler();
+            var tvSeries = await GetSeriesInfoOnlineAsync(seriesID, forceRefresh);
             if (tvSeries == null)
-            {
                 return null;
-            }
 
             if (downloadImages)
             {
-                DownloadAutomaticImages(seriesID, forceRefresh);
+                await DownloadAutomaticImages(seriesID, forceRefresh);
             }
 
-            var episodeItems = GetEpisodesOnline(seriesID);
+            var episodeItems = await GetEpisodesOnlineAsync(seriesID);
             _logger.LogTrace("Found {Count} Episode nodes", episodeItems.Count);
 
             var existingEpIds = new List<int>();
@@ -908,11 +871,10 @@ public class TvDBApiHelper
                     continue;
                 }
 
-                _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(
-                    c =>
+                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
-                        c.EntityID = ep.TvDB_EpisodeID;
-                        c.EntityType = (int)ImageEntityType.TvDB_Episode;
+                        c.ImageID = ep.TvDB_EpisodeID;
+                        c.ImageType = ImageEntityType.TvDB_Episode;
                         c.ForceDownload = forceRefresh;
                     }
                 );
@@ -986,16 +948,15 @@ public class TvDBApiHelper
         SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
     }
 
-    public void ScanForMatches()
+    public async Task ScanForMatches()
     {
         var settings = _settingsProvider.GetSettings();
         if (!settings.TvDB.AutoLink)
-        {
             return;
-        }
 
         IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.CrossRef_AniDB_TvDB.GetSeriesWithoutLinks();
 
+        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var ser in allSeries)
         {
             if (ser.IsTvDBAutoMatchingDisabled)
@@ -1006,18 +967,17 @@ public class TvDBApiHelper
                 continue;
 
             _logger.LogTrace("Found anime without TvDB association: {MaintTitle}", anime.MainTitle);
-
-            _commandFactory.CreateAndSave<CommandRequest_TvDBSearchAnime>(c => c.AnimeID = ser.AniDB_ID);
+            await scheduler.StartJob<SearchTvDBSeriesJob>(c => c.AnimeID = ser.AniDB_ID);
         }
     }
 
-    public void UpdateAllInfo(bool force)
+    public async Task UpdateAllInfo(bool force)
     {
+        var scheduler = await _schedulerFactory.GetScheduler();
         var allCrossRefs = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
         foreach (var xref in allCrossRefs)
         {
-            _commandFactory.CreateAndSave<CommandRequest_TvDBUpdateSeries>(
-                c =>
+            await scheduler.StartJob<GetTvDBSeriesJob>(c =>
                 {
                     c.TvDBSeriesID = xref.TvDBID;
                     c.ForceRefresh = force;
