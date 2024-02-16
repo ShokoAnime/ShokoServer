@@ -37,16 +37,16 @@ public class ThreadPooledJobStore : JobStoreTX
         _queueStateEventHandler = queueStateEventHandler;
         _jobFactory = jobFactory;
         _acquisitionFilters = acquisitionFilters.ToArray();
+        foreach (var filter in _acquisitionFilters)
+        {
+            filter.StateChanged += FilterOnStateChanged;
+        }
         InitConcurrencyCache();
     }
 
     public override async Task Initialize(ITypeLoadHelper loadHelper, ISchedulerSignaler signaler, CancellationToken cancellationToken = default)
     {
         _signaler = signaler;
-        foreach (var filter in _acquisitionFilters)
-        {
-            filter.StateChanged += FilterOnStateChanged;
-        }
         _typeLoadHelper = loadHelper;
         await base.Initialize(loadHelper, signaler, cancellationToken);
     }

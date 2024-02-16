@@ -24,7 +24,8 @@ public class ShokoEventHandler : IShokoEventHandler
     public event EventHandler<SettingsSavedEventArgs> SettingsSaved;
     public event EventHandler<AVDumpEventArgs> AVDumpEvent;
 
-    public event EventHandler Start;
+    public event EventHandler Starting;
+    public event EventHandler Started;
     public event EventHandler<CancelEventArgs> Shutdown;
 
 
@@ -224,9 +225,14 @@ public class ShokoEventHandler : IShokoEventHandler
         });
     }
 
-    public void OnStart()
+    public void OnStarting()
     {
-        Start?.Invoke(null, EventArgs.Empty);
+        Starting?.Invoke(null, EventArgs.Empty);
+    }
+    
+    public void OnStarted()
+    {
+        Started?.Invoke(null, EventArgs.Empty);
     }
 
     public bool OnShutdown()

@@ -121,6 +121,8 @@ public class ShokoServer
         // run rotator once and set 24h delay
         Utils.ServiceContainer.GetRequiredService<LogRotator>().Start();
 
+        ShokoEventHandler.Instance.OnStarting();
+
         // for log readability, this will simply init the singleton
         Utils.ServiceContainer.GetService<IUDPConnectionHandler>();
         return true;
@@ -165,6 +167,7 @@ public class ShokoServer
 
     #region Database settings and initial start up
 
+    public event EventHandler ServerStarting;
     public event EventHandler LoginFormNeeded;
     public event EventHandler DatabaseSetup;
     public event EventHandler DBSetupCompleted;
@@ -203,6 +206,7 @@ public class ShokoServer
         }
 
         DBSetupCompleted?.Invoke(this, EventArgs.Empty);
+        ShokoEventHandler.Instance.OnStarted();
     }
 
     private void ShowDatabaseSetup()
