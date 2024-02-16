@@ -3,12 +3,14 @@ using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using Quartz;
 using Quartz.AspNetCore;
 using QuartzJobFactory;
+using QuartzJobFactory.Attributes;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Delegates;
 using Shoko.Server.Scheduling.Jobs;
@@ -21,9 +23,36 @@ namespace Shoko.Server.Scheduling;
 
 public static class QuartzStartup
 {
+    public static async Task ScheduleRecurringJobs(bool replace)
+    {
+        // this needs to run immediately upon scheduling, so it replaces always. Others will run on other schedules
+        await ScheduleRecurringJob<CheckNetworkAvailabilityJob>(
+            triggerConfig: t => t.WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(), replace: true);
+
+        // TODO the other schedule-based jobs that are on timers
+    }
+
+    private static async Task ScheduleRecurringJob<T>(Action<T> jobConfig = null, Func<TriggerBuilder, TriggerBuilder> triggerConfig = null, bool replace = false) where T : class, IJob
+    {
+        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+        jobConfig ??= _ => {};
+        triggerConfig ??= t => t;
+        var groupName = typeof(T).GetCustomAttribute<JobKeyGroupAttribute>()?.GroupName;
+        var jobKey = JobKeyBuilder<T>.Create().WithGroup(groupName).UsingJobData(jobConfig).Build();
+        if (!await scheduler.CheckExists(jobKey))
+        {
+            await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
+                triggerConfig(TriggerBuilder.Create()).Build());
+        } else if (replace)
+        {
+            await scheduler.RescheduleJob(new TriggerKey(jobKey.Name, jobKey.Group), triggerConfig(TriggerBuilder.Create()).Build());
+        }
+    }
+    
     internal static void AddQuartz(this IServiceCollection services)
     {
         // this lets us inject the shoko JobFactory explicitly, instead of only IJobFactory
+        ShokoEventHandler.Instance.Starting += (_, _) => ScheduleRecurringJobs(false).GetAwaiter().GetResult();
         services.AddSingleton<JobFactory>();
         services.AddSingleton<ThreadPooledJobStore>();
         services.AddSingleton<QueueHandler>();
@@ -39,11 +68,6 @@ public static class QuartzStartup
             q.MaxBatchSize = (int) Math.Round(Environment.ProcessorCount * 1.25D, MidpointRounding.AwayFromZero);
             q.BatchTriggerAcquisitionFireAheadTimeWindow = TimeSpan.FromSeconds(30);
             q.UseJobFactory<JobFactory>();
-
-            // Register the connectivity monitor job with a trigger that executes every 5 minutes
-            q.ScheduleJob<CheckNetworkAvailabilityJob>(
-                trigger => trigger.WithIdentity("UptimeMonitor", "System").WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(),
-                j => j.WithGeneratedIdentity());
         });
 
         services.AddQuartzServer(options =>

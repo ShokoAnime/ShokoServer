@@ -57,6 +57,14 @@ public class QueueHandler
         await scheduler.Start();
     }
 
+    public async Task Clear()
+    {
+        var scheduler = await _schedulerFactory.GetScheduler();
+        if (scheduler.IsShutdown || !scheduler.IsStarted) return;
+        await scheduler.Clear();
+        await QuartzStartup.ScheduleRecurringJobs(false);
+    }
+
     public bool Paused
     {
         get

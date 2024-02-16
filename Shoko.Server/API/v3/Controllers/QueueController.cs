@@ -93,9 +93,9 @@ public class QueueController : BaseController
     /// <returns>Void.</returns>
     [Authorize("admin")]
     [HttpPost("Clear")]
-    public ActionResult Clear()
+    public async Task<ActionResult> Clear()
     {
-        // TODO clear queue
+        await _queueHandler.Clear();
         return Ok();
     }
 
