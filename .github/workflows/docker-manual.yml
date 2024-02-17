@@ -78,8 +78,8 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-            ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }-${{ matrix.arch }}
-            ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }-${{ matrix.arch }}
+            ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }}
+            ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }}
           platforms: linux/${{ matrix.arch }}
           build-args: |
             version=${{ github.event.inputs.version }}
