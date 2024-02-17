@@ -69,6 +69,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Retrieve Commit Date
+        id: version
         run: |
           echo "COMMIT_DATE=$(git log -1 --format="%aI")" >> $GITHUB_OUTPUT
 
