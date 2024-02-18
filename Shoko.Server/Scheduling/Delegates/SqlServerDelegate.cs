@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Quartz.Impl.AdoJobStore;
+using Quartz.Spi;
+using Quartz.Util;
 
 namespace Shoko.Server.Scheduling.Delegates;
 
@@ -43,7 +45,12 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
                FROM {TablePrefixSubst}{TableTriggers} t
                INNER JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName})
                WHERE t.{ColumnSchedulerName} = @schedulerName AND t.{ColumnTriggerState} = @oldState AND jd.{ColumnJobClass} IN (@types)";
-    
+
+    private const string SelectJobClassesAndCountSql= @$"SELECT jd.{ColumnJobClass}, COUNT(jd.{ColumnJobClass}) AS Count
+              FROM {TablePrefixSubst}{TableTriggers} t
+              JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
+              WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = '{StateWaiting}' AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
+              GROUP BY jd.{ColumnJobClass} HAVING COUNT(1) > 0";
 
     public override void Initialize(DelegateInitializationArgs args)
     {
@@ -133,6 +140,28 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
 
         var rs = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         return Convert.ToInt32(rs);
+    }
+
+    public virtual async Task<Dictionary<Type, int>> SelectWaitingJobTypeCounts(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper,
+        DateTimeOffset noLaterThan, Type[] jobTypesToExclude, CancellationToken cancellationToken = new())
+    {
+        jobTypesToExclude ??= Array.Empty<Type>();
+        await using var cmd = PrepareCommand(conn, ReplaceTablePrefix(SelectJobClassesAndCountSql));
+        AddCommandParameter(cmd, "schedulerName", _schedulerName);
+        AddCommandParameter(cmd, "noLaterThan", GetDbDateTimeValue(noLaterThan));
+        AddCommandParameter(cmd, "noEarlierThan", GetDbDateTimeValue(DateTimeOffset.UtcNow - TimeSpan.FromMinutes(1)));
+
+        var result = new Dictionary<Type, int>();
+        await using var rs = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        do
+        {
+            var jobType = loadHelper.LoadType(rs.GetString(ColumnJobClass)!)!;
+            var count = rs.GetInt32(1)!;
+            if (Array.IndexOf(jobTypesToExclude, jobType) > -1) continue;
+            result[jobType] = count;
+        } while (await rs.ReadAsync(cancellationToken));
+
+        return result;
     }
 
     public virtual async Task<int> UpdateTriggerStatesForJobFromOtherState(ConnectionAndTransactionHolder conn, IEnumerable<Type> jobTypesToInclude,

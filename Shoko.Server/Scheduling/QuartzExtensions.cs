@@ -22,7 +22,7 @@ public static class QuartzExtensions
             return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build());
         return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build());
     }
-    
+
     /// <summary>
     /// Force a job of type T with the data map setter and generated identity to run asap
     /// </summary>
@@ -33,10 +33,10 @@ public static class QuartzExtensions
     public static async Task<DateTimeOffset> StartJobNow<T>(this IScheduler scheduler, Action<T> data = null) where T : class, IJob
     {
         if (data == null)
-            return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build(), priority:1);
-        return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build(), priority:1);
+            return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build(), priority:10);
+        return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build(), priority:10);
     }
-    
+
     /// <summary>
     /// This will add an array of parameters to a SqlCommand. This is used for an IN statement.
     /// Use the returned value for the IN part of your SQL call. (i.e. SELECT * FROM table WHERE field IN ({paramNameRoot}))
