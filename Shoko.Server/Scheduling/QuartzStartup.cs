@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using Quartz;
 using Quartz.AspNetCore;
+using Quartz.Spi;
 using QuartzJobFactory;
 using QuartzJobFactory.Attributes;
 using Shoko.Server.Scheduling.Acquisition.Filters;
@@ -42,10 +43,12 @@ public static class QuartzStartup
         if (!await scheduler.CheckExists(jobKey))
         {
             await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
-                triggerConfig(TriggerBuilder.Create()).Build());
+                triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
         } else if (replace)
         {
-            await scheduler.RescheduleJob(new TriggerKey(jobKey.Name, jobKey.Group), triggerConfig(TriggerBuilder.Create()).Build());
+            await scheduler.DeleteJob(jobKey);
+            await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
+                triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
         }
     }
     
@@ -53,8 +56,11 @@ public static class QuartzStartup
     {
         // this lets us inject the shoko JobFactory explicitly, instead of only IJobFactory
         ShokoEventHandler.Instance.Starting += (_, _) => ScheduleRecurringJobs(false).GetAwaiter().GetResult();
+        // JobFactory is stateless, but no reason to recreate it multiple times
         services.AddSingleton<JobFactory>();
-        services.AddSingleton<ThreadPooledJobStore>();
+        // Allow specifically injecting the singleton instance of ThreadPooledJobStore
+        services.AddSingleton(s =>
+            (ThreadPooledJobStore)s.GetServices<IJobStore>().FirstOrDefault(a => a.GetType() == typeof(ThreadPooledJobStore)));
         services.AddSingleton<QueueHandler>();
         services.AddSingleton<QueueStateEventHandler>();
         services.AddSingleton<IAcquisitionFilter, AniDBHttpRateLimitedAcquisitionFilter>();
@@ -64,8 +70,14 @@ public static class QuartzStartup
         services.AddJobs();
         services.AddQuartz(q =>
         {
+            var settings = Utils.SettingsProvider.GetSettings().Quartz;
+            var threadPoolSize = settings.MaxThreadPoolSize;
+            // if it's not set in the settings, then do the number of logical processors + 2. This is to allow a couple to rate limit in the queue 
+            if (threadPoolSize <= 0) threadPoolSize = Environment.ProcessorCount + 2;
+            q.UseDefaultThreadPool(o => o.MaxConcurrency = threadPoolSize);
+
             q.UseDatabase();
-            q.MaxBatchSize = (int) Math.Round(Environment.ProcessorCount * 1.25D, MidpointRounding.AwayFromZero);
+            q.MaxBatchSize = (int) Math.Round(threadPoolSize * 1.25D, MidpointRounding.AwayFromZero);
             q.BatchTriggerAcquisitionFireAheadTimeWindow = TimeSpan.FromSeconds(30);
             q.UseJobFactory<JobFactory>();
         });

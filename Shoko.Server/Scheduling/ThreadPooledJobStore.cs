@@ -92,7 +92,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private void FilterOnStateChanged(object sender, EventArgs e)
     {
-        _signaler.SignalSchedulingChange(DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5));
+        _signaler?.SignalSchedulingChange(DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5));
     }
 
     protected override async Task StoreJob(ConnectionAndTransactionHolder conn, IJobDetail newJob, bool replaceExisting, CancellationToken cancellationToken = new CancellationToken())
@@ -446,6 +446,17 @@ public class ThreadPooledJobStore : JobStoreTX
     {
         var types = GetTypesToExclude();
         return Delegate.SelectBlockedTriggerCount(conn, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), types, cancellationToken);
+    }
+
+    public Task<Dictionary<Type, int>> GetWaitingJobCounts()
+    {
+        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetWaitingJobCounts(conn), new CancellationToken());
+    }
+
+    private Task<Dictionary<Type, int>> GetWaitingJobCounts(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
+    {
+        var types = GetTypesToExclude();
+        return Delegate.SelectWaitingJobTypeCounts(conn, _typeLoadHelper, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), types, cancellationToken);
     }
 
     protected override async Task TriggeredJobComplete(ConnectionAndTransactionHolder conn, IOperableTrigger trigger, IJobDetail jobDetail, SchedulerInstruction triggerInstCode,

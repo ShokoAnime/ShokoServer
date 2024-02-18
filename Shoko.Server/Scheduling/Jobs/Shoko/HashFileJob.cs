@@ -90,7 +90,7 @@ public class HashFileJob : BaseJob
         var duplicate = await ProcessDuplicates(vlocal, vlocalplace);
         if (duplicate)
         {
-            await scheduler.StartJob<ProcessFileJob>(
+            await scheduler.StartJobNow<ProcessFileJob>(
                 c =>
                 {
                     c.VideoLocalID = vlocal.VideoLocalID;

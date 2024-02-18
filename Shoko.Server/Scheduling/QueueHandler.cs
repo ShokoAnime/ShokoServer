@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Quartz;
+using Quartz.Impl;
 
 namespace Shoko.Server.Scheduling;
 
@@ -9,12 +10,16 @@ public class QueueHandler
 {
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly QueueStateEventHandler _queueStateEventHandler;
+    private readonly JobFactory _jobFactory;
+    private readonly ThreadPooledJobStore _jobStore;
     private readonly Dictionary<string, QueueItem> _executingJobs = new();
 
-    public QueueHandler(ISchedulerFactory schedulerFactory, QueueStateEventHandler queueStateEventHandler)
+    public QueueHandler(ISchedulerFactory schedulerFactory, QueueStateEventHandler queueStateEventHandler, JobFactory jobFactory, ThreadPooledJobStore jobStore)
     {
         _schedulerFactory = schedulerFactory;
         _queueStateEventHandler = queueStateEventHandler;
+        _jobFactory = jobFactory;
+        _jobStore = jobStore;
         _queueStateEventHandler.ExecutingJobsChanged += ExecutingJobsStateEventHandlerOnExecutingJobsChanged;
     }
 
@@ -80,17 +85,17 @@ public class QueueHandler
 
     public int BlockedCount { get; private set; }
 
-    private int _threadcount = -1;
+    private int _threadCount = -1;
 
     public int ThreadCount
     {
         get
         {
-            if (_threadcount > -1) return _threadcount;
+            if (_threadCount > -1) return _threadCount;
             var scheduler = _schedulerFactory.GetScheduler().Result;
             var metaData = scheduler.GetMetaData().Result;
-            _threadcount = metaData.ThreadPoolSize;
-            return _threadcount;
+            _threadCount = metaData.ThreadPoolSize;
+            return _threadCount;
         }
     }
 
@@ -100,5 +105,11 @@ public class QueueHandler
         {
             return _executingJobs.Values.ToArray();
         }
+    }
+
+    public async Task<Dictionary<string, int>> GetWaitingJobCounts()
+    {
+        var jobs = await _jobStore.GetWaitingJobCounts();
+        return jobs.ToDictionary(a => _jobFactory.CreateJob(new JobDetailImpl(string.Empty, a.Key)).Name, a => a.Value);
     }
 }

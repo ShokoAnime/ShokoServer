@@ -56,11 +56,9 @@ public class QueueController : BaseController
     /// </summary>
     /// <returns>A dictionary of all the queued and active command types across all queues, and the count for each type.</returns>
     [HttpGet("Types")]
-    public ActionResult<Dictionary<string, int>> GetTypesForItemsInAllQueues()
+    public async Task<ActionResult<Dictionary<string, int>>> GetTypesForItemsInAllQueues()
     {
-        // TODO this
-        // count by type
-        return Ok();
+        return await _queueHandler.GetWaitingJobCounts();
     }
 
     /// <summary>
@@ -109,7 +107,7 @@ public class QueueController : BaseController
     /// <returns>A full or partial representation of the queued items, depending on the page and page size used, and the remaining items in the queue.</returns>
     [Authorize("admin")]
     [HttpGet("Items")]
-    public ActionResult<ListResult<Queue.QueueItem>> GetItemsInQueueByName(
+    public ActionResult<ListResult<Queue.QueueItem>> GetItemsInQueue(
         [FromQuery, Range(0, 1000)] int pageSize = 10,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool showAll = false

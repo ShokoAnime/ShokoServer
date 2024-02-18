@@ -18,6 +18,11 @@ public class QuartzSettings
     public string ConnectionString { get; set; } = $"Data Source={Path.Combine(Utils.ApplicationPath, "SQLite", "Quartz.db3")};Mode=ReadWriteCreate;";
 
     /// <summary>
+    /// Set this value to override the default size of the queue thread pool
+    /// </summary>
+    public int MaxThreadPoolSize { get; set; }
+
+    /// <summary>
     /// A map of Type (yes, you need to look at the source code, under ./Shoko.Server/Scheduling/Jobs) to the number of allowed concurrent jobs of the same type.
     /// Some types will not be able to have a lower limit, due to API restrictions. HashFileJob is included as an example.
     /// </summary>
