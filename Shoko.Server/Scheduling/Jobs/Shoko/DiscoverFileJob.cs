@@ -54,9 +54,9 @@ public class DiscoverFileJob : BaseJob
 
         var filename = vlocalplace.FileName;
 
-        _logger.LogTrace("No existing hash in VideoLocal (or forced), checking XRefs");
         if (vlocal.HasAnyEmptyHashes())
         {
+            _logger.LogTrace("Missing hashes in VideoLocal (or forced), checking XRefs");
             // try getting the hash from the CrossRef
             if (TrySetHashFromXrefs(filename, vlocal))
             {
@@ -79,7 +79,8 @@ public class DiscoverFileJob : BaseJob
         var scheduler = await _schedulerFactory.GetScheduler();
         if (!shouldHash && !shouldSave)
         {
-            var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash);
+            var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash).Where(a =>
+                RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.EpisodeID) != null && RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null).ToList();
             if (xrefs.Count != 0)
             {
                 _logger.LogTrace("Hashes were not necessary for file, so exiting: {File}, Hash: {Hash}", FileName, vlocal.Hash);
@@ -105,6 +106,9 @@ public class DiscoverFileJob : BaseJob
             if (duplicateRemoved) return;
         }
 
+        var hasXrefs = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash).Any(a =>
+            RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.EpisodeID) != null && RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null);
+
         if (shouldHash)
         {
             await scheduler.StartJobNow<HashFileJob>(a =>
@@ -112,6 +116,10 @@ public class DiscoverFileJob : BaseJob
                 a.FileName = FileName;
                 a.SkipMyList = SkipMyList;
             });
+        } else if (!hasXrefs)
+        {
+            _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FileName, vlocal.Hash);
+            await scheduler.StartJobNow<ProcessFileJob>(a => a.VideoLocalID = vlocal.VideoLocalID);
         }
     }
 

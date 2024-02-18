@@ -18,6 +18,7 @@ public abstract class BaseJob : IShokoJob
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Job threw an error on Execution: {Job} | Error -> {Ex}", context.JobDetail.Key, ex);
             throw new JobExecutionException(msg: ex.Message, refireImmediately: false, cause: ex);
         }
     }

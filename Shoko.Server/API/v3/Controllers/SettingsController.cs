@@ -77,7 +77,7 @@ public class SettingsController : BaseController
             return ValidationProblem(ModelState);
 
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
-        await handler.ForceLogout();
+        handler.ForceLogout();
 
         if (!await handler.TestLogin(credentials.Username, credentials.Password))
             return ValidationProblem("Failed to log in.", "Connection");

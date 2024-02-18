@@ -129,7 +129,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         _pulseTimer.Start();
     }
 
-    private async void PulseTimerElapsed(object sender, ElapsedEventArgs e)
+    private void PulseTimerElapsed(object sender, ElapsedEventArgs e)
     {
         try
         {
@@ -160,12 +160,12 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                 !IsBanned && !ExtendPauseSecs.HasValue)
             {
                 var ping = _requestFactory.Create<RequestPing>();
-                await ping.Send();
+                ping.Send();
             }
 
             if (nonPingTimestamp.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
             {
-                await ForceLogout();
+                ForceLogout();
             }
         }
         catch (Exception exception)
@@ -265,7 +265,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     {
         try
         {
-            await ForceLogout();
+            ForceLogout();
         }
         catch (Exception ex)
         {
@@ -283,7 +283,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
         try
         {
-            InitInternal();
+            await InitInternal();
         }
         catch (Exception ex)
         {
@@ -303,7 +303,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
     }
 
-    public async Task ForceLogout()
+    public void ForceLogout()
     {
         if (!_isLoggedOn)
         {
@@ -320,7 +320,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         Logger.LogTrace("Logging Out");
         try
         {
-            await _requestFactory.Create<RequestLogout>().Send();
+            _requestFactory.Create<RequestLogout>().Send();
         }
         catch
         {
@@ -356,7 +356,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         try
         {
             Logger.LogTrace("Failed to login to AniDB. Issuing a Logout command and retrying");
-            await ForceLogout();
+            ForceLogout();
             return await Login(settings.AniDb.Username, settings.AniDb.Password);
         }
         catch (Exception e)
@@ -429,7 +429,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                     r.Password = password;
                 }
             );
-            return await login.Send();
+            return login.Send();
         }
         catch (UnexpectedUDPResponseException)
         {
@@ -443,7 +443,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                     r.UseUnicode = true;
                 }
             );
-            return await login.Send();
+            return login.Send();
         }
         catch (SocketException e)
             when (e.SocketErrorCode == SocketError.TimedOut)
@@ -458,7 +458,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
                     r.UseUnicode = true;
                 }
             );
-            return await login.Send();
+            return login.Send();
         }
         catch (SocketException e)
         {
@@ -477,7 +477,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         var result = await Login(username, password);
         if (result)
         {
-            await ForceLogout();
+            ForceLogout();
         }
 
         return result;

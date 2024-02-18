@@ -277,7 +277,7 @@ public class Init : BaseController
     public async Task<ActionResult> TestAniDB()
     {
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
-        await handler.ForceLogout();
+        handler.ForceLogout();
         await handler.CloseConnections();
 
         Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(_settings.Culture);
@@ -287,7 +287,7 @@ public class Init : BaseController
             _settings.AniDb.ServerPort, _settings.AniDb.ClientPort);
 
         if (!await handler.Login()) return APIStatus.BadRequest("Failed to log in");
-        await handler.ForceLogout();
+        handler.ForceLogout();
 
         return APIStatus.OK();
     }

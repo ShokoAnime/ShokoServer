@@ -67,7 +67,7 @@ public class GetAniDBCalendarJob : BaseJob
         sched.LastUpdate = DateTime.Now;
 
         var request = _requestFactory.Create<RequestCalendar>();
-        var response = await request.Send();
+        var response = request.Send();
         RepoFactory.ScheduledUpdate.Save(sched);
 
         if (response.Response?.Next25Anime != null)

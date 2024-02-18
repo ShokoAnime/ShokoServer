@@ -810,7 +810,7 @@ public partial class ShokoServiceImplementation
                     r.Password = settings.AniDb.Password;
                 }
             );
-            var response = request.Send().Result;
+            var response = request.Send();
             if (response.Response != null)
             {
                 foreach (var myitem in response.Response)

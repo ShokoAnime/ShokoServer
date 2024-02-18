@@ -1,10 +1,8 @@
-﻿using System.Threading.Tasks;
+﻿namespace Shoko.Server.Providers.AniDB.Interfaces;
 
-namespace Shoko.Server.Providers.AniDB.Interfaces;
-
-public interface IRequest<T, T1> where T : IResponse<T1> where T1 : class
+public interface IRequest<out T, T1> where T : IResponse<T1> where T1 : class
 {
-    Task<T> Send();
+    T Send();
 }
 
 public interface IRequest

@@ -22,13 +22,13 @@ public class QueueEmitter : BaseEmitter, IDisposable
     {
         _queueStateEventHandler = queueStateEventHandler;
         _queueHandler = queueHandler;
-        _queueStateEventHandler.QueueChanged += OnQueueStateChangedEvent;
+        _queueStateEventHandler.ExecutingJobsChanged += OnExecutingJobsStateChangedEvent;
         ServerState.Instance.PropertyChanged += ServerStatePropertyChanged;
     }
 
     public void Dispose()
     {
-        _queueStateEventHandler.QueueChanged -= OnQueueStateChangedEvent;
+        _queueStateEventHandler.ExecutingJobsChanged -= OnExecutingJobsStateChangedEvent;
         ServerState.Instance.PropertyChanged -= ServerStatePropertyChanged;
     }
 
@@ -42,7 +42,7 @@ public class QueueEmitter : BaseEmitter, IDisposable
         }
     }
 
-    private async void OnQueueStateChangedEvent(object sender, QueueChangedEventArgs e)
+    private async void OnExecutingJobsStateChangedEvent(object sender, QueueChangedEventArgs e)
     {
         await StateChangedAsync("QueueStateChanged", "QueueState",
             new QueueStateSignalRModel

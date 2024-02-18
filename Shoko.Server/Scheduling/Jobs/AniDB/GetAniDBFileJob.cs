@@ -87,7 +87,7 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
                     r.Size = _vlocal.FileSize;
                 }
             );
-            response = await request.Send();
+            response = request.Send();
         }
 
         if (response?.Response == null)
@@ -231,7 +231,7 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
                     var epRequest = _requestFactory.Create<RequestGetEpisode>(r => r.EpisodeID = episode.EpisodeID);
                     try
                     {
-                        var epResponse = await epRequest.Send();
+                        var epResponse = epRequest.Send();
                         epAnimeID = epResponse.Response?.AnimeID;
                     }
                     catch (Exception e)

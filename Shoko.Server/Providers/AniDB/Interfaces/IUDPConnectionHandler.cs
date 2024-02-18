@@ -13,7 +13,7 @@ public interface IUDPConnectionHandler : IConnectionHandler
     bool SetCredentials(string username, string password);
     bool ValidAniDBCredentials(string user, string pass);
     Task<bool> Login();
-    Task ForceLogout();
+    void ForceLogout();
     Task CloseConnections();
     Task ForceReconnection();
     void ExtendBanTimer(int time, string message);

@@ -63,7 +63,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
         }
 
         var request = _requestFactory.Create<RequestReleaseGroupStatus>(r => r.AnimeID = AnimeID);
-        var response = await request.Send();
+        var response = request.Send();
         if (response.Response == null) return;
 
         var maxEpisode = response.Response.Max(a => a.LastEpisodeNumber);

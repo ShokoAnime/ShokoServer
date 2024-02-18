@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
@@ -47,11 +46,11 @@ public class RequestLogin : UDPRequest<ResponseLogin>
         // Override to prevent attaching our non-existent sessionID
     }
 
-    public override async Task<UDPResponse<ResponseLogin>> Send()
+    public override UDPResponse<ResponseLogin> Send()
     {
         Command = BaseCommand;
         // LOGIN commands have special needs, so we want to handle this differently
-        var rawResponse = await Handler.CallAniDBUDPDirectly(Command, UseUnicode);
+        var rawResponse = Handler.CallAniDBUDPDirectly(Command, UseUnicode).Result;
         var response = ParseResponse(rawResponse, true);
         var parsedResponse = ParseResponse(response);
         return parsedResponse;

@@ -24,11 +24,11 @@ public abstract class HttpRequest<T> : IRequest, IRequest<HttpResponse<T>, T> wh
 
     protected abstract Task<HttpResponse<T>> ParseResponse(HttpResponse<string> receivedData);
 
-    public virtual async Task<HttpResponse<T>> Send()
+    public virtual HttpResponse<T> Send()
     {
         Command = BaseCommand.Trim();
-        var rawResponse = await _handler.GetHttp(Command);
-        var response = await ParseResponse(rawResponse);
+        var rawResponse = _handler.GetHttp(Command).Result;
+        var response = ParseResponse(rawResponse).Result;
         PostExecute(response);
         return response;
     }

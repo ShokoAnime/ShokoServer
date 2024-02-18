@@ -37,10 +37,7 @@ public class ThreadPooledJobStore : JobStoreTX
         _queueStateEventHandler = queueStateEventHandler;
         _jobFactory = jobFactory;
         _acquisitionFilters = acquisitionFilters.ToArray();
-        foreach (var filter in _acquisitionFilters)
-        {
-            filter.StateChanged += FilterOnStateChanged;
-        }
+        foreach (var filter in _acquisitionFilters) filter.StateChanged += FilterOnStateChanged;
         InitConcurrencyCache();
     }
 
@@ -90,15 +87,18 @@ public class ThreadPooledJobStore : JobStoreTX
 
     ~ThreadPooledJobStore()
     {
-        foreach (var filter in _acquisitionFilters)
-        {
-            filter.StateChanged -= FilterOnStateChanged;
-        }
+        foreach (var filter in _acquisitionFilters) filter.StateChanged -= FilterOnStateChanged;
     }
 
     private void FilterOnStateChanged(object sender, EventArgs e)
     {
         _signaler.SignalSchedulingChange(DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5));
+    }
+
+    protected override async Task StoreJob(ConnectionAndTransactionHolder conn, IJobDetail newJob, bool replaceExisting, CancellationToken cancellationToken = new CancellationToken())
+    {
+        await JobStoringQueueEvents(conn, newJob, cancellationToken);
+        await base.StoreJob(conn, newJob, replaceExisting, cancellationToken);
     }
 
     protected override async Task<IReadOnlyCollection<IOperableTrigger>> AcquireNextTrigger(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan,
@@ -489,62 +489,108 @@ public class ThreadPooledJobStore : JobStoreTX
         return metadata.ThreadPoolSize;
     }
 
+    private async Task JobStoringQueueEvents(ConnectionAndTransactionHolder conn, IJobDetail newJob, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var waitingTriggerCount = await GetWaitingTriggersCount(conn, cancellationToken);
+            var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
+            if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
+            QueueItem[] executing;
+            lock (_executingJobs)
+                executing = _executingJobs.Values.Select(a =>
+                {
+                    var job = _jobFactory.CreateJob(a);
+                    return new QueueItem
+                    {
+                        Key = a.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage()
+                    };
+                }).ToArray();
+
+            _queueStateEventHandler.OnJobAdded(newJob, new QueueStateContext
+            {
+                ThreadCount = _threadPoolSize,
+                WaitingTriggersCount = waitingTriggerCount,
+                BlockedTriggersCount = blockedTriggerCount,
+                CurrentlyExecuting = executing
+            });
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "An error occurred while firing Job Added events");
+        }
+    }
+
     private async Task JobFiringQueueEvents(ConnectionAndTransactionHolder conn, IJobDetail jobDetail, CancellationToken cancellationToken)
     {
-        lock(_executingJobs) _executingJobs[jobDetail.Key] = jobDetail;
-        var waitingTriggerCount = await GetWaitingTriggersCount(conn, cancellationToken);
-        var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
-        if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
-        QueueItem[] executing;
-        lock (_executingJobs)
-            executing = _executingJobs.Select(a =>
-            {
-                var job = _jobFactory.CreateJob(a.Value);
-                return new QueueItem
-                {
-                    Key = a.Key.ToString(), JobType = job?.Name ?? a.Value.JobType.Name, Description = job?.Description.formatMessage()
-                };
-            }).ToArray();
-
-        _queueStateEventHandler.OnJobExecuting(jobDetail, new QueueStateContext
+        try
         {
-            ThreadCount = _threadPoolSize,
-            WaitingTriggersCount = waitingTriggerCount,
-            BlockedTriggersCount = blockedTriggerCount,
-            CurrentlyExecuting = executing
-        });
+            lock(_executingJobs) _executingJobs[jobDetail.Key] = jobDetail;
+            var waitingTriggerCount = await GetWaitingTriggersCount(conn, cancellationToken);
+            var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
+            if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
+            QueueItem[] executing;
+            lock (_executingJobs)
+                executing = _executingJobs.Select(a =>
+                {
+                    var job = _jobFactory.CreateJob(a.Value);
+                    return new QueueItem
+                    {
+                        Key = a.Key.ToString(), JobType = job?.Name ?? a.Value.JobType.Name, Description = job?.Description.formatMessage()
+                    };
+                }).ToArray();
+
+            _queueStateEventHandler.OnJobExecuting(jobDetail, new QueueStateContext
+            {
+                ThreadCount = _threadPoolSize,
+                WaitingTriggersCount = waitingTriggerCount,
+                BlockedTriggersCount = blockedTriggerCount,
+                CurrentlyExecuting = executing
+            });
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "An error occurred while firing Job Executing events");
+        }
     }
 
     private async Task JobCompletedQueueEvents(ConnectionAndTransactionHolder conn, IJobDetail jobDetail, CancellationToken cancellationToken)
     {
-        // this runs before the states have been updated, so things that were blocked for concurrency are still blocked at this point
-        lock(_executingJobs) _executingJobs.Remove(jobDetail.Key);
-        var waitingTriggerCount = await GetWaitingTriggersCount(conn, cancellationToken);
-        var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
-        if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
-        QueueItem[] executing;
-        lock (_executingJobs)
-            executing = _executingJobs.Values.Select(a =>
-            {
-                var job = _jobFactory.CreateJob(a);
-                return new QueueItem
-                {
-                    Key = a.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage()
-                };
-            }).ToArray();
-
-        _queueStateEventHandler.OnJobCompleted(jobDetail, new QueueStateContext
+        try
         {
-            ThreadCount = _threadPoolSize,
-            WaitingTriggersCount = waitingTriggerCount,
-            BlockedTriggersCount = blockedTriggerCount,
-            CurrentlyExecuting = executing
-        });
+            // this runs before the states have been updated, so things that were blocked for concurrency are still blocked at this point
+            lock(_executingJobs) _executingJobs.Remove(jobDetail.Key);
+            var waitingTriggerCount = await GetWaitingTriggersCount(conn, cancellationToken);
+            var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
+            if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
+            QueueItem[] executing;
+            lock (_executingJobs)
+                executing = _executingJobs.Values.Select(a =>
+                {
+                    var job = _jobFactory.CreateJob(a);
+                    return new QueueItem
+                    {
+                        Key = a.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage()
+                    };
+                }).ToArray();
 
-        // this will prevent the idle waiting that exists to prevent constantly checking if it's time to trigger a schedule
-        // it's now - 5 minutes because it checks if the DateTimeOffset is != MinValue and < Now within a "reasonable" period dependent on the JobStore
-        if (waitingTriggerCount > 0 || blockedTriggerCount > 0)
-            _signaler.SignalSchedulingChange(DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5), cancellationToken);
+            _queueStateEventHandler.OnJobCompleted(jobDetail, new QueueStateContext
+            {
+                ThreadCount = _threadPoolSize,
+                WaitingTriggersCount = waitingTriggerCount,
+                BlockedTriggersCount = blockedTriggerCount,
+                CurrentlyExecuting = executing
+            });
+
+            // this will prevent the idle waiting that exists to prevent constantly checking if it's time to trigger a schedule
+            // it's now - 5 minutes because it checks if the DateTimeOffset is != MinValue and < Now within a "reasonable" period dependent on the JobStore
+            if (waitingTriggerCount > 0 || blockedTriggerCount > 0)
+                _signaler.SignalSchedulingChange(DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5), cancellationToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "An error occurred while firing Job Completed events");
+        }
     }
     
     private new IFilteredDriverDelegate Delegate => base.Delegate as IFilteredDriverDelegate;
