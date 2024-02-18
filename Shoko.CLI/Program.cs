@@ -51,10 +51,21 @@ public static class Program
         Utils.YesNoRequired += OnUtilsOnYesNoRequired;
         ServerState.Instance.PropertyChanged += OnInstanceOnPropertyChanged;
         var queueStateEventHandler = provider.GetRequiredService<QueueStateEventHandler>();
-        queueStateEventHandler.QueueChanged += QueueStateEventHandlerOnQueueChanged;
+        queueStateEventHandler.QueueItemAdded += QueueStateEventHandlerOnQueueItemAdded;
+        queueStateEventHandler.ExecutingJobsChanged += ExecutingJobsStateEventHandlerOnExecutingJobsChanged;
     }
 
-    private static void QueueStateEventHandlerOnQueueChanged(object? sender, QueueChangedEventArgs e)
+    private static void QueueStateEventHandlerOnQueueItemAdded(object? sender, QueueItemAddedEventArgs e)
+    {
+        if (e.AddedItems is not { Count: > 0 }) return;
+
+        foreach (var addedItem in e.AddedItems)
+        {
+            _logger.LogTrace("Job Added: {Type} | {Details}", addedItem.JobType ?? addedItem.Key, addedItem.Description);
+        }
+    }
+
+    private static void ExecutingJobsStateEventHandlerOnExecutingJobsChanged(object? sender, QueueChangedEventArgs e)
     {
         if (e.AddedItems is { Count: > 0 })
         {

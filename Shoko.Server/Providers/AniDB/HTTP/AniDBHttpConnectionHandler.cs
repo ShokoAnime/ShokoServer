@@ -38,7 +38,10 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
 
         RateLimiter.EnsureRate();
 
-        var client = new HttpClient();
+        var client = new HttpClient(new HttpClientHandler
+        {
+            AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
+        });
         client.Timeout = TimeSpan.FromSeconds(20);
         client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
         client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("deflate"));

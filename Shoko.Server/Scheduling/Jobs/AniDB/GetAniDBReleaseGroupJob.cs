@@ -38,7 +38,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
         if (!ForceRefresh && relGroup != null) return;
 
         var request = _requestFactory.Create<RequestReleaseGroup>(r => r.ReleaseGroupID = GroupID);
-        var response = await request.Send();
+        var response = request.Send();
 
         if (response?.Response == null) return;
 

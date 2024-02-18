@@ -61,7 +61,7 @@ public class SyncAniDBMyListJob : BaseJob
                 r.Password = _settings.AniDb.Password;
             }
         );
-        var response = await request.Send();
+        var response = request.Send();
 
         if (response.Response == null)
         {

@@ -107,7 +107,7 @@ public class AddFileToMyListJob : BaseJob
                         r.EpisodeType = (EpisodeType)episode.EpisodeType;
                     }
                 );
-                response = await request.Send();
+                response = request.Send();
 
                 if (response.Code != UDPReturnCode.FILE_ALREADY_IN_MYLIST)
                 {
@@ -125,7 +125,7 @@ public class AddFileToMyListJob : BaseJob
                         r.EpisodeType = (EpisodeType)episode.EpisodeType;
                     }
                 );
-                await updateRequest.Send();
+                updateRequest.Send();
             }
         }
         else
@@ -140,7 +140,7 @@ public class AddFileToMyListJob : BaseJob
                     r.Size = _videoLocal.FileSize;
                 }
             );
-            response = await request.Send();
+            response = request.Send();
 
             if (response.Code == UDPReturnCode.FILE_ALREADY_IN_MYLIST)
             {
@@ -157,7 +157,7 @@ public class AddFileToMyListJob : BaseJob
                         r.Size = _videoLocal.FileSize;
                     }
                 );
-                await updateRequest.Send();
+                updateRequest.Send();
             }
         }
 

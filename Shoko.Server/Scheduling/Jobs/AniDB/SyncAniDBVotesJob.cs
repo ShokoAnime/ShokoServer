@@ -48,7 +48,7 @@ public class SyncAniDBVotesJob : BaseJob
                 r.Password = settings.AniDb.Password;
             }
         );
-        var response = await request.Send();
+        var response = request.Send();
         if (response.Response == null)
         {
             return;

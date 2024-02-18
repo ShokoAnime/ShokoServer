@@ -158,7 +158,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         try
         {
             var request = _requestFactory.Create<RequestGetAnime>(r => r.AnimeID = AnimeID);
-            var httpResponse = await request.Send();
+            var httpResponse = request.Send();
             response = httpResponse.Response;
             if (response == null)
             {

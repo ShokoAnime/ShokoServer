@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
@@ -32,16 +31,16 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
         Handler = handler;
     }
 
-    public virtual async Task<UDPResponse<T>> Send()
+    public virtual UDPResponse<T> Send()
     {
         Command = BaseCommand.Trim();
-        if (string.IsNullOrEmpty(Handler.SessionID) && !await Handler.Login())
+        if (string.IsNullOrEmpty(Handler.SessionID) && !Handler.Login().Result)
         {
             throw new NotLoggedInException();
         }
 
         PreExecute(Handler.SessionID);
-        var rawResponse = await Handler.CallAniDBUDP(Command);
+        var rawResponse = Handler.CallAniDBUDP(Command).Result;
         var response = ParseResponse(rawResponse);
         var parsedResponse = ParseResponse(response);
         PostExecute(Handler.SessionID, parsedResponse);

@@ -46,7 +46,7 @@ public class DeleteFileFromMyListJob : BaseJob
             : new[] { Hash },
     };
 
-    public override async Task Process()
+    public override Task Process()
     {
         // there will be a road bump the first time we start up, as some people may have requests with MyListID. I don't care. It'll get there.
         _logger.LogInformation("Processing CommandRequest_DeleteFileFromMyList: Hash: {Hash} FileSize: {Size} MyListID: {MyListID} FileID: {FileID} AnimeID: {AnimeID} Episode: {EpisodeType} {EpisodeNumber}",
@@ -56,28 +56,30 @@ public class DeleteFileFromMyListJob : BaseJob
         switch (settings.AniDb.MyList_DeleteType)
         {
             case AniDBFileDeleteType.Delete:
-                await SendDeleteCommand();
+                SendDeleteCommand();
                 break;
             case AniDBFileDeleteType.MarkDeleted:
-                await SendUpdateCommand(MyList_State.Deleted);
+                SendUpdateCommand(MyList_State.Deleted);
                 break;
             case AniDBFileDeleteType.MarkUnknown:
-                await SendUpdateCommand(MyList_State.Unknown);
+                SendUpdateCommand(MyList_State.Unknown);
                 break;
             case AniDBFileDeleteType.MarkExternalStorage:
-                await SendUpdateCommand(MyList_State.Remote);
+                SendUpdateCommand(MyList_State.Remote);
                 break;
             case AniDBFileDeleteType.MarkDisk:
-                await SendUpdateCommand(MyList_State.Disk);
+                SendUpdateCommand(MyList_State.Disk);
                 break;
             case AniDBFileDeleteType.DeleteLocalOnly:
                 _logger.LogInformation(
                     "Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", Hash);
                 break;
         }
+
+        return Task.CompletedTask;
     }
 
-    private async Task SendDeleteCommand()
+    private void SendDeleteCommand()
     {
         UDPRequest<Void> request;
         if (!string.IsNullOrEmpty(Hash))
@@ -90,7 +92,7 @@ public class DeleteFileFromMyListJob : BaseJob
                 }
             );
             _logger.LogInformation("Deleting file from MyList: Hash: {Hash}", Hash);
-            await request.Send();
+            request.Send();
             return;
         }
 
@@ -104,7 +106,7 @@ public class DeleteFileFromMyListJob : BaseJob
             );
             _logger.LogInformation(
                 "Deleting File from MyList: MyListID: {MyListID}", MyListID);
-            await request.Send();
+            request.Send();
             return;
         }
 
@@ -118,7 +120,7 @@ public class DeleteFileFromMyListJob : BaseJob
             );
             _logger.LogInformation(
                 "Deleting File from MyList: FileID: {FileID}", FileID);
-            await request.Send();
+            request.Send();
             return;
         }
 
@@ -135,10 +137,10 @@ public class DeleteFileFromMyListJob : BaseJob
         _logger.LogInformation(
             "Deleting Episode from MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}", AnimeID,
             EpisodeType, EpisodeNumber);
-        await request.Send();
+        request.Send();
     }
 
-    private async Task SendUpdateCommand(MyList_State state)
+    private void SendUpdateCommand(MyList_State state)
     {
         UDPRequest<Void> request;
         if (!string.IsNullOrEmpty(Hash))
@@ -152,7 +154,7 @@ public class DeleteFileFromMyListJob : BaseJob
                 }
             );
             _logger.LogInformation("Marking file as {State} in MyList: Hash: {Hash}", state, Hash);
-            var response = await request.Send();
+            var response = request.Send();
             if (response.Code == UDPReturnCode.NO_SUCH_FILE) _logger.LogWarning("Update MyList returned NO_SUCH_FILE for {Hash}", Hash);
             return;
         }
@@ -167,7 +169,7 @@ public class DeleteFileFromMyListJob : BaseJob
                 }
             );
             _logger.LogInformation("Marking file as {State} in MyList: MyListID: {MyListID}", state, MyListID);
-            var response = await request.Send();
+            var response = request.Send();
             if (response.Code == UDPReturnCode.NO_SUCH_FILE) _logger.LogWarning("Update MyList returned NO_SUCH_FILE for MyListID: {MyListID}", MyListID);
             return;
         }
@@ -182,7 +184,7 @@ public class DeleteFileFromMyListJob : BaseJob
                 }
             );
             _logger.LogInformation("Marking file as {State} in MyList: FileID: {FileID}", state, FileID);
-            var response = await request.Send();
+            var response = request.Send();
             if (response.Code == UDPReturnCode.NO_SUCH_FILE) _logger.LogWarning("Update MyList returned NO_SUCH_FILE for FileID: {FileID}", FileID);
             return;
         }
@@ -201,7 +203,7 @@ public class DeleteFileFromMyListJob : BaseJob
         _logger.LogInformation(
             "Marking Episode as {State} in MyList: AnimeID: {AnimeID} Episode: {EpisodeType} {Number}",
             state, AnimeID, EpisodeType, EpisodeNumber);
-        await request.Send();
+        request.Send();
     }
     
     public DeleteFileFromMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider)

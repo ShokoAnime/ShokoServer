@@ -206,7 +206,7 @@ public class Core : BaseController
     public async Task<ActionResult> TestAniDB()
     {
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
-        await handler.ForceLogout();
+        handler.ForceLogout();
         await handler.CloseConnections();
 
         await handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
@@ -215,7 +215,7 @@ public class Core : BaseController
 
         if (await handler.Login())
         {
-            await handler.ForceLogout();
+            handler.ForceLogout();
             return APIStatus.OK();
         }
 

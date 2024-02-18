@@ -15,15 +15,15 @@ public class QueueHandler
     {
         _schedulerFactory = schedulerFactory;
         _queueStateEventHandler = queueStateEventHandler;
-        _queueStateEventHandler.QueueChanged += QueueStateEventHandlerOnQueueChanged;
+        _queueStateEventHandler.ExecutingJobsChanged += ExecutingJobsStateEventHandlerOnExecutingJobsChanged;
     }
 
     ~QueueHandler()
     {
-        _queueStateEventHandler.QueueChanged -= QueueStateEventHandlerOnQueueChanged;
+        _queueStateEventHandler.ExecutingJobsChanged -= ExecutingJobsStateEventHandlerOnExecutingJobsChanged;
     }
 
-    private void QueueStateEventHandlerOnQueueChanged(object sender, QueueChangedEventArgs e)
+    private void ExecutingJobsStateEventHandlerOnExecutingJobsChanged(object sender, QueueChangedEventArgs e)
     {
         lock (_executingJobs)
         {

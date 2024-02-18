@@ -13,7 +13,8 @@ public class QueueStateEventHandler
 
     public event EventHandler QueuePaused;
     public event EventHandler QueueStarted;
-    public event EventHandler<QueueChangedEventArgs> QueueChanged;
+    public event EventHandler<QueueItemAddedEventArgs> QueueItemAdded;
+    public event EventHandler<QueueChangedEventArgs> ExecutingJobsChanged;
 
     public void InvokeQueuePaused()
     {
@@ -31,11 +32,31 @@ public class QueueStateEventHandler
         QueueStarted?.Invoke(null, EventArgs.Empty);
     }
 
+    public void OnJobAdded(IJobDetail jobDetail, QueueStateContext queueContext)
+    {
+        var job = _jobFactory.CreateJob(jobDetail);
+
+        QueueItemAdded?.Invoke(null, new QueueItemAddedEventArgs
+        {
+            AddedItems = new List<QueueItem>
+            {
+                new()
+                {
+                    Key = jobDetail.Key.ToString(), JobType = job?.Name ?? jobDetail.JobType.Name, Description = job?.Description.formatMessage()
+                }
+            },
+            WaitingJobsCount = queueContext.WaitingTriggersCount,
+            BlockedJobsCount = queueContext.BlockedTriggersCount,
+            ExecutingJobsCount = queueContext.CurrentlyExecuting.Length,
+            ThreadCount = queueContext.ThreadCount
+        });
+    }
+
     public void OnJobExecuting(IJobDetail jobDetail, QueueStateContext queueContext)
     {
         var job = _jobFactory.CreateJob(jobDetail);
 
-        QueueChanged?.Invoke(null, new QueueChangedEventArgs
+        ExecutingJobsChanged?.Invoke(null, new QueueChangedEventArgs
         {
             AddedItems = new List<QueueItem>
             {
@@ -55,7 +76,7 @@ public class QueueStateEventHandler
     {
         var job = _jobFactory.CreateJob(jobDetail);
 
-        QueueChanged?.Invoke(null, new QueueChangedEventArgs
+        ExecutingJobsChanged?.Invoke(null, new QueueChangedEventArgs
         {
             RemovedItems = new List<QueueItem>
             {
