@@ -68,6 +68,11 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Retrieve Commit Date
+        id: version
+        run: |
+          echo "COMMIT_DATE=$(git log -1 --format="%aI")" >> $GITHUB_OUTPUT
+
       # Disabled provenance for now, until it works with docker manifest create.
       # The manifest list produced by the new feature is incompatible with the
       # expected format used in the docker manifest create command.
@@ -78,14 +83,14 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-            ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }-${{ matrix.arch }}
-            ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }-${{ matrix.arch }}
+            ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }}
+            ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }}
           platforms: linux/${{ matrix.arch }}
           build-args: |
             version=${{ github.event.inputs.version }}
             channel=${{ github.event.inputs.release }}
             commit=${{ github.sha }}
-            date=$(git log -1 --format="%aI")
+            date=${{ steps.version.outputs.COMMIT_DATE }}
           provenance: false
 
   docker-manual-push_manifest:
