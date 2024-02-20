@@ -92,7 +92,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private void FilterOnStateChanged(object sender, EventArgs e)
     {
-        _signaler?.SignalSchedulingChange(DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5));
+        _signaler.SignalSchedulingChange(DateTimeOffset.UtcNow + TimeSpan.FromMilliseconds(80));
     }
 
     protected override async Task StoreJob(ConnectionAndTransactionHolder conn, IJobDetail newJob, bool replaceExisting, CancellationToken cancellationToken = new CancellationToken())
@@ -116,8 +116,8 @@ public class ThreadPooledJobStore : JobStoreTX
             currentLoopCount++;
             try
             {
-                var typesToExclude = GetTypesToExclude();
-                var results = await Delegate.SelectTriggerToAcquire(conn, noLaterThan + timeWindow, MisfireTime, maxCount, typesToExclude, cancellationToken)
+                var filteringTypes = GetTypes();
+                var results = await Delegate.SelectTriggerToAcquire(conn, noLaterThan + timeWindow, MisfireTime, maxCount, filteringTypes, cancellationToken)
                     .ConfigureAwait(false);
 
                 // No trigger is ready to fire yet.
@@ -199,6 +199,7 @@ public class ThreadPooledJobStore : JobStoreTX
             }
             catch (Exception e)
             {
+                _logger.LogError(e, "Error in Acquiring Next Trigger");
                 throw new JobPersistenceException("Couldn't acquire next trigger: " + e.Message, e);
             }
         } while (true);
@@ -207,12 +208,42 @@ public class ThreadPooledJobStore : JobStoreTX
         return acquiredTriggers;
     }
 
-    private Type[] GetTypesToExclude()
+    private (Type[] TypesToExclude, Dictionary<Type, int> TypesToLimit) GetTypes()
     {
-        var result = new List<Type>();
-        foreach (var filter in _acquisitionFilters) result.AddRange(filter.GetTypesToExclude());
+        var excludedTypes = new List<Type>();
+        var limitedTypes = new Dictionary<Type, int>();
+        foreach (var filter in _acquisitionFilters) excludedTypes.AddRange(filter.GetTypesToExclude());
 
-        return result.Distinct().ToArray();
+        IEnumerable<(Type Type, int Count)> executingTypes;
+        lock (_executingJobs)
+            executingTypes = _executingJobs.Values.Select(a => a.JobType).GroupBy(a => a).Select(a => (Type: a.Key, Count: a.Count())).ToList();
+
+        foreach (var kv in _typeConcurrencyCache)
+        {
+            var executing = executingTypes.FirstOrDefault(a => a.Type == kv.Key);
+            // kv.Value is the max count, we want to get the number of remaining jobs we can run
+            var limit = executing == default ? kv.Value : kv.Value - executing.Count;
+            if (limit <= 0) excludedTypes.Add(kv.Key);
+            else limitedTypes[kv.Key] = limit;
+        }
+
+        foreach (var kv in _concurrencyGroupCache)
+        {
+            var executing = kv.Value.Any(a => executingTypes.Any(b => b.Type == a));
+            if (executing)
+            {
+                excludedTypes.AddRange(kv.Value);
+                continue;
+            }
+
+            foreach (var limitedType in kv.Value)
+            {
+                // we only allow one concurrent job in a concurrency group, for example only 1 AniDB command
+                limitedTypes[limitedType] = 1;
+            }
+        }
+
+        return (excludedTypes.Distinct().ToArray(), limitedTypes);
     }
 
     private bool JobAllowed(Type jobType, Dictionary<string, int> acquiredJobTypesWithLimitedConcurrency)
@@ -433,8 +464,8 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private Task<int> GetWaitingTriggersCount(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
-        var types = GetTypesToExclude();
-        return Delegate.SelectWaitingTriggerCount(conn, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), types, cancellationToken);
+        var types = GetTypes();
+        return Delegate.SelectWaitingTriggerCount(conn, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), MisfireTime, types, cancellationToken);
     }
 
     public Task<int> GetBlockedTriggersCount()
@@ -444,8 +475,8 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private Task<int> GetBlockedTriggersCount(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
-        var types = GetTypesToExclude();
-        return Delegate.SelectBlockedTriggerCount(conn, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), types, cancellationToken);
+        var types = GetTypes();
+        return Delegate.SelectBlockedTriggerCount(conn, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), MisfireTime, types.TypesToExclude, cancellationToken);
     }
 
     public Task<Dictionary<Type, int>> GetWaitingJobCounts()
@@ -455,7 +486,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private Task<Dictionary<Type, int>> GetWaitingJobCounts(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
-        var types = GetTypesToExclude();
+        var types = GetTypes();
         return Delegate.SelectWaitingJobTypeCounts(conn, _typeLoadHelper, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), types, cancellationToken);
     }
 
@@ -594,9 +625,8 @@ public class ThreadPooledJobStore : JobStoreTX
             });
 
             // this will prevent the idle waiting that exists to prevent constantly checking if it's time to trigger a schedule
-            // it's now - 5 minutes because it checks if the DateTimeOffset is != MinValue and < Now within a "reasonable" period dependent on the JobStore
             if (waitingTriggerCount > 0 || blockedTriggerCount > 0)
-                _signaler.SignalSchedulingChange(DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5), cancellationToken);
+                _signaler.SignalSchedulingChange(DateTimeOffset.UtcNow + TimeSpan.FromMilliseconds(80), cancellationToken);
         }
         catch (Exception e)
         {
