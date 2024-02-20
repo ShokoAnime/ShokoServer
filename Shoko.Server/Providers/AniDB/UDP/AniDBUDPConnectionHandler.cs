@@ -188,6 +188,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         // 2. Check Login State and Login if needed
         // 3. Actually Call AniDB
 
+        if (_socketHandler == null) throw new ObjectDisposedException("The connection was closed by shoko before this request was made");
         // Check Ban State
         // Ideally, this will never happen, as we stop the queue and attempt a graceful rollback of the command
         if (IsBanned)
@@ -229,6 +230,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
 
         RateLimiter.EnsureRate();
+        if (_socketHandler == null) throw new ObjectDisposedException("The connection was closed by shoko");
         var start = DateTime.Now;
 
         Logger.LogTrace("AniDB UDP Call: (Using {Unicode}) {Command}", needsUnicode ? "Unicode" : "ASCII", MaskLog(command));
