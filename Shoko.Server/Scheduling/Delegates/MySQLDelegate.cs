@@ -39,31 +39,9 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
               FROM {TablePrefixSubst}{TableTriggers} t
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
-                AND jd.{ColumnJobClass} = @limitType{index})
+                AND jd.{ColumnJobClass} IN (@limit{index}Types)
               LIMIT @limit{index}";
     }
-
-    private string GetSelectNextTriggerToAcquireExcludingTypesSql(int maxCount)
-    {
-        return $@"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}
-              FROM {TablePrefixSubst}{TableTriggers} t
-              JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
-              WHERE
-                t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
-                AND jd.{ColumnJobClass} NOT IN (@types)
-              ORDER BY {ColumnPriority} DESC, {ColumnNextFireTime} ASC
-              LIMIT {maxCount};";
-    }
-
-    private const string SelectWaitingTriggerCountSql= @$"SELECT COUNT(1)
-              FROM {TablePrefixSubst}{TableTriggers} t
-              JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
-              WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = '{StateWaiting}' AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))";
-    
-    private const string SelectWaitingTriggerCountExcludingTypesSql= @$"SELECT COUNT(1)
-              FROM {TablePrefixSubst}{TableTriggers} t
-              JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
-              WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = '{StateWaiting}' AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan)) AND jd.{ColumnJobClass} NOT IN (@types)";
 
     private const string SelectBlockedTriggerCountSql= @$"SELECT COUNT(1)
               FROM {TablePrefixSubst}{TableTriggers} t
@@ -106,11 +84,17 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         commandText.Append($"SELECT u.{ColumnTriggerName}, u.{ColumnTriggerGroup}, u.{ColumnJobClass} FROM (");
         commandText.Append(hasExcludeTypes ? GetSelectPartExcludingTypes() : GetSelectPartNoExclusions());
 
-        int index;
-        for (index = 0; index < jobTypes.TypesToLimit.Count; index++)
+        // count to types. Allows fewer UNIONs
+        var limitGroups = jobTypes.TypesToLimit
+            .GroupBy(a => a.Value)
+            .ToDictionary(a => a.Key, a => a.Select(b => b.Key).OrderBy(b => b.FullName).ToArray())
+            .OrderBy(a => a.Key).ToArray();
+
+        foreach (var kv in limitGroups)
         {
-            commandText.Append("\nUNION\n");
-            commandText.Append(GetSelectPartLimitType(index));
+            commandText.Append("\nUNION SELECT * FROM (\n");
+            commandText.Append(GetSelectPartLimitType(kv.Key));
+            commandText.Append("\n)");
         }
 
         commandText.Append($") u\nORDER BY {ColumnPriority} DESC, {ColumnNextFireTime} ASC\nLIMIT @limit");
@@ -122,12 +106,10 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         AddCommandParameter(cmd, "limit", maxCount);
         if (hasExcludeTypes) cmd.AddArrayParameters("types", GetJobClasses(jobTypes.TypesToExclude));
 
-        index = 0;
-        foreach (var kv in jobTypes.TypesToLimit)
+        foreach (var kv in limitGroups)
         {
-            AddCommandParameter(cmd, $"limitType{index}", GetStorableJobTypeName(kv.Key));
-            AddCommandParameter(cmd, $"limit{index}", kv.Value);
-            index++;
+            cmd.AddArrayParameters($"limit{kv.Key}Types", GetJobClasses(kv.Value));
+            AddCommandParameter(cmd, $"limit{kv.Key}", kv.Key);
         }
 
         await using var rs = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
@@ -167,11 +149,17 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         commandText.Append("SELECT Count(1) FROM (");
         commandText.Append(hasExcludeTypes ? GetSelectPartExcludingTypes() : GetSelectPartNoExclusions());
 
-        int index;
-        for (index = 0; index < jobTypes.TypesToLimit.Count; index++)
+        // count to types. Allows fewer UNIONs
+        var limitGroups = jobTypes.TypesToLimit
+            .GroupBy(a => a.Value)
+            .ToDictionary(a => a.Key, a => a.Select(b => b.Key).OrderBy(b => b.FullName).ToArray())
+            .OrderBy(a => a.Key).ToArray();
+
+        foreach (var kv in limitGroups)
         {
-            commandText.Append("\nUNION\n");
-            commandText.Append(GetSelectPartLimitType(index));
+            commandText.Append("\nUNION SELECT * FROM (\n");
+            commandText.Append(GetSelectPartLimitType(kv.Key));
+            commandText.Append("\n)");
         }
 
         commandText.Append(") u");
@@ -183,12 +171,10 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         AddCommandParameter(cmd, "noEarlierThan", GetDbDateTimeValue(noEarlierThan));
         if (hasExcludeTypes) cmd.AddArrayParameters("types", GetJobClasses(jobTypes.TypesToExclude));
 
-        index = 0;
-        foreach (var kv in jobTypes.TypesToLimit)
+        foreach (var kv in limitGroups)
         {
-            AddCommandParameter(cmd, $"limitType{index}", GetStorableJobTypeName(kv.Key));
-            AddCommandParameter(cmd, $"limit{index}", kv.Value);
-            index++;
+            cmd.AddArrayParameters($"limit{kv.Key}Types", GetJobClasses(kv.Value));
+            AddCommandParameter(cmd, $"limit{kv.Key}", kv.Key);
         }
 
         var rs = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
