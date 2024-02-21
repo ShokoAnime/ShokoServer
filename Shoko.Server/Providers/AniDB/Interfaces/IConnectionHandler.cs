@@ -10,4 +10,5 @@ public interface IConnectionHandler
     event EventHandler<AniDBStateUpdate> AniDBStateUpdate;
     AniDBStateUpdate State { get; set; }
     bool IsBanned { get; set; }
+    bool IsAlive { get; }
 }

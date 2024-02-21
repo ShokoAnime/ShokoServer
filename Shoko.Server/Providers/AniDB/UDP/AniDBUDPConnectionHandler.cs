@@ -29,6 +29,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     public override UpdateType BanEnum => UpdateType.UDPBan;
 
     public string SessionID { get; private set; }
+    public bool IsAlive { get; private set; }
 
     private string _cdnDomain = Constants.URLS.AniDB_Images_Domain;
 
@@ -127,6 +128,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
         Logger.LogInformation("starting ping timer...");
         _pulseTimer.Start();
+        IsAlive = true;
     }
 
     private void PulseTimerElapsed(object sender, ElapsedEventArgs e)
@@ -335,6 +337,8 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
     public async Task CloseConnections()
     {
+        IsNetworkAvailable = false;
+        IsAlive = false;
         _pulseTimer?.Stop();
         _pulseTimer = null;
         if (_socketHandler == null)
