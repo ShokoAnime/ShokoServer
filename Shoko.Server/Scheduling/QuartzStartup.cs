@@ -77,7 +77,7 @@ public static class QuartzStartup
             q.UseDefaultThreadPool(o => o.MaxConcurrency = threadPoolSize);
 
             q.UseDatabase();
-            q.MaxBatchSize = (int) Math.Round(threadPoolSize * 1.25D, MidpointRounding.AwayFromZero) * 10;
+            q.MaxBatchSize = 1;
             q.BatchTriggerAcquisitionFireAheadTimeWindow = TimeSpan.FromSeconds(30);
             q.UseJobFactory<JobFactory>();
         });

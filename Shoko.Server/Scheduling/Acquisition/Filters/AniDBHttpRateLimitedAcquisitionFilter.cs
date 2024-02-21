@@ -32,6 +32,6 @@ public class AniDBHttpRateLimitedAcquisitionFilter : IAcquisitionFilter
         StateChanged?.Invoke(null, EventArgs.Empty);
     }
 
-    public IEnumerable<Type> GetTypesToExclude() => _connectionHandler.IsBanned ? _types : Array.Empty<Type>();
+    public IEnumerable<Type> GetTypesToExclude() => !_connectionHandler.IsAlive || _connectionHandler.IsBanned ? _types : Array.Empty<Type>();
     public event EventHandler StateChanged;
 }

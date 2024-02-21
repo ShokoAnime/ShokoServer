@@ -27,7 +27,6 @@ public class ThreadPooledJobStore : JobStoreTX
     private readonly IAcquisitionFilter[] _acquisitionFilters;
     private Dictionary<Type, int> _typeConcurrencyCache;
     private Dictionary<string, Type[]> _concurrencyGroupCache;
-    private ISchedulerSignaler _signaler;
     private int _threadPoolSize;
 
     public ThreadPooledJobStore(ILogger<ThreadPooledJobStore> logger, IEnumerable<IAcquisitionFilter> acquisitionFilters,
@@ -43,7 +42,6 @@ public class ThreadPooledJobStore : JobStoreTX
 
     public override async Task Initialize(ITypeLoadHelper loadHelper, ISchedulerSignaler signaler, CancellationToken cancellationToken = default)
     {
-        _signaler = signaler;
         _typeLoadHelper = loadHelper;
         await base.Initialize(loadHelper, signaler, cancellationToken);
     }
@@ -92,7 +90,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private void FilterOnStateChanged(object sender, EventArgs e)
     {
-        _signaler.SignalSchedulingChange(DateTimeOffset.UtcNow + TimeSpan.FromMilliseconds(80));
+        SignalSchedulingChangeImmediately(new DateTimeOffset(1982, 6, 28, 0, 0, 0, TimeSpan.FromSeconds(0)));
     }
 
     protected override async Task StoreJob(ConnectionAndTransactionHolder conn, IJobDetail newJob, bool replaceExisting, CancellationToken cancellationToken = new CancellationToken())
@@ -208,7 +206,7 @@ public class ThreadPooledJobStore : JobStoreTX
         return acquiredTriggers;
     }
 
-    private (Type[] TypesToExclude, Dictionary<Type, int> TypesToLimit) GetTypes()
+    private (IEnumerable<Type> TypesToExclude, Dictionary<Type, int> TypesToLimit) GetTypes()
     {
         var excludedTypes = new List<Type>();
         var limitedTypes = new Dictionary<Type, int>();
@@ -224,7 +222,7 @@ public class ThreadPooledJobStore : JobStoreTX
             // kv.Value is the max count, we want to get the number of remaining jobs we can run
             var limit = executing == default ? kv.Value : kv.Value - executing.Count;
             if (limit <= 0) excludedTypes.Add(kv.Key);
-            else limitedTypes[kv.Key] = limit;
+            else if (!excludedTypes.Contains(kv.Key)) limitedTypes[kv.Key] = limit;
         }
 
         foreach (var kv in _concurrencyGroupCache)
@@ -238,12 +236,13 @@ public class ThreadPooledJobStore : JobStoreTX
 
             foreach (var limitedType in kv.Value)
             {
+                if (excludedTypes.Contains(limitedType)) continue;
                 // we only allow one concurrent job in a concurrency group, for example only 1 AniDB command
                 limitedTypes[limitedType] = 1;
             }
         }
 
-        return (excludedTypes.Distinct().ToArray(), limitedTypes);
+        return (excludedTypes.Distinct().ToList(), limitedTypes);
     }
 
     private bool JobAllowed(Type jobType, Dictionary<string, int> acquiredJobTypesWithLimitedConcurrency)
@@ -626,7 +625,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
             // this will prevent the idle waiting that exists to prevent constantly checking if it's time to trigger a schedule
             if (waitingTriggerCount > 0 || blockedTriggerCount > 0)
-                _signaler.SignalSchedulingChange(DateTimeOffset.UtcNow + TimeSpan.FromMilliseconds(80), cancellationToken);
+                SignalSchedulingChangeImmediately(new DateTimeOffset(1982, 6, 28, 0, 0, 0, TimeSpan.FromSeconds(0)));
         }
         catch (Exception e)
         {

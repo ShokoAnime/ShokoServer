@@ -14,6 +14,7 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
 
     public override string Type => "HTTP";
     public override UpdateType BanEnum => UpdateType.HTTPBan;
+    public bool IsAlive => true;
 
     public AniDBHttpConnectionHandler(ILoggerFactory loggerFactory, HttpRateLimiter rateLimiter) : base(loggerFactory, rateLimiter)
     {
