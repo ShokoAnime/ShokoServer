@@ -21,22 +21,20 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
 
     private string[] GetJobClasses(IEnumerable<Type> types) => types.Select(GetStorableJobTypeName).ToArray();
 
-    private string GetSelectPartNoExclusions()
-    {
-        return @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}
+    private const string GetSelectPartNoExclusions = @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}
               FROM {TablePrefixSubst}{TableTriggers} t
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))";
-    }
+    
+    private const string GetCountNoExclusions = @$"SELECT Count(1)
+              FROM {TablePrefixSubst}{TableTriggers} t
+              WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = '{StateWaiting}' AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))";
 
-    private string GetSelectPartExcludingTypes()
-    {
-        return @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}
+    private const string GetSelectPartExcludingTypes = @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}
               FROM {TablePrefixSubst}{TableTriggers} t
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
                 AND jd.{ColumnJobClass} NOT IN (@types)";
-    }
 
     private string GetSelectPartLimitType(int index)
     {
@@ -48,10 +46,18 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
               LIMIT @limit{index}";
     }
 
-    private const string SelectBlockedTriggerCountSql= @$"SELECT COUNT(1)
+    private const string GetJobSql = @$"SELECT jd.{ColumnJobName},jd.{ColumnJobGroup},jd.{ColumnDescription},jd.{ColumnJobClass},jd.{ColumnIsDurable},jd.{ColumnRequestsRecovery},jd.{ColumnJobDataMap},jd.{ColumnIsNonConcurrent},jd.{ColumnIsUpdateData}
               FROM {TablePrefixSubst}{TableTriggers} t
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
-              WHERE t.{ColumnSchedulerName} = @schedulerName AND (({ColumnTriggerState} = '{StateWaiting}' AND jd.{ColumnJobClass} IN (@types)) OR {ColumnTriggerState} = '{StateBlocked}') AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))";
+              WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
+              ORDER BY t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC
+              LIMIT @limit OFFSET @offset";
+    
+    private const string SelectBlockedTypeCountsSql= @$"SELECT jd.{ColumnJobClass}, COUNT(jd.{ColumnJobClass}) AS Count
+              FROM {TablePrefixSubst}{TableTriggers} t
+              JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
+              WHERE t.{ColumnSchedulerName} = @schedulerName AND (({ColumnTriggerState} = '{StateWaiting}' AND jd.{ColumnJobClass} IN (@types)) OR {ColumnTriggerState} = '{StateBlocked}') AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
+              GROUP BY jd.{ColumnJobClass} HAVING COUNT(1) > 0";
 
     const string UpdateJobTriggerStatesFromOtherStateSql = @$"UPDATE {TablePrefixSubst}{TableTriggers} SET {ColumnTriggerState} = @state
                FROM {TablePrefixSubst}{TableTriggers} t
@@ -91,7 +97,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         var hasExcludeTypes = jobTypes.TypesToExclude?.Any() ?? false;
         var commandText = new StringBuilder();
         commandText.Append($"SELECT u.{ColumnTriggerName}, u.{ColumnTriggerGroup}, u.{ColumnJobClass} FROM (");
-        commandText.Append(hasExcludeTypes ? GetSelectPartExcludingTypes() : GetSelectPartNoExclusions());
+        commandText.Append(hasExcludeTypes ? GetSelectPartExcludingTypes : GetSelectPartNoExclusions);
 
         // count to types. Allows fewer UNIONs
         var limitGroups = jobTypes.TypesToLimit
@@ -156,7 +162,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         var hasExcludeTypes = jobTypes.TypesToExclude?.Any() ?? false;
         var commandText = new StringBuilder();
         commandText.Append("SELECT Count(1) FROM (");
-        commandText.Append(hasExcludeTypes ? GetSelectPartExcludingTypes() : GetSelectPartNoExclusions());
+        commandText.Append(hasExcludeTypes ? GetSelectPartExcludingTypes : GetSelectPartNoExclusions);
 
         // count to types. Allows fewer UNIONs
         var limitGroups = jobTypes.TypesToLimit
@@ -190,19 +196,40 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         return Convert.ToInt32(rs);
     }
 
-    public virtual async Task<int> SelectBlockedTriggerCount(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan,
-        (IEnumerable<Type> TypesToExclude, IDictionary<Type, int> TypesToLimit) jobTypes, CancellationToken cancellationToken = new())
+    public virtual async Task<int> SelectBlockedTriggerCount(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper, DateTimeOffset noLaterThan,
+        DateTimeOffset noEarlierThan, (IEnumerable<Type> TypesToExclude, IDictionary<Type, int> TypesToLimit) jobTypes,
+        CancellationToken cancellationToken = new())
     {
-        await using var cmd = PrepareCommand(conn, ReplaceTablePrefix(SelectBlockedTriggerCountSql));
+        await using var cmd = PrepareCommand(conn, ReplaceTablePrefix(SelectBlockedTypeCountsSql));
         AddCommandParameter(cmd, "schedulerName", _schedulerName);
         AddCommandParameter(cmd, "noLaterThan", GetDbDateTimeValue(noLaterThan));
         AddCommandParameter(cmd, "noEarlierThan", GetDbDateTimeValue(noEarlierThan));
         // add the limited types, then we'll subtract the ones that are allowed to run later
         cmd.AddArrayParameters("types", GetJobClasses(jobTypes.TypesToExclude.Union(jobTypes.TypesToLimit.Keys)));
 
-        var rs = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false));
-        // Value is the number of jobs that are NOT blocked, so we subtract them
-        return rs - jobTypes.TypesToLimit.Sum(a => a.Value);
+        var results = new Dictionary<Type, int>();
+        await using var rs = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await rs.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var jobType = loadHelper.LoadType(rs.GetString(ColumnJobClass)!)!;
+            results[jobType] = rs.GetInt32("Count")!;
+        }
+
+        // We need to get the number of jobs that are queued, then subtract the allowed number, ensuring that blocked count doesn't go negative
+        var sum = results.Join(jobTypes.TypesToLimit, a => a.Key, a => a.Key,
+            (result, limit) => Math.Max(result.Value - limit.Value, 0)).Sum();
+        return sum;
+    }
+
+    public virtual async Task<int> SelectTotalWaitingTriggerCount(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan,
+        CancellationToken cancellationToken = new())
+    {
+        await using var cmd = PrepareCommand(conn, ReplaceTablePrefix(GetCountNoExclusions));
+        AddCommandParameter(cmd, "schedulerName", _schedulerName);
+        AddCommandParameter(cmd, "noLaterThan", GetDbDateTimeValue(noLaterThan));
+        AddCommandParameter(cmd, "noEarlierThan", GetDbDateTimeValue(noEarlierThan));
+
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false));
     }
 
     public virtual async Task<int> UpdateTriggerStatesForJobFromOtherState(ConnectionAndTransactionHolder conn, IEnumerable<Type> jobTypesToInclude,
@@ -227,42 +254,54 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
 
         var result = new Dictionary<Type, int>();
         await using var rs = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-        do
+        while (await rs.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             var jobType = loadHelper.LoadType(rs.GetString(ColumnJobClass)!)!;
             result[jobType] = rs.GetInt32("Count")!;
-        } while (await rs.ReadAsync(cancellationToken));
+        }
 
         return result;
     }
 
-    public virtual async Task<IJobDetail> SelectJobs(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper, CancellationToken cancellationToken = default)
+    public virtual async Task<List<IJobDetail>> SelectJobs(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper, int maxCount, int offset,
+        DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan, (IEnumerable<Type> TypesToExclude, IDictionary<Type, int> TypesToLimit) jobTypes,
+        CancellationToken cancellationToken = default)
     {
-        using var cmd = PrepareCommand(conn, ReplaceTablePrefix(SqlSelectJobDetail));
+        var command = ReplaceTablePrefix(GetJobSql);
+        await using var cmd = PrepareCommand(conn, command);
+
         AddCommandParameter(cmd, "schedulerName", _schedulerName);
-        using var rs = await cmd.ExecuteReaderAsync(System.Data.CommandBehavior.SequentialAccess, cancellationToken).ConfigureAwait(false);
+        AddCommandParameter(cmd, "state", StateWaiting);
+        AddCommandParameter(cmd, "limit", maxCount);
+        AddCommandParameter(cmd, "offset", offset);
+        AddCommandParameter(cmd, "noLaterThan", GetDbDateTimeValue(noLaterThan));
+        AddCommandParameter(cmd, "noEarlierThan", GetDbDateTimeValue(noEarlierThan));
 
-        if (!await rs.ReadAsync(cancellationToken).ConfigureAwait(false)) return null;
+        await using var rs = await cmd.ExecuteReaderAsync(System.Data.CommandBehavior.SequentialAccess, cancellationToken).ConfigureAwait(false);
 
-        // Due to CommandBehavior.SequentialAccess, columns must be read in order.
-        var jobName = rs.GetString(ColumnJobName)!;
-        var jobGroup = rs.GetString(ColumnJobGroup);
-        var description = rs.GetString(ColumnDescription);
-        var jobType = loadHelper.LoadType(rs.GetString(ColumnJobClass)!)!;
-        var isDurable = GetBooleanFromDbValue(rs[ColumnIsDurable]);
-        var requestsRecovery = GetBooleanFromDbValue(rs[ColumnRequestsRecovery]);
-        var map = await ReadMapFromReader(rs, 6).ConfigureAwait(false);
-        var jobDataMap = map != null ? new JobDataMap(map) : null;
-
-        var job = new JobDetailImpl(jobName, jobGroup!, jobType, isDurable, requestsRecovery)
+        var results = new List<IJobDetail>();
+        while (await rs.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            Description = description,
-            JobDataMap = jobDataMap!
-        };
+            // Due to CommandBehavior.SequentialAccess, columns must be read in order.
+            var jobName = rs.GetString(ColumnJobName)!;
+            var jobGroup = rs.GetString(ColumnJobGroup);
+            var description = rs.GetString(ColumnDescription);
+            var jobType = loadHelper.LoadType(rs.GetString(ColumnJobClass)!)!;
+            var isDurable = GetBooleanFromDbValue(rs[ColumnIsDurable]);
+            var requestsRecovery = GetBooleanFromDbValue(rs[ColumnRequestsRecovery]);
+            var map = await ReadMapFromReader(rs, 6).ConfigureAwait(false);
+            var jobDataMap = map != null ? new JobDataMap(map) : null;
 
-        return job;
+            var job = new JobDetailImpl(jobName, jobGroup!, jobType, isDurable, requestsRecovery)
+            {
+                Description = description, JobDataMap = jobDataMap!
+            };
+            results.Add(job);
+        }
+
+        return results;
     }
-    
+
     private Task<IDictionary> ReadMapFromReader(DbDataReader rs, int colIndex)
     {
         var isDbNullTask = rs.IsDBNullAsync(colIndex);

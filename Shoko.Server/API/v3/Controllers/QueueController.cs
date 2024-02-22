@@ -29,9 +29,9 @@ public class QueueController : BaseController
     }
 
     /// <summary>
-    /// Get a list of all the available queues.
+    /// Get info about the queue.
     /// </summary>
-    /// <returns>A list of all the available queues.</returns>
+    /// <returns>Info about the queue</returns>
     [HttpGet]
     public Queue GetQueue()
     {
@@ -52,9 +52,9 @@ public class QueueController : BaseController
     }
 
     /// <summary>
-    /// Get all the queued and active command types across all the queues.
+    /// Get all the queued and active command types across the queue.
     /// </summary>
-    /// <returns>A dictionary of all the queued and active command types across all queues, and the count for each type.</returns>
+    /// <returns>A dictionary of all the queued and active command types, and the count for each type.</returns>
     [HttpGet("Types")]
     public async Task<ActionResult<Dictionary<string, int>>> GetTypesForItemsInAllQueues()
     {
@@ -62,7 +62,7 @@ public class QueueController : BaseController
     }
 
     /// <summary>
-    /// Start all the queues.
+    /// Start the queue.
     /// </summary>
     /// <returns>Void.</returns>
     [Authorize("admin")]
@@ -74,7 +74,7 @@ public class QueueController : BaseController
     }
 
     /// <summary>
-    /// Stop all the queues.
+    /// Pause the queue.
     /// </summary>
     /// <returns>Void.</returns>
     [Authorize("admin")]
@@ -86,7 +86,7 @@ public class QueueController : BaseController
     }
 
     /// <summary>
-    /// Clear all the queues.
+    /// Clear the queue and reschedule recurring jobs.
     /// </summary>
     /// <returns>Void.</returns>
     [Authorize("admin")]
@@ -98,8 +98,8 @@ public class QueueController : BaseController
     }
 
     /// <summary>
-    /// Get the current items in the queue, in the order they will be processed
-    /// in.
+    /// Get the current items in the queue, in the order they will be processed,
+    /// assuming they don't become blocked or a higher priority job is scheduled
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
@@ -107,13 +107,20 @@ public class QueueController : BaseController
     /// <returns>A full or partial representation of the queued items, depending on the page and page size used, and the remaining items in the queue.</returns>
     [Authorize("admin")]
     [HttpGet("Items")]
-    public ActionResult<ListResult<Queue.QueueItem>> GetItemsInQueue(
+    public async Task<ActionResult<ListResult<Queue.QueueItem>>> GetItemsInQueue(
         [FromQuery, Range(0, 1000)] int pageSize = 10,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool showAll = false
     )
     {
-        // TODO this...
-        return null;
+        return new ListResult<Queue.QueueItem>(await _queueHandler.GetTotalWaitingJobCount(), (await _queueHandler.GetJobs(pageSize, (page - 1) * pageSize))
+            .Select(a => new Queue.QueueItem
+            {
+                Key = a.Key,
+                Type = a.JobType,
+                Description = a.Description,
+                IsRunning = a.Running,
+                IsBlocked = a.Blocked
+            }).ToList());
     }
 }

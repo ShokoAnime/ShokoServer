@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Quartz;
 using Quartz.Impl;
+using Shoko.Server.Scheduling.Jobs;
 
 namespace Shoko.Server.Scheduling;
 
@@ -107,9 +109,20 @@ public class QueueHandler
         }
     }
 
+    public Task<int> GetTotalWaitingJobCount()
+    {
+        return _jobStore.GetTotalWaitingTriggersCount();
+    }
+
     public async Task<Dictionary<string, int>> GetJobCounts()
     {
         var jobs = await _jobStore.GetJobCounts();
-        return jobs.ToDictionary(a => _jobFactory.CreateJob(new JobDetailImpl(string.Empty, a.Key)).Name, a => a.Value);
+        return jobs.Where(a => typeof(BaseJob).IsAssignableFrom(a.Key))
+            .ToDictionary(a => _jobFactory.CreateJob(new JobDetailImpl(Guid.NewGuid().ToString(), a.Key))?.Name, a => a.Value);
+    }
+
+    public Task<List<QueueItem>> GetJobs(int maxCount, int offset)
+    {
+        return _jobStore.GetJobs(maxCount, offset);
     }
 }

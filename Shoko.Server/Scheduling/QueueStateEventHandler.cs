@@ -62,7 +62,7 @@ public class QueueStateEventHandler
             {
                 new()
                 {
-                    Key = jobDetail.Key.ToString(), JobType = job?.Name ?? jobDetail.JobType.Name, Description = job?.Description.formatMessage()
+                    Key = jobDetail.Key.ToString(), JobType = job?.Name ?? jobDetail.JobType.Name, Description = job?.Description.formatMessage(), Running = true
                 }
             },
             WaitingJobsCount = queueContext.WaitingTriggersCount,
