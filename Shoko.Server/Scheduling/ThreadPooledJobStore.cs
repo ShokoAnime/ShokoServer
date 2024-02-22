@@ -475,7 +475,18 @@ public class ThreadPooledJobStore : JobStoreTX
     private Task<int> GetBlockedTriggersCount(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
         var types = GetTypes();
-        return Delegate.SelectBlockedTriggerCount(conn, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), MisfireTime, types, cancellationToken);
+        return Delegate.SelectBlockedTriggerCount(conn, _typeLoadHelper, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), MisfireTime, types,
+            cancellationToken);
+    }
+
+    public Task<int> GetTotalWaitingTriggersCount()
+    {
+        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetTotalWaitingTriggersCount(conn), new CancellationToken());
+    }
+
+    private Task<int> GetTotalWaitingTriggersCount(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
+    {
+        return Delegate.SelectTotalWaitingTriggerCount(conn, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), MisfireTime, cancellationToken);
     }
 
     public Task<Dictionary<Type, int>> GetJobCounts()
@@ -486,6 +497,51 @@ public class ThreadPooledJobStore : JobStoreTX
     private Task<Dictionary<Type, int>> GetJobCounts(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
         return Delegate.SelectJobTypeCounts(conn, _typeLoadHelper, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), cancellationToken);
+    }
+
+    public Task<List<QueueItem>> GetJobs(int maxCount, int offset)
+    {
+        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetJobs(conn, maxCount, offset), new CancellationToken());
+    }
+
+    private async Task<List<QueueItem>> GetJobs(ConnectionAndTransactionHolder conn, int maxCount, int offset, CancellationToken cancellationToken = new CancellationToken())
+    {
+        var types = GetTypes();
+        var jobs = await Delegate.SelectJobs(conn, _typeLoadHelper, maxCount, offset, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), MisfireTime, types,
+            cancellationToken);
+
+        var result = new List<QueueItem>();
+        lock (_executingJobs)
+        {
+            result.AddRange(_executingJobs.Values.Select(a =>
+            {
+                var job = _jobFactory.CreateJob(a);
+                return new QueueItem
+                {
+                    Key = a.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage(), Running = true
+                };
+            }));
+        }
+
+        var excluded = types.TypesToExclude.ToHashSet();
+        var remainingCount = types.TypesToLimit;
+        result.AddRange(jobs.Select(a =>
+        {
+            var blocked = excluded.Contains(a.JobType);
+            if (!blocked && remainingCount.TryGetValue(a.JobType, out var remaining))
+            {
+                if (remaining == 0) blocked = true;
+                else remainingCount[a.JobType] = remaining - 1;
+            }
+
+            var job = _jobFactory.CreateJob(a);
+            return new QueueItem
+            {
+                Key = a.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage(), Blocked = blocked
+            };
+        }));
+
+        return result;
     }
 
     protected override async Task TriggeredJobComplete(ConnectionAndTransactionHolder conn, IOperableTrigger trigger, IJobDetail jobDetail, SchedulerInstruction triggerInstCode,
@@ -543,7 +599,7 @@ public class ThreadPooledJobStore : JobStoreTX
                     var job = _jobFactory.CreateJob(a);
                     return new QueueItem
                     {
-                        Key = a.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage()
+                        Key = a.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage(), Running = true
                     };
                 }).ToArray();
 
@@ -576,7 +632,7 @@ public class ThreadPooledJobStore : JobStoreTX
                     var job = _jobFactory.CreateJob(a.Value);
                     return new QueueItem
                     {
-                        Key = a.Key.ToString(), JobType = job?.Name ?? a.Value.JobType.Name, Description = job?.Description.formatMessage()
+                        Key = a.Key.ToString(), JobType = job?.Name ?? a.Value.JobType.Name, Description = job?.Description.formatMessage(), Running = true
                     };
                 }).ToArray();
 
@@ -610,7 +666,7 @@ public class ThreadPooledJobStore : JobStoreTX
                     var job = _jobFactory.CreateJob(a);
                     return new QueueItem
                     {
-                        Key = a.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage()
+                        Key = a.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage(), Running = true
                     };
                 }).ToArray();
 
