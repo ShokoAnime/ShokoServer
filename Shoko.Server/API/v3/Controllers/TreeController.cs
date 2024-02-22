@@ -5,7 +5,6 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -16,7 +15,6 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
-using FileSortCriteria = Shoko.Server.API.v3.Models.Shoko.File.FileSortCriteria;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -453,8 +451,8 @@ public class TreeController : BaseController
                 return includeEmpty || subGroup.GetAllSeries()
                     .Any(s => s.GetAnimeEpisodes().Any(e => e.GetVideoLocals().Count > 0));
             })
-            .OrderBy(group => group.GroupName)
-            .Select(group => new Group(HttpContext, group, randomImages))
+            .OrderBy(g => g.GroupName)
+            .Select(g => new Group(HttpContext, g, randomImages))
             .ToList();
     }
 
@@ -486,9 +484,9 @@ public class TreeController : BaseController
         var user = User;
         return (recursive ? group.GetAllSeries() : group.GetSeries())
             .Where(a => user.AllowedSeries(a))
-            .OrderBy(series => series.GetAnime()?.AirDate ?? DateTime.MaxValue)
             .Select(series => _seriesFactory.GetSeries(series, randomImages, includeDataFrom))
             .Where(series => series.Size > 0 || includeMissing)
+            .OrderBy(a => a._AniDB?.AirDate ?? a._TvDB?.Min(b => b.AirDate ?? DateTime.MaxValue) ?? DateTime.MaxValue)
             .ToList();
     }
 
