@@ -475,18 +475,17 @@ public class ThreadPooledJobStore : JobStoreTX
     private Task<int> GetBlockedTriggersCount(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
         var types = GetTypes();
-        return Delegate.SelectBlockedTriggerCount(conn, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), MisfireTime, types.TypesToExclude, cancellationToken);
+        return Delegate.SelectBlockedTriggerCount(conn, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), MisfireTime, types, cancellationToken);
     }
 
-    public Task<Dictionary<Type, int>> GetWaitingJobCounts()
+    public Task<Dictionary<Type, int>> GetJobCounts()
     {
-        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetWaitingJobCounts(conn), new CancellationToken());
+        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetJobCounts(conn), new CancellationToken());
     }
 
-    private Task<Dictionary<Type, int>> GetWaitingJobCounts(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
+    private Task<Dictionary<Type, int>> GetJobCounts(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
-        var types = GetTypes();
-        return Delegate.SelectWaitingJobTypeCounts(conn, _typeLoadHelper, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), types, cancellationToken);
+        return Delegate.SelectJobTypeCounts(conn, _typeLoadHelper, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), cancellationToken);
     }
 
     protected override async Task TriggeredJobComplete(ConnectionAndTransactionHolder conn, IOperableTrigger trigger, IJobDetail jobDetail, SchedulerInstruction triggerInstCode,

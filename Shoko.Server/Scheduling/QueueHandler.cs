@@ -107,9 +107,9 @@ public class QueueHandler
         }
     }
 
-    public async Task<Dictionary<string, int>> GetWaitingJobCounts()
+    public async Task<Dictionary<string, int>> GetJobCounts()
     {
-        var jobs = await _jobStore.GetWaitingJobCounts();
+        var jobs = await _jobStore.GetJobCounts();
         return jobs.ToDictionary(a => _jobFactory.CreateJob(new JobDetailImpl(string.Empty, a.Key)).Name, a => a.Value);
     }
 }

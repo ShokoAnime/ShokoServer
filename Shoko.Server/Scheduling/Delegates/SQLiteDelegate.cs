@@ -150,8 +150,8 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         return nextTriggers;
     }
 
-    public virtual async Task<int> SelectWaitingTriggerCount(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan, (IEnumerable<Type> TypesToExclude, IDictionary<Type, int> TypesToLimit) jobTypes,
-        CancellationToken cancellationToken = new())
+    public virtual async Task<int> SelectWaitingTriggerCount(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan,
+        (IEnumerable<Type> TypesToExclude, IDictionary<Type, int> TypesToLimit) jobTypes, CancellationToken cancellationToken = new())
     {
         var hasExcludeTypes = jobTypes.TypesToExclude?.Any() ?? false;
         var commandText = new StringBuilder();
@@ -190,17 +190,19 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         return Convert.ToInt32(rs);
     }
 
-    public virtual async Task<int> SelectBlockedTriggerCount(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan, IEnumerable<Type> jobTypesToInclude,
-        CancellationToken cancellationToken = new())
+    public virtual async Task<int> SelectBlockedTriggerCount(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan,
+        (IEnumerable<Type> TypesToExclude, IDictionary<Type, int> TypesToLimit) jobTypes, CancellationToken cancellationToken = new())
     {
         await using var cmd = PrepareCommand(conn, ReplaceTablePrefix(SelectBlockedTriggerCountSql));
         AddCommandParameter(cmd, "schedulerName", _schedulerName);
         AddCommandParameter(cmd, "noLaterThan", GetDbDateTimeValue(noLaterThan));
         AddCommandParameter(cmd, "noEarlierThan", GetDbDateTimeValue(noEarlierThan));
-        cmd.AddArrayParameters("types", GetJobClasses(jobTypesToInclude));
+        // add the limited types, then we'll subtract the ones that are allowed to run later
+        cmd.AddArrayParameters("types", GetJobClasses(jobTypes.TypesToExclude.Union(jobTypes.TypesToLimit.Keys)));
 
-        var rs = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-        return Convert.ToInt32(rs);
+        var rs = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false));
+        // Value is the number of jobs that are NOT blocked, so we subtract them
+        return rs - jobTypes.TypesToLimit.Sum(a => a.Value);
     }
 
     public virtual async Task<int> UpdateTriggerStatesForJobFromOtherState(ConnectionAndTransactionHolder conn, IEnumerable<Type> jobTypesToInclude,
@@ -215,8 +217,8 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         return await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public virtual async Task<Dictionary<Type, int>> SelectWaitingJobTypeCounts(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper,
-        DateTimeOffset noLaterThan, (IEnumerable<Type> TypesToExclude, IDictionary<Type, int> TypesToLimit) jobTypes, CancellationToken cancellationToken = new())
+    public virtual async Task<Dictionary<Type, int>> SelectJobTypeCounts(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper,
+        DateTimeOffset noLaterThan, CancellationToken cancellationToken = new())
     {
         await using var cmd = PrepareCommand(conn, ReplaceTablePrefix(SelectJobClassesAndCountSql));
         AddCommandParameter(cmd, "schedulerName", _schedulerName);
@@ -228,9 +230,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         do
         {
             var jobType = loadHelper.LoadType(rs.GetString(ColumnJobClass)!)!;
-            var count = rs.GetInt32(1)!;
-            if (jobTypes.TypesToExclude.Contains(jobType)) continue;
-            result[jobType] = count;
+            result[jobType] = rs.GetInt32("Count")!;
         } while (await rs.ReadAsync(cancellationToken));
 
         return result;
