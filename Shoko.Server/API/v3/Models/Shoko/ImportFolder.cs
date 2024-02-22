@@ -35,8 +35,6 @@ public class ImportFolder : BaseModel
     /// </summary>
     public long FileSize { get; set; }
 
-    // TODO Maybe add cloud stuff. It's nicer to add later than to take away
-
     public ImportFolder() { }
 
     public ImportFolder(SVR_ImportFolder folder)
