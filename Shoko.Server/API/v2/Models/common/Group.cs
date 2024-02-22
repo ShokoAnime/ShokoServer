@@ -53,7 +53,8 @@ public class Group : BaseDirectory
         }
 
         var animes = evaluatedSeriesIDs != null
-            ? evaluatedSeriesIDs.Select(id => RepoFactory.AnimeSeries.GetByID(id)).Select(ser => ser.GetAnime()).Where(a => a != null).ToList()
+            ? evaluatedSeriesIDs.Select(id => RepoFactory.AnimeSeries.GetByID(id)).Select(ser => ser.GetAnime()).Where(a => a != null).OrderBy(a => a.BeginYear)
+                .ThenBy(a => a.AirDate ?? DateTime.MaxValue).ToList()
             : ag.Anime?.OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue).ToList();
 
         if (animes is not { Count: > 0 }) return g;
