@@ -58,7 +58,7 @@ public class QueueController : BaseController
     [HttpGet("Types")]
     public async Task<ActionResult<Dictionary<string, int>>> GetTypesForItemsInAllQueues()
     {
-        return await _queueHandler.GetWaitingJobCounts();
+        return await _queueHandler.GetJobCounts();
     }
 
     /// <summary>
