@@ -764,7 +764,6 @@ public class Common : BaseController
     {
         try
         {
-            // TODO Clear queue
             return Ok();
         }
         catch
@@ -782,7 +781,6 @@ public class Common : BaseController
     {
         try
         {
-            // TODO Clear queue
             return Ok();
         }
         catch
@@ -800,7 +798,6 @@ public class Common : BaseController
     {
         try
         {
-            // TODO queue
             return Ok();
         }
         catch

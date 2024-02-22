@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Quartz;
 using QuartzJobFactory.Attributes;
 using Shoko.Server.Repositories;
@@ -15,14 +16,16 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 internal class MediaInfoAllFilesJob : IJob
 {
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly ILogger<MediaInfoAllFilesJob> _logger;
 
-    public MediaInfoAllFilesJob(ISchedulerFactory schedulerFactory)
+    public MediaInfoAllFilesJob(ISchedulerFactory schedulerFactory, ILogger<MediaInfoAllFilesJob> logger)
     {
         _schedulerFactory = schedulerFactory;
+        _logger = logger;
     }
-    
+
     protected MediaInfoAllFilesJob() { }
-    
+
     public async Task Execute(IJobExecutionContext context)
     {
         try
@@ -37,8 +40,7 @@ internal class MediaInfoAllFilesJob : IJob
         }
         catch (Exception ex)
         {
-            // TODO: Logging
-            // do you want the job to refire?
+            _logger.LogError(ex, "Job threw an error on Execution: {Job} | Error -> {Ex}", context.JobDetail.Key, ex);
             throw new JobExecutionException(msg: "", refireImmediately: false, cause: ex);
         }
     }

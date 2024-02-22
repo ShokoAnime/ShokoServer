@@ -3163,9 +3163,6 @@ public partial class ShokoServiceImplementation : IShokoServer
                 CustomTagID = contract.CustomTagID
             };
 
-            //TODO: Custom Tags - check if the CustomTagID is valid
-            //TODO: Custom Tags - check if the CrossRefID is valid
-
 
             RepoFactory.CrossRef_CustomTag.Save(xref);
 

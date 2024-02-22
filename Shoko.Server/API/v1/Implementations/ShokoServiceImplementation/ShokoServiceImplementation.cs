@@ -41,8 +41,6 @@ namespace Shoko.Server;
 [ApiExplorerSettings(IgnoreApi = true)]
 public partial class ShokoServiceImplementation : Controller, IShokoServer
 {
-    //TODO Split this file into subfiles with partial class, Move #region functionality from the interface to those subfiles
-
     private readonly ILogger<ShokoServiceImplementation> _logger;
     private readonly AnimeGroupCreator _groupCreator;
     private readonly JobFactory _jobFactory;
@@ -347,7 +345,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            //TODO WHEN WE HAVE A STABLE VERSION REPO, WE NEED TO CODE THE RETRIEVAL HERE.
             return new CL_AppVersions();
         }
         catch (Exception ex)

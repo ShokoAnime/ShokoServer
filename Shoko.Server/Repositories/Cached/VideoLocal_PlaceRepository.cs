@@ -71,7 +71,6 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
         var shares = RepoFactory.ImportFolder.GetAll();
 
         // TODO make sure that import folders are not sub folders of each other
-        // TODO make sure import folders do not contain a trailing "\"
         foreach (var ifolder in shares)
         {
             var importLocation = ifolder.ImportFolderLocation;

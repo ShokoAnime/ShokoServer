@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
@@ -12,6 +13,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -25,6 +27,7 @@ namespace Shoko.Server.API.v3.Controllers;
 public class DashboardController : BaseController
 {
     private readonly SeriesFactory _seriesFactory;
+    private readonly QueueHandler _queueHandler;
     
     /// <summary>
     /// Get the counters of various collection stats
@@ -198,11 +201,9 @@ public class DashboardController : BaseController
     /// <returns></returns>
     [HttpGet("QueueSummary")]
     [Obsolete("Use /api/v3/Queue/Types instead.")]
-    public Dictionary<string, int> GetQueueSummary()
+    public async Task<Dictionary<string, int>> GetQueueSummary()
     {
-        // TODO this
-        // count by type
-        return null;
+        return await _queueHandler.GetJobCounts();
     }
 
     /// <summary>
@@ -503,8 +504,9 @@ public class DashboardController : BaseController
             .ToList();
     }
 
-    public DashboardController(ISettingsProvider settingsProvider, SeriesFactory seriesFactory) : base(settingsProvider)
+    public DashboardController(ISettingsProvider settingsProvider, SeriesFactory seriesFactory, QueueHandler queueHandler) : base(settingsProvider)
     {
         _seriesFactory = seriesFactory;
+        _queueHandler = queueHandler;
     }
 }
