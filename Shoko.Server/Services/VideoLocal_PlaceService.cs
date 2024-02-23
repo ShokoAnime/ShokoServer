@@ -117,6 +117,7 @@ public class VideoLocal_PlaceService
         }
         catch (Exception e)
         {
+            _logger.LogInformation(e, "An exception was thrown while running the rename script: {Ex}", e);
             return new RenameFileResult { NewFilename = string.Empty, ErrorMessage = e.Message, Exception = e };
         }
 
