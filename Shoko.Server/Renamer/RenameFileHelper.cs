@@ -222,10 +222,7 @@ public class RenameFileHelper
     {
         var settings = Utils.SettingsProvider.GetSettings();
         return _getEnabledRenamers(renamerName).OrderBy(a => renamerName == a.Key ? 0 : int.MaxValue)
-            .ThenBy(a =>
-                settings.Plugins.RenamerPriorities.ContainsKey(a.Key)
-                    ? settings.Plugins.RenamerPriorities[a.Key]
-                    : int.MaxValue)
+            .ThenBy(a => settings.Plugins.RenamerPriorities.TryGetValue(a.Key, out var priority) ? priority : int.MaxValue)
             .ThenBy(a => a.Key, StringComparer.InvariantCulture)
             .Select(a => (IRenamer)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, a.Value.type))
             .ToList();
@@ -235,19 +232,8 @@ public class RenameFileHelper
         string renamerName)
     {
         var settings = Utils.SettingsProvider.GetSettings();
-        foreach (var kvp in Renamers)
-        {
-            if (!string.IsNullOrEmpty(renamerName) && kvp.Key != renamerName)
-            {
-                continue;
-            }
-
-            if (settings.Plugins.EnabledRenamers.TryGetValue(kvp.Key, out var isEnabled) && !isEnabled)
-            {
-                continue;
-            }
-
-            yield return kvp;
-        }
+        if (string.IsNullOrEmpty(renamerName)) return Renamers;
+        return Renamers.Where(kvp =>
+            kvp.Key == renamerName && (!settings.Plugins.EnabledRenamers.TryGetValue(kvp.Key, out var isEnabled) || isEnabled));
     }
 }
