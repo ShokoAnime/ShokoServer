@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 #nullable enable
@@ -53,6 +54,11 @@ public class Queue
         /// Indicates the item is currently actively running in the queue.
         /// </summary>
         public bool IsRunning { get; init; }
+
+        /// <summary>
+        /// The time that a currently executing job started, in local time
+        /// </summary>
+        public DateTime? StartTime { get; init; }
 
         /// <summary>
         /// Indicates the item is currently disabled because it cannot run under

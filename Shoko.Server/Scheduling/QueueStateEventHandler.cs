@@ -47,6 +47,7 @@ public class QueueStateEventHandler
             },
             WaitingJobsCount = queueContext.WaitingTriggersCount,
             BlockedJobsCount = queueContext.BlockedTriggersCount,
+            TotalJobsCount = queueContext.TotalTriggersCount,
             ExecutingJobsCount = queueContext.CurrentlyExecuting.Length,
             ThreadCount = queueContext.ThreadCount
         });
@@ -67,6 +68,7 @@ public class QueueStateEventHandler
             },
             WaitingJobsCount = queueContext.WaitingTriggersCount,
             BlockedJobsCount = queueContext.BlockedTriggersCount,
+            TotalJobsCount = queueContext.TotalTriggersCount,
             ThreadCount = queueContext.ThreadCount,
             ExecutingItems = queueContext.CurrentlyExecuting.ToList()
         });
@@ -87,6 +89,7 @@ public class QueueStateEventHandler
             },
             WaitingJobsCount = queueContext.WaitingTriggersCount,
             BlockedJobsCount = queueContext.BlockedTriggersCount,
+            TotalJobsCount = queueContext.TotalTriggersCount,
             ThreadCount = queueContext.ThreadCount,
             ExecutingItems = queueContext.CurrentlyExecuting.ToList()
         });

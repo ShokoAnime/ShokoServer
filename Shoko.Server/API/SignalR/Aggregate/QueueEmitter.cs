@@ -49,14 +49,15 @@ public class QueueEmitter : BaseEmitter, IDisposable
             {
                 WaitingCount = e.WaitingJobsCount,
                 BlockedCount = e.BlockedJobsCount,
-                TotalCount = e.WaitingJobsCount + e.BlockedJobsCount,
+                TotalCount = e.WaitingJobsCount + e.BlockedJobsCount + e.ExecutingItems.Count,
                 ThreadCount = e.ThreadCount,
                 CurrentlyExecuting = e.ExecutingItems.Select(a => new Queue.QueueItem
                 {
                     Key = a.Key,
                     Type = a.JobType,
                     Description = a.Description,
-                    IsRunning = true
+                    IsRunning = true,
+                    StartTime = a.StartTime
                 }).ToList()
             });
     }
@@ -79,8 +80,16 @@ public class QueueEmitter : BaseEmitter, IDisposable
                 {
                     WaitingCount = _queueHandler.WaitingCount,
                     BlockedCount = _queueHandler.BlockedCount,
-                    TotalCount = _queueHandler.Count,
-                    ThreadCount = _queueHandler.ThreadCount
+                    TotalCount = _queueHandler.TotalCount,
+                    ThreadCount = _queueHandler.ThreadCount,
+                    CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(a => new Queue.QueueItem
+                    {
+                        Key = a.Key,
+                        Type = a.JobType,
+                        Description = a.Description,
+                        IsRunning = true,
+                        StartTime = a.StartTime
+                    }).ToList()
                 }
             },
         };
