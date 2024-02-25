@@ -39,14 +39,15 @@ public class QueueController : BaseController
         {
             WaitingCount = _queueHandler.WaitingCount,
             BlockedCount = _queueHandler.BlockedCount,
-            TotalCount = _queueHandler.Count,
+            TotalCount = _queueHandler.TotalCount,
             ThreadCount = _queueHandler.ThreadCount,
             CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(a => new Queue.QueueItem
             {
                 Key = a.Key,
                 Type = a.JobType,
                 Description = a.Description,
-                IsRunning = true
+                IsRunning = true,
+                StartTime = a.StartTime
             }).ToList()
         };
     }
@@ -120,7 +121,8 @@ public class QueueController : BaseController
                 Type = a.JobType,
                 Description = a.Description,
                 IsRunning = a.Running,
-                IsBlocked = a.Blocked
+                IsBlocked = a.Blocked,
+                StartTime = a.StartTime
             }).ToList());
     }
 }

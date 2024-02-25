@@ -7,6 +7,7 @@ public class QueueChangedEventArgs : EventArgs
 {
     public int WaitingJobsCount { get; set; }
     public int BlockedJobsCount { get; set; }
+    public int TotalJobsCount { get; set; }
     public int ThreadCount { get; set; }
     public List<QueueItem> AddedItems { get; set; }
     public List<QueueItem> RemovedItems { get; set; }

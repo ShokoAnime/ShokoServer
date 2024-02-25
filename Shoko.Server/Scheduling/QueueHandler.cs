@@ -23,6 +23,7 @@ public class QueueHandler
         _jobFactory = jobFactory;
         _jobStore = jobStore;
         _queueStateEventHandler.ExecutingJobsChanged += ExecutingJobsStateEventHandlerOnExecutingJobsChanged;
+        _queueStateEventHandler.QueueItemAdded += QueueStateEventHandlerOnQueueItemAdded;
     }
 
     ~QueueHandler()
@@ -34,20 +35,23 @@ public class QueueHandler
     {
         lock (_executingJobs)
         {
-            foreach (var item in e.AddedItems)
+            _executingJobs.Clear();
+            foreach (var queueItem in e.ExecutingItems)
             {
-                _executingJobs[item.Key] = item;
-            }
-
-            foreach (var item in e.RemovedItems)
-            {
-                if (!_executingJobs.ContainsKey(item.Key)) continue;
-                _executingJobs.Remove(item.Key);
+                _executingJobs[queueItem.Key] = queueItem;
             }
         }
 
         WaitingCount = e.WaitingJobsCount;
         BlockedCount = e.BlockedJobsCount;
+        TotalCount = e.TotalJobsCount;
+    }
+
+    private void QueueStateEventHandlerOnQueueItemAdded(object sender, QueueItemAddedEventArgs e)
+    {
+        WaitingCount = e.WaitingJobsCount;
+        BlockedCount = e.BlockedJobsCount;
+        TotalCount = e.TotalJobsCount;
     }
 
     public async Task Pause()
@@ -81,11 +85,11 @@ public class QueueHandler
         }
     }
 
-    public int Count => WaitingCount + BlockedCount;
-
     public int WaitingCount { get; private set; }
 
     public int BlockedCount { get; private set; }
+
+    public int TotalCount { get; private set; }
 
     private int _threadCount = -1;
 

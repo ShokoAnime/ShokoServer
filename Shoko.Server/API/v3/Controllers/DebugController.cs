@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Authorization;
@@ -10,10 +9,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Quartz;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Settings;
 
 #nullable enable
@@ -34,11 +36,34 @@ public class DebugController : BaseController
     private readonly ILogger<DebugController> _logger;
 
     private readonly IUDPConnectionHandler _udpHandler;
+    private readonly ISchedulerFactory _schedulerFactory;
 
-    public DebugController(ILogger<DebugController> logger, IUDPConnectionHandler udpHandler, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public DebugController(ILogger<DebugController> logger, IUDPConnectionHandler udpHandler, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory) : base(settingsProvider)
     {
         _logger = logger;
         _udpHandler = udpHandler;
+        _schedulerFactory = schedulerFactory;
+    }
+
+    /// <summary>
+    /// Schedule {<paramref name="count"/>} jobs that just wait for 60 seconds
+    /// </summary>
+    /// <param name="count"></param>
+    /// <param name="seconds"></param>
+    [HttpGet("ScheduleTestJobs/{count}")]
+    public async Task<ActionResult> ScheduleTestJobs(int count, [FromQuery]int seconds = 60)
+    {
+        var scheduler = await _schedulerFactory.GetScheduler();
+        for (var i = 0; i < count; i++)
+        {
+            await scheduler.StartJobNow<TestDelayJob>(t =>
+            {
+                t.DelaySeconds = seconds;
+                t.Offset = i;
+            });
+        }
+
+        return Ok();
     }
 
     /// <summary>
@@ -60,7 +85,6 @@ public class DebugController : BaseController
             {
                 if (string.IsNullOrEmpty(_udpHandler.SessionID) && !await _udpHandler.Login())
                     return new() { Code = UDPReturnCode.NOT_LOGGED_IN };
-                request.Payload ??= new();
                 request.Payload.Add("s", _udpHandler.SessionID);
             }
 
@@ -159,10 +183,7 @@ public class DebugController : BaseController
                 if (string.IsNullOrWhiteSpace(Action))
                     return string.Empty;
 
-                if (Payload == null || Payload.Count == 0)
-                    return Action.ToUpperInvariant().Trim();
-
-                return $"{Action.ToUpperInvariant()} {QueryString}".Trim();
+                return Payload.Count == 0 ? Action.ToUpperInvariant().Trim() : $"{Action.ToUpperInvariant()} {QueryString}".Trim();
             }
         }
 
@@ -188,7 +209,7 @@ public class DebugController : BaseController
         {
             get
             {
-                return !IsPing && (Payload == null || !Payload.ContainsKey("s"));
+                return !IsPing && (!Payload.ContainsKey("s"));
             }
         }
 
@@ -213,7 +234,7 @@ public class DebugController : BaseController
         {
             get
             {
-                if (Payload == null || Payload.Count == 0)
+                if (Payload.Count == 0)
                     return string.Empty;
 
                 var queryString = HttpUtility.ParseQueryString(string.Empty);
