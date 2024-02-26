@@ -17,6 +17,7 @@ public interface IUDPConnectionHandler : IConnectionHandler
     Task CloseConnections();
     Task ForceReconnection();
     void ExtendBanTimer(int time, string message);
+    Task<bool> Init();
     Task<bool> Init(string username, string password, string serverName, ushort serverPort, ushort clientPort);
     Task<bool> TestLogin(string username, string password);
 

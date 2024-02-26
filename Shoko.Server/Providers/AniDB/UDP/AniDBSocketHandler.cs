@@ -145,7 +145,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
 
         try
         {
-            var remoteHostEntry = await Dns.GetHostEntryAsync(_serverHost);
+            var remoteHostEntry = await Dns.GetHostEntryAsync(_serverHost).WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
             _remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], _serverPort);
 
             _logger.LogInformation("Bound to remote address: {Address} : {Port}", _remoteIpEndPoint.Address,

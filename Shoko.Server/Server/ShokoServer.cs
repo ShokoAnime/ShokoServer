@@ -124,7 +124,7 @@ public class ShokoServer
         ShokoEventHandler.Instance.OnStarting();
 
         // for log readability, this will simply init the singleton
-        Utils.ServiceContainer.GetService<IUDPConnectionHandler>();
+        Utils.ServiceContainer.GetService<IUDPConnectionHandler>().Init().ConfigureAwait(false).GetAwaiter().GetResult();
         return true;
     }
 
