@@ -154,10 +154,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             }
 
             // don't ping when AniDB is taking a long time to respond
-            if (_socketHandler.IsLocked)
-            {
-                return;
-            }
+            if (_socketHandler.IsLocked) return;
 
             var nonPingTimestamp = DateTime.Now - LastAniDBMessageNonPing;
             var pingTimestamp = DateTime.Now - LastAniDBPing;
@@ -173,9 +170,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
             }
 
             if (nonPingTimestamp.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
-            {
                 ForceLogout();
-            }
         }
         catch (Exception exception)
         {
@@ -232,11 +227,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         // 2. Decode the response, converting Unicode and decompressing, as needed
         // 3. Check for an Error Response
         // 4. Return a pretty response object, with a parsed return code and trimmed string
-        var encoding = Encoding.ASCII;
-        if (needsUnicode)
-        {
-            encoding = new UnicodeEncoding(true, false);
-        }
+        var encoding = needsUnicode ? new UnicodeEncoding(true, false) : Encoding.ASCII;
 
         RateLimiter.EnsureRate();
         if (_socketHandler == null) throw new ObjectDisposedException("The connection was closed by shoko");
@@ -348,10 +339,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         IsAlive = false;
         _pulseTimer?.Stop();
         _pulseTimer = null;
-        if (_socketHandler == null)
-        {
-            return;
-        }
+        if (_socketHandler == null) return;
 
         Logger.LogInformation("AniDB UDP Socket Disposing...");
         await _socketHandler.DisposeAsync();
@@ -361,10 +349,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     public async Task<bool> Login()
     {
         var settings = SettingsProvider.GetSettings();
-        if (await Login(settings.AniDb.Username, settings.AniDb.Password))
-        {
-            return true;
-        }
+        if (await Login(settings.AniDb.Username, settings.AniDb.Password)) return true;
 
         try
         {
@@ -383,10 +368,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     private async Task<bool> Login(string username, string password)
     {
         // check if we are already logged in
-        if (IsLoggedOn)
-        {
-            return true;
-        }
+        if (IsLoggedOn) return true;
 
         if (!ValidAniDBCredentials(username, password))
         {
@@ -512,15 +494,8 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
     public bool ValidAniDBCredentials(string user, string pass)
     {
-        if (string.IsNullOrEmpty(user))
-        {
-            return false;
-        }
-
-        if (string.IsNullOrEmpty(pass))
-        {
-            return false;
-        }
+        if (string.IsNullOrEmpty(user)) return false;
+        if (string.IsNullOrEmpty(pass)) return false;
 
         return true;
     }
