@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Commons.Notification;
 using Shoko.Server.API.SignalR.Models;
@@ -16,7 +15,8 @@ public class QueueEmitter : BaseEmitter, IDisposable
 {
     private readonly QueueStateEventHandler _queueStateEventHandler;
     private readonly QueueHandler _queueHandler;
-    private readonly Dictionary<string, object> _lastState = new();
+    private QueueStateSignalRModel _lastQueueState;
+    private readonly Dictionary<string, object> _lastServerState = new();
 
     public QueueEmitter(IHubContext<AggregateHub> hub, QueueStateEventHandler queueStateEventHandler, QueueHandler queueHandler) : base(hub)
     {
@@ -36,62 +36,54 @@ public class QueueEmitter : BaseEmitter, IDisposable
     {
         if (e.PropertyName == null) return;
         // Currently, only the DatabaseBlocked property, but we could use this for more.
-        if (e.PropertyName == "DatabaseBlocked" || e.PropertyName.StartsWith("Server"))
-        {
-            await StateChangedAsync("ServerStateChanged", e.PropertyName, e.GetPropertyValue(sender));
-        }
+        if (e.PropertyName != "DatabaseBlocked" && !e.PropertyName.StartsWith("Server")) return;
+
+        var value = e.GetPropertyValue(sender);
+        if (_lastServerState.ContainsKey(e.PropertyName) && _lastServerState.TryGetValue(e.PropertyName, out var previousState) &&
+            Equals(previousState, value)) return;
+
+        _lastServerState[e.PropertyName] = value;
+        await SendAsync("ServerStateChanged", e.PropertyName, value);
     }
 
     private async void OnExecutingJobsStateChangedEvent(object sender, QueueChangedEventArgs e)
     {
-        await StateChangedAsync("QueueStateChanged", "QueueState",
-            new QueueStateSignalRModel
+        var currentState = new QueueStateSignalRModel
+        {
+            WaitingCount = e.WaitingJobsCount,
+            BlockedCount = e.BlockedJobsCount,
+            TotalCount = e.WaitingJobsCount + e.BlockedJobsCount + e.ExecutingItems.Count,
+            ThreadCount = e.ThreadCount,
+            CurrentlyExecuting = e.ExecutingItems.Select(a => new Queue.QueueItem
             {
-                WaitingCount = e.WaitingJobsCount,
-                BlockedCount = e.BlockedJobsCount,
-                TotalCount = e.WaitingJobsCount + e.BlockedJobsCount + e.ExecutingItems.Count,
-                ThreadCount = e.ThreadCount,
-                CurrentlyExecuting = e.ExecutingItems.Select(a => new Queue.QueueItem
-                {
-                    Key = a.Key,
-                    Type = a.JobType,
-                    Description = a.Description,
-                    IsRunning = true,
-                    StartTime = a.StartTime
-                }).ToList()
-            });
-    }
-
-    private async Task StateChangedAsync(string method, string property, object currentState)
-    {
-        if (_lastState.ContainsKey(property) && _lastState.TryGetValue(property, out var previousState) &&
-            previousState == currentState) return;
-
-        _lastState[property] = currentState;
-        await SendAsync(method, property, currentState);
+                Key = a.Key,
+                Type = a.JobType,
+                Description = a.Description,
+                IsRunning = true,
+                StartTime = a.StartTime
+            }).OrderBy(a => a.StartTime).ToList()
+        };
+        if (Equals(_lastQueueState, currentState)) return;
+        _lastQueueState = currentState;
+        await SendAsync("QueueStateChanged", currentState);
     }
 
     public override object GetInitialMessage()
     {
-        return new Dictionary<string, object>
+        return new QueueStateSignalRModel
         {
+            WaitingCount = _queueHandler.WaitingCount,
+            BlockedCount = _queueHandler.BlockedCount,
+            TotalCount = _queueHandler.TotalCount,
+            ThreadCount = _queueHandler.ThreadCount,
+            CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(a => new Queue.QueueItem
             {
-                "QueueState", new QueueStateSignalRModel
-                {
-                    WaitingCount = _queueHandler.WaitingCount,
-                    BlockedCount = _queueHandler.BlockedCount,
-                    TotalCount = _queueHandler.TotalCount,
-                    ThreadCount = _queueHandler.ThreadCount,
-                    CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(a => new Queue.QueueItem
-                    {
-                        Key = a.Key,
-                        Type = a.JobType,
-                        Description = a.Description,
-                        IsRunning = true,
-                        StartTime = a.StartTime
-                    }).ToList()
-                }
-            },
+                Key = a.Key,
+                Type = a.JobType,
+                Description = a.Description,
+                IsRunning = true,
+                StartTime = a.StartTime
+            }).OrderBy(a => a.StartTime).ToList()
         };
     }
 }
