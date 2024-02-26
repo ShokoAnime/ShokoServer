@@ -124,7 +124,7 @@ public class ShokoServer
         ShokoEventHandler.Instance.OnStarting();
 
         // for log readability, this will simply init the singleton
-        Utils.ServiceContainer.GetService<IUDPConnectionHandler>().Init().ConfigureAwait(false).GetAwaiter().GetResult();
+        Task.Run(async () => await Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>().Init());
         return true;
     }
 
@@ -154,11 +154,9 @@ public class ShokoServer
 
         foreach (var dllFile in dllFiles)
         {
-            if (FileSystem.AlternateDataStreamExists(dllFile, "Zone.Identifier"))
-            {
-                logger.LogError("Found blocked DLL file: " + dllFile);
-                result = false;
-            }
+            if (!FileSystem.AlternateDataStreamExists(dllFile, "Zone.Identifier")) continue;
+            logger.LogError("Found blocked DLL file: " + dllFile);
+            result = false;
         }
 
 

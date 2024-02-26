@@ -8,7 +8,6 @@ public abstract class ConnectionHandler
 {
     protected readonly ILoggerFactory _loggerFactory;
     protected ILogger Logger { get; set; }
-    internal IServiceProvider ServiceProvider { get; set; }
     protected AniDBRateLimiter RateLimiter { get; set; }
     public abstract double BanTimerResetLength { get; }
     public abstract string Type { get; }
