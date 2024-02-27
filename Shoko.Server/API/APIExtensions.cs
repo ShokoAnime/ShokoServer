@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc.Versioning;
@@ -128,7 +127,7 @@ public static class APIExtensions
             });
         services.AddSwaggerGenNewtonsoftSupport();
         services.AddSignalR(o => { o.EnableDetailedErrors = true; })
-            .AddNewtonsoftJsonProtocol();
+            .AddNewtonsoftJsonProtocol(o => o.PayloadSerializerSettings.ContractResolver = new DefaultContractResolver());
 
         // allow CORS calls from other both local and non-local hosts
         services.AddCors(options =>
