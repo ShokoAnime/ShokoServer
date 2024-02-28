@@ -48,7 +48,7 @@ public class QueueController : BaseController
                 Description = a.Description,
                 IsRunning = true,
                 StartTime = a.StartTime
-            }).ToList()
+            }).OrderBy(a => a.StartTime).ToList()
         };
     }
 
