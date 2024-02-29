@@ -9,7 +9,6 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
-using Quartz.Util;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Delegates;
@@ -107,7 +106,6 @@ public class ThreadPooledJobStore : JobStoreTX
 
         const int MaxDoLoopRetry = 3;
         var acquiredTriggers = new List<IOperableTrigger>();
-        var acquiredJobsWithLimitedConcurrency = new Dictionary<string, int>();
         var currentLoopCount = 0;
 
         do
@@ -115,6 +113,7 @@ public class ThreadPooledJobStore : JobStoreTX
             currentLoopCount++;
             try
             {
+                // this handles blocking via the GetTypes method and query
                 var filteringTypes = GetTypes();
                 var results = await Delegate.SelectTriggerToAcquire(conn, noLaterThan + timeWindow, MisfireTime, maxCount, filteringTypes, cancellationToken)
                     .ConfigureAwait(false);
@@ -131,12 +130,9 @@ public class ThreadPooledJobStore : JobStoreTX
                     var nextTrigger = await RetrieveTrigger(conn, triggerKey, cancellationToken).ConfigureAwait(false);
                     if (nextTrigger == null) continue; // next trigger
 
-                    // If trigger's job is set as @DisallowConcurrentExecution, and it has already been added to result, then
-                    // put it back into the timeTriggers set and continue to search for next trigger.
-                    Type jobType;
                     try
                     {
-                        jobType = _typeLoadHelper.LoadType(result.JobType)!;
+                        _ = _typeLoadHelper.LoadType(result.JobType)!;
                     }
                     catch (JobPersistenceException jpe)
                     {
@@ -151,8 +147,6 @@ public class ThreadPooledJobStore : JobStoreTX
                         }
                         continue;
                     }
-
-                    if (!JobAllowed(jobType, acquiredJobsWithLimitedConcurrency)) continue;
 
                     var nextFireTimeUtc = nextTrigger.GetNextFireTimeUtc();
 
@@ -169,7 +163,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
                     if (nextFireTimeUtc > batchEnd) break;
 
-                    // We now have a acquired trigger, let's add to return list.
+                    // We now have an acquired trigger, let's add to return list.
                     // If our trigger was no longer in the expected state, try a new one.
                     var rowsUpdated = await Delegate.UpdateTriggerStateFromOtherStateWithNextFireTime(conn, triggerKey, StateAcquired, StateWaiting, nextFireTimeUtc.Value, cancellationToken).ConfigureAwait(false);
                     if (rowsUpdated <= 0) continue; // next trigger
@@ -244,52 +238,6 @@ public class ThreadPooledJobStore : JobStoreTX
         }
 
         return (excludedTypes.Distinct().ToList(), limitedTypes);
-    }
-
-    private bool JobAllowed(Type jobType, Dictionary<string, int> acquiredJobTypesWithLimitedConcurrency)
-    {
-        if (ObjectUtils.IsAttributePresent(jobType, typeof(DisallowConcurrentExecutionAttribute)))
-        {
-            lock (_executingJobs)
-                if (_executingJobs.Values.Any(a => a.Job.JobType == jobType))
-                    return false;
-            if (acquiredJobTypesWithLimitedConcurrency.TryGetValue(jobType.Name, out var number) && number >= 1) return false;
-            acquiredJobTypesWithLimitedConcurrency[jobType.Name] = number + 1;
-            return true;
-        }
-
-        if (jobType.GetCustomAttributes().FirstOrDefault(a => a is DisallowConcurrencyGroupAttribute) is DisallowConcurrencyGroupAttribute concurrencyAttribute)
-        {
-            lock (_executingJobs)
-                if(_executingJobs.Values.Any(a => _concurrencyGroupCache[concurrencyAttribute.Group].Contains(a.Job.JobType))) return false;
-            if (acquiredJobTypesWithLimitedConcurrency.TryGetValue(concurrencyAttribute.Group, out var number)) return false;
-            acquiredJobTypesWithLimitedConcurrency[concurrencyAttribute.Group] = number + 1;
-            return true;
-        }
-
-        if (_typeConcurrencyCache.TryGetValue(jobType, out var maxJobs) && maxJobs > 0)
-        {
-            int count;
-            lock (_executingJobs)
-                count = _executingJobs.Values.Count(a => a.Job.JobType == jobType);
-            acquiredJobTypesWithLimitedConcurrency.TryGetValue(jobType.Name, out var number);
-            acquiredJobTypesWithLimitedConcurrency[jobType.Name] = number + 1;
-            return number + count < maxJobs;
-        }
-
-        if (jobType.GetCustomAttributes().FirstOrDefault(a => a is LimitConcurrencyAttribute) is LimitConcurrencyAttribute limitConcurrencyAttribute)
-        {
-            if (!_typeConcurrencyCache.TryGetValue(jobType, out var maxConcurrentJobs)) maxConcurrentJobs = limitConcurrencyAttribute.MaxConcurrentJobs;
-            if (maxConcurrentJobs <= 0) maxConcurrentJobs = 1;
-            acquiredJobTypesWithLimitedConcurrency.TryGetValue(jobType.Name, out var number);
-            acquiredJobTypesWithLimitedConcurrency[jobType.Name] = number + 1;
-            int count;
-            lock (_executingJobs)
-                count = _executingJobs.Values.Count(a => a.Job.JobType == jobType);
-            return number + count < maxConcurrentJobs;
-        }
-
-        return true;
     }
     
     public override async Task<IReadOnlyCollection<TriggerFiredResult>> TriggersFired(IReadOnlyCollection<IOperableTrigger> triggers, CancellationToken cancellationToken = default)
@@ -397,15 +345,9 @@ public class ThreadPooledJobStore : JobStoreTX
         // call triggered - to update the trigger's next-fire-time state...
         trigger.Triggered(cal);
 
-        var (state2, force) = await UpdateTriggerStatesForLimitedConcurrency(conn, job, cancellationToken);
+        var nextState = !trigger.GetNextFireTimeUtc().HasValue ? StateComplete : StateWaiting;
 
-        if (!trigger.GetNextFireTimeUtc().HasValue)
-        {
-            state2 = StateComplete;
-            force = true;
-        }
-
-        await StoreTrigger(conn, trigger, job, true, state2, force, false, cancellationToken).ConfigureAwait(false);
+        await StoreTrigger(conn, trigger, job, true, nextState, true, false, cancellationToken).ConfigureAwait(false);
 
         job.JobDataMap.ClearDirtyFlag();
 
@@ -420,41 +362,6 @@ public class ThreadPooledJobStore : JobStoreTX
             trigger.GetPreviousFireTimeUtc(),
             prevFireTime,
             trigger.GetNextFireTimeUtc());
-    }
-
-    private async Task<(string state2, bool force)> UpdateTriggerStatesForLimitedConcurrency(ConnectionAndTransactionHolder conn, IJobDetail job, CancellationToken cancellationToken)
-    {
-        var jobTypesWithLimitedConcurrency = new Dictionary<string, int>();
-        lock (_executingJobs)
-        {
-            foreach (var executingJob in _executingJobs)
-            {
-                if (Equals(executingJob.Key, job.Key)) continue;
-                if (!JobAllowed(job.JobType, jobTypesWithLimitedConcurrency)) goto loopBreak;
-            }
-        }
-
-        if (JobAllowed(job.JobType, jobTypesWithLimitedConcurrency)) return (StateWaiting, true);
-
-        loopBreak:
-        try
-        {
-            var types = new[] { job.JobType };
-            if (job.JobType.GetCustomAttributes().FirstOrDefault(a => a is DisallowConcurrencyGroupAttribute) is DisallowConcurrencyGroupAttribute
-                concurrencyAttribute)
-            {
-                types = _concurrencyGroupCache[concurrencyAttribute.Group];
-            }
-            await Delegate.UpdateTriggerStatesForJobFromOtherState(conn, types, StateBlocked, StateWaiting, cancellationToken).ConfigureAwait(false);
-            await Delegate.UpdateTriggerStatesForJobFromOtherState(conn, types, StateBlocked, StateAcquired, cancellationToken).ConfigureAwait(false);
-            await Delegate.UpdateTriggerStatesForJobFromOtherState(conn, types, StatePausedBlocked, StatePaused, cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception e)
-        {
-            throw new JobPersistenceException("Couldn't update states of blocked triggers: " + e.Message, e);
-        }
-
-        return (StateBlocked, false);
     }
 
     public Task<int> GetWaitingTriggersCount()
@@ -603,20 +510,7 @@ public class ThreadPooledJobStore : JobStoreTX
             var waitingTriggerCount = await GetWaitingTriggersCount(conn, cancellationToken);
             var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
             if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
-            QueueItem[] executing;
-            lock (_executingJobs)
-                executing = _executingJobs.Values.Select(a =>
-                {
-                    var job = _jobFactory.CreateJob(a.Job);
-                    return new QueueItem
-                    {
-                        Key = a.Job.Key.ToString(),
-                        JobType = job?.Name,
-                        Description = job?.Description.formatMessage(),
-                        Running = true,
-                        StartTime = a.StartTime
-                    };
-                }).OrderBy(a => a.StartTime).ToArray();
+            var executing = GetExecutingQueueItems();
 
             _queueStateEventHandler.OnJobAdded(newJob, new QueueStateContext
             {
@@ -642,20 +536,7 @@ public class ThreadPooledJobStore : JobStoreTX
             var waitingTriggerCount = await GetWaitingTriggersCount(conn, cancellationToken);
             var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
             if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
-            QueueItem[] executing;
-            lock (_executingJobs)
-                executing = _executingJobs.Select(a =>
-                {
-                    var job = _jobFactory.CreateJob(a.Value.Job);
-                    return new QueueItem
-                    {
-                        Key = a.Key.ToString(),
-                        JobType = job?.Name ?? a.Value.Job.JobType.Name,
-                        Description = job?.Description.formatMessage(),
-                        Running = true,
-                        StartTime = trigger.StartTimeUtc.LocalDateTime
-                    };
-                }).OrderBy(a => a.StartTime).ToArray();
+            var executing = GetExecutingQueueItems();
 
             _queueStateEventHandler.OnJobExecuting(jobDetail, new QueueStateContext
             {
@@ -672,6 +553,26 @@ public class ThreadPooledJobStore : JobStoreTX
         }
     }
 
+    private QueueItem[] GetExecutingQueueItems()
+    {
+        QueueItem[] executing;
+        lock (_executingJobs)
+            executing = _executingJobs.Values.Select(a =>
+            {
+                var detail = a.Job;
+                var job = _jobFactory.CreateJob(detail);
+                return new QueueItem
+                {
+                    Key = detail.Key.ToString(),
+                    JobType = job?.Name ?? detail.JobType.Name,
+                    Description = job?.Description.formatMessage(),
+                    Running = true,
+                    StartTime = a.StartTime
+                };
+            }).OrderBy(a => a.StartTime).ToArray();
+        return executing;
+    }
+
     private async Task JobCompletedQueueEvents(ConnectionAndTransactionHolder conn, IJobDetail jobDetail, CancellationToken cancellationToken)
     {
         try
@@ -681,21 +582,7 @@ public class ThreadPooledJobStore : JobStoreTX
             var waitingTriggerCount = await GetWaitingTriggersCount(conn, cancellationToken);
             var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
             if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
-            QueueItem[] executing;
-            lock (_executingJobs)
-                executing = _executingJobs.Values.Select(a =>
-                {
-                    var job = _jobFactory.CreateJob(a.Job);
-                    return new QueueItem
-                    {
-                        Key = a.Job.Key.ToString(),
-                        JobType = job?.Name,
-                        Description = job?.Description.formatMessage(),
-                        Running = true,
-                        StartTime = a.StartTime
-                    };
-                }).OrderBy(a => a.StartTime).ToArray();
-
+            var executing = GetExecutingQueueItems();
             _queueStateEventHandler.OnJobCompleted(jobDetail, new QueueStateContext
             {
                 ThreadCount = _threadPoolSize,
