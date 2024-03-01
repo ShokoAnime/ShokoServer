@@ -54,18 +54,19 @@ public class ThreadPooledJobStore : JobStoreTX
 
         foreach (var type in types)
         {
-            var attribute = type.GetCustomAttribute<LimitConcurrencyAttribute>();
-            if (attribute != null)
-            {
-                _typeConcurrencyCache[type] = attribute.MaxConcurrentJobs;
-            }
+            var limitConcurrencyAttribute = type.GetCustomAttribute<LimitConcurrencyAttribute>();
+            if (limitConcurrencyAttribute != null) _typeConcurrencyCache[type] = limitConcurrencyAttribute.MaxConcurrentJobs;
+            
+            var disallowConcurrentExecutionAttribute = type.GetCustomAttribute<DisallowConcurrentExecutionAttribute>();
+            if (disallowConcurrentExecutionAttribute != null) _typeConcurrencyCache[type] = 1;
 
-            var concurrencyGroup = type.GetCustomAttribute<DisallowConcurrencyGroupAttribute>();
-            if (concurrencyGroup != null)
+            var disallowConcurrencyGroupAttribute = type.GetCustomAttribute<DisallowConcurrencyGroupAttribute>();
+            if (disallowConcurrencyGroupAttribute != null)
             {
-                if (_concurrencyGroupCache.TryGetValue(concurrencyGroup.Group, out var groupTypes)) groupTypes = groupTypes.Append(type).Distinct().ToArray();
+                if (_concurrencyGroupCache.TryGetValue(disallowConcurrencyGroupAttribute.Group, out var groupTypes))
+                    groupTypes = groupTypes.Append(type).Distinct().ToArray();
                 else groupTypes = new[] { type };
-                _concurrencyGroupCache[concurrencyGroup.Group] = groupTypes;
+                _concurrencyGroupCache[disallowConcurrencyGroupAttribute.Group] = groupTypes;
             }
         }
 
@@ -95,8 +96,38 @@ public class ThreadPooledJobStore : JobStoreTX
     protected override async Task StoreTrigger(ConnectionAndTransactionHolder conn, IOperableTrigger newTrigger, IJobDetail job, bool replaceExisting, string state, bool forceState,
         bool recovering, CancellationToken cancellationToken = new CancellationToken())
     {
-        await base.StoreTrigger(conn, newTrigger, job, replaceExisting, state, forceState, recovering, cancellationToken);
-        await JobStoringQueueEvents(conn, job, cancellationToken);
+        // most of this is pulled from the base. Some fat is trimmed out, as we handle blocking ourselves
+        var existingTrigger = await TriggerExists(conn, newTrigger.Key, cancellationToken).ConfigureAwait(false);
+        if (existingTrigger && !replaceExisting) throw new ObjectAlreadyExistsException(newTrigger);
+
+        try
+        {
+            if (!forceState)
+            {
+                var shouldBePaused = await Delegate.IsTriggerGroupPaused(conn, newTrigger.Key.Group, cancellationToken).ConfigureAwait(false);
+
+                if (!shouldBePaused)
+                {
+                    shouldBePaused = await Delegate.IsTriggerGroupPaused(conn, AllGroupsPaused, cancellationToken).ConfigureAwait(false);
+                    if (shouldBePaused) await Delegate.InsertPausedTriggerGroup(conn, newTrigger.Key.Group, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (shouldBePaused && (state.Equals(StateWaiting) || state.Equals(StateAcquired))) state = StatePaused;
+            }
+
+            job ??= await RetrieveJob(conn, newTrigger.JobKey, cancellationToken).ConfigureAwait(false);
+            if (job == null) throw new JobPersistenceException($"The job ({newTrigger.JobKey}) referenced by the trigger does not exist.");
+
+            if (existingTrigger) await Delegate.UpdateTrigger(conn, newTrigger, state, job, cancellationToken).ConfigureAwait(false);
+            else await Delegate.InsertTrigger(conn, newTrigger, state, job, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            var message = $"Couldn't store trigger '{newTrigger.Key}' for '{newTrigger.JobKey}' job: {e.Message}";
+            throw new JobPersistenceException(message, e);
+        }
+
+        if (!existingTrigger) await JobStoringQueueEvents(conn, job, cancellationToken);
     }
 
     protected override async Task<IReadOnlyCollection<IOperableTrigger>> AcquireNextTrigger(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan,
@@ -115,7 +146,7 @@ public class ThreadPooledJobStore : JobStoreTX
             {
                 // this handles blocking via the GetTypes method and query
                 var filteringTypes = GetTypes();
-                var results = await Delegate.SelectTriggerToAcquire(conn, noLaterThan + timeWindow, MisfireTime, maxCount, filteringTypes, cancellationToken)
+                var results = await Delegate.SelectTriggerToAcquire(conn, NoLaterThan, NoEarlierThan, maxCount, filteringTypes, cancellationToken)
                     .ConfigureAwait(false);
 
                 // No trigger is ready to fire yet.
@@ -364,6 +395,9 @@ public class ThreadPooledJobStore : JobStoreTX
             trigger.GetNextFireTimeUtc());
     }
 
+    private static DateTimeOffset NoLaterThan => DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(30));
+    private DateTimeOffset NoEarlierThan => MisfireTime;
+
     public Task<int> GetWaitingTriggersCount()
     {
         return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetWaitingTriggersCount(conn), new CancellationToken());
@@ -372,7 +406,7 @@ public class ThreadPooledJobStore : JobStoreTX
     private Task<int> GetWaitingTriggersCount(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
         var types = GetTypes();
-        return Delegate.SelectWaitingTriggerCount(conn, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), MisfireTime, types, cancellationToken);
+        return Delegate.SelectWaitingTriggerCount(conn, NoLaterThan, NoEarlierThan, types, cancellationToken);
     }
 
     public Task<int> GetBlockedTriggersCount()
@@ -383,7 +417,7 @@ public class ThreadPooledJobStore : JobStoreTX
     private Task<int> GetBlockedTriggersCount(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
         var types = GetTypes();
-        return Delegate.SelectBlockedTriggerCount(conn, _typeLoadHelper, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), MisfireTime, types,
+        return Delegate.SelectBlockedTriggerCount(conn, _typeLoadHelper, NoLaterThan, NoEarlierThan, types,
             cancellationToken);
     }
 
@@ -394,7 +428,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private Task<int> GetTotalWaitingTriggersCount(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Delegate.SelectTotalWaitingTriggerCount(conn, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), MisfireTime, cancellationToken);
+        return Delegate.SelectTotalWaitingTriggerCount(conn, NoLaterThan, NoEarlierThan, cancellationToken);
     }
 
     public Task<Dictionary<Type, int>> GetJobCounts()
@@ -404,7 +438,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private Task<Dictionary<Type, int>> GetJobCounts(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
     {
-        return Delegate.SelectJobTypeCounts(conn, _typeLoadHelper, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), cancellationToken);
+        return Delegate.SelectJobTypeCounts(conn, _typeLoadHelper, NoLaterThan, cancellationToken);
     }
 
     public Task<List<QueueItem>> GetJobs(int maxCount, int offset)
@@ -436,7 +470,7 @@ public class ThreadPooledJobStore : JobStoreTX
             }
         }
 
-        var jobs = await Delegate.SelectJobs(conn, _typeLoadHelper, maxCount - result.Count, offset, DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30), MisfireTime, types,
+        var jobs = await Delegate.SelectJobs(conn, _typeLoadHelper, maxCount - result.Count, offset, NoLaterThan, NoEarlierThan, types,
             cancellationToken);
         var excluded = types.TypesToExclude.ToHashSet();
         var remainingCount = types.TypesToLimit;
@@ -463,35 +497,6 @@ public class ThreadPooledJobStore : JobStoreTX
         CancellationToken cancellationToken = new CancellationToken())
     {
         await base.TriggeredJobComplete(conn, trigger, jobDetail, triggerInstCode, cancellationToken);
-
-        if (!jobDetail.JobType.GetCustomAttributes().Any(a =>
-                _typeConcurrencyCache.ContainsKey(jobDetail.JobType) ||
-                a is DisallowConcurrencyGroupAttribute or LimitConcurrencyAttribute or DisallowConcurrentExecutionAttribute))
-        {
-            await JobCompletedQueueEvents(conn, jobDetail, cancellationToken);
-            return;
-        }
-
-        try
-        {
-            var types = new[]
-            {
-                jobDetail.JobType
-            };
-            if (jobDetail.JobType.GetCustomAttributes().FirstOrDefault(a => a is DisallowConcurrencyGroupAttribute) is DisallowConcurrencyGroupAttribute
-                concurrencyAttribute)
-            {
-                types = _concurrencyGroupCache[concurrencyAttribute.Group];
-            }
-
-            await Delegate.UpdateTriggerStatesForJobFromOtherState(conn, types, StateWaiting, StateBlocked, cancellationToken);
-            await Delegate.UpdateTriggerStatesForJobFromOtherState(conn, types, StatePaused, StatePausedBlocked, cancellationToken);
-        }
-        catch (Exception e)
-        {
-            throw new JobPersistenceException("Couldn't update states of blocked triggers: " + e.Message, e);
-        }
-
         await JobCompletedQueueEvents(conn, jobDetail, cancellationToken);
     }
 
