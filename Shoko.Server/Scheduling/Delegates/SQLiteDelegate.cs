@@ -216,9 +216,10 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         }
 
         // We need to get the number of jobs that are queued, then subtract the allowed number, ensuring that blocked count doesn't go negative
-        var sum = results.Join(jobTypes.TypesToLimit, a => a.Key, a => a.Key,
+        var blocked = results.Join(jobTypes.TypesToExclude, a => a.Key, a => a, (result, _) => result.Value).Sum();
+        var limited = results.Join(jobTypes.TypesToLimit, a => a.Key, a => a.Key,
             (result, limit) => Math.Max(result.Value - limit.Value, 0)).Sum();
-        return sum;
+        return blocked + limited;
     }
 
     public virtual async Task<int> SelectTotalWaitingTriggerCount(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan,

@@ -212,9 +212,10 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
             results[jobType] = rs.GetInt32("Count")!;
         }
 
-        var sum = results.Join(jobTypes.TypesToLimit, a => a.Key, a => a.Key,
+        var blocked = results.Join(jobTypes.TypesToExclude, a => a.Key, a => a, (result, _) => result.Value).Sum();
+        var limited = results.Join(jobTypes.TypesToLimit, a => a.Key, a => a.Key,
             (result, limit) => Math.Max(result.Value - limit.Value, 0)).Sum();
-        return sum;
+        return blocked + limited;
     }
 
     public virtual async Task<int> SelectTotalWaitingTriggerCount(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan,

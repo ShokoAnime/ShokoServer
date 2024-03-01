@@ -63,6 +63,9 @@ public static class Program
         {
             _logger.LogTrace("Job Added: {Type} | {Details}", addedItem.JobType ?? addedItem.Key, addedItem.Description);
         }
+
+        _logger.LogTrace("Waiting: {Waiting} | Blocked: {Blocked} | Executing: {Executing}/{Pool} | Total: {Total}", e.WaitingJobsCount,
+            e.BlockedJobsCount, e.ExecutingJobsCount, e.ThreadCount, e.TotalJobsCount);
     }
 
     private static void ExecutingJobsStateEventHandlerOnExecutingJobsChanged(object? sender, QueueChangedEventArgs e)
@@ -83,8 +86,8 @@ public static class Program
             }
         }
 
-        _logger.LogTrace("Waiting: {Waiting} | Blocked: {Blocked} | ThreadPoolSize: {Pool} | Currently Executing: {Executing}", e.WaitingJobsCount,
-            e.BlockedJobsCount, e.ThreadCount, e.ExecutingItems?.Count ?? 0);
+        _logger.LogTrace("Waiting: {Waiting} | Blocked: {Blocked} | Executing: {Executing}/{Pool} | Total: {Total}", e.WaitingJobsCount,
+            e.BlockedJobsCount, e.ExecutingItems?.Count ?? 0, e.ThreadCount, e.TotalJobsCount);
     }
 
     private static void OnInstanceOnPropertyChanged(object? _, PropertyChangedEventArgs e)
