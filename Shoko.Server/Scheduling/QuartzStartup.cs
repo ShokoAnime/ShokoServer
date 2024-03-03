@@ -80,6 +80,7 @@ public static class QuartzStartup
             q.MaxBatchSize = 1;
             q.BatchTriggerAcquisitionFireAheadTimeWindow = TimeSpan.FromSeconds(30);
             q.UseJobFactory<JobFactory>();
+            q.AddSchedulerListener<SchedulerListener>();
         });
 
         services.AddQuartzServer(options =>

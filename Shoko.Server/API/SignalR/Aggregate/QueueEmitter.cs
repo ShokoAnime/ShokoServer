@@ -17,18 +17,64 @@ public class QueueEmitter : BaseEmitter, IDisposable
     private readonly QueueHandler _queueHandler;
     private QueueStateSignalRModel _lastQueueState;
     private readonly Dictionary<string, object> _lastServerState = new();
+    private bool _queueRunning;
 
     public QueueEmitter(IHubContext<AggregateHub> hub, QueueStateEventHandler queueStateEventHandler, QueueHandler queueHandler) : base(hub)
     {
         _queueStateEventHandler = queueStateEventHandler;
         _queueHandler = queueHandler;
         _queueStateEventHandler.ExecutingJobsChanged += OnExecutingJobsStateChangedEvent;
+        _queueStateEventHandler.QueueStarted += OnQueueStarted;
+        _queueStateEventHandler.QueuePaused += OnQueuePaused;
         ServerState.Instance.PropertyChanged += ServerStatePropertyChanged;
+    }
+
+    private QueueStateSignalRModel GetQueueState()
+    {
+        return new QueueStateSignalRModel
+        {
+            Running = _queueRunning,
+            WaitingCount = _queueHandler.WaitingCount,
+            BlockedCount = _queueHandler.BlockedCount,
+            TotalCount = _queueHandler.TotalCount,
+            ThreadCount = _queueHandler.ThreadCount,
+            CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(a => new Queue.QueueItem
+            {
+                Key = a.Key,
+                Type = a.JobType,
+                Description = a.Description,
+                IsRunning = true,
+                StartTime = a.StartTime
+            }).OrderBy(a => a.StartTime).ToList()
+        };
+    }
+
+    public override object GetInitialMessage()
+    {
+        return GetQueueState();
+    }
+
+    private async void OnQueueStarted(object sender, EventArgs e)
+    {
+        _queueRunning = true;
+        var state = GetQueueState();
+
+        await SendAsync("QueueStateChanged", state);
+    }
+
+    private async void OnQueuePaused(object sender, EventArgs e)
+    {
+        _queueRunning = false;
+        var state = GetQueueState();
+
+        await SendAsync("QueueStateChanged", state);
     }
 
     public void Dispose()
     {
         _queueStateEventHandler.ExecutingJobsChanged -= OnExecutingJobsStateChangedEvent;
+        _queueStateEventHandler.QueueStarted -= OnQueueStarted;
+        _queueStateEventHandler.QueuePaused -= OnQueuePaused;
         ServerState.Instance.PropertyChanged -= ServerStatePropertyChanged;
     }
 
@@ -66,24 +112,5 @@ public class QueueEmitter : BaseEmitter, IDisposable
         if (Equals(_lastQueueState, currentState)) return;
         _lastQueueState = currentState;
         await SendAsync("QueueStateChanged", currentState);
-    }
-
-    public override object GetInitialMessage()
-    {
-        return new QueueStateSignalRModel
-        {
-            WaitingCount = _queueHandler.WaitingCount,
-            BlockedCount = _queueHandler.BlockedCount,
-            TotalCount = _queueHandler.TotalCount,
-            ThreadCount = _queueHandler.ThreadCount,
-            CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(a => new Queue.QueueItem
-            {
-                Key = a.Key,
-                Type = a.JobType,
-                Description = a.Description,
-                IsRunning = true,
-                StartTime = a.StartTime
-            }).OrderBy(a => a.StartTime).ToList()
-        };
     }
 }
