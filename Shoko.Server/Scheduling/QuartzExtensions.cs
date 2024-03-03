@@ -48,8 +48,8 @@ public static class QuartzExtensions
     /// <param name="size">The maximum size, in bytes, of the data within the column. The default value is inferred from the parameter value.</param>
     public static void AddArrayParameters<T>(this IDbCommand cmd, string paramNameRoot, IEnumerable<T> values, DbType? dbType = null, int? size = null)
     {
-        /* An array cannot be simply added as a parameter to a SqlCommand so we need to loop through things and add it manually. 
-         * Each item in the array will end up being it's own SqlParameter so the return value for this must be used as part of the
+        /* An array cannot be simply added as a parameter to a SqlCommand, so we need to loop through things and add it manually. 
+         * Each item in the array will end up being its own SqlParameter so the return value for this must be used as part of the
          * IN statement in the CommandText.
          */
         var parameterNames = new List<string>();
