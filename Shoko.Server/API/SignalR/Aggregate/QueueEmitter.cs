@@ -17,7 +17,6 @@ public class QueueEmitter : BaseEmitter, IDisposable
     private readonly QueueHandler _queueHandler;
     private QueueStateSignalRModel _lastQueueState;
     private readonly Dictionary<string, object> _lastServerState = new();
-    private bool _queueRunning;
 
     public QueueEmitter(IHubContext<AggregateHub> hub, QueueStateEventHandler queueStateEventHandler, QueueHandler queueHandler) : base(hub)
     {
@@ -33,7 +32,7 @@ public class QueueEmitter : BaseEmitter, IDisposable
     {
         return new QueueStateSignalRModel
         {
-            Running = _queueRunning,
+            Running = _queueStateEventHandler.Running,
             WaitingCount = _queueHandler.WaitingCount,
             BlockedCount = _queueHandler.BlockedCount,
             TotalCount = _queueHandler.TotalCount,
@@ -56,7 +55,6 @@ public class QueueEmitter : BaseEmitter, IDisposable
 
     private async void OnQueueStarted(object sender, EventArgs e)
     {
-        _queueRunning = true;
         var state = GetQueueState();
 
         await SendAsync("QueueStateChanged", state);
@@ -64,7 +62,6 @@ public class QueueEmitter : BaseEmitter, IDisposable
 
     private async void OnQueuePaused(object sender, EventArgs e)
     {
-        _queueRunning = false;
         var state = GetQueueState();
 
         await SendAsync("QueueStateChanged", state);
@@ -96,6 +93,7 @@ public class QueueEmitter : BaseEmitter, IDisposable
     {
         var currentState = new QueueStateSignalRModel
         {
+            Running = _queueStateEventHandler.Running,
             WaitingCount = e.WaitingJobsCount,
             BlockedCount = e.BlockedJobsCount,
             TotalCount = e.WaitingJobsCount + e.BlockedJobsCount + e.ExecutingItems.Count,

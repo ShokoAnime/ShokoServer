@@ -9,7 +9,7 @@ public class QueueStateEventHandler
 {
     private readonly JobFactory _jobFactory;
     private bool _isPaused;
-    private bool _isRunning;
+    public bool Running { get; private set; }
 
     public event EventHandler QueuePaused;
     public event EventHandler QueueStarted;
@@ -19,16 +19,16 @@ public class QueueStateEventHandler
     public void InvokeQueuePaused()
     {
         if (_isPaused) return;
-        _isRunning = false;
+        Running = false;
         _isPaused = true;
         QueuePaused?.Invoke(null, EventArgs.Empty);
     }
 
     public void InvokeQueueStarted()
     {
-        if (_isRunning) return;
+        if (Running) return;
         _isPaused = false;
-        _isRunning = true;
+        Running = true;
         QueueStarted?.Invoke(null, EventArgs.Empty);
     }
 
