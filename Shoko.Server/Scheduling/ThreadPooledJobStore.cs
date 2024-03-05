@@ -232,7 +232,7 @@ public class ThreadPooledJobStore : JobStoreTX
         return acquiredTriggers;
     }
 
-    private (IEnumerable<Type> TypesToExclude, Dictionary<Type, int> TypesToLimit) GetTypes()
+    private JobTypes GetTypes()
     {
         var excludedTypes = new List<Type>();
         var limitedTypes = new Dictionary<Type, int>();
@@ -251,6 +251,7 @@ public class ThreadPooledJobStore : JobStoreTX
             else if (!excludedTypes.Contains(kv.Key)) limitedTypes[kv.Key] = limit;
         }
 
+        var groups = new List<List<Type>>();
         foreach (var kv in _concurrencyGroupCache)
         {
             var executing = kv.Value.Any(a => executingTypes.Any(b => b.Type == a));
@@ -260,15 +261,19 @@ public class ThreadPooledJobStore : JobStoreTX
                 continue;
             }
 
+            var group = new List<Type>();
             foreach (var limitedType in kv.Value)
             {
+                // this could happen if network isn't available or something
                 if (excludedTypes.Contains(limitedType)) continue;
                 // we only allow one concurrent job in a concurrency group, for example only 1 AniDB command
-                limitedTypes[limitedType] = 1;
+                group.Add(limitedType);
             }
+
+            groups.Add(group);
         }
 
-        return (excludedTypes.Distinct().ToList(), limitedTypes);
+        return new JobTypes(excludedTypes.Distinct().ToList(), limitedTypes, groups);
     }
     
     public override async Task<IReadOnlyCollection<TriggerFiredResult>> TriggersFired(IReadOnlyCollection<IOperableTrigger> triggers, CancellationToken cancellationToken = default)
