@@ -2,9 +2,9 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using QuartzJobFactory.Attributes;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
+using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;

@@ -99,7 +99,6 @@
     <PackageReference Include="Polly" Version="8.2.1" />
     <PackageReference Include="Quartz.AspNetCore" Version="3.8.0" />
     <PackageReference Include="Quartz.Serialization.Json" Version="3.8.0" />
-    <PackageReference Include="QuartzJobFactory" Version="2.2.6" />
     <PackageReference Include="Sentry" Version="3.29.0" />
     <PackageReference Include="Sentry.AspNetCore" Version="3.29.0" />
     <PackageReference Include="Sentry.Extensions.Logging" Version="3.29.0" />

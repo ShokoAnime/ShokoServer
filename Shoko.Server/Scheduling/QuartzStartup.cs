@@ -10,10 +10,10 @@ using MySqlConnector;
 using Quartz;
 using Quartz.AspNetCore;
 using Quartz.Spi;
-using QuartzJobFactory;
-using QuartzJobFactory.Attributes;
 using Shoko.Server.Scheduling.Acquisition.Filters;
+using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Delegates;
+using Shoko.Server.Scheduling.GenericJobBuilder;
 using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -27,8 +27,10 @@ public static class QuartzStartup
     public static async Task ScheduleRecurringJobs(bool replace)
     {
         // this needs to run immediately upon scheduling, so it replaces always. Others will run on other schedules
+        // Also give it a high priority, since it affects Acquisition Filters
+        // StartJobNow gives a priority of 10. We'll give it 20 to be even higher priority
         await ScheduleRecurringJob<CheckNetworkAvailabilityJob>(
-            triggerConfig: t => t.WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(), replace: true);
+            triggerConfig: t => t.WithPriority(20).WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(), replace: true);
 
         // TODO the other schedule-based jobs that are on timers
     }

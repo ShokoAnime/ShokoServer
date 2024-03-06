@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Quartz;
-using QuartzJobFactory;
+using Shoko.Server.Scheduling.GenericJobBuilder;
 
 namespace Shoko.Server.Scheduling;
 
@@ -35,6 +37,44 @@ public static class QuartzExtensions
         if (data == null)
             return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build(), priority:10);
         return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build(), priority:10);
+    }
+    
+    /// <summary>
+    /// Start a job with TriggerBuilder.<see cref="TriggerBuilder.StartNow()"/> on the given scheduler
+    /// </summary>
+    /// <param name="scheduler">The scheduler to schedule the job with</param>
+    /// <param name="job">The job to schedule</param>
+    /// <param name="scheduleBuilder"></param>
+    /// <param name="priority">It will go in order by start time, then choose the higher priority. <seealso cref="TriggerBuilder.WithPriority(int)"/></param>
+    /// <param name="replaceExisting">Replace the queued trigger if it's still waiting to execute. Default false</param>
+    /// <param name="token">The cancellation token</param>
+    /// <returns></returns>
+    private static async Task<DateTimeOffset> StartJob(this IScheduler scheduler, IJobDetail job, IScheduleBuilder? scheduleBuilder = null, int priority = 0, bool replaceExisting = false, CancellationToken token = default)
+    {
+        // if it's running, then ignore
+        var currentJobs = await scheduler.GetCurrentlyExecutingJobs(token);
+        if (currentJobs.Any(a => Equals(a.JobDetail.Key, job.Key))) return DateTimeOffset.Now;
+
+        var triggerBuilder = TriggerBuilder.Create().StartNow().WithIdentity(job.Key.Name, job.Key.Group);
+        if (priority != 0) triggerBuilder = triggerBuilder.WithPriority(priority);
+
+        if (await scheduler.CheckExists(job.Key, token))
+        {
+            // get waiting triggers
+            var triggers = (await scheduler.GetTriggersOfJob(job.Key, token)).Select(a => a.GetNextFireTimeUtc())
+                .Where(a => a != null).Select(a => a!.Value).ToList();
+
+            // we are not set to replace the job, then return the first scheduled time
+            if (triggers.Any() && !replaceExisting) return triggers.Min();
+
+            // since we are replacing it, it will remove the triggers, as well
+            await scheduler.DeleteJob(job.Key, token);
+        }
+
+        return await scheduler.ScheduleJob(job,
+            triggerBuilder.WithSchedule(scheduleBuilder ??
+                                        SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires())
+                .Build(), token);
     }
 
     /// <summary>
