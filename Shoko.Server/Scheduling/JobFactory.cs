@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 using Quartz;
 using Quartz.Simpl;
 using Quartz.Spi;
-using QuartzJobFactory;
+using Shoko.Server.Scheduling.GenericJobBuilder;
 using Shoko.Server.Scheduling.Jobs;
 
 namespace Shoko.Server.Scheduling;

@@ -5,7 +5,6 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Polly;
-using QuartzJobFactory.Attributes;
 using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
@@ -17,6 +16,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
+using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;

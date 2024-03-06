@@ -1,8 +1,8 @@
 using System;
 using System.Threading.Tasks;
 using Quartz;
-using QuartzJobFactory.Attributes;
 using Shoko.Plugin.Abstractions.Services;
+using Shoko.Server.Scheduling.Attributes;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 

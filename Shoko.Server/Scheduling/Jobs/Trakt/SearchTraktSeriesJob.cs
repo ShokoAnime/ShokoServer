@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NHibernate;
-using QuartzJobFactory.Attributes;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Plugin.Abstractions.DataModels;
@@ -13,6 +12,7 @@ using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
+using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Settings;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -46,7 +46,7 @@ public class SearchTraktSeriesJob : BaseJob
         var sessionWrapper = session.Wrap();
         var doReturn = false;
 
-        // lets try to see locally if we have a tvDB link for this anime
+        // let's try to see locally if we have a tvDB link for this anime
         // Trakt allows the use of TvDB ID's or their own Trakt ID's
         var xrefTvDBs = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(AnimeID);
         if (xrefTvDBs is { Count: > 0 })

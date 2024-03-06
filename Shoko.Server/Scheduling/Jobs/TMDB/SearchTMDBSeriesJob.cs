@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using QuartzJobFactory.Attributes;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
+using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Settings;
 
