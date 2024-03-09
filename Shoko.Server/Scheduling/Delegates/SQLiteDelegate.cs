@@ -7,7 +7,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Impl.AdoJobStore;
@@ -146,8 +145,8 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         {
             AddCommandParameter(cmd, $"groupBlocked{index}", 0);
             cmd.AddArrayParameters($"groupLimit{index}Types", GetJobClasses(types));
-            AddCommandParameter(cmd, $"groupLimit{index}", -1);
-            AddCommandParameter(cmd, $"groupOffset{index}", 1);
+            AddCommandParameter(cmd, $"groupLimit{index}", 1);
+            AddCommandParameter(cmd, $"groupOffset{index}", 0);
             index++;
         }
 
@@ -228,8 +227,8 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         {
             AddCommandParameter(cmd, $"groupBlocked{index}", 0);
             cmd.AddArrayParameters($"groupLimit{index}Types", GetJobClasses(types));
-            AddCommandParameter(cmd, $"groupLimit{index}", -1);
-            AddCommandParameter(cmd, $"groupOffset{index}", 1);
+            AddCommandParameter(cmd, $"groupLimit{index}", 1);
+            AddCommandParameter(cmd, $"groupOffset{index}", 0);
             index++;
         }
 
