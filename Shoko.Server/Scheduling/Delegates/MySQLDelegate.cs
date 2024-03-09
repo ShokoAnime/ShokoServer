@@ -281,8 +281,8 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         return result;
     }
 
-    public virtual async Task<List<IJobDetail>> SelectJobs(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper, int maxCount, int offset,
-        DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan, JobTypes jobTypes, CancellationToken cancellationToken = default)
+    public virtual async Task<List<(IJobDetail, bool)>> SelectJobs(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper, int maxCount, int offset,
+        DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan, JobTypes jobTypes, bool excludeBlocked, CancellationToken cancellationToken = default)
     {
         var command = ReplaceTablePrefix(GetJobSql);
         await using var cmd = PrepareCommand(conn, command);
@@ -316,7 +316,7 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
             results.Add(job);
         }
 
-        return results;
+        return new List<(IJobDetail, bool)>();
     }
 
     private Task<IDictionary> ReadMapFromReader(DbDataReader rs, int colIndex)

@@ -114,7 +114,7 @@ public class QueueController : BaseController
         [FromQuery] bool showAll = false
     )
     {
-        return new ListResult<Queue.QueueItem>(await _queueHandler.GetTotalWaitingJobCount(), (await _queueHandler.GetJobs(pageSize, (page - 1) * pageSize))
+        return new ListResult<Queue.QueueItem>(await _queueHandler.GetTotalWaitingJobCount(), (await _queueHandler.GetJobs(pageSize, (page - 1) * pageSize, !showAll))
             .Select(a => new Queue.QueueItem
             {
                 Key = a.Key,

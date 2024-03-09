@@ -125,8 +125,8 @@ public class QueueHandler
             .ToDictionary(a => _jobFactory.CreateJob(new JobDetailImpl(Guid.NewGuid().ToString(), a.Key))?.Name, a => a.Value);
     }
 
-    public Task<List<QueueItem>> GetJobs(int maxCount, int offset)
+    public Task<List<QueueItem>> GetJobs(int maxCount, int offset, bool excludeBlocked)
     {
-        return _jobStore.GetJobs(maxCount, offset);
+        return _jobStore.GetJobs(maxCount, offset, excludeBlocked);
     }
 }
