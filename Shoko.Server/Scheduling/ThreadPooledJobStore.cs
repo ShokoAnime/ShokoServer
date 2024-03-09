@@ -446,12 +446,12 @@ public class ThreadPooledJobStore : JobStoreTX
         return Delegate.SelectJobTypeCounts(conn, _typeLoadHelper, NoLaterThan, cancellationToken);
     }
 
-    public Task<List<QueueItem>> GetJobs(int maxCount, int offset)
+    public Task<List<QueueItem>> GetJobs(int maxCount, int offset, bool excludeBlocked)
     {
-        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetJobs(conn, maxCount, offset), new CancellationToken());
+        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetJobs(conn, maxCount, offset, excludeBlocked), new CancellationToken());
     }
 
-    private async Task<List<QueueItem>> GetJobs(ConnectionAndTransactionHolder conn, int maxCount, int offset, CancellationToken cancellationToken = new CancellationToken())
+    private async Task<List<QueueItem>> GetJobs(ConnectionAndTransactionHolder conn, int maxCount, int offset, bool excludeBlocked, CancellationToken cancellationToken = new CancellationToken())
     {
         var types = GetTypes();
 
@@ -475,23 +475,14 @@ public class ThreadPooledJobStore : JobStoreTX
             }
         }
 
-        var jobs = await Delegate.SelectJobs(conn, _typeLoadHelper, maxCount - result.Count, offset, NoLaterThan, NoEarlierThan, types,
+        var jobs = await Delegate.SelectJobs(conn, _typeLoadHelper, maxCount - result.Count, offset, NoLaterThan, NoEarlierThan, types, excludeBlocked,
             cancellationToken);
-        var excluded = types.TypesToExclude.ToHashSet();
-        var remainingCount = types.TypesToLimit;
         result.AddRange(jobs.Select(a =>
         {
-            var blocked = excluded.Contains(a.JobType);
-            if (!blocked && remainingCount.TryGetValue(a.JobType, out var remaining))
-            {
-                if (remaining == 0) blocked = true;
-                else remainingCount[a.JobType] = remaining - 1;
-            }
-
-            var job = _jobFactory.CreateJob(a);
+            var job = _jobFactory.CreateJob(a.Item1);
             return new QueueItem
             {
-                Key = a.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage(), Blocked = blocked
+                Key = a.Item1.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage(), Blocked = a.Item2
             };
         }));
 

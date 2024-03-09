@@ -26,6 +26,6 @@ public interface IFilteredDriverDelegate : IDriverDelegate
     Task<Dictionary<Type, int>> SelectJobTypeCounts(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper, DateTimeOffset noLaterThan,
         CancellationToken cancellationToken = new());
 
-    Task<List<IJobDetail>> SelectJobs(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper, int maxCount, int offset, DateTimeOffset noLaterThan,
-        DateTimeOffset noEarlierThan, JobTypes jobTypes, CancellationToken cancellationToken = default);
+    Task<List<(IJobDetail, bool)>> SelectJobs(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper, int maxCount, int offset,
+        DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan, JobTypes jobTypes, bool excludeBlocked, CancellationToken cancellationToken = default);
 }
