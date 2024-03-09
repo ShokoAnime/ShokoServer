@@ -19,48 +19,45 @@ namespace Shoko.Server.Scheduling.Delegates;
 public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFilteredDriverDelegate
 {
     private string _schedulerName;
+    private const string Blocked = "Blocked";
+    private const string SubQuery = "{SubQuery}";
 
-    private string[] GetJobClasses(IEnumerable<Type> types) => types.Select(GetStorableJobTypeName).ToArray();
+    private IEnumerable<string> GetJobClasses(IEnumerable<Type> types) => types.Select(GetStorableJobTypeName).ToArray();
 
-    private const string GetSelectPartNoExclusions = @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}
+    private const string GetSelectPartNoExclusions = @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, 0 as {Blocked}
               FROM {TablePrefixSubst}{TableTriggers} t
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))";
 
-    private const string GetCountNoExclusions = @$"SELECT Count(1)
-              FROM {TablePrefixSubst}{TableTriggers} t
-              WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = '{StateWaiting}' AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))";
-
-    private const string GetSelectPartExcludingTypes = @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}
+    private const string GetSelectPartExcludingTypes = @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, 0 as {Blocked}
               FROM {TablePrefixSubst}{TableTriggers} t
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
                 AND jd.{ColumnJobClass} NOT IN (@types)";
 
-    private string GetSelectPartLimitType(int index)
+    private static string GetSelectPartLimitType(int index)
     {
-        return @$"SELECT TOP @limit{index} t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}
+        return @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, @limitBlocked{index} as {Blocked}
               FROM {TablePrefixSubst}{TableTriggers} t
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
-                AND jd.{ColumnJobClass} = @limit{index}Type";
+                AND jd.{ColumnJobClass} = @limit{index}Type
+              OFFSET @offset{index} ROWS FETCH NEXT @limit{index} ROWS ONLY";
     }
 
-    private string GetSelectPartConcurrencyGroup(int index)
+    private static string GetSelectPartConcurrencyGroup(int index)
     {
-        return @$"SELECT TOP 1 t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}
+        return @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, @groupBlocked{index} as {Blocked}
               FROM {TablePrefixSubst}{TableTriggers} t
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
-                AND jd.{ColumnJobClass} IN (@limit{index}Types)";
+                AND jd.{ColumnJobClass} IN (@groupLimit{index}Types)
+              OFFSET @groupOffset{index} ROWS FETCH NEXT @groupLimit{index} ROWS ONLY";
     }
 
-    private const string GetJobSql = @$"SELECT jd.{ColumnJobName},jd.{ColumnJobGroup},jd.{ColumnDescription},jd.{ColumnJobClass},jd.{ColumnIsDurable},jd.{ColumnRequestsRecovery},jd.{ColumnJobDataMap},jd.{ColumnIsNonConcurrent},jd.{ColumnIsUpdateData}
+    private const string GetCountNoExclusions = @$"SELECT Count(1)
               FROM {TablePrefixSubst}{TableTriggers} t
-              JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
-              WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
-              ORDER BY t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC
-               OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
+              WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = '{StateWaiting}' AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))";
 
     private const string SelectBlockedTypeCountsSql= @$"SELECT jd.{ColumnJobClass}, COUNT(jd.{ColumnJobClass}) AS Count
               FROM {TablePrefixSubst}{TableTriggers} t
@@ -73,6 +70,13 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = '{StateWaiting}' AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
               GROUP BY jd.{ColumnJobClass} HAVING COUNT(1) > 0";
+
+    private const string GetJobSql = @$"SELECT jd.{ColumnJobName}, jd.{ColumnJobGroup}, jd.{ColumnDescription}, jd.{ColumnJobClass}, jd.{ColumnIsDurable}, jd.{ColumnRequestsRecovery}, jd.{ColumnJobDataMap}, jd.{ColumnIsNonConcurrent}, jd.{ColumnIsUpdateData}, t.{Blocked}
+              FROM ({SubQuery}) t
+              JOIN {TablePrefixSubst}{TableTriggers} t1 on t.{ColumnTriggerName} = t1.{ColumnTriggerName} AND t.{ColumnTriggerGroup} = t1.{ColumnTriggerGroup} AND t1.{ColumnSchedulerName} = @schedulerName
+              JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t1.{ColumnSchedulerName} AND jd.{ColumnJobGroup} = t1.{ColumnJobGroup} AND jd.{ColumnJobName} = t1.{ColumnJobName}) 
+              ORDER BY {Blocked} ASC, t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC
+              OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
 
     public override void Initialize(DelegateInitializationArgs args)
     {
@@ -129,15 +133,20 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
         index = 0;
         foreach (var kv in jobTypes.TypesToLimit)
         {
+            AddCommandParameter(cmd, $"limitBlocked{index}", 0);
             AddCommandParameter(cmd, $"limit{index}Type", GetStorableJobTypeName(kv.Key));
             AddCommandParameter(cmd, $"limit{index}", kv.Value);
+            AddCommandParameter(cmd, $"offset{index}", 0);
             index++;
         }
 
         index = 0;
         foreach (var types in jobTypes.AvailableConcurrencyGroups)
         {
-            cmd.AddArrayParameters($"limit{index}Types", GetJobClasses(types));
+            AddCommandParameter(cmd, $"groupBlocked{index}", 0);
+            cmd.AddArrayParameters($"groupLimit{index}Types", GetJobClasses(types));
+            AddCommandParameter(cmd, $"groupLimit{index}", 1);
+            AddCommandParameter(cmd, $"groupOffset{index}", 0);
             index++;
         }
 
@@ -207,15 +216,20 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
         index = 0;
         foreach (var kv in jobTypes.TypesToLimit)
         {
+            AddCommandParameter(cmd, $"limitBlocked{index}", 0);
             AddCommandParameter(cmd, $"limit{index}Type", GetStorableJobTypeName(kv.Key));
             AddCommandParameter(cmd, $"limit{index}", kv.Value);
+            AddCommandParameter(cmd, $"offset{index}", 0);
             index++;
         }
 
         index = 0;
         foreach (var types in jobTypes.AvailableConcurrencyGroups)
         {
-            cmd.AddArrayParameters($"limit{index}Types", GetJobClasses(types));
+            AddCommandParameter(cmd, $"groupBlocked{index}", 0);
+            cmd.AddArrayParameters($"groupLimit{index}Types", GetJobClasses(types));
+            AddCommandParameter(cmd, $"groupLimit{index}", 1);
+            AddCommandParameter(cmd, $"groupOffset{index}", 0);
             index++;
         }
 
@@ -286,19 +300,112 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
     public virtual async Task<List<(IJobDetail, bool)>> SelectJobs(ConnectionAndTransactionHolder conn, ITypeLoadHelper loadHelper, int maxCount, int offset,
         DateTimeOffset noLaterThan, DateTimeOffset noEarlierThan, JobTypes jobTypes, bool excludeBlocked, CancellationToken cancellationToken = default)
     {
-        var command = ReplaceTablePrefix(GetJobSql);
-        await using var cmd = PrepareCommand(conn, command);
+        var hasExcludeTypes = jobTypes.TypesToExclude.Any() || jobTypes.TypesToLimit.Any() || jobTypes.AvailableConcurrencyGroups.Any(a => a.Any());
+        var subquery = new StringBuilder();
+        subquery.Append(hasExcludeTypes ? GetSelectPartExcludingTypes : GetSelectPartNoExclusions);
 
+        int index;
+        // not blocked
+        for (index = 0; index < jobTypes.TypesToLimit.Count; index++)
+        {
+            subquery.Append("\nUNION SELECT * FROM (\n");
+            subquery.Append(GetSelectPartLimitType(index));
+            subquery.Append("\n)");
+        }
+
+        // blocked
+        if (!excludeBlocked)
+        {
+            for (; index < 2 * jobTypes.TypesToLimit.Count; index++)
+            {
+                subquery.Append("\nUNION SELECT * FROM (\n");
+                subquery.Append(GetSelectPartLimitType(index));
+                subquery.Append("\n)");
+            }
+        }
+
+        // not blocked
+        for (index = 0; index < jobTypes.AvailableConcurrencyGroups.Count(); index++)
+        {
+            subquery.Append("\nUNION SELECT * FROM (\n");
+            subquery.Append(GetSelectPartConcurrencyGroup(index));
+            subquery.Append("\n)");
+        }
+
+        // blocked
+        if (!excludeBlocked)
+        {
+            for (; index < 2 * jobTypes.AvailableConcurrencyGroups.Count(); index++)
+            {
+                subquery.Append("\nUNION SELECT * FROM (\n");
+                subquery.Append(GetSelectPartConcurrencyGroup(index));
+                subquery.Append("\n)");
+            }
+        }
+
+        var commandText = ReplaceTablePrefix(GetJobSql.Replace(SubQuery, subquery.ToString()));
+        await using var cmd = PrepareCommand(conn, commandText);
         AddCommandParameter(cmd, "schedulerName", _schedulerName);
         AddCommandParameter(cmd, "state", StateWaiting);
-        AddCommandParameter(cmd, "limit", maxCount);
-        AddCommandParameter(cmd, "offset", offset);
         AddCommandParameter(cmd, "noLaterThan", GetDbDateTimeValue(noLaterThan));
         AddCommandParameter(cmd, "noEarlierThan", GetDbDateTimeValue(noEarlierThan));
+        AddCommandParameter(cmd, "limit", maxCount);
+        AddCommandParameter(cmd, "offset", offset);
+        if (hasExcludeTypes)
+            cmd.AddArrayParameters("types",
+                GetJobClasses(jobTypes.TypesToExclude.Union(jobTypes.TypesToLimit.Keys).Union(jobTypes.AvailableConcurrencyGroups.SelectMany(a => a))));
+
+        index = 0;
+        // not blocked
+        foreach (var kv in jobTypes.TypesToLimit)
+        {
+            AddCommandParameter(cmd, $"limitBlocked{index}", 0);
+            AddCommandParameter(cmd, $"limit{index}Type", GetStorableJobTypeName(kv.Key));
+            AddCommandParameter(cmd, $"limit{index}", kv.Value);
+            AddCommandParameter(cmd, $"offset{index}", 0);
+            index++;
+        }
+
+        // blocked
+        if (!excludeBlocked)
+        {
+            foreach (var kv in jobTypes.TypesToLimit)
+            {
+                AddCommandParameter(cmd, $"limitBlocked{index}", 1);
+                AddCommandParameter(cmd, $"limit{index}Type", GetStorableJobTypeName(kv.Key));
+                AddCommandParameter(cmd, $"limit{index}", -1);
+                AddCommandParameter(cmd, $"offset{index}", kv.Value);
+                index++;
+            }
+        }
+
+        index = 0;
+        // not blocked
+        foreach (var types in jobTypes.AvailableConcurrencyGroups)
+        {
+            AddCommandParameter(cmd, $"groupBlocked{index}", 0);
+            cmd.AddArrayParameters($"groupLimit{index}Types", GetJobClasses(types));
+            AddCommandParameter(cmd, $"groupLimit{index}", 1);
+            AddCommandParameter(cmd, $"groupOffset{index}", 0);
+            index++;
+        }
+
+        // blocked
+        if (!excludeBlocked)
+        {
+            foreach (var types in jobTypes.AvailableConcurrencyGroups)
+            {
+                AddCommandParameter(cmd, $"groupBlocked{index}", 1);
+                cmd.AddArrayParameters($"groupLimit{index}Types", GetJobClasses(types));
+                AddCommandParameter(cmd, $"groupLimit{index}", -1);
+                AddCommandParameter(cmd, $"groupOffset{index}", 1);
+                index++;
+            }
+        }
 
         await using var rs = await cmd.ExecuteReaderAsync(System.Data.CommandBehavior.SequentialAccess, cancellationToken).ConfigureAwait(false);
 
-        var results = new List<IJobDetail>();
+        var results = new List<(IJobDetail, bool)>();
         while (await rs.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             // Due to CommandBehavior.SequentialAccess, columns must be read in order.
@@ -310,15 +417,16 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
             var requestsRecovery = GetBooleanFromDbValue(rs[ColumnRequestsRecovery]);
             var map = await ReadMapFromReader(rs, 6).ConfigureAwait(false);
             var jobDataMap = map != null ? new JobDataMap(map) : null;
+            var blocked = GetBooleanFromDbValue(rs[Blocked]);
 
             var job = new JobDetailImpl(jobName, jobGroup!, jobType, isDurable, requestsRecovery)
             {
                 Description = description, JobDataMap = jobDataMap!
             };
-            results.Add(job);
+            results.Add((job, blocked));
         }
 
-        return new List<(IJobDetail, bool)>();
+        return results;
     }
 
     private Task<IDictionary> ReadMapFromReader(DbDataReader rs, int colIndex)
