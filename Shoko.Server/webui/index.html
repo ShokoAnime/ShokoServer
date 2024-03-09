@@ -1,57 +1,40 @@
-﻿<!DOCTYPE html>
-
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+﻿<!doctype html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8"/>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Shoko Server</title>
-    <link
-            rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/MaterialDesign-Webfont/6.9.96/css/materialdesignicons.min.css"
-            integrity="sha512-8G2pIpgpIJsq+hXzWgiRCQ1q++YBWoPwTvWS7WqZh9QhCOPzzC6nQC/ZYep1g6H3D2pnlm9yXl5BtyI+c6Whog=="
-            crossorigin="anonymous"
-            referrerpolicy="no-referrer"/>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <script src="https://cdn.tailwindcss.com"></script>
+    <title>Shoko Server</title>
 </head>
-<style>
-    body {
-        background-color: rgb(226 232 240);
-    }
+<body class="flex justify-center items-center h-screen"
+      style="background-image: url('https://shokoanime.com/assets/images/banners/Banner-3.jpg'); background-size: cover; background-position: center;">
 
-    h1 {
-        font-size: 3rem !important;
-    }
-</style>
+<!-- Overlay -->
+<div class="absolute inset-0 bg-[#282E38] opacity-90"></div>
 
-<body>
-<div class="container flex h-screen m-auto">
-    <div class="m-auto bg-slate-900 w-full rounded-xl">
-        <div class="grid grid-cols-4 h-80 h-full text-stone-200">
-            <div
-                    class="col-span-2 rounded-tl-xl rounded-bl-xl"
-                    style="background-image: url(https://shokoanime.com/assets/images/banners/Banner-1.jpg); background-size: cover"></div>
-            <div class="col-span-2 p-12 text-center">
-                <div class="text-4xl text-stone-200 pb-8">Shoko Server Is Running</div>
-                <div class="text-xl pb-12">
-                    However, looks like Web UI was not properly installed. No problem, click the
-                    <strong>Install Web UI</strong> button below to have Shoko automatically install it.
-                </div>
-                <a class="bg-blue-500 px-6 py-2.5 text-neutral-50 font-medium rounded shadow-md ml-2 text-lg"
-                   href="/api/webui/install">
-                    <i class="mdi mdi-download-box-outline mx-2 text-xl"></i>
-                    <button>Install Web UI</button>
-                </a>
-                <a
-                        class="bg-blue-500 px-6 py-2.5 text-neutral-50 font-medium rounded shadow-md ml-2 text-lg"
-                        href="https://docs.shokoanime.com"
-                        target="_blank">
-                    <i class="mdi mdi-book-open-outline mx-2 text-xl"> </i>
-                    <button>Shoko Docs</button>
-                </a>
-            </div>
-        </div>
+<!-- Panel -->
+<div class="flex flex-col relative z-10 bg-[#282E38] bg-opacity-90 rounded-lg p-6 w-[50rem] gap-y-8 text-[#CFD8E3] border border-[#21242B]">
+    <div class="flex justify-center text-3xl">Shoko Server Is Running</div>
+    <div class="text-base">
+        However, it appears that the Web UI has not been properly installed. Not to worry though, simply click the
+        "Install Web UI" button below, and Shoko will take care of automatically installing it for you.
+    </div>
+    <div class="text-base">
+        Make sure to follow the instructions provided during the installation process. If you encounter any issues or
+        need further assistance, don't hesitate to check out the resources available in Shoko Docs or join our Discord
+        Server for additional support.
+    </div>
+    <div class='flex gap-x-4 justify-center'>
+        <a href="/api/webui/install" class="bg-[#44A3FF] text-[#21242B] px-4 py-3 rounded-lg font-semibold">Install Web
+            UI</a>
+        <a href="https://docs.shokoanime.com/" class="bg-[#353D4A] text-[#CFD8E3] px-4 py-3 rounded-lg font-semibold">Shoko
+            Docs</a>
+        <a href="https://discord.gg/vpeHDsg" class="bg-[#353D4A] text-[#CFD8E3] px-4 py-3 rounded-lg font-semibold">Shoko
+            Discord</a>
     </div>
 </div>
+
 </body>
 </html>
