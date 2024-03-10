@@ -12,6 +12,7 @@ using Quartz.Spi;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Delegates;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling;
@@ -19,6 +20,7 @@ namespace Shoko.Server.Scheduling;
 public class ThreadPooledJobStore : JobStoreTX
 {
     private readonly ILogger<ThreadPooledJobStore> _logger;
+    private readonly ISettingsProvider _settingsProvider;
     private readonly QueueStateEventHandler _queueStateEventHandler;
     private readonly JobFactory _jobFactory;
     private ITypeLoadHelper _typeLoadHelper;
@@ -28,10 +30,11 @@ public class ThreadPooledJobStore : JobStoreTX
     private Dictionary<string, Type[]> _concurrencyGroupCache;
     private int _threadPoolSize;
 
-    public ThreadPooledJobStore(ILogger<ThreadPooledJobStore> logger, IEnumerable<IAcquisitionFilter> acquisitionFilters,
+    public ThreadPooledJobStore(ILogger<ThreadPooledJobStore> logger, ISettingsProvider settingsProvider, IEnumerable<IAcquisitionFilter> acquisitionFilters,
         QueueStateEventHandler queueStateEventHandler, JobFactory jobFactory)
     {
         _logger = logger;
+        _settingsProvider = settingsProvider;
         _queueStateEventHandler = queueStateEventHandler;
         _jobFactory = jobFactory;
         _acquisitionFilters = acquisitionFilters.ToArray();
@@ -512,6 +515,7 @@ public class ThreadPooledJobStore : JobStoreTX
             var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
             if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
             var executing = GetExecutingQueueItems();
+            var waiting = await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, _threadPoolSize, false, cancellationToken);
 
             _queueStateEventHandler.OnJobAdded(newJob, new QueueStateContext
             {
@@ -519,7 +523,8 @@ public class ThreadPooledJobStore : JobStoreTX
                 WaitingTriggersCount = waitingTriggerCount,
                 BlockedTriggersCount = blockedTriggerCount,
                 TotalTriggersCount = waitingTriggerCount + blockedTriggerCount + executing.Length,
-                CurrentlyExecuting = executing
+                CurrentlyExecuting = executing,
+                Waiting = waiting.ToArray()
             });
         }
         catch (Exception e)
@@ -538,6 +543,7 @@ public class ThreadPooledJobStore : JobStoreTX
             var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
             if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
             var executing = GetExecutingQueueItems();
+            var waiting = await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, _threadPoolSize, false, cancellationToken);
 
             _queueStateEventHandler.OnJobExecuting(jobDetail, new QueueStateContext
             {
@@ -545,7 +551,8 @@ public class ThreadPooledJobStore : JobStoreTX
                 WaitingTriggersCount = waitingTriggerCount,
                 BlockedTriggersCount = blockedTriggerCount,
                 TotalTriggersCount = waitingTriggerCount + blockedTriggerCount + executing.Length,
-                CurrentlyExecuting = executing
+                CurrentlyExecuting = executing,
+                Waiting = waiting.ToArray()
             });
         }
         catch (Exception e)
@@ -584,13 +591,15 @@ public class ThreadPooledJobStore : JobStoreTX
             var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
             if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
             var executing = GetExecutingQueueItems();
+            var waiting = await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, _threadPoolSize, false, cancellationToken);
             _queueStateEventHandler.OnJobCompleted(jobDetail, new QueueStateContext
             {
                 ThreadCount = _threadPoolSize,
                 WaitingTriggersCount = waitingTriggerCount,
                 BlockedTriggersCount = blockedTriggerCount,
                 TotalTriggersCount = waitingTriggerCount + blockedTriggerCount + executing.Length,
-                CurrentlyExecuting = executing
+                CurrentlyExecuting = executing,
+                Waiting = waiting.ToArray()
             });
 
             // this will prevent the idle waiting that exists to prevent constantly checking if it's time to trigger a schedule
