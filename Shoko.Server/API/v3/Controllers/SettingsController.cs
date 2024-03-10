@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
@@ -20,6 +22,7 @@ namespace Shoko.Server.API.v3.Controllers;
 public class SettingsController : BaseController
 {
     private readonly IConnectivityService _connectivityService;
+    private readonly ILogger<SettingsController> _logger;
 
     // As far as I can tell, only GET and PATCH should be supported, as we don't support unset settings.
     // Some may be patched to "", though.
@@ -67,6 +70,7 @@ public class SettingsController : BaseController
     [HttpPost("AniDB/TestLogin")]
     public async Task<ActionResult> TestAniDB([FromBody] Credentials credentials)
     {
+        _logger.LogInformation("Testing AniDB Login and Connection");
         if (string.IsNullOrWhiteSpace(credentials.Username))
             ModelState.AddModelError(nameof(credentials.Username), "Username cannot be empty.");
 
@@ -74,14 +78,25 @@ public class SettingsController : BaseController
             ModelState.AddModelError(nameof(credentials.Password), "Password cannot be empty.");
 
         if (!ModelState.IsValid)
+        {
+            _logger.LogInformation("Failed AniDB Login and Connection: {ModelState}", JsonConvert.SerializeObject(ModelState));
             return ValidationProblem(ModelState);
+        }
 
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
-        handler.ForceLogout();
+        var alive = handler.IsAlive;
+        var settings = SettingsProvider.GetSettings();
+        if (!alive)
+            await handler.Init(credentials.Username, credentials.Password, settings.AniDb.ServerAddress, settings.AniDb.ServerPort, settings.AniDb.ClientPort);
+        else handler.ForceLogout();
 
         if (!await handler.TestLogin(credentials.Username, credentials.Password))
+        {
+            _logger.LogInformation("Failed AniDB Login and Connection");
             return ValidationProblem("Failed to log in.", "Connection");
+        }
 
+        if (!alive) await handler.CloseConnections();
         return Ok();
     }
 
@@ -108,8 +123,9 @@ public class SettingsController : BaseController
         return GetNetworkAvailability();
     }
 
-    public SettingsController(ISettingsProvider settingsProvider, IConnectivityService connectivityService) : base(settingsProvider)
+    public SettingsController(ISettingsProvider settingsProvider, IConnectivityService connectivityService, ILogger<SettingsController> logger) : base(settingsProvider)
     {
         _connectivityService = connectivityService;
+        _logger = logger;
     }
 }

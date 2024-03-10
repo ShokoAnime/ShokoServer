@@ -1,8 +1,6 @@
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
@@ -128,7 +126,7 @@ public class UserController : BaseController
     }
 
     /// <summary>
-    /// Edit an user by id using a JSON patch document to do a partial update.
+    /// Edit a user by id using a JSON patch document to do a partial update.
     /// </summary>
     /// <remarks>
     /// Only for administrators.
@@ -157,7 +155,7 @@ public class UserController : BaseController
     }
 
     /// <summary>
-    /// Edit an user by id using a raw object to do a partial update.
+    /// Edit a user by id using a raw object to do a partial update.
     /// </summary>
     /// <remarks>
     /// Only for administrators.
