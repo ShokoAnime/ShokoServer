@@ -222,7 +222,7 @@ public class TMDBHelper
         var updated = tmdbMovie.Populate(movie);
         updated |= UpdateTitlesAndOverviews(tmdbMovie, movie.Translations);
         updated |= UpdateCompanies(tmdbMovie, movie.ProductionCompanies);
-        updated |= UpdateMovieCastAndCrew(tmdbMovie, movie.Credits);
+        updated |= await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits, downloadImages);
         if (updated)
         {
             tmdbMovie.LastUpdatedAt = DateTime.Now;
@@ -242,11 +242,202 @@ public class TMDBHelper
         return updated;
     }
 
-    private bool UpdateMovieCastAndCrew(TMDB_Movie tmdbMovie, MovieCredits credits)
+    private async Task<bool> UpdateMovieCastAndCrew(TMDB_Movie tmdbMovie, MovieCredits credits, bool downloadImages)
     {
-        // TODO: Add cast / crew
+        var peopleToAdd = 0;
+        var peopleToSave = new List<TMDB_Person>();
+        var knownPeopleDict = new Dictionary<int, TMDB_Person>();
 
-        return false;
+        var counter = 0;
+        var castToAdd = 0;
+        var castToKeep = new HashSet<string>();
+        var castToSave = new List<TMDB_Movie_Cast>();
+        var existingCastDict = RepoFactory.TMDB_Movie_Cast.GetByTmdbMovieID(tmdbMovie.Id)
+            .ToDictionary(cast => cast.TmdbCreditID);
+        foreach (var cast in credits.Cast)
+        {
+            var ordering = counter++;
+            castToKeep.Add(cast.CreditId);
+            if (!knownPeopleDict.TryGetValue(cast.Id, out var tmdbPerson))
+            {
+                // TODO: Fix once https://github.com/jellyfin/TMDbLib/pull/486 is merged.
+                var person = await _client.GetPersonAsync(cast.Id /* , PersonMethods.Translations */) ??
+                    throw new Exception($"Unable to get TMDB Person with id {cast.Id}. (Movie={tmdbMovie.Id},Person={cast.Id})");
+
+                tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(cast.Id);
+                if (tmdbPerson == null)
+                {
+                    tmdbPerson = new(cast.Id);
+                    peopleToAdd++;
+                }
+                if (tmdbPerson.Populate(person))
+                {
+                    tmdbPerson.LastUpdatedAt = DateTime.Now;
+                    peopleToSave.Add(tmdbPerson);
+                }
+                if (downloadImages)
+                    await DownloadPersonImages(tmdbPerson.Id);
+            }
+
+            var roleUpdated = false;
+            if (!existingCastDict.TryGetValue(cast.CreditId, out var role))
+            {
+                role = new()
+                {
+                    TmdbMovieID = tmdbMovie.Id,
+                    TmdbPersonID = tmdbPerson.Id,
+                    TmdbCreditID = cast.CreditId,
+                };
+                castToAdd++;
+                roleUpdated = true;
+            }
+
+            if (role.CharacterName != cast.Character)
+            {
+                role.CharacterName = cast.Character;
+                roleUpdated = true;
+            }
+
+            if (role.Ordering != ordering)
+            {
+                role.Ordering = ordering;
+                roleUpdated = true;
+            }
+
+            if (roleUpdated)
+            {
+                castToSave.Add(role);
+            }
+        }
+
+        var crewToAdd = 0;
+        var crewToKeep = new HashSet<string>();
+        var crewToSave = new List<TMDB_Movie_Crew>();
+        var existingCrewDict = RepoFactory.TMDB_Movie_Crew.GetByTmdbMovieID(tmdbMovie.Id)
+            .ToDictionary(crew => crew.TmdbCreditID);
+        foreach (var crew in credits.Crew)
+        {
+            crewToKeep.Add(crew.CreditId);
+            if (!knownPeopleDict.TryGetValue(crew.Id, out var tmdbPerson))
+            {
+                // TODO: Fix once https://github.com/jellyfin/TMDbLib/pull/486 is merged.
+                var person = await _client.GetPersonAsync(crew.Id /* , PersonMethods.Translations */) ??
+                    throw new Exception($"Unable to get TMDB Person with id {crew.Id}. (Movie={tmdbMovie.Id},Person={crew.Id})");
+
+                tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(crew.Id);
+                if (tmdbPerson == null)
+                {
+                    tmdbPerson = new(crew.Id);
+                    peopleToAdd++;
+                }
+                if (tmdbPerson.Populate(person))
+                {
+                    tmdbPerson.LastUpdatedAt = DateTime.Now;
+                    peopleToSave.Add(tmdbPerson);
+                }
+                if (downloadImages)
+                    await DownloadPersonImages(tmdbPerson.Id);
+            }
+
+            var roleUpdated = false;
+            if (!existingCrewDict.TryGetValue(crew.CreditId, out var role))
+            {
+                role = new()
+                {
+                    TmdbMovieID = tmdbMovie.Id,
+                    TmdbPersonID = tmdbPerson.Id,
+                    TmdbCreditID = crew.CreditId,
+                };
+                crewToAdd++;
+                roleUpdated = true;
+            }
+
+            if (role.Department != crew.Department)
+            {
+                role.Department = crew.Department;
+                roleUpdated = true;
+            }
+
+            if (role.Job != crew.Job)
+            {
+                role.Job = crew.Job;
+                roleUpdated = true;
+            }
+
+            if (roleUpdated)
+            {
+                crewToSave.Add(role);
+            }
+        }
+
+        var castToRemove = existingCastDict.Values
+            .ExceptBy(castToKeep, cast => cast.TmdbCreditID)
+            .ToList();
+        var crewToRemove = existingCrewDict.Values
+            .ExceptBy(crewToKeep, crew => crew.TmdbCreditID)
+            .ToList();
+
+        RepoFactory.TMDB_Person.Save(peopleToSave);
+        RepoFactory.TMDB_Movie_Cast.Save(castToSave);
+        RepoFactory.TMDB_Movie_Crew.Save(crewToSave);
+        RepoFactory.TMDB_Movie_Cast.Delete(castToRemove);
+        RepoFactory.TMDB_Movie_Crew.Delete(crewToRemove);
+
+        var peopleToCheck = existingCastDict.Values
+            .Select(cast => cast.TmdbPersonID)
+            .Concat(existingCrewDict.Values.Select(crew => crew.TmdbPersonID))
+            .Except(knownPeopleDict.Keys)
+            .GroupBy(person => person)
+            .ToDictionary(p => p.Key, p => p.Count());
+        var peopleToRemove = new List<TMDB_Person>();
+        foreach (var (personId, xrefCount) in peopleToCheck)
+        {
+            var tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(personId);
+            var movieCast = RepoFactory.TMDB_Movie_Cast.GetByTmdbPersonID(personId);
+            var movieCrew = RepoFactory.TMDB_Movie_Crew.GetByTmdbPersonID(personId);
+            var episodeCast = RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(personId);
+            var episodeCrew = RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(personId);
+            var totalXrefs = movieCast.Count + movieCrew.Count + episodeCast.Count + episodeCrew.Count;
+
+            // In-place clean up. This shouldn't really be needed, but if the
+            // server is stopped in a bad state then we might get there.
+            if (tmdbPerson == null)
+            {
+                RepoFactory.TMDB_Movie_Cast.Delete(movieCast);
+                RepoFactory.TMDB_Movie_Crew.Delete(movieCrew);
+                RepoFactory.TMDB_Episode_Cast.Delete(episodeCast);
+                RepoFactory.TMDB_Episode_Crew.Delete(episodeCrew);
+            }
+            else if (totalXrefs - xrefCount == 0)
+            {
+                peopleToRemove.Add(tmdbPerson);
+            }
+        }
+        RepoFactory.TMDB_Person.Delete(peopleToRemove);
+
+        _logger.LogDebug(
+            "Added/updated/removed/skipped {aa}/{au}/{ar}/{as} cast and {ra}/{ru}/{rr}/{rs} crew across {pa}/{pu}/{pr}/{ps} people for movie {MovieTitle} (Movie={MovieId})",
+            castToAdd,
+            castToSave.Count - castToAdd,
+            castToRemove.Count,
+            existingCastDict.Count - (castToSave.Count - castToAdd),
+            crewToAdd,
+            crewToSave.Count - crewToAdd,
+            crewToRemove.Count,
+            existingCrewDict.Count - (crewToSave.Count - crewToAdd),
+            peopleToAdd,
+            peopleToSave.Count - peopleToAdd,
+            peopleToRemove.Count,
+            knownPeopleDict.Count - (peopleToSave.Count - peopleToAdd),
+            tmdbMovie.EnglishTitle,
+            tmdbMovie.Id
+            );
+        return castToSave.Count > 0 ||
+            castToRemove.Count > 0 ||
+            crewToSave.Count > 0 ||
+            crewToRemove.Count > 0 ||
+            peopleToSave.Count > 0 ||
+            peopleToRemove.Count > 0;
     }
 
     private async Task UpdateMovieCollections(Movie movie)
@@ -366,6 +557,8 @@ public class TMDBHelper
 
         PurgeMovieCompanies(movieId, removeImageFiles);
 
+        PurgeMovieCastAndCrew(movieId, removeImageFiles);
+
         CleanupMovieCollection(movieId);
 
         PurgeTitlesAndOverviews(ForeignEntityType.Movie, movieId);
@@ -383,6 +576,11 @@ public class TMDBHelper
             else
                 PurgeCompany(xref.TmdbCompanyID, removeImageFiles);
         }
+    }
+
+    private void PurgeMovieCastAndCrew(int movieId, bool removeImageFiles = true)
+    {
+        // TODO: Add purge show cast & crew.
     }
 
     private void CleanupMovieCollection(int movieId, bool removeImageFiles = true)
@@ -708,7 +906,7 @@ public class TMDBHelper
                 var episodeTranslations = await _client.GetTvEpisodeTranslationsAsync(show.Id, season.SeasonNumber, episode.EpisodeNumber);
                 var episodeUpdated = tmdbEpisode.Populate(show, season, episode, episodeTranslations!);
                 episodeUpdated |= UpdateTitlesAndOverviews(tmdbEpisode, episodeTranslations!);
-                episodeUpdated |= UpdateEpisodeCastAndCrew(tmdbEpisode, credits);
+                episodeUpdated |= await UpdateEpisodeCastAndCrew(tmdbEpisode, credits, downloadImages);
                 if (episodeUpdated)
                 {
                     tmdbEpisode.LastUpdatedAt = DateTime.Now;
@@ -905,11 +1103,216 @@ public class TMDBHelper
             episodesToRemove.Count > 0;
     }
 
-    private bool UpdateEpisodeCastAndCrew(TMDB_Episode episode, CreditsWithGuestStars credits)
+    private async Task<bool> UpdateEpisodeCastAndCrew(TMDB_Episode tmdbEpisode, CreditsWithGuestStars credits, bool downloadImages)
     {
-        // TODO: Add episode cast / crew
+        var peopleToAdd = 0;
+        var peopleToSave = new List<TMDB_Person>();
+        var knownPeopleDict = new Dictionary<int, TMDB_Person>();
 
-        return false;
+        var counter = 0;
+        var castToAdd = 0;
+        var castToKeep = new HashSet<string>();
+        var castToSave = new List<TMDB_Episode_Cast>();
+        var existingCastDict = RepoFactory.TMDB_Episode_Cast.GetByTmdbEpisodeID(tmdbEpisode.Id)
+            .ToDictionary(cast => cast.TmdbCreditID);
+        var guestOffset = credits.Cast.Count;
+        foreach (var cast in credits.Cast.Concat(credits.GuestStars))
+        {
+            var ordering = counter++;
+            var isGuestRole = ordering >= guestOffset;
+            castToKeep.Add(cast.CreditId);
+            if (!knownPeopleDict.TryGetValue(cast.Id, out var tmdbPerson))
+            {
+                // TODO: Fix once https://github.com/jellyfin/TMDbLib/pull/486 is merged.
+                var person = await _client.GetPersonAsync(cast.Id /* , PersonMethods.Translations */) ??
+                    throw new Exception($"Unable to get TMDB Person with id {cast.Id}. (Show={tmdbEpisode.TmdbShowID},Season={tmdbEpisode.TmdbSeasonID},Episode={tmdbEpisode.Id},Person={cast.Id})");
+
+                tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(cast.Id);
+                if (tmdbPerson == null)
+                {
+                    tmdbPerson = new(cast.Id);
+                    peopleToAdd++;
+                }
+                if (tmdbPerson.Populate(person))
+                {
+                    tmdbPerson.LastUpdatedAt = DateTime.Now;
+                    peopleToSave.Add(tmdbPerson);
+                }
+                if (downloadImages)
+                    await DownloadPersonImages(tmdbPerson.Id);
+            }
+
+            var roleUpdated = false;
+            if (!existingCastDict.TryGetValue(cast.CreditId, out var role))
+            {
+                role = new()
+                {
+                    TmdbShowID = tmdbEpisode.TmdbShowID,
+                    TmdbSeasonID = tmdbEpisode.TmdbSeasonID,
+                    TmdbEpisodeID = tmdbEpisode.Id,
+                    TmdbPersonID = tmdbPerson.Id,
+                    TmdbCreditID = cast.CreditId,
+                };
+                castToAdd++;
+                roleUpdated = true;
+            }
+
+            if (role.CharacterName != cast.Character)
+            {
+                role.CharacterName = cast.Character;
+                roleUpdated = true;
+            }
+
+            if (role.Ordering != ordering)
+            {
+                role.Ordering = ordering;
+                roleUpdated = true;
+            }
+
+            if (role.IsGuestRole != isGuestRole)
+            {
+                role.IsGuestRole = isGuestRole;
+                roleUpdated = true;
+            }
+
+            if (roleUpdated)
+            {
+                castToSave.Add(role);
+            }
+        }
+
+        var crewToAdd = 0;
+        var crewToKeep = new HashSet<string>();
+        var crewToSave = new List<TMDB_Episode_Crew>();
+        var existingCrewDict = RepoFactory.TMDB_Episode_Crew.GetByTmdbEpisodeID(tmdbEpisode.Id)
+            .ToDictionary(crew => crew.TmdbCreditID);
+        foreach (var crew in credits.Crew)
+        {
+            crewToKeep.Add(crew.CreditId);
+            if (!knownPeopleDict.TryGetValue(crew.Id, out var tmdbPerson))
+            {
+                // TODO: Fix once https://github.com/jellyfin/TMDbLib/pull/486 is merged.
+                var person = await _client.GetPersonAsync(crew.Id /* , PersonMethods.Translations */) ??
+                    throw new Exception($"Unable to get TMDB Person with id {crew.Id}. (Show={tmdbEpisode.TmdbShowID},Season={tmdbEpisode.TmdbSeasonID},Episode={tmdbEpisode.Id},Person={crew.Id})");
+
+                tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(crew.Id);
+                if (tmdbPerson == null)
+                {
+                    tmdbPerson = new(crew.Id);
+                    peopleToAdd++;
+                }
+                if (tmdbPerson.Populate(person))
+                {
+                    tmdbPerson.LastUpdatedAt = DateTime.Now;
+                    peopleToSave.Add(tmdbPerson);
+                }
+                if (downloadImages)
+                    await DownloadPersonImages(tmdbPerson.Id);
+            }
+
+            var roleUpdated = false;
+            if (!existingCrewDict.TryGetValue(crew.CreditId, out var role))
+            {
+                role = new()
+                {
+                    TmdbShowID = tmdbEpisode.TmdbShowID,
+                    TmdbSeasonID = tmdbEpisode.TmdbSeasonID,
+                    TmdbEpisodeID = tmdbEpisode.Id,
+                    TmdbPersonID = tmdbPerson.Id,
+                    TmdbCreditID = crew.CreditId,
+                };
+                crewToAdd++;
+                roleUpdated = true;
+            }
+
+            if (role.Department != crew.Department)
+            {
+                role.Department = crew.Department;
+                roleUpdated = true;
+            }
+
+            if (role.Job != crew.Job)
+            {
+                role.Job = crew.Job;
+                roleUpdated = true;
+            }
+
+            if (roleUpdated)
+            {
+                crewToSave.Add(role);
+            }
+        }
+
+        var castToRemove = existingCastDict.Values
+            .ExceptBy(castToKeep, cast => cast.TmdbCreditID)
+            .ToList();
+        var crewToRemove = existingCrewDict.Values
+            .ExceptBy(crewToKeep, crew => crew.TmdbCreditID)
+            .ToList();
+
+        RepoFactory.TMDB_Person.Save(peopleToSave);
+        RepoFactory.TMDB_Episode_Cast.Save(castToSave);
+        RepoFactory.TMDB_Episode_Crew.Save(crewToSave);
+        RepoFactory.TMDB_Episode_Cast.Delete(castToRemove);
+        RepoFactory.TMDB_Episode_Crew.Delete(crewToRemove);
+
+        var peopleToCheck = existingCastDict.Values
+            .Select(cast => cast.TmdbPersonID)
+            .Concat(existingCrewDict.Values.Select(crew => crew.TmdbPersonID))
+            .Except(knownPeopleDict.Keys)
+            .GroupBy(person => person)
+            .ToDictionary(p => p.Key, p => p.Count());
+        var peopleToRemove = new List<TMDB_Person>();
+        foreach (var (personId, xrefCount) in peopleToCheck)
+        {
+            var tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(personId);
+            var movieCast = RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(personId);
+            var movieCrew = RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(personId);
+            var episodeCast = RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(personId);
+            var episodeCrew = RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(personId);
+            var totalXrefs = movieCast.Count + movieCrew.Count + episodeCast.Count + episodeCrew.Count;
+
+            // In-place clean up. This shouldn't really be needed, but if the
+            // server is stopped in a bad state then we might get there.
+            if (tmdbPerson == null)
+            {
+                RepoFactory.TMDB_Episode_Cast.Delete(movieCast);
+                RepoFactory.TMDB_Episode_Crew.Delete(movieCrew);
+                RepoFactory.TMDB_Episode_Cast.Delete(episodeCast);
+                RepoFactory.TMDB_Episode_Crew.Delete(episodeCrew);
+            }
+            else if (totalXrefs - xrefCount == 0)
+            {
+                peopleToRemove.Add(tmdbPerson);
+            }
+        }
+        RepoFactory.TMDB_Person.Delete(peopleToRemove);
+
+        _logger.LogDebug(
+            "Added/updated/removed/skipped {aa}/{au}/{ar}/{as} cast and {ra}/{ru}/{rr}/{rs} crew across {pa}/{pu}/{pr}/{ps} people for episode {EpisodeTitle} (Show={ShowId},Season={SeasonId},Episode={EpisodeId})",
+            castToAdd,
+            castToSave.Count - castToAdd,
+            castToRemove.Count,
+            existingCastDict.Count - (castToSave.Count - castToAdd),
+            crewToAdd,
+            crewToSave.Count - crewToAdd,
+            crewToRemove.Count,
+            existingCrewDict.Count - (crewToSave.Count - crewToAdd),
+            peopleToAdd,
+            peopleToSave.Count - peopleToAdd,
+            peopleToRemove.Count,
+            knownPeopleDict.Count - (peopleToSave.Count - peopleToAdd),
+            tmdbEpisode.EnglishTitle,
+            tmdbEpisode.TmdbShowID,
+            tmdbEpisode.TmdbSeasonID,
+            tmdbEpisode.TmdbEpisodeID
+        );
+        return castToSave.Count > 0 ||
+            castToRemove.Count > 0 ||
+            crewToSave.Count > 0 ||
+            crewToRemove.Count > 0 ||
+            peopleToSave.Count > 0 ||
+            peopleToRemove.Count > 0;
     }
 
     public async Task DownloadShowImages(int showId, bool forceDownload = false)
@@ -1139,6 +1542,8 @@ public class TMDBHelper
 
         PurgeShowSeasons(showId, removeImageFiles);
 
+        PurgeShowCastAndCrew(showId, removeImageFiles);
+
         PurgeShowEpisodeGroups(showId);
         if (show != null)
         {
@@ -1245,6 +1650,11 @@ public class TMDBHelper
         PurgeImages(ForeignEntityType.Season, season.Id, removeImageFiles);
 
         PurgeTitlesAndOverviews(ForeignEntityType.Season, season.Id);
+    }
+
+    private void PurgeShowCastAndCrew(int showId, bool removeImageFiles = true)
+    {
+        // TODO: Add purge show cast & crew.
     }
 
     private void PurgeShowEpisodeGroups(int showId)
@@ -1621,6 +2031,18 @@ public class TMDBHelper
             _logger.LogDebug("Removing {count} cross-references for TMDB Company (Company={CompanyId})", xrefs.Count, companyId);
             RepoFactory.TMDB_Company_Entity.Delete(xrefs);
         }
+    }
+
+    #endregion
+
+    #region People
+
+    public async Task DownloadPersonImages(int personId, bool forceDownload = false)
+    {
+        var settings = _settingsProvider.GetSettings();
+        var images = await _client.GetPersonImagesAsync(personId);
+        if (settings.TMDB.AutoDownloadStaffImages)
+            DownloadImagesByType(images.Profiles, ImageEntityType.Person, ForeignEntityType.Person, personId, settings.TMDB.MaxAutoStaffImages, forceDownload);
     }
 
     #endregion

@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -15,9 +18,14 @@ namespace Shoko.Server.Models.TMDB;
 /// <summary>
 /// The Movie DataBase (TMDB) Person Database Model.
 /// </summary>
-public class TMDB_Person
+public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
 {
     #region Properties
+
+    /// <summary>
+    /// IEntityMetadata.Id.
+    /// </summary>
+    public override int Id => TmdbPersonID;
 
     /// <summary>
     /// Local ID.
@@ -106,18 +114,24 @@ public class TMDB_Person
     /// Populate the fields from the raw data.
     /// </summary>
     /// <param name="person">The raw TMDB Person object.</param>
-    /// <param name="translations">The raw translations for the Person object (fetched separately).</param>
     /// <returns>True if any of the fields have been updated.</returns>
-    public void Populate(Person person, TranslationsContainer translations)
+    public bool Populate(Person person)
     {
-        var translation = translations.Translations.FirstOrDefault(translation => translation.Iso_639_1 == "en");
-        EnglishName = person.Name;
-        EnglishBiography = translation?.Data.Overview ?? person.Biography;
-        IsRestricted = person.Adult;
-        BirthDay = person.Birthday.HasValue ? DateOnly.FromDateTime(person.Birthday.Value) : null;
-        DeathDay = person.Deathday.HasValue ? DateOnly.FromDateTime(person.Deathday.Value) : null;
-        PlaceOfBirth = string.IsNullOrEmpty(person.PlaceOfBirth) ? null : person.PlaceOfBirth;
-        LastUpdatedAt = DateTime.Now;
+        // TODO: Fix once https://github.com/jellyfin/TMDbLib/pull/486 is merged.
+        TranslationsContainer? translations = null /* person.Translations! */;
+        var translation = translations?.Translations.FirstOrDefault(translation => translation.Iso_639_1 == "en");
+
+        var updates = new[]
+        {
+            UpdateProperty(EnglishName, person.Name, v => EnglishName = v),
+            UpdateProperty(EnglishBiography, translation?.Data.Overview ?? person.Biography, v => EnglishBiography = v),
+            UpdateProperty(IsRestricted, person.Adult, v => IsRestricted = v),
+            UpdateProperty(BirthDay, person.Birthday.HasValue ? DateOnly.FromDateTime(person.Birthday.Value) : null, v => BirthDay = v),
+            UpdateProperty(DeathDay, person.Deathday.HasValue ? DateOnly.FromDateTime(person.Deathday.Value) : null, v => DeathDay = v),
+            UpdateProperty(PlaceOfBirth, string.IsNullOrEmpty(person.PlaceOfBirth) ? null : person.PlaceOfBirth, v => PlaceOfBirth = v),
+        };
+
+        return updates.Any(updated => updated);
     }
 
     /// <summary>
@@ -173,6 +187,27 @@ public class TMDB_Person
     public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
         ? RepoFactory.TMDB_Image.GetByTmdbPersonIDAndType(TmdbPersonID, entityType.Value)
         : RepoFactory.TMDB_Image.GetByTmdbPersonID(TmdbPersonID);
+
+    #endregion
+
+    #region IEntityMetadata
+
+    ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Person;
+
+    DataSourceType IEntityMetadata.DataSource => DataSourceType.TMDB;
+
+    string IEntityMetadata.EnglishTitle => EnglishName;
+
+    string IEntityMetadata.EnglishOverview => EnglishBiography;
+
+    string? IEntityMetadata.OriginalTitle => null;
+
+    TitleLanguage? IEntityMetadata.OriginalLanguage => null;
+
+    string? IEntityMetadata.OriginalLanguageCode => null;
+
+    // Technically not untrue. Though this is more of a joke mapping than anything.
+    DateOnly? IEntityMetadata.ReleasedAt => BirthDay;
 
     #endregion
 }

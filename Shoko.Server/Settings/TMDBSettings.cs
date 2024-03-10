@@ -67,6 +67,12 @@ public class TMDBSettings
     public bool AutoDownloadStaffImages { get; set; } = true;
 
     /// <summary>
+    /// The maximum number of staff member and voice-actor images to download
+    /// for each TMDB entity that supports staff member and voice-actor images.
+    /// </summary>
+    public int MaxAutoStaffImages { get; set; } = 10;
+
+    /// <summary>
     /// Automagically download sudio and company images.
     /// </summary>
     public bool AutoDownloadStudioImages { get; set; } = true;

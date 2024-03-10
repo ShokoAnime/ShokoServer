@@ -53,7 +53,7 @@ public interface IEntityMetadata
     public string? OriginalLanguageCode { get; }
 
     /// <summary>
-    /// When the entity was first released.
+    /// When the entity was first released, if applicable and known.
     /// </summary>
     public DateOnly? ReleasedAt { get; }
 

@@ -18,7 +18,6 @@ public class TMDB_Movie_CastMap : ClassMap<TMDB_Movie_Cast>
         Map(x => x.TmdbPersonID).Not.Nullable();
         Map(x => x.TmdbCreditID).Not.Nullable();
         Map(x => x.CharacterName).Not.Nullable();
-        Map(x => x.IsGuestRole).Not.Nullable();
         Map(x => x.Ordering).Not.Nullable();
     }
 }
