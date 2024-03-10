@@ -1,3 +1,5 @@
+using System.Linq;
+using Shoko.Server.Databases;
 using Shoko.Server.Models.TMDB;
 
 #nullable enable
@@ -5,5 +7,16 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class TMDB_NetworkRepository : BaseDirectRepository<TMDB_Network, int>
 {
-
+    public TMDB_Network? GetByTmdbNetworkID(int tmdbNetworkId)
+    {
+        return Lock(() =>
+        {
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            return session
+                .Query<TMDB_Network>()
+                .Where(a => a.TmdbNetworkID == tmdbNetworkId)
+                .Take(1)
+                .SingleOrDefault();
+        });
+    }
 }

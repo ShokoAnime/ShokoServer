@@ -681,7 +681,7 @@ public class TMDBHelper
         foreach (var reducedSeason in show.Seasons)
         {
             var season = await _client.GetTvSeasonAsync(show.Id, reducedSeason.SeasonNumber, TvSeasonMethods.Translations) ??
-                throw new Exception("TODO: Input some error message here that makes sense.");
+                throw new Exception($"Unable to fetch season {reducedSeason.SeasonNumber} for show \"{show.Name}\".");
             if (!existingSeasons.TryGetValue(reducedSeason.Id, out var tmdbSeason))
             {
                 seasonsToAdd++;
@@ -798,7 +798,7 @@ public class TMDBHelper
             // we need to send another request for the full episode group
             // collection to get the groups.
             var collection = await _client.GetTvEpisodeGroupsAsync(reducedCollection.Id) ??
-                throw new Exception("TODO: Add an exception message that makes sense here.");
+                throw new Exception($"Unable to fetch alternate ordering \"{reducedCollection.Name}\" for show \"{show.Name}\".");
 
             if (!existingOrdering.TryGetValue(collection.Id, out var tmdbOrdering))
             {
@@ -1169,7 +1169,38 @@ public class TMDBHelper
 
     private void PurgeShowNetworks(int showId, bool removeImageFiles = true)
     {
-        // TODO: Remove show networks and networks if they don't have any shows.
+        var xrefsToRemove = RepoFactory.TMDB_Show_Network.GetByTmdbShowID(showId);
+        foreach (var xref in xrefsToRemove)
+        {
+            // Delete xref or purge company.
+            var xrefs = RepoFactory.TMDB_Show_Network.GetByTmdbNetworkID(xref.TmdbNetworkID);
+            if (xrefs.Count > 1)
+                RepoFactory.TMDB_Show_Network.Delete(xref);
+            else
+                PurgeShowNetwork(xref.TmdbNetworkID, removeImageFiles);
+        }
+    }
+
+    private void PurgeShowNetwork(int networkId, bool removeImageFiles = true)
+    {
+        var tmdbNetwork = RepoFactory.TMDB_Network.GetByTmdbNetworkID(networkId);
+        if (tmdbNetwork != null)
+        {
+            _logger.LogDebug("Removing TMDB Network (Network={NetworkId})", networkId);
+            RepoFactory.TMDB_Network.Delete(tmdbNetwork);
+        }
+
+        var images = RepoFactory.TMDB_Image.GetByTmdbCompanyID(networkId);
+        if (images.Count > 0)
+            foreach (var image in images)
+                PurgeImage(image, ForeignEntityType.Company, removeImageFiles);
+
+        var xrefs = RepoFactory.TMDB_Show_Network.GetByTmdbNetworkID(networkId);
+        if (xrefs.Count > 0)
+        {
+            _logger.LogDebug("Removing {count} cross-references for TMDB Network (Network={NetworkId})", xrefs.Count, networkId);
+            RepoFactory.TMDB_Show_Network.Delete(xrefs);
+        }
     }
 
     private void PurgeShowEpisodes(int showId, bool removeImageFiles = true)
@@ -1216,9 +1247,16 @@ public class TMDBHelper
         PurgeTitlesAndOverviews(ForeignEntityType.Season, season.Id);
     }
 
-    private static void PurgeShowEpisodeGroups(int showId, bool removeImageFiles = true)
+    private void PurgeShowEpisodeGroups(int showId)
     {
-        // TODO: Remove all episode groups.
+        var episodes = RepoFactory.TMDB_AlternateOrdering_Episode.GetByTmdbShowID(showId);
+        var seasons = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbShowID(showId);
+        var orderings = RepoFactory.TMDB_AlternateOrdering.GetByTmdbShowID(showId);
+
+        _logger.LogDebug("Removing {EpisodeCount} episodes and {SeasonCount} seasons across {OrderingCount} alternate orderings for show. (Show={ShowId})", episodes.Count, seasons.Count, orderings.Count, showId);
+        RepoFactory.TMDB_AlternateOrdering_Episode.Delete(episodes);
+        RepoFactory.TMDB_AlternateOrdering_Season.Delete(seasons);
+        RepoFactory.TMDB_AlternateOrdering.Delete(orderings);
     }
 
     #endregion
@@ -1556,7 +1594,7 @@ public class TMDBHelper
         var updated = tmdbCompany.Populate(company);
         if (updated)
         {
-            _logger.LogDebug("");
+            _logger.LogDebug("Updating TMDB Company (Company={CompanyId})", company.Id);
             RepoFactory.TMDB_Company.Save(tmdbCompany);
         }
 
@@ -1568,7 +1606,7 @@ public class TMDBHelper
         var tmdbCompany = RepoFactory.TMDB_Company.GetByTmdbCompanyID(companyId);
         if (tmdbCompany != null)
         {
-            _logger.LogDebug("");
+            _logger.LogDebug("Removing TMDB Company (Company={CompanyId})", companyId);
             RepoFactory.TMDB_Company.Delete(tmdbCompany);
         }
 
@@ -1580,7 +1618,7 @@ public class TMDBHelper
         var xrefs = RepoFactory.TMDB_Company_Entity.GetByTmdbCompanyID(companyId);
         if (xrefs.Count > 0)
         {
-            _logger.LogDebug("");
+            _logger.LogDebug("Removing {count} cross-references for TMDB Company (Company={CompanyId})", xrefs.Count, companyId);
             RepoFactory.TMDB_Company_Entity.Delete(xrefs);
         }
     }
