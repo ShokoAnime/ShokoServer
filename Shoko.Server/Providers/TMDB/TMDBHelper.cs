@@ -383,37 +383,20 @@ public class TMDBHelper
         RepoFactory.TMDB_Movie_Cast.Delete(castToRemove);
         RepoFactory.TMDB_Movie_Crew.Delete(crewToRemove);
 
+        var peopleToRemove = 0;
         var peopleToCheck = existingCastDict.Values
             .Select(cast => cast.TmdbPersonID)
             .Concat(existingCrewDict.Values.Select(crew => crew.TmdbPersonID))
             .Except(knownPeopleDict.Keys)
-            .GroupBy(person => person)
-            .ToDictionary(p => p.Key, p => p.Count());
-        var peopleToRemove = new List<TMDB_Person>();
-        foreach (var (personId, xrefCount) in peopleToCheck)
+            .ToHashSet();
+        foreach (var personId in peopleToCheck)
         {
-            var tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(personId);
-            var movieCast = RepoFactory.TMDB_Movie_Cast.GetByTmdbPersonID(personId);
-            var movieCrew = RepoFactory.TMDB_Movie_Crew.GetByTmdbPersonID(personId);
-            var episodeCast = RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(personId);
-            var episodeCrew = RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(personId);
-            var totalXrefs = movieCast.Count + movieCrew.Count + episodeCast.Count + episodeCrew.Count;
+            if (IsPersonLinkedToOtherEntities(personId))
+                continue;
 
-            // In-place clean up. This shouldn't really be needed, but if the
-            // server is stopped in a bad state then we might get there.
-            if (tmdbPerson == null)
-            {
-                RepoFactory.TMDB_Movie_Cast.Delete(movieCast);
-                RepoFactory.TMDB_Movie_Crew.Delete(movieCrew);
-                RepoFactory.TMDB_Episode_Cast.Delete(episodeCast);
-                RepoFactory.TMDB_Episode_Crew.Delete(episodeCrew);
-            }
-            else if (totalXrefs - xrefCount == 0)
-            {
-                peopleToRemove.Add(tmdbPerson);
-            }
+            PurgePerson(personId);
+            peopleToRemove++;
         }
-        RepoFactory.TMDB_Person.Delete(peopleToRemove);
 
         _logger.LogDebug(
             "Added/updated/removed/skipped {aa}/{au}/{ar}/{as} cast and {ra}/{ru}/{rr}/{rs} crew across {pa}/{pu}/{pr}/{ps} people for movie {MovieTitle} (Movie={MovieId})",
@@ -427,7 +410,7 @@ public class TMDBHelper
             existingCrewDict.Count - (crewToSave.Count - crewToAdd),
             peopleToAdd,
             peopleToSave.Count - peopleToAdd,
-            peopleToRemove.Count,
+            peopleToRemove,
             knownPeopleDict.Count - (peopleToSave.Count - peopleToAdd),
             tmdbMovie.EnglishTitle,
             tmdbMovie.Id
@@ -437,7 +420,7 @@ public class TMDBHelper
             crewToSave.Count > 0 ||
             crewToRemove.Count > 0 ||
             peopleToSave.Count > 0 ||
-            peopleToRemove.Count > 0;
+            peopleToRemove > 0;
     }
 
     private async Task UpdateMovieCollections(Movie movie)
@@ -580,7 +563,20 @@ public class TMDBHelper
 
     private void PurgeMovieCastAndCrew(int movieId, bool removeImageFiles = true)
     {
-        // TODO: Add purge movie cast & crew.
+        var castMembers = RepoFactory.TMDB_Movie_Cast.GetByTmdbMovieID(movieId);
+        var crewMembers = RepoFactory.TMDB_Movie_Crew.GetByTmdbMovieID(movieId);
+
+        RepoFactory.TMDB_Movie_Cast.Delete(castMembers);
+        RepoFactory.TMDB_Movie_Crew.Delete(crewMembers);
+
+        var allPeopleSet = castMembers
+            .Select(c => c.TmdbPersonID)
+            .Concat(crewMembers.Select(c => c.TmdbPersonID))
+            .Distinct()
+            .ToHashSet();
+        foreach (var personId in allPeopleSet)
+            if (!IsPersonLinkedToOtherEntities(personId))
+                PurgePerson(personId, removeImageFiles);
     }
 
     private void CleanupMovieCollection(int movieId, bool removeImageFiles = true)
@@ -1256,37 +1252,20 @@ public class TMDBHelper
         RepoFactory.TMDB_Episode_Cast.Delete(castToRemove);
         RepoFactory.TMDB_Episode_Crew.Delete(crewToRemove);
 
+        var peopleToRemove = 0;
         var peopleToCheck = existingCastDict.Values
             .Select(cast => cast.TmdbPersonID)
             .Concat(existingCrewDict.Values.Select(crew => crew.TmdbPersonID))
             .Except(knownPeopleDict.Keys)
-            .GroupBy(person => person)
-            .ToDictionary(p => p.Key, p => p.Count());
-        var peopleToRemove = new List<TMDB_Person>();
-        foreach (var (personId, xrefCount) in peopleToCheck)
+            .ToHashSet();
+        foreach (var personId in peopleToCheck)
         {
-            var tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(personId);
-            var movieCast = RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(personId);
-            var movieCrew = RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(personId);
-            var episodeCast = RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(personId);
-            var episodeCrew = RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(personId);
-            var totalXrefs = movieCast.Count + movieCrew.Count + episodeCast.Count + episodeCrew.Count;
+            if (IsPersonLinkedToOtherEntities(personId))
+                continue;
 
-            // In-place clean up. This shouldn't really be needed, but if the
-            // server is stopped in a bad state then we might get there.
-            if (tmdbPerson == null)
-            {
-                RepoFactory.TMDB_Episode_Cast.Delete(movieCast);
-                RepoFactory.TMDB_Episode_Crew.Delete(movieCrew);
-                RepoFactory.TMDB_Episode_Cast.Delete(episodeCast);
-                RepoFactory.TMDB_Episode_Crew.Delete(episodeCrew);
-            }
-            else if (totalXrefs - xrefCount == 0)
-            {
-                peopleToRemove.Add(tmdbPerson);
-            }
+            PurgePerson(personId);
+            peopleToRemove++;
         }
-        RepoFactory.TMDB_Person.Delete(peopleToRemove);
 
         _logger.LogDebug(
             "Added/updated/removed/skipped {aa}/{au}/{ar}/{as} cast and {ra}/{ru}/{rr}/{rs} crew across {pa}/{pu}/{pr}/{ps} people for episode {EpisodeTitle} (Show={ShowId},Season={SeasonId},Episode={EpisodeId})",
@@ -1300,7 +1279,7 @@ public class TMDBHelper
             existingCrewDict.Count - (crewToSave.Count - crewToAdd),
             peopleToAdd,
             peopleToSave.Count - peopleToAdd,
-            peopleToRemove.Count,
+            peopleToRemove,
             knownPeopleDict.Count - (peopleToSave.Count - peopleToAdd),
             tmdbEpisode.EnglishTitle,
             tmdbEpisode.TmdbShowID,
@@ -1312,7 +1291,7 @@ public class TMDBHelper
             crewToSave.Count > 0 ||
             crewToRemove.Count > 0 ||
             peopleToSave.Count > 0 ||
-            peopleToRemove.Count > 0;
+            peopleToRemove > 0;
     }
 
     public async Task DownloadShowImages(int showId, bool forceDownload = false)
@@ -1654,7 +1633,20 @@ public class TMDBHelper
 
     private void PurgeShowCastAndCrew(int showId, bool removeImageFiles = true)
     {
-        // TODO: Add purge show cast & crew.
+        var castMembers = RepoFactory.TMDB_Episode_Cast.GetByTmdbShowID(showId);
+        var crewMembers = RepoFactory.TMDB_Episode_Crew.GetByTmdbShowID(showId);
+
+        RepoFactory.TMDB_Episode_Cast.Delete(castMembers);
+        RepoFactory.TMDB_Episode_Crew.Delete(crewMembers);
+
+        var allPeopleSet = castMembers
+            .Select(c => c.TmdbPersonID)
+            .Concat(crewMembers.Select(c => c.TmdbPersonID))
+            .Distinct()
+            .ToHashSet();
+        foreach (var personId in allPeopleSet)
+            if (!IsPersonLinkedToOtherEntities(personId))
+                PurgePerson(personId, removeImageFiles);
     }
 
     private void PurgeShowEpisodeGroups(int showId)
@@ -2045,6 +2037,69 @@ public class TMDBHelper
             DownloadImagesByType(images.Profiles, ImageEntityType.Person, ForeignEntityType.Person, personId, settings.TMDB.MaxAutoStaffImages, forceDownload);
     }
 
+    private void PurgePerson(int personId, bool removeImageFiles = true)
+    {
+        var person = RepoFactory.TMDB_Person.GetByTmdbPersonID(personId);
+        if (person != null)
+        {
+            _logger.LogDebug("Removing TMDB Person (Person={PersonId})", personId);
+            RepoFactory.TMDB_Person.Delete(person);
+        }
+
+        var images = RepoFactory.TMDB_Image.GetByTmdbPersonID(personId);
+        if (images.Count > 0)
+            foreach (var image in images)
+                PurgeImage(image, ForeignEntityType.Person, removeImageFiles);
+
+        var movieCast = RepoFactory.TMDB_Movie_Cast.GetByTmdbPersonID(personId);
+        if (movieCast.Count > 0)
+        {
+            _logger.LogDebug("Removing {count} movie cast roles for TMDB Person (Person={PersonId})", movieCast.Count, personId);
+            RepoFactory.TMDB_Movie_Cast.Delete(movieCast);
+        }
+
+        var movieCrew = RepoFactory.TMDB_Movie_Crew.GetByTmdbPersonID(personId);
+        if (movieCrew.Count > 0)
+        {
+            _logger.LogDebug("Removing {count} movie crew roles for TMDB Person (Person={PersonId})", movieCrew.Count, personId);
+            RepoFactory.TMDB_Movie_Crew.Delete(movieCrew);
+        }
+
+        var episodeCast = RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(personId);
+        if (episodeCast.Count > 0)
+        {
+            _logger.LogDebug("Removing {count} show cast roles for TMDB Person (Person={PersonId})", episodeCast.Count, personId);
+            RepoFactory.TMDB_Episode_Cast.Delete(episodeCast);
+        }
+
+        var episodeCrew = RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(personId);
+        if (episodeCrew.Count > 0)
+        {
+            _logger.LogDebug("Removing {count} show crew roles for TMDB Person (Person={PersonId})", episodeCrew.Count, personId);
+            RepoFactory.TMDB_Episode_Crew.Delete(episodeCrew);
+        }
+    }
+
+    private static bool IsPersonLinkedToOtherEntities(int tmdbPersonId)
+    {
+        var movieCastLinks = RepoFactory.TMDB_Movie_Cast.GetByTmdbPersonID(tmdbPersonId);
+        if (movieCastLinks.Any())
+            return true;
+
+        var movieCrewLinks = RepoFactory.TMDB_Movie_Crew.GetByTmdbPersonID(tmdbPersonId);
+        if (movieCrewLinks.Any())
+            return true;
+
+        var episodeCastLinks = RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(tmdbPersonId);
+        if (episodeCastLinks.Any())
+            return true;
+
+        var episodeCrewLinks = RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(tmdbPersonId);
+        if (episodeCrewLinks.Any())
+            return true;
+
+        return false;
+    }
     #endregion
 
     #endregion
