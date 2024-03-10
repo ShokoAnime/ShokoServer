@@ -117,7 +117,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
     /// <returns>True if any of the fields have been updated.</returns>
     public bool Populate(Person person)
     {
-        // TODO: Fix once https://github.com/jellyfin/TMDbLib/pull/486 is merged.
+        // TODO: Fix once 2.2 of TMDbLib is out.
         TranslationsContainer? translations = null /* person.Translations! */;
         var translation = translations?.Translations.FirstOrDefault(translation => translation.Iso_639_1 == "en");
 

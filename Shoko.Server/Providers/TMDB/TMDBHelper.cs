@@ -260,7 +260,7 @@ public class TMDBHelper
             castToKeep.Add(cast.CreditId);
             if (!knownPeopleDict.TryGetValue(cast.Id, out var tmdbPerson))
             {
-                // TODO: Fix once https://github.com/jellyfin/TMDbLib/pull/486 is merged.
+                // TODO: Fix once 2.2 of TMDbLib is out.
                 var person = await _client.GetPersonAsync(cast.Id /* , PersonMethods.Translations */) ??
                     throw new Exception($"Unable to get TMDB Person with id {cast.Id}. (Movie={tmdbMovie.Id},Person={cast.Id})");
 
@@ -320,7 +320,7 @@ public class TMDBHelper
             crewToKeep.Add(crew.CreditId);
             if (!knownPeopleDict.TryGetValue(crew.Id, out var tmdbPerson))
             {
-                // TODO: Fix once https://github.com/jellyfin/TMDbLib/pull/486 is merged.
+                // TODO: Fix once 2.2 of TMDbLib is out.
                 var person = await _client.GetPersonAsync(crew.Id /* , PersonMethods.Translations */) ??
                     throw new Exception($"Unable to get TMDB Person with id {crew.Id}. (Movie={tmdbMovie.Id},Person={crew.Id})");
 
@@ -580,7 +580,7 @@ public class TMDBHelper
 
     private void PurgeMovieCastAndCrew(int movieId, bool removeImageFiles = true)
     {
-        // TODO: Add purge show cast & crew.
+        // TODO: Add purge movie cast & crew.
     }
 
     private void CleanupMovieCollection(int movieId, bool removeImageFiles = true)
@@ -1123,7 +1123,7 @@ public class TMDBHelper
             castToKeep.Add(cast.CreditId);
             if (!knownPeopleDict.TryGetValue(cast.Id, out var tmdbPerson))
             {
-                // TODO: Fix once https://github.com/jellyfin/TMDbLib/pull/486 is merged.
+                // TODO: Fix once 2.2 of TMDbLib is out.
                 var person = await _client.GetPersonAsync(cast.Id /* , PersonMethods.Translations */) ??
                     throw new Exception($"Unable to get TMDB Person with id {cast.Id}. (Show={tmdbEpisode.TmdbShowID},Season={tmdbEpisode.TmdbSeasonID},Episode={tmdbEpisode.Id},Person={cast.Id})");
 
@@ -1191,7 +1191,7 @@ public class TMDBHelper
             crewToKeep.Add(crew.CreditId);
             if (!knownPeopleDict.TryGetValue(crew.Id, out var tmdbPerson))
             {
-                // TODO: Fix once https://github.com/jellyfin/TMDbLib/pull/486 is merged.
+                // TODO: Fix once 2.2 of TMDbLib is out.
                 var person = await _client.GetPersonAsync(crew.Id /* , PersonMethods.Translations */) ??
                     throw new Exception($"Unable to get TMDB Person with id {crew.Id}. (Show={tmdbEpisode.TmdbShowID},Season={tmdbEpisode.TmdbSeasonID},Episode={tmdbEpisode.Id},Person={crew.Id})");
 
