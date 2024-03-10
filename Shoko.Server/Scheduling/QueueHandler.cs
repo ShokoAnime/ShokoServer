@@ -15,6 +15,7 @@ public class QueueHandler
     private readonly JobFactory _jobFactory;
     private readonly ThreadPooledJobStore _jobStore;
     private readonly Dictionary<string, QueueItem> _executingJobs = new();
+    private readonly List<QueueItem> _waitingJobs = new();
 
     public QueueHandler(ISchedulerFactory schedulerFactory, QueueStateEventHandler queueStateEventHandler, JobFactory jobFactory, ThreadPooledJobStore jobStore)
     {
@@ -45,6 +46,12 @@ public class QueueHandler
         WaitingCount = e.WaitingJobsCount;
         BlockedCount = e.BlockedJobsCount;
         TotalCount = e.TotalJobsCount;
+
+        lock (_waitingJobs)
+        {
+            _waitingJobs.Clear();
+            _waitingJobs.AddRange(e.WaitingItems);
+        }
     }
 
     private void QueueStateEventHandlerOnQueueItemAdded(object sender, QueueItemAddedEventArgs e)
@@ -52,6 +59,12 @@ public class QueueHandler
         WaitingCount = e.WaitingJobsCount;
         BlockedCount = e.BlockedJobsCount;
         TotalCount = e.TotalJobsCount;
+
+        lock (_waitingJobs)
+        {
+            _waitingJobs.Clear();
+            _waitingJobs.AddRange(e.WaitingItems);
+        }
     }
 
     public async Task Pause()
@@ -107,10 +120,12 @@ public class QueueHandler
 
     public QueueItem[] GetExecutingJobs()
     {
-        lock (_executingJobs)
-        {
-            return _executingJobs.Values.ToArray();
-        }
+        lock (_executingJobs) return _executingJobs.Values.ToArray();
+    }
+
+    public QueueItem[] GetWaitingJobs()
+    {
+        lock (_waitingJobs) return _waitingJobs.ToArray();
     }
 
     public Task<int> GetTotalWaitingJobCount()

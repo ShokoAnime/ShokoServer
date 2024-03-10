@@ -22,9 +22,11 @@ namespace Shoko.Server.API.v3.Controllers;
 public class QueueController : BaseController
 {
     private readonly QueueHandler _queueHandler;
+    private readonly ISettingsProvider _settingsProvider;
 
     public QueueController(ISettingsProvider settingsProvider, QueueHandler queueHandler) : base(settingsProvider)
     {
+        _settingsProvider = settingsProvider;
         _queueHandler = queueHandler;
     }
 
@@ -114,7 +116,22 @@ public class QueueController : BaseController
         [FromQuery] bool showAll = false
     )
     {
-        return new ListResult<Queue.QueueItem>(await _queueHandler.GetTotalWaitingJobCount(), (await _queueHandler.GetJobs(pageSize, (page - 1) * pageSize, !showAll))
+        var total = showAll
+            ? _queueHandler.WaitingCount + _queueHandler.BlockedCount + _queueHandler.GetExecutingJobs().Length
+            : _queueHandler.WaitingCount + _queueHandler.GetExecutingJobs().Length;
+
+        // simplified from (page - 1) * pageSize + pageSize
+        if (page * pageSize <= _settingsProvider.GetSettings().Quartz.WaitingCacheSize)
+            return new ListResult<Queue.QueueItem>(total, _queueHandler.GetWaitingJobs().Select(a => new Queue.QueueItem
+            {
+                Key = a.Key,
+                Type = a.JobType,
+                Description = a.Description,
+                IsRunning = a.Running,
+                IsBlocked = a.Blocked
+            }).ToList());
+
+        return new ListResult<Queue.QueueItem>(total, (await _queueHandler.GetJobs(pageSize, (page - 1) * pageSize, !showAll))
             .Select(a => new Queue.QueueItem
             {
                 Key = a.Key,

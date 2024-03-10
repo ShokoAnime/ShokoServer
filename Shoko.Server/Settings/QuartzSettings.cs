@@ -23,6 +23,11 @@ public class QuartzSettings
     public int MaxThreadPoolSize { get; set; }
 
     /// <summary>
+    /// The number of Waiting Jobs to cache for api use
+    /// </summary>
+    public int WaitingCacheSize { get; set; } = 100;
+
+    /// <summary>
     /// A map of Type (yes, you need to look at the source code, under ./Shoko.Server/Scheduling/Jobs) to the number of allowed concurrent jobs of the same type.
     /// Some types will not be able to have a lower limit, due to API restrictions. HashFileJob is included as an example.
     /// </summary>

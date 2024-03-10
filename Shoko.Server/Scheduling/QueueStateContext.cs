@@ -7,4 +7,5 @@ public class QueueStateContext
     public int TotalTriggersCount { get; set; }
     public int ThreadCount { get; set; }
     public QueueItem[] CurrentlyExecuting { get; set; }
+    public QueueItem[] Waiting { get; set; }
 }
