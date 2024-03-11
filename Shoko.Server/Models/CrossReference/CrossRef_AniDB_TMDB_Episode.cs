@@ -55,13 +55,13 @@ public class CrossRef_AniDB_TMDB_Episode
         RepoFactory.AnimeSeries.GetByAnimeID(AnidbAnimeID);
 
     public TMDB_Episode? GetTmdbEpisode() =>
-        RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
+        TmdbEpisodeID == 0 ? null : RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
 
     public TMDB_Season? GetTmdbSeason() =>
         GetTmdbEpisode()?.GetTmdbSeason();
 
     public TMDB_Show? GetTmdbShow() =>
-        RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
+        TmdbShowID == 0 ? null : RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
 
     #endregion
 }

@@ -1157,10 +1157,13 @@ public class Series : BaseModel
         public class OverrideEpisodeMappingBody
         {
             /// <summary>
-            /// Replace all existing links.
+            /// Reset all existing links.
             /// </summary>
-            public bool Replace = false;
+            public bool ResetAll = false;
 
+            /// <summary>
+            /// Replacing existing links or add new additional links.
+            /// </summary>
             [Required]
             public IReadOnlyList<OverrideEpisodeLinkBody> Mapping;
         }
@@ -1182,7 +1185,7 @@ public class Series : BaseModel
             /// <summary>
             /// TMDB Episode ID.
             /// </summary>
-            [Required, Range(1, int.MaxValue)]
+            [Required, Range(0, int.MaxValue)]
             public int TmdbID;
 
             /// <summary>

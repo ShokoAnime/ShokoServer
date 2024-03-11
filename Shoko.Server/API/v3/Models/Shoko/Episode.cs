@@ -114,6 +114,7 @@ public class Episode : BaseModel
                 {
                     "Show",
                     tmdbEpisodeXRefs
+                        .Where(xref => xref.TmdbShowID != 0)
                         .Select(xref => xref.TmdbShowID)
                         .Distinct()
                         .ToList()

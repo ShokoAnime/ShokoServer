@@ -766,11 +766,26 @@ public class TMDBHelper
         }
     }
 
-    public bool AddEpisodeLink(int anidbEpisodeId, int tmdbEpisodeId, bool additiveLink = true, int? index = null)
+    public bool SetEpisodeLink(int anidbEpisodeId, int tmdbEpisodeId, bool additiveLink = true, int? index = null)
     {
         var anidbEpisode = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeId);
         if (anidbEpisode == null)
             return false;
+
+        // Set an empty link.
+        if (tmdbEpisodeId == 0)
+        {
+            var xrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(anidbEpisodeId);
+            var toSave = xrefs.Count > 0 ? xrefs[0] : new(anidbEpisodeId, anidbEpisode.AnimeID, 0, 0);
+            toSave.TmdbShowID = 0;
+            toSave.TmdbEpisodeID = 0;
+            toSave.Ordering = 0;
+            var toDelete = xrefs.Skip(1).ToList();
+            RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(toSave);
+            RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(toDelete);
+
+            return true;
+        }
 
         var tmdbEpisode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(tmdbEpisodeId);
         if (tmdbEpisode == null)
