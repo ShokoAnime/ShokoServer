@@ -432,7 +432,7 @@ public class EpisodeController : BaseController
             .ToList();
     }
 
-    [HttpGet("{episode}/TMDB/Episode")]
+    [HttpGet("{episodeID}/TMDB/Episode")]
     public ActionResult<List<TmdbEpisode>> GetTmdbEpisodesByEpisodeID(
         [FromRoute] int episodeID,
         [FromQuery] bool includeTitles = true,
