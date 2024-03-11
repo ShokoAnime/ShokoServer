@@ -1132,7 +1132,6 @@ public class DatabaseFixes
 
     public static void CleanupAfterAddingTMDB()
     {
-        // TODO: Cleanup afterwards
         var helper = Utils.ServiceContainer.GetRequiredService<TMDBHelper>();
 
         // Remove the "MovieDB" directory in the image directory, since it's no longer used,
@@ -1145,7 +1144,5 @@ public class DatabaseFixes
 
         // Schedule tmdb searches if we have auto linking enabled.
         helper.ScanForMatches();
-
-        // - etc.
     }
 }
