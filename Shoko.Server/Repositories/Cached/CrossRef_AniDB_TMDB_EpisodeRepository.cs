@@ -18,7 +18,7 @@ public class CrossRef_AniDB_TMDB_EpisodeRepository : BaseCachedRepository<CrossR
         => ReadLock(() => _anidbAnimeIDs!.GetMultiple(animeId).ToList());
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetByAnidbEpisodeID(int episodeId)
-        => ReadLock(() => _anidbEpisodeIDs!.GetMultiple(episodeId).OrderBy(a => a.Index).ToList());
+        => ReadLock(() => _anidbEpisodeIDs!.GetMultiple(episodeId).OrderBy(a => a.Ordering).ToList());
 
     public CrossRef_AniDB_TMDB_Episode? GetByAnidbEpisodeAndTmdbEpisodeIDs(int anidbEpisodeId, int tmdbEpisodeId)
         => GetByAnidbAnimeID(anidbEpisodeId).FirstOrDefault(xref => xref.TmdbEpisodeID == tmdbEpisodeId);
@@ -27,7 +27,7 @@ public class CrossRef_AniDB_TMDB_EpisodeRepository : BaseCachedRepository<CrossR
         => ReadLock(() => _tmdbShowIDs!.GetMultiple(showId).ToList());
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetByTmdbEpisodeID(int episodeId)
-        => ReadLock(() => _tmdbEpisodeIDs!.GetMultiple(episodeId).OrderBy(a => a.Index).ToList());
+        => ReadLock(() => _tmdbEpisodeIDs!.GetMultiple(episodeId).OrderBy(a => a.Ordering).ToList());
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetAllByAnidbAnimeAndTmdbShowIDs(int anidbId, int tmdbId)
         => ReadLock(() => _tmdbShowIDs!.GetMultiple(tmdbId).Concat(_anidbAnimeIDs!.GetMultiple(anidbId)).ToList());

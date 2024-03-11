@@ -16,7 +16,7 @@ public class CrossRef_AniDB_TMDB_EpisodeMap : ClassMap<CrossRef_AniDB_TMDB_Episo
         Map(x => x.AnidbEpisodeID).Not.Nullable();
         Map(x => x.TmdbShowID).Not.Nullable();
         Map(x => x.TmdbEpisodeID).Not.Nullable();
-        Map(x => x.Index).Not.Nullable();
+        Map(x => x.Ordering).Not.Nullable();
         Map(x => x.MatchRating).Not.Nullable();
     }
 }

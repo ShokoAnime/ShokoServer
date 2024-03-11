@@ -35,7 +35,7 @@ public class TMDB_Company_Entity
     /// <summary>
     /// Used for ordering the companies for the entity.
     /// </summary>
-    public int Index { get; set; }
+    public int Ordering { get; set; }
 
     /// <summary>
     /// Used for ordering the entities for the company.
@@ -53,7 +53,7 @@ public class TMDB_Company_Entity
         TmdbCompanyID = companyId;
         TmdbEntityType = entityType;
         TmdbEntityID = entityId;
-        Index = index;
+        Ordering = index;
         ReleasedAt = releasedAt;
     }
 

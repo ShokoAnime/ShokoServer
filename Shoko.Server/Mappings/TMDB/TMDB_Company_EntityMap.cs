@@ -16,7 +16,7 @@ public class TMDB_Company_EntityMap : ClassMap<TMDB_Company_Entity>
         Map(x => x.TmdbCompanyID).Not.Nullable();
         Map(x => x.TmdbEntityType).Not.Nullable().CustomType<ForeignEntityType>();
         Map(x => x.TmdbEntityID).Not.Nullable();
-        Map(x => x.Index).Not.Nullable();
+        Map(x => x.Ordering).Not.Nullable();
         Map(x => x.ReleasedAt);
     }
 }

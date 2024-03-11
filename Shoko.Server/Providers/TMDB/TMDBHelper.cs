@@ -786,7 +786,7 @@ public class TMDBHelper
             if (toSave.CrossRef_AniDB_TMDB_EpisodeID == 0 && !index.HasValue)
                 index = existingAnidbLinks > 0 ? existingAnidbLinks - 1 : existingTmdbLinks > 0 ? existingTmdbLinks - 1 : 0;
             if (index.HasValue)
-                toSave.Index = index.Value;
+                toSave.Ordering = index.Value;
             RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(toSave);
         }
         else
@@ -795,7 +795,7 @@ public class TMDBHelper
             var toSave = xrefs.Count > 0 ? xrefs[0] : new(anidbEpisodeId, anidbEpisode.AnimeID, tmdbEpisodeId, tmdbEpisode.TmdbShowID);
             toSave.TmdbShowID = tmdbEpisode.TmdbShowID;
             toSave.TmdbEpisodeID = tmdbEpisode.TmdbEpisodeID;
-            toSave.Index = 0;
+            toSave.Ordering = 0;
             var toDelete = xrefs.Skip(1).ToList();
             RepoFactory.CrossRef_AniDB_TMDB_Episode.Save(toSave);
             RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(toDelete);
@@ -1940,9 +1940,9 @@ public class TMDBHelper
             var currentIndex = indexCounter++;
             if (existingXrefs.TryGetValue(company.Id, out var existingXref))
             {
-                if (existingXref.Index != currentIndex || existingXref.ReleasedAt != tmdbEntity.ReleasedAt)
+                if (existingXref.Ordering != currentIndex || existingXref.ReleasedAt != tmdbEntity.ReleasedAt)
                 {
-                    existingXref.Index = currentIndex;
+                    existingXref.Ordering = currentIndex;
                     existingXref.ReleasedAt = tmdbEntity.ReleasedAt;
                     xrefsToSave.Add(existingXref);
                 }
