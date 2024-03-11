@@ -19,12 +19,12 @@ using TMDbLib.Client;
 using TMDbLib.Objects.Collections;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Movies;
+using TMDbLib.Objects.People;
 using TMDbLib.Objects.Search;
 using TMDbLib.Objects.TvShows;
 
 using TitleLanguage = Shoko.Plugin.Abstractions.DataModels.TitleLanguage;
 using MovieCredits = TMDbLib.Objects.Movies.Credits;
-using EpisodeCredits = TMDbLib.Objects.TvShows.Credits;
 
 #nullable enable
 namespace Shoko.Server.Providers.TMDB;
@@ -260,8 +260,7 @@ public class TMDBHelper
             castToKeep.Add(cast.CreditId);
             if (!knownPeopleDict.TryGetValue(cast.Id, out var tmdbPerson))
             {
-                // TODO: Fix once 2.2 of TMDbLib is out.
-                var person = await _client.GetPersonAsync(cast.Id /* , PersonMethods.Translations */) ??
+                var person = await _client.GetPersonAsync(cast.Id, PersonMethods.Translations) ??
                     throw new Exception($"Unable to get TMDB Person with id {cast.Id}. (Movie={tmdbMovie.Id},Person={cast.Id})");
 
                 tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(cast.Id);
@@ -320,8 +319,7 @@ public class TMDBHelper
             crewToKeep.Add(crew.CreditId);
             if (!knownPeopleDict.TryGetValue(crew.Id, out var tmdbPerson))
             {
-                // TODO: Fix once 2.2 of TMDbLib is out.
-                var person = await _client.GetPersonAsync(crew.Id /* , PersonMethods.Translations */) ??
+                var person = await _client.GetPersonAsync(crew.Id, PersonMethods.Translations) ??
                     throw new Exception($"Unable to get TMDB Person with id {crew.Id}. (Movie={tmdbMovie.Id},Person={crew.Id})");
 
                 tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(crew.Id);
@@ -1119,8 +1117,7 @@ public class TMDBHelper
             castToKeep.Add(cast.CreditId);
             if (!knownPeopleDict.TryGetValue(cast.Id, out var tmdbPerson))
             {
-                // TODO: Fix once 2.2 of TMDbLib is out.
-                var person = await _client.GetPersonAsync(cast.Id /* , PersonMethods.Translations */) ??
+                var person = await _client.GetPersonAsync(cast.Id, PersonMethods.Translations) ??
                     throw new Exception($"Unable to get TMDB Person with id {cast.Id}. (Show={tmdbEpisode.TmdbShowID},Season={tmdbEpisode.TmdbSeasonID},Episode={tmdbEpisode.Id},Person={cast.Id})");
 
                 tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(cast.Id);
@@ -1187,8 +1184,7 @@ public class TMDBHelper
             crewToKeep.Add(crew.CreditId);
             if (!knownPeopleDict.TryGetValue(crew.Id, out var tmdbPerson))
             {
-                // TODO: Fix once 2.2 of TMDbLib is out.
-                var person = await _client.GetPersonAsync(crew.Id /* , PersonMethods.Translations */) ??
+                var person = await _client.GetPersonAsync(crew.Id, PersonMethods.Translations) ??
                     throw new Exception($"Unable to get TMDB Person with id {crew.Id}. (Show={tmdbEpisode.TmdbShowID},Season={tmdbEpisode.TmdbSeasonID},Episode={tmdbEpisode.Id},Person={crew.Id})");
 
                 tmdbPerson = RepoFactory.TMDB_Person.GetByTmdbPersonID(crew.Id);
