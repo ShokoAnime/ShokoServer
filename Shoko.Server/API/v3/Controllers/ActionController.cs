@@ -161,13 +161,46 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Updates All TMDB Movie Info.
+    /// Updates all TMDB Movies in the local database.
     /// </summary>
     /// <returns></returns>
-    [HttpGet("UpdateAllTMDBMovieInfo")]
-    public ActionResult UpdateAllTMDBMovieInfo()
+    [HttpGet("UpdateAllTmdbMovies")]
+    public ActionResult UpdateAllTmdbMovies()
     {
         Task.Factory.StartNew(() => _tmdbHelper.UpdateAllMovies(true, true));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Purge all unused TMDB Movies that are not linked to any AniDB anime.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("PurgeAllUnusedTmdbMovies")]
+    public ActionResult PurgeAllUnusedTmdbMovies()
+    {
+        Task.Factory.StartNew(() => _tmdbHelper.PurgeAllUnusedMovies());
+        return Ok();
+    }
+
+    /// <summary>
+    /// Update all TMDB Shows in the local database.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("UpdateAllTmdbShows")]
+    public ActionResult UpdateAllTmdbShows()
+    {
+        Task.Factory.StartNew(() => _tmdbHelper.UpdateAllShows(true, true));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Purge all unused TMDB Shows that are not linked to any AniDB anime.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("PurgeAllUnusedTmdbShows")]
+    public ActionResult PurgeAllUnusedTmdbShows()
+    {
+        Task.Factory.StartNew(() => _tmdbHelper.PurgeAllUnusedShows());
         return Ok();
     }
 
