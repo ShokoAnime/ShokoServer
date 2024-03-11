@@ -501,7 +501,12 @@ public class TMDBHelper
     {
         var allMovies = RepoFactory.TMDB_Movie.GetAll().Select(movie => movie.TmdbMovieID)
             .Concat(RepoFactory.TMDB_Image.GetAll().Where(image => image.TmdbMovieID.HasValue).Select(image => image.TmdbMovieID!.Value))
-            // TODO: Maybe add some more tables here to concat with.
+            .Concat(RepoFactory.CrossRef_AniDB_TMDB_Movie.GetAll().Select(xref => xref.TmdbMovieID))
+            .Concat(RepoFactory.TMDB_Company_Entity.GetAll().Where(x => x.TmdbEntityType == ForeignEntityType.Movie).Select(x => x.TmdbEntityID))
+            .Concat(RepoFactory.TMDB_Movie_Cast.GetAll().Select(x => x.TmdbMovieID))
+            .Concat(RepoFactory.TMDB_Movie_Crew.GetAll().Select(x => x.TmdbMovieID))
+            .Concat(RepoFactory.TMDB_Collection.GetAll().Select(collection => collection.TmdbCollectionID))
+            .Concat(RepoFactory.TMDB_Collection_Movie.GetAll().Select(collectionMovie => collectionMovie.TmdbMovieID))
             .ToHashSet();
         var toKeep = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetAll()
             .Select(xref => xref.TmdbMovieID)
@@ -1489,16 +1494,22 @@ public class TMDBHelper
         return 0;
     }
 
-
     #endregion
 
     #region Purge
 
     public void PurgeAllUnusedShows()
     {
-        var allShows = RepoFactory.TMDB_Show.GetAll().Select(movie => movie.TmdbShowID)
+        var allShows = RepoFactory.TMDB_Show.GetAll().Select(show => show.TmdbShowID)
             .Concat(RepoFactory.TMDB_Image.GetAll().Where(image => image.TmdbShowID.HasValue).Select(image => image.TmdbShowID!.Value))
-            // TODO: Maybe add some more tables here to concat with.
+            .Concat(RepoFactory.CrossRef_AniDB_TMDB_Show.GetAll().Select(xref => xref.TmdbShowID))
+            .Concat(RepoFactory.TMDB_Company_Entity.GetAll().Where(x => x.TmdbEntityType == ForeignEntityType.Show).Select(x => x.TmdbEntityID))
+            .Concat(RepoFactory.TMDB_Show_Network.GetAll().Select(x => x.TmdbShowID))
+            .Concat(RepoFactory.TMDB_Season.GetAll().Select(x => x.TmdbShowID))
+            .Concat(RepoFactory.TMDB_Episode.GetAll().Select(x => x.TmdbShowID))
+            .Concat(RepoFactory.TMDB_AlternateOrdering.GetAll().Select(ordering => ordering.TmdbShowID))
+            .Concat(RepoFactory.TMDB_AlternateOrdering_Season.GetAll().Select(season => season.TmdbShowID))
+            .Concat(RepoFactory.TMDB_AlternateOrdering_Episode.GetAll().Select(episode => episode.TmdbShowID))
             .ToHashSet();
         var toKeep = RepoFactory.CrossRef_AniDB_TMDB_Show.GetAll()
             .Select(xref => xref.TmdbShowID)
