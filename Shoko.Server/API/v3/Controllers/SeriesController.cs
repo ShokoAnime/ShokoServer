@@ -21,7 +21,6 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -31,6 +30,7 @@ using EpisodeType = Shoko.Server.API.v3.Models.Shoko.EpisodeType;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 using Quartz;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 
@@ -42,17 +42,17 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class SeriesController : BaseController
 {
+    private readonly AniDBTitleHelper _titleHelper;
     private readonly SeriesFactory _seriesFactory;
-    private readonly IHttpConnectionHandler _httpHandler;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly JobFactory _jobFactory;
 
-    public SeriesController(IHttpConnectionHandler httpHandler, ISettingsProvider settingsProvider, SeriesFactory seriesFactory, ISchedulerFactory schedulerFactory, JobFactory jobFactory) : base(settingsProvider)
+    public SeriesController(ISettingsProvider settingsProvider, SeriesFactory seriesFactory, ISchedulerFactory schedulerFactory, JobFactory jobFactory, AniDBTitleHelper titleHelper) : base(settingsProvider)
     {
-        _httpHandler = httpHandler;
         _seriesFactory = seriesFactory;
         _schedulerFactory = schedulerFactory;
         _jobFactory = jobFactory;
+        _titleHelper = titleHelper;
     }
 
     #region Return messages
@@ -1928,7 +1928,7 @@ public class SeriesController : BaseController
             }
 
             // Check the title cache for a match.
-            var result = Utils.AniDBTitleHelper.SearchAnimeID(animeID);
+            var result = _titleHelper.SearchAnimeID(animeID);
             if (result != null)
             {
                 return new ListResult<Series.AniDB>(1,
@@ -1940,7 +1940,7 @@ public class SeriesController : BaseController
 
         // Return all known entries on anidb if no query is given.
         if (string.IsNullOrEmpty(query))
-            return Utils.AniDBTitleHelper.GetAll()
+            return _titleHelper.GetAll()
                 .OrderBy(anime => anime.AnimeID)
                 .Select(result =>
                 {
@@ -1956,7 +1956,7 @@ public class SeriesController : BaseController
                 .ToListResult(page, pageSize);
 
         // Search the title cache for anime matching the query.
-        return Utils.AniDBTitleHelper.SearchTitle(query, fuzzy)
+        return _titleHelper.SearchTitle(query, fuzzy)
             .Select(result =>
             {
                 var series = RepoFactory.AnimeSeries.GetByAnimeID(result.AnimeID);

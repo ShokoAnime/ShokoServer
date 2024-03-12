@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.AniDB.UDP;
 
 namespace Shoko.Server.Providers.AniDB;
@@ -13,6 +14,7 @@ public static class AniDBStartup
     {
         services.AddSingleton<HttpAnimeParser>();
         services.AddSingleton<ImageHttpClientFactory>();
+        services.AddSingleton<AniDBTitleHelper>();
         services.AddSingleton<AnimeCreator>();
         services.AddSingleton<HttpXmlUtils>();
         services.AddSingleton<UDPRateLimiter>();

@@ -29,6 +29,7 @@ public class SeriesFactory
 {
     private readonly HttpContext _context;
     private readonly CrossRef_Anime_StaffRepository _crossRefAnimeStaffRepository;
+    private readonly AniDBTitleHelper _titleHelper;
     private readonly AnimeCharacterRepository _animeCharacterRepository;
     private readonly AnimeStaffRepository _animeStaffRepository;
     private readonly CustomTagRepository _customTagRepository;
@@ -37,10 +38,11 @@ public class SeriesFactory
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly JobFactory _jobFactory;
 
-    public SeriesFactory(IHttpContextAccessor context, ISchedulerFactory schedulerFactory, JobFactory jobFactory)
+    public SeriesFactory(IHttpContextAccessor context, ISchedulerFactory schedulerFactory, JobFactory jobFactory, AniDBTitleHelper titleHelper)
     {
         _schedulerFactory = schedulerFactory;
         _jobFactory = jobFactory;
+        _titleHelper = titleHelper;
         _context = context.HttpContext;
         _crossRefAnimeStaffRepository = RepoFactory.CrossRef_Anime_Staff;
         _animeCharacterRepository = RepoFactory.AnimeCharacter;
@@ -560,7 +562,7 @@ public class SeriesFactory
             return;
         }
 
-        var result = Utils.AniDBTitleHelper.SearchAnimeID(relation.RelatedAnimeID);
+        var result = _titleHelper.SearchAnimeID(relation.RelatedAnimeID);
         if (result != null)
         {
             aniDB.Type = SeriesType.Unknown;
@@ -637,7 +639,7 @@ public class SeriesFactory
             return;
         }
 
-        var result = Utils.AniDBTitleHelper.SearchAnimeID(similar.SimilarAnimeID);
+        var result = _titleHelper.SearchAnimeID(similar.SimilarAnimeID);
         if (result != null)
         {
             aniDB.Type = SeriesType.Unknown;

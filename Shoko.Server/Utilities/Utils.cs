@@ -26,15 +26,10 @@ namespace Shoko.Server.Utilities;
 
 public static class Utils
 {
-    private static AniDBTitleHelper s_aniDBTitleHelper;
     public static ShokoServer ShokoServer { get; set; }
     public static IServiceProvider ServiceContainer { get; set; }
     public static ISettingsProvider SettingsProvider { get; set; }
 
-    public static AniDBTitleHelper AniDBTitleHelper
-    {
-        get => s_aniDBTitleHelper ??= new AniDBTitleHelper(ServiceContainer.GetRequiredService<ISettingsProvider>());
-    }
     private static string _applicationPath { get; set; } = null;
     public static string ApplicationPath
     {

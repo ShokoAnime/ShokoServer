@@ -19,6 +19,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -648,7 +649,8 @@ public partial class ShokoServiceImplementation
             else
             {
                 // title search so look at the web cache
-                foreach (var tit in Utils.AniDBTitleHelper.SearchTitle(HttpUtility.UrlDecode(titleQuery)))
+                var titleHelper = Utils.ServiceContainer.GetRequiredService<AniDBTitleHelper>();
+                foreach (var tit in titleHelper.SearchTitle(HttpUtility.UrlDecode(titleQuery)))
                 {
                     var res = new CL_AnimeSearch
                     {
