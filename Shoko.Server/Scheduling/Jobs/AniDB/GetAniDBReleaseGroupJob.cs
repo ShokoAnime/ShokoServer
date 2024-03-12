@@ -1,7 +1,6 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
@@ -22,25 +21,27 @@ public class GetAniDBReleaseGroupJob : BaseJob
     public int GroupID { get; set; }
     public bool ForceRefresh { get; set; }
 
-    public override string Name => "Get AniDB Release Group Data";
-    public override QueueStateStruct Description => new()
+    public override string TypeName => "Get AniDB Release Group Data";
+
+    public override string Title => "Getting AniDB Release Group Data";
+    public override Dictionary<string, object> Details => new()
     {
-        message = "Getting AniDB Release Group: {0}",
-        queueState = QueueStateEnum.GetReleaseInfo,
-        extraParams = new[] { GroupID.ToString() }
+        {
+            "GroupID", GroupID
+        }
     };
 
-    public override async Task Process()
+    public override Task Process()
     {
         _logger.LogInformation("Processing {Job}: {GroupID}", nameof(GetAniDBReleaseGroupJob), GroupID);
 
         var relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(GroupID);
-        if (!ForceRefresh && relGroup != null) return;
+        if (!ForceRefresh && relGroup != null) return Task.CompletedTask;
 
         var request = _requestFactory.Create<RequestReleaseGroup>(r => r.ReleaseGroupID = GroupID);
         var response = request.Send();
 
-        if (response?.Response == null) return;
+        if (response?.Response == null) return Task.CompletedTask;
 
         relGroup ??= new AniDB_ReleaseGroup();
         relGroup.GroupID = response.Response.ID;
@@ -55,6 +56,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
         relGroup.URL = response.Response.URL;
         relGroup.Picname = response.Response.Picture;
         RepoFactory.AniDB_ReleaseGroup.Save(relGroup);
+        return Task.CompletedTask;
     }
     
     public GetAniDBReleaseGroupJob(IRequestFactory requestFactory)

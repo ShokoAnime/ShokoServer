@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NHibernate;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Databases;
 using Shoko.Server.Providers.TraktTV;
@@ -27,16 +25,11 @@ public class SearchTraktSeriesJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
-    public virtual int AnimeID { get; set; }
+    public int AnimeID { get; set; }
 
-    public override string Name => "Get Trakt Series";
-
-    public override QueueStateStruct Description => new()
-    {
-        message = "Searching for anime on Trakt.TV: {0}",
-        queueState = QueueStateEnum.SearchTrakt,
-        extraParams = new[] { AnimeID.ToString() }
-    };
+    public override string TypeName => "Get Trakt Series";
+    public override string Title => "Searching for Trakt Series";
+    public override Dictionary<string, object> Details => new() { { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString() } };
 
     public override Task Process()
     {

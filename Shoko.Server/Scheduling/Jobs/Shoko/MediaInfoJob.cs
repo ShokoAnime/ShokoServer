@@ -1,7 +1,7 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
+using Quartz;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -21,20 +21,17 @@ public class MediaInfoJob : BaseJob
 
     public int VideoLocalID { get; set; }
 
-    public override string Name => "Read MediaInfo";
+    public override string TypeName => "Read MediaInfo";
 
     public override void PostInit()
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
-        _fileName = _vlocal?.GetBestVideoLocalPlace()?.FileName ?? VideoLocalID.ToString();
+        if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
+        _fileName = _vlocal.GetBestVideoLocalPlace()?.FullServerPath;
     }
 
-    public override QueueStateStruct Description => new()
-    {
-        message = "Reading media info for file: {0}",
-        queueState = QueueStateEnum.ReadingMedia,
-        extraParams = new[] { _fileName }
-    };
+    public override string Title => "Reading MediaInfo for File";
+    public override Dictionary<string, object> Details => new() { { "File Path", _fileName } };
 
     public override Task Process()
     {

@@ -1,12 +1,12 @@
 using System;
-using System.Globalization;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
-using Shoko.Models.Queue;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.AniDB.UDP.User;
+using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
@@ -19,18 +19,27 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class VoteAniDBAnimeJob : BaseJob
 {
+    private readonly AniDBTitleHelper _titleHelper;
     private readonly IRequestFactory _requestFactory;
+    private string _animeName;
 
     public int AnimeID { get; set; }
     public AniDBVoteType VoteType { get; set; }
     public decimal VoteValue { get; set; }
 
-    public override string Name => "Rate Anime";
-    public override QueueStateStruct Description => new()
+    public override void PostInit()
     {
-        message = "Voting: {0} - {1}",
-        queueState = QueueStateEnum.VoteAnime,
-        extraParams = new[] { AnimeID.ToString(), VoteValue.ToString(CultureInfo.InvariantCulture) }
+        _animeName = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
+    }
+
+    public override string TypeName => "Rate Anime";
+
+    public override string Title => "Sending AniDB Anime Vote";
+    public override Dictionary<string, object> Details => new()
+    {
+        { "Anime", _animeName },
+        { "Vote", VoteValue },
+        { "Type", VoteType.ToString() }
     };
 
     public override Task Process()
@@ -49,12 +58,11 @@ public class VoteAniDBAnimeJob : BaseJob
         return Task.CompletedTask;
     }
     
-    public VoteAniDBAnimeJob(IRequestFactory requestFactory)
+    public VoteAniDBAnimeJob(IRequestFactory requestFactory, AniDBTitleHelper titleHelper)
     {
         _requestFactory = requestFactory;
+        _titleHelper = titleHelper;
     }
 
-    protected VoteAniDBAnimeJob()
-    {
-    }
+    protected VoteAniDBAnimeJob() { }
 }

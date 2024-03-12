@@ -6,8 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Quartz;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper;
@@ -37,13 +35,18 @@ public class HashFileJob : BaseJob
     public bool ForceHash { get; set; }
     public bool SkipMyList { get; set; }
 
-    public override string Name => "Hash File";
-    public override QueueStateStruct Description => new()
+    public override string TypeName => "Hash File";
+    public override string Title => "Hashing File";
+    public override Dictionary<string, object> Details
     {
-        message = "Hashing File: {0}",
-        extraParams = new[] { FileName },
-        queueState = QueueStateEnum.HashingFile
-    };
+        get
+        {
+            var result = new Dictionary<string, object> { { "File Path", FileName } };
+            if (ForceHash) result["Force"] = true;
+            if (SkipMyList) result["Add to MyList"] = !SkipMyList;
+            return result;
+        }
+    }
 
     public override async Task Process()
     {

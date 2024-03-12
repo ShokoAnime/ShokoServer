@@ -1,7 +1,6 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -16,12 +15,13 @@ public class RefreshAnimeStatsJob : BaseJob
     public int AnimeID { get; set; }
     private string _anime;
 
-    public override string Name => "Refresh Anime Stats";
-    public override QueueStateStruct Description => new()
+    public override string TypeName => "Refresh Anime Stats";
+    public override string Title => "Refreshing Anime Stats";
+    public override Dictionary<string, object> Details => new()
     {
-        message = "Refreshing anime stats: {0}",
-        queueState = QueueStateEnum.Refresh,
-        extraParams = new[] { _anime }
+        {
+            "AnimeID", AnimeID
+        }
     };
 
     public override void PostInit()

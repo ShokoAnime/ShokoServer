@@ -1,9 +1,9 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
@@ -21,13 +21,12 @@ public class LinkTvDBSeriesJob : BaseJob
     public int TvDBID { get; set; }
     public bool AdditiveLink { get; set; }
 
-    public override string Name => "Link TvDB Series";
-
-    public override QueueStateStruct Description => new()
+    public override string TypeName => "Link TvDB Series";
+    public override string Title => "Linking TvDB Series";
+    public override Dictionary<string, object> Details => new()
     {
-        message = "Linking TvDB: {0} to AniDB: {1}",
-        queueState = QueueStateEnum.LinkAniDBTvDB,
-        extraParams = new[] { TvDBID.ToString(), AnimeID.ToString() }
+        { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString() },
+        { "TvDB Series", RepoFactory.TvDB_Series.GetByTvDBID(TvDBID)?.SeriesName ?? TvDBID.ToString() }
     };
 
     public override async Task Process()

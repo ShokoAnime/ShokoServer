@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Queue;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
@@ -275,41 +274,21 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
         try
         {
-            var hasherQueueState = new QueueStateStruct
-            {
-                queueState = Shoko.Models.Queue.QueueStateEnum.Idle,
-                message = "Idle",
-                extraParams = Array.Empty<string>(),
-            };
             contract.HashQueueCount = 0;
-            contract.HashQueueMessage = hasherQueueState.formatMessage();
-            contract.HashQueueState = hasherQueueState.formatMessage(); // Deprecated since 3.6.0.0
-            contract.HashQueueStateId = (int)hasherQueueState.queueState;
-            contract.HashQueueStateParams = hasherQueueState.extraParams;
-
-            var generalQueueState = new QueueStateStruct
-            {
-                queueState = Shoko.Models.Queue.QueueStateEnum.Idle,
-                message = "Idle",
-                extraParams = Array.Empty<string>(),
-            };
+            contract.HashQueueMessage = string.Empty;
+            contract.HashQueueState = string.Empty; // Deprecated since 3.6.0.0
+            contract.HashQueueStateId = 0;
+            contract.HashQueueStateParams = Array.Empty<string>();
             contract.GeneralQueueCount = 0;
-            contract.GeneralQueueMessage = generalQueueState.formatMessage();
-            contract.GeneralQueueState = generalQueueState.formatMessage(); // Deprecated since 3.6.0.0
-            contract.GeneralQueueStateId = (int)generalQueueState.queueState;
-            contract.GeneralQueueStateParams = generalQueueState.extraParams;
-
-            var imagesQueueState = new QueueStateStruct
-            {
-                queueState = Shoko.Models.Queue.QueueStateEnum.Idle,
-                message = "Idle",
-                extraParams = Array.Empty<string>(),
-            };
+            contract.GeneralQueueMessage = string.Empty;
+            contract.GeneralQueueState = string.Empty; // Deprecated since 3.6.0.0
+            contract.GeneralQueueStateId = 0;
+            contract.GeneralQueueStateParams = Array.Empty<string>();
             contract.ImagesQueueCount = 0;
-            contract.ImagesQueueMessage = imagesQueueState.formatMessage();
-            contract.ImagesQueueState = imagesQueueState.formatMessage(); // Deprecated since 3.6.0.0
-            contract.ImagesQueueStateId = (int)imagesQueueState.queueState;
-            contract.ImagesQueueStateParams = imagesQueueState.extraParams;
+            contract.ImagesQueueMessage = string.Empty;
+            contract.ImagesQueueState = string.Empty; // Deprecated since 3.6.0.0
+            contract.ImagesQueueStateId = 0;
+            contract.ImagesQueueStateParams = Array.Empty<string>();
 
             var udp = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
             var http = HttpContext.RequestServices.GetRequiredService<IHttpConnectionHandler>();

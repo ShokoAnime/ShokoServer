@@ -32,13 +32,13 @@ public class ResponseAniDBTitles
                     if (title != null) return title.Title;
 
                     // Then check for an official title.
-                    title = Titles.FirstOrDefault(title => title.TitleType == TitleType.Official && title.Language == language);
+                    title = Titles.FirstOrDefault(t => t.TitleType == TitleType.Official && t.Language == language);
                     if (title != null) return title.Title;
 
                     // Then check for _any_ title at all, if there is no main or official title in the langugage.
                     if (Utils.SettingsProvider.GetSettings().LanguageUseSynonyms)
                     {
-                        title = Titles.FirstOrDefault(title => title.Language == language);
+                        title = Titles.FirstOrDefault(t => t.Language == language);
                         if (title != null) return title.Title;
                     }
                 }

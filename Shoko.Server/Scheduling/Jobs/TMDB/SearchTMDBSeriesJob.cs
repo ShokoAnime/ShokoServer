@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Repositories;
@@ -30,13 +28,9 @@ public class SearchTMDBSeriesJob : BaseJob
         _animeTitle = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
     }
 
-    public override string Name => "Search TMDB Series";
-    public override QueueStateStruct Description => new()
-    {
-        message = "Searching for anime on The MovieDB: {0}",
-        queueState = QueueStateEnum.SearchTMDb,
-        extraParams = new[] { _animeTitle }
-    };
+    public override string TypeName => "Search TMDB Series";
+    public override string Title => "Searching for TMDB Series";
+    public override Dictionary<string, object> Details => new() { { "Anime", _animeTitle } };
 
     public override async Task Process()
     {

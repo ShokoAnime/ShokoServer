@@ -4,10 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
-using Shoko.Models.Queue;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
@@ -20,26 +19,35 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 public class GetAniDBImagesJob : BaseJob
 {
     private SVR_AniDB_Anime _anime;
+    private string _title;
+    private readonly AniDBTitleHelper _titleHelper;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
 
     public int AnimeID { get; set; }
     public bool ForceDownload { get; set; }
 
-    public override string Name => "Get AniDB Images Data";
-    public override QueueStateStruct Description => new()
-    {
-        message = "Getting Images for {0}",
-        queueState = QueueStateEnum.DownloadImage,
-        extraParams = new[]
+    public override string TypeName => "Get AniDB Images Data";
+
+    public override string Title => "Getting AniDB Image Data";
+    public override Dictionary<string, object> Details => _title == null
+        ? new()
         {
-            _anime?.PreferredTitle ?? AnimeID.ToString()
+            {
+                "AnimeID", AnimeID
+            }
         }
-    };
+        : new()
+        {
+            {
+                "Anime", _title
+            }
+        };
 
     public override void PostInit()
     {
         _anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+        _title = _anime?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle;
     }
 
     public override async Task Process()
@@ -119,8 +127,9 @@ public class GetAniDBImagesJob : BaseJob
         }
     }
 
-    public GetAniDBImagesJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory)
+    public GetAniDBImagesJob(AniDBTitleHelper aniDBTitleHelper, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory)
     {
+        _titleHelper = aniDBTitleHelper;
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
     }

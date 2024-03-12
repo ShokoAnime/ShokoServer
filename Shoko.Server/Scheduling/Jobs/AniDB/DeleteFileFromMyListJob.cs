@@ -1,8 +1,7 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
-using Shoko.Models.Queue;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
@@ -24,7 +23,7 @@ public class DeleteFileFromMyListJob : BaseJob
 {
     private readonly IRequestFactory _requestFactory;
     private readonly ISettingsProvider _settingsProvider;
-    
+
     public string Hash { get; set; }
     public long FileSize { get; set; }
     public EpisodeType EpisodeType { get; set; }
@@ -33,18 +32,20 @@ public class DeleteFileFromMyListJob : BaseJob
     public int MyListID { get; set; }
     public int FileID { get; set; }
 
-    public override string Name => "Delete File From MyList";
-    public override QueueStateStruct Description => new()
-    {
-        message =
-            string.IsNullOrEmpty(Hash)
-                ? "Deleting file from MyList: {0}, Episode: {1} {2}"
-                : "Deleting file from MyList: {0}",
-        queueState = QueueStateEnum.AniDB_MyListDelete,
-        extraParams = string.IsNullOrEmpty(Hash)
-            ? new[] { AnimeID.ToString(), EpisodeType.ToString(), EpisodeNumber.ToString() }
-            : new[] { Hash },
-    };
+    public override string TypeName => "Delete File From MyList";
+
+    public override string Title => "Deleting file from MyList";
+    public override Dictionary<string, object> Details => string.IsNullOrEmpty(Hash)
+        ? new()
+        {
+            { "AnimeID", AnimeID },
+            { "Episode Type", EpisodeType.ToString() },
+            { "Episode Number", EpisodeNumber }
+        }
+        : new()
+        {
+            { "Hash", Hash }
+        };
 
     public override Task Process()
     {

@@ -1,11 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Plex;
 using Shoko.Server.Plex.Collection;
@@ -26,15 +25,14 @@ namespace Shoko.Server.Scheduling.Jobs.Plex;
 public class SyncPlexWatchedStatesJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
-    public virtual JMMUser User { get; set; }
+    public JMMUser User { get; set; }
 
-    public override string Name => "Sync Series to Trakt Collection";
+    public override string TypeName => "Sync Series to Trakt Collection";
 
-    public override QueueStateStruct Description => new()
+    public override string Title => "Sync Plex States for User";
+    public override Dictionary<string, object> Details => new()
     {
-        message = "Syncing Plex for user: {0}",
-        queueState = QueueStateEnum.SyncPlex,
-        extraParams = new[] { User.Username }
+        { "User", User.Username }
     };
 
     public override Task Process()

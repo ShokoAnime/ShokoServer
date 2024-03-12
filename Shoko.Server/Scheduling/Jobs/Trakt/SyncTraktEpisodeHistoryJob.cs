@@ -1,7 +1,7 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -23,14 +23,22 @@ public class SyncTraktEpisodeHistoryJob : BaseJob
     public int AnimeEpisodeID { get; set; }
     public TraktSyncAction Action { get; set; } = TraktSyncAction.Add;
 
-    public override string Name => "Sync Trakt Episode History";
-
-    public override QueueStateStruct Description => new()
+    public override string TypeName => "Sync Trakt Episode History";
+    public override string Title => "Syncing Trakt Episode History";
+    public override Dictionary<string, object> Details
     {
-        message = "Add episode to history on Trakt: {0}",
-        queueState = QueueStateEnum.TraktAddHistory,
-        extraParams = new[] { AnimeEpisodeID.ToString() }
-    };
+        get
+        {
+            var episode = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID).AniDB_Episode;
+            return new()
+            {
+                { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(episode.AnimeID) },
+                { "Episode Type", ((EpisodeType)episode.EpisodeType).ToString() },
+                { "Episode Number", episode.EpisodeNumber },
+                { "Sync Action", Action.ToString() }
+            };
+        }
+    }
 
     public override Task Process()
     {

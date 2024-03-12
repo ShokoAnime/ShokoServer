@@ -1,10 +1,7 @@
-using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -27,13 +24,9 @@ public class SyncAniDBVotesJob : BaseJob
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ISettingsProvider _settingsProvider;
 
-    public override string Name => "Sync AniDB Votes";
-    public override QueueStateStruct Description => new()
-    {
-        message = "Upload Local Votes To AniDB",
-        queueState = QueueStateEnum.Actions_SyncVotes,
-        extraParams = Array.Empty<string>()
-    };
+    public override string TypeName => "Sync AniDB Votes";
+
+    public override string Title => "Syncing AniDB Votes";
 
     public override async Task Process()
     {

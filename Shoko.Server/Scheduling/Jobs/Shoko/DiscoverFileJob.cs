@@ -1,11 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -29,12 +28,14 @@ public class DiscoverFileJob : BaseJob
     public string FileName { get; set; }
     public bool SkipMyList { get; set; }
 
-    public override string Name => "Discover File";
-    public override QueueStateStruct Description => new()
+    public override string TypeName => "Discover File";
+
+    public override string Title => "Preprocessing File";
+    public override Dictionary<string, object> Details => new()
     {
-        message = "Checking File for Hashes: {0}",
-        extraParams = new[] { FileName },
-        queueState = QueueStateEnum.CheckingFile
+        {
+            "File Path", FileName
+        }
     };
 
     public override async Task Process()

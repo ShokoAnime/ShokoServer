@@ -1,19 +1,19 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Polly;
-using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
-using Shoko.Models.Queue;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Providers;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
@@ -30,6 +30,7 @@ public class DownloadAniDBImageJob : BaseJob, IImageDownloadJob
     private const string FailedToDownloadNoID = "Image failed to download: Can\'t find valid {ImageType} with ID: {ImageID}";
     private const string FailedToDownloadNoImpl = "Image failed to download: No implementation found for {ImageType}";
 
+    private readonly AniDBTitleHelper _titleHelper;
     private readonly IUDPConnectionHandler _handler;
     private readonly ImageHttpClientFactory _clientFactory;
     private string _animeTitle;
@@ -42,20 +43,30 @@ public class DownloadAniDBImageJob : BaseJob, IImageDownloadJob
 
     public override void PostInit()
     {
-        _animeTitle = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
+        _animeTitle = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
     }
 
-    public override string Name => "Download AniDB Image";
-    public override QueueStateStruct Description => new()
+    public override string TypeName => "Download AniDB Image";
+
+    public override string Title => "Downloading AniDB Image";
+    public override Dictionary<string, object> Details => ImageType switch
     {
-        message = "Downloading {0} for {1}: {2}",
-        queueState = QueueStateEnum.DownloadImage,
-        extraParams = new[] { ImageType.ToString().Replace("_", " "), _animeTitle, ImageID.ToString()}
+        ImageEntityType.AniDB_Cover => new()
+        {
+            { "Type", ImageType.ToString().Replace("_", " ") },
+            { "Anime", _animeTitle },
+        },
+        _ => new()
+        {
+            { "Anime", _animeTitle },
+            { "Type", ImageType.ToString().Replace("_", " ") },
+            { "ImageID", ImageID }
+        }
     };
 
     public override async Task Process()
     {
-        _logger.LogInformation("Processing {Job} for {Anime} -> Cover: {ImageType} | ImageID: {EntityID}", nameof(DownloadAniDBImageJob), _animeTitle, ImageType, ImageID);
+        _logger.LogInformation("Processing {Job} for {Anime} -> Cover: {ImageType} | ImageID: {EntityID}", nameof(DownloadAniDBImageJob), _animeTitle, ImageType, ImageID == 0 ? AnimeID : ImageID);
 
         var imageType = ImageType.ToString().Replace("_", " ");
         string downloadUrl = null;
@@ -206,10 +217,11 @@ public class DownloadAniDBImageJob : BaseJob, IImageDownloadJob
         });
     }
 
-    public DownloadAniDBImageJob(IUDPConnectionHandler handler, ImageHttpClientFactory clientFactory)
+    public DownloadAniDBImageJob(IUDPConnectionHandler handler, ImageHttpClientFactory clientFactory, AniDBTitleHelper titleHelper)
     {
         _handler = handler;
         _clientFactory = clientFactory;
+        _titleHelper = titleHelper;
     }
 
     protected DownloadAniDBImageJob() { }

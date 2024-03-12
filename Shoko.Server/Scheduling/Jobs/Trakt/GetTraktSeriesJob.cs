@@ -1,7 +1,6 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
@@ -18,14 +17,9 @@ public class GetTraktSeriesJob : BaseJob
     private readonly TraktTVHelper _helper;
     public string TraktID { get; set; }
 
-    public override string Name => "Get Trakt Series";
-
-    public override QueueStateStruct Description => new()
-    {
-        message = "Getting Trakt Series: {0}",
-        queueState = QueueStateEnum.UpdateTraktData,
-        extraParams = new[] { TraktID }
-    };
+    public override string TypeName => "Get Trakt Series";
+    public override string Title => "Getting Trakt Series Data";
+    public override Dictionary<string, object> Details => new() { { "TraktID", TraktID } };
 
     public override Task Process()
     {

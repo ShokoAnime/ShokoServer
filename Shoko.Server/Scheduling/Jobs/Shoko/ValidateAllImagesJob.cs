@@ -1,11 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
-using Shoko.Models.Queue;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -29,14 +28,8 @@ public class ValidateAllImagesJob : BaseJob
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IServerSettings _settings;
 
-    public override string Name => "Validate All Images";
-
-    public override QueueStateStruct Description => new()
-    {
-        message = "Validating Images {0}",
-        queueState = QueueStateEnum.ValidateAllImages,
-        extraParams = new[] { string.Empty }
-    };
+    public override string TypeName => "Validate All Images";
+    public override string Title => "Validating All Images";
 
     public override async Task Process()
     {

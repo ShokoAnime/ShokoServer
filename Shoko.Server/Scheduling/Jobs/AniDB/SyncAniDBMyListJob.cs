@@ -8,9 +8,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Quartz;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
@@ -39,13 +37,9 @@ public class SyncAniDBMyListJob : BaseJob
 
     public bool ForceRefresh { get; set; }
 
-    public override string Name => "Sync AniDB MyList";
-    public override QueueStateStruct Description => new()
-    {
-        message = "Syncing AniDB MyList",
-        queueState = QueueStateEnum.SyncMyList,
-        extraParams = Array.Empty<string>()
-    };
+    public override string TypeName => "Sync AniDB MyList";
+
+    public override string Title => "Syncing AniDB MyList";
 
     public override async Task Process()
     {
