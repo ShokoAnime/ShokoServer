@@ -479,7 +479,9 @@ public class ThreadPooledJobStore : JobStoreTX
             }
         }
 
-        var jobs = await Delegate.SelectJobs(conn, _typeLoadHelper, maxCount - result.Count, offset, NoLaterThan, NoEarlierThan, types, excludeBlocked,
+        if (maxCount - result.Count <= 0) return result;
+
+        var jobs = await Delegate.SelectJobs(conn, _typeLoadHelper, maxCount - result.Count, Math.Max(offset - result.Count, 0), NoLaterThan, NoEarlierThan, types, excludeBlocked,
             cancellationToken);
         result.AddRange(jobs.Select(a =>
         {

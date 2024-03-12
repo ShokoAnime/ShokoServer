@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -121,19 +122,26 @@ public class QueueController : BaseController
             ? _queueHandler.WaitingCount + _queueHandler.BlockedCount + _queueHandler.GetExecutingJobs().Length
             : _queueHandler.WaitingCount + _queueHandler.GetExecutingJobs().Length;
 
+        var offset = (page - 1) * pageSize;
         // simplified from (page - 1) * pageSize + pageSize
         if (page * pageSize <= _settingsProvider.GetSettings().Quartz.WaitingCacheSize)
-            return new ListResult<Queue.QueueItem>(total, _queueHandler.GetWaitingJobs().Select(a => new Queue.QueueItem
-            {
-                Key = a.Key,
-                Type = a.JobType,
-                Title = a.Title,
-                Details = a.Details,
-                IsRunning = a.Running,
-                IsBlocked = a.Blocked
-            }).ToList());
+        {
+            var results = _queueHandler.GetExecutingJobs().Skip(offset).Take(pageSize).ToList();
+            if (pageSize - results.Count > 0)
+                results.AddRange(_queueHandler.GetWaitingJobs().Skip(offset - results.Count).Take(pageSize - results.Count));
+            return new ListResult<Queue.QueueItem>(total, results.Select(a =>
+                new Queue.QueueItem
+                {
+                    Key = a.Key,
+                    Type = a.JobType,
+                    Title = a.Title,
+                    Details = a.Details,
+                    IsRunning = a.Running,
+                    IsBlocked = a.Blocked
+                }).ToList());
+        }
 
-        return new ListResult<Queue.QueueItem>(total, (await _queueHandler.GetJobs(pageSize, (page - 1) * pageSize, !showAll))
+        return new ListResult<Queue.QueueItem>(total, (await _queueHandler.GetJobs(pageSize, offset, !showAll))
             .Select(a => new Queue.QueueItem
             {
                 Key = a.Key,

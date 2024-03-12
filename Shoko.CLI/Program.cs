@@ -68,7 +68,7 @@ public static class Program
 
         foreach (var addedItem in e.AddedItems)
         {
-            _logger.LogTrace("Job Added: {Type} | {Details}", addedItem.JobType ?? addedItem.Key, GetDetails(addedItem.Details));
+            _logger.LogTrace("Job Added: {Type} | {Details}", addedItem.Title, GetDetails(addedItem.Details));
         }
 
         _logger.LogTrace("Waiting: {Waiting} | Blocked: {Blocked} | Executing: {Executing}/{Pool} | Total: {Total}", e.WaitingJobsCount,
@@ -81,7 +81,7 @@ public static class Program
         {
             foreach (var addedItem in e.AddedItems)
             {
-                _logger.LogTrace("Job Started: {Type} | {Details}", addedItem.JobType ?? addedItem.Title, GetDetails(addedItem.Details));
+                _logger.LogTrace("Job Started: {Type} | {Details}", addedItem.Title, GetDetails(addedItem.Details));
             }
         }
 
@@ -89,7 +89,7 @@ public static class Program
         {
             foreach (var removedItem in e.RemovedItems)
             {
-                _logger.LogTrace("Job Completed: {Type} | {Details}", removedItem.JobType, GetDetails(removedItem.Details));
+                _logger.LogTrace("Job Completed: {Type} | {Details}", removedItem.Title, GetDetails(removedItem.Details));
             }
         }
 
