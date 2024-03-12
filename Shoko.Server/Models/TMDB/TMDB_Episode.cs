@@ -260,6 +260,20 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata
         : RepoFactory.TMDB_Image.GetByTmdbEpisodeID(TmdbEpisodeID);
 
     /// <summary>
+    /// Get all cast members that have worked on this episode.
+    /// </summary>
+    /// <returns>All cast members that have worked on this episode.</returns>
+    public IReadOnlyList<TMDB_Episode_Cast> GetCast() =>
+        RepoFactory.TMDB_Episode_Cast.GetByTmdbEpisodeID(TmdbEpisodeID);
+
+    /// <summary>
+    /// Get all crew members that have worked on this episode.
+    /// </summary>
+    /// <returns>All crew members that have worked on this episode.</returns>
+    public IReadOnlyList<TMDB_Episode_Crew> GetCrew() =>
+        RepoFactory.TMDB_Episode_Crew.GetByTmdbEpisodeID(TmdbEpisodeID);
+
+    /// <summary>
     /// Get the TMDB season assosiated with the episode, or null if the season
     /// have been purged from the local database for whatever reason.
     /// </summary>

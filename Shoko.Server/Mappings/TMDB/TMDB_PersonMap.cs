@@ -16,6 +16,7 @@ public class TMDB_PersonMap : ClassMap<TMDB_Person>
         Map(x => x.TmdbPersonID).Not.Nullable();
         Map(x => x.EnglishName).Not.Nullable();
         Map(x => x.EnglishBiography).Not.Nullable();
+        Map(x => x.Aliases).Not.Nullable();
         Map(x => x.Gender).Not.Nullable().CustomType<PersonGender>();
         Map(x => x.IsRestricted).Not.Nullable();
         Map(x => x.BirthDay);

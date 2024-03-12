@@ -313,6 +313,20 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata
             .ToList();
 
     /// <summary>
+    /// Get all cast members that have worked on this movie.
+    /// </summary>
+    /// <returns>All cast members that have worked on this movie.</returns>
+    public IReadOnlyList<TMDB_Movie_Cast> GetCast() =>
+        RepoFactory.TMDB_Movie_Cast.GetByTmdbMovieID(TmdbMovieID);
+
+    /// <summary>
+    /// Get all crew members that have worked on this movie.
+    /// </summary>
+    /// <returns>All crew members that have worked on this movie.</returns>
+    public IReadOnlyList<TMDB_Movie_Crew> GetCrew() =>
+        RepoFactory.TMDB_Movie_Crew.GetByTmdbMovieID(TmdbMovieID);
+
+    /// <summary>
     /// Get the TMDB movie collection linked to the movie from the local
     /// database, if any. You need to have movie collections enabled in the
     /// settings file for this to be populated.

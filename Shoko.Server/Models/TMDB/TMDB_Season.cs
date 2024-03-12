@@ -206,6 +206,58 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
         : RepoFactory.TMDB_Image.GetByTmdbSeasonID(TmdbSeasonID);
 
     /// <summary>
+    /// Get all cast members that have worked on this season.
+    /// </summary>
+    /// <returns>All cast members that have worked on this season.</returns>
+    public IReadOnlyList<TMDB_Season_Cast> GetCast() =>
+        RepoFactory.TMDB_Episode_Cast.GetByTmdbSeasonID(TmdbSeasonID)
+            .GroupBy(cast => new { cast.TmdbPersonID, cast.CharacterName, cast.IsGuestRole })
+            .Select(group =>
+            {
+                var episodes = group.ToList();
+                var firstEpisode = episodes.First();
+                return new TMDB_Season_Cast()
+                {
+                    TmdbPersonID = firstEpisode.TmdbPersonID,
+                    TmdbShowID = firstEpisode.TmdbShowID,
+                    TmdbSeasonID = firstEpisode.TmdbSeasonID,
+                    IsGuestRole = firstEpisode.IsGuestRole,
+                    CharacterName = firstEpisode.CharacterName,
+                    Ordering = firstEpisode.Ordering,
+                    EpisodeCount = episodes.Count,
+                };
+            })
+            .OrderBy(crew => crew.Ordering)
+            .OrderBy(crew => crew.TmdbPersonID)
+            .ToList();
+
+    /// <summary>
+    /// Get all crew members that have worked on this season.
+    /// </summary>
+    /// <returns>All crew members that have worked on this season.</returns>
+    public IReadOnlyList<TMDB_Season_Crew> GetCrew() =>
+        RepoFactory.TMDB_Episode_Crew.GetByTmdbSeasonID(TmdbSeasonID)
+            .GroupBy(cast => new { cast.TmdbPersonID, cast.Department, cast.Job })
+            .Select(group =>
+            {
+                var episodes = group.ToList();
+                var firstEpisode = episodes.First();
+                return new TMDB_Season_Crew()
+                {
+                    TmdbPersonID = firstEpisode.TmdbPersonID,
+                    TmdbShowID = firstEpisode.TmdbShowID,
+                    TmdbSeasonID = firstEpisode.TmdbSeasonID,
+                    Department = firstEpisode.Department,
+                    Job = firstEpisode.Job,
+                    EpisodeCount = episodes.Count,
+                };
+            })
+            .OrderBy(crew => crew.Department)
+            .OrderBy(crew => crew.Job)
+            .OrderBy(crew => crew.TmdbPersonID)
+            .ToList();
+
+    /// <summary>
     /// Get the TMDB show assosiated with the season, or null if the show have
     /// been purged from the local database for whatever reason.
     /// </summary>

@@ -301,6 +301,76 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
             .ToList();
 
     /// <summary>
+    /// Get all TMDB network cross-references linked to the show.
+    /// </summary>
+    /// <returns>All TMDB network cross-references linked to the show.</returns>
+    public IReadOnlyList<TMDB_Show_Network> GetTmdbNetworkCrossReferences() =>
+        RepoFactory.TMDB_Show_Network.GetByTmdbShowID(TmdbShowID);
+
+    /// <summary>
+    /// Get all TMDB networks linked to the show.
+    /// </summary>
+    /// <returns>All TMDB networks linked to the show.</returns>
+    public IReadOnlyList<TMDB_Network> GetTmdbNetworks() =>
+        GetTmdbNetworkCrossReferences()
+            .Select(xref => xref.GetTmdbNetwork())
+            .OfType<TMDB_Network>()
+            .ToList();
+
+    /// <summary>
+    /// Get all cast members that have worked on this show.
+    /// </summary>
+    /// <returns>All cast members that have worked on this show.</returns>
+    public IReadOnlyList<TMDB_Show_Cast> GetCast() =>
+        RepoFactory.TMDB_Episode_Cast.GetByTmdbShowID(TmdbShowID)
+            .GroupBy(cast => new { cast.TmdbPersonID, cast.CharacterName, cast.IsGuestRole })
+            .Select(group =>
+            {
+                var episodes = group.ToList();
+                var firstEpisode = episodes.First();
+                var seasonCount = episodes.GroupBy(a => a.TmdbSeasonID).Count();
+                return new TMDB_Show_Cast()
+                {
+                    TmdbPersonID = firstEpisode.TmdbPersonID,
+                    TmdbShowID = firstEpisode.TmdbShowID,
+                    CharacterName = firstEpisode.CharacterName,
+                    Ordering = firstEpisode.Ordering,
+                    EpisodeCount = episodes.Count,
+                    SeasonCount = seasonCount,
+                };
+            })
+            .OrderBy(crew => crew.Ordering)
+            .OrderBy(crew => crew.TmdbPersonID)
+            .ToList();
+
+    /// <summary>
+    /// Get all crew members that have worked on this show.
+    /// </summary>
+    /// <returns>All crew members that have worked on this show.</returns>
+    public IReadOnlyList<TMDB_Show_Crew> GetCrew() =>
+        RepoFactory.TMDB_Episode_Crew.GetByTmdbShowID(TmdbShowID)
+            .GroupBy(cast => new { cast.TmdbPersonID, cast.Department, cast.Job })
+            .Select(group =>
+            {
+                var episodes = group.ToList();
+                var firstEpisode = episodes.First();
+                var seasonCount = episodes.GroupBy(a => a.TmdbSeasonID).Count();
+                return new TMDB_Show_Crew()
+                {
+                    TmdbPersonID = firstEpisode.TmdbPersonID,
+                    TmdbShowID = firstEpisode.TmdbShowID,
+                    Department = firstEpisode.Department,
+                    Job = firstEpisode.Job,
+                    EpisodeCount = episodes.Count,
+                    SeasonCount = seasonCount,
+                };
+            })
+            .OrderBy(crew => crew.Department)
+            .OrderBy(crew => crew.Job)
+            .OrderBy(crew => crew.TmdbPersonID)
+            .ToList();
+
+    /// <summary>
     /// Get all TMDB alternate ordering schemes assosiated with the show in the
     /// local database. You need alternate ordering to be enabled in the
     /// settings file for these to be populated.

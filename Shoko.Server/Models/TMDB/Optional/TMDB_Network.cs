@@ -1,9 +1,8 @@
-
-#nullable enable
 using System.Collections.Generic;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
+#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Network
@@ -41,6 +40,9 @@ public class TMDB_Network
     public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
         ? RepoFactory.TMDB_Image.GetByTmdbNetworkIDAndType(TmdbNetworkID, entityType.Value)
         : RepoFactory.TMDB_Image.GetByTmdbNetworkID(TmdbNetworkID);
+
+    public IReadOnlyList<TMDB_Show_Network> GetTmdbNetworkCrossReferences() =>
+        RepoFactory.TMDB_Show_Network.GetByTmdbNetworkID(TmdbNetworkID);
 
     #endregion
 }

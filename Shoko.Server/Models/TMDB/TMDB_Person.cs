@@ -49,6 +49,11 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
     public string EnglishBiography { get; set; } = string.Empty;
 
     /// <summary>
+    /// All known aliases for the person.
+    /// </summary>
+    public List<string> Aliases { get; set; } = new();
+
+    /// <summary>
     /// The person's gender, if known.
     /// </summary>
     public PersonGender Gender { get; set; }
@@ -123,6 +128,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
         {
             UpdateProperty(EnglishName, person.Name, v => EnglishName = v),
             UpdateProperty(EnglishBiography, translation?.Data.Overview ?? person.Biography, v => EnglishBiography = v),
+            UpdateProperty(Aliases, person.AlsoKnownAs, v => Aliases = v),
             UpdateProperty(IsRestricted, person.Adult, v => IsRestricted = v),
             UpdateProperty(BirthDay, person.Birthday.HasValue ? DateOnly.FromDateTime(person.Birthday.Value) : null, v => BirthDay = v),
             UpdateProperty(DeathDay, person.Deathday.HasValue ? DateOnly.FromDateTime(person.Deathday.Value) : null, v => DeathDay = v),

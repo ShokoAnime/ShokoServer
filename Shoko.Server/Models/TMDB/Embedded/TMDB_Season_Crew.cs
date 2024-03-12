@@ -3,16 +3,11 @@
 namespace Shoko.Server.Models.TMDB;
 
 /// <summary>
-/// Crew member for an episode.
+/// Crew member within a season.
 /// </summary>
-public class TMDB_Episode_Crew : TMDB_Crew
+public class TMDB_Season_Crew : TMDB_Crew
 {
     #region Properties
-
-    /// <summary>
-    ///  Local ID.
-    /// </summary>
-    public int TMDB_Episode_CrewID { get; set; }
 
     /// <summary>
     /// TMDB Show ID for the show this job belongs to.
@@ -25,14 +20,9 @@ public class TMDB_Episode_Crew : TMDB_Crew
     public int TmdbSeasonID { get; set; }
 
     /// <summary>
-    /// TMDB Episode ID for the episode this job belongs to.
+    /// Number of episodes within this season the crew member have worked on.
     /// </summary>
-    public int TmdbEpisodeID { get; set; }
-
-    /// <summary>
-    /// TMDB Credit ID for the production job.
-    /// </summary>
-    public string TmdbCreditID { get; set; } = string.Empty;
+    public int EpisodeCount { get; set; }
 
     #endregion
 

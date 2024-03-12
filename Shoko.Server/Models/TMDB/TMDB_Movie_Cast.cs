@@ -2,8 +2,10 @@
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Movie_Cast
+public class TMDB_Movie_Cast : TMDB_Cast
 {
+    #region Properties
+
     /// <summary>
     /// Local ID.
     /// </summary>
@@ -15,22 +17,13 @@ public class TMDB_Movie_Cast
     public int TmdbMovieID { get; set; }
 
     /// <summary>
-    /// TMDB Person ID for the cast memeber.
-    /// </summary>
-    public int TmdbPersonID { get; set; }
-
-    /// <summary>
     /// TMDB Credit ID for the acting job.
     /// </summary>
     public string TmdbCreditID { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Character name.
-    /// </summary>
-    public string CharacterName { get; set; } = string.Empty;
+    #endregion
 
-    /// <summary>
-    /// Ordering.
-    /// </summary>
-    public int Ordering { get; set; }
+    #region Methods
+
+    #endregion
 }
