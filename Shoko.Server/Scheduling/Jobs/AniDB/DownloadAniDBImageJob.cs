@@ -13,7 +13,6 @@ using Shoko.Server.ImageDownload;
 using Shoko.Server.Providers;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
@@ -30,43 +29,60 @@ public class DownloadAniDBImageJob : BaseJob, IImageDownloadJob
     private const string FailedToDownloadNoID = "Image failed to download: Can\'t find valid {ImageType} with ID: {ImageID}";
     private const string FailedToDownloadNoImpl = "Image failed to download: No implementation found for {ImageType}";
 
-    private readonly AniDBTitleHelper _titleHelper;
     private readonly IUDPConnectionHandler _handler;
     private readonly ImageHttpClientFactory _clientFactory;
-    private string _animeTitle;
-
-    public int AnimeID { get; set; }
+    public string Anime { get; set; }
     public int ImageID { get; set; }
     public bool ForceDownload { get; set; }
 
     public ImageEntityType ImageType { get; set; }
 
-    public override void PostInit()
-    {
-        _animeTitle = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
-    }
-
     public override string TypeName => "Download AniDB Image";
 
     public override string Title => "Downloading AniDB Image";
-    public override Dictionary<string, object> Details => ImageType switch
+    public override Dictionary<string, object> Details
     {
-        ImageEntityType.AniDB_Cover => new()
+        get
         {
-            { "Type", ImageType.ToString().Replace("_", " ") },
-            { "Anime", _animeTitle },
-        },
-        _ => new()
-        {
-            { "Anime", _animeTitle },
-            { "Type", ImageType.ToString().Replace("_", " ") },
-            { "ImageID", ImageID }
+            return ImageType switch
+            {
+                ImageEntityType.AniDB_Cover when Anime != null => new()
+                {
+                    {
+                        "Type", ImageType.ToString().Replace("_", " ")
+                    },
+                    {
+                        "Anime", Anime
+                    },
+                },
+                ImageEntityType.AniDB_Cover when Anime == null => new()
+                {
+                    {
+                        "Type", ImageType.ToString().Replace("_", " ")
+                    },
+                    {
+                        "AnimeID", ImageID
+                    },
+                },
+                _ => new()
+                {
+                    {
+                        "Anime", Anime
+                    },
+                    {
+                        "Type", ImageType.ToString().Replace("_", " ")
+                    },
+                    {
+                        "ImageID", ImageID
+                    }
+                }
+            };
         }
-    };
+    }
 
     public override async Task Process()
     {
-        _logger.LogInformation("Processing {Job} for {Anime} -> Cover: {ImageType} | ImageID: {EntityID}", nameof(DownloadAniDBImageJob), _animeTitle, ImageType, ImageID == 0 ? AnimeID : ImageID);
+        _logger.LogInformation("Processing {Job} for {Anime} -> Cover: {ImageType} | ImageID: {EntityID}", nameof(DownloadAniDBImageJob), Anime, ImageType, ImageID);
 
         var imageType = ImageType.ToString().Replace("_", " ");
         string downloadUrl = null;
@@ -74,10 +90,10 @@ public class DownloadAniDBImageJob : BaseJob, IImageDownloadJob
         switch (ImageType)
         {
             case ImageEntityType.AniDB_Cover:
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ImageID);
                 if (anime == null)
                 {
-                    _logger.LogWarning(FailedToDownloadNoID, imageType, AnimeID);
+                    _logger.LogWarning(FailedToDownloadNoID, imageType, ImageID);
                     return;
                 }
 
@@ -123,27 +139,27 @@ public class DownloadAniDBImageJob : BaseJob, IImageDownloadJob
             switch (result)
             {
                 case ImageDownloadResult.Success:
-                    _logger.LogInformation("Image downloaded for {Anime}: {FilePath} from {DownloadUrl}", _animeTitle, filePath, downloadUrl);
+                    _logger.LogInformation("Image downloaded for {Anime}: {FilePath} from {DownloadUrl}", Anime, filePath, downloadUrl);
                     break;
                 case ImageDownloadResult.Cached:
-                    _logger.LogDebug("Image already in cache for {Anime}: {FilePath} from {DownloadUrl}", _animeTitle, filePath, downloadUrl);
+                    _logger.LogDebug("Image already in cache for {Anime}: {FilePath} from {DownloadUrl}", Anime, filePath, downloadUrl);
                     break;
                 case ImageDownloadResult.Failure:
-                    _logger.LogWarning("Image failed to download for {Anime}: {FilePath} from {DownloadUrl}", _animeTitle, filePath, downloadUrl);
+                    _logger.LogWarning("Image failed to download for {Anime}: {FilePath} from {DownloadUrl}", Anime, filePath, downloadUrl);
                     break;
                 case ImageDownloadResult.RemovedResource:
-                    _logger.LogWarning("Image failed to download for {Anime} and the local entry has been removed: {FilePath} from {DownloadUrl}", _animeTitle,
+                    _logger.LogWarning("Image failed to download for {Anime} and the local entry has been removed: {FilePath} from {DownloadUrl}", Anime,
                         filePath, downloadUrl);
                     break;
                 case ImageDownloadResult.InvalidResource:
                     _logger.LogWarning("Image failed to download for {Anime} and the local entry could not be removed: {FilePath} from {DownloadUrl}",
-                        _animeTitle, filePath, downloadUrl);
+                        Anime, filePath, downloadUrl);
                     break;
             }
         }
         catch (WebException e)
         {
-            _logger.LogWarning("Error processing {Job} for {Anime}: {Url} ({EntityID}) - {Message}", nameof(DownloadAniDBImageJob), _animeTitle, downloadUrl,
+            _logger.LogWarning("Error processing {Job} for {Anime}: {Url} ({EntityID}) - {Message}", nameof(DownloadAniDBImageJob), Anime, downloadUrl,
                 ImageID, e.Message);
         }
     }
@@ -217,11 +233,10 @@ public class DownloadAniDBImageJob : BaseJob, IImageDownloadJob
         });
     }
 
-    public DownloadAniDBImageJob(IUDPConnectionHandler handler, ImageHttpClientFactory clientFactory, AniDBTitleHelper titleHelper)
+    public DownloadAniDBImageJob(IUDPConnectionHandler handler, ImageHttpClientFactory clientFactory)
     {
         _handler = handler;
         _clientFactory = clientFactory;
-        _titleHelper = titleHelper;
     }
 
     protected DownloadAniDBImageJob() { }

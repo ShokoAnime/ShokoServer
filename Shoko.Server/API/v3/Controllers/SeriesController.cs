@@ -1431,7 +1431,7 @@ public class SeriesController : BaseController
 
             await scheduler.StartJobNow<HashFileJob>(c =>
                 {
-                    c.FileName = filePath;
+                    c.FilePath = filePath;
                     c.ForceHash = true;
                 }
             );

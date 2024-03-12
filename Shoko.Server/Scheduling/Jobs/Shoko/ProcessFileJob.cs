@@ -45,7 +45,7 @@ public class ProcessFileJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = _vlocal?.GetBestVideoLocalPlace()?.FullServerPath;
+        _fileName = Utils.GetDistinctPath(_vlocal?.GetBestVideoLocalPlace()?.FullServerPath);
     }
 
     public override string Title => "Get XRefs for File";

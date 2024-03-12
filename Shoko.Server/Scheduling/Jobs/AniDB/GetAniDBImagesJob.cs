@@ -65,7 +65,7 @@ public class GetAniDBImagesJob : BaseJob
         var scheduler = await _schedulerFactory.GetScheduler();
         await scheduler.StartJobNow<DownloadAniDBImageJob>(a =>
         {
-            a.AnimeID = _anime.AnimeID;
+            a.ImageID = _anime.AnimeID;
             a.ImageType = ImageEntityType.AniDB_Cover;
             a.ForceDownload = ForceDownload;
         });
@@ -82,7 +82,7 @@ public class GetAniDBImagesJob : BaseJob
             if (characters.Any())
                 requests.AddRange(characters.Select(c => new Action<DownloadAniDBImageJob>(a =>
                 {
-                    a.AnimeID = _anime.AnimeID;
+                    a.Anime = _title;
                     a.ImageID = c.CharID;
                     a.ImageType = ImageEntityType.AniDB_Character;
                     a.ForceDownload = ForceDownload;
@@ -112,7 +112,7 @@ public class GetAniDBImagesJob : BaseJob
             if (creators.Any())
                 requests.AddRange(creators.Select(va => new Action<DownloadAniDBImageJob>(a =>
                 {
-                    a.AnimeID = _anime.AnimeID;
+                    a.Anime = _title;
                     a.ImageID = va.SeiyuuID;
                     a.ImageType = ImageEntityType.AniDB_Creator;
                     a.ForceDownload = ForceDownload;

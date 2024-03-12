@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -141,16 +140,17 @@ public class QueueController : BaseController
                 }).ToList());
         }
 
-        return new ListResult<Queue.QueueItem>(total, (await _queueHandler.GetJobs(pageSize, offset, !showAll))
+        var result = (await _queueHandler.GetJobs(pageSize, offset, !showAll))
             .Select(a => new Queue.QueueItem
-            {
-                Key = a.Key,
-                Type = a.JobType,
-                Title = a.Title,
-                Details = a.Details,
-                IsRunning = a.Running,
-                IsBlocked = a.Blocked,
-                StartTime = a.StartTime
-            }).ToList());
+        {
+            Key = a.Key,
+            Type = a.JobType,
+            Title = a.Title,
+            Details = a.Details,
+            IsRunning = a.Running,
+            IsBlocked = a.Blocked,
+            StartTime = a.StartTime
+        }).ToList();
+        return new ListResult<Queue.QueueItem>(total, result);
     }
 }

@@ -55,6 +55,12 @@ public static class Utils
     public static string AnimeXmlDirectory { get; set; } = Path.Combine(ApplicationPath, "Anime_HTTP");
     public static string MyListDirectory { get; set; } = Path.Combine(ApplicationPath, "MyList");
 
+    public static string GetDistinctPath(string fullPath)
+    {
+        var parent = Path.GetDirectoryName(fullPath);
+        return string.IsNullOrEmpty(parent) ? fullPath : Path.Combine(Path.GetFileName(parent), Path.GetFileName(fullPath));
+    }
+
     private static string? GetInstanceFromCommandLineArguments()
     {
         const int notFound = -1;

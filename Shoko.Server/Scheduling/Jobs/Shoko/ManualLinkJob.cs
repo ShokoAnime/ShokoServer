@@ -40,7 +40,7 @@ public class ManualLinkJob : BaseJob
         {
             var result = new Dictionary<string, object>
             {
-                { "File Path", _vlocal.GetBestVideoLocalPlace().FullServerPath },
+                { "File Path", Utils.GetDistinctPath(_vlocal.GetBestVideoLocalPlace()?.FullServerPath) },
                 { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(_episode.AniDB_Episode.AnimeID).AnimeID },
                 { "Episode Type", _episode.AniDB_Episode.EpisodeType.ToString() },
                 { "Episode Number", _episode.AniDB_Episode.EpisodeNumber }

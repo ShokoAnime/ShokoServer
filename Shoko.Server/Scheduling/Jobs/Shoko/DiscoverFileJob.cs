@@ -14,6 +14,7 @@ using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
@@ -25,7 +26,7 @@ public class DiscoverFileJob : BaseJob
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly VideoLocal_PlaceService _vlPlaceService;
 
-    public string FileName { get; set; }
+    public string FilePath { get; set; }
     public bool SkipMyList { get; set; }
 
     public override string TypeName => "Discover File";
@@ -34,7 +35,7 @@ public class DiscoverFileJob : BaseJob
     public override Dictionary<string, object> Details => new()
     {
         {
-            "File Path", FileName
+            "File Path", Utils.GetDistinctPath(FilePath)
         }
     };
 
@@ -44,7 +45,7 @@ public class DiscoverFileJob : BaseJob
         // Check for previous existence, merge info if needed
         // If it's a new file or info is missing, queue a hash
         // HashFileJob will create the records for a new file, so don't save an empty record.
-        _logger.LogInformation("Checking File For Hashes: {Filename}", FileName);
+        _logger.LogInformation("Checking File For Hashes: {Filename}", FilePath);
 
         var (shouldSave, vlocal, vlocalplace) = GetVideoLocal();
         if (vlocal == null || vlocalplace == null)
@@ -84,21 +85,21 @@ public class DiscoverFileJob : BaseJob
                 RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.EpisodeID) != null && RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null).ToList();
             if (xrefs.Count != 0)
             {
-                _logger.LogTrace("Hashes were not necessary for file, so exiting: {File}, Hash: {Hash}", FileName, vlocal.Hash);
+                _logger.LogTrace("Hashes were not necessary for file, so exiting: {File}, Hash: {Hash}", FilePath, vlocal.Hash);
                 return;
             }
 
-            _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FileName, vlocal.Hash);
+            _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FilePath, vlocal.Hash);
             await scheduler.StartJobNow<ProcessFileJob>(a => a.VideoLocalID = vlocal.VideoLocalID);
             return;
         }
 
         if (shouldSave)
         {
-            _logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FileName, vlocal.Hash);
+            _logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FilePath, vlocal.Hash);
             RepoFactory.VideoLocal.Save(vlocal, true);
 
-            _logger.LogTrace("Saving VideoLocal_Place: Path: {Path}", FileName);
+            _logger.LogTrace("Saving VideoLocal_Place: Path: {Path}", FilePath);
             vlocalplace.VideoLocalID = vlocal.VideoLocalID;
             RepoFactory.VideoLocalPlace.Save(vlocalplace);
             
@@ -114,12 +115,12 @@ public class DiscoverFileJob : BaseJob
         {
             await scheduler.StartJobNow<HashFileJob>(a =>
             {
-                a.FileName = FileName;
+                a.FilePath = FilePath;
                 a.SkipMyList = SkipMyList;
             });
         } else if (!hasXrefs)
         {
-            _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FileName, vlocal.Hash);
+            _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FilePath, vlocal.Hash);
             await scheduler.StartJobNow<ProcessFileJob>(a => a.VideoLocalID = vlocal.VideoLocalID);
         }
     }
@@ -127,18 +128,18 @@ public class DiscoverFileJob : BaseJob
     private (bool existing, SVR_VideoLocal, SVR_VideoLocal_Place) GetVideoLocal()
     {
         // hash and read media info for file
-        var (folder, filePath) = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
+        var (folder, filePath) = VideoLocal_PlaceRepository.GetFromFullPath(FilePath);
         if (folder == null)
         {
-            _logger.LogError("Unable to locate Import Folder for {FileName}", FileName);
+            _logger.LogError("Unable to locate Import Folder for {FileName}", FilePath);
             return default;
         }
 
         var existing = false;
 
-        if (!File.Exists(FileName))
+        if (!File.Exists(FilePath))
         {
-            _logger.LogError("File does not exist: {Filename}", FileName);
+            _logger.LogError("File does not exist: {Filename}", FilePath);
             return default;
         }
 
@@ -155,7 +156,7 @@ public class DiscoverFileJob : BaseJob
             if (vlocal != null)
             {
                 existing = true;
-                _logger.LogTrace("VideoLocal record found in database: {Filename}", FileName);
+                _logger.LogTrace("VideoLocal record found in database: {Filename}", FilePath);
 
                 // This will only happen with DB corruption, so just clean up the mess.
                 if (vlocalplace.FullServerPath == null)
@@ -211,7 +212,7 @@ public class DiscoverFileJob : BaseJob
 
         vlocal.Hash = crossRefs[0].Hash;
         vlocal.HashSource = (int)HashSource.DirectHash;
-        _logger.LogTrace("Got hash from xrefs: {Filename} ({Hash})", FileName, crossRefs[0].Hash);
+        _logger.LogTrace("Got hash from xrefs: {Filename} ({Hash})", FilePath, crossRefs[0].Hash);
         return true;
     }
 
@@ -234,7 +235,7 @@ public class DiscoverFileJob : BaseJob
 
         if (fnhashes is not { Count: 1 }) return false;
 
-        _logger.LogTrace("Got hash from LOCAL cache: {Filename} ({Hash})", FileName, fnhashes[0].Hash);
+        _logger.LogTrace("Got hash from LOCAL cache: {Filename} ({Hash})", FilePath, fnhashes[0].Hash);
         vlocal.Hash = fnhashes[0].Hash;
         vlocal.HashSource = (int)HashSource.WebCacheFileName;
         return true;

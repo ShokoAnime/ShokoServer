@@ -41,15 +41,8 @@ public class MovieDBHelper
         // Only save movie info if source is not trakt, this presents adding tv shows as movies
         // Needs better fix later on
 
-        if (!isTrakt)
-        {
-            RepoFactory.MovieDb_Movie.Save(movie);
-        }
-
-        if (!saveImages)
-        {
-            return;
-        }
+        if (!isTrakt) RepoFactory.MovieDb_Movie.Save(movie);
+        if (!saveImages) return;
 
         var numFanartDownloaded = 0;
         var numPostersDownloaded = 0;
@@ -63,10 +56,7 @@ public class MovieDBHelper
                 poster.Populate(img, movie.MovieId);
                 RepoFactory.MovieDB_Poster.Save(poster);
 
-                if (!string.IsNullOrEmpty(poster.GetFullImagePath()) && File.Exists(poster.GetFullImagePath()))
-                {
-                    numPostersDownloaded++;
-                }
+                if (!string.IsNullOrEmpty(poster.GetFullImagePath()) && File.Exists(poster.GetFullImagePath())) numPostersDownloaded++;
             }
             else
             {
@@ -75,10 +65,7 @@ public class MovieDBHelper
                 fanart.Populate(img, movie.MovieId);
                 RepoFactory.MovieDB_Fanart.Save(fanart);
 
-                if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()))
-                {
-                    numFanartDownloaded++;
-                }
+                if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath())) numFanartDownloaded++;
             }
         }
 
@@ -86,19 +73,17 @@ public class MovieDBHelper
         var settings = Utils.SettingsProvider.GetSettings();
         if (settings.MovieDb.AutoPosters || isTrakt)
         {
-            foreach (var poster in RepoFactory.MovieDB_Poster.GetByMovieID( movie.MovieId))
+            foreach (var poster in RepoFactory.MovieDB_Poster.GetByMovieID(movie.MovieId))
             {
                 if (numPostersDownloaded < settings.MovieDb.AutoPostersAmount)
                 {
                     // download the image
-                    if (string.IsNullOrEmpty(poster.GetFullImagePath()) || File.Exists(poster.GetFullImagePath()))
-                    {
-                        continue;
-                    }
+                    if (string.IsNullOrEmpty(poster.GetFullImagePath()) || File.Exists(poster.GetFullImagePath())) continue;
 
                     await scheduler.StartJob<DownloadTMDBImageJob>(
                         c =>
                         {
+                            c.Anime = movie.MovieName;
                             c.ImageID = poster.MovieDB_PosterID;
                             c.ImageType = ImageEntityType.MovieDB_Poster;
                         }
@@ -108,12 +93,9 @@ public class MovieDBHelper
                 else
                 {
                     //The MovieDB_AutoPostersAmount should prevent from saving image info without image
-                    // we should clean those image that we didn't download because those dont exists in local repo
+                    // we should clean those image that we didn't download because those don't exist in local repo
                     // first we check if file was downloaded
-                    if (!File.Exists(poster.GetFullImagePath()))
-                    {
-                        RepoFactory.MovieDB_Poster.Delete(poster.MovieDB_PosterID);
-                    }
+                    if (!File.Exists(poster.GetFullImagePath())) RepoFactory.MovieDB_Poster.Delete(poster.MovieDB_PosterID);
                 }
             }
         }
@@ -126,14 +108,12 @@ public class MovieDBHelper
                 if (numFanartDownloaded < settings.MovieDb.AutoFanartAmount)
                 {
                     // download the image
-                    if (string.IsNullOrEmpty(fanart.GetFullImagePath()) || File.Exists(fanart.GetFullImagePath()))
-                    {
-                        continue;
-                    }
+                    if (string.IsNullOrEmpty(fanart.GetFullImagePath()) || File.Exists(fanart.GetFullImagePath())) continue;
 
                     await scheduler.StartJob<DownloadTMDBImageJob>(
                         c =>
                         {
+                            c.Anime = movie.MovieName;
                             c.ImageID = fanart.MovieDB_FanartID;
                             c.ImageType = ImageEntityType.MovieDB_FanArt;
                         }
@@ -143,12 +123,9 @@ public class MovieDBHelper
                 else
                 {
                     //The MovieDB_AutoFanartAmount should prevent from saving image info without image
-                    // we should clean those image that we didn't download because those dont exists in local repo
+                    // we should clean those image that we didn't download because those don't exist in local repo
                     // first we check if file was downloaded
-                    if (!File.Exists(fanart.GetFullImagePath()))
-                    {
-                        RepoFactory.MovieDB_Fanart.Delete(fanart.MovieDB_FanartID);
-                    }
+                    if (!File.Exists(fanart.GetFullImagePath())) RepoFactory.MovieDB_Fanart.Delete(fanart.MovieDB_FanartID);
                 }
             }
         }
@@ -235,28 +212,16 @@ public class MovieDBHelper
             // database before the queued task runs later
             await UpdateMovieInfo(movieDBID, false);
             movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieDBID);
-            if (movie == null)
-            {
-                return;
-            }
+            if (movie == null) return;
         }
 
         // download and update series info and images
         await UpdateMovieInfo(movieDBID, true);
 
-        var xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB) ??
-                   new CrossRef_AniDB_Other();
+        var xref = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB) ?? new CrossRef_AniDB_Other();
 
         xref.AnimeID = animeID;
-        if (fromWebCache)
-        {
-            xref.CrossRefSource = (int)CrossRefSource.WebCache;
-        }
-        else
-        {
-            xref.CrossRefSource = (int)CrossRefSource.User;
-        }
-
+        xref.CrossRefSource = fromWebCache ? (int)CrossRefSource.WebCache : (int)CrossRefSource.User;
         xref.CrossRefType = (int)CrossRefType.MovieDB;
         xref.CrossRefID = movieDBID.ToString();
         RepoFactory.CrossRef_AniDB_Other.Save(xref);
@@ -269,10 +234,7 @@ public class MovieDBHelper
     {
         var xref =
             RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
-        if (xref == null)
-        {
-            return;
-        }
+        if (xref == null) return;
 
         // Disable auto-matching when we remove an existing match for the series.
         var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
@@ -292,24 +254,19 @@ public class MovieDBHelper
 
         foreach (var ser in allSeries)
         {
-            if (ser.IsTMDBAutoMatchingDisabled)
-                continue;
+            if (ser.IsTMDBAutoMatchingDisabled) continue;
 
             var anime = ser.GetAnime();
-            if (anime == null)
-                continue;
+            if (anime == null) continue;
 
             // don't scan if it is associated on the TvDB
-            if (anime.GetCrossRefTvDB().Count > 0)
-                continue;
+            if (anime.GetCrossRefTvDB().Count > 0) continue;
 
             // don't scan if it is associated on the MovieDB
-            if (anime.GetCrossRefMovieDB() != null)
-                continue;
+            if (anime.GetCrossRefMovieDB() != null) continue;
 
             // don't scan if it is not a movie
-            if (!anime.GetSearchOnMovieDB())
-                continue;
+            if (!anime.GetSearchOnMovieDB()) continue;
 
             _logger.LogTrace("Found anime movie without MovieDB association: {MainTitle}", anime.MainTitle);
 

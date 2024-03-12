@@ -693,14 +693,14 @@ public class FileController : BaseController
         if (priority)
             await scheduler.StartJobNow<HashFileJob>(c =>
                 {
-                    c.FileName = filePath;
+                    c.FilePath = filePath;
                     c.ForceHash = true;
                 }
             );
         else
             await scheduler.StartJob<HashFileJob>(c =>
                 {
-                    c.FileName = filePath;
+                    c.FilePath = filePath;
                     c.ForceHash = true;
                 }
             );

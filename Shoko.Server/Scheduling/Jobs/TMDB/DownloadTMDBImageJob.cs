@@ -15,7 +15,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Scheduling.Jobs.TMDB;
@@ -30,31 +29,28 @@ public class DownloadTMDBImageJob : BaseJob, IImageDownloadJob
     private const string FailedToDownloadNoImpl = "Image failed to download: No implementation found for {ImageType}";
 
     private readonly ImageHttpClientFactory _clientFactory;
-    private string _animeTitle;
-
-    public int AnimeID { get; set; }
+    public string Anime { get; set; }
     public int ImageID { get; set; }
     public bool ForceDownload { get; set; }
 
     public ImageEntityType ImageType { get; set; }
 
-    public override void PostInit()
-    {
-        _animeTitle = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
-    }
-
     public override string TypeName => "Download TMDB Image";
     public override string Title => "Downloading TMDB Image";
-    public override Dictionary<string, object> Details => new()
+    public override Dictionary<string, object> Details => Anime == null ? new()
     {
-        { "Anime", _animeTitle },
+        { "Type", ImageType.ToString().Replace("_", " ") },
+        { "ImageID", ImageID }
+    } : new()
+    {
+        { "Anime", Anime },
         { "Type", ImageType.ToString().Replace("_", " ") },
         { "ImageID", ImageID }
     };
 
     public override async Task Process()
     {
-        _logger.LogInformation("Processing {Job} for {Anime} -> Image Type: {ImageType} | ImageID: {EntityID}", nameof(DownloadTMDBImageJob), _animeTitle, ImageType, ImageID);
+        _logger.LogInformation("Processing {Job} for {Anime} -> Image Type: {ImageType} | ImageID: {EntityID}", nameof(DownloadTMDBImageJob), Anime, ImageType, ImageID);
 
         var imageType = ImageType.ToString().Replace("_", " ");
         string downloadUrl = null;
@@ -101,27 +97,27 @@ public class DownloadTMDBImageJob : BaseJob, IImageDownloadJob
             switch (result)
             {
                 case ImageDownloadResult.Success:
-                    _logger.LogInformation("Image downloaded for {Anime}: {FilePath} from {DownloadUrl}", _animeTitle, filePath, downloadUrl);
+                    _logger.LogInformation("Image downloaded for {Anime}: {FilePath} from {DownloadUrl}", Anime, filePath, downloadUrl);
                     break;
                 case ImageDownloadResult.Cached:
-                    _logger.LogDebug("Image already in cache for {Anime}: {FilePath} from {DownloadUrl}", _animeTitle, filePath, downloadUrl);
+                    _logger.LogDebug("Image already in cache for {Anime}: {FilePath} from {DownloadUrl}", Anime, filePath, downloadUrl);
                     break;
                 case ImageDownloadResult.Failure:
-                    _logger.LogWarning("Image failed to download for {Anime}: {FilePath} from {DownloadUrl}", _animeTitle, filePath, downloadUrl);
+                    _logger.LogWarning("Image failed to download for {Anime}: {FilePath} from {DownloadUrl}", Anime, filePath, downloadUrl);
                     break;
                 case ImageDownloadResult.RemovedResource:
-                    _logger.LogWarning("Image failed to download for {Anime} and the local entry has been removed: {FilePath} from {DownloadUrl}", _animeTitle,
+                    _logger.LogWarning("Image failed to download for {Anime} and the local entry has been removed: {FilePath} from {DownloadUrl}", Anime,
                         filePath, downloadUrl);
                     break;
                 case ImageDownloadResult.InvalidResource:
                     _logger.LogWarning("Image failed to download for {Anime} and the local entry could not be removed: {FilePath} from {DownloadUrl}",
-                        _animeTitle, filePath, downloadUrl);
+                        Anime, filePath, downloadUrl);
                     break;
             }
         }
         catch (WebException e)
         {
-            _logger.LogWarning("Error processing {Job} for {Anime}: {Url} ({EntityID}) - {Message}", nameof(DownloadAniDBImageJob), _animeTitle, downloadUrl,
+            _logger.LogWarning("Error processing {Job} for {Anime}: {Url} ({EntityID}) - {Message}", nameof(DownloadTMDBImageJob), Anime, downloadUrl,
                 ImageID, e.Message);
         }
     }

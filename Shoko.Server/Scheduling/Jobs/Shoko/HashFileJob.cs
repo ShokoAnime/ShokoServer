@@ -31,7 +31,7 @@ public class HashFileJob : BaseJob
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly VideoLocal_PlaceService _vlPlaceService;
 
-    public string FileName { get; set; }
+    public string FilePath { get; set; }
     public bool ForceHash { get; set; }
     public bool SkipMyList { get; set; }
 
@@ -41,7 +41,7 @@ public class HashFileJob : BaseJob
     {
         get
         {
-            var result = new Dictionary<string, object> { { "File Path", FileName } };
+            var result = new Dictionary<string, object> { { "File Path", Utils.GetDistinctPath(FilePath) } };
             if (ForceHash) result["Force"] = true;
             if (SkipMyList) result["Add to MyList"] = !SkipMyList;
             return result;
@@ -83,7 +83,7 @@ public class HashFileJob : BaseJob
         if (shouldSave)
         {
             vlocal.FileSize = fileSize;
-            _logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FileName, vlocal.Hash);
+            _logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FilePath, vlocal.Hash);
             RepoFactory.VideoLocal.Save(vlocal, true);
         }
 
@@ -127,18 +127,18 @@ public class HashFileJob : BaseJob
     private (bool existing, SVR_VideoLocal, SVR_VideoLocal_Place, SVR_ImportFolder) GetVideoLocal()
     {
         // hash and read media info for file
-        var (folder, filePath) = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
+        var (folder, filePath) = VideoLocal_PlaceRepository.GetFromFullPath(FilePath);
         if (folder == null)
         {
-            _logger.LogError("Unable to locate Import Folder for {FileName}", FileName);
+            _logger.LogError("Unable to locate Import Folder for {FileName}", FilePath);
             return default;
         }
 
         var existing = false;
 
-        if (!File.Exists(FileName))
+        if (!File.Exists(FilePath))
         {
-            _logger.LogError("File does not exist: {Filename}", FileName);
+            _logger.LogError("File does not exist: {Filename}", FilePath);
             return default;
         }
 
@@ -155,7 +155,7 @@ public class HashFileJob : BaseJob
             if (vlocal != null)
             {
                 existing = true;
-                _logger.LogTrace("VideoLocal record found in database: {Filename}", FileName);
+                _logger.LogTrace("VideoLocal record found in database: {Filename}", FilePath);
 
                 // This will only happen with DB corruption, so just clean up the mess.
                 if (vlocalplace.FullServerPath == null)
@@ -227,43 +227,43 @@ public class HashFileJob : BaseJob
                 .Or<UnauthorizedAccessException>(HandleReadOnlyException)
                 .Or<Exception>(ex =>
                 {
-                    _logger.LogError(ex, "Could not access file: {Filename}", FileName);
+                    _logger.LogError(ex, "Could not access file: {Filename}", FilePath);
                     return false;
                 })
                 .WaitAndRetry(60, _ => TimeSpan.FromMilliseconds(waitTime), (_, _, count, _) =>
                 {
-                    _logger.LogTrace("Failed to access, (or filesize is 0) Attempt # {NumAttempts}, {FileName}", count, FileName);
+                    _logger.LogTrace("Failed to access, (or filesize is 0) Attempt # {NumAttempts}, {FileName}", count, FilePath);
                 });
 
             
-            var result = policy.ExecuteAndCapture(() => GetFileSize(FileName, access));
+            var result = policy.ExecuteAndCapture(() => GetFileSize(FilePath, access));
             if (result.Outcome == OutcomeType.Failure)
             {
                 if (result.FinalException is not null)
                 {
-                    _logger.LogError(result.FinalException, "Could not access file: {Filename}", FileName);
+                    _logger.LogError(result.FinalException, "Could not access file: {Filename}", FilePath);
                     e = result.FinalException;
                 }
                 else
-                    _logger.LogError("Could not access file: {Filename}", FileName);
+                    _logger.LogError("Could not access file: {Filename}", FilePath);
             }
         }
 
-        if (File.Exists(FileName))
+        if (File.Exists(FilePath))
         {
             try
             {
-                return GetFileSize(FileName, access);
+                return GetFileSize(FilePath, access);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Could not access file: {Filename}", FileName);
+                _logger.LogError(exception, "Could not access file: {Filename}", FilePath);
                 e = exception;
                 return 0;
             }
         }
 
-        _logger.LogError("Could not access file: {Filename}", FileName);
+        _logger.LogError("Could not access file: {Filename}", FilePath);
         return 0;
     }
 
@@ -276,10 +276,10 @@ public class HashFileJob : BaseJob
 
     private bool HandleReadOnlyException(Exception ex)
     {
-        _logger.LogTrace("File {FileName} is Read-Only, attempting to unmark", FileName);
+        _logger.LogTrace("File {FileName} is Read-Only, attempting to unmark", FilePath);
         try
         {
-            var info = new FileInfo(FileName);
+            var info = new FileInfo(FilePath);
             if (info.IsReadOnly) info.IsReadOnly = false;
 
             if (!info.IsReadOnly && !Utils.IsRunningOnLinuxOrMac())
@@ -319,20 +319,20 @@ public class HashFileJob : BaseJob
         if (needMD5) tp.Add("MD5");
         if (needCRC32) tp.Add("CRC32");
 
-        _logger.LogTrace("Calculating missing {Filename} hashes for: {Types}", FileName, string.Join(",", tp));
+        _logger.LogTrace("Calculating missing {Filename} hashes for: {Types}", FilePath, string.Join(",", tp));
         // update the VideoLocal record with the Hash, since cloud support we calculate everything
-        var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{Path.DirectorySeparatorChar}"), true,
+        var hashes = FileHashHelper.GetHashInfo(FilePath.Replace("/", $"{Path.DirectorySeparatorChar}"), true,
             ShokoServer.OnHashProgress,
             needCRC32, needMD5, needSHA1);
         var ts = DateTime.Now - start;
         _logger.LogTrace("Hashed file in {TotalSeconds:#0.0} seconds --- {Filename} ({Size})", ts.TotalSeconds,
-            FileName, Utils.FormatByteSize(vlocal.FileSize));
+            FilePath, Utils.FormatByteSize(vlocal.FileSize));
 
         if (string.IsNullOrEmpty(vlocal.Hash) || force) vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
         if (needSHA1) vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();
         if (needMD5) vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
         if (needCRC32) vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
-        _logger.LogTrace("Hashed file {Filename} ({Size}): Hash: {Hash}, CRC: {CRC}, SHA1: {SHA1}, MD5: {MD5}", FileName, Utils.FormatByteSize(vlocal.FileSize),
+        _logger.LogTrace("Hashed file {Filename} ({Size}): Hash: {Hash}, CRC: {CRC}, SHA1: {SHA1}, MD5: {MD5}", FilePath, Utils.FormatByteSize(vlocal.FileSize),
             vlocal.Hash, vlocal.CRC32, vlocal.SHA1, vlocal.MD5);
     }
 

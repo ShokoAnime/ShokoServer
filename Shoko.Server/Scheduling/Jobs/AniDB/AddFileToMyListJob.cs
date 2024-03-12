@@ -16,6 +16,7 @@ using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
@@ -45,7 +46,7 @@ public class AddFileToMyListJob : BaseJob
     public override Dictionary<string, object> Details => new()
     {
         {
-            "File Path", _videoLocal.GetBestVideoLocalPlace()?.FullServerPath
+            "File Path", Utils.GetDistinctPath(_videoLocal.GetBestVideoLocalPlace()?.FullServerPath)
         }
     };
 

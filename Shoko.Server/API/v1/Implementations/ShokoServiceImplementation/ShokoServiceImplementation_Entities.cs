@@ -906,7 +906,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             scheduler.StartJobNow<HashFileJob>(
                 c =>
                 {
-                    c.FileName = pl.FullServerPath;
+                    c.FilePath = pl.FullServerPath;
                     c.ForceHash = true;
                 }
             ).GetAwaiter().GetResult();

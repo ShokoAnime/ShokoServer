@@ -7,6 +7,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Services;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
@@ -27,7 +28,7 @@ public class MediaInfoJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = _vlocal.GetBestVideoLocalPlace()?.FullServerPath;
+        _fileName = Utils.GetDistinctPath(_vlocal.GetBestVideoLocalPlace()?.FullServerPath);
     }
 
     public override string Title => "Reading MediaInfo for File";

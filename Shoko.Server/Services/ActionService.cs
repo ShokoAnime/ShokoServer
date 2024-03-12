@@ -65,7 +65,7 @@ public class ActionService
             var p = vl.GetBestVideoLocalPlace(true);
             if (p == null) continue;
 
-            await scheduler.StartJob<HashFileJob>(c => c.FileName = p.FullServerPath);
+            await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);
         }
 
         foreach (var vl in filesToHash)
@@ -78,7 +78,7 @@ public class ActionService
                 var p = vl.GetBestVideoLocalPlace(true);
                 if (p == null) continue;
 
-                await scheduler.StartJob<HashFileJob>(c => c.FileName = p.FullServerPath);
+                await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);
             }
             catch (Exception ex)
             {
@@ -180,7 +180,7 @@ public class ActionService
 
                 await scheduler.StartJob<DiscoverFileJob>(a =>
                 {
-                    a.FileName = fileName;
+                    a.FilePath = fileName;
                     a.SkipMyList = skipMyList;
                 });
             }
@@ -232,7 +232,7 @@ public class ActionService
             if (!FileHashHelper.IsVideo(fileName)) continue;
             videosFound++;
 
-            await scheduler.StartJob<DiscoverFileJob>(a => a.FileName = fileName);
+            await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = fileName);
         }
 
         _logger.LogDebug("Found {Count} files", filesFound);
@@ -317,7 +317,7 @@ public class ActionService
             var tup = VideoLocal_PlaceRepository.GetFromFullPath(fileName);
             ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(fileName));
 
-            await scheduler.StartJob<DiscoverFileJob>(a => a.FileName = fileName);
+            await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = fileName);
         }
 
         _logger.LogDebug("Found {Count} files", filesFound);

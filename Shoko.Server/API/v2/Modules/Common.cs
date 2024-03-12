@@ -372,7 +372,7 @@ public class Common : BaseController
         await scheduler.StartJobNow<HashFileJob>(
             c =>
             {
-                c.FileName = pl.FullServerPath;
+                c.FilePath = pl.FullServerPath;
                 c.ForceHash = true;
             }
         );
@@ -402,7 +402,7 @@ public class Common : BaseController
                 await scheduler.StartJobNow<HashFileJob>(
                     c =>
                     {
-                        c.FileName = pl.FullServerPath;
+                        c.FilePath = pl.FullServerPath;
                         c.ForceHash = true;
                     }
                 );
@@ -438,7 +438,7 @@ public class Common : BaseController
                 await scheduler.StartJobNow<HashFileJob>(
                     c =>
                     {
-                        c.FileName = pl.FullServerPath;
+                        c.FilePath = pl.FullServerPath;
                         c.ForceHash = true;
                     }
                 );

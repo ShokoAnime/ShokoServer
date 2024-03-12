@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -217,7 +216,7 @@ public class ValidateAllImagesJob : BaseJob
         await scheduler.StartJob<T>(
             c =>
             {
-                c.AnimeID = animeID;
+                c.Anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID)?.PreferredTitle;
                 c.ImageID = entityID;
                 c.ImageType = entityTypeEnum;
                 c.ForceDownload = true;

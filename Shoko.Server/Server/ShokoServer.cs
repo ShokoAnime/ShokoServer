@@ -441,7 +441,7 @@ public class ShokoServer
         logger.LogInformation("Found file {Path}", path);
         var tup = VideoLocal_PlaceRepository.GetFromFullPath(path);
         ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
-        _schedulerFactory.GetScheduler().Result.StartJob<DiscoverFileJob>(a => a.FileName = path).GetAwaiter().GetResult();
+        _schedulerFactory.GetScheduler().Result.StartJob<DiscoverFileJob>(a => a.FilePath = path).GetAwaiter().GetResult();
     }
 
     public void AddFileWatcherExclusion(string path)
