@@ -2,8 +2,6 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
@@ -31,13 +29,9 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
 
     public bool ForceRefresh { get; set; }
 
-    public override string Name => "Get Updated AniDB Anime List";
-    public override QueueStateStruct Description => new()
-    {
-        message = "Getting AniDB Anime Updates",
-        queueState = QueueStateEnum.GetUpdatedAnime,
-        extraParams = Array.Empty<string>()
-    };
+    public override string TypeName => "Get Updated AniDB Anime List";
+
+    public override string Title => "Getting Updated AniDB Anime List";
 
     public override async Task Process()
     {

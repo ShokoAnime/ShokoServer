@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+﻿using System.Threading.Tasks;
 using Quartz;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -13,35 +11,28 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [JobKeyMember("MediaInfo")]
 [JobKeyGroup(JobKeyGroup.Legacy)]
 [DisallowConcurrentExecution]
-internal class MediaInfoAllFilesJob : IJob
+internal class MediaInfoAllFilesJob : BaseJob
 {
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly ILogger<MediaInfoAllFilesJob> _logger;
 
-    public MediaInfoAllFilesJob(ISchedulerFactory schedulerFactory, ILogger<MediaInfoAllFilesJob> logger)
+    public override string TypeName => "MediaInfo All Files";
+    public override string Title => "Scheduling MediaInfo Scan for All Files";
+
+    public override async Task Process()
+    {
+        // first build a list of files that we already know about, as we don't want to process them again
+        var filesAll = RepoFactory.VideoLocal.GetAll();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        foreach (var vl in filesAll)
+        {
+            await scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = vl.VideoLocalID);
+        }
+    }
+
+    public MediaInfoAllFilesJob(ISchedulerFactory schedulerFactory)
     {
         _schedulerFactory = schedulerFactory;
-        _logger = logger;
     }
 
     protected MediaInfoAllFilesJob() { }
-
-    public async Task Execute(IJobExecutionContext context)
-    {
-        try
-        {
-            // first build a list of files that we already know about, as we don't want to process them again
-            var filesAll = RepoFactory.VideoLocal.GetAll();
-            var scheduler = await _schedulerFactory.GetScheduler();
-            foreach (var vl in filesAll)
-            {
-                await scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = vl.VideoLocalID);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Job threw an error on Execution: {Job} | Error -> {Ex}", context.JobDetail.Key, ex);
-            throw new JobExecutionException(msg: "", refireImmediately: false, cause: ex);
-        }
-    }
 }

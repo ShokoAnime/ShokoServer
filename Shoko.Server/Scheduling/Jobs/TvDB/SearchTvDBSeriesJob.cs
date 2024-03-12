@@ -4,9 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
 using Shoko.Plugin.Abstractions.DataModels;
@@ -30,22 +28,18 @@ public class SearchTvDBSeriesJob : BaseJob
     private readonly TvDBApiHelper _helper;
     private string _title;
 
-    public virtual int AnimeID { get; set; }
-    public virtual bool ForceRefresh { get; set; }
+    public int AnimeID { get; set; }
+    public bool ForceRefresh { get; set; }
 
-    public override string Name => "Search TvDB Series";
+    public override string TypeName => "Search TvDB Series";
 
     public override void PostInit()
     {
         _title = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
     }
 
-    public override QueueStateStruct Description => new()
-    {
-        message = "Searching for anime on The TvDB: {0}",
-        queueState = QueueStateEnum.SearchTvDB,
-        extraParams = new[] { _title }
-    };
+    public override string Title => "Searching for TvDB Series";
+    public override Dictionary<string, object> Details => new() { { "Anime", _title } };
 
     public override async Task Process()
     {

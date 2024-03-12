@@ -1,7 +1,7 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -20,17 +20,24 @@ public class SyncTraktCollectionEpisodeJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
-    public virtual int AnimeEpisodeID { get; set; }
-    public virtual TraktSyncAction Action { get; set; }
+    public int AnimeEpisodeID { get; set; }
+    public TraktSyncAction Action { get; set; }
 
-    public override string Name => "Sync Episode to Trakt Collection";
-
-    public override QueueStateStruct Description => new()
+    public override string TypeName => "Sync Episode to Trakt Collection";
+    public override string Title => "Syncing Episode to Trakt Collection";
+    public override Dictionary<string, object> Details
     {
-        message = "Sync episode to collection on Trakt: {0} - {1}",
-        queueState = QueueStateEnum.SyncTraktEpisodes,
-        extraParams = new[] { AnimeEpisodeID.ToString(), Action.ToString() }
-    };
+        get
+        {
+            var episode = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID).AniDB_Episode;
+            return new()
+            {
+                { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(episode.AnimeID) },
+                { "Episode Type", ((EpisodeType)episode.EpisodeType).ToString() },
+                { "Episode Number", episode.EpisodeNumber }
+            };
+        }
+    }
 
     public override Task Process()
     {

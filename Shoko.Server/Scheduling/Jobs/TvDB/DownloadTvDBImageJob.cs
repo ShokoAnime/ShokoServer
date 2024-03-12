@@ -1,14 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Polly;
-using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
-using Shoko.Models.Queue;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Providers;
@@ -44,12 +43,13 @@ public class DownloadTvDBImageJob : BaseJob, IImageDownloadJob
         _animeTitle = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
     }
 
-    public override string Name => "Download TvDB Image";
-    public override QueueStateStruct Description => new()
+    public override string TypeName => "Download TvDB Image";
+    public override string Title => "Downloading TvDB Image";
+    public override Dictionary<string, object> Details => new()
     {
-        message = "Downloading {0} for {1}: {2}",
-        queueState = QueueStateEnum.DownloadImage,
-        extraParams = new[] { ImageType.ToString().Replace("_", " "), _animeTitle, ImageID.ToString()}
+        { "Anime", _animeTitle },
+        { "Type", ImageType.ToString().Replace("_", " ") },
+        { "ImageID", ImageID }
     };
 
     public override async Task Process()

@@ -1,8 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -25,14 +23,8 @@ public class SyncTraktCollectionJob : BaseJob
     private readonly TraktTVHelper _helper;
     public bool ForceRefresh { get; set; }
 
-    public override string Name => "Sync Trakt Collection";
-
-    public override QueueStateStruct Description => new()
-    {
-        message = "Syncing Trakt Collection",
-        queueState = QueueStateEnum.SyncTrakt,
-        extraParams = Array.Empty<string>()
-    };
+    public override string TypeName => "Sync Trakt Collection";
+    public override string Title => "Syncing Trakt Collection";
 
     public override Task Process()
     {

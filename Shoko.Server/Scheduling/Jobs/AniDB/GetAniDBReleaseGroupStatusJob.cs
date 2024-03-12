@@ -1,13 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -23,25 +23,34 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class GetAniDBReleaseGroupStatusJob : BaseJob
 {
+    private readonly AniDBTitleHelper _titleHelper;
     private readonly IRequestFactory _requestFactory;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ISettingsProvider _settingsProvider;
     private SVR_AniDB_Anime _anime;
+    private string _animeName;
     public int AnimeID { get; set; }
     public bool ForceRefresh { get; set; }
 
-    public override string Name => "Get AniDB Release Group Status for Anime";
-    public override QueueStateStruct Description => new()
-    {
-        message = "Getting AniDB Release Group Status for {0}",
-        queueState = QueueStateEnum.GetReleaseGroup,
-        extraParams = new[] { _anime?.PreferredTitle ?? AnimeID.ToString() }
-    };
+    public override string TypeName => "Get AniDB Release Group Status for Anime";
 
     public override void PostInit()
     {
         _anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+        _animeName = _anime?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle;
     }
+
+    public override string Title => "Getting AniDB Release Group Status for Anime";
+    public override Dictionary<string, object> Details => _animeName == null ? new()
+    {
+        {
+            "AnimeID", AnimeID
+        }
+    } : new() {
+        {
+            "Anime", _animeName
+        }
+    };
 
     public override async Task Process()
     {
@@ -150,14 +159,13 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
         return grpStatuses is { Count: > 0 };
     }
 
-    public GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
+    public GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
     {
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;
         _settingsProvider = settingsProvider;
+        _titleHelper = titleHelper;
     }
 
-    protected GetAniDBReleaseGroupStatusJob()
-    {
-    }
+    protected GetAniDBReleaseGroupStatusJob() { }
 }

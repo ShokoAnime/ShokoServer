@@ -48,6 +48,8 @@ public class QueueController : BaseController
                 Key = a.Key,
                 Type = a.JobType,
                 Description = a.Description,
+                Title = a.Title,
+                Details = a.Details,
                 IsRunning = true,
                 StartTime = a.StartTime
             }).OrderBy(a => a.StartTime).ToList()
@@ -127,6 +129,8 @@ public class QueueController : BaseController
                 Key = a.Key,
                 Type = a.JobType,
                 Description = a.Description,
+                Title = a.Title,
+                Details = a.Details,
                 IsRunning = a.Running,
                 IsBlocked = a.Blocked
             }).ToList());
@@ -137,6 +141,8 @@ public class QueueController : BaseController
                 Key = a.Key,
                 Type = a.JobType,
                 Description = a.Description,
+                Title = a.Title,
+                Details = a.Details,
                 IsRunning = a.Running,
                 IsBlocked = a.Blocked,
                 StartTime = a.StartTime

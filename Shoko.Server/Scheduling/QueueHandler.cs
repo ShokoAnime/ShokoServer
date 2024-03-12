@@ -137,7 +137,7 @@ public class QueueHandler
     {
         var jobs = await _jobStore.GetJobCounts();
         return jobs.Where(a => typeof(BaseJob).IsAssignableFrom(a.Key))
-            .ToDictionary(a => _jobFactory.CreateJob(new JobDetailImpl(Guid.NewGuid().ToString(), a.Key))?.Name, a => a.Value);
+            .ToDictionary(a => _jobFactory.CreateJob(new JobDetailImpl(Guid.NewGuid().ToString(), a.Key))?.TypeName, a => a.Value);
     }
 
     public Task<List<QueueItem>> GetJobs(int maxCount, int offset, bool excludeBlocked)

@@ -9,15 +9,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
-using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Utilities;

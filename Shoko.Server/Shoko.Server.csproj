@@ -62,6 +62,7 @@
     <PackageReference Include="DeepCloner" Version="0.10.4" />
     <PackageReference Include="F23.StringSimilarity" Version="5.0.0" />
     <PackageReference Include="FluentNHibernate" Version="3.1.0" />
+    <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
     <PackageReference Include="Libuv" Version="1.10.0" />
     <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="12.1.0" />
     <PackageReference Include="MessagePack" Version="2.4.35" />

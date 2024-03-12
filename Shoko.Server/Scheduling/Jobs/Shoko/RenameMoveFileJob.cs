@@ -1,7 +1,7 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
+using Quartz;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -21,42 +21,17 @@ public class RenameMoveFileJob : BaseJob
 
     public int VideoLocalID { get; set; }
 
-    public override string Name => "Rename/Move File";
+    public override string TypeName => "Rename/Move File";
 
     public override void PostInit()
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
-        _fileName = _vlocal?.GetBestVideoLocalPlace()?.FileName;
+        if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
+        _fileName = _vlocal?.GetBestVideoLocalPlace()?.FullServerPath;
     }
+    public override string Title => "Renaming/Moving File";
+    public override Dictionary<string, object> Details => new() { { "File Path", _fileName } };
 
-    public override QueueStateStruct Description
-    {
-        get
-        {
-            if (_vlocal != null)
-            {
-                return new QueueStateStruct
-                {
-                    message = "Renaming and/or Moving File: {0}",
-                    queueState = QueueStateEnum.CheckingFile,
-                    extraParams = new[]
-                    {
-                        _fileName
-                    }
-                };
-            }
-
-            return new QueueStateStruct
-            {
-                message = "Renaming and/or Moving File: {0}",
-                queueState = QueueStateEnum.CheckingFile,
-                extraParams = new[]
-                {
-                    _fileName
-                }
-            };
-        }
-    }
 
     public override Task Process()
     {

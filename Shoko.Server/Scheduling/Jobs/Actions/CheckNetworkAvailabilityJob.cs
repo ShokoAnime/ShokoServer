@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Quartz;
 using Shoko.Plugin.Abstractions.Services;
@@ -9,9 +10,11 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [JobKeyMember("UptimeMonitor")]
 [JobKeyGroup(JobKeyGroup.System)]
 [DisallowConcurrentExecution]
-public class CheckNetworkAvailabilityJob : IJob
+public class CheckNetworkAvailabilityJob : BaseJob
 {
     private readonly IConnectivityService _connectivityService;
+    public override string TypeName => "Check Network Availability";
+    public override string Title => "Checking Network Connectivity";
 
     public CheckNetworkAvailabilityJob(IConnectivityService connectivityService)
     {
@@ -20,16 +23,8 @@ public class CheckNetworkAvailabilityJob : IJob
 
     protected CheckNetworkAvailabilityJob() { }
 
-    public async Task Execute(IJobExecutionContext context)
+    public override async Task Process()
     {
-        try
-        {
-            await _connectivityService.CheckAvailability();
-        }
-        catch (Exception ex)
-        {
-            // do you want the job to refire?
-            throw new JobExecutionException(msg: "", refireImmediately: false, cause: ex);
-        }
+        await _connectivityService.CheckAvailability();
     }
 }

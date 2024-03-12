@@ -1,9 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
@@ -28,13 +27,9 @@ public class GetAniDBCalendarJob : BaseJob
     private readonly ISettingsProvider _settingsProvider;
     public bool ForceRefresh { get; set; }
 
-    public override string Name => "Get AniDB Calendar";
-    public override QueueStateStruct Description => new()
-    {
-        message = "Getting AniDB Calendar",
-        queueState = QueueStateEnum.GetCalendar,
-        extraParams = Array.Empty<string>()
-    };
+    public override string TypeName => "Get AniDB Calendar";
+
+    public override string Title => "Getting AniDB Calendar";
 
     public override async Task Process()
     {

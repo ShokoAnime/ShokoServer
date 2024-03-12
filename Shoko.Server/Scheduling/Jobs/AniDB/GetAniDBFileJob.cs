@@ -1,10 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
+using Quartz;
 using Shoko.Models.Enums;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
@@ -34,31 +34,18 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
     public override void PostInit()
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
     }
 
-    public override string Name => "Get AniDB File Data";
-    public override QueueStateStruct Description
+    public override string TypeName => "Get AniDB File Data";
+
+    public override string Title => "Getting AniDB File Data";
+    public override Dictionary<string, object> Details => new()
     {
-        get
         {
-            if (_vlocal != null)
-            {
-                return new QueueStateStruct
-                {
-                    message = "Getting file info from UDP API: {0}",
-                    queueState = QueueStateEnum.GetFileInfo,
-                    extraParams = new[] { _vlocal.FileName }
-                };
-            }
-
-            return new QueueStateStruct
-            {
-                message = "Getting file info from UDP API: {0}",
-                queueState = QueueStateEnum.GetFileInfo,
-                extraParams = new[] { VideoLocalID.ToString() }
-            };
+            "Filename", _vlocal.FileName
         }
-    }
+    };
 
     public override async Task<SVR_AniDB_File> Process()
     {

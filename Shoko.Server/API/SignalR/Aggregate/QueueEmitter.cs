@@ -42,6 +42,8 @@ public class QueueEmitter : BaseEmitter, IDisposable
                 Key = a.Key,
                 Type = a.JobType,
                 Description = a.Description,
+                Title = a.Title,
+                Details = a.Details,
                 IsRunning = true,
                 StartTime = a.StartTime
             }).OrderBy(a => a.StartTime).ToList()
@@ -103,6 +105,8 @@ public class QueueEmitter : BaseEmitter, IDisposable
                 Key = a.Key,
                 Type = a.JobType,
                 Description = a.Description,
+                Title = a.Title,
+                Details = a.Details,
                 IsRunning = true,
                 StartTime = a.StartTime
             }).OrderBy(a => a.StartTime).ToList()

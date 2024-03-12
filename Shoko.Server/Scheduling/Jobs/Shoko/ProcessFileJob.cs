@@ -5,8 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
@@ -41,42 +39,17 @@ public class ProcessFileJob : BaseJob
     public bool ForceAniDB { get; set; }
     public bool SkipMyList { get; set; }
 
-    public override string Name => "Process File";
+    public override string TypeName => "Process File";
 
     public override void PostInit()
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
-        _fileName = _vlocal?.GetBestVideoLocalPlace()?.FileName;
+        if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
+        _fileName = _vlocal?.GetBestVideoLocalPlace()?.FullServerPath;
     }
 
-    public override QueueStateStruct Description
-    {
-        get
-        {
-            if (_vlocal != null)
-            {
-                return new QueueStateStruct
-                {
-                    message = "Getting file info from UDP API: {0}",
-                    queueState = QueueStateEnum.FileInfo,
-                    extraParams = new[]
-                    {
-                        _fileName
-                    }
-                };
-            }
-
-            return new QueueStateStruct
-            {
-                message = "Getting file info from UDP API: {0}",
-                queueState = QueueStateEnum.FileInfo,
-                extraParams = new[]
-                {
-                    VideoLocalID.ToString()
-                }
-            };
-        }
-    }
+    public override string Title => "Get XRefs for File";
+    public override Dictionary<string, object> Details => new() { { "File Path", _fileName } };
 
     public override async Task Process()
     {

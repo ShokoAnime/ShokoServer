@@ -51,6 +51,16 @@ public class Queue
         public string Description { get; init; }
 
         /// <summary>
+        /// The Title line of a Queue Item, eg Hashing File
+        /// </summary>
+        public string Title { get; init; }
+
+        /// <summary>
+        /// The details of the queue item. e.g. { "File Path": "/mnt/Drop/Steins Gate/Episode 1.mkv" }
+        /// </summary>
+        public Dictionary<string, object> Details { get; init; }
+
+        /// <summary>
         /// Indicates the item is currently actively running in the queue.
         /// </summary>
         public bool IsRunning { get; init; }

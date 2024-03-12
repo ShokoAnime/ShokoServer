@@ -1,14 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
@@ -30,12 +30,14 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 {
     private readonly IHttpConnectionHandler _handler;
     private readonly HttpAnimeParser _parser;
+    private readonly AniDBTitleHelper _titleHelper;
     private readonly AnimeCreator _animeCreator;
     private readonly AnimeGroupCreator _animeGroupCreator;
     private readonly HttpXmlUtils _xmlUtils;
     private readonly IRequestFactory _requestFactory;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IServerSettings _settings;
+    private string _animeName;
 
     public int AnimeID { get; set; }
     public bool ForceRefresh { get; set; }
@@ -44,14 +46,23 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     public int RelDepth { get; set; }
     public bool CreateSeriesEntry { get; set; }
 
-    public override string Name => "Get AniDB Anime Data";
-    public override QueueStateStruct Description => new()
+    public override void PostInit()
     {
-        message = "Getting anime info from HTTP API: {0}",
-        queueState = QueueStateEnum.AnimeInfo,
-        extraParams = new[]
+        // We have the title helper. May as well use it to provide better info for the user
+        _animeName = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle;
+    }
+
+    public override string TypeName => "Get AniDB Anime Data";
+
+    public override string Title => "Getting AniDB Anime Data";
+    public override Dictionary<string, object> Details => _animeName == null ? new()
+    {
         {
-            AnimeID.ToString()
+            "AnimeID", AnimeID
+        }
+    } : new() {
+        {
+            "Anime", _animeName
         }
     };
 
@@ -326,7 +337,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     }
 
     public GetAniDBAnimeJob(IHttpConnectionHandler handler, HttpAnimeParser parser, AnimeCreator animeCreator, HttpXmlUtils xmlUtils,
-        IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeGroupCreator animeGroupCreator)
+        IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeGroupCreator animeGroupCreator, AniDBTitleHelper titleHelper)
     {
         _handler = handler;
         _parser = parser;
@@ -335,6 +346,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;
         _animeGroupCreator = animeGroupCreator;
+        _titleHelper = titleHelper;
         _settings = settingsProvider.GetSettings();
     }
 

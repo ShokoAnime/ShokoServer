@@ -1,10 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -37,32 +36,18 @@ public class AddFileToMyListJob : BaseJob
     public override void PostInit()
     {
         _videoLocal = RepoFactory.VideoLocal.GetByHash(Hash);
+        if (_videoLocal == null) throw new JobExecutionException($"VideoLocal not Found: {Hash}");
     }
 
-    public override string Name => "Add File to MyList";
+    public override string TypeName => "Add File to MyList";
 
-    public override QueueStateStruct Description
+    public override string Title => "Adding File to MyList";
+    public override Dictionary<string, object> Details => new()
     {
-        get
         {
-            if (_videoLocal != null)
-            {
-                return new QueueStateStruct
-                {
-                    message = "Adding file to MyList: {0}",
-                    queueState = QueueStateEnum.AniDB_MyListAdd,
-                    extraParams = new[] { _videoLocal.FileName }
-                };
-            }
-
-            return new QueueStateStruct
-            {
-                message = "Adding file to MyList: {0}",
-                queueState = QueueStateEnum.AniDB_MyListAdd,
-                extraParams = new[] { Hash }
-            };
+            "File Path", _videoLocal.GetBestVideoLocalPlace()?.FullServerPath
         }
-    }
+    };
 
     public override async Task Process()
     {

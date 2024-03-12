@@ -1,11 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
-using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -33,27 +32,20 @@ public class ManualLinkJob : BaseJob
     private SVR_AnimeEpisode _episode;
     private SVR_VideoLocal _vlocal;
 
-    public override string Name => "Manually Link File";
-    public override QueueStateStruct Description
+    public override string TypeName => "Manually Link File";
+    public override string Title => "Manually Linking Episode";
+    public override Dictionary<string, object> Details
     {
         get
         {
-            if (_vlocal != null && _episode != null)
+            var result = new Dictionary<string, object>
             {
-                return new QueueStateStruct
-                {
-                    message = "Linking File: {0} to Episode: {1}",
-                    queueState = QueueStateEnum.LinkFileManually,
-                    extraParams = new[] { _vlocal.FileName, _episode.Title }
-                };
-            }
-
-            return new QueueStateStruct
-            {
-                message = "Linking File: {0} to Episode: {1}",
-                queueState = QueueStateEnum.LinkFileManually,
-                extraParams = new[] { VideoLocalID.ToString(), EpisodeID.ToString() }
+                { "File Path", _vlocal.GetBestVideoLocalPlace().FullServerPath },
+                { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(_episode.AniDB_Episode.AnimeID).AnimeID },
+                { "Episode Type", _episode.AniDB_Episode.EpisodeType.ToString() },
+                { "Episode Number", _episode.AniDB_Episode.EpisodeNumber }
             };
+            return result;
         }
     }
 
@@ -61,6 +53,8 @@ public class ManualLinkJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         _episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID);
+        if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
+        if (_episode == null) throw new JobExecutionException($"Episode not Found: {EpisodeID}");
     }
 
     public override async Task Process()

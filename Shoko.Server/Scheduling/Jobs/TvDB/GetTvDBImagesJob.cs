@@ -1,8 +1,8 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
@@ -19,13 +19,13 @@ public class GetTvDBImagesJob : BaseJob
     public int TvDBSeriesID { get; set; }
     public bool ForceRefresh { get; set; }
 
-    public override string Name => "Get TvDB Images";
-
-    public override QueueStateStruct Description => new()
+    public override string TypeName => "Get TvDB Images";
+    public override string Title => "Getting TvDB Images for Series";
+    public override Dictionary<string, object> Details => new()
     {
-        message = "Getting images from The TvDB: {0}",
-        queueState = QueueStateEnum.DownloadTvDBImages,
-        extraParams = new[] { TvDBSeriesID.ToString() }
+        {
+            "Series", RepoFactory.TvDB_Series.GetByTvDBID(TvDBSeriesID)?.SeriesName ?? TvDBSeriesID.ToString()
+        }
     };
 
     public override async Task Process()

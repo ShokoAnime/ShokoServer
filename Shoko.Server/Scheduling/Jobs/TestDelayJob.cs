@@ -1,8 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Server.Scheduling.Attributes;
 
 namespace Shoko.Server.Scheduling.Jobs;
@@ -12,14 +10,8 @@ public class TestDelayJob : BaseJob
 {
     public int Offset { get; set; }
     public int DelaySeconds { get; set; } = 60;
-    public override string Name => "Test spin/wait";
-
-    public override QueueStateStruct Description => new()
-    {
-        message = "{0} second spin/wait",
-        queueState = QueueStateEnum.Refresh,
-        extraParams = new[] { DelaySeconds.ToString() }
-    };
+    public override string TypeName => "Test spin/wait";
+    public override string Title => $"Waiting for {DelaySeconds} seconds";
 
     public override Task Process()
     {

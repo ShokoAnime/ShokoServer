@@ -1,14 +1,17 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Quartz;
-using Shoko.Commons.Queue;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
-public abstract class BaseJob : IShokoJob
+[UsedImplicitly(ImplicitUseTargetFlags.WithInheritors)]
+public abstract class BaseJob : IJob
 {
     public async Task Execute(IJobExecutionContext context)
     {
@@ -25,9 +28,10 @@ public abstract class BaseJob : IShokoJob
 
     public abstract Task Process();
  
-    [XmlIgnore][JsonIgnore] public ILogger _logger;
-    [XmlIgnore][JsonIgnore] public abstract QueueStateStruct Description { get; }
-    [XmlIgnore][JsonIgnore] public abstract string Name { get; }
+    [XmlIgnore] [JsonIgnore] public ILogger _logger;
+    [XmlIgnore] [JsonIgnore] public abstract string TypeName { get; }
+    [XmlIgnore] [JsonIgnore] public abstract string Title { get; }
+    [XmlIgnore] [JsonIgnore] public virtual Dictionary<string, object> Details { get; } = new();
 
     public virtual void PostInit() { }
 }

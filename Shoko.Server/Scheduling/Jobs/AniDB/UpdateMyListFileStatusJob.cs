@@ -1,9 +1,8 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
 using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -31,30 +30,29 @@ public class UpdateMyListFileStatusJob : BaseJob
     public bool UpdateSeriesStats { get; set; }
     public int WatchedDateAsSecs { get; set; }
 
-    public override string Name => "Update AniDB MyList";
-    public override QueueStateStruct Description => new()
-    {
-        message = "Updating AniDB MyList for File: {0}",
-        queueState = QueueStateEnum.UpdateMyListInfo,
-        extraParams = new[] { FullFileName }
-    };
+    public override string TypeName => "Update AniDB MyList";
 
     public override void PostInit()
     {
         FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
     }
 
-    public override async Task Process()
+    public override string Title => "Updating AniDB MyList Status for File";
+    public override Dictionary<string, object> Details => new()
+    {
+        {
+            "Filename", FullFileName
+        }
+    };
+
+    public override Task Process()
     {
         _logger.LogInformation("Processing {Job} for {Filename} | {Hash} | {Watched}", nameof(UpdateMyListFileStatusJob), FullFileName, Hash, Watched);
 
         var settings = _settingsProvider.GetSettings();
         // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
         var vid = RepoFactory.VideoLocal.GetByHash(Hash);
-        if (vid == null)
-        {
-            return;
-        }
+        if (vid == null) return Task.CompletedTask;
 
         if (vid.GetAniDBFile() != null)
         {
@@ -126,10 +124,7 @@ public class UpdateMyListFileStatusJob : BaseJob
 
         _logger.LogInformation("Updating file list status: {Hash} - {Watched}", vid.Hash, Watched);
 
-        if (!UpdateSeriesStats)
-        {
-            return;
-        }
+        if (!UpdateSeriesStats) return Task.CompletedTask;
 
         // update watched stats
         var eps = RepoFactory.AnimeEpisode.GetByHash(vid.ED2KHash);
@@ -137,6 +132,8 @@ public class UpdateMyListFileStatusJob : BaseJob
         {
             eps.DistinctBy(a => a.AnimeSeriesID).ForEach(a => a.GetAnimeSeries().QueueUpdateStats());
         }
+
+        return Task.CompletedTask;
     }
     
     public UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider)

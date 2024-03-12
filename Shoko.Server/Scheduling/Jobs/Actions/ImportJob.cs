@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Quartz;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
@@ -11,40 +10,34 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [JobKeyMember("Import")]
 [JobKeyGroup(JobKeyGroup.Legacy)]
 [DisallowConcurrentExecution]
-public class ImportJob : IJob
+public class ImportJob : BaseJob
 {
     private readonly ActionService _service;
+    public override string TypeName => "Run Import";
+    public override string Title => "Running Import";
 
-    public async Task Execute(IJobExecutionContext context)
+    public override async Task Process()
     {
-        try
-        {
-            await _service.RunImport_NewFiles();
-            await _service.RunImport_IntegrityCheck();
+        await _service.RunImport_NewFiles();
+        await _service.RunImport_IntegrityCheck();
 
-            // drop folder
-            await _service.RunImport_DropFolders();
+        // drop folder
+        await _service.RunImport_DropFolders();
 
-            // TvDB association checks
-            await _service.RunImport_ScanTvDB();
+        // TvDB association checks
+        await _service.RunImport_ScanTvDB();
 
-            // Trakt association checks
-            _service.RunImport_ScanTrakt();
+        // Trakt association checks
+        _service.RunImport_ScanTrakt();
 
-            // MovieDB association checks
-            await _service.RunImport_ScanMovieDB();
+        // MovieDB association checks
+        await _service.RunImport_ScanMovieDB();
 
-            // Check for missing images
-            await _service.RunImport_GetImages();
+        // Check for missing images
+        await _service.RunImport_GetImages();
 
-            // Check for previously ignored files
-            _service.CheckForPreviouslyIgnored();
-        }
-        catch (Exception ex)
-        {
-            // do you want the job to refire?
-            throw new JobExecutionException(msg: "", refireImmediately: false, cause: ex);
-        }
+        // Check for previously ignored files
+        _service.CheckForPreviouslyIgnored();
     }
 
     public ImportJob(ActionService service)

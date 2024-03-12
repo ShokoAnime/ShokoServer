@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Quartz;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
@@ -11,21 +10,15 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [JobKeyMember("ScanDropFolders")]
 [JobKeyGroup(JobKeyGroup.Legacy)]
 [DisallowConcurrentExecution]
-internal class ScanDropFoldersJob : IJob
+internal class ScanDropFoldersJob : BaseJob
 {
     private readonly ActionService _actionService;
+    public override string TypeName => "Scan Drop Folders";
+    public override string Title => "Scanning Drop Folders";
 
-    public async Task Execute(IJobExecutionContext context)
+    public override async Task Process()
     {
-        try
-        {
-            await _actionService.RunImport_DropFolders();
-        }
-        catch (Exception ex)
-        {
-            // do you want the job to refire?
-            throw new JobExecutionException(msg: "", refireImmediately: false, cause: ex);
-        }
+        await _actionService.RunImport_DropFolders();
     }
 
     public ScanDropFoldersJob(ActionService actionService)

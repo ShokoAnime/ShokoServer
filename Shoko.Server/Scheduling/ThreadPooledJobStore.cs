@@ -469,8 +469,9 @@ public class ThreadPooledJobStore : JobStoreTX
                     return new QueueItem
                     {
                         Key = a.Job.Key.ToString(),
-                        JobType = job?.Name,
-                        Description = job?.Description.formatMessage(),
+                        JobType = job?.TypeName,
+                        Title = job?.Title ?? job?.TypeName,
+                        Details = job?.Details ?? new(),
                         Running = true,
                         StartTime = a.StartTime
                     };
@@ -485,7 +486,11 @@ public class ThreadPooledJobStore : JobStoreTX
             var job = _jobFactory.CreateJob(a.Item1);
             return new QueueItem
             {
-                Key = a.Item1.Key.ToString(), JobType = job?.Name, Description = job?.Description.formatMessage(), Blocked = a.Item2
+                Key = a.Item1.Key.ToString(),
+                JobType = job?.TypeName,
+                Title = job?.Title ?? job?.TypeName,
+                Details = job?.Details ?? new(),
+                Blocked = a.Item2
             };
         }));
 
@@ -572,8 +577,9 @@ public class ThreadPooledJobStore : JobStoreTX
                 return new QueueItem
                 {
                     Key = detail.Key.ToString(),
-                    JobType = job?.Name ?? detail.JobType.Name,
-                    Description = job?.Description.formatMessage(),
+                    JobType = job?.TypeName ?? detail.JobType.Name,
+                    Title = job?.Title ?? job?.TypeName,
+                    Details = job?.Details ?? new(),
                     Running = true,
                     StartTime = a.StartTime
                 };
