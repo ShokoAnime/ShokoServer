@@ -1,6 +1,8 @@
 ﻿#region
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
@@ -55,13 +57,18 @@ public static class Program
         queueStateEventHandler.ExecutingJobsChanged += ExecutingJobsStateEventHandlerOnExecutingJobsChanged;
     }
 
+    private static string GetDetails(Dictionary<string, object> map)
+    {
+        return string.Join(", ", map.Select(a => a.Key + ": " + a.Value));
+    }
+    
     private static void QueueStateEventHandlerOnQueueItemAdded(object? sender, QueueItemAddedEventArgs e)
     {
         if (e.AddedItems is not { Count: > 0 }) return;
 
         foreach (var addedItem in e.AddedItems)
         {
-            _logger.LogTrace("Job Added: {Type} | {Details}", addedItem.JobType ?? addedItem.Key, addedItem.Description);
+            _logger.LogTrace("Job Added: {Type} | {Details}", addedItem.JobType ?? addedItem.Key, GetDetails(addedItem.Details));
         }
 
         _logger.LogTrace("Waiting: {Waiting} | Blocked: {Blocked} | Executing: {Executing}/{Pool} | Total: {Total}", e.WaitingJobsCount,
@@ -74,7 +81,7 @@ public static class Program
         {
             foreach (var addedItem in e.AddedItems)
             {
-                _logger.LogTrace("Job Started: {Type} | {Details}", addedItem.JobType ?? addedItem.Key, addedItem.Description);
+                _logger.LogTrace("Job Started: {Type} | {Details}", addedItem.JobType ?? addedItem.Title, GetDetails(addedItem.Details));
             }
         }
 
@@ -82,7 +89,7 @@ public static class Program
         {
             foreach (var removedItem in e.RemovedItems)
             {
-                _logger.LogTrace("Job Completed: {Type} | {Details}", removedItem.JobType, removedItem.Description);
+                _logger.LogTrace("Job Completed: {Type} | {Details}", removedItem.JobType, GetDetails(removedItem.Details));
             }
         }
 

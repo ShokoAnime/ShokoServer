@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -152,7 +153,7 @@ public class JobKeyBuilder<T> where T : class, IJob
         var type = typeof(T);
         // Get all members with JobKeyMember attribute
         var members = TypePropertyCache.Get(typeof(T))
-            .Select(a => (Member: a, Attribute: a.GetCustomAttribute<JobKeyMemberAttribute?>()))
+            .Select(a => (Member: a, Attribute: a.GetCustomAttribute<JobKeyMemberAttribute>()))
             .Where(a => a.Attribute != null).ToArray();
 
         if (members.Length == 0)
@@ -160,8 +161,6 @@ public class JobKeyBuilder<T> where T : class, IJob
             members = TypePropertyCache.Get(typeof(T))
                 .Where(a =>
                 {
-                    if (!a.CanRead) return false;
-                    if (a.PropertyType.IsEnum) return true;
                     if (_allowedTypes.Contains(a.PropertyType)) return true;
                     var aType = a.PropertyType;
                     var generic = aType.GetGenericArguments();

@@ -47,7 +47,6 @@ public class QueueController : BaseController
             {
                 Key = a.Key,
                 Type = a.JobType,
-                Description = a.Description,
                 Title = a.Title,
                 Details = a.Details,
                 IsRunning = true,
@@ -128,7 +127,6 @@ public class QueueController : BaseController
             {
                 Key = a.Key,
                 Type = a.JobType,
-                Description = a.Description,
                 Title = a.Title,
                 Details = a.Details,
                 IsRunning = a.Running,
@@ -140,7 +138,6 @@ public class QueueController : BaseController
             {
                 Key = a.Key,
                 Type = a.JobType,
-                Description = a.Description,
                 Title = a.Title,
                 Details = a.Details,
                 IsRunning = a.Running,

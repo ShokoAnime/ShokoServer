@@ -46,12 +46,7 @@ public class Queue
         public string Type { get; init; }
 
         /// <summary>
-        /// The description for the queue item.
-        /// </summary>
-        public string Description { get; init; }
-
-        /// <summary>
-        /// The Title line of a Queue Item, eg Hashing File
+        /// The Title line of a Queue Item, e.g. Hashing File
         /// </summary>
         public string Title { get; init; }
 
@@ -72,7 +67,7 @@ public class Queue
 
         /// <summary>
         /// Indicates the item is currently disabled because it cannot run under
-        /// the current conditions (e.g. an UDP or HTTP ban is active, etc.).
+        /// the current conditions (e.g. a UDP or HTTP ban is active, etc.).
         /// </summary>
         public bool IsBlocked { get; init; }
     }

@@ -15,7 +15,12 @@ public static class TypePropertyCache
 
     public static PropertyInfo[] Get(Type type)
     {
-        return propertiesCache.GetOrAdd(type, t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance));
+        return propertiesCache.GetOrAdd(type, t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(a =>
+        {
+            if (!a.CanRead) return false;
+            var setMethod = a.SetMethod;
+            return setMethod != null && setMethod.IsPublic;
+        }).ToArray());
     }
 
     public static bool ContainsKey(Type type)
