@@ -52,9 +52,10 @@ public class ManualLinkJob : BaseJob
     public override void PostInit()
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
-        _episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(EpisodeID);
+        _episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
         if (_episode == null) throw new JobExecutionException($"Episode not Found: {EpisodeID}");
+        if (_episode.GetAnimeSeries() == null) throw new JobExecutionException($"Series not Found: {_episode.AnimeSeriesID}");
     }
 
     public override async Task Process()
