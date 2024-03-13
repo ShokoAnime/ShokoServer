@@ -361,11 +361,11 @@ public class Series : BaseModel
         }
 
         var fanart = randomiseImages
-            ? allImages.Fanarts.GetRandomElement(random)
-            : GetDefaultImage(ser.AniDB_ID, ImageEntityType.Backdrop) ?? allImages.Fanarts.FirstOrDefault();
+            ? allImages.Backdrops.GetRandomElement(random)
+            : GetDefaultImage(ser.AniDB_ID, ImageEntityType.Backdrop) ?? allImages.Backdrops.FirstOrDefault();
         if (fanart != null)
         {
-            images.Fanarts.Add(fanart);
+            images.Backdrops.Add(fanart);
         }
 
         var banner = randomiseImages
@@ -397,32 +397,8 @@ public class Series : BaseModel
 
             var character = xref.RoleID.HasValue ? RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value) : null;
             var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
-            if (staff == null)
-                continue;
-
-            var role = new Role
-            {
-                Character =
-                    character != null
-                        ? new Role.Person
-                        {
-                            Name = character.Name,
-                            AlternateName = character.AlternateName,
-                            Image = new Image(character.CharacterID, ImageEntityType.Character, DataSourceType.Shoko),
-                            Description = character.Description
-                        }
-                        : null,
-                Staff = new Role.Person
-                {
-                    Name = staff.Name,
-                    AlternateName = staff.AlternateName,
-                    Description = staff.Description,
-                    Image = staff.ImagePath != null ? new Image(staff.StaffID, ImageEntityType.Person, DataSourceType.Shoko) : null
-                },
-                RoleName = (Role.CreatorRoleType)xref.RoleType,
-                RoleDetails = xref.Role
-            };
-            roles.Add(role);
+            if (staff != null)
+                roles.Add(new(xref, staff, character));
         }
 
         return roles;
@@ -559,7 +535,7 @@ public class Series : BaseModel
         var defaultFanart =
             RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndTypeAndSource(animeID, ImageEntityType.Backdrop, DataSourceType.TvDB);
         var fanarts = tvdbIDs.SelectMany(a => RepoFactory.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
-        images.Fanarts.AddRange(fanarts.Where(a => includeDisabled || a.Enabled != 0).Select(a =>
+        images.Backdrops.AddRange(fanarts.Where(a => includeDisabled || a.Enabled != 0).Select(a =>
         {
             var preferred = defaultFanart != null && defaultFanart.ImageID == a.TvDB_ImageFanartID;
             return new Image(a.TvDB_ImageFanartID, ImageEntityType.Backdrop, DataSourceType.TvDB, preferred, a.Enabled == 0);
@@ -599,7 +575,7 @@ public class Series : BaseModel
         var defaultFanart =
             RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndTypeAndSource(animeID, ImageEntityType.Backdrop, DataSourceType.TMDB);
         var tmdbFanarts = tmdbIDs.SelectMany(xref => RepoFactory.TMDB_Image.GetByTmdbMovieIDAndType(xref.TmdbMovieID, ImageEntityType.Backdrop)).ToList();
-        images.Fanarts.AddRange(tmdbFanarts.Where(a => includeDisabled || a.IsEnabled).Select(a =>
+        images.Backdrops.AddRange(tmdbFanarts.Where(a => includeDisabled || a.IsEnabled).Select(a =>
         {
             var preferred = defaultFanart != null && defaultFanart.ImageID == a.TMDB_ImageID;
             return new Image(a.TMDB_ImageID, ImageEntityType.Backdrop, DataSourceType.TMDB, preferred, !a.IsEnabled);
@@ -1001,7 +977,7 @@ public class Series : BaseModel
             var images = new Images();
             AddTvDBImages(images, series.AniDB_ID);
             Posters = images.Posters;
-            Fanarts = images.Fanarts;
+            Backdrops = images.Backdrops;
             Banners = images.Banners;
 
             // Aggregate stuff
@@ -1064,7 +1040,7 @@ public class Series : BaseModel
         /// <summary>
         /// Fanarts
         /// </summary>
-        public List<Image> Fanarts { get; set; }
+        public List<Image> Backdrops { get; set; }
 
         /// <summary>
         /// Banners

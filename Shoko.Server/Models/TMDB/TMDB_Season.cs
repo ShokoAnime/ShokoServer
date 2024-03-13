@@ -132,7 +132,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     /// </param>
     /// <returns>The preferred season title, or null if no preferred title was
     /// found.</returns>
-    public TMDB_Title? GetPreferredTitle(bool useFallback = false, bool force = false)
+    public TMDB_Title? GetPreferredTitle(bool useFallback = true, bool force = false)
     {
         var titles = GetAllTitles(force);
 
@@ -162,7 +162,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
         ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID)
         : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID);
 
-    public TMDB_Overview? GetPreferredOverview(bool useFallback = false, bool force = false)
+    public TMDB_Overview? GetPreferredOverview(bool useFallback = true, bool force = false)
     {
         var overviews = GetAllOverviews(force);
 

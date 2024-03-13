@@ -16,6 +16,17 @@ namespace Shoko.Server.API.v3.Helpers;
 
 public static class ModelHelper
 {
+    public static T CombineFlags<T>(this HashSet<T> flags) where T : Enum
+    {
+        T combinedFlags = default;
+        foreach (var flag in flags)
+            combinedFlags = CombineFlags(combinedFlags, flag);
+        return combinedFlags;
+    }
+
+    private static T CombineFlags<T>(T a, T b) where T : Enum
+        => (T)Enum.ToObject(typeof(T), Convert.ToInt64(a) | Convert.ToInt64(b));
+
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable)
     {
         var list = enumerable is IReadOnlyList<T> l ? l : enumerable.ToList();

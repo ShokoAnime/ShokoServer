@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
@@ -12,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -1004,16 +1003,14 @@ public class SeriesController : BaseController
     /// Get all TMDB movies linked to a Shoko series.
     /// </summary>
     /// <param name="seriesID">Shoko Series ID.</param>
-    /// <param name="includeTitles">Include all titles in the data</param>
-    /// <param name="includeOverviews"></param>
-    /// <param name="includeImages"></param>
+    /// <param name="include"></param>
+    /// <param name="language"></param>
     /// <returns></returns>
     [HttpGet("{seriesID}/TMDB/Movie")]
     public ActionResult<List<TmdbMovie>> GetTMDBMoviesBySeriesID(
         [FromRoute] int seriesID,
-        [FromQuery] bool includeTitles = false,
-        [FromQuery] bool includeOverviews = false,
-        [FromQuery] bool includeImages = false
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails> include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1026,7 +1023,7 @@ public class SeriesController : BaseController
         return series.GetTmdbMovieCrossReferences()
             .Select(o => o.GetTmdbMovie())
             .OfType<TMDB_Movie>()
-            .Select(tmdbMovie => new TmdbMovie(tmdbMovie, includeTitles, includeOverviews, includeImages))
+            .Select(tmdbMovie => new TmdbMovie(tmdbMovie, include?.CombineFlags(), language))
             .ToList();
     }
 
@@ -1131,10 +1128,8 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/TMDB/Show")]
     public ActionResult<List<TmdbShow>> GetTMDBShowsBySeriesID(
         [FromRoute] int seriesID,
-        [FromQuery] bool includeTitles = false,
-        [FromQuery] bool includeOverviews = false,
-        [FromQuery] bool includeOrdering = false,
-        [FromQuery] bool includeImages = false
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbShow.IncludeDetails> include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1147,7 +1142,7 @@ public class SeriesController : BaseController
         return series.GetTmdbShowCrossReferences()
             .Select(o => o.GetTmdbShow())
             .OfType<TMDB_Show>()
-            .Select(o => new TmdbShow(o, includeTitles, includeOverviews, includeOrdering, includeImages))
+            .Select(o => new TmdbShow(o, include?.CombineFlags(), language))
             .ToList();
     }
 
@@ -1425,9 +1420,8 @@ public class SeriesController : BaseController
     [HttpGet("{seriesID}/TMDB/Season")]
     public ActionResult<List<TmdbSeason>> GetTMDBSeasonsBySeriesID(
         [FromRoute] int seriesID,
-        [FromQuery] bool includeTitles = false,
-        [FromQuery] bool includeOverviews = false,
-        [FromQuery] bool includeImages = false
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbSeason.IncludeDetails> include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
     )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
@@ -1440,7 +1434,7 @@ public class SeriesController : BaseController
         return series.GetTmdbShowCrossReferences(true)
             .Select(o => o.GetTmdbSeason())
             .OfType<TMDB_Season>()
-            .Select(o => new TmdbSeason(o, includeTitles, includeOverviews, includeImages))
+            .Select(o => new TmdbSeason(o, include?.CombineFlags(), language))
             .ToList();
     }
 
@@ -1618,7 +1612,7 @@ public class SeriesController : BaseController
         {
             ImageEntityType.Poster => images.Posters.FirstOrDefault(),
             ImageEntityType.Banner => images.Banners.FirstOrDefault(),
-            ImageEntityType.Backdrop => images.Fanarts.FirstOrDefault(),
+            ImageEntityType.Backdrop => images.Backdrops.FirstOrDefault(),
             _ => null
         };
     }

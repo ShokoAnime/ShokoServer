@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
@@ -66,12 +68,6 @@ public class Episode
     public int SeasonNumber;
 
     /// <summary>
-    /// All available ordering for the episode, if they should be included.
-    /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public IReadOnlyList<OrderingInformation>? Ordering;
-
-    /// <summary>
     /// User rating of the episode from TMDB users.
     /// </summary>
     public Rating UserRating;
@@ -80,6 +76,36 @@ public class Episode
     /// The episode run-time, if it is known.
     /// </summary>
     public TimeSpan? Runtime;
+
+    /// <summary>
+    /// All images stored locally for this episode, if any.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Image>? Images;
+
+    /// <summary>
+    /// The cast that have worked on this episode.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Role>? Cast;
+
+    /// <summary>
+    /// The crew that have worked on this episode.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Role>? Crew;
+
+    /// <summary>
+    /// All available ordering for the episode, if they should be included.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<OrderingInformation>? Ordering;
+
+    /// <summary>
+    /// Episode cross-references.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<CrossReference>? CrossReferences;
 
     /// <summary>
     /// The date the episode first aired, if it is known.
@@ -97,14 +123,15 @@ public class Episode
     /// </summary>
     public DateTime LastUpdatedAt;
 
-    public Episode(TMDB_Episode episode, bool includeTitles = true, bool includeOverviews = true, bool includeOrdering = false) :
-        this(episode, null, includeTitles, includeOverviews, includeOrdering)
+    public Episode(TMDB_Episode episode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null) :
+        this(episode, null, includeDetails, language)
     { }
 
-    public Episode(TMDB_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisode, bool includeTitles = true, bool includeOverviews = true, bool includeOrdering = false)
+    public Episode(TMDB_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
     {
-        var preferredOverview = episode.GetPreferredOverview(true);
-        var preferredTitle = episode.GetPreferredTitle(true);
+        var include = includeDetails ?? default;
+        var preferredOverview = episode.GetPreferredOverview();
+        var preferredTitle = episode.GetPreferredTitle();
 
         ID = episode.TmdbEpisodeID;
         SeasonID = alternateOrderingEpisode != null
@@ -113,22 +140,14 @@ public class Episode
         ShowID = episode.TmdbShowID;
 
         Title = preferredTitle!.Value;
-        if (includeTitles)
+        if (include.HasFlag(IncludeDetails.Titles))
             Titles = episode.GetAllTitles()
-                .Select(title => new Title(title, episode.EnglishTitle, preferredTitle))
-                .OrderByDescending(title => title.Preferred)
-                .ThenByDescending(title => title.Default)
-                .ThenBy(title => title.Language)
-                .ToList();
+                .ToDto(episode.EnglishTitle, preferredTitle, language);
 
         Overview = preferredOverview!.Value;
-        if (includeOverviews)
+        if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = episode.GetAllOverviews()
-                .Select(title => new Overview(title, episode.EnglishOverview, preferredOverview))
-                .OrderByDescending(title => title.Preferred)
-                .ThenByDescending(title => title.Default)
-                .ThenBy(title => title.Language)
-                .ToList();
+                .ToDto(episode.EnglishOverview, preferredOverview, language);
 
         if (alternateOrderingEpisode != null)
         {
@@ -140,7 +159,28 @@ public class Episode
             EpisodeNumber = episode.EpisodeNumber;
             SeasonNumber = episode.SeasonNumber;
         }
-        if (includeOrdering)
+        UserRating = new()
+        {
+            Value = (decimal)episode.UserRating,
+            MaxValue = 10,
+            Votes = episode.UserVotes,
+            Source = "TMDB",
+        };
+        Runtime = episode.Runtime;
+        if (include.HasFlag(IncludeDetails.Images))
+            Images = episode.GetImages()
+                .InLanguage(language)
+                .Select(image => image.ToDto())
+                .ToList();
+        if (include.HasFlag(IncludeDetails.Cast))
+            Cast = episode.GetCast()
+                .Select(cast => new Role(cast))
+                .ToList();
+        if (include.HasFlag(IncludeDetails.Crew))
+            Crew = episode.GetCrew()
+                .Select(crew => new Role(crew))
+                .ToList();
+        if (include.HasFlag(IncludeDetails.Ordering))
         {
             var ordering = new List<OrderingInformation>
             {
@@ -154,16 +194,10 @@ public class Episode
                 .ThenBy(o => o.OrderingName)
                 .ToList();
         }
-
-        UserRating = new()
-        {
-            Value = (decimal)episode.UserRating,
-            MaxValue = 10,
-            Votes = episode.UserVotes,
-            Source = "TMDB",
-        };
-
-        Runtime = episode.Runtime;
+        if (include.HasFlag(IncludeDetails.CrossReferences))
+            CrossReferences = episode.GetCrossReferences()
+                .Select(xref => new CrossReference(xref))
+                .ToList();
         AiredAt = episode.AiredAt;
         CreatedAt = episode.CreatedAt.ToUniversalTime();
         LastUpdatedAt = episode.LastUpdatedAt.ToUniversalTime();
@@ -279,7 +313,7 @@ public class Episode
         /// <summary>
         /// The match rating.
         /// </summary>
-        public string MatchRating;
+        public string Rating;
 
         public CrossReference(CrossRef_AniDB_TMDB_Episode xref)
         {
@@ -287,10 +321,24 @@ public class Episode
             AnidbEpisodeID = xref.AnidbEpisodeID;
             TmdbShowID = xref.TmdbShowID;
             TmdbEpisodeID = xref.TmdbEpisodeID == 0 ? null : xref.TmdbEpisodeID;
-            MatchRating = "None";
+            Rating = "None";
             // NOTE: Internal easter-eggs stays internally.
             if (xref.MatchRating != MatchRatingEnum.SarahJessicaParker)
-                MatchRating = xref.MatchRating.ToString();
+                Rating = xref.MatchRating.ToString();
         }
+    }
+
+    [Flags]
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum IncludeDetails
+    {
+        None = 0,
+        Titles = 1,
+        Overviews = 2,
+        Images = 4,
+        Ordering = 8,
+        CrossReferences = 16,
+        Cast = 32,
+        Crew = 64,
     }
 }

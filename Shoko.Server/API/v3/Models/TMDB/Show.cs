@@ -5,7 +5,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 
@@ -44,6 +46,9 @@ public class Show
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IReadOnlyList<Overview>? Overviews;
 
+    /// <summary>
+    /// Original language the show was shot in.
+    /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
     public TitleLanguage OriginalLanguage;
 
@@ -66,18 +71,38 @@ public class Show
     /// <summary>
     /// Content ratings for different countries for this show.
     /// </summary>
-    public IReadOnlyList<ContentRating> ContentRatings;
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<ContentRating>? ContentRatings;
 
     /// <summary>
     /// The production companies (studios) that produced the show.
     /// </summary>
-    public IReadOnlyList<Studio> Studios;
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Studio>? Studios;
+
+    /// <summary>
+    /// The television networks that aired the show.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Network>? Networks;
 
     /// <summary>
     /// Images assosiated with the show, if they should be included.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public Images? Images;
+
+    /// <summary>
+    /// The cast that have worked on this show across all episodes and all seasons.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Role>? Cast;
+
+    /// <summary>
+    /// The crew that have worked on this show across all episodes and all seasons.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Role>? Crew;
 
     /// <summary>
     /// Count of episodes assosiated with the show.
@@ -101,6 +126,12 @@ public class Show
     public IReadOnlyList<OrderingInformation>? Ordering;
 
     /// <summary>
+    /// Show cross-references.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<CrossReference>? CrossReferences;
+
+    /// <summary>
     /// The date the first episode aired at, if it is known.
     /// </summary>
     public DateOnly? FirstAiredAt;
@@ -121,33 +152,26 @@ public class Show
     /// </summary>
     public DateTime LastUpdatedAt;
 
-    public Show(TMDB_Show show, bool includeTitles = true, bool includeOverviews = true, bool includeOrdering = false, bool includeImages = false) :
-        this(show, null, includeTitles, includeOverviews, includeOrdering, includeImages)
+    public Show(TMDB_Show show, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null) :
+        this(show, null, includeDetails, language)
     { }
 
-    public Show(TMDB_Show show, TMDB_AlternateOrdering? alternateOrdering, bool includeTitles = true, bool includeOverviews = true, bool includeOrdering = false, bool includeImages = false)
+    public Show(TMDB_Show show, TMDB_AlternateOrdering? alternateOrdering, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
     {
-        var preferredOverview = show.GetPreferredOverview(true);
-        var preferredTitle = show.GetPreferredTitle(true);
+        var include = includeDetails ?? default;
+        var preferredOverview = show.GetPreferredOverview();
+        var preferredTitle = show.GetPreferredTitle();
 
         ID = show.TmdbShowID;
         Title = preferredTitle!.Value;
-        if (includeTitles)
+        if (include.HasFlag(IncludeDetails.Titles))
             Titles = show.GetAllTitles()
-                .Select(title => new Title(title, show.EnglishTitle, preferredTitle))
-                .OrderByDescending(title => title.Preferred)
-                .ThenByDescending(title => title.Default)
-                .ThenBy(title => title.Language)
-                .ToList();
+                .ToDto(show.EnglishOverview, preferredTitle, language);
 
         Overview = preferredOverview!.Value;
-        if (includeOverviews)
+        if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = show.GetAllOverviews()
-                .Select(title => new Overview(title, show.EnglishOverview, preferredOverview))
-                .OrderByDescending(title => title.Preferred)
-                .ThenByDescending(title => title.Default)
-                .ThenBy(title => title.Language)
-                .ToList();
+                .ToDto(show.EnglishTitle, preferredOverview, language);
         OriginalLanguage = show.OriginalLanguage;
         IsRestricted = show.IsRestricted;
         UserRating = new()
@@ -158,14 +182,27 @@ public class Show
             Source = "TMDB",
         };
         Genres = show.Genres;
-        ContentRatings = show.ContentRatings
-            .Select(contentRating => new ContentRating(contentRating))
-            .ToList();
-        Studios = show.GetTmdbCompanies()
-            .Select(company => new Studio(company))
-            .ToList();
-        if (includeImages)
-            Images = GetImages(show);
+        if (include.HasFlag(IncludeDetails.ContentRatings))
+            ContentRatings = show.ContentRatings.ToDto(language);
+        if (include.HasFlag(IncludeDetails.Studios))
+            Studios = show.GetTmdbCompanies()
+                .Select(company => new Studio(company))
+                .ToList();
+        if (include.HasFlag(IncludeDetails.Networks))
+            Networks = show.GetTmdbNetworks()
+                .Select(network => new Network(network))
+                .ToList();
+        if (include.HasFlag(IncludeDetails.Images))
+            Images = show.GetImages()
+                .ToDto(language);
+        if (include.HasFlag(IncludeDetails.Cast))
+            Cast = show.GetCast()
+                .Select(cast => new Role(cast))
+                .ToList();
+        if (include.HasFlag(IncludeDetails.Crew))
+            Crew = show.GetCrew()
+                .Select(cast => new Role(cast))
+                .ToList();
         if (alternateOrdering != null)
         {
             EpisodeCount = alternateOrdering.EpisodeCount;
@@ -177,7 +214,7 @@ public class Show
             SeasonCount = show.SeasonCount;
         }
         AlternateOrderingCount = show.AlternateOrderingCount;
-        if (includeOrdering)
+        if (include.HasFlag(IncludeDetails.Ordering))
         {
             var ordering = new List<OrderingInformation>
             {
@@ -191,6 +228,13 @@ public class Show
                 .ThenBy(o => o.OrderingName)
                 .ToList();
         }
+        if (include.HasFlag(IncludeDetails.CrossReferences))
+            CrossReferences = show.GetCrossReferences()
+                .Select(xref => new CrossReference(xref))
+                .OrderBy(xref => xref.AnidbAnimeID)
+                .ThenBy(xref => xref.TmdbShowID)
+                .ThenBy(xref => xref.TmdbSeasonID)
+                .ToList();
         FirstAiredAt = show.FirstAiredAt;
         LastAiredAt = show.LastAiredAt;
         CreatedAt = show.CreatedAt.ToUniversalTime();
@@ -234,30 +278,54 @@ public class Show
         }
     }
 
-    public static Images GetImages(TMDB_Show show)
+    /// <summary>
+    /// APIv3 The Movie DataBase (TMDB) Show Cross-Reference Data Transfer Object (DTO).
+    /// </summary>
+    public class CrossReference
     {
-        var images = new Images();
-        foreach (var image in show.GetImages())
+        /// <summary>
+        /// AniDB Anime ID.
+        /// </summary>
+        public int AnidbAnimeID;
+
+        /// <summary>
+        /// TMDB Show ID.
+        /// </summary>
+        public int TmdbShowID;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public int? TmdbSeasonID;
+
+        /// <summary>
+        /// The match rating.
+        /// </summary>
+        public string Rating;
+
+        public CrossReference(CrossRef_AniDB_TMDB_Show xref)
         {
-            var dto = new Image(image.TMDB_ImageID, image.ImageType, DataSourceType.TMDB, false, !image.IsEnabled);
-            switch (image.ImageType)
-            {
-                case Server.ImageEntityType.Poster:
-                    images.Posters.Add(dto);
-                    break;
-                case Server.ImageEntityType.Banner:
-                    images.Banners.Add(dto);
-                    break;
-                case Server.ImageEntityType.Backdrop:
-                    images.Fanarts.Add(dto);
-                    break;
-                case Server.ImageEntityType.Logo:
-                    images.Logos.Add(dto);
-                    break;
-                default:
-                    break;
-            }
+            AnidbAnimeID = xref.AnidbAnimeID;
+            TmdbShowID = xref.TmdbShowID;
+            TmdbSeasonID = xref.TmdbSeasonID;
+            Rating = xref.Source != CrossRefSource.User ? "User" : "Automatic";
         }
-        return images;
+    }
+
+    [Flags]
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum IncludeDetails
+    {
+        None = 0,
+        Titles = 1,
+        Overviews = 2,
+        Images = 4,
+        Ordering = 8,
+        CrossReferences = 16,
+        Cast = 32,
+        Crew = 64,
+        Studios = 128,
+        Networks = 256,
+        ContentRatings = 512,
     }
 }

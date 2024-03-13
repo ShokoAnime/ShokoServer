@@ -198,7 +198,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
     /// </param>
     /// <returns>The preferred show title, or null if no preferred title was
     /// found.</returns>
-    public TMDB_Title? GetPreferredTitle(bool useFallback = false, bool force = false)
+    public TMDB_Title? GetPreferredTitle(bool useFallback = true, bool force = false)
     {
         var titles = GetAllTitles(force);
 
@@ -240,7 +240,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
     /// </param>
     /// <returns>The preferred episode overview, or null if no preferred
     /// overview was found.</returns>
-    public TMDB_Overview? GetPreferredOverview(bool useFallback = false, bool force = false)
+    public TMDB_Overview? GetPreferredOverview(bool useFallback = true, bool force = false)
     {
         var overviews = GetAllOverviews(force);
 

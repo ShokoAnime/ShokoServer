@@ -4,7 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
-using Shoko.Models.Enums;
+using Newtonsoft.Json.Converters;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.TMDB;
 
@@ -37,7 +39,7 @@ public class Season
     public string Title;
 
     /// <summary>
-    /// All available titles for the show, if they should be included.
+    /// All available titles for the season, if they should be included.
     /// /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IReadOnlyList<Title>? Titles;
@@ -48,7 +50,7 @@ public class Season
     public string Overview;
 
     /// <summary>
-    /// All available overviews for the show, if they should be included.
+    /// All available overviews for the season, if they should be included.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IReadOnlyList<Overview>? Overviews;
@@ -58,6 +60,18 @@ public class Season
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public Images? Images;
+
+    /// <summary>
+    /// The cast that have worked on this seasom across all episodes.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Role>? Cast;
+
+    /// <summary>
+    /// The crew that have worked on this seasom across all episodes.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Role>? Crew;
 
     /// <summary>
     /// The season number for the main ordering or alternate ordering in use.
@@ -87,32 +101,34 @@ public class Season
     /// </summary>
     public DateTime LastUpdatedAt;
 
-    public Season(TMDB_Season season, bool includeTitles = false, bool includeOverviews = false, bool includeImages = false)
+    public Season(TMDB_Season season, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
     {
-        var preferredOverview = season.GetPreferredOverview(true);
-        var preferredTitle = season.GetPreferredTitle(true);
+        var include = includeDetails ?? default;
+        var preferredOverview = season.GetPreferredOverview();
+        var preferredTitle = season.GetPreferredTitle();
 
         ID = season.TmdbSeasonID.ToString();
         ShowID = season.TmdbShowID;
         AlternateOrderingID = null;
         Title = preferredTitle!.Value;
-        if (includeTitles)
+        if (include.HasFlag(IncludeDetails.Titles))
             Titles = season.GetAllTitles()
-                .Select(title => new Title(title, season.EnglishTitle, preferredTitle))
-                .OrderByDescending(title => title.Preferred)
-                .ThenByDescending(title => title.Default)
-                .ThenBy(title => title.Language)
-                .ToList();
+                .ToDto(season.EnglishTitle, preferredTitle, language);
         Overview = preferredOverview!.Value;
-        if (includeOverviews)
+        if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = season.GetAllOverviews()
-                .Select(title => new Overview(title, season.EnglishOverview, preferredOverview))
-                .OrderByDescending(title => title.Preferred)
-                .ThenByDescending(title => title.Default)
-                .ThenBy(title => title.Language)
+                .ToDto(season.EnglishOverview, preferredOverview, language);
+        if (include.HasFlag(IncludeDetails.Images))
+            Images = season.GetImages()
+                .ToDto(language);
+        if (include.HasFlag(IncludeDetails.Cast))
+            Cast = season.GetCast()
+                .Select(cast => new Role(cast))
                 .ToList();
-        if (includeImages)
-            Images = GetImages(season);
+        if (include.HasFlag(IncludeDetails.Crew))
+            Crew = season.GetCrew()
+                .Select(crew => new Role(crew))
+                .ToList();
         SeasonNumber = season.SeasonNumber;
         EpisodeCount = season.EpisodeCount;
         IsLocked = null;
@@ -120,18 +136,20 @@ public class Season
         LastUpdatedAt = season.LastUpdatedAt.ToUniversalTime();
     }
 
-    public Season(TMDB_AlternateOrdering_Season season, bool includeTitles = false, bool includeOverviews = false, bool includeImages = false)
+    public Season(TMDB_AlternateOrdering_Season season, IncludeDetails? includeDetails = null)
     {
+        var include = includeDetails ?? default;
+
         ID = season.TmdbEpisodeGroupID;
         ShowID = season.TmdbShowID;
         AlternateOrderingID = season.TmdbEpisodeGroupCollectionID;
         Title = season.EnglishTitle;
-        if (includeTitles)
+        if (include.HasFlag(IncludeDetails.Titles))
             Titles = Array.Empty<Title>();
         Overview = string.Empty;
-        if (includeOverviews)
+        if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = Array.Empty<Overview>();
-        if (includeImages)
+        if (include.HasFlag(IncludeDetails.Images))
             Images = new();
         SeasonNumber = season.SeasonNumber;
         EpisodeCount = season.EpisodeCount;
@@ -140,30 +158,15 @@ public class Season
         LastUpdatedAt = season.LastUpdatedAt.ToUniversalTime();
     }
 
-    public static Images GetImages(TMDB_Season season)
+    [Flags]
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum IncludeDetails
     {
-        var images = new Images();
-        foreach (var image in season.GetImages())
-        {
-            var dto = new Image(image.TMDB_ImageID, image.ImageType, DataSourceType.TMDB, false, !image.IsEnabled);
-            switch (image.ImageType)
-            {
-                case Server.ImageEntityType.Poster:
-                    images.Posters.Add(dto);
-                    break;
-                case Server.ImageEntityType.Banner:
-                    images.Banners.Add(dto);
-                    break;
-                case Server.ImageEntityType.Backdrop:
-                    images.Fanarts.Add(dto);
-                    break;
-                case Server.ImageEntityType.Logo:
-                    images.Logos.Add(dto);
-                    break;
-                default:
-                    break;
-            }
-        }
-        return images;
+        None = 0,
+        Titles = 1,
+        Overviews = 2,
+        Images = 4,
+        Cast = 8,
+        Crew = 16,
     }
 }

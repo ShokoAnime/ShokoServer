@@ -1,22 +1,17 @@
-
-using System.Collections.Generic;
-using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Enums;
 using Shoko.Server.Models.TMDB;
-using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
 /// <summary>
-/// APIv3 Studio Data Transfer Object (DTO).
+/// APIv3 Network Data Transfer Object (DTO).
 /// </summary>
-public class Studio
+public class Network
 {
     /// <summary>
-    /// Studio ID relative to the <see cref="Source"/>.
+    /// Network ID relative to the <see cref="Source"/>.
     /// </summary>
     public int ID;
 
@@ -37,25 +32,17 @@ public class Studio
     public int Size;
 
     /// <summary>
-    /// Logos used by the studio.
-    /// </summary>
-    public IReadOnlyList<Image> Logos;
-
-    /// <summary>
     /// The source of which the studio metadata belongs to.
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
     public DataSource Source;
 
-    public Studio(TMDB_Company company)
+    public Network(TMDB_Network company)
     {
-        ID = company.TmdbCompanyID;
+        ID = company.TmdbNetworkID;
         Name = company.Name;
         CountryOfOrigin = company.CountryOfOrigin;
-        Size = company.GetTmdbCompanyCrossReferences().Count;
-        Logos = company.GetImages(ImageEntityType.Logo)
-            .Select(image => new Image(image.TMDB_ImageID, image.ImageType, DataSourceType.TMDB, false, !image.IsEnabled))
-            .ToList();
+        Size = company.GetTmdbNetworkCrossReferences().Count;
         Source = DataSource.TMDB;
     }
 }

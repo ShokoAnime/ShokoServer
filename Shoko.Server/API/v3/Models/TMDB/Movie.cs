@@ -5,7 +5,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
 
 #nullable enable
@@ -48,6 +50,9 @@ public class Movie
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IReadOnlyList<Overview>? Overviews;
 
+    /// <summary>
+    /// Original language the movie was shot in.
+    /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
     public TitleLanguage OriginalLanguage;
 
@@ -93,18 +98,38 @@ public class Movie
     /// <summary>
     /// Content ratings for different countries for this show.
     /// </summary>
-    public IReadOnlyList<ContentRating> ContentRatings;
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<ContentRating>? ContentRatings;
 
     /// <summary>
     /// The production companies (studios) that produced the movie.
     /// </summary>
-    public IReadOnlyList<Studio> Studios;
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Studio>? Studios;
 
     /// <summary>
     /// Images assosiated with the movie, if they should be included.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public Images? Images;
+
+    /// <summary>
+    /// The cast that have worked on this seasom across all episodes.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Role>? Cast;
+
+    /// <summary>
+    /// The crew that have worked on this seasom across all episodes.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Role>? Crew;
+
+    /// <summary>
+    /// Movie cross-references.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<CrossReference>? CrossReferences;
 
     /// <summary>
     /// The date the episode first released, if it is known.
@@ -122,29 +147,22 @@ public class Movie
     /// </summary>
     public DateTime LastUpdatedAt;
 
-    public Movie(TMDB_Movie movie, bool includeTitles = true, bool includeOverviews = true, bool includeImages = false)
+    public Movie(TMDB_Movie movie, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
     {
-        var preferredTitle = movie.GetPreferredTitle(true);
-        var preferredOverview = movie.GetPreferredOverview(true);
+        var include = includeDetails ?? default;
+        var preferredTitle = movie.GetPreferredTitle();
+        var preferredOverview = movie.GetPreferredOverview();
 
         ID = movie.TmdbMovieID;
         CollectionID = movie.TmdbCollectionID;
         Title = preferredTitle!.Value;
-        if (includeTitles)
+        if (include.HasFlag(IncludeDetails.Titles))
             Titles = movie.GetAllTitles()
-                .Select(title => new Title(title, movie.EnglishTitle, preferredTitle))
-                .OrderByDescending(title => title.Preferred)
-                .ThenBy(title => title.Default)
-                .ThenBy(title => title.Language)
-                .ToList();
+                .ToDto(movie.EnglishTitle, preferredTitle, language);
         Overview = preferredOverview!.Value;
-        if (includeOverviews)
+        if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = movie.GetAllOverviews()
-                .Select(title => new Overview(title, movie.EnglishOverview, preferredOverview))
-                .OrderByDescending(title => title.Preferred)
-                .ThenBy(title => title.Default)
-                .ThenBy(title => title.Language)
-                .ToList();
+                .ToDto(movie.EnglishOverview, preferredOverview, language);
         OriginalLanguage = movie.OriginalLanguage;
         IsRestricted = movie.IsRestricted;
         IsVideo = movie.IsVideo;
@@ -157,14 +175,32 @@ public class Movie
         };
         Runtime = movie.Runtime;
         Genres = movie.Genres;
-        ContentRatings = movie.ContentRatings
-            .Select(contentRating => new ContentRating(contentRating))
-            .ToList();
-        Studios = movie.GetTmdbCompanies()
-            .Select(company => new Studio(company))
-            .ToList();
-        if (includeImages)
-            Images = GetImages(movie);
+        if (include.HasFlag(IncludeDetails.ContentRatings))
+            ContentRatings = movie.ContentRatings
+                .Select(contentRating => new ContentRating(contentRating))
+                .ToList();
+        if (include.HasFlag(IncludeDetails.Studios))
+            Studios = movie.GetTmdbCompanies()
+                .Select(company => new Studio(company))
+                .ToList();
+        if (include.HasFlag(IncludeDetails.Images))
+            Images = movie.GetImages()
+                .ToDto(language);
+        if (include.HasFlag(IncludeDetails.Cast))
+            Cast = movie.GetCast()
+                .Select(cast => new Role(cast))
+                .ToList();
+        if (include.HasFlag(IncludeDetails.Crew))
+            Crew = movie.GetCrew()
+                .Select(crew => new Role(crew))
+                .ToList();
+        if (include.HasFlag(IncludeDetails.CrossReferences))
+            CrossReferences = movie.GetCrossReferences()
+                .Select(xref => new CrossReference(xref))
+                .OrderBy(xref => xref.AnidbAnimeID)
+                .ThenBy(xref => xref.AnidbEpisodeID)
+                .ThenBy(xref => xref.TmdbMovieID)
+                .ToList();
         ReleasedAt = movie.ReleasedAt;
         CreatedAt = movie.CreatedAt.ToUniversalTime();
         LastUpdatedAt = movie.LastUpdatedAt.ToUniversalTime();
@@ -221,87 +257,87 @@ public class Movie
         /// </summary>
         public DateTime LastUpdatedAt;
 
-        public Collection(TMDB_Collection collection, bool includeTitles = false, bool includeOverviews = false, bool includeImages = false)
+        public Collection(TMDB_Collection collection, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
         {
-            var preferredTitle = collection.GetPreferredTitle(true);
-            var preferredOverview = collection.GetPreferredOverview(true);
+            var include = includeDetails ?? default;
+            var preferredTitle = collection.GetPreferredTitle();
+            var preferredOverview = collection.GetPreferredOverview();
 
             ID = collection.TmdbCollectionID;
             Title = preferredTitle!.Value;
-            if (includeTitles)
+            if (include.HasFlag(IncludeDetails.Titles))
                 Titles = collection.GetAllTitles()
-                    .Select(title => new Title(title, collection.EnglishTitle, preferredTitle))
-                    .OrderByDescending(title => title.Preferred)
-                    .ThenBy(title => title.Default)
-                    .ThenBy(title => title.Language)
-                    .ToList();
+                    .ToDto(collection.EnglishTitle, preferredTitle, language);
             Overview = preferredOverview!.Value;
-            if (includeOverviews)
+            if (include.HasFlag(IncludeDetails.Overviews))
                 Overviews = collection.GetAllOverviews()
-                    .Select(title => new Overview(title, collection.EnglishOverview, preferredOverview))
-                    .OrderByDescending(title => title.Preferred)
-                    .ThenBy(title => title.Default)
-                    .ThenBy(title => title.Language)
-                    .ToList();
+                    .ToDto(collection.EnglishOverview, preferredOverview, language);
             MovieCount = collection.MovieCount;
-            if (includeImages)
-                Images = GetImages(collection);
+            if (include.HasFlag(IncludeDetails.Images))
+                Images = collection.GetImages()
+                    .ToDto(language);
             CreatedAt = collection.CreatedAt.ToUniversalTime();
             LastUpdatedAt = collection.LastUpdatedAt.ToUniversalTime();
         }
+
+        [Flags]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum IncludeDetails
+        {
+            None = 0,
+            Titles = 1,
+            Overviews = 2,
+            Images = 4,
+        }
     }
 
-    private static Images GetImages(TMDB_Movie movie)
+
+    /// <summary>
+    /// APIv3 The Movie DataBase (TMDB) Movie Cross-Reference Data Transfer Object (DTO).
+    /// </summary>
+    public class CrossReference
     {
-        var images = new Images();
-        foreach (var image in movie.GetImages())
+        /// <summary>
+        /// AniDB Anime ID.
+        /// </summary>
+        public int AnidbAnimeID;
+
+        /// <summary>
+        /// AniDB Episode ID.
+        /// </summary>
+        public int? AnidbEpisodeID;
+
+        /// <summary>
+        /// TMDB Show ID.
+        /// </summary>
+        public int TmdbMovieID;
+
+        /// <summary>
+        /// The match rating.
+        /// </summary>
+        public string Rating;
+
+        public CrossReference(CrossRef_AniDB_TMDB_Movie xref)
         {
-            var dto = new Image(image.TMDB_ImageID, image.ImageType, DataSourceType.TMDB, false, !image.IsEnabled);
-            switch (image.ImageType)
-            {
-                case Server.ImageEntityType.Poster:
-                    images.Posters.Add(dto);
-                    break;
-                case Server.ImageEntityType.Banner:
-                    images.Banners.Add(dto);
-                    break;
-                case Server.ImageEntityType.Backdrop:
-                    images.Fanarts.Add(dto);
-                    break;
-                case Server.ImageEntityType.Logo:
-                    images.Logos.Add(dto);
-                    break;
-                default:
-                    break;
-            }
+            AnidbAnimeID = xref.AnidbAnimeID;
+            AnidbEpisodeID = xref.AnidbEpisodeID;
+            TmdbMovieID = xref.TmdbMovieID;
+            Rating = xref.Source != CrossRefSource.User ? "User" : "Automatic";
         }
-        return images;
     }
 
-    private static Images GetImages(TMDB_Collection collection)
+    [Flags]
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum IncludeDetails
     {
-        var images = new Images();
-        foreach (var image in collection.GetImages())
-        {
-            var dto = new Image(image.TMDB_ImageID, image.ImageType, DataSourceType.TMDB, false, !image.IsEnabled);
-            switch (image.ImageType)
-            {
-                case Server.ImageEntityType.Poster:
-                    images.Posters.Add(dto);
-                    break;
-                case Server.ImageEntityType.Banner:
-                    images.Banners.Add(dto);
-                    break;
-                case Server.ImageEntityType.Backdrop:
-                    images.Fanarts.Add(dto);
-                    break;
-                case Server.ImageEntityType.Logo:
-                    images.Logos.Add(dto);
-                    break;
-                default:
-                    break;
-            }
-        }
-        return images;
+        None = 0,
+        Titles = 1,
+        Overviews = 2,
+        Images = 4,
+        CrossReferences = 8,
+        Cast = 16,
+        Crew = 32,
+        Studios = 64,
+        ContentRatings = 128,
     }
 }

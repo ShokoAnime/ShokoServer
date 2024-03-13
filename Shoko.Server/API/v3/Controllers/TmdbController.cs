@@ -14,7 +14,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Models;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -60,9 +59,7 @@ public class TmdbController : BaseController
     /// </summary>
     /// <param name="search"></param>
     /// <param name="fuzzy"></param>
-    /// <param name="includeTitles"></param>
-    /// <param name="includeOverviews"></param>
-    /// <param name="includeImages"></param>
+    /// <param name="include"></param>
     /// <param name="isRestricted"></param>
     /// <param name="isVideo"></param>
     /// <param name="pageSize"></param>
@@ -72,9 +69,7 @@ public class TmdbController : BaseController
     public ActionResult<ListResult<TmdbMovie>> GetTmdbMovies(
         [FromRoute] string? search = null,
         [FromQuery] bool fuzzy = true,
-        [FromQuery] bool includeTitles = false,
-        [FromQuery] bool includeOverviews = false,
-        [FromQuery] bool includeImages = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails>? include = null,
         [FromQuery] bool? isRestricted = null,
         [FromQuery] bool? isVideo = null,
         [FromQuery, Range(0, 1000)] int pageSize = 50,
@@ -113,36 +108,32 @@ public class TmdbController : BaseController
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(a => new TmdbMovie(a.Result, includeTitles, includeOverviews, includeImages), page, pageSize);
+                .ToListResult(a => new TmdbMovie(a.Result, include?.CombineFlags()), page, pageSize);
         }
 
         return movies
             .OrderBy(movie => movie.EnglishTitle)
             .ThenBy(movie => movie.TmdbMovieID)
-            .ToListResult(m => new TmdbMovie(m, includeTitles, includeOverviews, includeImages), page, pageSize);
+            .ToListResult(m => new TmdbMovie(m, include?.CombineFlags()), page, pageSize);
     }
 
     /// <summary>
     /// Get the local metadata for a TMDB movie.
     /// </summary>
     /// <param name="movieID">TMDB Movie ID.</param>
-    /// <param name="includeTitles"></param>
-    /// <param name="includeOverviews"></param>
-    /// <param name="includeImages"></param>
+    /// <param name="include"></param>
     /// <returns></returns>
     [HttpGet("Movie/{movieID}")]
     public ActionResult<TmdbMovie> GetTmdbMovieByMovieID(
         [FromRoute] int movieID,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery] bool includeOverviews = true,
-        [FromQuery] bool includeImages = true
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails>? include = null
     )
     {
         var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
         if (movie == null)
             return NotFound(MovieNotFound);
 
-        return new TmdbMovie(movie, includeTitles, includeOverviews, includeImages);
+        return new TmdbMovie(movie, include?.CombineFlags());
     }
 
     /// <summary>
@@ -165,6 +156,118 @@ public class TmdbController : BaseController
         return NoContent();
     }
 
+    [HttpGet("Movie/{movieID}/Titles")]
+    public ActionResult<IReadOnlyList<Title>> GetTitlesForTmdbMovieByMovieID(
+        [FromRoute] int movieID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie == null)
+            return NotFound(MovieNotFound);
+
+        var preferredTitle = movie.GetPreferredTitle();
+        return new(movie.GetAllTitles().ToDto(movie.EnglishTitle, preferredTitle, language));
+    }
+
+    [HttpGet("Movie/{movieID}/Overviews")]
+    public ActionResult<IReadOnlyList<Overview>> GetOverviewsForTmdbMovieByMovieID(
+        [FromRoute] int movieID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie == null)
+            return NotFound(MovieNotFound);
+
+        var preferredOverview = movie.GetPreferredOverview();
+        return new(movie.GetAllOverviews().ToDto(movie.EnglishTitle, preferredOverview, language));
+    }
+
+    [HttpGet("Movie/{movieID}/Images")]
+    public ActionResult<Images> GetImagesForTmdbMovieByMovieID(
+        [FromRoute] int movieID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie == null)
+            return NotFound(MovieNotFound);
+
+        return movie.GetImages()
+            .ToDto(language);
+    }
+
+    [HttpGet("Movie/{movieID}/Cast")]
+    public ActionResult<IReadOnlyList<Role>> GetCastForTmdbMovieByMovieID(
+        [FromRoute] int movieID
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie == null)
+            return NotFound(MovieNotFound);
+
+        return movie.GetCast()
+            .Select(cast => new Role(cast))
+            .ToList();
+    }
+
+    [HttpGet("Movie/{movieID}/Crew")]
+    public ActionResult<IReadOnlyList<Role>> GetCrewForTmdbMovieByMovieID(
+        [FromRoute] int movieID
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie == null)
+            return NotFound(MovieNotFound);
+
+        return movie.GetCrew()
+            .Select(cast => new Role(cast))
+            .ToList();
+    }
+
+    [HttpGet("Movie/{movieID}/CrossReferences")]
+    public ActionResult<IReadOnlyList<TmdbMovie.CrossReference>> GetCrossReferencesForTmdbMovieByMovieID(
+        [FromRoute] int movieID
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie == null)
+            return NotFound(MovieNotFound);
+
+        return movie.GetCrossReferences()
+            .Select(xref => new TmdbMovie.CrossReference(xref))
+            .ToList();
+    }
+
+    [HttpGet("Movie/{movieID}/Studios")]
+    public ActionResult<IReadOnlyList<Studio>> GetStudiosForTmdbMovieByMovieID(
+        [FromRoute] int movieID
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie == null)
+            return NotFound(MovieNotFound);
+
+        return movie.GetTmdbCompanies()
+            .Select(company => new Studio(company))
+            .ToList();
+    }
+
+    [HttpGet("Movie/{movieID}/ContentRatings")]
+    public ActionResult<IReadOnlyList<ContentRating>> GetContentRatingsForTmdbMovieByMovieID(
+        [FromRoute] int movieID
+    )
+    {
+        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
+        if (movie == null)
+            return NotFound(MovieNotFound);
+
+        return movie.ContentRatings
+            .Select(rating => new ContentRating(rating))
+            .ToList();
+    }
+
     #endregion
 
     #region Same-Source Linked Entries
@@ -172,9 +275,7 @@ public class TmdbController : BaseController
     [HttpGet("Movie/{movieID}/Collection")]
     public ActionResult<TmdbMovie.Collection> GetTmdbMovieCollectionByMovieID(
         [FromRoute] int movieID,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery] bool includeOverviews = true,
-        [FromQuery] bool includeImages = false
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.Collection.IncludeDetails>? include = null
     )
     {
         var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
@@ -185,7 +286,7 @@ public class TmdbController : BaseController
         if (movieCollection == null)
             return NotFound(MovieCollectionByMovieIDNotFound);
 
-        return new TmdbMovie.Collection(movieCollection, includeTitles, includeOverviews, includeImages);
+        return new TmdbMovie.Collection(movieCollection, include?.CombineFlags());
     }
 
     #endregion
@@ -332,13 +433,43 @@ public class TmdbController : BaseController
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpGet("Movie/Search")]
-    public ListResult<object> SearchForTmdbMovies(
+    [HttpGet("Movie/Search/Online")]
+    public ListResult<object> SearchOnlineForTmdbMovies(
         [FromRoute] string query,
         [FromQuery] bool fuzzy = true,
-        [FromQuery] bool? local = null,
         [FromQuery] bool? restricted = null,
         [FromQuery] bool includeTitles = true,
+        [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        // TODO: Modify this once the tmdb movie search model is finalised. Also maybe switch to using online search, maybe utilising the offline search if we're offline.
+
+        return TmdbHelper.OfflineSearch.SearchMovies(query, fuzzy)
+            .Where(movie =>
+            {
+                return true;
+            })
+            .ToListResult(a => a as object, page, pageSize);
+    }
+
+    /// <summary>
+    /// Search TMDB for movies using the offline or online search.
+    /// </summary>
+    /// <param name="query">Query to search for.</param>
+    /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
+    /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
+    /// <param name="restricted">Only search for results which are or are not restriced if set, otherwise will include both restricted and not restriced movies.</param>
+    /// <param name="includeTitles">Include titles in the results.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("Movie/Search/Offline")]
+    public ListResult<object> SearchOfflineForTmdbMovies(
+        [FromRoute] string query,
+        [FromQuery] bool fuzzy = true,
+        [FromQuery] bool? restricted = null,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -373,9 +504,8 @@ public class TmdbController : BaseController
     public ActionResult<ListResult<TmdbMovie.Collection>> GetMovieCollections(
         [FromRoute] string search,
         [FromQuery] bool fuzzy = true,
-        [FromQuery] bool includeTitles = false,
-        [FromQuery] bool includeOverviews = false,
-        [FromQuery] bool includeImages = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.Collection.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, Range(0, 1000)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -398,26 +528,67 @@ public class TmdbController : BaseController
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(a => new TmdbMovie.Collection(a.Result, includeTitles, includeOverviews, includeImages), page, pageSize);
+                .ToListResult(a => new TmdbMovie.Collection(a.Result, include?.CombineFlags(), language), page, pageSize);
         }
 
         return RepoFactory.TMDB_Collection.GetAll()
-            .ToListResult(a => new TmdbMovie.Collection(a, includeTitles, includeOverviews, includeImages), page, pageSize);
+            .ToListResult(a => new TmdbMovie.Collection(a, include?.CombineFlags(), language), page, pageSize);
     }
 
     [HttpGet("Movie/Collection/{collectionID}")]
     public ActionResult<TmdbMovie.Collection> GetMovieCollectionByCollectionID(
         [FromRoute] int collectionID,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery] bool includeOverviews = true,
-        [FromQuery] bool includeImages = false
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.Collection.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
         var collection = RepoFactory.TMDB_Collection.GetByTmdbCollectionID(collectionID);
         if (collection == null)
             return NotFound(MovieCollectionNotFound);
 
-        return new TmdbMovie.Collection(collection, includeTitles, includeOverviews, includeImages);
+        return new TmdbMovie.Collection(collection, include?.CombineFlags(), language);
+    }
+
+    [HttpGet("Movie/Collection/{collectionID}/Titles")]
+    public ActionResult<IReadOnlyList<Title>> GetTitlesForMovieCollectionByCollectionID(
+        [FromRoute] int collectionID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        var collection = RepoFactory.TMDB_Collection.GetByTmdbCollectionID(collectionID);
+        if (collection == null)
+            return NotFound(MovieCollectionNotFound);
+
+        var preferredTitle = collection.GetPreferredTitle();
+        return new(collection.GetAllTitles().ToDto(collection.EnglishTitle, preferredTitle, language));
+    }
+
+    [HttpGet("Movie/Collection/{collectionID}/Overviews")]
+    public ActionResult<IReadOnlyList<Overview>> GetOverviewsForMovieCollectionByCollectionID(
+        [FromRoute] int collectionID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        var collection = RepoFactory.TMDB_Collection.GetByTmdbCollectionID(collectionID);
+        if (collection == null)
+            return NotFound(MovieCollectionNotFound);
+
+        var preferredOverview = collection.GetPreferredOverview();
+        return new(collection.GetAllOverviews().ToDto(collection.EnglishTitle, preferredOverview, language));
+    }
+
+    [HttpGet("Movie/Collection/{collectionID}/Images")]
+    public ActionResult<Images> GetImagesForMovieCollectionByCollectionID(
+        [FromRoute] int collectionID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        var collection = RepoFactory.TMDB_Collection.GetByTmdbCollectionID(collectionID);
+        if (collection == null)
+            return NotFound(MovieCollectionNotFound);
+
+        return collection.GetImages()
+            .ToDto(language);
     }
 
     #endregion
@@ -427,9 +598,8 @@ public class TmdbController : BaseController
     [HttpGet("Movie/Collection/{collecitonID}/Movie")]
     public ActionResult<List<TmdbMovie>> GetMoviesForMovieCollectionByCollectionID(
         [FromRoute] int collectionID,
-        [FromQuery] bool includeTitles = false,
-        [FromQuery] bool includeOverviews = false,
-        [FromQuery] bool includeImages = false
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
         var collection = RepoFactory.TMDB_Collection.GetByTmdbCollectionID(collectionID);
@@ -437,7 +607,7 @@ public class TmdbController : BaseController
             return NotFound(MovieCollectionNotFound);
 
         return collection.GetTmdbMovies()
-            .Select(movie => new TmdbMovie(movie, includeTitles, includeOverviews, includeImages))
+            .Select(movie => new TmdbMovie(movie, include?.CombineFlags(), language))
             .ToList();
     }
 
@@ -468,10 +638,7 @@ public class TmdbController : BaseController
     /// </summary>
     /// <param name="search"></param>
     /// <param name="fuzzy"></param>
-    /// <param name="includeTitles"></param>
-    /// <param name="includeOverviews"></param>
-    /// <param name="includeOrdering"></param>
-    /// <param name="includeImages"></param>
+    /// <param name="include"></param>
     /// <param name="isRestricted"></param>
     /// <param name="pageSize"></param>
     /// <param name="page"></param>
@@ -480,10 +647,7 @@ public class TmdbController : BaseController
     public ActionResult<ListResult<TmdbShow>> GetTmdbShows(
         [FromRoute] string? search = null,
         [FromQuery] bool fuzzy = true,
-        [FromQuery] bool includeTitles = false,
-        [FromQuery] bool includeOverviews = false,
-        [FromQuery] bool includeOrdering = false,
-        [FromQuery] bool includeImages = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbShow.IncludeDetails>? include = null,
         [FromQuery] bool? isRestricted = null,
         [FromQuery, Range(0, 1000)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
@@ -518,13 +682,13 @@ public class TmdbController : BaseController
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(a => new TmdbShow(a.Result, includeTitles, includeOverviews, includeOrdering, includeImages), page, pageSize);
+                .ToListResult(a => new TmdbShow(a.Result, include?.CombineFlags()), page, pageSize);
         }
 
         return shows
             .OrderBy(show => show.EnglishTitle)
             .ThenBy(show => show.TmdbShowID)
-            .ToListResult(m => new TmdbShow(m, includeTitles, includeOverviews, includeOrdering, includeImages), page, pageSize);
+            .ToListResult(m => new TmdbShow(m, include?.CombineFlags()), page, pageSize);
     }
 
     /// <summary>
@@ -534,10 +698,7 @@ public class TmdbController : BaseController
     [HttpGet("Show/{showID}")]
     public ActionResult<TmdbShow> GetTmdbShowByShowID(
         [FromRoute] int showID,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery] bool includeOverviews = true,
-        [FromQuery] bool includeOrdering = false,
-        [FromQuery] bool includeImages = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbShow.IncludeDetails>? include = null,
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
     )
     {
@@ -551,10 +712,10 @@ public class TmdbController : BaseController
             if (alternateOrdering == null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-            return new TmdbShow(show, alternateOrdering, includeTitles, includeOverviews, includeOrdering, includeImages);
+            return new TmdbShow(show, alternateOrdering, include?.CombineFlags());
         }
 
-        return new TmdbShow(show, includeTitles, includeOverviews, includeOrdering, includeImages);
+        return new TmdbShow(show, include?.CombineFlags());
     }
 
     /// <summary>
@@ -577,6 +738,186 @@ public class TmdbController : BaseController
         return NoContent();
     }
 
+    [HttpGet("Show/{showID}/Titles")]
+    public ActionResult<IReadOnlyList<Title>> GetTitlesForTmdbShowByShowID(
+        [FromRoute] int showID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show == null)
+            return NotFound(ShowNotFound);
+
+        var preferredTitle = show.GetPreferredTitle();
+        return new(show.GetAllTitles().ToDto(show.EnglishTitle, preferredTitle, language));
+    }
+
+    [HttpGet("Show/{showID}/Overviews")]
+    public ActionResult<IReadOnlyList<Overview>> GetOverviewsForTmdbShowByShowID(
+        [FromRoute] int showID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show == null)
+            return NotFound(ShowNotFound);
+
+        var preferredOverview = show.GetPreferredOverview();
+        return new(show.GetAllOverviews().ToDto(show.EnglishOverview, preferredOverview, language));
+    }
+
+    [HttpGet("Show/{showID}/Images")]
+    public ActionResult<Images> GetImagesForTmdbShowByShowID(
+        [FromRoute] int showID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show == null)
+            return NotFound(ShowNotFound);
+
+        return show.GetImages()
+            .ToDto(language);
+    }
+
+    [HttpGet("Show/{showID}/Ordering")]
+    public ActionResult<IReadOnlyList<TmdbShow.OrderingInformation>> GetOrderingForTmdbShowByShowID(
+        [FromRoute] int showID,
+        [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show == null)
+            return NotFound(ShowNotFound);
+
+        var alternateOrdering = !string.IsNullOrWhiteSpace(alternateOrderingID) ? RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID) : null;
+        if (!string.IsNullOrWhiteSpace(alternateOrderingID) && (alternateOrdering == null || alternateOrdering.TmdbShowID != show.TmdbShowID))
+            return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
+
+        var ordering = new List<TmdbShow.OrderingInformation>
+        {
+            new(show, alternateOrdering),
+        };
+        foreach (var altOrder in show.GetTmdbAlternateOrdering())
+            ordering.Add(new(altOrder, alternateOrdering));
+        return ordering
+            .OrderByDescending(o => o.InUse)
+            .ThenByDescending(o => string.IsNullOrEmpty(o.OrderingID))
+            .ThenBy(o => o.OrderingName)
+            .ToList();
+    }
+
+    [HttpGet("Show/{showID}/CrossReferences")]
+    public ActionResult<IReadOnlyList<TmdbShow.CrossReference>> GetCrossReferencesForTmdbShowByShowID(
+        [FromRoute] int showID
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show == null)
+            return NotFound(ShowNotFound);
+
+        return show.GetCrossReferences()
+            .Select(xref => new TmdbShow.CrossReference(xref))
+            .OrderBy(xref => xref.AnidbAnimeID)
+            .ThenBy(xref => xref.TmdbShowID)
+            .ThenBy(xref => xref.TmdbSeasonID)
+            .ToList();
+    }
+
+    [HttpGet("Show/{showID}/Cast")]
+    public ActionResult<IReadOnlyList<Role>> GetCastForTmdbShowByShowID(
+        [FromRoute] int showID,
+        [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show == null)
+            return NotFound(ShowNotFound);
+
+        if (!string.IsNullOrWhiteSpace(alternateOrderingID))
+        {
+            var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+            if (alternateOrdering == null || alternateOrdering.TmdbShowID != show.TmdbShowID)
+                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
+
+            return alternateOrdering.GetCast()
+                .Select(cast => new Role(cast))
+                .ToList();
+        }
+
+        return show.GetCast()
+            .Select(cast => new Role(cast))
+            .ToList();
+    }
+
+    [HttpGet("Show/{showID}/Crew")]
+    public ActionResult<IReadOnlyList<Role>> GetCrewForTmdbShowByShowID(
+        [FromRoute] int showID,
+        [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show == null)
+            return NotFound(ShowNotFound);
+
+        if (!string.IsNullOrWhiteSpace(alternateOrderingID))
+        {
+            var alternateOrdering = RepoFactory.TMDB_AlternateOrdering.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+            if (alternateOrdering == null || alternateOrdering.TmdbShowID != show.TmdbShowID)
+                return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
+
+            return alternateOrdering.GetCrew()
+                .Select(cast => new Role(cast))
+                .ToList();
+        }
+
+        return show.GetCrew()
+            .Select(cast => new Role(cast))
+            .ToList();
+    }
+
+    [HttpGet("Show/{showID}/Studios")]
+    public ActionResult<IReadOnlyList<Studio>> GetStudiosForTmdbShowByShowID(
+        [FromRoute] int showID
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show == null)
+            return NotFound(ShowNotFound);
+
+        return show.GetTmdbCompanies()
+            .Select(company => new Studio(company))
+            .ToList();
+    }
+
+    [HttpGet("Show/{showID}/Networks")]
+    public ActionResult<IReadOnlyList<Network>> GetNetworksForTmdbShowByShowID(
+        [FromRoute] int showID
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show == null)
+            return NotFound(ShowNotFound);
+
+        return show.GetTmdbNetworks()
+            .Select(network => new Network(network))
+            .ToList();
+    }
+
+    [HttpGet("Show/{showID}/ContentRatings")]
+    public ActionResult<IReadOnlyList<ContentRating>> GetContentRatingsForTmdbShowByShowID(
+        [FromRoute] int showID
+    )
+    {
+        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
+        if (show == null)
+            return NotFound(ShowNotFound);
+
+        return show.ContentRatings
+            .Select(rating => new ContentRating(rating))
+            .ToList();
+    }
+
     #endregion
 
     #region Same-Source Linked Entries
@@ -584,9 +925,8 @@ public class TmdbController : BaseController
     [HttpGet("Show/{showID}/Season")]
     public ActionResult<ListResult<TmdbSeason>> GetTmdbSeasonsByTmdbShowID(
         [FromRoute] int showID,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery] bool includeOverviews = true,
-        [FromQuery] bool includeImages = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbSeason.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null,
         [FromQuery, Range(0, 100)] int pageSize = 25,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
@@ -603,19 +943,18 @@ public class TmdbController : BaseController
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
             return alternateOrdering.GetTmdbAlternateOrderingSeasons()
-                .ToListResult(season => new TmdbSeason(season, includeTitles, includeOverviews, includeImages), page, pageSize);
+                .ToListResult(season => new TmdbSeason(season, include?.CombineFlags()), page, pageSize);
         }
 
         return show.GetTmdbSeasons()
-            .ToListResult(season => new TmdbSeason(season, includeTitles, includeOverviews, includeImages), page, pageSize);
+            .ToListResult(season => new TmdbSeason(season, include?.CombineFlags(), language), page, pageSize);
     }
 
-    [HttpGet("Show/{showID}/Episodes")]
+    [HttpGet("Show/{showID}/Episode")]
     public ActionResult<ListResult<TmdbEpisode>> GetTmdbEpisodesByTmdbShowID(
         [FromRoute] int showID,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery] bool includeOverviews = true,
-        [FromQuery] bool includeOrdering = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbEpisode.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
@@ -632,11 +971,11 @@ public class TmdbController : BaseController
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
             return alternateOrdering.GetTmdbAlternateOrderingEpisodes()
-                .ToListResult(e => new TmdbEpisode(e.GetTmdbEpisode()!, e, includeTitles, includeOverviews, includeOrdering), page, pageSize);
+                .ToListResult(e => new TmdbEpisode(e.GetTmdbEpisode()!, e, include?.CombineFlags(), language), page, pageSize);
         }
 
         return show.GetTmdbEpisodes()
-            .ToListResult(e => new TmdbEpisode(e, includeTitles, includeOverviews, includeOrdering), page, pageSize);
+            .ToListResult(e => new TmdbEpisode(e, include?.CombineFlags(), language), page, pageSize);
     }
 
     #endregion
@@ -726,6 +1065,37 @@ public class TmdbController : BaseController
     #region Search
 
     /// <summary>
+    /// Search TMDB for shows using the online search.
+    /// </summary>
+    /// <param name="query">Query to search for.</param>
+    /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
+    /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
+    /// <param name="restricted">Only search for results which are or are not restriced if set, otherwise will include both restricted and not restriced shows.</param>
+    /// <param name="includeTitles">Include titles in the results.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("Show/Search/Online")]
+    public ListResult<object> SearchOnlineForTmdbShows(
+        [FromRoute] string query,
+        [FromQuery] bool fuzzy = true,
+        [FromQuery] bool? restricted = null,
+        [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        // TODO: Modify this once the tmdb show search model is finalised. Also maybe switch to using online search, maybe utilising the offline search if we're offline.
+
+        return TmdbHelper.OfflineSearch.SearchShows(query, fuzzy)
+            .Where(show =>
+            {
+                return true;
+            })
+            .ToListResult(a => a as object, page, pageSize);
+    }
+
+    /// <summary>
     /// Search TMDB for shows using the offline or online search.
     /// </summary>
     /// <param name="query">Query to search for.</param>
@@ -737,13 +1107,10 @@ public class TmdbController : BaseController
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpGet("Show/Search")]
-    public ListResult<object> SearchForTmdbShows(
+    [HttpGet("Show/Search/Offline")]
+    public ListResult<object> SearchOfflineForTmdbShows(
         [FromRoute] string query,
         [FromQuery] bool fuzzy = true,
-        [FromQuery] bool? local = null,
-        [FromQuery] bool? restricted = null,
-        [FromQuery] bool includeTitles = true,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -781,9 +1148,8 @@ public class TmdbController : BaseController
     [HttpGet("Season/{seasonID}")]
     public ActionResult<TmdbSeason> GetTmdbSeasonBySeasonID(
         [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery] bool includeOverviews = true,
-        [FromQuery] bool includeImages = true
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbSeason.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
         if (seasonID.Length == SeasonIdHexLength)
@@ -792,7 +1158,7 @@ public class TmdbController : BaseController
             if (altOrderSeason == null)
                 return NotFound(SeasonNotFound);
 
-            return new TmdbSeason(altOrderSeason, includeTitles, includeOverviews, includeImages);
+            return new TmdbSeason(altOrderSeason, include?.CombineFlags());
         }
 
         var seasonId = int.Parse(seasonID);
@@ -800,7 +1166,130 @@ public class TmdbController : BaseController
         if (season == null)
             return NotFound(SeasonNotFound);
 
-        return new TmdbSeason(season, includeTitles, includeOverviews, includeImages);
+        return new TmdbSeason(season, include?.CombineFlags(), language);
+    }
+
+    [HttpGet("Season/{seasonID}/Titles")]
+    public ActionResult<IReadOnlyList<Title>> GetTitlesForTmdbSeasonBySeasonID(
+        [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        if (seasonID.Length == SeasonIdHexLength)
+        {
+            var altOrderSeason = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(seasonID);
+            if (altOrderSeason == null)
+                return NotFound(SeasonNotFound);
+
+            return new List<Title>();
+        }
+
+        var seasonId = int.Parse(seasonID);
+        var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
+        if (season == null)
+            return NotFound(SeasonNotFound);
+
+        var preferredTitle = season.GetPreferredTitle();
+        return new(season.GetAllTitles().ToDto(season.EnglishTitle, preferredTitle, language));
+    }
+
+    [HttpGet("Season/{seasonID}/Overviews")]
+    public ActionResult<IReadOnlyList<Overview>> GetOverviewsForTmdbSeasonBySeasonID(
+        [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        if (seasonID.Length == SeasonIdHexLength)
+        {
+            var altOrderSeason = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(seasonID);
+            if (altOrderSeason == null)
+                return NotFound(SeasonNotFound);
+
+            return new List<Overview>();
+        }
+
+        var seasonId = int.Parse(seasonID);
+        var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
+        if (season == null)
+            return NotFound(SeasonNotFound);
+
+        var preferredOverview = season.GetPreferredOverview();
+        return new(season.GetAllOverviews().ToDto(season.EnglishOverview, preferredOverview, language));
+    }
+
+    [HttpGet("Season/{seasonID}/Images")]
+    public ActionResult<Images> GetImagesForTmdbSeasonBySeasonID(
+        [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        if (seasonID.Length == SeasonIdHexLength)
+        {
+            var altOrderSeason = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(seasonID);
+            if (altOrderSeason == null)
+                return NotFound(SeasonNotFound);
+
+            return new Images();
+        }
+
+        var seasonId = int.Parse(seasonID);
+        var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
+        if (season == null)
+            return NotFound(SeasonNotFound);
+
+        return season.GetImages().ToDto(language);
+    }
+
+    [HttpGet("Season/{seasonID}/Cast")]
+    public ActionResult<IReadOnlyList<Role>> GetCastForTmdbSeasonBySeasonID(
+        [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID
+    )
+    {
+        if (seasonID.Length == SeasonIdHexLength)
+        {
+            var altOrderSeason = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(seasonID);
+            if (altOrderSeason == null)
+                return NotFound(SeasonNotFound);
+
+            return altOrderSeason.GetCast()
+                .Select(cast => new Role(cast))
+                .ToList();
+        }
+
+        var seasonId = int.Parse(seasonID);
+        var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
+        if (season == null)
+            return NotFound(SeasonNotFound);
+
+        return season.GetCast()
+            .Select(cast => new Role(cast))
+            .ToList();
+    }
+
+    [HttpGet("Season/{seasonID}/Crew")]
+    public ActionResult<IReadOnlyList<Role>> GetCrewForTmdbSeasonBySeasonID(
+        [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID
+    )
+    {
+        if (seasonID.Length == SeasonIdHexLength)
+        {
+            var altOrderSeason = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(seasonID);
+            if (altOrderSeason == null)
+                return NotFound(SeasonNotFound);
+
+            return altOrderSeason.GetCrew()
+                .Select(crew => new Role(crew))
+                .ToList();
+        }
+
+        var seasonId = int.Parse(seasonID);
+        var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
+        if (season == null)
+            return NotFound(SeasonNotFound);
+
+        return season.GetCrew()
+            .Select(crew => new Role(crew))
+            .ToList();
     }
 
     #endregion
@@ -810,10 +1299,8 @@ public class TmdbController : BaseController
     [HttpGet("Season/{seasonID}/Show")]
     public ActionResult<TmdbShow> GetTmdbShowBySeasonID(
         [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery] bool includeOverviews = true,
-        [FromQuery] bool includeOrdering = false,
-        [FromQuery] bool includeImages = false
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbShow.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
         if (seasonID.Length == SeasonIdHexLength)
@@ -826,7 +1313,7 @@ public class TmdbController : BaseController
             if (altShow == null)
                 return NotFound(ShowNotFoundBySeasonID);
 
-            return new TmdbShow(altShow, altOrder, includeTitles, includeOverviews, includeOrdering, includeImages);
+            return new TmdbShow(altShow, altOrder, include?.CombineFlags(), language);
         }
 
         var seasonId = int.Parse(seasonID);
@@ -838,15 +1325,14 @@ public class TmdbController : BaseController
         if (show == null)
             return NotFound(ShowNotFoundBySeasonID);
 
-        return new TmdbShow(show, includeTitles, includeOverviews, includeOrdering, includeImages);
+        return new TmdbShow(show, include?.CombineFlags(), language);
     }
 
     [HttpGet("Season/{seasonID}/Episode")]
     public ActionResult<ListResult<TmdbEpisode>> GetTmdbEpisodesBySeasonID(
         [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery] bool includeOverviews = true,
-        [FromQuery] bool includeOrdering = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbEpisode.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -858,7 +1344,7 @@ public class TmdbController : BaseController
                 return NotFound(SeasonNotFound);
 
             return altOrderSeason.GetTmdbAlternateOrderingEpisodes()
-                .ToListResult(e => new TmdbEpisode(e.GetTmdbEpisode()!, e, includeTitles, includeOverviews, includeOrdering), page, pageSize);
+                .ToListResult(e => new TmdbEpisode(e.GetTmdbEpisode()!, e, include?.CombineFlags(), language), page, pageSize);
         }
 
         var seasonId = int.Parse(seasonID);
@@ -867,7 +1353,7 @@ public class TmdbController : BaseController
             return NotFound(SeasonNotFound);
 
         return season.GetTmdbEpisodes()
-            .ToListResult(e => new TmdbEpisode(e, includeTitles, includeOverviews, includeOrdering), page, pageSize);
+            .ToListResult(e => new TmdbEpisode(e, include?.CombineFlags(), language), page, pageSize);
     }
 
     #endregion
@@ -945,26 +1431,138 @@ public class TmdbController : BaseController
     [HttpGet("Episode/{episodeID}")]
     public ActionResult<TmdbEpisode> GetTmdbEpisodeByEpisodeID(
         [FromRoute] int episodeID,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery] bool includeOverviews = true,
-        [FromQuery] bool includeOrdering = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbEpisode.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFound);
-
         if (!string.IsNullOrWhiteSpace(alternateOrderingID))
         {
             var alternateOrderingEpisode = RepoFactory.TMDB_AlternateOrdering_Episode.GetByEpisodeGroupCollectionAndEpisodeIDs(alternateOrderingID, episodeID);
             if (alternateOrderingEpisode == null)
                 return ValidationProblem("Invalid alternateOrderingID for episode.", "alternateOrderingID");
 
-            return new TmdbEpisode(episode, alternateOrderingEpisode, includeTitles, includeOverviews, includeOrdering);
+            return new TmdbEpisode(episode, alternateOrderingEpisode, include?.CombineFlags(), language);
         }
 
-        return new TmdbEpisode(episode, includeTitles, includeOverviews, includeOrdering);
+        return new TmdbEpisode(episode, include?.CombineFlags(), language);
+    }
+
+    [HttpGet("Episode/{episodeID}/Titles")]
+    public ActionResult<IReadOnlyList<Title>> GetTitlesForTmdbEpisodeByEpisodeID(
+        [FromRoute] int episodeID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFound);
+
+        var preferredTitle = episode.GetPreferredTitle();
+        return new(episode.GetAllTitles().ToDto(episode.EnglishTitle, preferredTitle, language));
+    }
+
+    [HttpGet("Episode/{episodeID}/Overviews")]
+    public ActionResult<IReadOnlyList<Overview>> GetOverviewsForTmdbEpisodeByEpisodeID(
+        [FromRoute] int episodeID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFound);
+
+        var preferredOverview = episode.GetPreferredOverview();
+        return new(episode.GetAllOverviews().ToDto(episode.EnglishTitle, preferredOverview, language));
+    }
+
+    [HttpGet("Episode/{episodeID}/Ordering")]
+    public ActionResult<IReadOnlyList<TmdbEpisode.OrderingInformation>> GetOrderingForTmdbEpisodeByEpisodeID(
+        [FromRoute] int episodeID,
+        [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
+    )
+    {
+        var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFound);
+        var alternateOrderingEpisode = !string.IsNullOrWhiteSpace(alternateOrderingID)
+            ? RepoFactory.TMDB_AlternateOrdering_Episode.GetByEpisodeGroupCollectionAndEpisodeIDs(alternateOrderingID, episodeID) : null;
+        if (!string.IsNullOrWhiteSpace(alternateOrderingID) && alternateOrderingEpisode == null)
+            return ValidationProblem("Invalid alternateOrderingID for episode.", "alternateOrderingID");
+
+        var ordering = new List<TmdbEpisode.OrderingInformation>
+        {
+            new(episode, alternateOrderingEpisode),
+        };
+        foreach (var altOrderEp in episode.GetTmdbAlternateOrderingEpisodes())
+            ordering.Add(new(altOrderEp, alternateOrderingEpisode));
+
+        return ordering
+            .OrderByDescending(o => o.InUse)
+            .ThenByDescending(o => string.IsNullOrEmpty(o.OrderingID))
+            .ThenBy(o => o.OrderingName)
+            .ToList();
+    }
+
+    [HttpGet("Episode/{episodeID}/Images")]
+    public ActionResult<IReadOnlyList<Image>> GetImagesForTmdbEpisodeByEpisodeID(
+        [FromRoute] int episodeID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
+    )
+    {
+        var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFound);
+
+        return episode.GetImages()
+            .InLanguage(language)
+            .Select(image => image.ToDto())
+            .ToList();
+    }
+
+    [HttpGet("Episode/{episodeID}/Cast")]
+    public ActionResult<IReadOnlyList<Role>> GetCastForTmdbEpisodeByEpisodeID(
+        [FromRoute] int episodeID
+    )
+    {
+        var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFound);
+
+        return episode.GetCast()
+            .Select(cast => new Role(cast))
+            .ToList();
+    }
+
+    [HttpGet("Episode/{episodeID}/Crew")]
+    public ActionResult<IReadOnlyList<Role>> GetCrewForTmdbEpisodeByEpisodeID(
+        [FromRoute] int episodeID
+    )
+    {
+        var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFound);
+
+        return episode.GetCrew()
+            .Select(cast => new Role(cast))
+            .ToList();
+    }
+
+    [HttpGet("Episode/{episodeID}/CrossReferences")]
+    public ActionResult<IReadOnlyList<TmdbEpisode.CrossReference>> GetCrossReferencesForTmdbEpisodeByEpisodeID(
+        [FromRoute] int episodeID
+    )
+    {
+        var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFound);
+
+        return episode.GetCrossReferences()
+            .Select(xref => new TmdbEpisode.CrossReference(xref))
+            .ToList();
     }
 
     #endregion
@@ -974,10 +1572,8 @@ public class TmdbController : BaseController
     [HttpGet("Episode/{episodeID}/Show")]
     public ActionResult<TmdbShow> GetTmdbShowByEpisodeID(
         [FromRoute] int episodeID,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery] bool includeOverviews = true,
-        [FromQuery] bool includeOrdering = false,
-        [FromQuery] bool includeImages = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbShow.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
     )
     {
@@ -995,18 +1591,17 @@ public class TmdbController : BaseController
             if (alternateOrdering == null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-            return new TmdbShow(show, alternateOrdering, includeTitles, includeOverviews, includeOrdering, includeImages);
+            return new TmdbShow(show, alternateOrdering, include?.CombineFlags(), language);
         }
 
-        return new TmdbShow(show, includeTitles, includeOverviews, includeOrdering, includeImages);
+        return new TmdbShow(show, include?.CombineFlags(), language);
     }
 
     [HttpGet("Episode/{episodeID}/Season")]
     public ActionResult<TmdbSeason> GetTmdbSeasonByEpisodeID(
         [FromRoute] int episodeID,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery] bool includeOverviews = true,
-        [FromQuery] bool includeImages = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbSeason.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
     )
     {
@@ -1021,14 +1616,14 @@ public class TmdbController : BaseController
             if (altOrderSeason == null)
                 return NotFound(SeasonNotFoundByEpisodeID);
 
-            return new TmdbSeason(altOrderSeason, includeTitles, includeOverviews, includeImages);
+            return new TmdbSeason(altOrderSeason, include?.CombineFlags());
         }
 
         var season = episode.GetTmdbSeason();
         if (season == null)
             return NotFound(SeasonNotFoundByEpisodeID);
 
-        return new TmdbSeason(season, includeTitles, includeOverviews, includeImages);
+        return new TmdbSeason(season, include?.CombineFlags(), language);
     }
 
     #endregion

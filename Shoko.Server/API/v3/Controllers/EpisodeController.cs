@@ -416,9 +416,8 @@ public class EpisodeController : BaseController
     [HttpGet("{episodeID}/TMDB/Movie")]
     public ActionResult<List<TmdbMovie>> GetTmdbMoviesByEpisodeID(
         [FromRoute] int episodeID,
-        [FromQuery] bool includeTitles = false,
-        [FromQuery] bool includeOverviews = false,
-        [FromQuery] bool includeImages = false
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails> include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
     )
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
@@ -428,16 +427,15 @@ public class EpisodeController : BaseController
         return episode.GetTmdbMovieCrossReferences()
             .Select(xref => xref.GetTmdbMovie())
             .OfType<TMDB_Movie>()
-            .Select(tmdbMovie => new TmdbMovie(tmdbMovie, includeTitles, includeOverviews, includeImages))
+            .Select(tmdbMovie => new TmdbMovie(tmdbMovie, include?.CombineFlags(), language))
             .ToList();
     }
 
     [HttpGet("{episodeID}/TMDB/Episode")]
     public ActionResult<List<TmdbEpisode>> GetTmdbEpisodesByEpisodeID(
         [FromRoute] int episodeID,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery] bool includeOverviews = true,
-        [FromQuery] bool includeOrdering = false
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbEpisode.IncludeDetails> include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
     )
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
@@ -447,7 +445,7 @@ public class EpisodeController : BaseController
         return episode.GetTmdbEpisodeCrossReferences()
             .Select(xref => xref.GetTmdbEpisode())
             .OfType<TMDB_Episode>()
-            .Select(tmdbEpisode => new TmdbEpisode(tmdbEpisode, includeTitles, includeOverviews, includeOrdering))
+            .Select(tmdbEpisode => new TmdbEpisode(tmdbEpisode, include?.CombineFlags(), language))
             .ToList();
     }
 
