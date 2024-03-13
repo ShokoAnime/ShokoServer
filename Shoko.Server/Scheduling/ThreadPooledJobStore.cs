@@ -408,23 +408,21 @@ public class ThreadPooledJobStore : JobStoreTX
 
     public Task<int> GetWaitingTriggersCount()
     {
-        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetWaitingTriggersCount(conn), new CancellationToken());
+        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetWaitingTriggersCount(conn, GetTypes()), new CancellationToken());
     }
 
-    private Task<int> GetWaitingTriggersCount(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
+    private Task<int> GetWaitingTriggersCount(ConnectionAndTransactionHolder conn, JobTypes types, CancellationToken cancellationToken = new CancellationToken())
     {
-        var types = GetTypes();
         return Delegate.SelectWaitingTriggerCount(conn, NoLaterThan, NoEarlierThan, types, cancellationToken);
     }
 
     public Task<int> GetBlockedTriggersCount()
     {
-        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetBlockedTriggersCount(conn), new CancellationToken());
+        return ExecuteInNonManagedTXLock(LockTriggerAccess, async conn => await GetBlockedTriggersCount(conn, GetTypes()), new CancellationToken());
     }
 
-    private Task<int> GetBlockedTriggersCount(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken = new CancellationToken())
+    private Task<int> GetBlockedTriggersCount(ConnectionAndTransactionHolder conn, JobTypes types, CancellationToken cancellationToken = new CancellationToken())
     {
-        var types = GetTypes();
         return Delegate.SelectBlockedTriggerCount(conn, _typeLoadHelper, NoLaterThan, NoEarlierThan, types,
             cancellationToken);
     }
@@ -477,6 +475,7 @@ public class ThreadPooledJobStore : JobStoreTX
                     };
                 }).OrderBy(a => a.StartTime));
             }
+            else offset -= _executingJobs.Count;
         }
 
         if (maxCount - result.Count <= 0) return result;
@@ -518,8 +517,9 @@ public class ThreadPooledJobStore : JobStoreTX
     {
         try
         {
-            var waitingTriggerCount = await GetWaitingTriggersCount(conn, cancellationToken);
-            var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
+            var types = GetTypes();
+            var waitingTriggerCount = await GetWaitingTriggersCount(conn, types, cancellationToken);
+            var blockedTriggerCount = await GetBlockedTriggersCount(conn, types, cancellationToken);
             if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
             var executing = GetExecutingQueueItems();
             var waiting = await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, _threadPoolSize, false, cancellationToken);
@@ -546,8 +546,9 @@ public class ThreadPooledJobStore : JobStoreTX
         try
         {
             lock(_executingJobs) _executingJobs[jobDetail.Key] = (jobDetail, trigger.StartTimeUtc.LocalDateTime);
-            var waitingTriggerCount = await GetWaitingTriggersCount(conn, cancellationToken);
-            var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
+            var types = GetTypes();
+            var waitingTriggerCount = await GetWaitingTriggersCount(conn, types, cancellationToken);
+            var blockedTriggerCount = await GetBlockedTriggersCount(conn, types, cancellationToken);
             if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
             var executing = GetExecutingQueueItems();
             var waiting = await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, _threadPoolSize, false, cancellationToken);
@@ -595,11 +596,13 @@ public class ThreadPooledJobStore : JobStoreTX
         {
             // this runs before the states have been updated, so things that were blocked for concurrency are still blocked at this point
             lock(_executingJobs) _executingJobs.Remove(jobDetail.Key);
-            var waitingTriggerCount = await GetWaitingTriggersCount(conn, cancellationToken);
-            var blockedTriggerCount = await GetBlockedTriggersCount(conn, cancellationToken);
+            var types = GetTypes();
+            var waitingTriggerCount = await GetWaitingTriggersCount(conn, types, cancellationToken);
+            var blockedTriggerCount = await GetBlockedTriggersCount(conn, types, cancellationToken);
             if (_threadPoolSize == 0) _threadPoolSize = await GetThreadPoolSize(cancellationToken);
             var executing = GetExecutingQueueItems();
             var waiting = await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, _threadPoolSize, false, cancellationToken);
+
             _queueStateEventHandler.OnJobCompleted(jobDetail, new QueueStateContext
             {
                 ThreadCount = _threadPoolSize,

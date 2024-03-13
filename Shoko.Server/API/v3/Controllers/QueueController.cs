@@ -123,7 +123,7 @@ public class QueueController : BaseController
 
         var offset = (page - 1) * pageSize;
         // simplified from (page - 1) * pageSize + pageSize
-        if (page * pageSize <= _settingsProvider.GetSettings().Quartz.WaitingCacheSize)
+        if (page * pageSize <= _settingsProvider.GetSettings().Quartz.WaitingCacheSize && showAll)
         {
             var results = _queueHandler.GetExecutingJobs().Skip(offset).Take(pageSize).ToList();
             if (pageSize - results.Count > 0)
