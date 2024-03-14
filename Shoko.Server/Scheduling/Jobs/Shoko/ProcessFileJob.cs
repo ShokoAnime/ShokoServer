@@ -71,9 +71,6 @@ public class ProcessFileJob : BaseJob
         // Process and get the AniDB file entry.
         var aniFile = await ProcessFile_AniDB();
 
-        // Rename and/or move the physical file(s) if needed.
-        _vlocal.Places.ForEach(a => { _vlPlaceService.RenameAndMoveAsRequired(a); });
-
         // Check if an AniDB file is now available and if the cross-references changed.
         var newXRefs = _vlocal.EpisodeCrossRefs
             .Select(xref => xref.EpisodeID)
@@ -96,6 +93,9 @@ public class ProcessFileJob : BaseJob
             var isUDPBanned = _udpConnectionHandler.IsBanned;
             ShokoEventHandler.Instance.OnFileNotMatched(_vlocal.GetBestVideoLocalPlace(), _vlocal, autoMatchAttempts, hasXRefs, isUDPBanned);
         }
+
+        // Rename and/or move the physical file(s) if needed.
+        _vlocal.Places.ForEach(a => { _vlPlaceService.RenameAndMoveAsRequired(a); });
     }
 
     private async Task<SVR_AniDB_File> ProcessFile_AniDB()
