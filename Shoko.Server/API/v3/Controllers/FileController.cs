@@ -1246,8 +1246,8 @@ public class FileController : BaseController
                 file => new File(HttpContext, file)
                 {
                     SeriesIDs = includeXRefs ? file.EpisodeCrossRefs
-                        .GroupBy(xref => xref.AnimeID, xref => new File.CrossReferenceIDs { ID = 0, AniDB = xref.EpisodeID, TvDB = new() })
-                        .Select(tuples => new File.SeriesCrossReference { SeriesID = new() { ID = 0, AniDB = tuples.Key, TvDB = new() }, EpisodeIDs = tuples.ToList() })
+                        .GroupBy(xref => xref.AnimeID, xref => new File.CrossReferenceIDs { ID = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID)?.AnimeEpisodeID ?? 0, AniDB = xref.EpisodeID, TvDB = new() })
+                        .Select(tuples => new File.SeriesCrossReference { SeriesID = new() { ID = RepoFactory.AnimeSeries.GetByAnimeID(tuples.Key)?.AnimeSeriesID ?? 0, AniDB = tuples.Key, TvDB = new() }, EpisodeIDs = tuples.ToList() })
                         .ToList() : null
                 },
                 page,
