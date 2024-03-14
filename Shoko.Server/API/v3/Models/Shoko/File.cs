@@ -147,9 +147,7 @@ public class File
         Updated = file.DateTimeUpdated.ToUniversalTime();
         if (withXRefs)
         {
-            var episodes = file.GetAnimeEpisodes();
-            if (episodes.Count == 0) return;
-            SeriesIDs = episodes
+            SeriesIDs = file.GetAnimeEpisodes()
                 .GroupBy(episode => episode.AnimeSeriesID, episode => new CrossReferenceIDs
                 {
                     ID = episode.AnimeEpisodeID,
