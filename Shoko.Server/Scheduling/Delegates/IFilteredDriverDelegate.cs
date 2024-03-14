@@ -11,6 +11,7 @@ namespace Shoko.Server.Scheduling.Delegates;
 
 public interface IFilteredDriverDelegate : IDriverDelegate
 {
+    ISemaphore LockHandler { get; }
     Task<IReadOnlyCollection<TriggerAcquireResult>> SelectTriggerToAcquire(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan,
         DateTimeOffset noEarlierThan, int maxCount, JobTypes jobTypes, CancellationToken cancellationToken = new());
 

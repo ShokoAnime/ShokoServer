@@ -153,4 +153,10 @@ public class QueueController : BaseController
         }).ToList();
         return new ListResult<Queue.QueueItem>(total, result);
     }
+
+    [HttpGet("DebugStats")]
+    public ActionResult GetDebugState()
+    {
+        return new OkObjectResult((Queue: GetQueue(), TypeFilters: _queueHandler.GetTypes(), AcquisitionFilters: _queueHandler.GetAcquisitionFilterResults()));
+    }
 }

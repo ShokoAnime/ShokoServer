@@ -21,6 +21,8 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
     private string _schedulerName;
     private const string Blocked = "Blocked";
     private const string SubQuery = "{SubQuery}";
+    private readonly SQLiteSemaphore _semaphore = new();
+    public ISemaphore LockHandler => _semaphore;
 
     private IEnumerable<string> GetJobClasses(IEnumerable<Type> types) => types.Select(GetStorableJobTypeName).ToArray();
 

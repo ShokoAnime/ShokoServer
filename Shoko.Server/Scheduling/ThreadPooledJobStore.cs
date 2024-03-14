@@ -14,6 +14,7 @@ using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Delegates;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+using SQLiteDelegate = Shoko.Server.Scheduling.Delegates.SQLiteDelegate;
 
 namespace Shoko.Server.Scheduling;
 
@@ -46,6 +47,7 @@ public class ThreadPooledJobStore : JobStoreTX
     {
         _typeLoadHelper = loadHelper;
         await base.Initialize(loadHelper, signaler, cancellationToken);
+        if (Delegate.LockHandler != null) LockHandler = Delegate.LockHandler;
     }
 
     private void InitConcurrencyCache()
@@ -235,7 +237,7 @@ public class ThreadPooledJobStore : JobStoreTX
         return acquiredTriggers;
     }
 
-    private JobTypes GetTypes()
+    public JobTypes GetTypes()
     {
         var excludedTypes = new List<Type>();
         var limitedTypes = new Dictionary<Type, int>();
@@ -277,6 +279,12 @@ public class ThreadPooledJobStore : JobStoreTX
         }
 
         return new JobTypes(excludedTypes.Distinct().ToList(), limitedTypes, groups);
+    }
+
+    public Dictionary<string, string[]> GetAcquisitionFilterResults()
+    {
+        return _acquisitionFilters.SelectMany(a => a.GetTypesToExclude().Select(b => (FilterType: a.GetType().Name, b.Name))).GroupBy(a => a.FilterType)
+            .ToDictionary(a => a.Key, a => a.Select(b => b.Name).ToArray());
     }
     
     public override async Task<IReadOnlyCollection<TriggerFiredResult>> TriggersFired(IReadOnlyCollection<IOperableTrigger> triggers, CancellationToken cancellationToken = default)

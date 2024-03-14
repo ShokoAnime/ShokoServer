@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Quartz;
 using Quartz.Impl;
+using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs;
 
 namespace Shoko.Server.Scheduling;
@@ -144,4 +145,7 @@ public class QueueHandler
     {
         return _jobStore.GetJobs(maxCount, offset, excludeBlocked);
     }
+
+    public Dictionary<string, string[]> GetAcquisitionFilterResults() => _jobStore.GetAcquisitionFilterResults();
+    public JobTypes GetTypes() => _jobStore.GetTypes();
 }

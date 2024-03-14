@@ -21,6 +21,7 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
     private string _schedulerName;
     private const string Blocked = "Blocked";
     private const string SubQuery = "{SubQuery}";
+    public ISemaphore LockHandler => null;
 
     private IEnumerable<string> GetJobClasses(IEnumerable<Type> types) => types.Select(GetStorableJobTypeName).ToArray();
 
