@@ -639,6 +639,7 @@ public class TmdbController : BaseController
     /// <param name="search"></param>
     /// <param name="fuzzy"></param>
     /// <param name="include"></param>
+    /// <param name="language"></param>
     /// <param name="isRestricted"></param>
     /// <param name="pageSize"></param>
     /// <param name="page"></param>
@@ -648,6 +649,7 @@ public class TmdbController : BaseController
         [FromRoute] string? search = null,
         [FromQuery] bool fuzzy = true,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbShow.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery] bool? isRestricted = null,
         [FromQuery, Range(0, 1000)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
@@ -682,7 +684,7 @@ public class TmdbController : BaseController
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(a => new TmdbShow(a.Result, include?.CombineFlags()), page, pageSize);
+                .ToListResult(a => new TmdbShow(a.Result, include?.CombineFlags(), language), page, pageSize);
         }
 
         return shows
@@ -699,6 +701,7 @@ public class TmdbController : BaseController
     public ActionResult<TmdbShow> GetTmdbShowByShowID(
         [FromRoute] int showID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbShow.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
     )
     {
@@ -712,7 +715,7 @@ public class TmdbController : BaseController
             if (alternateOrdering == null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-            return new TmdbShow(show, alternateOrdering, include?.CombineFlags());
+            return new TmdbShow(show, alternateOrdering, include?.CombineFlags(), language);
         }
 
         return new TmdbShow(show, include?.CombineFlags());
