@@ -36,7 +36,7 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
                 AND jd.{ColumnJobClass} NOT IN (@types)";
 
-    private static string GetSelectPartLimitType(int index)
+    private static string GetSelectPartOfType(int index)
     {
         return @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, @limitBlocked{index} as {Blocked}
               FROM {TablePrefixSubst}{TableTriggers} t
@@ -46,7 +46,7 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
               LIMIT @limit{index} OFFSET @offset{index}";
     }
 
-    private static string GetSelectPartConcurrencyGroup(int index)
+    private static string GetSelectPartInTypes(int index)
     {
         return @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, @groupBlocked{index} as {Blocked}
               FROM {TablePrefixSubst}{TableTriggers} t
@@ -105,14 +105,14 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         for (index = 0; index < jobTypes.TypesToLimit.Count; index++)
         {
             commandText.Append("\nUNION SELECT * FROM (\n");
-            commandText.Append(GetSelectPartLimitType(index));
+            commandText.Append(GetSelectPartOfType(index));
             commandText.Append("\n)");
         }
 
         for (index = 0; index < jobTypes.AvailableConcurrencyGroups.Count(); index++)
         {
             commandText.Append("\nUNION SELECT * FROM (\n");
-            commandText.Append(GetSelectPartConcurrencyGroup(index));
+            commandText.Append(GetSelectPartInTypes(index));
             commandText.Append("\n)");
         }
 
@@ -188,14 +188,14 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         for (index = 0; index < jobTypes.TypesToLimit.Count; index++)
         {
             commandText.Append("\nUNION SELECT * FROM (\n");
-            commandText.Append(GetSelectPartLimitType(index));
+            commandText.Append(GetSelectPartOfType(index));
             commandText.Append("\n)");
         }
 
         for (index = 0; index < jobTypes.AvailableConcurrencyGroups.Count(); index++)
         {
             commandText.Append("\nUNION SELECT * FROM (\n");
-            commandText.Append(GetSelectPartConcurrencyGroup(index));
+            commandText.Append(GetSelectPartInTypes(index));
             commandText.Append("\n)");
         }
 
@@ -302,40 +302,51 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
         subquery.Append(hasExcludeTypes ? GetSelectPartExcludingTypes : GetSelectPartNoExclusions);
 
         int index;
+        var startIndex = 0;
         // not blocked
-        for (index = 0; index < jobTypes.TypesToLimit.Count; index++)
+        for (index = 0; index < startIndex + jobTypes.TypesToLimit.Count; index++)
         {
             subquery.Append("\nUNION SELECT * FROM (\n");
-            subquery.Append(GetSelectPartLimitType(index));
+            subquery.Append(GetSelectPartOfType(index));
             subquery.Append("\n)");
         }
 
         // blocked
         if (!excludeBlocked)
         {
-            for (; index < 2 * jobTypes.TypesToLimit.Count; index++)
+            startIndex = index;
+            for (; index < startIndex + jobTypes.TypesToLimit.Count; index++)
             {
                 subquery.Append("\nUNION SELECT * FROM (\n");
-                subquery.Append(GetSelectPartLimitType(index));
+                subquery.Append(GetSelectPartOfType(index));
                 subquery.Append("\n)");
             }
         }
 
         // not blocked
-        for (index = 0; index < jobTypes.AvailableConcurrencyGroups.Count(); index++)
+        startIndex = 0;
+        for (index = 0; index < startIndex + jobTypes.AvailableConcurrencyGroups.Count(); index++)
         {
             subquery.Append("\nUNION SELECT * FROM (\n");
-            subquery.Append(GetSelectPartConcurrencyGroup(index));
+            subquery.Append(GetSelectPartInTypes(index));
             subquery.Append("\n)");
         }
 
         // blocked
         if (!excludeBlocked)
         {
-            for (; index < 2 * jobTypes.AvailableConcurrencyGroups.Count(); index++)
+            startIndex = index;
+            for (; index < startIndex + jobTypes.AvailableConcurrencyGroups.Count(); index++)
             {
                 subquery.Append("\nUNION SELECT * FROM (\n");
-                subquery.Append(GetSelectPartConcurrencyGroup(index));
+                subquery.Append(GetSelectPartInTypes(index));
+                subquery.Append("\n)");
+            }
+
+            if (hasExcludeTypes)
+            {
+                subquery.Append("\nUNION SELECT * FROM (\n");
+                subquery.Append(GetSelectPartInTypes(index));
                 subquery.Append("\n)");
             }
         }
@@ -397,6 +408,14 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
                 AddCommandParameter(cmd, $"groupLimit{index}", -1);
                 AddCommandParameter(cmd, $"groupOffset{index}", 1);
                 index++;
+            }
+
+            if (hasExcludeTypes)
+            {
+                AddCommandParameter(cmd, $"groupBlocked{index}", 1);
+                cmd.AddArrayParameters($"groupLimit{index}Types", GetJobClasses(jobTypes.TypesToExclude));
+                AddCommandParameter(cmd, $"groupLimit{index}", -1);
+                AddCommandParameter(cmd, $"groupOffset{index}", 0);
             }
         }
 

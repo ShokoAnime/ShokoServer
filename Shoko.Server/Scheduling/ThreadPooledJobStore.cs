@@ -14,7 +14,6 @@ using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Delegates;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-using SQLiteDelegate = Shoko.Server.Scheduling.Delegates.SQLiteDelegate;
 
 namespace Shoko.Server.Scheduling;
 
