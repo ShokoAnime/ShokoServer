@@ -18,7 +18,6 @@ namespace Shoko.Server.API.v3.Controllers;
 /// </summary>
 [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
 [DatabaseBlockedExempt]
-[InitFriendly]
 public class QueueController : BaseController
 {
     private readonly QueueHandler _queueHandler;
@@ -35,6 +34,7 @@ public class QueueController : BaseController
     /// </summary>
     /// <returns>Info about the queue</returns>
     [HttpGet]
+    [InitFriendly]
     public Queue GetQueue()
     {
         return new Queue
@@ -60,6 +60,7 @@ public class QueueController : BaseController
     /// </summary>
     /// <returns>A dictionary of all the queued and active command types, and the count for each type.</returns>
     [HttpGet("Types")]
+    [InitFriendly]
     public async Task<ActionResult<Dictionary<string, int>>> GetTypesForItemsInAllQueues()
     {
         return await _queueHandler.GetJobCounts();
@@ -71,6 +72,7 @@ public class QueueController : BaseController
     /// <returns>Void.</returns>
     [Authorize("admin")]
     [HttpPost("Resume")]
+    [InitFriendly]
     public async Task<ActionResult> Resume()
     {
         await _queueHandler.Resume();
@@ -83,6 +85,7 @@ public class QueueController : BaseController
     /// <returns>Void.</returns>
     [Authorize("admin")]
     [HttpPost("Pause")]
+    [InitFriendly]
     public async Task<ActionResult> Pause()
     {
         await _queueHandler.Pause();
@@ -95,6 +98,7 @@ public class QueueController : BaseController
     /// <returns>Void.</returns>
     [Authorize("admin")]
     [HttpPost("Clear")]
+    [InitFriendly]
     public async Task<ActionResult> Clear()
     {
         await _queueHandler.Clear();
