@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -20,6 +21,7 @@ public class GetAniDBImagesJob : BaseJob
 {
     private SVR_AniDB_Anime _anime;
     private string _title;
+    private readonly AniDBImageHandler _imageHandler;
     private readonly AniDBTitleHelper _titleHelper;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
@@ -63,12 +65,14 @@ public class GetAniDBImagesJob : BaseJob
 
         // cover
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<DownloadAniDBImageJob>(a =>
-        {
-            a.ImageID = _anime.AnimeID;
-            a.ImageType = ImageEntityType.AniDB_Cover;
-            a.ForceDownload = ForceDownload;
-        });
+        if (ForceDownload || !_imageHandler.IsImageCached(ImageEntityType.AniDB_Cover, _anime.AnimeID))
+            await scheduler.StartJobNow<DownloadAniDBImageJob>(a =>
+            {
+                a.ImageID = _anime.AnimeID;
+                a.ImageType = ImageEntityType.AniDB_Cover;
+                a.ForceDownload = ForceDownload;
+            });
+
         var requests = new List<Action<DownloadAniDBImageJob>>();
 
         // characters
@@ -80,13 +84,15 @@ public class GetAniDBImagesJob : BaseJob
                 .DistinctBy(a => a.CharID)
                 .ToList();
             if (characters.Any())
-                requests.AddRange(characters.Select(c => new Action<DownloadAniDBImageJob>(a =>
-                {
-                    a.Anime = _title;
-                    a.ImageID = c.CharID;
-                    a.ImageType = ImageEntityType.AniDB_Character;
-                    a.ForceDownload = ForceDownload;
-                })));
+                requests.AddRange(characters
+                    .Where(a => ForceDownload || !_imageHandler.IsImageCached(ImageEntityType.AniDB_Character, a.CharID))
+                    .Select(c => new Action<DownloadAniDBImageJob>(a =>
+                    {
+                        a.Anime = _title;
+                        a.ImageID = c.CharID;
+                        a.ImageType = ImageEntityType.AniDB_Character;
+                        a.ForceDownload = ForceDownload;
+                    })));
             else
                 _logger.LogWarning("No AniDB characters were found for {Anime}", _anime.PreferredTitle ?? AnimeID.ToString());
         }
@@ -110,7 +116,9 @@ public class GetAniDBImagesJob : BaseJob
                 .ToList();
 
             if (creators.Any())
-                requests.AddRange(creators.Select(va => new Action<DownloadAniDBImageJob>(a =>
+                requests.AddRange(creators
+                    .Where(a => ForceDownload || !_imageHandler.IsImageCached(ImageEntityType.AniDB_Creator, a.SeiyuuID))
+                    .Select(va => new Action<DownloadAniDBImageJob>(a =>
                 {
                     a.Anime = _title;
                     a.ImageID = va.SeiyuuID;
@@ -127,14 +135,13 @@ public class GetAniDBImagesJob : BaseJob
         }
     }
 
-    public GetAniDBImagesJob(AniDBTitleHelper aniDBTitleHelper, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory)
+    public GetAniDBImagesJob(AniDBTitleHelper aniDBTitleHelper, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, AniDBImageHandler imageHandler)
     {
         _titleHelper = aniDBTitleHelper;
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
+        _imageHandler = imageHandler;
     }
 
-    protected GetAniDBImagesJob()
-    {
-    }
+    protected GetAniDBImagesJob() { }
 }
