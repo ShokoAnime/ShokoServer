@@ -1,26 +1,14 @@
-﻿using System;
-using System.ComponentModel;
-using Microsoft.Win32;
-using Microsoft.Win32.TaskScheduler;
+﻿using System.ComponentModel;
 using NLog;
 using Shoko.Commons.Notification;
-using Shoko.Models.Enums;
-using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Server;
 
 public class ServerState : INotifyPropertyChangedExt
 {
-    private static Logger logger = LogManager.GetCurrentClassLogger();
+    private readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-    private static ServerState _instance = new();
-
-    public static ServerState Instance => _instance;
-
-    public ServerState()
-    {
-    }
+    public static ServerState Instance { get; } = new();
 
     public event PropertyChangedEventHandler PropertyChanged;
 
@@ -62,43 +50,11 @@ public class ServerState : INotifyPropertyChangedExt
         {
             if (!value.Equals(_serverStartingStatus))
             {
-                logger.Trace($"Starting Server: {value}");
+                _logger.Trace($"Starting Server: {value}");
             }
 
             this.SetField(() => _serverStartingStatus, value);
         }
-    }
-
-    private bool databaseIsSQLite = false;
-
-    public bool DatabaseIsSQLite
-    {
-        get => databaseIsSQLite;
-        set => this.SetField(() => databaseIsSQLite, value);
-    }
-
-    private bool databaseIsSQLServer = false;
-
-    public bool DatabaseIsSQLServer
-    {
-        get => databaseIsSQLServer;
-        set => this.SetField(() => databaseIsSQLServer, value);
-    }
-
-    private bool databaseIsMySQL = false;
-
-    public bool DatabaseIsMySQL
-    {
-        get => databaseIsMySQL;
-        set => this.SetField(() => databaseIsMySQL, value);
-    }
-
-    private string baseImagePath = string.Empty;
-
-    public string BaseImagePath
-    {
-        get => baseImagePath;
-        set => this.SetField(() => baseImagePath, value);
     }
 
     private bool newVersionAvailable = false;
@@ -149,70 +105,6 @@ public class ServerState : INotifyPropertyChangedExt
         set => this.SetField(() => applicationVersionLatest, value);
     }
 
-    private string aniDB_Username = string.Empty;
-
-    public string AniDB_Username
-    {
-        get => aniDB_Username;
-        set => this.SetField(() => aniDB_Username, value);
-    }
-
-    private string aniDB_Password = string.Empty;
-
-    public string AniDB_Password
-    {
-        get => aniDB_Password;
-        set => this.SetField(() => aniDB_Password, value);
-    }
-
-    private string aniDB_ServerAddress = string.Empty;
-
-    public string AniDB_ServerAddress
-    {
-        get => aniDB_ServerAddress;
-        set => this.SetField(() => aniDB_ServerAddress, value);
-    }
-
-    private string aniDB_ServerPort = string.Empty;
-
-    public string AniDB_ServerPort
-    {
-        get => aniDB_ServerPort;
-        set => this.SetField(() => aniDB_ServerPort, value);
-    }
-
-    private string aniDB_ClientPort = string.Empty;
-
-    public string AniDB_ClientPort
-    {
-        get => aniDB_ClientPort;
-        set => this.SetField(() => aniDB_ClientPort, value);
-    }
-
-    private string aniDB_TestStatus = string.Empty;
-
-    public string AniDB_TestStatus
-    {
-        get => aniDB_TestStatus;
-        set => this.SetField(() => aniDB_TestStatus, value);
-    }
-
-    private bool isAutostartEnabled = false;
-
-    public bool IsAutostartEnabled
-    {
-        get => isAutostartEnabled;
-        set => this.SetField(() => isAutostartEnabled, value);
-    }
-
-    private bool isAutostartDisabled = false;
-
-    public bool IsAutostartDisabled
-    {
-        get => isAutostartDisabled;
-        set => this.SetField(() => isAutostartDisabled, value);
-    }
-
     private bool startupFailed = false;
 
     public bool StartupFailed
@@ -243,30 +135,6 @@ public class ServerState : INotifyPropertyChangedExt
     {
         get => apiInUse;
         set => this.SetField(() => apiInUse, value);
-    }
-
-    /* Swith this to "Registry" when we no longer need elevated run level */
-    public readonly AutostartMethod autostartMethod = AutostartMethod.Registry;
-
-    public readonly string autostartTaskName = "JMMServer";
-
-    public readonly string autostartKey = "JMMServer";
-
-    public void LoadSettings(IServerSettings settings)
-    {
-        AniDB_Username = settings.AniDb.Username;
-        AniDB_Password = settings.AniDb.Password;
-        AniDB_ServerAddress = settings.AniDb.ServerAddress;
-        AniDB_ServerPort = settings.AniDb.ServerPort.ToString();
-        AniDB_ClientPort = settings.AniDb.ClientPort.ToString();
-
-        if (Utils.IsRunningOnLinuxOrMac()) return;
-
-        if (autostartMethod != AutostartMethod.TaskScheduler) return;
-
-        var task = TaskService.Instance.GetTask(autostartTaskName);
-        IsAutostartEnabled = task != null && task.State != TaskState.Disabled;
-        IsAutostartDisabled = !isAutostartEnabled;
     }
 
     public class DatabaseBlockedInfo

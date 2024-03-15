@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Settings;
@@ -13,6 +12,7 @@ namespace Shoko.Server.Settings;
 public class ServerSettings : IServerSettings
 {
     // Increment this when a new migration is added
+    [UsedImplicitly]
     public int SettingsVersion { get; set; } = SettingsMigrations.Version;
 
     [Range(1, 65535, ErrorMessage = "PluginAutoWatchThreshold must be between 1 and 65535")]
@@ -116,7 +116,7 @@ public class ServerSettings : IServerSettings
         set
         {
             _ImagesPath = value;
-            ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
+            ImageUtils.GetBaseImagesPath();
         }
     }
 

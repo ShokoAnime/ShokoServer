@@ -14,7 +14,6 @@ using Quartz;
 using Shoko.Commons.Properties;
 using Shoko.Server.Databases;
 using Shoko.Server.FileHelper;
-using Shoko.Server.ImageDownload;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
@@ -82,8 +81,6 @@ public class ShokoServer
 
     public bool StartUpServer()
     {
-        var settings = _settingsProvider.GetSettings();
-        
         _sentryInit.Init(); 
 
 
@@ -106,7 +103,6 @@ public class ShokoServer
         ServerState.Instance.ServerStarting = false;
         ServerState.Instance.StartupFailed = false;
         ServerState.Instance.StartupFailedMessage = string.Empty;
-        ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
 
         downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
         downloadImagesWorker.WorkerSupportsCancellation = true;
@@ -115,8 +111,6 @@ public class ShokoServer
         _workerSetupDB.ProgressChanged += (_, _) => WorkerSetupDB_ReportProgress();
         _workerSetupDB.DoWork += WorkerSetupDB_DoWork;
         _workerSetupDB.RunWorkerCompleted += WorkerSetupDB_RunWorkerCompleted;
-
-        ServerState.Instance.LoadSettings(settings);
 
         // run rotator once and set 24h delay
         Utils.ServiceContainer.GetRequiredService<LogRotator>().Start();
@@ -480,13 +474,6 @@ public class ShokoServer
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
         scheduler.StartJob<RemoveMissingFilesJob>(a => a.RemoveMyList = removeMyList).GetAwaiter().GetResult();
-    }
-
-    private void SetupAniDBProcessor()
-    {
-        var handler = Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();
-        var settings = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>().GetSettings().AniDb;
-        handler.Init(settings.Username, settings.Password, settings.ServerAddress, settings.ServerPort, settings.ClientPort);
     }
 
     private static void AniDBDispose()

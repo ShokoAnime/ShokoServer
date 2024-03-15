@@ -30,12 +30,12 @@ public static class QuartzStartup
         // Also give it a high priority, since it affects Acquisition Filters
         // StartJobNow gives a priority of 10. We'll give it 20 to be even higher priority
         await ScheduleRecurringJob<CheckNetworkAvailabilityJob>(
-            triggerConfig: t => t.WithPriority(20).WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(), replace: true);
+            triggerConfig: t => t.WithPriority(20).WithSimpleSchedule(tr => tr.WithIntervalInMinutes(5).RepeatForever()).StartNow(), replace: true, keepSchedule: false);
 
         // TODO the other schedule-based jobs that are on timers
     }
 
-    private static async Task ScheduleRecurringJob<T>(Action<T> jobConfig = null, Func<TriggerBuilder, TriggerBuilder> triggerConfig = null, bool replace = false) where T : class, IJob
+    private static async Task ScheduleRecurringJob<T>(Action<T> jobConfig = null, Func<TriggerBuilder, TriggerBuilder> triggerConfig = null, bool replace = false, bool keepSchedule = true) where T : class, IJob
     {
         var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
         jobConfig ??= _ => {};
@@ -48,9 +48,16 @@ public static class QuartzStartup
                 triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
         } else if (replace)
         {
+            var trigger = triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group));
+            if (keepSchedule)
+            {
+                var nextFireTime = (await scheduler.GetTriggersOfJob(jobKey)).Select(a => a.GetNextFireTimeUtc() ?? DateTimeOffset.MaxValue)
+                    .Where(a => a != DateTimeOffset.MaxValue).DefaultIfEmpty().Min();
+                if (nextFireTime != default) trigger = trigger.StartAt(nextFireTime);
+            }
+
             await scheduler.DeleteJob(jobKey);
-            await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
-                triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
+            await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(), trigger.Build());
         }
     }
     
