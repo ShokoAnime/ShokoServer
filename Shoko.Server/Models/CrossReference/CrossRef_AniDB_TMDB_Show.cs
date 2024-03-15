@@ -16,8 +16,6 @@ public class CrossRef_AniDB_TMDB_Show
 
     public int TmdbShowID { get; set; }
 
-    public int? TmdbSeasonID { get; set; }
-
     public CrossRefSource Source { get; set; }
 
     #endregion
@@ -25,11 +23,10 @@ public class CrossRef_AniDB_TMDB_Show
 
     public CrossRef_AniDB_TMDB_Show() { }
 
-    public CrossRef_AniDB_TMDB_Show(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId = null, CrossRefSource source = CrossRefSource.User)
+    public CrossRef_AniDB_TMDB_Show(int anidbAnimeId, int tmdbShowId, CrossRefSource source = CrossRefSource.User)
     {
         AnidbAnimeID = anidbAnimeId;
         TmdbShowID = tmdbShowId;
-        TmdbSeasonID = tmdbSeasonId;
         Source = source;
     }
 
@@ -41,10 +38,6 @@ public class CrossRef_AniDB_TMDB_Show
 
     public SVR_AnimeSeries? GetShokoSeries() =>
         RepoFactory.AnimeSeries.GetByAnimeID(AnidbAnimeID);
-
-    public TMDB_Season? GetTmdbSeason() => TmdbSeasonID.HasValue
-        ? RepoFactory.TMDB_Season.GetByTmdbSeasonID(TmdbSeasonID.Value)
-        : null;
 
     public TMDB_Show? GetTmdbShow() =>
         RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);

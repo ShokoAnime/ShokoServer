@@ -647,7 +647,7 @@ public class TMDBHelper
 
     #region Links
 
-    public void AddShowLink(int animeId, int showId, int? seasonId = null, bool additiveLink = true, bool isAutomatic = false, bool forceRefresh = false)
+    public void AddShowLink(int animeId, int showId, bool additiveLink = true, bool isAutomatic = false, bool forceRefresh = false)
     {
         // Remove all existing links.
         if (!additiveLink)
@@ -657,16 +657,14 @@ public class TMDBHelper
         _logger.LogInformation("Adding TMDB Show Link: AniDB (ID:{AnidbID}) → TvDB Show (ID:{TmdbID})", animeId, showId);
         var xref = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeAndTmdbShowIDs(animeId, showId) ??
             new(animeId, showId);
-        if (seasonId.HasValue)
-            xref.TmdbSeasonID = seasonId.Value <= 0 ? null : seasonId.Value;
         xref.Source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
         RepoFactory.CrossRef_AniDB_TMDB_Show.Save(xref);
 
-        // Schedule the movie info to be downloaded or updated.
+        // Schedule the show info to be downloaded or updated.
         _commandFactory.CreateAndSave<CommandRequest_TMDB_Show_Update>(c =>
         {
             c.TmdbShowID = showId;
-            c.ForceRefresh = true;
+            c.ForceRefresh = forceRefresh;
             c.DownloadImages = true;
         });
     }
@@ -710,8 +708,6 @@ public class TMDBHelper
     private void RemoveShowLink(CrossRef_AniDB_TMDB_Show xref, bool removeImageFiles = true, bool? purge = null)
     {
         ResetPreferredImage(xref.AnidbAnimeID, ForeignEntityType.Show, xref.TmdbShowID);
-        if (xref.TmdbSeasonID.HasValue)
-            ResetPreferredImage(xref.AnidbAnimeID, ForeignEntityType.Season, xref.TmdbSeasonID.Value);
 
         _logger.LogInformation("Removing TMDB Show Link: AniDB ({AnidbID}) → TMDB Show (ID:{TmdbID})", xref.AnidbAnimeID, xref.TmdbShowID);
         RepoFactory.CrossRef_AniDB_TMDB_Show.Delete(xref);
@@ -872,7 +868,7 @@ public class TMDBHelper
             await DownloadShowImages(showId, forceRefresh);
 
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(showId))
-            MatchAnidbToTmdbEpisodes(xref.AnidbAnimeID, xref.TmdbShowID, xref.TmdbSeasonID, true, true);
+            MatchAnidbToTmdbEpisodes(xref.AnidbAnimeID, xref.TmdbShowID, null, true, true);
 
         return updated;
     }

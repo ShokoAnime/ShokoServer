@@ -1102,10 +1102,6 @@ public class Series : BaseModel
 
         public class LinkShowBody : LinkCommonBody
         {
-            /// <summary>
-            /// Also link to the given tmdb season by ID.
-            /// </summary>
-            public int? SeasonID;
         }
 
         public class LinkMovieBody : LinkCommonBody

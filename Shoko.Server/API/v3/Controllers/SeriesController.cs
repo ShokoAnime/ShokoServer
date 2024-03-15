@@ -1166,7 +1166,7 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(TvdbForbiddenForUser);
 
-        _tmdbHelper.AddShowLink(series.AniDB_ID, body.ProviderID, body.SeasonID, additiveLink: !body.Replace, forceRefresh: body.Refresh);
+        _tmdbHelper.AddShowLink(series.AniDB_ID, body.ProviderID, additiveLink: !body.Replace, forceRefresh: body.Refresh);
         return Ok();
     }
 
@@ -1306,8 +1306,6 @@ public class SeriesController : BaseController
                 return ValidationProblem("Unable to find an existing cross-reference for the series to use. Make sure at least one TMDB Show is linked to the Shoko Series.");
 
             tmdbShowID = xref.TmdbShowID;
-            if (!tmdbSeasonID.HasValue && xref.TmdbSeasonID.HasValue)
-                tmdbSeasonID = xref.TmdbSeasonID.Value;
         }
 
         return _tmdbHelper.MatchAnidbToTmdbEpisodes(series.AniDB_ID, tmdbShowID.Value, tmdbSeasonID, keepExisting, saveToDatabase: !preview)
@@ -1431,9 +1429,13 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(TvdbForbiddenForUser);
 
-        return series.GetTmdbShowCrossReferences(true)
+        return series.GetTmdbEpisodeCrossReferences()
+            .Select(o => o.GetTmdbEpisode())
+            .DistinctBy(o => o.TmdbSeasonID)
             .Select(o => o.GetTmdbSeason())
             .OfType<TMDB_Season>()
+            .OrderBy(season => season.TmdbShowID)
+            .ThenBy(season => season.SeasonNumber)
             .Select(o => new TmdbSeason(o, include?.CombineFlags(), language))
             .ToList();
     }

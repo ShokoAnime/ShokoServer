@@ -823,7 +823,6 @@ public class TmdbController : BaseController
             .Select(xref => new TmdbShow.CrossReference(xref))
             .OrderBy(xref => xref.AnidbAnimeID)
             .ThenBy(xref => xref.TmdbShowID)
-            .ThenBy(xref => xref.TmdbSeasonID)
             .ToList();
     }
 
@@ -1382,7 +1381,9 @@ public class TmdbController : BaseController
         if (season == null)
             return NotFound(SeasonNotFound);
 
-        return season.GetCrossReferences()
+        return season.GetTmdbEpisodes()
+            .SelectMany(episode => episode.GetCrossReferences())
+            .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.GetAnidbAnime())
             .OfType<SVR_AniDB_Anime>()
             .Select(anime => new Series.AniDB(anime))
@@ -1410,7 +1411,9 @@ public class TmdbController : BaseController
         if (season == null)
             return NotFound(SeasonNotFound);
 
-        return season.GetCrossReferences()
+        return season.GetTmdbEpisodes()
+            .SelectMany(episode => episode.GetCrossReferences())
+            .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.GetShokoSeries())
             .OfType<SVR_AnimeSeries>()
             .Select(series => new Series(HttpContext, series, randomImages, includeDataFrom))

@@ -151,7 +151,7 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
 
         Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {ShowName} ({ID})", results.Count, officialTitle.Title, results[0].Title, results[0].ID);
 
-        _helper.AddShowLink(AnimeID, results[0].ID, seasonId: null, additiveLink: true, isAutomatic: true, forceRefresh: ForceRefresh);
+        _helper.AddShowLink(AnimeID, results[0].ID, additiveLink: true, isAutomatic: true, forceRefresh: ForceRefresh);
     }
 
     #endregion

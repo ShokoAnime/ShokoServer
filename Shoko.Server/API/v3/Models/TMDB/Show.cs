@@ -233,7 +233,6 @@ public class Show
                 .Select(xref => new CrossReference(xref))
                 .OrderBy(xref => xref.AnidbAnimeID)
                 .ThenBy(xref => xref.TmdbShowID)
-                .ThenBy(xref => xref.TmdbSeasonID)
                 .ToList();
         FirstAiredAt = show.FirstAiredAt;
         LastAiredAt = show.LastAiredAt;
@@ -294,11 +293,6 @@ public class Show
         public int TmdbShowID;
 
         /// <summary>
-        /// 
-        /// </summary>
-        public int? TmdbSeasonID;
-
-        /// <summary>
         /// The match rating.
         /// </summary>
         public string Rating;
@@ -307,7 +301,6 @@ public class Show
         {
             AnidbAnimeID = xref.AnidbAnimeID;
             TmdbShowID = xref.TmdbShowID;
-            TmdbSeasonID = xref.TmdbSeasonID;
             Rating = xref.Source != CrossRefSource.User ? "User" : "Automatic";
         }
     }

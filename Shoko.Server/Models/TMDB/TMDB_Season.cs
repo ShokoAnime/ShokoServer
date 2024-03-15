@@ -274,13 +274,6 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata
     public IReadOnlyList<TMDB_Episode> GetTmdbEpisodes() =>
         RepoFactory.TMDB_Episode.GetByTmdbSeasonID(TmdbSeasonID);
 
-    /// <summary>
-    /// Get all AniDB/TMDB cross-references for the season.
-    /// </summary>
-    /// <returns>The cross-references.</returns>
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Show> GetCrossReferences() =>
-        RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbSeasonID(TmdbSeasonID);
-
     #endregion
 
     #region IEntityMetadata

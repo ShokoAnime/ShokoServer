@@ -11,7 +11,6 @@ public class CrossRef_AniDB_TMDB_ShowRepository : BaseCachedRepository<CrossRef_
 {
     private PocoIndex<int, CrossRef_AniDB_TMDB_Show, int>? _anidbAnimeIDs;
     private PocoIndex<int, CrossRef_AniDB_TMDB_Show, int>? _tmdbShowIDs;
-    private PocoIndex<int, CrossRef_AniDB_TMDB_Show, int?>? _tmdbSeasonIDs;
     private PocoIndex<int, CrossRef_AniDB_TMDB_Show, (int, int)>? _pairedIDs;
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Show> GetByAnidbAnimeID(int animeId)
@@ -19,9 +18,6 @@ public class CrossRef_AniDB_TMDB_ShowRepository : BaseCachedRepository<CrossRef_
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Show> GetByTmdbShowID(int showId)
         => ReadLock(() => _tmdbShowIDs!.GetMultiple(showId));
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Show> GetByTmdbSeasonID(int? seasonId)
-        => ReadLock(() => _tmdbSeasonIDs!.GetMultiple(seasonId));
 
     public CrossRef_AniDB_TMDB_Show? GetByAnidbAnimeAndTmdbShowIDs(int anidbId, int tmdbId)
         => ReadLock(() => _pairedIDs!.GetOne((anidbId, tmdbId)));
@@ -42,7 +38,6 @@ public class CrossRef_AniDB_TMDB_ShowRepository : BaseCachedRepository<CrossRef_
     public override void PopulateIndexes()
     {
         _tmdbShowIDs = new(Cache, a => a.TmdbShowID);
-        _tmdbSeasonIDs = new(Cache, a => a.TmdbSeasonID);
         _anidbAnimeIDs = new(Cache, a => a.AnidbAnimeID);
         _pairedIDs = new(Cache, a => (a.AnidbAnimeID, a.TmdbShowID));
     }

@@ -346,18 +346,14 @@ public class SVR_AnimeSeries : AnimeSeries
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> GetTmdbMovieCrossReferences() =>
         RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(AniDB_ID);
 
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Show> GetTmdbShowCrossReferences(bool? withSeasons = null) => withSeasons.HasValue
-        ? RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(AniDB_ID)
-            .Where(xref => xref.TmdbSeasonID.HasValue == withSeasons.Value)
-            .ToList()
-        : RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(AniDB_ID);
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Show> GetTmdbShowCrossReferences() =>
+        RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(AniDB_ID);
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetTmdbEpisodeCrossReferences(int? tmdbShowId = null) => tmdbShowId.HasValue
         ? RepoFactory.CrossRef_AniDB_TMDB_Episode.GetOnlyByAnidbAnimeAndTmdbShowIDs(AniDB_ID, tmdbShowId.Value)
         : RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AniDB_ID);
 
     #endregion
-
 
     public List<CrossRef_AniDB_MAL> CrossRefMAL =>
         RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(AniDB_ID);
