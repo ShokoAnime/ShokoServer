@@ -79,6 +79,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             };
         }
 
+        var scheduler = await _schedulerFactory.GetScheduler();
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
         var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(AnimeID);
         var animeRecentlyUpdated = AnimeRecentlyUpdated(anime, update);
@@ -110,7 +111,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 if (!CacheOnly)
                 {
                     // Queue the command to get the data when we're no longer banned if there is no anime record.
-                    await (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(c =>
+                    await scheduler.StartJob<GetAniDBAnimeJob>(c =>
                     {
                         c.AnimeID = AnimeID;
                         c.DownloadRelations = DownloadRelations;
@@ -146,7 +147,6 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
 
         // update names based on changes
-        var scheduler = await _schedulerFactory.GetScheduler();
 
         var videoLocals = RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID).Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash)).Where(a => a != null)
             .Distinct();
@@ -304,6 +304,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         if (_settings.AniDb.MaxRelationDepth <= 0) return;
         if (RelDepth > _settings.AniDb.MaxRelationDepth) return;
         if (!_settings.AutoGroupSeries && !_settings.AniDb.DownloadRelatedAnime) return;
+        var scheduler = await _schedulerFactory.GetScheduler();
 
         // Queue or process the related series.
         foreach (var relation in response.Relations)
@@ -324,14 +325,14 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             }
 
             // Append the command to the queue.
-            await (await _schedulerFactory.GetScheduler()).StartJobNow<GetAniDBAnimeJob>(c =>
+            await scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = relation.RelatedAnimeID;
                 c.DownloadRelations = true;
                 c.RelDepth = RelDepth + 1;
                 c.CacheOnly = !ForceRefresh && CacheOnly;
                 c.ForceRefresh = ForceRefresh;
-                c.CreateSeriesEntry = ForceRefresh ? CreateSeriesEntry : CreateSeriesEntry && _settings.AniDb.AutomaticallyImportSeries;
+                c.CreateSeriesEntry = CreateSeriesEntry && _settings.AniDb.AutomaticallyImportSeries;
             });
         }
     }
