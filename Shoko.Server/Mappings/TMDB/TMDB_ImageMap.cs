@@ -22,6 +22,7 @@ public class TMDB_ImageMap : ClassMap<TMDB_Image>
         Map(x => x.TmdbNetworkID);
         Map(x => x.TmdbCompanyID);
         Map(x => x.TmdbPersonID);
+        Map(x => x.IsEnabled);
         Map(x => x.ForeignType).Not.Nullable().CustomType<ForeignEntityType>();
         Map(x => x.ImageType).Not.Nullable().CustomType<ImageEntityType>();
         Map(x => x.Width).Not.Nullable();

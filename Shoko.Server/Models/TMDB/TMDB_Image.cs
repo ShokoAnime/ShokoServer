@@ -94,7 +94,7 @@ public class TMDB_Image : IImageMetadata
     public ImageEntityType ImageType { get; set; }
 
     /// <inheritdoc/>
-    public bool IsEnabled { get; set; }
+    public bool IsEnabled { get; set; } = true;
 
     /// <inheritdoc/>
     public bool IsLocked
@@ -109,10 +109,10 @@ public class TMDB_Image : IImageMetadata
         => Width / Height;
 
     /// <inheritdoc/>
-    public int Width { get; set; }
+    public int Width { get; set; } = 0;
 
     /// <inheritdoc/>
-    public int Height { get; set; }
+    public int Height { get; set; } = 0;
 
     /// <inheritdoc/>
     public TitleLanguage Language { get; set; }
@@ -147,7 +147,7 @@ public class TMDB_Image : IImageMetadata
     /// <remarks>
     /// May be used for ordering when aquiring and/or descarding images.
     /// </remarks>
-    public double UserRating { get; set; }
+    public double UserRating { get; set; } = 0.0;
 
     /// <summary>
     /// User votes.
@@ -155,7 +155,7 @@ public class TMDB_Image : IImageMetadata
     /// <remarks>
     /// May be used for ordering when aquiring and/or descarding images.
     /// </remarks>
-    public int UserVotes { get; set; }
+    public int UserVotes { get; set; } = 0;
 
     #endregion
 

@@ -432,7 +432,7 @@ public class TmdbController : BaseController
     [Authorize("admin")]
     [HttpGet("Movie/Search/Online")]
     public ListResult<SearchMovie> SearchOnlineForTmdbMovies(
-        [FromRoute] string query,
+        [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -454,7 +454,7 @@ public class TmdbController : BaseController
     [Authorize("admin")]
     [HttpGet("Movie/Search/Offline")]
     public ListResult<object> SearchOfflineForTmdbMovies(
-        [FromRoute] string query,
+        [FromQuery] string query,
         [FromQuery] bool fuzzy = true,
         [FromQuery] IncludeOnlyFilter restricted = IncludeOnlyFilter.False,
         [FromQuery, Range(0, 100)] int pageSize = 50,
@@ -1070,7 +1070,7 @@ public class TmdbController : BaseController
     [Authorize("admin")]
     [HttpGet("Show/Search/Online")]
     public ListResult<SearchTv> SearchOnlineForTmdbShows(
-        [FromRoute] string query,
+        [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -1092,7 +1092,7 @@ public class TmdbController : BaseController
     [Authorize("admin")]
     [HttpGet("Show/Search/Offline")]
     public ListResult<object> SearchOfflineForTmdbShows(
-        [FromRoute] string query,
+        [FromQuery] string query,
         [FromQuery] bool fuzzy = true,
         [FromQuery] IncludeOnlyFilter restricted = IncludeOnlyFilter.False,
         [FromQuery, Range(0, 100)] int pageSize = 50,

@@ -857,7 +857,7 @@ public class TMDBHelper
         if (!forceRefresh && tmdbShow.CreatedAt != tmdbShow.LastUpdatedAt && tmdbShow.LastUpdatedAt < DateTime.Now.AddHours(-1))
             return false;
 
-        var show = await _client.GetTvShowAsync(showId, TvShowMethods.Translations | TvShowMethods.EpisodeGroups, "en-US");
+        var show = await _client.GetTvShowAsync(showId, TvShowMethods.ContentRatings | TvShowMethods.Translations | TvShowMethods.EpisodeGroups, "en-US");
         if (show == null)
             return false;
 
@@ -1865,13 +1865,18 @@ public class TMDBHelper
             var languageCode = translation.Iso_639_1?.ToLowerInvariant();
             var countryCode = translation.Iso_3166_1?.ToUpperInvariant();
 
-            var currentTitle = translation.Name ?? string.Empty;
+            var currentTitle = translation.Data.Name ?? string.Empty;
             if (!string.IsNullOrEmpty(tmdbEntity.OriginalLanguageCode) && languageCode == tmdbEntity.OriginalLanguageCode)
-                currentTitle = tmdbEntity.OriginalTitle ?? translation.Name ?? string.Empty;
+                currentTitle = tmdbEntity.OriginalTitle ?? translation.Data.Name ?? string.Empty;
             else if (languageCode == "en" && countryCode == "US")
-                currentTitle = tmdbEntity.EnglishTitle ?? translation.Name ?? string.Empty;
+                currentTitle = tmdbEntity.EnglishTitle ?? translation.Data.Name ?? string.Empty;
             var existingTitle = existingTitles.FirstOrDefault(title => title.LanguageCode == languageCode && title.CountryCode == countryCode);
-            if (!string.IsNullOrEmpty(currentTitle))
+            if (!string.IsNullOrEmpty(currentTitle) && !(
+                // Make sure the "translation" is not just the English Title or
+                (languageCode != "en" && languageCode != "US" && string.Equals(tmdbEntity.EnglishTitle, currentTitle, StringComparison.InvariantCultureIgnoreCase)) ||
+                // the Original Title.
+                (!string.IsNullOrEmpty(tmdbEntity.OriginalLanguageCode) && languageCode != tmdbEntity.OriginalLanguageCode && string.Equals(tmdbEntity.OriginalTitle, currentTitle, StringComparison.InvariantCultureIgnoreCase))
+            ))
             {
                 if (existingTitle == null)
                 {
@@ -2027,7 +2032,8 @@ public class TMDBHelper
             RepoFactory.TMDB_Company.Save(tmdbCompany);
         }
 
-        DownloadImageByType(company.LogoPath, ImageEntityType.Logo, ForeignEntityType.Company, company.Id);
+        if (!string.IsNullOrEmpty(company.LogoPath))
+            DownloadImageByType(company.LogoPath, ImageEntityType.Logo, ForeignEntityType.Company, company.Id);
     }
 
     private void PurgeCompany(int companyId, bool removeImageFiles = true)

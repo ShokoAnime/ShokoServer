@@ -1,4 +1,5 @@
 using FluentNHibernate.Mapping;
+using Shoko.Server.Databases.TypeConverters;
 using Shoko.Server.Models.TMDB;
 
 namespace Shoko.Server.Mappings;
@@ -21,7 +22,7 @@ public class TMDB_EpisodeMap : ClassMap<TMDB_Episode>
         Map(x => x.RuntimeMintues);
         Map(x => x.UserRating).Not.Nullable();
         Map(x => x.UserVotes).Not.Nullable();
-        Map(x => x.AiredAt);
+        Map(x => x.AiredAt).CustomType<DateOnlyConverter>();
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();
     }

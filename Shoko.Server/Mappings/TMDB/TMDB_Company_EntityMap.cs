@@ -1,4 +1,5 @@
 using FluentNHibernate.Mapping;
+using Shoko.Server.Databases.TypeConverters;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Server;
 
@@ -17,6 +18,6 @@ public class TMDB_Company_EntityMap : ClassMap<TMDB_Company_Entity>
         Map(x => x.TmdbEntityType).Not.Nullable().CustomType<ForeignEntityType>();
         Map(x => x.TmdbEntityID).Not.Nullable();
         Map(x => x.Ordering).Not.Nullable();
-        Map(x => x.ReleasedAt);
+        Map(x => x.ReleasedAt).CustomType<DateOnlyConverter>();
     }
 }
