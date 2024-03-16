@@ -1035,6 +1035,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             {
                 case CrossRefType.MovieDB:
                     _tmdbHelper.AddMovieLink(animeID, id);
+                    _tmdbHelper.ScheduleUpdateOfMovie(id, downloadImages: true);
                     break;
             }
 

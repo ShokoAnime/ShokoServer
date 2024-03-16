@@ -113,7 +113,7 @@ public class TMDBHelper
 
     #region Links
 
-    public void AddMovieLink(int animeId, int movieId, int? episodeId = null, bool additiveLink = false, bool isAutomatic = false, bool forceRefresh = false)
+    public void AddMovieLink(int animeId, int movieId, int? episodeId = null, bool additiveLink = false, bool isAutomatic = false)
     {
         // Remove all existing links.
         if (!additiveLink)
@@ -128,13 +128,6 @@ public class TMDBHelper
         xref.Source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
         RepoFactory.CrossRef_AniDB_TMDB_Movie.Save(xref);
 
-        // Schedule the movie info to be downloaded or updated.
-        _commandFactory.CreateAndSave<CommandRequest_TMDB_Movie_Update>(c =>
-        {
-            c.TmdbMovieID = movieId;
-            c.ForceRefresh = forceRefresh;
-            c.DownloadImages = true;
-        });
     }
 
     public void RemoveMovieLink(int animeId, int movieId, bool purge = false, bool removeImageFiles = true)
@@ -205,6 +198,18 @@ public class TMDBHelper
                     c.DownloadImages = saveImages;
                 }
             );
+    }
+
+    public void ScheduleUpdateOfMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCollections = null)
+    {
+        // Schedule the movie info to be downloaded or updated.
+        _commandFactory.CreateAndSave<CommandRequest_TMDB_Movie_Update>(c =>
+        {
+            c.TmdbMovieID = movieId;
+            c.ForceRefresh = forceRefresh;
+            c.DownloadImages = downloadImages;
+            c.DownloadCollections = downloadCollections;
+        });
     }
 
     public async Task<bool> UpdateMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool downloadCollections = false)
@@ -647,7 +652,7 @@ public class TMDBHelper
 
     #region Links
 
-    public void AddShowLink(int animeId, int showId, bool additiveLink = true, bool isAutomatic = false, bool forceRefresh = false)
+    public void AddShowLink(int animeId, int showId, bool additiveLink = true, bool isAutomatic = false)
     {
         // Remove all existing links.
         if (!additiveLink)
@@ -659,14 +664,6 @@ public class TMDBHelper
             new(animeId, showId);
         xref.Source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
         RepoFactory.CrossRef_AniDB_TMDB_Show.Save(xref);
-
-        // Schedule the show info to be downloaded or updated.
-        _commandFactory.CreateAndSave<CommandRequest_TMDB_Show_Update>(c =>
-        {
-            c.TmdbShowID = showId;
-            c.ForceRefresh = forceRefresh;
-            c.DownloadImages = true;
-        });
     }
 
     public void RemoveShowLink(int animeId, int showId, bool purge = false, bool removeImageFiles = true)
@@ -841,7 +838,19 @@ public class TMDBHelper
         }
     }
 
-    public async Task<bool> UpdateShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool downloadEpisodeGroups = false)
+    public void ScheduleUpdateOfShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool? downloadAlternateOrdering = null)
+    {
+        // Schedule the show info to be downloaded or updated.
+        _commandFactory.CreateAndSave<CommandRequest_TMDB_Show_Update>(c =>
+        {
+            c.TmdbShowID = showId;
+            c.ForceRefresh = forceRefresh;
+            c.DownloadImages = downloadImages;
+            c.DownloadAlternateOrdering = downloadAlternateOrdering;
+        });
+    }
+
+    public async Task<bool> UpdateShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool downloadAlternateOrdering = false)
     {
         // Abort if we're within a certain time frame as to not try and get us rate-limited.
         var tmdbShow = RepoFactory.TMDB_Show.GetByTmdbShowID(showId) ?? new(showId);
@@ -856,7 +865,7 @@ public class TMDBHelper
         updated |= UpdateTitlesAndOverviews(tmdbShow, show.Translations);
         updated |= UpdateCompanies(tmdbShow, show.ProductionCompanies);
         updated |= await UpdateShowSeasonsAndEpisodes(show, downloadImages, forceRefresh);
-        if (downloadEpisodeGroups)
+        if (downloadAlternateOrdering)
             updated |= await UpdateShowAlternateOrdering(show);
         if (updated)
         {

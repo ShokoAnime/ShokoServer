@@ -817,7 +817,6 @@ public class TmdbController : BaseController
         return show.GetCrossReferences()
             .Select(xref => new TmdbShow.CrossReference(xref))
             .OrderBy(xref => xref.AnidbAnimeID)
-            .ThenBy(xref => xref.TmdbShowID)
             .ToList();
     }
 
