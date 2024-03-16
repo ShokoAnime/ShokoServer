@@ -127,9 +127,13 @@ public class Image
                     // This causes serious IO lag on some systems. Enable at own risk.
                     if (Utils.SettingsProvider.GetSettings().LoadImageMetadata)
                     {
-                        var info = new MagickImageInfo(imagePath);
-                        Width = info.Width;
-                        Height = info.Height;
+                        try
+                        {
+                            var info = new MagickImageInfo(imagePath);
+                            Width = info.Width;
+                            Height = info.Height;
+                        }
+                        catch { }
                     }
                 }
                 break;
