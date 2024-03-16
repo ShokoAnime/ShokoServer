@@ -413,6 +413,13 @@ public class EpisodeController : BaseController
 
     #region TMDB
 
+    /// <summary>
+    /// Get all TMDB Movies linked directly to the Shoko Episode by ID.
+    /// </summary>
+    /// <param name="episodeID">Shoko Episode ID.</param>
+    /// <param name="include">Extra details to include.</param>
+    /// <param name="language">Language to fetch some details in.</param>
+    /// <returns>All TMDB Movies linked directly to the Shoko Episode.</returns>
     [HttpGet("{episodeID}/TMDB/Movie")]
     public ActionResult<List<TmdbMovie>> GetTmdbMoviesByEpisodeID(
         [FromRoute] int episodeID,
@@ -431,6 +438,33 @@ public class EpisodeController : BaseController
             .ToList();
     }
 
+    /// <summary>
+    /// Get all TMDB Movie cross-references for the Shoko Episode by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Episode ID.</param>
+    /// <returns>All TMDB Movie cross-references for the Shoko Episode.</returns>
+    [HttpGet("{seriesID}/TMDB/Movie/CrossReferences")]
+    public ActionResult<IReadOnlyList<TmdbMovie.CrossReference>> GetTMDBMovieCrossReferenceByEpisodeID(
+        [FromRoute] int seriesID
+    )
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(seriesID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        return episode.GetTmdbMovieCrossReferences()
+            .Select(xref => new TmdbMovie.CrossReference(xref))
+            .OrderBy(xref => xref.TmdbMovieID)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get all TMDB Episodes linked to the Shoko Episode by ID.
+    /// </summary>
+    /// <param name="episodeID">Shoko Episode ID.</param>
+    /// <param name="include">Extra details to include.</param>
+    /// <param name="language">Language to fetch some details for.</param>
+    /// <returns>All TMDB Episodes linked to the Shoko Episode.</returns>
     [HttpGet("{episodeID}/TMDB/Episode")]
     public ActionResult<List<TmdbEpisode>> GetTmdbEpisodesByEpisodeID(
         [FromRoute] int episodeID,
@@ -446,6 +480,26 @@ public class EpisodeController : BaseController
             .Select(xref => xref.GetTmdbEpisode())
             .OfType<TMDB_Episode>()
             .Select(tmdbEpisode => new TmdbEpisode(tmdbEpisode, include?.CombineFlags(), language))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get all TMDB Episode cross-references for the Shoko Episode by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Episode ID.</param>
+    /// <returns>All TMDB Episode cross-references for the Shoko Episode.</returns>
+    [HttpGet("{seriesID}/TMDB/Episode/CrossReferences")]
+    public ActionResult<IReadOnlyList<TmdbEpisode.CrossReference>> GetTMDBEpisodeCrossReferenceByEpisodeID(
+        [FromRoute] int seriesID
+    )
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(seriesID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        return episode.GetTmdbEpisodeCrossReferences()
+            .Select(xref => new TmdbEpisode.CrossReference(xref))
+            .OrderBy(xref => xref.TmdbEpisodeID)
             .ToList();
     }
 
