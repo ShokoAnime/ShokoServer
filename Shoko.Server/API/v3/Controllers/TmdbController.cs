@@ -18,6 +18,7 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+using TMDbLib.Objects.Search;
 
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.Episode;
@@ -425,32 +426,20 @@ public class TmdbController : BaseController
     /// Search TMDB for movies using the offline or online search.
     /// </summary>
     /// <param name="query">Query to search for.</param>
-    /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
-    /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
-    /// <param name="restricted">Only search for results which are or are not restriced if set, otherwise will include both restricted and not restriced movies.</param>
-    /// <param name="includeTitles">Include titles in the results.</param>
-    /// <param name="pageSize">The page size.</param>
+    /// <param name="includeRestricted">Include restriced movies.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("Movie/Search/Online")]
-    public ListResult<object> SearchOnlineForTmdbMovies(
+    public ListResult<SearchMovie> SearchOnlineForTmdbMovies(
         [FromRoute] string query,
-        [FromQuery] bool fuzzy = true,
-        [FromQuery] bool? restricted = null,
-        [FromQuery] bool includeTitles = true,
-        [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        // TODO: Modify this once the tmdb movie search model is finalised. Also maybe switch to using online search, maybe utilising the offline search if we're offline.
+        var (pageView, totalMovies) = TmdbHelper.SearchMovies(query, includeRestricted, page);
 
-        return TmdbHelper.OfflineSearch.SearchMovies(query, fuzzy)
-            .Where(movie =>
-            {
-                return true;
-            })
-            .ToListResult(a => a as object, page, pageSize);
+        return new ListResult<SearchMovie>(totalMovies, pageView);
     }
 
     /// <summary>
@@ -458,9 +447,7 @@ public class TmdbController : BaseController
     /// </summary>
     /// <param name="query">Query to search for.</param>
     /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
-    /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
     /// <param name="restricted">Only search for results which are or are not restriced if set, otherwise will include both restricted and not restriced movies.</param>
-    /// <param name="includeTitles">Include titles in the results.</param>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
@@ -469,7 +456,7 @@ public class TmdbController : BaseController
     public ListResult<object> SearchOfflineForTmdbMovies(
         [FromRoute] string query,
         [FromQuery] bool fuzzy = true,
-        [FromQuery] bool? restricted = null,
+        [FromQuery] IncludeOnlyFilter restricted = IncludeOnlyFilter.False,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -479,9 +466,17 @@ public class TmdbController : BaseController
         return TmdbHelper.OfflineSearch.SearchMovies(query, fuzzy)
             .Where(movie =>
             {
+                if (restricted != IncludeOnlyFilter.True)
+                {
+                    var includeRestricred = restricted == IncludeOnlyFilter.Only;
+                    var isRestricted = movie.IsRestricted;
+                    if (isRestricted != includeRestricred)
+                        return false;
+                }
+
                 return true;
             })
-            .ToListResult(a => a as object, page, pageSize);
+            .ToListResult(a => new { a.ID, a.IsRestricted, a.Popularity, a.Title } as object, page, pageSize);
     }
 
     #endregion
@@ -1070,31 +1065,20 @@ public class TmdbController : BaseController
     /// Search TMDB for shows using the online search.
     /// </summary>
     /// <param name="query">Query to search for.</param>
-    /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
-    /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
-    /// <param name="restricted">Only search for results which are or are not restriced if set, otherwise will include both restricted and not restriced shows.</param>
-    /// <param name="includeTitles">Include titles in the results.</param>
-    /// <param name="pageSize">The page size.</param>
+    /// <param name="includeRestricted">Include restriced shows.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("Show/Search/Online")]
-    public ListResult<object> SearchOnlineForTmdbShows(
+    public ListResult<SearchTv> SearchOnlineForTmdbShows(
         [FromRoute] string query,
-        [FromQuery] bool fuzzy = true,
-        [FromQuery] bool? restricted = null,
-        [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        // TODO: Modify this once the tmdb show search model is finalised. Also maybe switch to using online search, maybe utilising the offline search if we're offline.
+        var (pageView, totalShows) = TmdbHelper.SearchShows(query, includeRestricted, page);
 
-        return TmdbHelper.OfflineSearch.SearchShows(query, fuzzy)
-            .Where(show =>
-            {
-                return true;
-            })
-            .ToListResult(a => a as object, page, pageSize);
+        return new ListResult<SearchTv>(totalShows, pageView);
     }
 
     /// <summary>
@@ -1102,9 +1086,7 @@ public class TmdbController : BaseController
     /// </summary>
     /// <param name="query">Query to search for.</param>
     /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
-    /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
     /// <param name="restricted">Only search for results which are or are not restriced if set, otherwise will include both restricted and not restriced shows.</param>
-    /// <param name="includeTitles">Include titles in the results.</param>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
@@ -1113,6 +1095,7 @@ public class TmdbController : BaseController
     public ListResult<object> SearchOfflineForTmdbShows(
         [FromRoute] string query,
         [FromQuery] bool fuzzy = true,
+        [FromQuery] IncludeOnlyFilter restricted = IncludeOnlyFilter.False,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -1122,9 +1105,17 @@ public class TmdbController : BaseController
         return TmdbHelper.OfflineSearch.SearchShows(query, fuzzy)
             .Where(show =>
             {
+                if (restricted != IncludeOnlyFilter.True)
+                {
+                    var includeRestricred = restricted == IncludeOnlyFilter.Only;
+                    var isRestricted = show.IsRestricted;
+                    if (isRestricted != includeRestricred)
+                        return false;
+                }
+
                 return true;
             })
-            .ToListResult(a => a as object, page, pageSize);
+            .ToListResult(a => new { a.ID, a.IsRestricted, a.Popularity, a.Title } as object, page, pageSize);
     }
 
     #endregion

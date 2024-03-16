@@ -98,15 +98,15 @@ public class TMDBHelper
 
     #region Search
 
-    public List<SearchMovie> SearchMovies(string query)
+    public (List<SearchMovie> Page, int TotalCount) SearchMovies(string query, bool includeRestricted = false, int page = 1)
     {
-        var results = _client.SearchMovieAsync(query)
+        var results = _client.SearchMovieAsync(query, page, includeRestricted)
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
 
         _logger.LogInformation("Got {Count} of {Results} results", results?.Results.Count ?? 0, results?.TotalResults ?? 0);
-        return results?.Results ?? new();
+        return (results?.Results ?? new(), results?.TotalResults ?? 0);
     }
 
     #endregion
@@ -632,15 +632,15 @@ public class TMDBHelper
 
     #region Search
 
-    public List<SearchTv> SearchShows(string query)
+    public (List<SearchTv> Page, int TotalCount) SearchShows(string query, bool includeRestricted = false, int page = 1)
     {
-        var results = _client.SearchTvShowAsync(query)
+        var results = _client.SearchTvShowAsync(query, page, includeRestricted)
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
 
         _logger.LogInformation("Got {Count} of {Results} results", results?.Results.Count ?? 0, results?.TotalResults ?? 0);
-        return results?.Results ?? new();
+        return (results?.Results ?? new(), results?.TotalResults ?? 0);
     }
 
     #endregion

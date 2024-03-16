@@ -1086,7 +1086,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         var results = new List<CL_MovieDBMovieSearch_Response>();
         try
         {
-            var movieResults = _tmdbHelper.SearchMovies(HttpUtility.UrlDecode(criteria));
+            var (movieResults, _) = _tmdbHelper.SearchMovies(HttpUtility.UrlDecode(criteria));
 
             foreach (var res in movieResults)
             {
