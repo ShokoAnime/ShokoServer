@@ -185,7 +185,6 @@ public class ShokoServer
     private void WorkerSetupDB_ReportProgress()
     {
         logger.LogInformation("Starting Server: Complete!");
-        ServerInfo.Instance.RefreshImportFolders();
         ServerState.Instance.ServerStartingStatus = Resources.Server_Complete;
         ServerState.Instance.ServerOnline = true;
         var settings = _settingsProvider.GetSettings();
@@ -333,29 +332,9 @@ public class ShokoServer
     {
         autoUpdateTimerShort.Enabled = false;
 
-        CheckForAdminMesages();
-
 
         autoUpdateTimerShort.Interval = 30 * 1000; // 30 seconds
         autoUpdateTimerShort.Enabled = true;
-    }
-
-    private void CheckForAdminMesages()
-    {
-        try
-        {
-            var lastUpdate = DateTime.Now - lastAdminMessage;
-
-            if (lastUpdate.TotalHours > 5)
-            {
-                lastAdminMessage = DateTime.Now;
-                ServerInfo.Instance.RefreshAdminMessages();
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, ex.ToString());
-        }
     }
 
     #region Tray Minimize

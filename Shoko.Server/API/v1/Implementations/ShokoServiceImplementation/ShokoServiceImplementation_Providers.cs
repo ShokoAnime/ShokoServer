@@ -168,15 +168,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpGet("WebCache/AdminMessages")]
     public List<Azure_AdminMessage> GetAdminMessages()
     {
-        try
-        {
-            return ServerInfo.Instance.AdminMessages?.ToList() ?? new List<Azure_AdminMessage>();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, ex.ToString());
-            return new List<Azure_AdminMessage>();
-        }
+        return new List<Azure_AdminMessage>();
     }
 
     #region Admin - TvDB

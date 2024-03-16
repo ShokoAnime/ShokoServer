@@ -11,43 +11,8 @@ using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Server.Models;
 
-public class SVR_ImportFolder : ImportFolder, INotifyPropertyChangedExt, IImportFolder
+public class SVR_ImportFolder : ImportFolder, IImportFolder
 {
-    private static Logger logger = LogManager.GetCurrentClassLogger();
-
-    public new int IsWatched
-    {
-        get => base.IsWatched;
-        set =>
-            this.SetField(() => base.IsWatched, r => base.IsWatched = r, value, () => IsWatched,
-                () => FolderIsWatched);
-    }
-
-    public void Bass<T>(Expression<Func<T, int>> step, int value)
-    {
-    }
-
-    public void Bass2<T>(Func<int> test, int value)
-    {
-    }
-
-    public new int IsDropSource
-    {
-        get => base.IsDropSource;
-        set =>
-            this.SetField(() => base.IsDropSource, r => base.IsDropSource = r, value, () => IsDropSource,
-                () => FolderIsDropSource);
-    }
-
-
-    public new int IsDropDestination
-    {
-        get => base.IsDropDestination;
-        set =>
-            this.SetField(() => base.IsDropDestination, r => base.IsDropDestination = r, value,
-                () => IsDropDestination, () => FolderIsDropDestination);
-    }
-
     public new string ImportFolderLocation
     {
         get => base.ImportFolderLocation;
@@ -100,13 +65,6 @@ public class SVR_ImportFolder : ImportFolder, INotifyPropertyChangedExt, IImport
     public override string ToString()
     {
         return string.Format("{0} - {1} ({2})", ImportFolderName, ImportFolderLocation, ImportFolderID);
-    }
-
-    public event PropertyChangedEventHandler PropertyChanged;
-
-    public void NotifyPropertyChanged(string propname)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
     }
 
     string IImportFolder.Location => ImportFolderLocation;

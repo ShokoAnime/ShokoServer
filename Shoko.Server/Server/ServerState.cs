@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 using NLog;
-using Shoko.Commons.Notification;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Server;
 
@@ -41,19 +41,19 @@ public class ServerState : INotifyPropertyChangedExt
         set => this.SetField(() => serverStarting, value);
     }
 
-    private string _serverStartingStatus = string.Empty;
+    private string serverStartingStatus = string.Empty;
 
     public string ServerStartingStatus
     {
-        get => _serverStartingStatus;
+        get => serverStartingStatus;
         set
         {
-            if (!value.Equals(_serverStartingStatus))
+            if (!value.Equals(serverStartingStatus))
             {
                 _logger.Trace($"Starting Server: {value}");
             }
 
-            this.SetField(() => _serverStartingStatus, value);
+            this.SetField(() => serverStartingStatus, value);
         }
     }
 

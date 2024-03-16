@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using Hardcodet.Wpf.TaskbarNotification;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -57,7 +56,7 @@ public partial class App
             settingsProvider.LoadSettings();
             Utils.SettingsProvider = settingsProvider;
             var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
-            startup.AboutToStart += (_, args) => AddEventHandlers(args.ServiceProvider);
+            startup.AboutToStart += (_, _) => AddEventHandlers();
             startup.Start();
         }
         catch (Exception exception)
@@ -67,7 +66,7 @@ public partial class App
         }
     }
 
-    private void AddEventHandlers(IServiceProvider provider)
+    private void AddEventHandlers()
     {
         ShokoEventHandler.Instance.Shutdown += (_, _) => DispatchShutdown();
         Utils.YesNoRequired += (_, args) => args.Cancel = true;
@@ -78,7 +77,7 @@ public partial class App
         _icon = new TaskbarIcon{
                                    ToolTipText = "Shoko Server",
                                    ContextMenu = CreateContextMenu(),
-                                   MenuActivation = PopupActivationMode.All,
+                                   MenuActivation = PopupActivationMode.RightClick,
                                    Visibility = Visibility.Visible
                                };
         using var iconStream = GetResourceStream(new Uri("pack://application:,,,/ShokoServer;component/db.ico"))?.Stream;
