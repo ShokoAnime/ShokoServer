@@ -24,8 +24,6 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
 {
     private readonly TMDBHelper _helper;
 
-    private readonly ISettingsProvider _settingsProvider;
-
     public virtual int AnimeID { get; set; }
 
     public virtual bool ForceRefresh { get; set; }
@@ -213,10 +211,9 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
         return true;
     }
 
-    public CommandRequest_TMDB_Search(ILoggerFactory loggerFactory, TMDBHelper helper, ISettingsProvider settingsProvider) : base(loggerFactory)
+    public CommandRequest_TMDB_Search(ILoggerFactory loggerFactory, TMDBHelper helper) : base(loggerFactory)
     {
         _helper = helper;
-        _settingsProvider = settingsProvider;
     }
 
     protected CommandRequest_TMDB_Search()
