@@ -42,7 +42,7 @@ public static class QuartzStartup
         triggerConfig ??= t => t;
         var groupName = typeof(T).GetCustomAttribute<JobKeyGroupAttribute>()?.GroupName;
         var jobKey = JobKeyBuilder<T>.Create().WithGroup(groupName).UsingJobData(jobConfig).Build();
-        if (!await scheduler.CheckExists(jobKey))
+        if (!await scheduler.CheckExists(jobKey) && !(await scheduler.GetTriggersOfJob(jobKey)).Any())
         {
             await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
                 triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
@@ -56,6 +56,7 @@ public static class QuartzStartup
                 if (nextFireTime != default) trigger = trigger.StartAt(nextFireTime);
             }
 
+            // also nukes triggers
             await scheduler.DeleteJob(jobKey);
             await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(), trigger.Build());
         }
