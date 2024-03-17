@@ -43,6 +43,7 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
                 AND jd.{ColumnJobClass} = @limit{index}Type
+              ORDER BY t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC
               OFFSET @offset{index} ROWS FETCH NEXT @limit{index} ROWS ONLY";
     }
 
@@ -53,6 +54,7 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
                 AND jd.{ColumnJobClass} IN (@groupLimit{index}Types)
+              ORDER BY t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC
               OFFSET @groupOffset{index} ROWS FETCH NEXT @groupLimit{index} ROWS ONLY";
     }
 
@@ -102,7 +104,7 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
 
         var hasExcludeTypes = jobTypes.TypesToExclude.Any() || jobTypes.TypesToLimit.Any() || jobTypes.AvailableConcurrencyGroups.Any(a => a.Any());
         var commandText = new StringBuilder();
-        commandText.Append($"SELECT TOP @limit u.{ColumnTriggerName}, u.{ColumnTriggerGroup}, u.{ColumnJobClass} FROM (");
+        commandText.Append($"SELECT u.{ColumnTriggerName}, u.{ColumnTriggerGroup}, u.{ColumnJobClass} FROM (");
         commandText.Append(hasExcludeTypes ? GetSelectPartExcludingTypes : GetSelectPartNoExclusions);
 
         int index;
@@ -110,17 +112,17 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
         {
             commandText.Append("\nUNION SELECT * FROM (\n");
             commandText.Append(GetSelectPartOfType(index));
-            commandText.Append("\n)");
+            commandText.Append("\n) a");
         }
 
         for (index = 0; index < jobTypes.AvailableConcurrencyGroups.Count(); index++)
         {
             commandText.Append("\nUNION SELECT * FROM (\n");
             commandText.Append(GetSelectPartInTypes(index));
-            commandText.Append("\n)");
+            commandText.Append("\n) a");
         }
 
-        commandText.Append($") u\nORDER BY {ColumnPriority} DESC, {ColumnNextFireTime} ASC");
+        commandText.Append($"\n) u\nORDER BY {ColumnPriority} DESC, {ColumnNextFireTime} ASC\n OFFSET 0 ROWS FETCH NEXT @limit ROWS ONLY");
         await using var cmd = PrepareCommand(conn, ReplaceTablePrefix(commandText.ToString()));
         AddCommandParameter(cmd, "schedulerName", _schedulerName);
         AddCommandParameter(cmd, "state", StateWaiting);
@@ -193,14 +195,14 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
         {
             commandText.Append("\nUNION SELECT * FROM (\n");
             commandText.Append(GetSelectPartOfType(index));
-            commandText.Append("\n)");
+            commandText.Append("\n) a");
         }
 
         for (index = 0; index < jobTypes.AvailableConcurrencyGroups.Count(); index++)
         {
             commandText.Append("\nUNION SELECT * FROM (\n");
             commandText.Append(GetSelectPartInTypes(index));
-            commandText.Append("\n)");
+            commandText.Append("\n) a");
         }
 
         commandText.Append(") u");
@@ -312,7 +314,7 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
         {
             subquery.Append("\nUNION SELECT * FROM (\n");
             subquery.Append(GetSelectPartOfType(index));
-            subquery.Append("\n)");
+            subquery.Append("\n) a");
         }
 
         // blocked
@@ -323,7 +325,7 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
             {
                 subquery.Append("\nUNION SELECT * FROM (\n");
                 subquery.Append(GetSelectPartOfType(index));
-                subquery.Append("\n)");
+                subquery.Append("\n) a");
             }
         }
 
@@ -333,7 +335,7 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
         {
             subquery.Append("\nUNION SELECT * FROM (\n");
             subquery.Append(GetSelectPartInTypes(index));
-            subquery.Append("\n)");
+            subquery.Append("\n) a");
         }
 
         // blocked
@@ -344,14 +346,14 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
             {
                 subquery.Append("\nUNION SELECT * FROM (\n");
                 subquery.Append(GetSelectPartInTypes(index));
-                subquery.Append("\n)");
+                subquery.Append("\n) a");
             }
 
             if (hasExcludeTypes)
             {
                 subquery.Append("\nUNION SELECT * FROM (\n");
                 subquery.Append(GetSelectPartInTypes(index));
-                subquery.Append("\n)");
+                subquery.Append("\n) a");
             }
         }
 

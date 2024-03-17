@@ -275,7 +275,7 @@ public class ThreadPooledJobStore : JobStoreTX
                 group.Add(limitedType);
             }
 
-            groups.Add(group);
+            if (group.Count > 0) groups.Add(group);
         }
 
         return new JobTypes(excludedTypes.Distinct().ToList(), limitedTypes, groups);

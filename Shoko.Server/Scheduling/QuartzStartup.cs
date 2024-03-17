@@ -1,9 +1,9 @@
 using System;
-using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
