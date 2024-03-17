@@ -47,6 +47,7 @@ public class ThreadPooledJobStore : JobStoreTX
         _typeLoadHelper = loadHelper;
         await base.Initialize(loadHelper, signaler, cancellationToken);
         if (Delegate.LockHandler != null) LockHandler = Delegate.LockHandler;
+        TxIsolationLevelSerializable = false;
     }
 
     private void InitConcurrencyCache()
