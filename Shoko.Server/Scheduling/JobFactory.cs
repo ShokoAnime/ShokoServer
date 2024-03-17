@@ -17,6 +17,7 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<JobFactory> _logger;
 
+    // Used by Quartz
     public override IJob NewJob(TriggerFiredBundle bundle, IScheduler scheduler)
     {
         try
@@ -48,6 +49,7 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
         }
     }
 
+    // The rest used by us
     public T CreateJob<T>(Action<T> ctor = null) where T : BaseJob
     {
         try
@@ -100,10 +102,9 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
             job.PostInit();
             return job;
         }
-        catch (Exception e)
+        catch
         {
-            _logger.LogError(e, "There was an error initializing Job: {Key}", jobDetails.Key);
-            throw;
+            return null;
         }
     }
 
