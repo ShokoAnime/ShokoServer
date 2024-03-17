@@ -343,7 +343,7 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
                 subquery.Append("\n)");
             }
 
-            if (hasExcludeTypes)
+            if (jobTypes.TypesToExclude.Any())
             {
                 subquery.Append("\nUNION SELECT * FROM (\n");
                 subquery.Append(GetSelectPartInTypes(index));
@@ -410,7 +410,7 @@ public class MySQLDelegate : Quartz.Impl.AdoJobStore.MySQLDelegate, IFilteredDri
                 index++;
             }
 
-            if (hasExcludeTypes)
+            if (jobTypes.TypesToExclude.Any())
             {
                 AddCommandParameter(cmd, $"groupBlocked{index}", 1);
                 cmd.AddArrayParameters($"groupLimit{index}Types", GetJobClasses(jobTypes.TypesToExclude));

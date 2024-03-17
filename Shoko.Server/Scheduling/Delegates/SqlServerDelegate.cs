@@ -349,7 +349,7 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
                 subquery.Append("\n) a");
             }
 
-            if (hasExcludeTypes)
+            if (jobTypes.TypesToExclude.Any())
             {
                 subquery.Append("\nUNION SELECT * FROM (\n");
                 subquery.Append(GetSelectPartInTypes(index, false));
@@ -414,7 +414,7 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
                 index++;
             }
 
-            if (hasExcludeTypes)
+            if (jobTypes.TypesToExclude.Any())
             {
                 AddCommandParameter(cmd, $"groupBlocked{index}", 1);
                 cmd.AddArrayParameters($"groupLimit{index}Types", GetJobClasses(jobTypes.TypesToExclude));
