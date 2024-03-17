@@ -17,7 +17,7 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling;
 
-public class ThreadPooledJobStore : JobStoreTX
+public partial class ThreadPooledJobStore : JobStoreTX
 {
     private readonly ILogger<ThreadPooledJobStore> _logger;
     private readonly ISettingsProvider _settingsProvider;
