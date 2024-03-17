@@ -1,13 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using Microsoft.AspNetCore.SignalR;
-using Shoko.Commons.Notification;
 using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Scheduling;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 
@@ -16,7 +12,7 @@ public class QueueEmitter : BaseEmitter, IDisposable
     private readonly QueueStateEventHandler _queueStateEventHandler;
     private readonly QueueHandler _queueHandler;
     private QueueStateSignalRModel _lastQueueState;
-    private readonly Dictionary<string, object> _lastServerState = new();
+    
 
     public QueueEmitter(IHubContext<AggregateHub> hub, QueueStateEventHandler queueStateEventHandler, QueueHandler queueHandler) : base(hub)
     {
@@ -25,7 +21,6 @@ public class QueueEmitter : BaseEmitter, IDisposable
         _queueStateEventHandler.ExecutingJobsChanged += OnExecutingJobsStateChangedEvent;
         _queueStateEventHandler.QueueStarted += OnQueueStarted;
         _queueStateEventHandler.QueuePaused += OnQueuePaused;
-        ServerState.Instance.PropertyChanged += ServerStatePropertyChanged;
     }
 
     private QueueStateSignalRModel GetQueueState()
@@ -73,21 +68,6 @@ public class QueueEmitter : BaseEmitter, IDisposable
         _queueStateEventHandler.ExecutingJobsChanged -= OnExecutingJobsStateChangedEvent;
         _queueStateEventHandler.QueueStarted -= OnQueueStarted;
         _queueStateEventHandler.QueuePaused -= OnQueuePaused;
-        ServerState.Instance.PropertyChanged -= ServerStatePropertyChanged;
-    }
-
-    private async void ServerStatePropertyChanged(object sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == null) return;
-        // Currently, only the DatabaseBlocked property, but we could use this for more.
-        if (e.PropertyName != "DatabaseBlocked" && !e.PropertyName.StartsWith("Server")) return;
-
-        var value = e.GetPropertyValue(sender);
-        if (_lastServerState.ContainsKey(e.PropertyName) && _lastServerState.TryGetValue(e.PropertyName, out var previousState) &&
-            Equals(previousState, value)) return;
-
-        _lastServerState[e.PropertyName] = value;
-        await SendAsync("ServerStateChanged", e.PropertyName, value);
     }
 
     private async void OnExecutingJobsStateChangedEvent(object sender, QueueChangedEventArgs e)
