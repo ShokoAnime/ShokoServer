@@ -997,6 +997,34 @@ public class SeriesController : BaseController
 
     #region TMDB
 
+    /// <summary>
+    /// Automagically search for one or more matches for the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="force">Forcefully update the metadata of the matched entities.</param>
+    /// <returns>Void.</returns>
+    [HttpPost("{seriesID}/TMDB/Action/AutoSearch")]
+    public ActionResult AutoMatchTMDBMoviesBySeriesID(
+        [FromRoute] int seriesID,
+        [FromQuery] bool force = false
+    )
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        _commandFactory.CreateAndSave<CommandRequest_TMDB_Search>(c =>
+        {
+            c.AnimeID = series.AniDB_ID;
+            c.ForceRefresh = force;
+        });
+
+        return NoContent();
+    }
+
     #region Movie
 
     /// <summary>

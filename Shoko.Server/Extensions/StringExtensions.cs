@@ -8,30 +8,30 @@ namespace Shoko.Server.Extensions;
 
 public static class StringExtensions
 {
-    public static void Deconstruct(this IList<string> list, out string first, out IList<string> rest) {
+    public static void Deconstruct(this IList<string> list, out string first)
+    {
         first = list.Count > 0 ? list[0] : "";
-        rest = list.Skip(1).ToList();
     }
 
-    public static void Deconstruct(this IList<string> list, out string first, out string second, out IList<string> rest) {
+    public static void Deconstruct(this IList<string> list, out string first, out string second)
+    {
         first = list.Count > 0 ? list[0] : "";
         second = list.Count > 1 ? list[1] : "";
-        rest = list.Skip(2).ToList();
     }
 
-    public static void Deconstruct(this IList<string> list, out string first, out string second, out string third, out IList<string> rest) {
+    public static void Deconstruct(this IList<string> list, out string first, out string second, out string third)
+    {
         first = list.Count > 0 ? list[0] : "";
         second = list.Count > 1 ? list[1] : "";
         third = list.Count > 2 ? list[2] : "";
-        rest = list.Skip(3).ToList();
     }
 
-    public static void Deconstruct(this IList<string> list, out string first, out string second, out string third, out string forth, out IList<string> rest) {
+    public static void Deconstruct(this IList<string> list, out string first, out string second, out string third, out string forth)
+    {
         first = list.Count > 0 ? list[0] : "";
         second = list.Count > 1 ? list[1] : "";
         third = list.Count > 2 ? list[2] : "";
         forth = list.Count > 3 ? list[3] : "";
-        rest = list.Skip(4).ToList();
     }
 
     public static bool Contains(this string item, string other, StringComparison comparer)

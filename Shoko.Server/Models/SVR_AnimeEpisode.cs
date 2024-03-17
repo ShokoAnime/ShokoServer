@@ -52,7 +52,7 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
     #region TMDB
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> GetTmdbMovieCrossReferences() =>
-        RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(AniDB_EpisodeID);
+        RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbEpisodeID(AniDB_EpisodeID);
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetTmdbEpisodeCrossReferences() =>
         RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(AniDB_EpisodeID);

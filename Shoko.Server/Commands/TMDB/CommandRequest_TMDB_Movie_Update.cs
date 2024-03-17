@@ -86,7 +86,8 @@ public class CommandRequest_TMDB_Movie_Update : CommandRequestImplementation
         TmdbMovieID = int.Parse(docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Movie_Update), nameof(TmdbMovieID)));
         ForceRefresh = bool.Parse(docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Movie_Update), nameof(ForceRefresh)));
         DownloadImages = bool.Parse(docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Movie_Update), nameof(DownloadImages)));
-        DownloadCollections = bool.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Movie_Update), nameof(DownloadCollections)), out var value) ? value : null;
+        DownloadCrewAndCast = bool.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Movie_Update), nameof(DownloadCrewAndCast)), out var value) ? value : null;
+        DownloadCollections = bool.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Movie_Update), nameof(DownloadCollections)), out value) ? value : null;
         MovieTitle = docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Movie_Update), nameof(MovieTitle));
 
         return true;

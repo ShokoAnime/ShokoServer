@@ -131,7 +131,7 @@ public class TMDBOfflineSearch
         if (File.Exists(CachedMovieFilePath))
             File.Delete(CachedMovieFilePath);
 
-        File.WriteAllText(text, CachedMovieFilePath);
+        File.WriteAllText(CachedMovieFilePath, text);
 
         _movies = movies.ToDictionary(movie => movie.ID);
     }
@@ -261,7 +261,7 @@ public class TMDBOfflineSearch
         if (File.Exists(CachedShowFilePath))
             File.Delete(CachedShowFilePath);
 
-        File.WriteAllText(text, CachedShowFilePath);
+        File.WriteAllText(CachedShowFilePath, text);
 
         _shows = shows.ToDictionary(show => show.ID);
     }
@@ -289,7 +289,7 @@ public class TMDBOfflineSearch
         {
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Clear();
-            client.DefaultRequestHeaders.UserAgent.Add(new("Shoko Server", Utils.GetApplicationVersion()));
+            client.DefaultRequestHeaders.UserAgent.Add(new("ShokoServer", Utils.GetApplicationVersion()));
             var stream = client.GetStreamAsync(url).Result;
             if (stream == null)
                 return null;

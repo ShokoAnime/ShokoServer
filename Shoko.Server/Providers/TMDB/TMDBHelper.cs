@@ -100,9 +100,9 @@ public class TMDBHelper
 
     #region Search
 
-    public (List<SearchMovie> Page, int TotalCount) SearchMovies(string query, bool includeRestricted = false, int page = 1)
+    public (List<SearchMovie> Page, int TotalCount) SearchMovies(string query, bool includeRestricted = false, int year = 0, int page = 1)
     {
-        var results = _client.SearchMovieAsync(query, page, includeRestricted)
+        var results = _client.SearchMovieAsync(query, page, includeRestricted, year)
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
@@ -223,7 +223,7 @@ public class TMDBHelper
             return false;
 
         // Abort if we couldn't find the movie by id.
-        var methods = MovieMethods.Translations;
+        var methods = MovieMethods.Translations | MovieMethods.ReleaseDates;
         if (downloadCrewAndCast)
             methods |= MovieMethods.Credits;
         var movie = await _client.GetMovieAsync(movieId, "en-US", null, methods);
@@ -250,6 +250,8 @@ public class TMDBHelper
             await DownloadMovieImages(movieId);
         else if (downloadCollections)
             await UpdateMovieCollections(movie);
+
+        // TODO: Fire updated event here in the future.
 
         return updated;
     }
@@ -288,6 +290,8 @@ public class TMDBHelper
                 }
                 if (downloadImages)
                     await DownloadPersonImages(tmdbPerson.Id);
+
+                knownPeopleDict.Add(cast.Id, tmdbPerson);
             }
 
             var roleUpdated = false;
@@ -347,6 +351,8 @@ public class TMDBHelper
                 }
                 if (downloadImages)
                     await DownloadPersonImages(tmdbPerson.Id);
+
+                knownPeopleDict.Add(crew.Id, tmdbPerson);
             }
 
             var roleUpdated = false;
@@ -532,6 +538,15 @@ public class TMDBHelper
             _commandFactory.CreateAndSave<CommandRequest_TMDB_Movie_Purge>(c => c.TmdbMovieID = movieID);
     }
 
+    public void SchedulePurgeOfMovie(int movieId, bool removeImageFiles = true)
+    {
+        _commandFactory.CreateAndSave<CommandRequest_TMDB_Movie_Purge>(c =>
+        {
+            c.TmdbMovieID = movieId;
+            c.RemoveImageFiles = removeImageFiles;
+        });
+    }
+
     /// <summary>
     /// Purge a TMDB movie from the local database.
     /// </summary>
@@ -644,9 +659,9 @@ public class TMDBHelper
 
     #region Search
 
-    public (List<SearchTv> Page, int TotalCount) SearchShows(string query, bool includeRestricted = false, int page = 1)
+    public (List<SearchTv> Page, int TotalCount) SearchShows(string query, bool includeRestricted = false, int year = 0, int page = 1)
     {
-        var results = _client.SearchTvShowAsync(query, page, includeRestricted)
+        var results = _client.SearchTvShowAsync(query, page, includeRestricted, year)
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
@@ -889,6 +904,8 @@ public class TMDBHelper
 
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(showId))
             MatchAnidbToTmdbEpisodes(xref.AnidbAnimeID, xref.TmdbShowID, null, true, true);
+
+        // TODO: Fire updated event here in the future.
 
         return updated;
     }
@@ -1549,6 +1566,15 @@ public class TMDBHelper
         _logger.LogInformation("Scheduling {Count} out of {AllCount} shows to be purged.", toBePurged.Count, allShows.Count);
         foreach (var showID in toBePurged)
             _commandFactory.CreateAndSave<CommandRequest_TMDB_Show_Purge>(c => c.TmdbShowID = showID);
+    }
+
+    public void SchedulePurgeOfShow(int showId, bool removeImageFiles = true)
+    {
+        _commandFactory.CreateAndSave<CommandRequest_TMDB_Show_Purge>(c =>
+        {
+            c.TmdbShowID = showId;
+            c.RemoveImageFiles = removeImageFiles;
+        });
     }
 
     public bool PurgeShow(int showId, bool removeImageFiles = true)

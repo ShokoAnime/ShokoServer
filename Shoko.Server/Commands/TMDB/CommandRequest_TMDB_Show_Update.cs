@@ -87,7 +87,8 @@ public class CommandRequest_TMDB_Show_Update : CommandRequestImplementation
         TmdbShowID = int.Parse(docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Show_Update), nameof(TmdbShowID)));
         ForceRefresh = bool.Parse(docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Show_Update), nameof(ForceRefresh)));
         DownloadImages = bool.Parse(docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Show_Update), nameof(DownloadImages)));
-        DownloadAlternateOrdering = bool.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Show_Update), nameof(DownloadAlternateOrdering)), out var value) ? value : null;
+        DownloadCrewAndCast = bool.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Show_Update), nameof(DownloadCrewAndCast)), out var value) ? value : null;
+        DownloadAlternateOrdering = bool.TryParse(docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Show_Update), nameof(DownloadAlternateOrdering)), out value) ? value : null;
         ShowTitle = docCreator.TryGetProperty(nameof(CommandRequest_TMDB_Show_Update), nameof(ShowTitle));
 
         return true;

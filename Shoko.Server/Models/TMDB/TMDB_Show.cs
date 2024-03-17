@@ -173,11 +173,21 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata
             UpdateProperty(EnglishTitle, translation?.Data.Name ?? show.Name, v => EnglishTitle = v),
             UpdateProperty(EnglishOverview, translation?.Data.Overview ?? show.Name, v => EnglishOverview = v),
             UpdateProperty(IsRestricted, show.Adult, v => IsRestricted = v),
-            UpdateProperty(Genres, show.Genres.SelectMany(genre => genre.Name.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)).ToList(), v => Genres = v),
-            UpdateProperty(ContentRatings, show.ContentRatings.Results.Select(rating => new TMDB_ContentRating(rating.Iso_3166_1, rating.Rating)).ToList(), v => ContentRatings = v),
+            UpdateProperty(
+                Genres,
+                show.Genres.SelectMany(genre => genre.Name.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)).OrderBy(s => s).ToList(),
+                v => Genres = v,
+                (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))
+            ),
+            UpdateProperty(
+                ContentRatings,
+                show.ContentRatings.Results.Select(rating => new TMDB_ContentRating(rating.Iso_3166_1, rating.Rating)).OrderBy(c => c.CountryCode).ToList(),
+                v => ContentRatings = v,
+                (a, b) => string.Equals(string.Join(",", a.Select(a1 => a1.ToString())), string.Join(",", b.Select(b1 => b1.ToString())))
+            ),
             UpdateProperty(EpisodeCount, show.NumberOfEpisodes, v => EpisodeCount = v),
             UpdateProperty(SeasonCount, show.NumberOfSeasons, v => SeasonCount = v),
-            UpdateProperty(AlternateOrderingCount, show.EpisodeGroups.Results.Count, v => AlternateOrderingCount = v),
+            UpdateProperty(AlternateOrderingCount, show.EpisodeGroups?.Results.Count ?? AlternateOrderingCount, v => AlternateOrderingCount = v),
             UpdateProperty(UserRating, show.VoteAverage, v => UserRating = v),
             UpdateProperty(UserVotes, show.VoteCount, v => UserVotes = v),
             UpdateProperty(FirstAiredAt, show.FirstAirDate.HasValue ? DateOnly.FromDateTime(show.FirstAirDate.Value) : null, v => FirstAiredAt = v),

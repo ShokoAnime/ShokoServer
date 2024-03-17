@@ -21,6 +21,7 @@ public class TMDB_MovieMap : ClassMap<TMDB_Movie>
         Map(x => x.OriginalLanguageCode).Not.Nullable();
         Map(x => x.IsRestricted).Not.Nullable();
         Map(x => x.IsVideo).Not.Nullable();
+        // TODO: Fix how these two fields are stored in the database.
         Map(x => x.Genres).Not.Nullable();
         Map(x => x.ContentRatings).Not.Nullable();
         Map(x => x.RuntimeMintues).Column("Runtime");

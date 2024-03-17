@@ -175,7 +175,7 @@ public static class Constants
 
         public static readonly string TMDB_Images = @"https://image.tmdb.org/t/p/original{0}";
 
-        public const string TMDB_Export = @"https://https://files.tmdb.org/p/exports/{0}_ids_{1}_{2}_{3}.json.gz";
+        public const string TMDB_Export = @"https://files.tmdb.org/p/exports/{0}_ids_{1}_{2}_{3}.json.gz";
     }
 
     public struct GroupLabelStyle

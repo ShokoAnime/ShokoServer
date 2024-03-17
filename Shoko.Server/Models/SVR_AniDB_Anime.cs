@@ -571,9 +571,9 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         RepoFactory.AnimeSeries.Save(series, false, false, true);
 
         // check for TvDB associations
+        var settings = Utils.SettingsProvider.GetSettings();
         if (Restricted == 0)
         {
-            var settings = Utils.SettingsProvider.GetSettings();
             if (settings.TvDB.AutoLink && !series.IsTvDBAutoMatchingDisabled)
             {
                 commandFactory.CreateAndSave<CommandRequest_TvDBSearchAnime>(c => c.AnimeID = AnimeID);
@@ -587,11 +587,12 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
             {
                 commandFactory.CreateAndSave<CommandRequest_TraktSearchAnime>(c => c.AnimeID = AnimeID);
             }
+        }
 
-            if (settings.TMDB.AutoLink && !series.IsTMDBAutoMatchingDisabled)
-            {
-                commandFactory.CreateAndSave<CommandRequest_TMDB_Search>(c => c.AnimeID = AnimeID);
-            }
+        // Check for TMDB associations
+        if (settings.TMDB.AutoLink && !series.IsTMDBAutoMatchingDisabled)
+        {
+            commandFactory.CreateAndSave<CommandRequest_TMDB_Search>(c => c.AnimeID = AnimeID);
         }
 
         return series;

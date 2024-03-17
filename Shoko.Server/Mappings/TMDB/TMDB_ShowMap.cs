@@ -19,6 +19,7 @@ public class TMDB_ShowMap : ClassMap<TMDB_Show>
         Map(x => x.OriginalTitle).Not.Nullable();
         Map(x => x.OriginalLanguageCode).Not.Nullable();
         Map(x => x.IsRestricted).Not.Nullable();
+        // TODO: Fix how these two fields are stored in the database.
         Map(x => x.Genres).Not.Nullable();
         Map(x => x.ContentRatings).Not.Nullable();
         Map(x => x.EpisodeCount).Not.Nullable();

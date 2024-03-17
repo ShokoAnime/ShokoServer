@@ -35,13 +35,10 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class TmdbController : BaseController
 {
-    private readonly ICommandRequestFactory CommandFactory;
-
     private readonly TMDBHelper TmdbHelper;
 
-    public TmdbController(ICommandRequestFactory commandFactory, ISettingsProvider settingsProvider, TMDBHelper tmdbHelper) : base(settingsProvider)
+    public TmdbController(ISettingsProvider settingsProvider, TMDBHelper tmdbHelper) : base(settingsProvider)
     {
-        CommandFactory = commandFactory;
         TmdbHelper = tmdbHelper;
     }
 
@@ -61,8 +58,8 @@ public class TmdbController : BaseController
     /// <param name="search"></param>
     /// <param name="fuzzy"></param>
     /// <param name="include"></param>
-    /// <param name="isRestricted"></param>
-    /// <param name="isVideo"></param>
+    /// <param name="restricted"></param>
+    /// <param name="video"></param>
     /// <param name="pageSize"></param>
     /// <param name="page"></param>
     /// <returns></returns>
@@ -71,8 +68,8 @@ public class TmdbController : BaseController
         [FromRoute] string? search = null,
         [FromQuery] bool fuzzy = true,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails>? include = null,
-        [FromQuery] bool? isRestricted = null,
-        [FromQuery] bool? isVideo = null,
+        [FromQuery] IncludeOnlyFilter restricted = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter video = IncludeOnlyFilter.True,
         [FromQuery, Range(0, 1000)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -82,11 +79,21 @@ public class TmdbController : BaseController
             .AsParallel()
             .Where(movie =>
             {
-                if (isRestricted.HasValue && isRestricted.Value != movie.IsRestricted)
-                    return false;
+                if (restricted != IncludeOnlyFilter.True)
+                {
+                    var includeRestricted = restricted == IncludeOnlyFilter.Only;
+                    var isRestricted = movie.IsRestricted;
+                    if (isRestricted != includeRestricted)
+                        return false;
+                }
 
-                if (isVideo.HasValue && isVideo.Value != movie.IsVideo)
-                    return false;
+                if (video != IncludeOnlyFilter.True)
+                {
+                    var includeVideo = video == IncludeOnlyFilter.Only;
+                    var isVideo = movie.IsVideo;
+                    if (isVideo != includeVideo)
+                        return false;
+                }
 
                 return true;
             });
@@ -123,36 +130,36 @@ public class TmdbController : BaseController
     /// </summary>
     /// <param name="movieID">TMDB Movie ID.</param>
     /// <param name="include"></param>
+    /// <param name="language"></param>
     /// <returns></returns>
     [HttpGet("Movie/{movieID}")]
     public ActionResult<TmdbMovie> GetTmdbMovieByMovieID(
         [FromRoute] int movieID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails>? include = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
         var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
         if (movie == null)
             return NotFound(MovieNotFound);
 
-        return new TmdbMovie(movie, include?.CombineFlags());
+        return new TmdbMovie(movie, include?.CombineFlags(), language);
     }
 
     /// <summary>
     /// Remove the local copy of the metadata for a TMDB movie.
     /// </summary>
     /// <param name="movieID">TMDB Movie ID.</param>
+    /// <param name="removeImageFiles">Also remove images related to the show.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("Movie/{movieID}")]
     public ActionResult RemoveTmdbMovieByMovieID(
-        [FromRoute] int movieID
+        [FromRoute] int movieID,
+        [FromQuery] bool removeImageFiles = true
     )
     {
-        var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
-        if (movie == null)
-            return NotFound(MovieNotFound);
-
-        CommandFactory.CreateAndSave<CommandRequest_TMDB_Movie_Purge>(c => c.TmdbMovieID = movieID);
+        TmdbHelper.SchedulePurgeOfMovie(movieID, removeImageFiles);
 
         return NoContent();
     }
@@ -257,16 +264,15 @@ public class TmdbController : BaseController
 
     [HttpGet("Movie/{movieID}/ContentRatings")]
     public ActionResult<IReadOnlyList<ContentRating>> GetContentRatingsForTmdbMovieByMovieID(
-        [FromRoute] int movieID
+        [FromRoute] int movieID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
         var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
         if (movie == null)
             return NotFound(MovieNotFound);
 
-        return movie.ContentRatings
-            .Select(rating => new ContentRating(rating))
-            .ToList();
+        return new(movie.ContentRatings.ToDto(language));
     }
 
     #endregion
@@ -409,14 +415,7 @@ public class TmdbController : BaseController
         [FromQuery] bool? downloadCollections = null
     )
     {
-        CommandFactory.CreateAndSave<CommandRequest_TMDB_Movie_Update>(c =>
-        {
-            c.TmdbMovieID = movieID;
-            c.ForceRefresh = force;
-            c.DownloadImages = downloadImages;
-            c.DownloadCrewAndCast = downloadCrewAndCast;
-            c.DownloadCollections = downloadCollections;
-        });
+        TmdbHelper.ScheduleUpdateOfMovie(movieID, force, downloadImages, downloadCrewAndCast, downloadCollections);
 
         return Ok();
     }
@@ -430,6 +429,7 @@ public class TmdbController : BaseController
     /// </summary>
     /// <param name="query">Query to search for.</param>
     /// <param name="includeRestricted">Include restriced movies.</param>
+    /// <param name="year">First aired year.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [Authorize("admin")]
@@ -437,10 +437,11 @@ public class TmdbController : BaseController
     public ListResult<SearchMovie> SearchOnlineForTmdbMovies(
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
+        [FromQuery, Range(0, int.MaxValue)] int year = 0,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var (pageView, totalMovies) = TmdbHelper.SearchMovies(query, includeRestricted, page);
+        var (pageView, totalMovies) = TmdbHelper.SearchMovies(query, includeRestricted, year, page);
 
         return new ListResult<SearchMovie>(totalMovies, pageView);
     }
@@ -471,9 +472,9 @@ public class TmdbController : BaseController
             {
                 if (restricted != IncludeOnlyFilter.True)
                 {
-                    var includeRestricred = restricted == IncludeOnlyFilter.Only;
+                    var includeRestricted = restricted == IncludeOnlyFilter.Only;
                     var isRestricted = movie.IsRestricted;
-                    if (isRestricted != includeRestricred)
+                    if (isRestricted != includeRestricted)
                         return false;
                 }
 
@@ -638,7 +639,7 @@ public class TmdbController : BaseController
     /// <param name="fuzzy"></param>
     /// <param name="include"></param>
     /// <param name="language"></param>
-    /// <param name="isRestricted"></param>
+    /// <param name="restricted"></param>
     /// <param name="pageSize"></param>
     /// <param name="page"></param>
     /// <returns></returns>
@@ -648,7 +649,7 @@ public class TmdbController : BaseController
         [FromQuery] bool fuzzy = true,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbShow.IncludeDetails>? include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
-        [FromQuery] bool? isRestricted = null,
+        [FromQuery] IncludeOnlyFilter restricted = IncludeOnlyFilter.True,
         [FromQuery, Range(0, 1000)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -658,8 +659,13 @@ public class TmdbController : BaseController
             .AsParallel()
             .Where(show =>
             {
-                if (isRestricted.HasValue && isRestricted.Value != show.IsRestricted)
-                    return false;
+                if (restricted != IncludeOnlyFilter.True)
+                {
+                    var includeRestricted = restricted == IncludeOnlyFilter.Only;
+                    var isRestricted = show.IsRestricted;
+                    if (isRestricted != includeRestricted)
+                        return false;
+                }
 
                 return true;
             });
@@ -723,18 +729,16 @@ public class TmdbController : BaseController
     /// Remove the local copy of the metadata for a TMDB show.
     /// </summary>
     /// <param name="showID">TMDB Movie ID.</param>
+    /// <param name="removeImageFiles">Also remove images related to the show.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("Show/{showID}")]
     public ActionResult RemoveTmdbShowByShowID(
-        [FromRoute] int showID
+        [FromRoute] int showID,
+        [FromQuery] bool removeImageFiles = true
     )
     {
-        var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
-        if (show == null)
-            return NotFound(ShowNotFound);
-
-        CommandFactory.CreateAndSave<CommandRequest_TMDB_Show_Purge>(c => c.TmdbShowID = showID);
+        TmdbHelper.SchedulePurgeOfShow(showID, removeImageFiles);
 
         return NoContent();
     }
@@ -905,16 +909,15 @@ public class TmdbController : BaseController
 
     [HttpGet("Show/{showID}/ContentRatings")]
     public ActionResult<IReadOnlyList<ContentRating>> GetContentRatingsForTmdbShowByShowID(
-        [FromRoute] int showID
+        [FromRoute] int showID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
         var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
         if (show == null)
             return NotFound(ShowNotFound);
 
-        return show.ContentRatings
-            .Select(rating => new ContentRating(rating))
-            .ToList();
+        return new(show.ContentRatings.ToDto(language));
     }
 
     #endregion
@@ -1050,14 +1053,7 @@ public class TmdbController : BaseController
         [FromQuery] bool? downloadAlternateOrdering = null
     )
     {
-        CommandFactory.CreateAndSave<CommandRequest_TMDB_Show_Update>(c =>
-        {
-            c.TmdbShowID = showID;
-            c.ForceRefresh = force;
-            c.DownloadImages = downloadImages;
-            c.DownloadCrewAndCast = downloadCrewAndCast;
-            c.DownloadAlternateOrdering = downloadAlternateOrdering;
-        });
+        TmdbHelper.ScheduleUpdateOfShow(showID, force, downloadImages, downloadCrewAndCast, downloadAlternateOrdering);
 
         return Ok();
     }
@@ -1071,6 +1067,7 @@ public class TmdbController : BaseController
     /// </summary>
     /// <param name="query">Query to search for.</param>
     /// <param name="includeRestricted">Include restriced shows.</param>
+    /// <param name="year">First aired year.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [Authorize("admin")]
@@ -1078,10 +1075,11 @@ public class TmdbController : BaseController
     public ListResult<SearchTv> SearchOnlineForTmdbShows(
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
+        [FromQuery, Range(0, int.MaxValue)] int year = 0,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var (pageView, totalShows) = TmdbHelper.SearchShows(query, includeRestricted, page);
+        var (pageView, totalShows) = TmdbHelper.SearchShows(query, includeRestricted, year, page);
 
         return new ListResult<SearchTv>(totalShows, pageView);
     }
@@ -1112,9 +1110,9 @@ public class TmdbController : BaseController
             {
                 if (restricted != IncludeOnlyFilter.True)
                 {
-                    var includeRestricred = restricted == IncludeOnlyFilter.Only;
+                    var includeRestricted = restricted == IncludeOnlyFilter.Only;
                     var isRestricted = show.IsRestricted;
-                    if (isRestricted != includeRestricred)
+                    if (isRestricted != includeRestricted)
                         return false;
                 }
 

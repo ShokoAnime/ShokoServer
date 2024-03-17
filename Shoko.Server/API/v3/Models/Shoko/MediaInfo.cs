@@ -111,7 +111,7 @@ public class MediaInfo
             {
                 if (string.IsNullOrEmpty(key))
                     continue;
-                var (hours, minutes, seconds, milliseconds, _rest) = key.Substring(1).Split('_');
+                var (hours, minutes, seconds, milliseconds) = key.Substring(1).Split('_');
                 if (!TimeSpan.TryParse($"{hours}:{minutes}:{seconds}.{milliseconds}", out var timestamp))
                     continue;
                 var title = string.IsNullOrEmpty(value) ? "" : value[0] == ':' ? value.Substring(1).Trim() : value.Trim();

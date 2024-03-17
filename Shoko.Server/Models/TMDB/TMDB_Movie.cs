@@ -188,8 +188,22 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata
             UpdateProperty(OriginalLanguageCode, movie.OriginalLanguage, v => OriginalLanguageCode = v),
             UpdateProperty(IsRestricted, movie.Adult, v => IsRestricted = v),
             UpdateProperty(IsVideo, movie.Video, v => IsVideo = v),
-            UpdateProperty(Genres, movie.Genres.SelectMany(genre => genre.Name.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)).ToList(), v => Genres = v),
-            UpdateProperty(ContentRatings, movie.ReleaseDates.Results.Select(releaseDate => new TMDB_ContentRating(releaseDate.Iso_3166_1, releaseDate.ReleaseDates.First().Certification)).ToList(), v => ContentRatings = v),
+            UpdateProperty(
+                Genres,
+                movie.Genres.SelectMany(genre => genre.Name.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)).OrderBy(s => s).ToList(),
+                v => Genres = v,
+                (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))
+            ),
+            UpdateProperty(
+                ContentRatings,
+                movie.ReleaseDates.Results
+                    .Where(releaseDate => releaseDate.ReleaseDates.Any(r => !string.IsNullOrEmpty(r.Certification)))
+                    .Select(releaseDate => new TMDB_ContentRating(releaseDate.Iso_3166_1, releaseDate.ReleaseDates.Last(r => !string.IsNullOrEmpty(r.Certification)).Certification))
+                    .OrderBy(c => c.CountryCode)
+                    .ToList(),
+                v => ContentRatings = v,
+                (a, b) => string.Equals(string.Join(",", a.Select(a1 => a1.ToString())), string.Join(",", b.Select(b1 => b1.ToString())))
+            ),
             UpdateProperty(Runtime, movie.Runtime.HasValue ? TimeSpan.FromMinutes(movie.Runtime.Value) : null, v => Runtime = v),
             UpdateProperty(UserRating, movie.VoteAverage, v => UserRating = v),
             UpdateProperty(UserVotes, movie.VoteCount, v => UserVotes = v),

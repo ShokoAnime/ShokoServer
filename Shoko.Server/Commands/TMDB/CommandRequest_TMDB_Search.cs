@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Xml;
 using Microsoft.Extensions.Logging;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -22,8 +23,11 @@ namespace Shoko.Server.Commands;
 public class CommandRequest_TMDB_Search : CommandRequestImplementation
 {
     private readonly TMDBHelper _helper;
+
     private readonly ISettingsProvider _settingsProvider;
+
     public virtual int AnimeID { get; set; }
+
     public virtual bool ForceRefresh { get; set; }
 
     public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
@@ -38,10 +42,6 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
     protected override void Process()
     {
         Logger.LogInformation("Processing CommandRequest_TMDB_Search: {AnimeID}", AnimeID);
-        var settings = _settingsProvider.GetSettings();
-        if (!settings.TMDB.AutoLink)
-            return;
-
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
         if (anime == null)
             return;
@@ -79,13 +79,16 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
         // collection (anime).
         var episodes = anime.GetAniDBEpisodes()
             .Where(episode => episode.EpisodeType == (int)Shoko.Models.Enums.EpisodeType.Episode || episode.EpisodeType == (int)Shoko.Models.Enums.EpisodeType.Special)
+            .OrderBy(episode => episode.EpisodeType)
+            .ThenBy(episode => episode.EpisodeNumber)
             .ToList();
 
         // We only have one movie in the movie collection, so don't search for
         // a sub-title.
         if (episodes.Count == 1)
         {
-            SearchForMovie(episodes[0], officialTitle.Title);
+            var airDate = anime.AirDate ?? episodes[0].GetAirDateAsDate() ?? null;
+            SearchForMovie(episodes[0], officialTitle.Title, airDate?.Year, anime.Restricted == 1);
             return;
         }
 
@@ -97,29 +100,61 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
             var isCompleteMovie = allEpisodeTitles.Any(title => title.Title.Contains("Complete Movie", StringComparison.InvariantCultureIgnoreCase));
             if (isCompleteMovie)
             {
-                SearchForMovie(episode, officialTitle.Title);
+                var airDateForAnime = anime.AirDate ?? episodes[0].GetAirDateAsDate() ?? null;
+                SearchForMovie(episode, officialTitle.Title, airDateForAnime?.Year, anime.Restricted == 1);
                 continue;
             }
 
+            var airDateForEpisode = episode.GetAirDateAsDate() ?? anime.AirDate ?? null;
             var subTitle = allEpisodeTitles.FirstOrDefault(title => title.Language == language) ??
                 allEpisodeTitles.FirstOrDefault(title => title.Language == mainTitle.Language);
-            var query = $"{officialTitle.Title} {subTitle?.Title ?? ""}".TrimEnd();
-            SearchForMovie(episode, query);
+            if (subTitle == null)
+                continue;
+            var query = $"{officialTitle.Title} {subTitle.Title}".TrimEnd();
+            SearchForMovie(episode, query, airDateForEpisode?.Year, anime.Restricted == 1);
         }
     }
 
-    private bool SearchForMovie(AniDB_Episode episode, string query)
+    private bool SearchForMovie(AniDB_Episode episode, string query, int? year, bool isRestricted)
     {
-        var results = _helper.OfflineSearch.SearchMovies(query).ToList();
-        if (results.Count == 0)
+        try
+        {
+            var (results, _) = _helper.SearchMovies(query, includeRestricted: isRestricted, year: year ?? 0);
+            foreach (var result in results)
+            {
+                Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {MovieName} ({ID})", results.Count, query, result.Title, result.Id);
+
+                _helper.AddMovieLink(AnimeID, result.Id, episode.EpisodeID, additiveLink: true, isAutomatic: true);
+                _helper.ScheduleUpdateOfMovie(result.Id, forceRefresh: ForceRefresh, downloadImages: true);
+
+                return true;
+            }
+
+            if (results.Count > 0)
+            {
+                Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {MovieName} ({ID})", results.Count, query, results[0].Title, results[0].Id);
+
+                _helper.AddMovieLink(AnimeID, results[0].Id, episode.EpisodeID, additiveLink: true, isAutomatic: true);
+                _helper.ScheduleUpdateOfMovie(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
+
+                return true;
+            }
+
             return false;
+        }
+        catch
+        {
+            var results = _helper.OfflineSearch.SearchMovies(query).ToList();
+            if (results.Count == 0)
+                return false;
 
-        Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {MovieName} ({ID})", results.Count, query, results[0].Title, results[0].ID);
+            Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {MovieName} ({ID})", results.Count, query, results[0].Title, results[0].ID);
 
-        _helper.AddMovieLink(AnimeID, results[0].ID, episode.EpisodeID, additiveLink: true, isAutomatic: true);
-        _helper.ScheduleUpdateOfMovie(results[0].ID, forceRefresh: ForceRefresh, downloadImages: true);
+            _helper.AddMovieLink(AnimeID, results[0].ID, episode.EpisodeID, additiveLink: true, isAutomatic: true);
+            _helper.ScheduleUpdateOfMovie(results[0].ID, forceRefresh: ForceRefresh, downloadImages: true);
 
-        return true;
+            return true;
+        }
     }
 
     #endregion

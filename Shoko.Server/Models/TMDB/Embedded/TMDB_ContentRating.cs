@@ -2,6 +2,7 @@ using System;
 using System.Text.Json.Serialization;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Server.Extensions;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
@@ -43,4 +44,16 @@ public class TMDB_ContentRating
         CountryCode = countryCode;
         Rating = rating;
     }
+
+    public override string ToString()
+    {
+        return $"{CountryCode}|{Rating}";
+    }
+
+    public static TMDB_ContentRating FromString(string str)
+    {
+        var (countryCode, rating) = str.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        return new(countryCode, rating);
+    }
+
 }
