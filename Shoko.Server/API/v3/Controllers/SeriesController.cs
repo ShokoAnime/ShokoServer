@@ -1096,7 +1096,8 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko Series ID.</param>
     /// <param name="force">Forcefully download an update even if we updated recently.</param>
     /// <param name="downloadImages">Also download images.</param>
-    /// <param name="downloadCollections">Also download collections. Will respect the global option if not set.</param>
+    /// <param name="downloadCrewAndCast">Also download crew and cast. Will respsect global option if not set.</param>
+    /// <param name="downloadCollections">Also download movie collections. Will respect the global option if not set.</param>
     /// <returns>Void.</returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/TMDB/Movie/Action/Refresh")]
@@ -1104,6 +1105,7 @@ public class SeriesController : BaseController
         [FromRoute] int seriesID,
         [FromQuery] bool force = false,
         [FromQuery] bool downloadImages = true,
+        [FromQuery] bool? downloadCrewAndCast = null,
         [FromQuery] bool? downloadCollections = null
     )
     {
@@ -1120,6 +1122,7 @@ public class SeriesController : BaseController
                 c.TmdbMovieID = xref.TmdbMovieID;
                 c.ForceRefresh = force;
                 c.DownloadImages = downloadImages;
+                c.DownloadCrewAndCast = downloadCrewAndCast;
                 c.DownloadCollections = downloadCollections;
             });
 
@@ -1250,7 +1253,8 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko Series ID.</param>
     /// <param name="force">Forcefully refresh the shows, even if they've been recently updated.</param>
     /// <param name="downloadImages">Also download images.</param>
-    /// <param name="downloadAlternateOrdering">Also download alternate orderings.</param>
+    /// /// <param name="downloadCrewAndCast">Also download crew and cast. Will respsect global options if not set.</param>
+    /// <param name="downloadAlternateOrdering">Also download alternate ordering information. Will respsect global options if not set.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/TMDB/Show/Action/Refresh")]
@@ -1258,6 +1262,7 @@ public class SeriesController : BaseController
         [FromRoute] int seriesID,
         [FromQuery] bool force = false,
         [FromQuery] bool downloadImages = true,
+        [FromQuery] bool? downloadCrewAndCast = null,
         [FromQuery] bool? downloadAlternateOrdering = null
     )
     {
@@ -1274,6 +1279,7 @@ public class SeriesController : BaseController
                 c.TmdbShowID = xref.TmdbShowID;
                 c.ForceRefresh = force;
                 c.DownloadImages = downloadImages;
+                c.DownloadCrewAndCast = downloadCrewAndCast;
                 c.DownloadAlternateOrdering = downloadAlternateOrdering;
             });
 

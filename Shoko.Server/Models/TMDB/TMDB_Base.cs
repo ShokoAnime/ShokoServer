@@ -21,12 +21,11 @@ public abstract class TMDB_Base<TId>
         return false;
     }
 
-    public bool UpdateProperty<T1, T2>(T1 target, T2 value, Action<T1> setter, Func<T2, T1> converter)
+    public bool UpdateProperty<T>(T target, T value, Action<T> setter, Func<T, T, bool> areEquals)
     {
-        var convertedValue = converter(value);
-        if (!EqualityComparer<T1>.Default.Equals(target, convertedValue))
+        if (!areEquals(target, value))
         {
-            setter(convertedValue);
+            setter(value);
             return true;
         }
         return false;

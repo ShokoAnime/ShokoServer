@@ -189,6 +189,48 @@ public class CommandRequest_ValidateAllImages : CommandRequestImplementation
             }
         }
 
+        if (_settings.TMDB.AutoDownloadStaffImages)
+        {
+            UpdateProgress("TMDB People");
+            count = 0;
+            Logger.LogInformation(ScanForType, "TMDB person");
+            var imageList = RepoFactory.TMDB_Image.GetByType(ImageEntityType.Person)
+                .Where(image => !Misc.IsImageValid(image.LocalPath))
+                .ToList();
+
+            Logger.LogInformation(FoundCorruptedOfType, imageList.Count, imageList.Count == 1 ? "TMDB person" : "TMDB people");
+            foreach (var image in imageList)
+            {
+                RemoveImageAndQueueRedownload(DataSourceType.TMDB, ImageEntityType.Person, image.TMDB_ImageID);
+                if (++count % 10 == 0)
+                {
+                    Logger.LogInformation(ReQueueingForDownload, count, imageList.Count);
+                    UpdateProgress($"TMDB People - {count}/{imageList.Count}");
+                }
+            }
+        }
+
+        if (_settings.TMDB.AutoDownloadThumbnails)
+        {
+            UpdateProgress("TMDB Thumbnails");
+            count = 0;
+            Logger.LogInformation(ScanForType, "TMDB thumbnail");
+            var imageList = RepoFactory.TMDB_Image.GetByType(ImageEntityType.Thumbnail)
+                .Where(image => !Misc.IsImageValid(image.LocalPath))
+                .ToList();
+
+            Logger.LogInformation(FoundCorruptedOfType, imageList.Count, imageList.Count == 1 ? "TMDB thumbnail" : "TMDB thumbnails");
+            foreach (var image in imageList)
+            {
+                RemoveImageAndQueueRedownload(DataSourceType.TMDB, ImageEntityType.Thumbnail, image.TMDB_ImageID);
+                if (++count % 10 == 0)
+                {
+                    Logger.LogInformation(ReQueueingForDownload, count, imageList.Count);
+                    UpdateProgress($"TMDB Thumbnails - {count}/{imageList.Count}");
+                }
+            }
+        }
+
         count = 0;
         UpdateProgress(Resources.Command_ValidateAllImages_AniDBPosters);
         Logger.LogInformation(ScanForType, "AniDB posters");

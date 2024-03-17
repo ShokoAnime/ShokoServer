@@ -128,7 +128,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
         {
             UpdateProperty(EnglishName, person.Name, v => EnglishName = v),
             UpdateProperty(EnglishBiography, translation?.Data.Overview ?? person.Biography, v => EnglishBiography = v),
-            UpdateProperty(Aliases, person.AlsoKnownAs, v => Aliases = v),
+            UpdateProperty(Aliases, person.AlsoKnownAs, v => Aliases = v, (a, b) => string.Equals(string.Join("|", a),string.Join("|", b))),
             UpdateProperty(IsRestricted, person.Adult, v => IsRestricted = v),
             UpdateProperty(BirthDay, person.Birthday.HasValue ? DateOnly.FromDateTime(person.Birthday.Value) : null, v => BirthDay = v),
             UpdateProperty(DeathDay, person.Deathday.HasValue ? DateOnly.FromDateTime(person.Deathday.Value) : null, v => DeathDay = v),

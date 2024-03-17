@@ -396,7 +396,8 @@ public class TmdbController : BaseController
     /// <param name="movieID">TMDB Movie ID.</param>
     /// <param name="force">Forcefully download an update even if we updated recently.</param>
     /// <param name="downloadImages">Also download images.</param>
-    /// <param name="downloadCollections"></param>
+    /// <param name="downloadCrewAndCast">Also download crew and cast. Will respsect global option if not set.</param>
+    /// <param name="downloadCollections">Also download movie collection. Will respect global option if not set.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("Movie/{movieID}/Action/Refresh")]
@@ -404,6 +405,7 @@ public class TmdbController : BaseController
         [FromRoute] int movieID,
         [FromQuery] bool force = false,
         [FromQuery] bool downloadImages = true,
+        [FromQuery] bool? downloadCrewAndCast = null,
         [FromQuery] bool? downloadCollections = null
     )
     {
@@ -412,6 +414,7 @@ public class TmdbController : BaseController
             c.TmdbMovieID = movieID;
             c.ForceRefresh = force;
             c.DownloadImages = downloadImages;
+            c.DownloadCrewAndCast = downloadCrewAndCast;
             c.DownloadCollections = downloadCollections;
         });
 
@@ -1034,7 +1037,8 @@ public class TmdbController : BaseController
     /// <param name="showID">TMDB Show ID.</param>
     /// <param name="force">Forcefully download an update even if we updated recently.</param>
     /// <param name="downloadImages">Also download images.</param>
-    /// <param name="downloadAlternateOrdering"></param>
+    /// <param name="downloadCrewAndCast">Also download crew and cast. Will respsect global option if not set.</param>
+    /// <param name="downloadAlternateOrdering">Also download alternate ordering information. Will respect global option if not set.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("Show/{showID}/Action/Refresh")]
@@ -1042,6 +1046,7 @@ public class TmdbController : BaseController
         [FromRoute] int showID,
         [FromQuery] bool force = false,
         [FromQuery] bool downloadImages = true,
+        [FromQuery] bool? downloadCrewAndCast = null,
         [FromQuery] bool? downloadAlternateOrdering = null
     )
     {
@@ -1050,6 +1055,7 @@ public class TmdbController : BaseController
             c.TmdbShowID = showID;
             c.ForceRefresh = force;
             c.DownloadImages = downloadImages;
+            c.DownloadCrewAndCast = downloadCrewAndCast;
             c.DownloadAlternateOrdering = downloadAlternateOrdering;
         });
 

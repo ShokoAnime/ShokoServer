@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+
+#nullable enable
 namespace Shoko.Server.Settings;
 
 public class TMDBSettings
@@ -6,6 +9,12 @@ public class TMDBSettings
     /// Automagically link AniDB Series to TMDB Shows and Movies.
     /// </summary>
     public bool AutoLink { get; set; } = false;
+
+    /// <summary>
+    /// Automagically download crew and cast for movies and tv shows in the
+    /// local collection.
+    /// </summary>
+    public bool AutoDownloadCrewAndCast { get; set; } = false;
 
     /// <summary>
     /// Automagically download collections for movies and tv shows in the local
@@ -29,6 +38,10 @@ public class TMDBSettings
     /// The maximum number of backdrops to download for each TMDB entity that
     /// supports backdrops.
     /// </summary>
+    /// <remarks>
+    /// Set to <code>0</code> to disable the limit.
+    /// </remarks>
+    [Range(0, 30)]
     public int MaxAutoBackdrops { get; set; } = 10;
 
     /// <summary>
@@ -41,6 +54,10 @@ public class TMDBSettings
     /// The maximum number of posters to download for each TMDB entity that
     /// supports posters.
     /// </summary>
+    /// <remarks>
+    /// Set to <code>0</code> to disable the limit.
+    /// </remarks>
+    [Range(0, 30)]
     public int MaxAutoPosters { get; set; } = 10;
 
     /// <summary>
@@ -53,6 +70,10 @@ public class TMDBSettings
     /// The maximum number of logos to download for each TMDB entity that
     /// supports logos.
     /// </summary>
+    /// <remarks>
+    /// Set to <code>0</code> to disable the limit.
+    /// </remarks>
+    [Range(0, 30)]
     public int MaxAutoLogos { get; set; } = 10;
 
     /// <summary>
@@ -60,6 +81,16 @@ public class TMDBSettings
     /// thumbnails.
     /// </summary>
     public bool AutoDownloadThumbnails { get; set; } = true;
+
+    /// <summary>
+    /// The maximum number of thumbnail images to download for each TMDB entity
+    /// that supports thumbnail images.
+    /// </summary>
+    /// <remarks>
+    /// Set to <code>0</code> to disable the limit.
+    /// </remarks>
+    [Range(0, 30)]
+    public int MaxAutoThumbnails { get; set; } = 10;
 
     /// <summary>
     /// Automagically download staff member and voice-actor images.
@@ -70,6 +101,10 @@ public class TMDBSettings
     /// The maximum number of staff member and voice-actor images to download
     /// for each TMDB entity that supports staff member and voice-actor images.
     /// </summary>
+    /// <remarks>
+    /// Set to <code>0</code> to disable the limit.
+    /// </remarks>
+    [Range(0, 30)]
     public int MaxAutoStaffImages { get; set; } = 10;
 
     /// <summary>

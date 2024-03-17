@@ -17,19 +17,21 @@ public class DateOnlyConverter : TypeConverter, IUserType
     public override bool CanConvertFrom(ITypeDescriptorContext? context, Type? sourceType)
         => sourceType?.FullName switch
         {
-            nameof(DateOnly) => true,
-            nameof(DateTime) => true,
-            nameof(String) => true,
-            nameof(Int32) => true,
+            "System.DateOnly" => true,
+            "System.DateTime" => true,
+            "System.String" => true,
+            "System.Int32" => true,
+            "System.Int64" => true,
             _ => false
         };
 
     public override bool CanConvertTo(ITypeDescriptorContext? context, Type? destinationType)
         => destinationType?.FullName switch
         {
-            nameof(DateTime) => true,
-            nameof(String) => true,
-            nameof(Int32) => true,
+            "System.DateTime" => true,
+            "System.String" => true,
+            "System.Int32" => true,
+            "System.Int64" => true,
             _ => false,
         };
 
@@ -38,31 +40,37 @@ public class DateOnlyConverter : TypeConverter, IUserType
         {
             DateOnly i => i,
             DateTime i => DateOnly.FromDateTime(i),
-            int i => DateOnly.FromDayNumber(i),
-            string i => DateOnly.Parse(i),
+            int i => DateOnly.FromDateTime(new(i)),
+            long i => DateOnly.FromDateTime(new(i)),
+            string i => DateOnly.FromDateTime(DateTime.Parse(i)),
             null => null,
-            _ => throw new ArgumentException("DestinationType must be DateOnly")
+            _ => throw new ArgumentException("DestinationType must be System.DateOnly.")
         };
 
-    public override object ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type? destinationType)
+    public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type? destinationType)
         => destinationType?.FullName switch
         {
-            nameof(Int32) => value switch
+            "System.Int32" => value switch
             {
-                DateOnly i => i.DayNumber,
-                _ => 0,
+                DateOnly i => (int)i.ToDateTime(TimeOnly.MinValue).Ticks,
+                _ => null,
             },
-            nameof(String) => value switch
+            "System.Int64" => value switch
+            {
+                DateOnly i => (long)i.ToDateTime(TimeOnly.MinValue).Ticks,
+                _ => null,
+            },
+            "System.String" => value switch
             {
                 DateOnly i => i.ToLongDateString(),
-                _ => DateOnly.MinValue.ToLongDateString(),
+                _ => null,
             },
-            nameof(DateTime) => value switch
+            "System.DateTime" => value switch
             {
                 DateOnly i => i.ToDateTime(TimeOnly.MinValue),
-                _ => DateTime.UnixEpoch,
+                _ => null,
             },
-            _ => throw new ArgumentException("DestinationType must be DateOnly")
+            _ => throw new ArgumentException("DestinationType must be System.Int32, System.Int64, System.String, or System.DateTime."),
         };
 
     public override object CreateInstance(ITypeDescriptorContext? context, IDictionary? propertyValues)
@@ -98,7 +106,7 @@ public class DateOnlyConverter : TypeConverter, IUserType
         => typeof(DateTime);
 
     public SqlType[] SqlTypes
-        => new[] { NHibernateUtil.DateTime.SqlType };
+        => new[] { NHibernateUtil.Date.SqlType };
 
     bool IUserType.Equals(object x, object y)
         => ReferenceEquals(x, y) || (x != null && y != null && x.Equals(y));

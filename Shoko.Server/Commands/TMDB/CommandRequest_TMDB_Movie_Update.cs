@@ -30,6 +30,8 @@ public class CommandRequest_TMDB_Movie_Update : CommandRequestImplementation
 
     public virtual bool DownloadImages { get; set; }
 
+    public virtual bool? DownloadCrewAndCast { get; set; }
+
     public virtual bool? DownloadCollections { get; set; }
 
     public virtual bool ForceRefresh { get; set; }
@@ -60,7 +62,8 @@ public class CommandRequest_TMDB_Movie_Update : CommandRequestImplementation
     protected override void Process()
     {
         Logger.LogInformation("Processing CommandRequest_TMDB_Movie_Update: {TmdbMovieId}", TmdbMovieID);
-        Task.Run(() => _helper.UpdateMovie(TmdbMovieID, ForceRefresh, DownloadImages, DownloadCollections ?? _settingsProvider.GetSettings().TMDB.AutoDownloadCollections))
+        var settings = _settingsProvider.GetSettings();
+        Task.Run(() => _helper.UpdateMovie(TmdbMovieID, ForceRefresh, DownloadImages, DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, DownloadCollections ?? settings.TMDB.AutoDownloadCollections))
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();

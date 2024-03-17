@@ -175,58 +175,148 @@ public class TMDB_Image : IImageMetadata
 
     #region Methods
 
-    public void Populate(ImageData data, ForeignEntityType foreignType, int foreignId)
+    public bool Populate(ImageData data, ForeignEntityType foreignType, int foreignId)
     {
-        Populate(data);
-        Populate(foreignType, foreignId);
+        var updated = Populate(data);
+        updated |= Populate(foreignType, foreignId);
+        return updated;
     }
 
-    public void Populate(ForeignEntityType foreignType, int foreignId)
+    public bool Populate(ForeignEntityType foreignType, int foreignId)
     {
+        var updated = false;
         switch (foreignType)
         {
             case ForeignEntityType.Movie:
-                TmdbMovieID = foreignId;
-                ForeignType |= foreignType;
+                if (TmdbMovieID != foreignId)
+                {
+                    TmdbMovieID = foreignId;
+                    updated = true;
+                }
+                if (!ForeignType.HasFlag(foreignType))
+                {
+                    ForeignType |= foreignType;
+                    updated = true;
+                }
                 break;
             case ForeignEntityType.Episode:
-                TmdbEpisodeID = foreignId;
-                ForeignType |= foreignType;
+                if (TmdbEpisodeID != foreignId)
+                {
+                    TmdbEpisodeID = foreignId;
+                    updated = true;
+                }
+                if (!ForeignType.HasFlag(foreignType))
+                {
+                    ForeignType |= foreignType;
+                    updated = true;
+                }
                 break;
             case ForeignEntityType.Season:
-                TmdbSeasonID = foreignId;
-                ForeignType |= foreignType;
+                if (TmdbSeasonID != foreignId)
+                {
+                    TmdbSeasonID = foreignId;
+                    updated = true;
+                }
+                if (!ForeignType.HasFlag(foreignType))
+                {
+                    ForeignType |= foreignType;
+                    updated = true;
+                }
                 break;
             case ForeignEntityType.Show:
-                TmdbShowID = foreignId;
-                ForeignType |= foreignType;
+                if (TmdbShowID != foreignId)
+                {
+                    TmdbShowID = foreignId;
+                    updated = true;
+                }
+                if (!ForeignType.HasFlag(foreignType))
+                {
+                    ForeignType |= foreignType;
+                    updated = true;
+                }
                 break;
             case ForeignEntityType.Collection:
-                TmdbCollectionID = foreignId;
-                ForeignType |= foreignType;
+                if (TmdbCollectionID != foreignId)
+                {
+                    TmdbCollectionID = foreignId;
+                    updated = true;
+                }
+                if (!ForeignType.HasFlag(foreignType))
+                {
+                    ForeignType |= foreignType;
+                    updated = true;
+                }
                 break;
             case ForeignEntityType.Network:
-                TmdbNetworkID = foreignId;
-                ForeignType |= foreignType;
+                if (TmdbNetworkID != foreignId)
+                {
+                    TmdbNetworkID = foreignId;
+                    updated = true;
+                }
+                if (!ForeignType.HasFlag(foreignType))
+                {
+                    ForeignType |= foreignType;
+                    updated = true;
+                }
                 break;
             case ForeignEntityType.Company:
-                TmdbCompanyID = foreignId;
-                ForeignType |= foreignType;
+                if (TmdbCompanyID != foreignId)
+                {
+                    TmdbCompanyID = foreignId;
+                    updated = true;
+                }
+                if (!ForeignType.HasFlag(foreignType))
+                {
+                    ForeignType |= foreignType;
+                    updated = true;
+                }
                 break;
             case ForeignEntityType.Person:
-                TmdbPersonID = foreignId;
-                ForeignType |= foreignType;
+                if (TmdbPersonID != foreignId)
+                {
+                    TmdbPersonID = foreignId;
+                    updated = true;
+                }
+                if (!ForeignType.HasFlag(foreignType))
+                {
+                    ForeignType |= foreignType;
+                    updated = true;
+                }
                 break;
         }
+        return updated;
     }
 
-    private void Populate(ImageData data)
+    private bool Populate(ImageData data)
     {
-        Width = data.Width;
-        Height = data.Height;
-        LanguageCode = string.IsNullOrEmpty(data.Iso_639_1) ? null : data.Iso_639_1;
-        UserRating = data.VoteAverage;
-        UserVotes = data.VoteCount;
+        var updated = false;
+        if (Width != data.Width)
+        {
+            Width = data.Width;
+            updated = true;
+        }
+        if (Height != data.Height)
+        {
+            Height = data.Height;
+            updated = true;
+        }
+        var languageCode = string.IsNullOrEmpty(data.Iso_639_1) ? null : data.Iso_639_1;
+        if (LanguageCode != languageCode)
+        {
+            LanguageCode = languageCode;
+            updated = true;
+        }
+        if (UserRating != data.VoteAverage)
+        {
+            UserRating = data.VoteAverage;
+            updated = true;
+        }
+        if (UserVotes != data.VoteCount)
+        {
+            UserVotes = data.VoteCount;
+            updated = true;
+        }
+        return updated;
     }
 
     public int? GetForeignID(ForeignEntityType foreignType)

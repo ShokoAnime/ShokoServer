@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -200,7 +202,7 @@ public class TMDBHelper
             );
     }
 
-    public void ScheduleUpdateOfMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCollections = null)
+    public void ScheduleUpdateOfMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadCollections = null)
     {
         // Schedule the movie info to be downloaded or updated.
         _commandFactory.CreateAndSave<CommandRequest_TMDB_Movie_Update>(c =>
@@ -208,26 +210,31 @@ public class TMDBHelper
             c.TmdbMovieID = movieId;
             c.ForceRefresh = forceRefresh;
             c.DownloadImages = downloadImages;
+            c.DownloadCrewAndCast = downloadCrewAndCast;
             c.DownloadCollections = downloadCollections;
         });
     }
 
-    public async Task<bool> UpdateMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool downloadCollections = false)
+    public async Task<bool> UpdateMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadCollections = false)
     {
         // Abort if we're within a certain time frame as to not try and get us rate-limited.
         var tmdbMovie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieId) ?? new(movieId);
-        if (!forceRefresh && tmdbMovie.CreatedAt != tmdbMovie.LastUpdatedAt && tmdbMovie.LastUpdatedAt < DateTime.Now.AddHours(-1))
+        if (!forceRefresh && tmdbMovie.CreatedAt != tmdbMovie.LastUpdatedAt && tmdbMovie.LastUpdatedAt > DateTime.Now.AddHours(-1))
             return false;
 
         // Abort if we couldn't find the movie by id.
-        var movie = await _client.GetMovieAsync(movieId, "en-US", null, MovieMethods.Translations | MovieMethods.Credits);
+        var methods = MovieMethods.Translations;
+        if (downloadCrewAndCast)
+            methods |= MovieMethods.Credits;
+        var movie = await _client.GetMovieAsync(movieId, "en-US", null, methods);
         if (movie == null)
             return false;
 
         var updated = tmdbMovie.Populate(movie);
         updated |= UpdateTitlesAndOverviews(tmdbMovie, movie.Translations);
         updated |= UpdateCompanies(tmdbMovie, movie.ProductionCompanies);
-        updated |= await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits, downloadImages);
+        if (downloadCrewAndCast)
+            updated |= await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits, downloadImages);
         if (updated)
         {
             tmdbMovie.LastUpdatedAt = DateTime.Now;
@@ -838,7 +845,7 @@ public class TMDBHelper
         }
     }
 
-    public void ScheduleUpdateOfShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool? downloadAlternateOrdering = null)
+    public void ScheduleUpdateOfShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadAlternateOrdering = null)
     {
         // Schedule the show info to be downloaded or updated.
         _commandFactory.CreateAndSave<CommandRequest_TMDB_Show_Update>(c =>
@@ -846,25 +853,29 @@ public class TMDBHelper
             c.TmdbShowID = showId;
             c.ForceRefresh = forceRefresh;
             c.DownloadImages = downloadImages;
+            c.DownloadCrewAndCast = downloadCrewAndCast;
             c.DownloadAlternateOrdering = downloadAlternateOrdering;
         });
     }
 
-    public async Task<bool> UpdateShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool downloadAlternateOrdering = false)
+    public async Task<bool> UpdateShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadAlternateOrdering = false)
     {
         // Abort if we're within a certain time frame as to not try and get us rate-limited.
         var tmdbShow = RepoFactory.TMDB_Show.GetByTmdbShowID(showId) ?? new(showId);
-        if (!forceRefresh && tmdbShow.CreatedAt != tmdbShow.LastUpdatedAt && tmdbShow.LastUpdatedAt < DateTime.Now.AddHours(-1))
+        if (!forceRefresh && tmdbShow.CreatedAt != tmdbShow.LastUpdatedAt && tmdbShow.LastUpdatedAt > DateTime.Now.AddHours(-1))
             return false;
 
-        var show = await _client.GetTvShowAsync(showId, TvShowMethods.ContentRatings | TvShowMethods.Translations | TvShowMethods.EpisodeGroups, "en-US");
+        var methods = TvShowMethods.ContentRatings | TvShowMethods.Translations;
+        if (downloadAlternateOrdering)
+            methods |= TvShowMethods.EpisodeGroups;
+        var show = await _client.GetTvShowAsync(showId, methods, "en-US");
         if (show == null)
             return false;
 
         var updated = tmdbShow.Populate(show);
         updated |= UpdateTitlesAndOverviews(tmdbShow, show.Translations);
         updated |= UpdateCompanies(tmdbShow, show.ProductionCompanies);
-        updated |= await UpdateShowSeasonsAndEpisodes(show, downloadImages, forceRefresh);
+        updated |= await UpdateShowSeasonsAndEpisodes(show, downloadImages, downloadCrewAndCast, forceRefresh);
         if (downloadAlternateOrdering)
             updated |= await UpdateShowAlternateOrdering(show);
         if (updated)
@@ -882,7 +893,7 @@ public class TMDBHelper
         return updated;
     }
 
-    private async Task<bool> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadImages, bool forceRefresh = false)
+    private async Task<bool> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadImages, bool downloadCrewAndCast = false, bool forceRefresh = false)
     {
         var existingSeasons = RepoFactory.TMDB_Season.GetByTmdbShowID(show.Id)
             .ToDictionary(season => season.Id);
@@ -890,11 +901,12 @@ public class TMDBHelper
         var seasonsToSkip = new HashSet<int>();
         var seasonsToSave = new List<TMDB_Season>();
 
-        var existingEpisodes = RepoFactory.TMDB_Episode.GetByTmdbShowID(show.Id)
-            .ToDictionary(episode => episode.Id);
+        var existingEpisodes = new ConcurrentDictionary<int, TMDB_Episode>();
+        foreach (var episode in RepoFactory.TMDB_Episode.GetByTmdbShowID(show.Id))
+            existingEpisodes.TryAdd(episode.Id, episode);
         var episodesToAdd = 0;
-        var episodesToSkip = new HashSet<int>();
-        var episodesToSave = new List<TMDB_Episode>();
+        var episodesToSkip = new ConcurrentBag<int>();
+        var episodesToSave = new ConcurrentBag<TMDB_Episode>();
         foreach (var reducedSeason in show.Seasons)
         {
             var season = await _client.GetTvSeasonAsync(show.Id, reducedSeason.SeasonNumber, TvSeasonMethods.Translations) ??
@@ -913,7 +925,12 @@ public class TMDBHelper
                 seasonsToSave.Add(tmdbSeason);
             }
 
-            foreach (var episode in season.Episodes)
+            if (downloadImages)
+                await DownloadSeasonImages(tmdbSeason.TmdbSeasonID, tmdbSeason.TmdbShowID, tmdbSeason.SeasonNumber, forceRefresh);
+
+            seasonsToSkip.Add(tmdbSeason.Id);
+
+            await ProcessWithConcurrencyAsync(5, season.Episodes, async (episode) =>
             {
                 if (!existingEpisodes.TryGetValue(episode.Id, out var tmdbEpisode))
                 {
@@ -921,27 +938,30 @@ public class TMDBHelper
                     tmdbEpisode = new(episode.Id);
                 }
 
-                var credits = await _client.GetTvEpisodeCreditsAsync(show.Id, season.SeasonNumber, episode.EpisodeNumber);
+                // Update base episode and titles/overviews.
                 var episodeTranslations = await _client.GetTvEpisodeTranslationsAsync(show.Id, season.SeasonNumber, episode.EpisodeNumber);
                 var episodeUpdated = tmdbEpisode.Populate(show, season, episode, episodeTranslations!);
                 episodeUpdated |= UpdateTitlesAndOverviews(tmdbEpisode, episodeTranslations!);
-                episodeUpdated |= await UpdateEpisodeCastAndCrew(tmdbEpisode, credits, downloadImages);
+
+                // Update crew & cast.
+                if (downloadCrewAndCast)
+                {
+                    var credits = await _client.GetTvEpisodeCreditsAsync(show.Id, season.SeasonNumber, episode.EpisodeNumber);
+                    episodeUpdated |= await UpdateEpisodeCastAndCrew(tmdbEpisode, credits, downloadImages);
+                }
+
+                // Update images.
+                if (downloadImages)
+                    await DownloadEpisodeImages(tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, tmdbEpisode.SeasonNumber, tmdbEpisode.EpisodeNumber, forceRefresh);
+
                 if (episodeUpdated)
                 {
                     tmdbEpisode.LastUpdatedAt = DateTime.Now;
                     episodesToSave.Add(tmdbEpisode);
                 }
 
-                if (downloadImages)
-                    await DownloadEpisodeImages(tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, tmdbEpisode.SeasonNumber, tmdbEpisode.EpisodeNumber, forceRefresh);
-
                 episodesToSkip.Add(tmdbEpisode.Id);
-            }
-
-            if (downloadImages)
-                await DownloadSeasonImages(tmdbSeason.TmdbSeasonID, tmdbSeason.TmdbShowID, tmdbSeason.SeasonNumber, forceRefresh);
-
-            seasonsToSkip.Add(tmdbSeason.Id);
+            });
         }
         var seasonsToRemove = existingSeasons.Values
             .ExceptBy(seasonsToSkip, season => season.Id)
@@ -980,7 +1000,7 @@ public class TMDBHelper
 
         RepoFactory.TMDB_Episode.Delete(episodesToRemove);
 
-        return seasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || episodesToSave.Count > 0 || episodesToRemove.Count > 0;
+        return seasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || episodesToSave.IsEmpty || episodesToRemove.Count > 0;
     }
 
     private async Task<bool> UpdateShowAlternateOrdering(TvShow show)
@@ -1030,25 +1050,22 @@ public class TMDBHelper
                 orderingToSave.Add(tmdbOrdering);
             }
 
-            var seasonNumberCount = 1;
             foreach (var episodeGroup in collection.Groups)
             {
-                var seasonNumber = seasonNumberCount++;
-                var episodeNumberCount = 1;
-
                 if (!existingSeasons.TryGetValue(episodeGroup.Id, out var tmdbSeason))
                 {
                     seasonsToAdd++;
                     tmdbSeason = new(episodeGroup.Id);
                 }
 
-                var seasonUpdated = tmdbSeason.Populate(episodeGroup, collection.Id, show.Id, seasonNumber);
+                var seasonUpdated = tmdbSeason.Populate(episodeGroup, collection.Id, show.Id, episodeGroup.Order);
                 if (seasonUpdated)
                 {
                     tmdbSeason.LastUpdatedAt = DateTime.Now;
                     seasonsToSave.Add(tmdbSeason);
                 }
 
+                var episodeNumberCount = 1;
                 foreach (var episode in episodeGroup.Episodes)
                 {
                     if (!episode.Id.HasValue)
@@ -1057,13 +1074,13 @@ public class TMDBHelper
                     var episodeNumber = episodeNumberCount++;
                     var episodeId = episode.Id.Value;
 
-                    if (!existingEpisodes.TryGetValue($"{episodeGroup.Id}:${episodeId}", out var tmdbEpisode))
+                    if (!existingEpisodes.TryGetValue($"{episodeGroup.Id}:{episodeId}", out var tmdbEpisode))
                     {
                         episodesToAdd++;
                         tmdbEpisode = new(episodeGroup.Id, episodeId);
                     }
 
-                    var episodeUpdated = tmdbEpisode.Populate(collection.Id, show.Id, seasonNumber, episodeNumber);
+                    var episodeUpdated = tmdbEpisode.Populate(collection.Id, show.Id, episodeGroup.Order, episodeNumber);
                     if (episodeUpdated)
                     {
                         tmdbEpisode.LastUpdatedAt = DateTime.Now;
@@ -1158,6 +1175,8 @@ public class TMDBHelper
                 }
                 if (downloadImages)
                     await DownloadPersonImages(tmdbPerson.Id);
+
+                knownPeopleDict.Add(cast.Id, tmdbPerson);
             }
 
             var roleUpdated = false;
@@ -1170,6 +1189,8 @@ public class TMDBHelper
                     TmdbEpisodeID = tmdbEpisode.Id,
                     TmdbPersonID = tmdbPerson.Id,
                     TmdbCreditID = cast.CreditId,
+                    Ordering = ordering,
+                    IsGuestRole = isGuestRole,
                 };
                 castToAdd++;
                 roleUpdated = true;
@@ -1225,6 +1246,8 @@ public class TMDBHelper
                 }
                 if (downloadImages)
                     await DownloadPersonImages(tmdbPerson.Id);
+
+                knownPeopleDict.Add(crew.Id, tmdbPerson);
             }
 
             var roleUpdated = false;
@@ -1700,12 +1723,20 @@ public class TMDBHelper
     {
         var image = RepoFactory.TMDB_Image.GetByRemoteFileNameAndType(filePath, type) ?? new(filePath, type);
         image.Populate(foreignType, foreignId);
+        if (string.IsNullOrEmpty(image.LocalPath))
+            return;
+
         RepoFactory.TMDB_Image.Save(image);
+
+        // Skip downloading if it already exists.
+        if (File.Exists(image.LocalPath))
+            return;
 
         _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(c =>
         {
             c.EntityID = image.TMDB_ImageID;
             c.DataSourceEnum = DataSourceType.TMDB;
+            c.ImageTypeEnum = image.ImageType;
             c.ForceDownload = forceDownload;
         });
     }
@@ -1713,14 +1744,16 @@ public class TMDBHelper
     private void DownloadImagesByType(IReadOnlyList<ImageData> images, ImageEntityType type, ForeignEntityType foreignType, int foreignId, int maxCount, bool forceDownload = false)
     {
         var count = 0;
+        var isLimitEnabled = maxCount > 0;
         foreach (var imageData in images)
         {
-            if (count >= maxCount)
+            if (isLimitEnabled && count >= maxCount)
                 break;
 
             var image = RepoFactory.TMDB_Image.GetByRemoteFileNameAndType(imageData.FilePath, type) ?? new(imageData.FilePath, type);
-            image.Populate(imageData, foreignType, foreignId);
-            RepoFactory.TMDB_Image.Save(image);
+            var updated = image.Populate(imageData, foreignType, foreignId);
+            if (updated)
+                RepoFactory.TMDB_Image.Save(image);
 
             var path = image.LocalPath;
             if (!string.IsNullOrEmpty(path) && File.Exists(path))
@@ -1730,33 +1763,46 @@ public class TMDBHelper
         foreach (var image in RepoFactory.TMDB_Image.GetByForeignIDAndType(foreignId, foreignType, type))
         {
             var path = image.LocalPath;
-            if (count < maxCount)
+
+            // Clean up invalid entries.
+            if (string.IsNullOrEmpty(path))
             {
-                // Clean up outdated entries.
-                if (string.IsNullOrEmpty(path))
-                {
-                    RepoFactory.TMDB_Image.Delete(image.TMDB_ImageID);
-                    continue;
-                }
+                RepoFactory.TMDB_Image.Delete(image.TMDB_ImageID);
+                continue;
+            }
 
-                // Skip downloading if it already exists.
-                if (File.Exists(path))
-                {
-                    count++;
-                    continue;
-                }
+            // Skip downloading if it already exists.
+            if (File.Exists(path))
+            {
+                // Scheduled the image to be downloaded again if force download is enabled.
+                if (forceDownload)
+                    _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(c =>
+                    {
+                        c.EntityID = image.TMDB_ImageID;
+                        c.DataSourceEnum = DataSourceType.TMDB;
+                        c.ImageTypeEnum = image.ImageType;
+                        c.ForceDownload = true;
+                    });
+                count++;
+                continue;
+            }
 
+            // Download image if the limit is disabled or if we're below the limit.
+            if (!isLimitEnabled || count < maxCount)
+            {
                 // Scheduled the image to be downloaded.
                 _commandFactory.CreateAndSave<CommandRequest_DownloadImage>(c =>
                 {
                     c.EntityID = image.TMDB_ImageID;
                     c.DataSourceEnum = DataSourceType.TMDB;
+                    c.ImageTypeEnum = image.ImageType;
                     c.ForceDownload = forceDownload;
                 });
                 count++;
             }
-            // Keep it if it's already downloaded, otherwise remove the metadata.
-            else if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            // TODO: check if the image is linked to any other entries, and keep it if the other entries are within the limit.
+            // Else delete the metadata since the data doesn't exist on disk.
+            else if (!File.Exists(path))
             {
                 RepoFactory.TMDB_Image.Delete(image.TMDB_ImageID);
             }
@@ -1930,7 +1976,7 @@ public class TMDBHelper
             overviewsToRemove.Count,
             overviewsToSkip.Count + overviewsToAdd - overviewsToSave.Count,
             tmdbEntity.Type.ToString().ToLowerInvariant(),
-            tmdbEntity.OriginalTitle,
+            tmdbEntity.OriginalTitle ?? tmdbEntity.EnglishTitle ?? $"<untitled {tmdbEntity.Type.ToString().ToLowerInvariant()}>",
             tmdbEntity.Type.ToString(),
             tmdbEntity.Id);
         RepoFactory.TMDB_Overview.Save(overviewsToSave);
@@ -2032,7 +2078,8 @@ public class TMDBHelper
             RepoFactory.TMDB_Company.Save(tmdbCompany);
         }
 
-        if (!string.IsNullOrEmpty(company.LogoPath))
+        var settings = _settingsProvider.GetSettings();
+        if (!string.IsNullOrEmpty(company.LogoPath) && settings.TMDB.AutoDownloadStudioImages)
             DownloadImageByType(company.LogoPath, ImageEntityType.Logo, ForeignEntityType.Company, company.Id);
     }
 
@@ -2134,6 +2181,44 @@ public class TMDBHelper
         return false;
     }
     #endregion
+
+    #endregion
+
+    #region Helpers
+
+    private static async Task ProcessWithConcurrencyAsync<T>(
+        int maxConcurrent,
+        IEnumerable<T> enumerable,
+        Func<T, Task> processAsync
+    )
+    {
+        if (maxConcurrent < 1)
+            throw new ArgumentOutOfRangeException(nameof(maxConcurrent), "Concurrency level must be at least 1.");
+
+        var tasks = new List<Task>();
+        var semaphore = new SemaphoreSlim(1, maxConcurrent);
+        var parallel = enumerable is ParallelQuery<T> query ? query : enumerable.AsParallel();
+        foreach (var item in enumerable)
+        {
+            await semaphore.WaitAsync();
+
+            var task = Task.Run(async () =>
+            {
+                try
+                {
+                    await processAsync(item);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            tasks.Add(task);
+        }
+
+        await Task.WhenAll(tasks);
+    }
 
     #endregion
 }

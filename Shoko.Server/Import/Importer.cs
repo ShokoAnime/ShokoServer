@@ -650,6 +650,10 @@ public static class Importer
             RunImport_DownloadTmdbImagesForType(commandFactory, ImageEntityType.Logo, settings.TMDB.MaxAutoLogos);
         if (settings.TMDB.AutoDownloadBackdrops)
             RunImport_DownloadTmdbImagesForType(commandFactory, ImageEntityType.Backdrop, settings.TMDB.MaxAutoBackdrops);
+        if (settings.TMDB.AutoDownloadStaffImages)
+            RunImport_DownloadTmdbImagesForType(commandFactory, ImageEntityType.Person, settings.TMDB.MaxAutoStaffImages);
+        if (settings.TMDB.AutoDownloadThumbnails)
+            RunImport_DownloadTmdbImagesForType(commandFactory, ImageEntityType.Thumbnail, settings.TMDB.MaxAutoThumbnails);
 
         // AniDB Characters
         if (settings.AniDb.DownloadCharacters)
@@ -715,10 +719,14 @@ public static class Importer
     private static void RunImport_DownloadTmdbImagesForType(ICommandRequestFactory commandFactory, ImageEntityType type, int maxCount)
     {
         // Build a few dictionaries to check how many images exist for each type.
-        var moviePosterCount = new Dictionary<int, int>();
-        var seasonPosterCount = new Dictionary<int, int>();
-        var showPosterCount = new Dictionary<int, int>();
-        var collectionPosterCount = new Dictionary<int, int>();
+        var countsForMovies = new Dictionary<int, int>();
+        var countForEpisodes = new Dictionary<int, int>();
+        var countForSeasons = new Dictionary<int, int>();
+        var countForShows = new Dictionary<int, int>();
+        var countForCollections = new Dictionary<int, int>();
+        var countForNetworks = new Dictionary<int, int>();
+        var countForCompanys = new Dictionary<int, int>();
+        var countForPersons = new Dictionary<int, int>();
         var allImages = RepoFactory.TMDB_Image.GetByType(type);
         foreach (var image in allImages)
         {
@@ -730,25 +738,45 @@ public static class Importer
                 continue;
 
             if (image.TmdbMovieID.HasValue)
-                if (moviePosterCount.ContainsKey(image.TmdbMovieID.Value))
-                    moviePosterCount[image.TmdbMovieID.Value] += 1;
+                if (countsForMovies.ContainsKey(image.TmdbMovieID.Value))
+                    countsForMovies[image.TmdbMovieID.Value] += 1;
                 else
-                    moviePosterCount[image.TmdbMovieID.Value] = 1;
+                    countsForMovies[image.TmdbMovieID.Value] = 1;
+            if (image.TmdbEpisodeID.HasValue)
+                if (countForEpisodes.ContainsKey(image.TmdbEpisodeID.Value))
+                    countForEpisodes[image.TmdbEpisodeID.Value] += 1;
+                else
+                    countForEpisodes[image.TmdbEpisodeID.Value] = 1;
             if (image.TmdbSeasonID.HasValue)
-                if (seasonPosterCount.ContainsKey(image.TmdbSeasonID.Value))
-                    seasonPosterCount[image.TmdbSeasonID.Value] += 1;
+                if (countForSeasons.ContainsKey(image.TmdbSeasonID.Value))
+                    countForSeasons[image.TmdbSeasonID.Value] += 1;
                 else
-                    seasonPosterCount[image.TmdbSeasonID.Value] = 1;
+                    countForSeasons[image.TmdbSeasonID.Value] = 1;
             if (image.TmdbShowID.HasValue)
-                if (showPosterCount.ContainsKey(image.TmdbShowID.Value))
-                    showPosterCount[image.TmdbShowID.Value] += 1;
+                if (countForShows.ContainsKey(image.TmdbShowID.Value))
+                    countForShows[image.TmdbShowID.Value] += 1;
                 else
-                    showPosterCount[image.TmdbShowID.Value] = 1;
+                    countForShows[image.TmdbShowID.Value] = 1;
             if (image.TmdbCollectionID.HasValue)
-                if (collectionPosterCount.ContainsKey(image.TmdbCollectionID.Value))
-                    collectionPosterCount[image.TmdbCollectionID.Value] += 1;
+                if (countForCollections.ContainsKey(image.TmdbCollectionID.Value))
+                    countForCollections[image.TmdbCollectionID.Value] += 1;
                 else
-                    collectionPosterCount[image.TmdbCollectionID.Value] = 1;
+                    countForCollections[image.TmdbCollectionID.Value] = 1;
+            if (image.TmdbNetworkID.HasValue)
+                if (countForNetworks.ContainsKey(image.TmdbNetworkID.Value))
+                    countForNetworks[image.TmdbNetworkID.Value] += 1;
+                else
+                    countForNetworks[image.TmdbNetworkID.Value] = 1;
+            if (image.TmdbCompanyID.HasValue)
+                if (countForCompanys.ContainsKey(image.TmdbCompanyID.Value))
+                    countForCompanys[image.TmdbCompanyID.Value] += 1;
+                else
+                    countForCompanys[image.TmdbCompanyID.Value] = 1;
+            if (image.TmdbPersonID.HasValue)
+                if (countForPersons.ContainsKey(image.TmdbPersonID.Value))
+                    countForPersons[image.TmdbPersonID.Value] += 1;
+                else
+                    countForPersons[image.TmdbPersonID.Value] = 1;
         }
 
         foreach (var image in allImages)
@@ -758,13 +786,27 @@ public static class Importer
                 continue;
 
             // Check if we should download the image or not.
-            var shouldDownload = false;
-            if (moviePosterCount.TryGetValue(image.TmdbMovieID ?? 0, out var moviePosters) && moviePosters < maxCount)
-                shouldDownload = true;
-            if (seasonPosterCount.TryGetValue(image.TmdbSeasonID ?? 0, out var seasonPosters) && seasonPosters < maxCount)
-                shouldDownload = true;
-            if (showPosterCount.TryGetValue(image.TmdbShowID ?? 0, out var showPosters) && showPosters < maxCount)
-                shouldDownload = true;
+            var limitEnabled = maxCount > 0;
+            var shouldDownload = !limitEnabled;
+            if (limitEnabled)
+            {
+                if (countsForMovies.TryGetValue(image.TmdbMovieID ?? 0, out var count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForEpisodes.TryGetValue(image.TmdbEpisodeID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForSeasons.TryGetValue(image.TmdbSeasonID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForShows.TryGetValue(image.TmdbShowID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForCollections.TryGetValue(image.TmdbCollectionID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForNetworks.TryGetValue(image.TmdbNetworkID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForCompanys.TryGetValue(image.TmdbCompanyID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
+                if (countForPersons.TryGetValue(image.TmdbPersonID ?? 0, out count) && count < maxCount)
+                    shouldDownload = true;
+            }
 
             if (shouldDownload)
             {
@@ -772,28 +814,29 @@ public static class Importer
                 {
                     c.EntityID = image.TMDB_ImageID;
                     c.DataSourceEnum = DataSourceType.TMDB;
+                    c.ImageTypeEnum = image.ImageType;
                 });
 
                 if (image.TmdbMovieID.HasValue)
-                    if (moviePosterCount.ContainsKey(image.TmdbMovieID.Value))
-                        moviePosterCount[image.TmdbMovieID.Value] += 1;
+                    if (countsForMovies.ContainsKey(image.TmdbMovieID.Value))
+                        countsForMovies[image.TmdbMovieID.Value] += 1;
                     else
-                        moviePosterCount[image.TmdbMovieID.Value] = 1;
+                        countsForMovies[image.TmdbMovieID.Value] = 1;
                 if (image.TmdbSeasonID.HasValue)
-                    if (seasonPosterCount.ContainsKey(image.TmdbSeasonID.Value))
-                        seasonPosterCount[image.TmdbSeasonID.Value] += 1;
+                    if (countForSeasons.ContainsKey(image.TmdbSeasonID.Value))
+                        countForSeasons[image.TmdbSeasonID.Value] += 1;
                     else
-                        seasonPosterCount[image.TmdbSeasonID.Value] = 1;
+                        countForSeasons[image.TmdbSeasonID.Value] = 1;
                 if (image.TmdbShowID.HasValue)
-                    if (showPosterCount.ContainsKey(image.TmdbShowID.Value))
-                        showPosterCount[image.TmdbShowID.Value] += 1;
+                    if (countForShows.ContainsKey(image.TmdbShowID.Value))
+                        countForShows[image.TmdbShowID.Value] += 1;
                     else
-                        showPosterCount[image.TmdbShowID.Value] = 1;
+                        countForShows[image.TmdbShowID.Value] = 1;
                 if (image.TmdbCollectionID.HasValue)
-                    if (collectionPosterCount.ContainsKey(image.TmdbCollectionID.Value))
-                        collectionPosterCount[image.TmdbCollectionID.Value] += 1;
+                    if (countForCollections.ContainsKey(image.TmdbCollectionID.Value))
+                        countForCollections[image.TmdbCollectionID.Value] += 1;
                     else
-                        collectionPosterCount[image.TmdbCollectionID.Value] = 1;
+                        countForCollections[image.TmdbCollectionID.Value] = 1;
             }
         }
     }

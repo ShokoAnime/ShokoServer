@@ -23,7 +23,7 @@ public class TMDB_MovieMap : ClassMap<TMDB_Movie>
         Map(x => x.IsVideo).Not.Nullable();
         Map(x => x.Genres).Not.Nullable();
         Map(x => x.ContentRatings).Not.Nullable();
-        Map(x => x.RuntimeMintues);
+        Map(x => x.RuntimeMintues).Column("Runtime");
         Map(x => x.UserRating).Not.Nullable();
         Map(x => x.UserVotes).Not.Nullable();
         Map(x => x.ReleasedAt).CustomType<DateOnlyConverter>();

@@ -1,4 +1,5 @@
 using FluentNHibernate.Mapping;
+using Shoko.Server.Databases.TypeConverters;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 
@@ -19,8 +20,8 @@ public class TMDB_PersonMap : ClassMap<TMDB_Person>
         Map(x => x.Aliases).Not.Nullable();
         Map(x => x.Gender).Not.Nullable().CustomType<PersonGender>();
         Map(x => x.IsRestricted).Not.Nullable();
-        Map(x => x.BirthDay);
-        Map(x => x.DeathDay);
+        Map(x => x.BirthDay).CustomType<DateOnlyConverter>();
+        Map(x => x.DeathDay).CustomType<DateOnlyConverter>();
         Map(x => x.PlaceOfBirth);
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();

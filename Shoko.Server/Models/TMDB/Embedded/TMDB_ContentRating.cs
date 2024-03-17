@@ -2,11 +2,11 @@ using System;
 using System.Text.Json.Serialization;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Extensions;
-using Shoko.Server.Extensions;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
+[Serializable]
 public class TMDB_ContentRating
 {
     /// <summary>
@@ -42,17 +42,5 @@ public class TMDB_ContentRating
     {
         CountryCode = countryCode;
         Rating = rating;
-    }
-
-    public override string ToString()
-    {
-        // TODO: Hook this up properly.
-        return $"{CountryCode}|{Rating}";
-    }
-
-    public static TMDB_ContentRating FromString(string str)
-    {
-        var (countryCode, rating, _) = str.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        return new(countryCode, rating);
     }
 }

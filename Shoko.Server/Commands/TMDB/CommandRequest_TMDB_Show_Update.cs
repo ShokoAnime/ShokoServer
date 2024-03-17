@@ -30,6 +30,8 @@ public class CommandRequest_TMDB_Show_Update : CommandRequestImplementation
 
     public virtual bool DownloadImages { get; set; }
 
+    public virtual bool? DownloadCrewAndCast { get; set; }
+
     public virtual bool? DownloadAlternateOrdering { get; set; }
 
     public virtual bool ForceRefresh { get; set; }
@@ -60,7 +62,8 @@ public class CommandRequest_TMDB_Show_Update : CommandRequestImplementation
     protected override void Process()
     {
         Logger.LogInformation("Processing CommandRequest_TMDB_Show_Update: {TmdbShowId}", TmdbShowID);
-        Task.Run(async () => await _helper.UpdateShow(TmdbShowID, ForceRefresh, DownloadImages, DownloadAlternateOrdering ?? _settingsProvider.GetSettings().TMDB.AutoDownloadAlternateOrdering))
+        var settings = _settingsProvider.GetSettings();
+        Task.Run(async () => await _helper.UpdateShow(TmdbShowID, ForceRefresh, DownloadImages, DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering))
             .ConfigureAwait(false)
             .GetAwaiter()
             .GetResult();
