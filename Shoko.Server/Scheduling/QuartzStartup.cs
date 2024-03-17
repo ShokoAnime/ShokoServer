@@ -533,10 +533,22 @@ CREATE INDEX [IDX_QRTZ_FT_G_J]                ON [dbo].[QRTZ_FIRED_TRIGGERS](SCH
 CREATE INDEX [IDX_QRTZ_FT_G_T]                ON [dbo].[QRTZ_FIRED_TRIGGERS](SCHED_NAME, TRIGGER_GROUP, TRIGGER_NAME);
 GO";
         #endregion
-        using var command = new SqlCommand(Script, conn);
-        command.CommandTimeout = 0;
-        command.ExecuteNonQuery();
-        conn.Close();
+        var sqlBatch = string.Empty;
+        using var cmd = new SqlCommand(string.Empty, conn);
+        cmd.CommandTimeout = 0;
+        try {
+            foreach (var line in Script.Split(new[] { "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries)) {
+                if (line.ToUpperInvariant().Trim() == "GO") {
+                    cmd.CommandText = sqlBatch;
+                    cmd.ExecuteNonQuery();
+                    sqlBatch = string.Empty;
+                } else {
+                    sqlBatch += line + "\n";
+                }
+            }
+        } finally {
+            conn.Close();
+        }
     }
 
     private static void EnsureQuartzDatabaseExists_MySQL(string connectionString)
