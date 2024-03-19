@@ -18,7 +18,7 @@ internal class ScanFolderJob : BaseJob
     public int ImportFolderID { get; set; }
     public override string TypeName => "Scan Folder";
     public override string Title => "Scanning Import Folder";
-    public override Dictionary<string, object> Details => new() { { "Import Folder", RepoFactory.ImportFolder.GetByID(ImportFolderID)?.ImportFolderName ?? ImportFolderID.ToString() } };
+    public override Dictionary<string, object> Details => new() { { "Import Folder", RepoFactory.ImportFolder?.GetByID(ImportFolderID)?.ImportFolderName ?? ImportFolderID.ToString() } };
 
     public override async Task Process()
     {

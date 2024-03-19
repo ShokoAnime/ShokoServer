@@ -20,7 +20,7 @@ internal class DeleteImportFolderJob : BaseJob
     public override Dictionary<string, object> Details => new()
     {
         {
-            "Import Folder", RepoFactory.ImportFolder.GetByID(ImportFolderID)?.ImportFolderName ?? ImportFolderID.ToString()
+            "Import Folder", RepoFactory.ImportFolder?.GetByID(ImportFolderID)?.ImportFolderName ?? ImportFolderID.ToString()
         }
     };
 

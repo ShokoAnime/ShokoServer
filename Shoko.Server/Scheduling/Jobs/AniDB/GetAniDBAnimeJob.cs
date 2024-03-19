@@ -49,7 +49,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
     public override void PostInit()
     {
         // We have the title helper. May as well use it to provide better info for the user
-        _animeName = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle;
+        _animeName = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle;
     }
 
     public override string TypeName => "Get AniDB Anime Data";

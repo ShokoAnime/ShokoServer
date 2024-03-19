@@ -25,7 +25,7 @@ public class SyncTraktCollectionSeriesJob : BaseJob
 
     public override void PostInit()
     {
-        _seriesName = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID)?.GetSeriesName() ?? AnimeSeriesID.ToString();
+        _seriesName = RepoFactory.AnimeSeries?.GetByID(AnimeSeriesID)?.GetSeriesName() ?? AnimeSeriesID.ToString();
     }
 
     public override string Title => "Syncing Series to Trakt Collection";

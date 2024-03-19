@@ -46,7 +46,7 @@ public class AddFileToMyListJob : BaseJob
     public override Dictionary<string, object> Details => new()
     {
         {
-            "File Path", Utils.GetDistinctPath(_videoLocal.GetBestVideoLocalPlace()?.FullServerPath)
+            "File Path", Utils.GetDistinctPath(_videoLocal?.GetBestVideoLocalPlace()?.FullServerPath) ?? Hash
         }
     };
 

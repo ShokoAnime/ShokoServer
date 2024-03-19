@@ -34,20 +34,18 @@ public class ManualLinkJob : BaseJob
 
     public override string TypeName => "Manually Link File";
     public override string Title => "Manually Linking Episode";
-    public override Dictionary<string, object> Details
-    {
-        get
+    public override Dictionary<string, object> Details => _episode != null ?
+        new()
         {
-            var result = new Dictionary<string, object>
-            {
-                { "File Path", Utils.GetDistinctPath(_vlocal.GetBestVideoLocalPlace()?.FullServerPath) },
-                { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(_episode.AniDB_Episode.AnimeID).AnimeID },
-                { "Episode Type", _episode.AniDB_Episode.EpisodeType.ToString() },
-                { "Episode Number", _episode.AniDB_Episode.EpisodeNumber }
-            };
-            return result;
-        }
-    }
+            { "File Path", Utils.GetDistinctPath(_vlocal.GetBestVideoLocalPlace()?.FullServerPath) },
+            { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(_episode.AniDB_Episode.AnimeID)?.PreferredTitle },
+            { "Episode Type", _episode.AniDB_Episode.EpisodeType.ToString() },
+            { "Episode Number", _episode.AniDB_Episode.EpisodeNumber }
+        } : new()
+        {
+            { "VideoLocalID", VideoLocalID },
+            { "EpisodeID", EpisodeID },
+        };
 
     public override void PostInit()
     {

@@ -32,7 +32,7 @@ public class MediaInfoJob : BaseJob
     }
 
     public override string Title => "Reading MediaInfo for File";
-    public override Dictionary<string, object> Details => new() { { "File Path", _fileName } };
+    public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };
 
     public override Task Process()
     {

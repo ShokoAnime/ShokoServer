@@ -29,8 +29,11 @@ public class SyncTraktEpisodeHistoryJob : BaseJob
     {
         get
         {
-            var episode = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID).AniDB_Episode;
-            return new()
+            var episode = RepoFactory.AnimeEpisode?.GetByID(AnimeEpisodeID)?.AniDB_Episode;
+            return episode == null ? new()
+            {
+                { "EpisodeID", AnimeEpisodeID }
+            } : new()
             {
                 { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(episode.AnimeID) },
                 { "Episode Type", ((EpisodeType)episode.EpisodeType).ToString() },

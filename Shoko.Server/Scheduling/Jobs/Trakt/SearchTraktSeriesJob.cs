@@ -29,7 +29,7 @@ public class SearchTraktSeriesJob : BaseJob
 
     public override string TypeName => "Get Trakt Series";
     public override string Title => "Searching for Trakt Series";
-    public override Dictionary<string, object> Details => new() { { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString() } };
+    public override Dictionary<string, object> Details => new() { { "Anime", RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString() } };
 
     public override Task Process()
     {

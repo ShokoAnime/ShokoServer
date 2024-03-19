@@ -36,7 +36,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
 
     public override void PostInit()
     {
-        _anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+        _anime = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID);
         _animeName = _anime?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle;
     }
 

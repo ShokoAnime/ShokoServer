@@ -25,8 +25,8 @@ public class LinkTvDBSeriesJob : BaseJob
     public override string Title => "Linking TvDB Series";
     public override Dictionary<string, object> Details => new()
     {
-        { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString() },
-        { "TvDB Series", RepoFactory.TvDB_Series.GetByTvDBID(TvDBID)?.SeriesName ?? TvDBID.ToString() }
+        { "Anime", RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString() },
+        { "TvDB Series", RepoFactory.TvDB_Series?.GetByTvDBID(TvDBID)?.SeriesName ?? TvDBID.ToString() }
     };
 
     public override async Task Process()

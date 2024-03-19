@@ -29,10 +29,13 @@ public class SyncTraktCollectionEpisodeJob : BaseJob
     {
         get
         {
-            var episode = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID).AniDB_Episode;
-            return new()
+            var episode = RepoFactory.AnimeEpisode?.GetByID(AnimeEpisodeID)?.AniDB_Episode;
+            return episode == null ? new()
             {
-                { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(episode.AnimeID) },
+                { "EpisodeID", AnimeEpisodeID }
+            } : new()
+            {
+                { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(episode.AnimeID)?.PreferredTitle },
                 { "Episode Type", ((EpisodeType)episode.EpisodeType).ToString() },
                 { "Episode Number", episode.EpisodeNumber }
             };

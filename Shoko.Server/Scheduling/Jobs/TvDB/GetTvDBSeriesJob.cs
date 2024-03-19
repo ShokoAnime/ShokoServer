@@ -26,7 +26,7 @@ public class GetTvDBSeriesJob : BaseJob<TvDB_Series>
     public override Dictionary<string, object> Details => new()
     {
         {
-            "Series", RepoFactory.TvDB_Series.GetByTvDBID(TvDBSeriesID)?.SeriesName ?? TvDBSeriesID.ToString()
+            "Series", RepoFactory.TvDB_Series?.GetByTvDBID(TvDBSeriesID)?.SeriesName ?? TvDBSeriesID.ToString()
         }
     };
 

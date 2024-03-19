@@ -35,7 +35,7 @@ public class SearchTvDBSeriesJob : BaseJob
 
     public override void PostInit()
     {
-        _title = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
+        _title = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
     }
 
     public override string Title => "Searching for TvDB Series";

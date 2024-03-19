@@ -423,7 +423,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
             }
         }
 
-        await using var rs = await cmd.ExecuteReaderAsync(System.Data.CommandBehavior.SequentialAccess, cancellationToken).ConfigureAwait(false);
+        await using var rs = await cmd.ExecuteReaderAsync(cancellationToken);
 
         var results = new List<(IJobDetail, bool)>();
         while (await rs.ReadAsync(cancellationToken).ConfigureAwait(false))
@@ -435,7 +435,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
             var jobType = loadHelper.LoadType(rs.GetString(ColumnJobClass)!)!;
             var isDurable = GetBooleanFromDbValue(rs[ColumnIsDurable]);
             var requestsRecovery = GetBooleanFromDbValue(rs[ColumnRequestsRecovery]);
-            var map = await ReadMapFromReader(rs, 6).ConfigureAwait(false);
+            var map = await ReadMapFromReader(rs, 6);
             var jobDataMap = map != null ? new JobDataMap(map) : null;
             var blocked = GetBooleanFromDbValue(rs[Blocked]);
 

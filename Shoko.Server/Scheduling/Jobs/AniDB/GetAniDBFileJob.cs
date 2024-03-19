@@ -43,7 +43,7 @@ public class GetAniDBFileJob : BaseJob<SVR_AniDB_File>
     public override Dictionary<string, object> Details => new()
     {
         {
-            "Filename", _vlocal.FileName
+            "Filename", _vlocal?.FileName ?? VideoLocalID.ToString()
         }
     };
 

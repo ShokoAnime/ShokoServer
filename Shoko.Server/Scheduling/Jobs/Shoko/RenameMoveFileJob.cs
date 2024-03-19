@@ -31,7 +31,7 @@ public class RenameMoveFileJob : BaseJob
         _fileName = Utils.GetDistinctPath(_vlocal?.GetBestVideoLocalPlace()?.FullServerPath);
     }
     public override string Title => "Renaming/Moving File";
-    public override Dictionary<string, object> Details => new() { { "File Path", _fileName } };
+    public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };
 
 
     public override Task Process()

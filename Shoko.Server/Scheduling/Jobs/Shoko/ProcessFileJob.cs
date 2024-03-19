@@ -49,7 +49,7 @@ public class ProcessFileJob : BaseJob
     }
 
     public override string Title => "Get XRefs for File";
-    public override Dictionary<string, object> Details => new() { { "File Path", _fileName } };
+    public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };
 
     public override async Task Process()
     {
