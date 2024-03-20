@@ -118,27 +118,15 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
         try
         {
             var (results, _) = _helper.SearchMovies(query, includeRestricted: isRestricted, year: year ?? 0);
-            foreach (var result in results)
-            {
-                Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {MovieName} ({ID})", results.Count, query, result.Title, result.Id);
+            if (results.Count == 0)
+                return false;
 
-                _helper.AddMovieLink(AnimeID, result.Id, episode.EpisodeID, additiveLink: true, isAutomatic: true);
-                _helper.ScheduleUpdateOfMovie(result.Id, forceRefresh: ForceRefresh, downloadImages: true);
+            Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {MovieName} ({ID})", results.Count, query, results[0].OriginalTitle, results[0].Id);
 
-                return true;
-            }
+            _helper.AddMovieLink(AnimeID, results[0].Id, episode.EpisodeID, additiveLink: true, isAutomatic: true);
+            _helper.ScheduleUpdateOfMovie(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
 
-            if (results.Count > 0)
-            {
-                Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {MovieName} ({ID})", results.Count, query, results[0].Title, results[0].Id);
-
-                _helper.AddMovieLink(AnimeID, results[0].Id, episode.EpisodeID, additiveLink: true, isAutomatic: true);
-                _helper.ScheduleUpdateOfMovie(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
-
-                return true;
-            }
-
-            return false;
+            return true;
         }
         catch
         {
@@ -179,14 +167,59 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
         var officialTitle = language == mainTitle.Language ? mainTitle :
             allTitles.FirstOrDefault(title => title.Language == language) ?? mainTitle;
 
-        var results = _helper.OfflineSearch.SearchShows(officialTitle.Title).ToList();
-        if (results.Count == 0)
-            return;
+        // Get the first or second episode to get the aired date if the anime is missing a date.
+        var airDate = anime.AirDate;
+        if (!airDate.HasValue)
+        {
+            airDate = anime.GetAniDBEpisodes()
+                .Where(episode => episode.EpisodeType == (int)Shoko.Models.Enums.EpisodeType.Episode)
+                .OrderBy(episode => episode.EpisodeType)
+                .ThenBy(episode => episode.EpisodeNumber)
+                .Take(2)
+                .LastOrDefault()
+                ?.GetAirDateAsDate();
+        }
 
-        Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {ShowName} ({ID})", results.Count, officialTitle.Title, results[0].Title, results[0].ID);
+        try
+        {
+            // Brute force attempt #1: With the original title and first aired year.
+            var (results, _) = _helper.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1, year: airDate?.Year ?? 0);
+            if (results.Count > 0)
+            {
+                Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {ShowName} ({ID})", results.Count, officialTitle.Title, results[0].OriginalName, results[0].Id);
 
-        _helper.AddShowLink(AnimeID, results[0].ID, additiveLink: true, isAutomatic: true);
-        _helper.ScheduleUpdateOfShow(results[0].ID, forceRefresh: ForceRefresh, downloadImages: true);
+                _helper.AddShowLink(AnimeID, results[0].Id, additiveLink: true, isAutomatic: true);
+                _helper.ScheduleUpdateOfShow(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
+                return;
+            }
+
+            // Brute force attempt #2: With the original title but without the first aired year.
+            if (airDate.HasValue)
+            {
+                (results, _) = _helper.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1);
+                if (results.Count > 0)
+                {
+                    Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {ShowName} ({ID})", results.Count, officialTitle.Title, results[0].OriginalName, results[0].Id);
+
+                    _helper.AddShowLink(AnimeID, results[0].Id, additiveLink: true, isAutomatic: true);
+                    _helper.ScheduleUpdateOfShow(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
+                    return;
+                }
+            }
+        }
+        catch
+        {
+            var results = _helper.OfflineSearch.SearchShows(officialTitle.Title)
+                .OrderBy(show => show.ID)
+                .ToList();
+            if (results.Count == 0)
+                return;
+
+            Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {ShowName} ({ID})", results.Count, officialTitle.Title, results[0].Title, results[0].ID);
+
+            _helper.AddShowLink(AnimeID, results[0].ID, additiveLink: true, isAutomatic: true);
+            _helper.ScheduleUpdateOfShow(results[0].ID, forceRefresh: ForceRefresh, downloadImages: true);
+        }
     }
 
     #endregion
