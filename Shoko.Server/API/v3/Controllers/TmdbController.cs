@@ -459,43 +459,6 @@ public class TmdbController : BaseController
         return new ListResult<SearchMovie>(totalMovies, pageView);
     }
 
-    /// <summary>
-    /// Search TMDB for movies using the offline or online search.
-    /// </summary>
-    /// <param name="query">Query to search for.</param>
-    /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
-    /// <param name="restricted">Only search for results which are or are not restriced if set, otherwise will include both restricted and not restriced movies.</param>
-    /// <param name="pageSize">The page size.</param>
-    /// <param name="page">The page index.</param>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("Movie/Search/Offline")]
-    public ListResult<object> SearchOfflineForTmdbMovies(
-        [FromQuery] string query,
-        [FromQuery] bool fuzzy = true,
-        [FromQuery] IncludeOnlyFilter restricted = IncludeOnlyFilter.False,
-        [FromQuery, Range(0, 100)] int pageSize = 50,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1
-    )
-    {
-        // TODO: Modify this once the tmdb movie search model is finalised. Also maybe switch to using online search, maybe utilising the offline search if we're offline.
-
-        return TmdbHelper.OfflineSearch.SearchMovies(query, fuzzy)
-            .Where(movie =>
-            {
-                if (restricted != IncludeOnlyFilter.True)
-                {
-                    var includeRestricted = restricted == IncludeOnlyFilter.Only;
-                    var isRestricted = movie.IsRestricted;
-                    if (isRestricted != includeRestricted)
-                        return false;
-                }
-
-                return true;
-            })
-            .ToListResult(a => new { a.ID, a.IsRestricted, a.Popularity, a.Title } as object, page, pageSize);
-    }
-
     #endregion
 
     #endregion
@@ -1095,43 +1058,6 @@ public class TmdbController : BaseController
         var (pageView, totalShows) = TmdbHelper.SearchShows(query, includeRestricted, year, page);
 
         return new ListResult<SearchTv>(totalShows, pageView);
-    }
-
-    /// <summary>
-    /// Search TMDB for shows using the offline or online search.
-    /// </summary>
-    /// <param name="query">Query to search for.</param>
-    /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
-    /// <param name="restricted">Only search for results which are or are not restriced if set, otherwise will include both restricted and not restriced shows.</param>
-    /// <param name="pageSize">The page size.</param>
-    /// <param name="page">The page index.</param>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("Show/Search/Offline")]
-    public ListResult<object> SearchOfflineForTmdbShows(
-        [FromQuery] string query,
-        [FromQuery] bool fuzzy = true,
-        [FromQuery] IncludeOnlyFilter restricted = IncludeOnlyFilter.False,
-        [FromQuery, Range(0, 100)] int pageSize = 50,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1
-    )
-    {
-        // TODO: Modify this once the tmdb show search model is finalised. Also maybe switch to using online search, maybe utilising the offline search if we're offline.
-
-        return TmdbHelper.OfflineSearch.SearchShows(query, fuzzy)
-            .Where(show =>
-            {
-                if (restricted != IncludeOnlyFilter.True)
-                {
-                    var includeRestricted = restricted == IncludeOnlyFilter.Only;
-                    var isRestricted = show.IsRestricted;
-                    if (isRestricted != includeRestricted)
-                        return false;
-                }
-
-                return true;
-            })
-            .ToListResult(a => new { a.ID, a.IsRestricted, a.Popularity, a.Title } as object, page, pageSize);
     }
 
     #endregion

@@ -115,32 +115,16 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
 
     private bool SearchForMovie(AniDB_Episode episode, string query, int? year, bool isRestricted)
     {
-        try
-        {
-            var (results, _) = _helper.SearchMovies(query, includeRestricted: isRestricted, year: year ?? 0);
-            if (results.Count == 0)
-                return false;
+        var (results, _) = _helper.SearchMovies(query, includeRestricted: isRestricted, year: year ?? 0);
+        if (results.Count == 0)
+            return false;
 
-            Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {MovieName} ({ID})", results.Count, query, results[0].OriginalTitle, results[0].Id);
+        Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {MovieName} ({ID})", results.Count, query, results[0].OriginalTitle, results[0].Id);
 
-            _helper.AddMovieLink(AnimeID, results[0].Id, episode.EpisodeID, additiveLink: true, isAutomatic: true);
-            _helper.ScheduleUpdateOfMovie(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
+        _helper.AddMovieLink(AnimeID, results[0].Id, episode.EpisodeID, additiveLink: true, isAutomatic: true);
+        _helper.ScheduleUpdateOfMovie(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
 
-            return true;
-        }
-        catch
-        {
-            var results = _helper.OfflineSearch.SearchMovies(query).ToList();
-            if (results.Count == 0)
-                return false;
-
-            Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {MovieName} ({ID})", results.Count, query, results[0].Title, results[0].ID);
-
-            _helper.AddMovieLink(AnimeID, results[0].ID, episode.EpisodeID, additiveLink: true, isAutomatic: true);
-            _helper.ScheduleUpdateOfMovie(results[0].ID, forceRefresh: ForceRefresh, downloadImages: true);
-
-            return true;
-        }
+        return true;
     }
 
     #endregion
@@ -180,10 +164,21 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
                 ?.GetAirDateAsDate();
         }
 
-        try
+        // Brute force attempt #1: With the original title and first aired year.
+        var (results, _) = _helper.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1, year: airDate?.Year ?? 0);
+        if (results.Count > 0)
         {
-            // Brute force attempt #1: With the original title and first aired year.
-            var (results, _) = _helper.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1, year: airDate?.Year ?? 0);
+            Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {ShowName} ({ID})", results.Count, officialTitle.Title, results[0].OriginalName, results[0].Id);
+
+            _helper.AddShowLink(AnimeID, results[0].Id, additiveLink: true, isAutomatic: true);
+            _helper.ScheduleUpdateOfShow(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
+            return;
+        }
+
+        // Brute force attempt #2: With the original title but without the first aired year.
+        if (airDate.HasValue)
+        {
+            (results, _) = _helper.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1);
             if (results.Count > 0)
             {
                 Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {ShowName} ({ID})", results.Count, officialTitle.Title, results[0].OriginalName, results[0].Id);
@@ -192,33 +187,6 @@ public class CommandRequest_TMDB_Search : CommandRequestImplementation
                 _helper.ScheduleUpdateOfShow(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
                 return;
             }
-
-            // Brute force attempt #2: With the original title but without the first aired year.
-            if (airDate.HasValue)
-            {
-                (results, _) = _helper.SearchShows(officialTitle.Title, includeRestricted: anime.Restricted == 1);
-                if (results.Count > 0)
-                {
-                    Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {ShowName} ({ID})", results.Count, officialTitle.Title, results[0].OriginalName, results[0].Id);
-
-                    _helper.AddShowLink(AnimeID, results[0].Id, additiveLink: true, isAutomatic: true);
-                    _helper.ScheduleUpdateOfShow(results[0].Id, forceRefresh: ForceRefresh, downloadImages: true);
-                    return;
-                }
-            }
-        }
-        catch
-        {
-            var results = _helper.OfflineSearch.SearchShows(officialTitle.Title)
-                .OrderBy(show => show.ID)
-                .ToList();
-            if (results.Count == 0)
-                return;
-
-            Logger.LogTrace("Found {Count} results for search on {Query} --- Linked to {ShowName} ({ID})", results.Count, officialTitle.Title, results[0].Title, results[0].ID);
-
-            _helper.AddShowLink(AnimeID, results[0].ID, additiveLink: true, isAutomatic: true);
-            _helper.ScheduleUpdateOfShow(results[0].ID, forceRefresh: ForceRefresh, downloadImages: true);
         }
     }
 

@@ -12,7 +12,6 @@ using Shoko.Server.Commands;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.TMDB;
-using Shoko.Server.Providers.TMDB.Search;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -39,8 +38,6 @@ public class TMDBHelper
 
     private readonly ISettingsProvider _settingsProvider;
 
-    public readonly TMDBOfflineSearch OfflineSearch;
-
     private readonly TMDbClient _client;
 
     private static string? _imageServerUrl = null;
@@ -56,7 +53,6 @@ public class TMDBHelper
         _commandFactory = commandFactory;
         _settingsProvider = settingsProvider;
         _client = new(APIKey);
-        OfflineSearch = new(loggerFactory);
 
         if (string.IsNullOrEmpty(_imageServerUrl))
         {
