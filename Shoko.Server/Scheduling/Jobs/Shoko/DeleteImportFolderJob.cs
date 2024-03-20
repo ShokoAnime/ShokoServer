@@ -13,14 +13,21 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 internal class DeleteImportFolderJob : BaseJob
 {
     private readonly ActionService _actionService;
+    private string _importFolder;
 
     public int ImportFolderID { get; set; }
     public override string TypeName => "Delete Import Folder";
     public override string Title => "Deleting Import Folder";
+
+    public override void PostInit()
+    {
+        _importFolder = RepoFactory.ImportFolder?.GetByID(ImportFolderID)?.ImportFolderName;
+    }
+
     public override Dictionary<string, object> Details => new()
     {
         {
-            "Import Folder", RepoFactory.ImportFolder?.GetByID(ImportFolderID)?.ImportFolderName ?? ImportFolderID.ToString()
+            "Import Folder", _importFolder ?? ImportFolderID.ToString()
         }
     };
 

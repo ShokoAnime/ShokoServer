@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Models.Server;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -20,27 +21,27 @@ public class SyncTraktCollectionEpisodeJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
+    private AniDB_Episode _episode;
     public int AnimeEpisodeID { get; set; }
     public TraktSyncAction Action { get; set; }
 
     public override string TypeName => "Sync Episode to Trakt Collection";
     public override string Title => "Syncing Episode to Trakt Collection";
-    public override Dictionary<string, object> Details
+    public override void PostInit()
     {
-        get
-        {
-            var episode = RepoFactory.AnimeEpisode?.GetByID(AnimeEpisodeID)?.AniDB_Episode;
-            return episode == null ? new()
-            {
-                { "EpisodeID", AnimeEpisodeID }
-            } : new()
-            {
-                { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(episode.AnimeID)?.PreferredTitle },
-                { "Episode Type", ((EpisodeType)episode.EpisodeType).ToString() },
-                { "Episode Number", episode.EpisodeNumber }
-            };
-        }
+        _episode = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID)?.AniDB_Episode;
     }
+
+    public override Dictionary<string, object> Details =>
+        _episode == null ? new()
+        {
+            { "EpisodeID", AnimeEpisodeID }
+        } : new()
+        {
+            { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(_episode.AnimeID)?.PreferredTitle },
+            { "Episode Type", ((EpisodeType)_episode.EpisodeType).ToString() },
+            { "Episode Number", _episode.EpisodeNumber }
+        };
 
     public override Task Process()
     {

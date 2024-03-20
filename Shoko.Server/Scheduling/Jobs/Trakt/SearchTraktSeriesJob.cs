@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using NHibernate;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Databases;
+using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
@@ -24,12 +25,18 @@ namespace Shoko.Server.Scheduling.Jobs.Trakt;
 public class SearchTraktSeriesJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
+    private readonly AniDBTitleHelper _titleHelper;
     private readonly TraktTVHelper _helper;
+    private string _anime;
     public int AnimeID { get; set; }
 
     public override string TypeName => "Get Trakt Series";
     public override string Title => "Searching for Trakt Series";
-    public override Dictionary<string, object> Details => new() { { "Anime", RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString() } };
+    public override void PostInit()
+    {
+        _anime = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle;
+    }
+    public override Dictionary<string, object> Details => new() { { "Anime", _anime ?? AnimeID.ToString() } };
 
     public override Task Process()
     {
@@ -145,10 +152,11 @@ public class SearchTraktSeriesJob : BaseJob
         return false;
     }
 
-    public SearchTraktSeriesJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
+    public SearchTraktSeriesJob(TraktTVHelper helper, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
     {
         _helper = helper;
         _settingsProvider = settingsProvider;
+        _titleHelper = titleHelper;
     }
 
     protected SearchTraktSeriesJob() { }

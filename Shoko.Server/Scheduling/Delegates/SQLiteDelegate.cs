@@ -13,6 +13,7 @@ using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
 using Quartz.Util;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Scheduling.DatabaseLocks;
 
 namespace Shoko.Server.Scheduling.Delegates;
 

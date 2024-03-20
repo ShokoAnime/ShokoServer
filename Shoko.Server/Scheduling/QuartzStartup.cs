@@ -231,7 +231,7 @@ GO
 
 CREATE TABLE [dbo].[QRTZ_CRON_TRIGGERS] (
   [SCHED_NAME] nvarchar(120) NOT NULL,
-  [TRIGGER_NAME] nvarchar(150) NOT NULL,
+  [TRIGGER_NAME] nvarchar(450) NOT NULL,
   [TRIGGER_GROUP] nvarchar(150) NOT NULL,
   [CRON_EXPRESSION] nvarchar(120) NOT NULL,
   [TIME_ZONE_ID] nvarchar(80) 
@@ -241,14 +241,14 @@ GO
 CREATE TABLE [dbo].[QRTZ_FIRED_TRIGGERS] (
   [SCHED_NAME] nvarchar(120) NOT NULL,
   [ENTRY_ID] nvarchar(140) NOT NULL,
-  [TRIGGER_NAME] nvarchar(150) NOT NULL,
+  [TRIGGER_NAME] nvarchar(450) NOT NULL,
   [TRIGGER_GROUP] nvarchar(150) NOT NULL,
   [INSTANCE_NAME] nvarchar(200) NOT NULL,
   [FIRED_TIME] bigint NOT NULL,
   [SCHED_TIME] bigint NOT NULL,
   [PRIORITY] int NOT NULL,
   [STATE] nvarchar(16) NOT NULL,
-  [JOB_NAME] nvarchar(150) NULL,
+  [JOB_NAME] nvarchar(450) NULL,
   [JOB_GROUP] nvarchar(150) NULL,
   [IS_NONCONCURRENT] bit NULL,
   [REQUESTS_RECOVERY] bit NULL 
@@ -277,7 +277,7 @@ GO
 
 CREATE TABLE [dbo].[QRTZ_JOB_DETAILS] (
   [SCHED_NAME] nvarchar(120) NOT NULL,
-  [JOB_NAME] nvarchar(150) NOT NULL,
+  [JOB_NAME] nvarchar(450) NOT NULL,
   [JOB_GROUP] nvarchar(150) NOT NULL,
   [DESCRIPTION] nvarchar(250) NULL,
   [JOB_CLASS_NAME] nvarchar(250) NOT NULL,
@@ -291,7 +291,7 @@ GO
 
 CREATE TABLE [dbo].[QRTZ_SIMPLE_TRIGGERS] (
   [SCHED_NAME] nvarchar(120) NOT NULL,
-  [TRIGGER_NAME] nvarchar(150) NOT NULL,
+  [TRIGGER_NAME] nvarchar(450) NOT NULL,
   [TRIGGER_GROUP] nvarchar(150) NOT NULL,
   [REPEAT_COUNT] int NOT NULL,
   [REPEAT_INTERVAL] bigint NOT NULL,
@@ -301,7 +301,7 @@ GO
 
 CREATE TABLE [dbo].[QRTZ_SIMPROP_TRIGGERS] (
   [SCHED_NAME] nvarchar(120) NOT NULL,
-  [TRIGGER_NAME] nvarchar(150) NOT NULL,
+  [TRIGGER_NAME] nvarchar(450) NOT NULL,
   [TRIGGER_GROUP] nvarchar(150) NOT NULL,
   [STR_PROP_1] nvarchar(512) NULL,
   [STR_PROP_2] nvarchar(512) NULL,
@@ -320,7 +320,7 @@ GO
 
 CREATE TABLE [dbo].[QRTZ_BLOB_TRIGGERS] (
   [SCHED_NAME] nvarchar(120) NOT NULL,
-  [TRIGGER_NAME] nvarchar(150) NOT NULL,
+  [TRIGGER_NAME] nvarchar(450) NOT NULL,
   [TRIGGER_GROUP] nvarchar(150) NOT NULL,
   [BLOB_DATA] varbinary(max) NULL
 );
@@ -328,9 +328,9 @@ GO
 
 CREATE TABLE [dbo].[QRTZ_TRIGGERS] (
   [SCHED_NAME] nvarchar(120) NOT NULL,
-  [TRIGGER_NAME] nvarchar(150) NOT NULL,
+  [TRIGGER_NAME] nvarchar(450) NOT NULL,
   [TRIGGER_GROUP] nvarchar(150) NOT NULL,
-  [JOB_NAME] nvarchar(150) NOT NULL,
+  [JOB_NAME] nvarchar(450) NOT NULL,
   [JOB_GROUP] nvarchar(150) NOT NULL,
   [DESCRIPTION] nvarchar(250) NULL,
   [NEXT_FIRE_TIME] bigint NULL,

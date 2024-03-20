@@ -521,9 +521,43 @@ public partial class ThreadPooledJobStore : JobStoreTX
         return metadata.ThreadPoolSize;
     }
 
+    private QueueItem[] GetExecutingQueueItems()
+    {
+        QueueItem[] executing;
+        lock (_executingJobs)
+            executing = _executingJobs.Values.Select(a =>
+            {
+                var detail = a.Job;
+                var job = _jobFactory.CreateJob(detail);
+                return new QueueItem
+                {
+                    Key = detail.Key.ToString(),
+                    JobType = job?.TypeName ?? detail.JobType.Name,
+                    Title = job?.Title ?? job?.TypeName,
+                    Details = job?.Details ?? new(),
+                    Running = true,
+                    StartTime = a.StartTime
+                };
+            }).OrderBy(a => a.StartTime).ToArray();
+        return executing;
+    }
+
+    private static Func<T,Task> Throttle<T>(Func<T, Task> func, TimeSpan throttle)
+    {   
+        var throttling = false;
+        return t =>
+        {
+            if(throttling) return Task.CompletedTask;
+            var result = func(t);
+            throttling = true;
+            Task.Delay(throttle).ContinueWith(_ => throttling = false);
+            return result;
+        };
+    }
+
     private void JobStoringQueueEvents(IJobDetail newJob, CancellationToken cancellationToken)
     {
-        Task.Run(async () =>
+        var func = new Func<IJobDetail, Task>(async job =>
         {
             try
             {
@@ -536,7 +570,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
                     var executing = GetExecutingQueueItems();
                     var waiting = await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, _threadPoolSize, false, cancellationToken);
 
-                    _queueStateEventHandler.OnJobAdded(newJob, new QueueStateContext
+                    _queueStateEventHandler.OnJobAdded(job, new QueueStateContext
                     {
                         ThreadCount = _threadPoolSize,
                         WaitingTriggersCount = waitingTriggerCount,
@@ -551,19 +585,21 @@ public partial class ThreadPooledJobStore : JobStoreTX
             {
                 _logger.LogError(e, "An error occurred while firing Job Added events");
             }
-        }, cancellationToken).ConfigureAwait(false);
+        });
+        
+        Task.Run(() => Throttle(func, TimeSpan.FromSeconds(5))(newJob), cancellationToken).ConfigureAwait(false);
     }
 
     private void JobFiringQueueEvents(IOperableTrigger trigger, IJobDetail jobDetail,
         CancellationToken cancellationToken)
     {
-        Task.Run(async () =>
+        var func = new Func<IOperableTrigger, Task>(async t =>
         {
             try
             {
                 await ExecuteInNonManagedTXLock(LockTriggerAccess, async conn =>
                 {
-                    lock (_executingJobs) _executingJobs[jobDetail.Key] = (jobDetail, trigger.StartTimeUtc.LocalDateTime);
+                    lock (_executingJobs) _executingJobs[jobDetail.Key] = (jobDetail, t.StartTimeUtc.LocalDateTime);
                     var types = GetTypes();
                     var waitingTriggerCount = await GetWaitingTriggersCount(conn, types, cancellationToken);
                     var blockedTriggerCount = await GetBlockedTriggersCount(conn, types, cancellationToken);
@@ -586,40 +622,21 @@ public partial class ThreadPooledJobStore : JobStoreTX
             {
                 _logger.LogError(e, "An error occurred while firing Job Executing events");
             }
-        }, cancellationToken).ConfigureAwait(false);
-    }
+        });
 
-    private QueueItem[] GetExecutingQueueItems()
-    {
-        QueueItem[] executing;
-        lock (_executingJobs)
-            executing = _executingJobs.Values.Select(a =>
-            {
-                var detail = a.Job;
-                var job = _jobFactory.CreateJob(detail);
-                return new QueueItem
-                {
-                    Key = detail.Key.ToString(),
-                    JobType = job?.TypeName ?? detail.JobType.Name,
-                    Title = job?.Title ?? job?.TypeName,
-                    Details = job?.Details ?? new(),
-                    Running = true,
-                    StartTime = a.StartTime
-                };
-            }).OrderBy(a => a.StartTime).ToArray();
-        return executing;
+        Task.Run(() => Throttle(func, TimeSpan.FromSeconds(5))(trigger), cancellationToken).ConfigureAwait(false);
     }
 
     private void JobCompletedQueueEvents(IJobDetail jobDetail, CancellationToken cancellationToken)
     {
-        Task.Run(async () =>
+        var func = new Func<IJobDetail, Task>(async job =>
         {
             try
             {
                 await ExecuteInNonManagedTXLock(LockTriggerAccess, async conn =>
                 {
                     // this runs before the states have been updated, so things that were blocked for concurrency are still blocked at this point
-                    lock (_executingJobs) _executingJobs.Remove(jobDetail.Key);
+                    lock (_executingJobs) _executingJobs.Remove(job.Key);
                     var types = GetTypes();
                     var waitingTriggerCount = await GetWaitingTriggersCount(conn, types, cancellationToken);
                     var blockedTriggerCount = await GetBlockedTriggersCount(conn, types, cancellationToken);
@@ -627,7 +644,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
                     var executing = GetExecutingQueueItems();
                     var waiting = await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, _threadPoolSize, false, cancellationToken);
 
-                    _queueStateEventHandler.OnJobCompleted(jobDetail, new QueueStateContext
+                    _queueStateEventHandler.OnJobCompleted(job, new QueueStateContext
                     {
                         ThreadCount = _threadPoolSize,
                         WaitingTriggersCount = waitingTriggerCount,
@@ -646,7 +663,9 @@ public partial class ThreadPooledJobStore : JobStoreTX
             {
                 _logger.LogError(e, "An error occurred while firing Job Completed events");
             }
-        }, cancellationToken).ConfigureAwait(false);
+        });
+
+        Task.Run(() => func(jobDetail), cancellationToken).ConfigureAwait(false);
     }
 
     private new IFilteredDriverDelegate Delegate => base.Delegate as IFilteredDriverDelegate;

@@ -39,14 +39,14 @@ public class DownloadTvDBImageJob : BaseJob, IImageDownloadJob
 
     public override void PostInit()
     {
-        Anime = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
+        Anime = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle;
     }
 
     public override string TypeName => "Download TvDB Image";
     public override string Title => "Downloading TvDB Image";
     public override Dictionary<string, object> Details => new()
     {
-        { "Anime", Anime },
+        { "Anime", Anime ?? AnimeID.ToString() },
         { "Type", ImageType.ToString().Replace("_", " ") },
         { "ImageID", ImageID }
     };

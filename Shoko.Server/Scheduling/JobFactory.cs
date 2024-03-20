@@ -8,6 +8,7 @@ using Quartz.Simpl;
 using Quartz.Spi;
 using Shoko.Server.Scheduling.GenericJobBuilder;
 using Shoko.Server.Scheduling.Jobs;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Scheduling;
 
@@ -29,7 +30,8 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
             {
                 // This is used to make a logger with a useful name
                 baseJob._logger = _loggerFactory.CreateLogger(bundle.JobDetail.Key.Name.Replace(".", "․"));
-                baseJob.PostInit();
+                if (ServerState.Instance.DatabaseAvailable) baseJob.PostInit();
+                else baseJob._logger.LogTrace("Server not started yet. Details will be less descriptive");
             }
             else if (job.GetType().Name.Equals("ScopedJob"))
             {
@@ -38,7 +40,8 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
                 var innerJob = innerJobProperty.GetValue(job) as IJob;
                 if (innerJob is not BaseJob innerBaseJob) return job;
                 innerBaseJob._logger = _loggerFactory.CreateLogger(bundle.JobDetail.Key.Name.Replace(".", "․"));
-                innerBaseJob.PostInit();
+                if (ServerState.Instance.DatabaseAvailable) innerBaseJob.PostInit();
+                else innerBaseJob._logger.LogTrace("Server not started yet. Details will be less descriptive");
             }
             return job;
         }
@@ -57,29 +60,6 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
             var job = _serviceProvider.GetRequiredService<T>();
             ctor?.Invoke(job);
             var jobKey = ctor == null ? JobKeyBuilder<T>.Create().Build() : JobKeyBuilder<T>.Create().UsingJobData(ctor).Build();
-            job._logger = _loggerFactory.CreateLogger(jobKey.Name);
-            job.PostInit();
-            return job;
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "There was an error initializing Generic Job: {Type}", typeof(T).Name);
-            throw;
-        }
-    }
-
-    public T CreateJob<T>(IJobDetail jobDetails) where T : BaseJob
-    {
-        return CreateJob<T>(jobDetails.JobDataMap);
-    }
-
-    public T CreateJob<T>(JobDataMap dataMap) where T : BaseJob
-    {
-        try
-        {
-            var job = _serviceProvider.GetRequiredService<T>();
-            SetObjectProperties(job, dataMap);
-            var jobKey = JobKeyBuilder<T>.Create().UsingJobData(dataMap).Build();
             job._logger = _loggerFactory.CreateLogger(jobKey.Name);
             job.PostInit();
             return job;

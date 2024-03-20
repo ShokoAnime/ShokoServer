@@ -17,17 +17,29 @@ namespace Shoko.Server.Scheduling.Jobs.TvDB;
 public class LinkTvDBSeriesJob : BaseJob
 {
     private readonly TvDBApiHelper _helper;
+    private string _animeName;
+    private string _seriesName;
     public int AnimeID { get; set; }
     public int TvDBID { get; set; }
     public bool AdditiveLink { get; set; }
 
     public override string TypeName => "Link TvDB Series";
     public override string Title => "Linking TvDB Series";
-    public override Dictionary<string, object> Details => new()
+    public override void PostInit()
     {
-        { "Anime", RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString() },
-        { "TvDB Series", RepoFactory.TvDB_Series?.GetByTvDBID(TvDBID)?.SeriesName ?? TvDBID.ToString() }
-    };
+        _animeName = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.PreferredTitle;
+        _seriesName = RepoFactory.TvDB_Series.GetByTvDBID(TvDBID)?.SeriesName;
+    }
+
+    public override Dictionary<string, object> Details => new()
+        {
+            {
+                "Anime", _animeName ?? AnimeID.ToString()
+            },
+            {
+                "TvDB Series", _seriesName ?? TvDBID.ToString()
+            }
+        };
 
     public override async Task Process()
     {

@@ -11,8 +11,9 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
-using Quartz.Util;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Scheduling.DatabaseLocks;
+using DataReaderExtensions = Quartz.Util.DataReaderExtensions;
 
 namespace Shoko.Server.Scheduling.Delegates;
 
@@ -21,26 +22,26 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
     private string _schedulerName;
     private const string Blocked = "Blocked";
     private const string SubQuery = "{SubQuery}";
-    public ISemaphore LockHandler => null;
+    public ISemaphore LockHandler => new NoLockSemaphore();
 
     private IEnumerable<string> GetJobClasses(IEnumerable<Type> types) => types.Select(GetStorableJobTypeName).ToArray();
 
     private const string GetSelectPartNoExclusions = @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, 0 as {Blocked}
-              FROM {TablePrefixSubst}{TableTriggers} t
-              JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
+              FROM {TablePrefixSubst}{TableTriggers} t WITH(NOLOCK)
+              JOIN {TablePrefixSubst}{TableJobDetails} jd WITH(NOLOCK) ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))";
 
     private const string GetSelectPartExcludingTypes = @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, 0 as {Blocked}
-              FROM {TablePrefixSubst}{TableTriggers} t
-              JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
+              FROM {TablePrefixSubst}{TableTriggers} t WITH(NOLOCK)
+              JOIN {TablePrefixSubst}{TableJobDetails} jd WITH(NOLOCK) ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
                 AND jd.{ColumnJobClass} NOT IN (@types)";
 
     private static string GetSelectPartOfType(int index, bool limit)
     {
         return @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, @limitBlocked{index} as {Blocked}
-              FROM {TablePrefixSubst}{TableTriggers} t
-              JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
+              FROM {TablePrefixSubst}{TableTriggers} t WITH(NOLOCK)
+              JOIN {TablePrefixSubst}{TableJobDetails} jd WITH(NOLOCK) ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
                 AND jd.{ColumnJobClass} = @limit{index}Type
               ORDER BY t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC
@@ -50,8 +51,8 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
     private static string GetSelectPartInTypes(int index, bool limit)
     {
         return @$"SELECT t.{ColumnTriggerName}, t.{ColumnTriggerGroup}, jd.{ColumnJobClass}, t.{ColumnPriority}, t.{ColumnNextFireTime}, @groupBlocked{index} as {Blocked}
-              FROM {TablePrefixSubst}{TableTriggers} t
-              JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
+              FROM {TablePrefixSubst}{TableTriggers} t WITH(NOLOCK)
+              JOIN {TablePrefixSubst}{TableJobDetails} jd WITH(NOLOCK) ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = @state AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
                 AND jd.{ColumnJobClass} IN (@groupLimit{index}Types)
               ORDER BY t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC 
@@ -59,25 +60,25 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
     }
 
     private const string GetCountNoExclusions = @$"SELECT Count(1)
-              FROM {TablePrefixSubst}{TableTriggers} t
+              FROM {TablePrefixSubst}{TableTriggers} t WITH(NOLOCK)
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = '{StateWaiting}' AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))";
 
     private const string SelectBlockedTypeCountsSql= @$"SELECT jd.{ColumnJobClass}, COUNT(jd.{ColumnJobClass}) AS Count
-              FROM {TablePrefixSubst}{TableTriggers} t
+              FROM {TablePrefixSubst}{TableTriggers} t WITH(NOLOCK)
               JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND (({ColumnTriggerState} = '{StateWaiting}' AND jd.{ColumnJobClass} IN (@types)) OR {ColumnTriggerState} = '{StateBlocked}') AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
               GROUP BY jd.{ColumnJobClass} HAVING COUNT(1) > 0";
 
     private const string SelectJobClassesAndCountSql= @$"SELECT jd.{ColumnJobClass}, COUNT(jd.{ColumnJobClass}) AS Count
-              FROM {TablePrefixSubst}{TableTriggers} t
-              JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
+              FROM {TablePrefixSubst}{TableTriggers} t WITH(NOLOCK)
+              JOIN {TablePrefixSubst}{TableJobDetails} jd WITH(NOLOCK) ON (jd.{ColumnSchedulerName} = t.{ColumnSchedulerName} AND  jd.{ColumnJobGroup} = t.{ColumnJobGroup} AND jd.{ColumnJobName} = t.{ColumnJobName}) 
               WHERE t.{ColumnSchedulerName} = @schedulerName AND {ColumnTriggerState} = '{StateWaiting}' AND {ColumnNextFireTime} <= @noLaterThan AND ({ColumnMifireInstruction} = -1 OR ({ColumnMifireInstruction} <> -1 AND {ColumnNextFireTime} >= @noEarlierThan))
               GROUP BY jd.{ColumnJobClass} HAVING COUNT(1) > 0";
 
     private const string GetJobSql = @$"SELECT jd.{ColumnJobName}, jd.{ColumnJobGroup}, jd.{ColumnDescription}, jd.{ColumnJobClass}, jd.{ColumnIsDurable}, jd.{ColumnRequestsRecovery}, jd.{ColumnJobDataMap}, jd.{ColumnIsNonConcurrent}, jd.{ColumnIsUpdateData}, t.{Blocked}
               FROM ({SubQuery}) t
-              JOIN {TablePrefixSubst}{TableTriggers} t1 on t.{ColumnTriggerName} = t1.{ColumnTriggerName} AND t.{ColumnTriggerGroup} = t1.{ColumnTriggerGroup} AND t1.{ColumnSchedulerName} = @schedulerName
-              JOIN {TablePrefixSubst}{TableJobDetails} jd ON (jd.{ColumnSchedulerName} = t1.{ColumnSchedulerName} AND jd.{ColumnJobGroup} = t1.{ColumnJobGroup} AND jd.{ColumnJobName} = t1.{ColumnJobName}) 
+              JOIN {TablePrefixSubst}{TableTriggers} t1 WITH(NOLOCK) on t.{ColumnTriggerName} = t1.{ColumnTriggerName} AND t.{ColumnTriggerGroup} = t1.{ColumnTriggerGroup} AND t1.{ColumnSchedulerName} = @schedulerName
+              JOIN {TablePrefixSubst}{TableJobDetails} jd WITH(NOLOCK) ON (jd.{ColumnSchedulerName} = t1.{ColumnSchedulerName} AND jd.{ColumnJobGroup} = t1.{ColumnJobGroup} AND jd.{ColumnJobName} = t1.{ColumnJobName}) 
               ORDER BY {Blocked} ASC, t.{ColumnPriority} DESC, t.{ColumnNextFireTime} ASC
               OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
 
@@ -255,8 +256,8 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
         await using var rs = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await rs.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            var jobType = loadHelper.LoadType(rs.GetString(ColumnJobClass)!)!;
-            results[jobType] = rs.GetInt32("Count")!;
+            var jobType = loadHelper.LoadType(DataReaderExtensions.GetString(rs, ColumnJobClass)!)!;
+            results[jobType] = DataReaderExtensions.GetInt32(rs, "Count")!;
         }
 
         // We need to get the number of jobs that are queued, then subtract the allowed number, ensuring that blocked count doesn't go negative
@@ -293,8 +294,8 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
         await using var rs = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await rs.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            var jobType = loadHelper.LoadType(rs.GetString(ColumnJobClass)!)!;
-            result[jobType] = rs.GetInt32("Count")!;
+            var jobType = loadHelper.LoadType(DataReaderExtensions.GetString(rs, ColumnJobClass)!)!;
+            result[jobType] = DataReaderExtensions.GetInt32(rs, "Count")!;
         }
 
         return result;
@@ -428,10 +429,10 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
         while (await rs.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             // Due to CommandBehavior.SequentialAccess, columns must be read in order.
-            var jobName = rs.GetString(ColumnJobName)!;
-            var jobGroup = rs.GetString(ColumnJobGroup);
-            var description = rs.GetString(ColumnDescription);
-            var jobType = loadHelper.LoadType(rs.GetString(ColumnJobClass)!)!;
+            var jobName = DataReaderExtensions.GetString(rs, ColumnJobName)!;
+            var jobGroup = DataReaderExtensions.GetString(rs, ColumnJobGroup);
+            var description = DataReaderExtensions.GetString(rs, ColumnDescription);
+            var jobType = loadHelper.LoadType(DataReaderExtensions.GetString(rs, ColumnJobClass)!)!;
             var isDurable = GetBooleanFromDbValue(rs[ColumnIsDurable]);
             var requestsRecovery = GetBooleanFromDbValue(rs[ColumnRequestsRecovery]);
             var map = await ReadMapFromReader(rs, 6);

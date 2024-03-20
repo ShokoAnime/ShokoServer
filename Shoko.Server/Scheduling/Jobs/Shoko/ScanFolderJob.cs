@@ -13,12 +13,17 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 internal class ScanFolderJob : BaseJob
 {
     private readonly ActionService _actionService;
+    private string _importFolder;
 
     [JobKeyMember]
     public int ImportFolderID { get; set; }
     public override string TypeName => "Scan Folder";
     public override string Title => "Scanning Import Folder";
-    public override Dictionary<string, object> Details => new() { { "Import Folder", RepoFactory.ImportFolder?.GetByID(ImportFolderID)?.ImportFolderName ?? ImportFolderID.ToString() } };
+    public override void PostInit()
+    {
+        _importFolder = RepoFactory.ImportFolder?.GetByID(ImportFolderID)?.ImportFolderName;
+    }
+    public override Dictionary<string, object> Details => new() { { "Import Folder", _importFolder ?? ImportFolderID.ToString() } };
 
     public override async Task Process()
     {
