@@ -587,7 +587,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
             }
         });
         
-        Task.Run(() => Throttle(func, TimeSpan.FromSeconds(5))(newJob), cancellationToken).ConfigureAwait(false);
+        Task.Run(() => Throttle(func, TimeSpan.FromSeconds(2))(newJob), cancellationToken).ConfigureAwait(false);
     }
 
     private void JobFiringQueueEvents(IOperableTrigger trigger, IJobDetail jobDetail,
@@ -624,7 +624,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
             }
         });
 
-        Task.Run(() => Throttle(func, TimeSpan.FromSeconds(5))(trigger), cancellationToken).ConfigureAwait(false);
+        Task.Run(() => Throttle(func, TimeSpan.FromSeconds(2))(trigger), cancellationToken).ConfigureAwait(false);
     }
 
     private void JobCompletedQueueEvents(IJobDetail jobDetail, CancellationToken cancellationToken)
@@ -665,7 +665,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
             }
         });
 
-        Task.Run(() => func(jobDetail), cancellationToken).ConfigureAwait(false);
+        Task.Run(() => Throttle(func, TimeSpan.FromSeconds(2))(jobDetail), cancellationToken).ConfigureAwait(false);
     }
 
     private new IFilteredDriverDelegate Delegate => base.Delegate as IFilteredDriverDelegate;
