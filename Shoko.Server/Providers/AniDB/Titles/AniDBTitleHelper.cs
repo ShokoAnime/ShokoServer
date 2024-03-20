@@ -4,6 +4,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Threading;
 using System.Xml.Serialization;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Server;
@@ -14,15 +16,14 @@ namespace Shoko.Server.Providers.AniDB.Titles;
 
 public class AniDBTitleHelper
 {
-    // ensure that it doesn't try to download at the same time
-    private static readonly object AccessLock = new();
+    private readonly ReaderWriterLockSlim _accessLock = new(LockRecursionPolicy.SupportsRecursion);
 
-    private static readonly string CacheFilePath = Path.Combine(Utils.ApplicationPath, "anime-titles.xml");
+    private readonly string CacheFilePath = Path.Combine(Utils.ApplicationPath, "anime-titles.xml");
 
-    private static readonly string CacheFilePathTemp =
+    private readonly string CacheFilePathTemp =
         Path.Combine(Utils.ApplicationPath, "anime-titles.xml") + ".temp";
 
-    private static readonly string CacheFilePathBak =
+    private readonly string CacheFilePathBak =
         Path.Combine(Utils.ApplicationPath, "anime-titles.xml") + ".bak";
 
     private ResponseAniDBTitles _cache;
@@ -37,23 +38,22 @@ public class AniDBTitleHelper
     {
         try
         {
-            if (_cache == null)
-            {
-                CreateCache();
-            }
+            if (_cache == null) CreateCache();
 
-            if (_cache != null)
+            
+            try
             {
-                return _cache.Animes;
+                _accessLock.EnterReadLock();
+                return _cache?.Animes.ToList() ?? new List<ResponseAniDBTitles.Anime>();
+            }
+            finally
+            {
+                _accessLock.ExitReadLock();
             }
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
-        }
-        if (_cache == null)
-        {
-            CreateCache();
         }
 
         return new List<ResponseAniDBTitles.Anime>();
@@ -63,13 +63,18 @@ public class AniDBTitleHelper
     {
         try
         {
-            if (_cache == null)
+            if (_cache == null) CreateCache();
+            
+            try
             {
-                CreateCache();
+                _accessLock.EnterReadLock();
+                return _cache?.Animes
+                    .FirstOrDefault(a => a.AnimeID == animeID);
             }
-
-            return _cache?.Animes
-                .FirstOrDefault(a => a.AnimeID == animeID);
+            finally
+            {
+                _accessLock.ExitReadLock();
+            }
         }
         catch (Exception e)
         {
@@ -83,15 +88,14 @@ public class AniDBTitleHelper
     {
         try
         {
-            if (_cache == null)
-            {
-                CreateCache();
-            }
+            if (_cache == null) CreateCache();
 
-            if (_cache != null)
+
+            try
             {
+                _accessLock.EnterReadLock();
                 var languages = _settingsProvider.GetSettings().LanguagePreference;
-                return _cache.Animes
+                return _cache?.Animes
                     .AsParallel()
                     .Search(
                         query,
@@ -102,7 +106,11 @@ public class AniDBTitleHelper
                             .ToList(),
                         fuzzy
                     )
-                    .Select(a => a.Result);
+                    .Select(a => a.Result).ToList() ?? new List<ResponseAniDBTitles.Anime>();
+            }
+            finally
+            {
+                _accessLock.ExitReadLock();
             }
         }
         catch (Exception e)
@@ -115,37 +123,24 @@ public class AniDBTitleHelper
 
     private void CreateCache()
     {
+        _accessLock.EnterWriteLock();
         if (!File.Exists(CacheFilePath))
         {
             // first check if there's a temp file
-            if (File.Exists(CacheFilePathTemp))
-            {
-                File.Move(CacheFilePathTemp, CacheFilePath);
-            }
+            if (File.Exists(CacheFilePathTemp)) File.Move(CacheFilePathTemp, CacheFilePath);
 
-            if (!File.Exists(CacheFilePath))
-            {
-                lock (AccessLock)
-                {
-                    DownloadCache();
-                }
-            }
+            if (!File.Exists(CacheFilePath)) DownloadCache();
         }
 
         if (!File.Exists(CacheFilePath))
         {
+            _accessLock.ExitWriteLock();
             return;
         }
 
-        lock (AccessLock)
-        {
-            // If data is stale, then re-download
-            var lastWriteTime = File.GetLastWriteTime(CacheFilePath);
-            if (DateTime.Now - lastWriteTime > TimeSpan.FromHours(24))
-            {
-                DownloadCache();
-            }
-        }
+        // If data is stale, then re-download
+        var lastWriteTime = File.GetLastWriteTime(CacheFilePath);
+        if (DateTime.Now - lastWriteTime > TimeSpan.FromHours(24)) DownloadCache();
 
         try
         {
@@ -156,6 +151,7 @@ public class AniDBTitleHelper
             Decompress();
             LoadCache();
         }
+        _accessLock.ExitWriteLock();
     }
 
     private void LoadCache()
@@ -163,48 +159,33 @@ public class AniDBTitleHelper
         // Load the file
         using var stream = new FileStream(CacheFilePath, FileMode.Open);
         var serializer = new XmlSerializer(typeof(ResponseAniDBTitles));
-        if (serializer.Deserialize(stream) is ResponseAniDBTitles rawData)
-        {
-            _cache = rawData;
-        }
+        if (serializer.Deserialize(stream) is ResponseAniDBTitles rawData) _cache = rawData;
     }
 
-    private static void Decompress()
+    private void Decompress()
     {
         using var stream = new FileStream(CacheFilePath, FileMode.Open);
         var gzip = new GZipStream(stream, CompressionMode.Decompress);
         var textResponse = new StreamReader(gzip).ReadToEnd();
-        if (File.Exists(CacheFilePathTemp))
-        {
-            File.Delete(CacheFilePathTemp);
-        }
+        if (File.Exists(CacheFilePathTemp)) File.Delete(CacheFilePathTemp);
 
         File.WriteAllText(CacheFilePathTemp, textResponse);
 
         // backup the old one
-        if (File.Exists(CacheFilePath))
-        {
-            File.Move(CacheFilePath, CacheFilePathBak);
-        }
+        if (File.Exists(CacheFilePath)) File.Move(CacheFilePath, CacheFilePathBak);
 
         // rename new one
         File.Move(CacheFilePathTemp, CacheFilePath);
 
         // remove old one
-        if (File.Exists(CacheFilePathBak))
-        {
-            File.Delete(CacheFilePathBak);
-        }
+        if (File.Exists(CacheFilePathBak)) File.Delete(CacheFilePathBak);
     }
 
-    private static void DownloadCache()
+    private void DownloadCache()
     {
         try
         {
-            if (File.Exists(CacheFilePathTemp))
-            {
-                File.Delete(CacheFilePathTemp);
-            }
+            if (File.Exists(CacheFilePathTemp)) File.Delete(CacheFilePathTemp);
 
             // Ignore all certificate failures.
             ServicePointManager.Expect100Continue = true;
@@ -212,38 +193,35 @@ public class AniDBTitleHelper
             //ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
 
             // Download the file
-            using (var client = new WebClient())
-            {
-                client.Headers.Add(HttpRequestHeader.UserAgent,
-                    "Mozilla / 5.0(Windows NT 10.0; Win64; x64; rv: 74.0) Gecko / 20100101 Firefox / 74.0");
-                client.Headers.Add("Accept",
-                    "text / html,application / xhtml + xml,application / xml; q = 0.9,image / webp,*/*;q=0.8");
-                client.Headers.Add("Accept-Language", "de,en-US;q=0.7,en;q=0.3");
-                client.Headers.Add("Accept-Encoding", "gzip,deflate");
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:74.0) Gecko/20100101 Firefox/74.0");
+            httpClient.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+            httpClient.DefaultRequestHeaders.Add("Accept-Language", "de,en-US;q=0.7,en;q=0.3");
+            httpClient.DefaultRequestHeaders.Add("Accept-Encoding", "gzip,deflate");
 
-                var stream = client.OpenRead(Constants.AniDBTitlesURL);
-                if (stream != null)
-                {
-                    var gzip = new GZipStream(stream, CompressionMode.Decompress);
-                    var textResponse = new StreamReader(gzip).ReadToEnd();
-                    File.WriteAllText(CacheFilePathTemp, textResponse);
-                }
+            using var response = httpClient.GetAsync(Constants.AniDBTitlesURL).Result;
+            if (response.IsSuccessStatusCode)
+            {
+                using var responseStream = response.Content.ReadAsStream();
+                using var gzipStream = new GZipStream(responseStream, CompressionMode.Decompress);
+                using var reader = new StreamReader(gzipStream);
+                var textResponse = reader.ReadToEnd();
+                File.WriteAllText(CacheFilePathTemp, textResponse);
+            }
+            else
+            {
+                Console.WriteLine($@"Failed to download file. Status code: {response.StatusCode}");
+                return;
             }
 
             // backup the old one
-            if (File.Exists(CacheFilePath))
-            {
-                File.Move(CacheFilePath, CacheFilePathBak);
-            }
+            if (File.Exists(CacheFilePath)) File.Move(CacheFilePath, CacheFilePathBak);
 
             // rename new one
             File.Move(CacheFilePathTemp, CacheFilePath);
 
             // remove old one
-            if (File.Exists(CacheFilePathBak))
-            {
-                File.Delete(CacheFilePathBak);
-            }
+            if (File.Exists(CacheFilePathBak)) File.Delete(CacheFilePathBak);
         }
         catch (Exception e)
         {
