@@ -20,6 +20,7 @@ public class SQLiteSemaphore : ISemaphore
 
     public Task ReleaseLock(Guid requestorId, string lockName, CancellationToken cancellationToken = new CancellationToken())
     {
+        if (!_owner.HasValue || !_owner.Value.Equals(requestorId)) return Task.CompletedTask;
         _lock.Release();
         _owner = null;
         return Task.CompletedTask;
