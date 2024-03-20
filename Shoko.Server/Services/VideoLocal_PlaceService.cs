@@ -51,6 +51,11 @@ public class VideoLocal_PlaceService
 
         var retryPolicy = Policy
             .HandleResult<IFileOperationResult>(a => a.CanRetry)
+            .Or<Exception>(e =>
+            {
+                _logger.LogError(e, "Error Renaming/Moving File");
+                return false;
+            })
             .WaitAndRetry(new[]
             {
                 TimeSpan.FromMilliseconds((int)DelayInUse.First),
@@ -61,12 +66,12 @@ public class VideoLocal_PlaceService
         var result = retryPolicy.Execute(() => invert ? RenameIfRequired(place) : MoveFileIfRequired(place));
 
         // Don't bother renaming if we couldn't move. It'll need user interaction
-        if (!result.IsSuccess) return;
+        if (!result?.IsSuccess ?? true) return;
 
         // Retry logic for the second attempt
         result = retryPolicy.Execute(() => invert ? MoveFileIfRequired(place) : RenameIfRequired(place));
 
-        if (!result.IsSuccess) return;
+        if (!result?.IsSuccess ?? true) return;
 
         try
         {
