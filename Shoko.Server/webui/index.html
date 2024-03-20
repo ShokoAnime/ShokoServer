@@ -11,30 +11,37 @@
 <body class="flex justify-center items-center h-screen"
       style="background-image: url('https://shokoanime.com/assets/images/banners/Banner-3.jpg'); background-size: cover; background-position: center;">
 
-<!-- Overlay -->
-<div class="absolute inset-0 bg-[#282E38] opacity-90"></div>
+    <!-- Overlay -->
+    <div class="absolute inset-0 bg-[#282E38] opacity-90"></div>
 
-<!-- Panel -->
-<div class="flex flex-col relative z-10 bg-[#282E38] bg-opacity-90 rounded-lg p-6 w-[50rem] gap-y-8 text-[#CFD8E3] border border-[#21242B]">
-    <div class="flex justify-center text-3xl">Shoko Server Is Running</div>
-    <div class="text-base">
-        However, it appears that the Web UI has not been properly installed. Not to worry though, simply click the
-        "Install Web UI" button below, and Shoko will take care of automatically installing it for you.
+    <!-- Panel -->
+    <!-- Make sure to always include the ID "install-web-ui" since it is the required token for Web UI installation.' -->
+    <div class="flex flex-col relative z-10 bg-[#282E38] bg-opacity-90 rounded-lg p-6 w-[50rem] gap-y-8 text-[#CFD8E3] border border-[#21242B]">
+        <div class="flex justify-center text-3xl" id="install-web-ui">Shoko Server Is Running</div>
+        <div class="text-base">
+            However, it appears that the Web UI has not been properly installed. Not to worry though, simply click the
+            "Install Web UI" button below, and Shoko will take care of automatically installing it for you.
+        </div>
+        <div class="text-base">
+            Make sure to follow the instructions provided during the installation process. If you encounter any issues or
+            need further assistance, don't hesitate to check out the resources available in Shoko Docs or join our Discord
+            Server for additional support.
+        </div>
+        <div class='flex gap-x-4 justify-center'>
+            <a href="/api/webui/install" class="bg-[#44A3FF] text-[#21242B] px-4 py-3 rounded-lg font-semibold">
+                Install Web
+                UI
+            </a>
+            <a href="https://docs.shokoanime.com/" class="bg-[#353D4A] text-[#CFD8E3] px-4 py-3 rounded-lg font-semibold">
+                Shoko
+                Docs
+            </a>
+            <a href="https://discord.gg/vpeHDsg" class="bg-[#353D4A] text-[#CFD8E3] px-4 py-3 rounded-lg font-semibold">
+                Shoko
+                Discord
+            </a>
+        </div>
     </div>
-    <div class="text-base">
-        Make sure to follow the instructions provided during the installation process. If you encounter any issues or
-        need further assistance, don't hesitate to check out the resources available in Shoko Docs or join our Discord
-        Server for additional support.
-    </div>
-    <div class='flex gap-x-4 justify-center'>
-        <a href="/api/webui/install" class="bg-[#44A3FF] text-[#21242B] px-4 py-3 rounded-lg font-semibold">Install Web
-            UI</a>
-        <a href="https://docs.shokoanime.com/" class="bg-[#353D4A] text-[#CFD8E3] px-4 py-3 rounded-lg font-semibold">Shoko
-            Docs</a>
-        <a href="https://discord.gg/vpeHDsg" class="bg-[#353D4A] text-[#CFD8E3] px-4 py-3 rounded-lg font-semibold">Shoko
-            Discord</a>
-    </div>
-</div>
 
 </body>
 </html>

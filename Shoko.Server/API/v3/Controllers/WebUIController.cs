@@ -324,7 +324,7 @@ public class WebUIController : BaseController
         if (System.IO.File.Exists(indexLocation))
         {
             var index = System.IO.File.ReadAllText(indexLocation);
-            var token = "Web UI was not properly installed";
+            var token = "install-web-ui";
             if (!index.Contains(token))
                 return BadRequest("Unable to install web UI when a web UI is already installed.");
         }

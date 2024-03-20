@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,7 +32,7 @@ public class Webui : BaseController
         if (System.IO.File.Exists(indexLocation))
         {
             var index = System.IO.File.ReadAllText(indexLocation);
-            var token = "Web UI was not properly installed";
+            var token = "install-web-ui"; 
             if (!index.Contains(token))
             {
                 return Unauthorized("If trying to update, use api/webui/update");
