@@ -10,6 +10,7 @@ namespace Shoko.Server.Providers.AniDB.HTTP;
 
 public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHandler
 {
+    private readonly HttpClient _httpClient;
     public override double BanTimerResetLength => 12;
 
     public override string Type => "HTTP";
@@ -18,6 +19,14 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
 
     public AniDBHttpConnectionHandler(ILoggerFactory loggerFactory, HttpRateLimiter rateLimiter) : base(loggerFactory, rateLimiter)
     {
+        _httpClient = new HttpClient(new HttpClientHandler
+        {
+            AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
+        });
+        _httpClient.Timeout = TimeSpan.FromSeconds(20);
+        _httpClient.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
+        _httpClient.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("deflate"));
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1");
     }
 
     public async Task<HttpResponse<string>> GetHttp(string url)
@@ -39,16 +48,7 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
 
         RateLimiter.EnsureRate();
 
-        var client = new HttpClient(new HttpClientHandler
-        {
-            AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
-        });
-        client.Timeout = TimeSpan.FromSeconds(20);
-        client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
-        client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("deflate"));
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1");
-
-        using var response = await client.GetAsync(url);
+        using var response = await _httpClient.GetAsync(url);
         response.EnsureSuccessStatusCode();
 
         var responseStream = await response.Content.ReadAsStreamAsync();
