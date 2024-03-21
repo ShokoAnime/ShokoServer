@@ -7,22 +7,20 @@ namespace Shoko.Server.Scheduling.DatabaseLocks;
 
 public class SQLiteSemaphore : ISemaphore
 {
-    private readonly SemaphoreSlim _lock = new(1,1);
-    private Guid? _owner;
+    private readonly object _lock = new();
 
-    public async Task<bool> ObtainLock(Guid requestorId, ConnectionAndTransactionHolder conn, string lockName, CancellationToken cancellationToken = new CancellationToken())
+    public Task<bool> ObtainLock(Guid requestorId, ConnectionAndTransactionHolder conn, string lockName, CancellationToken cancellationToken = new CancellationToken())
     {
-        if (_owner.HasValue && _owner.Value.Equals(requestorId)) return true;
-        await _lock.WaitAsync(cancellationToken);
-        _owner = requestorId;
-        return true;
+        if (Monitor.IsEntered(_lock)) return Task.FromResult(true);
+        var entered = false;
+        Monitor.Enter(_lock, ref entered);
+        return Task.FromResult(entered);
     }
 
     public Task ReleaseLock(Guid requestorId, string lockName, CancellationToken cancellationToken = new CancellationToken())
     {
-        if (!_owner.HasValue || !_owner.Value.Equals(requestorId)) return Task.CompletedTask;
-        _lock.Release();
-        _owner = null;
+        if (!Monitor.IsEntered(_lock)) return Task.CompletedTask;
+        Monitor.Exit(_lock);
         return Task.CompletedTask;
     }
 
