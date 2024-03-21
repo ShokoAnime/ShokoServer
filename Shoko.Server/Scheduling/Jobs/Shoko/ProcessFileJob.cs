@@ -257,10 +257,11 @@ public class ProcessFileJob : BaseJob
             // get from DB
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
             var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+            var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
             var animeRecentlyUpdated = false;
-            var missingEpisodes = false;
+            var missingEpisodes = kV.Value;
 
-            if (anime == null || update == null)
+            if (anime == null || update == null || series == null)
             {
                 missingEpisodes = true;
             }
