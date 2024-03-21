@@ -52,7 +52,7 @@ public class RenameFileHelper
         var args = new RenameEventArgs
         {
             AnimeInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a?.GetAnimeSeries()?.GetAnime())
-                .Where(a => a != null).Cast<IAnime>().ToList(),
+                .Where(a => a != null).DistinctBy(a => a.AnimeID).Cast<IAnime>().ToList(),
             GroupInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()?.AnimeGroup)
                 .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
             EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
@@ -102,7 +102,7 @@ public class RenameFileHelper
         var args = new MoveEventArgs
         {
             AnimeInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a?.GetAnimeSeries()?.GetAnime())
-                .Where(a => a != null).Cast<IAnime>().ToList(),
+                .Where(a => a != null).DistinctBy(a => a.AnimeID).Cast<IAnime>().ToList(),
             GroupInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()?.AnimeGroup)
                 .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
             EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
