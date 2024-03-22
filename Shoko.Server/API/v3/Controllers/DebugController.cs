@@ -15,7 +15,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs;
+using Shoko.Server.Scheduling.Jobs.Test;
 using Shoko.Server.Settings;
 
 #nullable enable
@@ -50,7 +50,7 @@ public class DebugController : BaseController
     /// </summary>
     /// <param name="count"></param>
     /// <param name="seconds"></param>
-    [HttpGet("ScheduleTestJobs/{count}")]
+    [HttpGet("ScheduleJobs/Delay/{count}")]
     public async Task<ActionResult> ScheduleTestJobs(int count, [FromQuery]int seconds = 60)
     {
         var scheduler = await _schedulerFactory.GetScheduler();
@@ -59,6 +59,25 @@ public class DebugController : BaseController
             await scheduler.StartJobNow<TestDelayJob>(t =>
             {
                 t.DelaySeconds = seconds;
+                t.Offset = i;
+            });
+        }
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Schedule {<paramref name="count"/>} jobs that just error
+    /// </summary>
+    /// <param name="count"></param>
+    [HttpGet("ScheduleJobs/Error/{count}")]
+    public async Task<ActionResult> ScheduleTestErrorJobs(int count)
+    {
+        var scheduler = await _schedulerFactory.GetScheduler();
+        for (var i = 0; i < count; i++)
+        {
+            await scheduler.StartJobNow<TestErrorJob>(t =>
+            {
                 t.Offset = i;
             });
         }

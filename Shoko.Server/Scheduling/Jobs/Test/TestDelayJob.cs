@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Scheduling.Attributes;
 
-namespace Shoko.Server.Scheduling.Jobs;
+namespace Shoko.Server.Scheduling.Jobs.Test;
 
 [JobKeyGroup(JobKeyGroup.System)]
 public class TestDelayJob : BaseJob
