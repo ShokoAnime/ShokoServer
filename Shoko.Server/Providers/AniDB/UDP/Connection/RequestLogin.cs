@@ -50,7 +50,7 @@ public class RequestLogin : UDPRequest<ResponseLogin>
     {
         Command = BaseCommand;
         // LOGIN commands have special needs, so we want to handle this differently
-        var rawResponse = Handler.CallAniDBUDPDirectly(Command, UseUnicode).Result;
+        var rawResponse = Handler.SendDirectly(Command, UseUnicode).Result;
         var response = ParseResponse(rawResponse, true);
         var parsedResponse = ParseResponse(response);
         return parsedResponse;

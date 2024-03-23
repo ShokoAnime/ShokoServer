@@ -108,8 +108,8 @@ public class DebugController : BaseController
             }
 
             var fullResponse = request.Unsafe ?
-                await _udpHandler.CallAniDBUDPDirectly(request.Command, isPing: request.IsPing) :
-                await _udpHandler.CallAniDBUDP(request.Command, isPing: request.IsPing);
+                await _udpHandler.SendDirectly(request.Command, resetTimers: request.IsPing) :
+                await _udpHandler.Send(request.Command, isPing: request.IsPing);
             var decodedParts = fullResponse.Split('\n');
             var decodedResponse = string.Join('\n',
                 fullResponse.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -144,7 +144,7 @@ public class DebugController : BaseController
                     {
                         var errorMessage = $"{(int)returnCode} {returnCode}";
                         _logger.LogTrace("Waiting. AniDB returned {StatusCode} {Status}", (int)returnCode, returnCode);
-                        _udpHandler.ExtendBanTimer(300, errorMessage);
+                        _udpHandler.StartBackoffTimer(300, errorMessage);
                         break;
                     }
                 case UDPReturnCode.UNKNOWN_COMMAND:

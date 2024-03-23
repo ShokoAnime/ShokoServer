@@ -14,7 +14,7 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
     public override double BanTimerResetLength => 12;
 
     public override string Type => "HTTP";
-    public override UpdateType BanEnum => UpdateType.HTTPBan;
+    protected override UpdateType BanEnum => UpdateType.HTTPBan;
     public bool IsAlive => true;
 
     public AniDBHttpConnectionHandler(ILoggerFactory loggerFactory, HttpRateLimiter rateLimiter) : base(loggerFactory, rateLimiter)
@@ -46,37 +46,40 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
             };
         }
 
-        RateLimiter.EnsureRate();
-
-        using var response = await _httpClient.GetAsync(url);
-        response.EnsureSuccessStatusCode();
-
-        var responseStream = await response.Content.ReadAsStreamAsync();
-        if (responseStream == null)
+        var response = await RateLimiter.EnsureRate(async () =>
         {
-            throw new EndOfStreamException("Response Body was expected, but none returned");
-        }
+            using var response = await _httpClient.GetAsync(url);
+            response.EnsureSuccessStatusCode();
 
-        var charset = response.Content.Headers.ContentType?.CharSet;
-        Encoding encoding = null;
-        if (!string.IsNullOrEmpty(charset))
-        {
-            encoding = Encoding.GetEncoding(charset);
-        }
-
-        encoding ??= Encoding.UTF8;
-        using var reader = new StreamReader(responseStream, encoding);
-        var output = await reader.ReadToEndAsync();
-
-        if (CheckForBan(output))
-        {
-            throw new AniDBBannedException
+            var responseStream = await response.Content.ReadAsStreamAsync();
+            if (responseStream == null)
             {
-                BanType = UpdateType.HTTPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
-            };
-        }
+                throw new EndOfStreamException("Response Body was expected, but none returned");
+            }
 
-        return new HttpResponse<string> { Response = output, Code = response.StatusCode };
+            var charset = response.Content.Headers.ContentType?.CharSet;
+            Encoding encoding = null;
+            if (!string.IsNullOrEmpty(charset))
+            {
+                encoding = Encoding.GetEncoding(charset);
+            }
+
+            encoding ??= Encoding.UTF8;
+            using var reader = new StreamReader(responseStream, encoding);
+            var output = await reader.ReadToEndAsync();
+
+            if (CheckForBan(output))
+            {
+                throw new AniDBBannedException
+                {
+                    BanType = UpdateType.HTTPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
+                };
+            }
+
+            return new HttpResponse<string> { Response = output, Code = response.StatusCode };
+        });
+
+        return response;
     }
 
     private bool CheckForBan(string xmlResult)

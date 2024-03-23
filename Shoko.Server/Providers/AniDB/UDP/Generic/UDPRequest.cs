@@ -40,7 +40,7 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
         }
 
         PreExecute(Handler.SessionID);
-        var rawResponse = Handler.CallAniDBUDP(Command).Result;
+        var rawResponse = Handler.Send(Command).Result;
         var response = ParseResponse(rawResponse);
         var parsedResponse = ParseResponse(response);
         PostExecute(Handler.SessionID, parsedResponse);
@@ -134,7 +134,7 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
                 {
                     var errorMessage = $"{(int)status} {status}";
                     Logger.LogTrace("Waiting. AniDB returned {StatusCode} {Status}", (int)status, status);
-                    Handler.ExtendBanTimer(300, errorMessage);
+                    Handler.StartBackoffTimer(300, errorMessage);
                     break;
                 }
             case UDPReturnCode.UNKNOWN_COMMAND:

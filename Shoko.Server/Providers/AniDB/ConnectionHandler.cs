@@ -11,10 +11,10 @@ public abstract class ConnectionHandler
     protected AniDBRateLimiter RateLimiter { get; set; }
     public abstract double BanTimerResetLength { get; }
     public abstract string Type { get; }
-    public abstract UpdateType BanEnum { get; }
+    protected abstract UpdateType BanEnum { get; }
 
     public event EventHandler<AniDBStateUpdate> AniDBStateUpdate;
-    protected AniDBStateUpdate _currentState;
+    private AniDBStateUpdate _currentState;
 
     public AniDBStateUpdate State
     {
@@ -29,8 +29,9 @@ public abstract class ConnectionHandler
         }
     }
 
-    protected int? ExtendPauseSecs { get; set; }
-    private Timer BanResetTimer;
+    protected int? BackoffSecs { get; set; }
+    private readonly Timer _backoffTimer;
+    private readonly Timer _banResetTimer;
     public DateTime? BanTime { get; set; }
     private bool _isBanned;
 
@@ -44,13 +45,13 @@ public abstract class ConnectionHandler
             {
                 BanTime = DateTime.Now;
                 Logger.LogWarning("AniDB {Type} Banned!", Type);
-                if (BanResetTimer.Enabled)
+                if (_banResetTimer.Enabled)
                 {
                     Logger.LogWarning("AniDB {Type} ban timer was already running, ban time extending", Type);
-                    BanResetTimer.Stop(); //re-start implies stop
+                    _banResetTimer.Stop(); //re-start implies stop
                 }
 
-                BanResetTimer.Start();
+                _banResetTimer.Start();
                 State = new AniDBStateUpdate
                 {
                     Value = true,
@@ -61,9 +62,9 @@ public abstract class ConnectionHandler
             }
             else
             {
-                if (BanResetTimer.Enabled)
+                if (_banResetTimer.Enabled)
                 {
-                    BanResetTimer.Stop();
+                    _banResetTimer.Stop();
                     Logger.LogInformation("AniDB {Type} ban timer stopped. Resuming queue if not paused", Type);
                 }
 
@@ -72,21 +73,24 @@ public abstract class ConnectionHandler
         }
     }
 
-    public ConnectionHandler(ILoggerFactory loggerFactory, AniDBRateLimiter rateLimiter)
+    protected ConnectionHandler(ILoggerFactory loggerFactory, AniDBRateLimiter rateLimiter)
     {
         _loggerFactory = loggerFactory;
         Logger = loggerFactory.CreateLogger(GetType());
         RateLimiter = rateLimiter;
-        BanResetTimer = new Timer
+        _banResetTimer = new Timer
         {
             AutoReset = false, Interval = TimeSpan.FromHours(BanTimerResetLength).TotalMilliseconds
         };
-        BanResetTimer.Elapsed += BanResetTimerElapsed;
+        _banResetTimer.Elapsed += BanResetTimerElapsed;
+        _backoffTimer = new Timer { AutoReset = false };
+        _backoffTimer.Elapsed += ResetBackoffTimer;
     }
 
     ~ConnectionHandler()
     {
-        BanResetTimer.Elapsed -= BanResetTimerElapsed;
+        _banResetTimer.Elapsed -= BanResetTimerElapsed;
+        _backoffTimer.Elapsed -= ResetBackoffTimer;
     }
 
     private void BanResetTimerElapsed(object sender, ElapsedEventArgs e)
@@ -95,10 +99,12 @@ public abstract class ConnectionHandler
         IsBanned = false;
     }
 
-    protected void ExtendBanTimer(int secsToPause, string pauseReason)
+    protected void StartBackoffTimer(int secsToPause, string pauseReason)
     {
         // This Handles the Waiting Period For When AniDB is under heavy load. Not likely to be used
-        ExtendPauseSecs = secsToPause;
+        BackoffSecs = secsToPause;
+        _backoffTimer.Interval = secsToPause * 1000;
+        _backoffTimer.Start();
         AniDBStateUpdate?.Invoke(this,
             new AniDBStateUpdate
             {
@@ -110,10 +116,10 @@ public abstract class ConnectionHandler
             });
     }
 
-    protected void ResetBanTimer()
+    protected void ResetBackoffTimer(object sender, ElapsedEventArgs args)
     {
         // This Handles the Waiting Period For When AniDB is under heavy load. Not likely to be used
-        ExtendPauseSecs = null;
+        BackoffSecs = null;
         AniDBStateUpdate?.Invoke(this,
             new AniDBStateUpdate { UpdateType = UpdateType.OverloadBackoff, Value = false, UpdateTime = DateTime.Now });
     }

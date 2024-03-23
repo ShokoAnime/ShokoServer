@@ -16,12 +16,12 @@ public interface IUDPConnectionHandler : IConnectionHandler
     void ForceLogout();
     Task CloseConnections();
     Task ForceReconnection();
-    void ExtendBanTimer(int time, string message);
+    void StartBackoffTimer(int time, string message);
     Task<bool> Init();
     Task<bool> Init(string username, string password, string serverName, ushort serverPort, ushort clientPort);
     Task<bool> TestLogin(string username, string password);
 
-    Task<string> CallAniDBUDPDirectly(string command, bool needsUnicode = true, bool isPing = false);
+    Task<string> SendDirectly(string command, bool needsUnicode = true, bool resetTimers = true);
 
-    Task<string> CallAniDBUDP(string command, bool needsUnicode = true, bool isPing = false);
+    Task<string> Send(string command, bool needsUnicode = true, bool isPing = false);
 }

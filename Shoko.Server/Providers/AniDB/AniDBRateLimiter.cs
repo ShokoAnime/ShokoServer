@@ -1,14 +1,16 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Threading;
-using NLog;
+using Microsoft.Extensions.Logging;
 
 namespace Shoko.Server.Providers.AniDB;
 
 public abstract class AniDBRateLimiter
 {
-    protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-
+    private readonly ILogger _logger;
     private readonly object _lock = new();
+    private readonly Stopwatch _requestWatch = new();
+    private readonly Stopwatch _activeTimeWatch = new();
 
     // Short Term:
     // A Client MUST NOT send more than 0.5 packets per second(that's one packet every two seconds, not two packets a second!)
@@ -26,56 +28,50 @@ public abstract class AniDBRateLimiter
     // Switch to shorter delay after 30 minutes of inactivity
     protected abstract long resetPeriod { get; init; }
 
-    private readonly Stopwatch _requestWatch = new();
-
-    private readonly Stopwatch _activeTimeWatch = new();
-
-    public AniDBRateLimiter()
+    protected AniDBRateLimiter(ILogger logger)
     {
+        _logger = logger;
         _requestWatch.Start();
         _activeTimeWatch.Start();
     }
 
-    public void ResetRate()
+    private void ResetRate()
     {
         var elapsedTime = _activeTimeWatch.ElapsedMilliseconds;
         _activeTimeWatch.Restart();
-        Logger.Trace($"Rate is reset. Active time was {elapsedTime} ms.");
+        _logger.LogTrace("Rate is reset. Active time was {Time} ms", elapsedTime);
     }
 
-    public void Reset()
+    public T EnsureRate<T>(Func<T> action)
     {
-        _requestWatch.Restart();
-    }
-
-    public void EnsureRate()
-    {
-        lock (_lock)
+        try
         {
+            Monitor.Enter(_lock);
+
             var delay = _requestWatch.ElapsedMilliseconds;
-
-            if (delay > resetPeriod)
-            {
-                ResetRate();
-            }
-
+            if (delay > resetPeriod) ResetRate();
             var currentDelay = _activeTimeWatch.ElapsedMilliseconds > shortPeriod ? LongDelay : ShortDelay;
 
             if (delay > currentDelay)
             {
-                Logger.Trace($"Time since last request is {delay} ms, not throttling.");
-                _requestWatch.Restart();
-                return;
+                _logger.LogTrace("Time since last request is {Delay} ms, not throttling", delay);
+                _logger.LogTrace("Sending AniDB command");
+                return action();
             }
 
             // add 50ms for good measure
             var waitTime = currentDelay - (int)delay + 50;
 
-            Logger.Trace($"Time since last request is {delay} ms, throttling for {waitTime}.");
+            _logger.LogTrace("Time since last request is {Delay} ms, throttling for {Time}", delay, waitTime);
             Thread.Sleep(waitTime);
 
-            Logger.Trace("Sending AniDB command.");
+            _logger.LogTrace("Sending AniDB command");
+            return action();
+        }
+        finally
+        {
             _requestWatch.Restart();
+            Monitor.Exit(_lock);
         }
     }
 }
