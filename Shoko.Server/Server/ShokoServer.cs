@@ -282,8 +282,8 @@ public class ShokoServer
             StartWatchingFiles();
 
             var scheduler = _schedulerFactory.GetScheduler().Result;
-            if (settings.Import.ScanDropFoldersOnStart) scheduler.StartJob<ScanDropFoldersJob>().GetAwaiter().GetResult();
-            if (settings.Import.RunOnStart) scheduler.StartJob<ImportJob>().GetAwaiter().GetResult();
+            if (settings.Import.ScanDropFoldersOnStart) scheduler.StartJob<ScanDropFoldersJob>();
+            if (settings.Import.RunOnStart) scheduler.StartJob<ImportJob>();
 
             ServerState.Instance.ServerOnline = true;
             _workerSetupDB.ReportProgress(100);
@@ -309,7 +309,7 @@ public class ShokoServer
     public void RefreshAllMediaInfo()
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob<MediaInfoAllFilesJob>().GetAwaiter().GetResult();
+        scheduler.StartJob<MediaInfoAllFilesJob>();
     }
 
     #endregion
@@ -414,7 +414,7 @@ public class ShokoServer
         logger.LogInformation("Found file {Path}", path);
         var tup = VideoLocal_PlaceRepository.GetFromFullPath(path);
         ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(path));
-        _schedulerFactory.GetScheduler().Result.StartJob<DiscoverFileJob>(a => a.FilePath = path).GetAwaiter().GetResult();
+        _schedulerFactory.GetScheduler().Result.StartJob<DiscoverFileJob>(a => a.FilePath = path);
     }
 
     public void AddFileWatcherExclusion(string path)
@@ -452,7 +452,7 @@ public class ShokoServer
     public void RemoveMissingFiles(bool removeMyList = true)
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob<RemoveMissingFilesJob>(a => a.RemoveMyList = removeMyList).GetAwaiter().GetResult();
+        scheduler.StartJob<RemoveMissingFilesJob>(a => a.RemoveMyList = removeMyList);
     }
 
     private static void AniDBDispose()
@@ -482,7 +482,7 @@ public class ShokoServer
         {
             if (string.IsNullOrEmpty(user.PlexToken)) continue;
             flag = true;
-            await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = user);
+            scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = user);
         }
 
         return flag;

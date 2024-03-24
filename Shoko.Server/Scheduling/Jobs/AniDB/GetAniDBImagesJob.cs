@@ -66,7 +66,7 @@ public class GetAniDBImagesJob : BaseJob
         // cover
         var scheduler = await _schedulerFactory.GetScheduler();
         if (ForceDownload || !_imageHandler.IsImageCached(ImageEntityType.AniDB_Cover, _anime.AnimeID))
-            await scheduler.StartJobNow<DownloadAniDBImageJob>(a =>
+            scheduler.StartJobNow<DownloadAniDBImageJob>(a =>
             {
                 a.ImageID = _anime.AnimeID;
                 a.ImageType = ImageEntityType.AniDB_Cover;
@@ -131,7 +131,7 @@ public class GetAniDBImagesJob : BaseJob
 
         foreach (var action in requests)
         {
-            await scheduler.StartJob(action);
+            scheduler.StartJob(action);
         }
     }
 

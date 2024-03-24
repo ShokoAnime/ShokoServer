@@ -125,9 +125,10 @@ public class SyncAniDBMyListJob : BaseJob
         // Actually remove the files
         if (filesToRemove.Count > 0)
         {
+            var scheduler = await _schedulerFactory.GetScheduler();
             foreach (var id in filesToRemove)
             {
-                await (await _schedulerFactory.GetScheduler()).StartJob<DeleteFileFromMyListJob>(a => a.FileID = id);
+                scheduler.StartJob<DeleteFileFromMyListJob>(a => a.FileID = id);
             }
         }
 
@@ -197,7 +198,7 @@ public class SyncAniDBMyListJob : BaseJob
 
         if (!shouldUpdate) return modifiedItems;
 
-        await (await _schedulerFactory.GetScheduler()).StartJob<UpdateMyListFileStatusJob>(a =>
+        (await _schedulerFactory.GetScheduler()).StartJob<UpdateMyListFileStatusJob>(a =>
         {
             a.Hash = vl.Hash;
             a.Watched = updateDate != null;
@@ -242,6 +243,7 @@ public class SyncAniDBMyListJob : BaseJob
     {
         if (!_settings.AniDb.MyList_AddFiles) return 0;
         var missingFiles = 0;
+        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var vid in RepoFactory.VideoLocal.GetAll()
                      .Where(a => !string.IsNullOrEmpty(a.Hash)).ToList())
         {
@@ -256,7 +258,7 @@ public class SyncAniDBMyListJob : BaseJob
             }
             else continue;
 
-            await (await _schedulerFactory.GetScheduler()).StartJob<AddFileToMyListJob>(a => a.Hash = vid.Hash);
+            scheduler.StartJob<AddFileToMyListJob>(a => a.Hash = vid.Hash);
         }
 
         _logger.LogInformation(

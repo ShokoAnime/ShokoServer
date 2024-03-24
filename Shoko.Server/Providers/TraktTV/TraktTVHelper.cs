@@ -544,7 +544,7 @@ public class TraktTVHelper
 
             _logger.LogTrace("Found anime without Trakt association: {MaintTitle}", anime.MainTitle);
 
-            scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = ser.AniDB_ID).GetAwaiter().GetResult();
+            scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = ser.AniDB_ID);
         }
     }
 
@@ -1471,7 +1471,7 @@ public class TraktTVHelper
         var scheduler = _schedulerFactory.GetScheduler().Result;
         foreach (var xref in allCrossRefs)
         {
-            scheduler.StartJob<GetTraktSeriesJob>(c => c.TraktID = xref.TraktID).GetAwaiter().GetResult();
+            scheduler.StartJob<GetTraktSeriesJob>(c => c.TraktID = xref.TraktID);
         }
     }
 

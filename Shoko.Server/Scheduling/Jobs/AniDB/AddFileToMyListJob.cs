@@ -201,7 +201,7 @@ public class AddFileToMyListJob : BaseJob
             var scheduler = await _schedulerFactory.GetScheduler();
             foreach (var aep in _videoLocal.GetAnimeEpisodes())
             {
-                await scheduler.StartJob<SyncTraktCollectionEpisodeJob>(
+                scheduler.StartJob<SyncTraktCollectionEpisodeJob>(
                     c =>
                     {
                         c.AnimeEpisodeID = aep.AnimeEpisodeID;

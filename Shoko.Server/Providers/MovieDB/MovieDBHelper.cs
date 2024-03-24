@@ -80,7 +80,7 @@ public class MovieDBHelper
                     // download the image
                     if (string.IsNullOrEmpty(poster.GetFullImagePath()) || File.Exists(poster.GetFullImagePath())) continue;
 
-                    await scheduler.StartJob<DownloadTMDBImageJob>(
+                    scheduler.StartJob<DownloadTMDBImageJob>(
                         c =>
                         {
                             c.Anime = movie.MovieName;
@@ -110,7 +110,7 @@ public class MovieDBHelper
                     // download the image
                     if (string.IsNullOrEmpty(fanart.GetFullImagePath()) || File.Exists(fanart.GetFullImagePath())) continue;
 
-                    await scheduler.StartJob<DownloadTMDBImageJob>(
+                    scheduler.StartJob<DownloadTMDBImageJob>(
                         c =>
                         {
                             c.Anime = movie.MovieName;
@@ -270,7 +270,7 @@ public class MovieDBHelper
 
             _logger.LogTrace("Found anime movie without MovieDB association: {MainTitle}", anime.MainTitle);
 
-            await scheduler.StartJob<SearchTMDBSeriesJob>(c => c.AnimeID = ser.AniDB_ID);
+            scheduler.StartJob<SearchTMDBSeriesJob>(c => c.AnimeID = ser.AniDB_ID);
         }
     }
 }

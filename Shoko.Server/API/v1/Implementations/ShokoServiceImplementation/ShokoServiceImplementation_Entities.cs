@@ -642,7 +642,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     c.VideoLocalID = videoLocalID;
                     c.EpisodeID = animeEpisodeID;
                 }
-            ).GetAwaiter().GetResult();
+            );
             return string.Empty;
         }
         catch (Exception ex)
@@ -700,7 +700,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                         c.VideoLocalID = videoLocalID;
                         c.EpisodeID = ep.AnimeEpisodeID;
                     }
-                ).GetAwaiter().GetResult();
+                );
             }
 
             return string.Empty;
@@ -795,7 +795,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                         c.EpisodeID = ep.AnimeEpisodeID;
                         if (singleEpisode) c.Percentage = (int)Math.Round(1D / total * 100);
                     }
-                ).GetAwaiter().GetResult();
+                );
 
                 if (!singleEpisode)
                 {
@@ -843,7 +843,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     c.VideoLocalID = vid.VideoLocalID;
                     c.ForceAniDB = true;
                 }
-            ).GetAwaiter().GetResult();
+            );
         }
         catch (Exception ex)
         {
@@ -877,7 +877,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     c.VideoLocalID = vid.VideoLocalID;
                     c.ForceAniDB = true;
                 }
-            ).GetAwaiter().GetResult();
+            );
         }
         catch (Exception ex)
         {
@@ -909,7 +909,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     c.FilePath = pl.FullServerPath;
                     c.ForceHash = true;
                 }
-            ).GetAwaiter().GetResult();
+            );
         }
     }
 
@@ -1117,7 +1117,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 c.Hash = vl.Hash;
                 c.FileSize = vl.FileSize;
             }
-        ).GetAwaiter().GetResult();
+        );
     }
 
     [HttpPost("AniDB/MyList/{hash}")]
@@ -1126,7 +1126,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         try
         {
             var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            scheduler.StartJobNow<AddFileToMyListJob>(c => c.Hash = hash).GetAwaiter().GetResult();
+            scheduler.StartJobNow<AddFileToMyListJob>(c => c.Hash = hash);
         }
         catch (Exception ex)
         {
@@ -1521,7 +1521,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 c.VoteType = (AniDBVoteType)voteType;
                 c.VoteValue = voteValue;
             }
-        ).GetAwaiter().GetResult();
+        );
     }
 
     [HttpDelete("AniDB/Vote/{animeID}")]
@@ -1554,7 +1554,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 c.VoteType = (AniDBVoteType)thisVote.VoteType;
                 c.VoteValue = -1;
             }
-        ).GetAwaiter().GetResult();
+        );
 
         RepoFactory.AniDB_Vote.Delete(thisVote.AniDB_VoteID);
     }
@@ -2120,7 +2120,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
             {
                 var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-                scheduler.StartJob<GetAniDBReleaseGroupStatusJob>(c => c.AnimeID = anime.AnimeID).GetAwaiter().GetResult();
+                scheduler.StartJob<GetAniDBReleaseGroupStatusJob>(c => c.AnimeID = anime.AnimeID);
             }
 
             response.Result = ser.GetUserContract(userID);
@@ -2146,7 +2146,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 c.AnimeID = animeID;
                 c.DownloadRelations = false;
                 c.ForceRefresh = true;
-            }).GetAwaiter().GetResult();
+            });
         }
         catch (Exception ex)
         {
@@ -2178,7 +2178,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     c.AnimeID = animeID;
                     c.ForceRefresh = true;
                 }
-            ).GetAwaiter().GetResult();
+            );
 
             return anime?.Contract;
         }
@@ -3586,7 +3586,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     public string DeleteImportFolder(int importFolderID)
     {
         var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob<DeleteImportFolderJob>(a => a.ImportFolderID = importFolderID).GetAwaiter().GetResult();
+        scheduler.StartJob<DeleteImportFolderJob>(a => a.ImportFolderID = importFolderID);
         return string.Empty;
     }
 

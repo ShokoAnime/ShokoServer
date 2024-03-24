@@ -294,14 +294,14 @@ public class FileController : BaseController
 
         var scheduler = await _schedulerFactory.GetScheduler();
         if (priority)
-            await scheduler.StartJobNow<ProcessFileJob>(c =>
+            scheduler.StartJobNow<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
                     c.ForceAniDB = true;
                 }
             );
         else
-            await scheduler.StartJob<ProcessFileJob>(c =>
+            scheduler.StartJob<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
                     c.ForceAniDB = true;
@@ -656,14 +656,14 @@ public class FileController : BaseController
 
         var scheduler = await _schedulerFactory.GetScheduler();
         if (priority)
-            await scheduler.StartJobNow<ProcessFileJob>(c =>
+            scheduler.StartJobNow<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
                     c.ForceAniDB = true;
                 }
             );
         else
-            await scheduler.StartJob<ProcessFileJob>(c =>
+            scheduler.StartJob<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
                     c.ForceAniDB = true;
@@ -691,14 +691,14 @@ public class FileController : BaseController
 
         var scheduler = await _schedulerFactory.GetScheduler();
         if (priority)
-            await scheduler.StartJobNow<HashFileJob>(c =>
+            scheduler.StartJobNow<HashFileJob>(c =>
                 {
                     c.FilePath = filePath;
                     c.ForceHash = true;
                 }
             );
         else
-            await scheduler.StartJob<HashFileJob>(c =>
+            scheduler.StartJob<HashFileJob>(c =>
                 {
                     c.FilePath = filePath;
                     c.ForceHash = true;
@@ -745,7 +745,7 @@ public class FileController : BaseController
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var episode in episodeList)
         {
-            await scheduler.StartJobNow<ManualLinkJob>(c =>
+            scheduler.StartJobNow<ManualLinkJob>(c =>
                 {
                     c.VideoLocalID = fileID;
                     c.EpisodeID = episode.AnimeEpisodeID;
@@ -840,7 +840,7 @@ public class FileController : BaseController
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var episode in episodeList)
         {
-            await scheduler.StartJobNow<ManualLinkJob>(c =>
+            scheduler.StartJobNow<ManualLinkJob>(c =>
                 {
                     c.VideoLocalID = fileID;
                     c.EpisodeID = episode.AnimeEpisodeID;
@@ -992,7 +992,7 @@ public class FileController : BaseController
         {
             RemoveXRefsForFile(file);
 
-            await scheduler.StartJobNow<ManualLinkJob>(c =>
+            scheduler.StartJobNow<ManualLinkJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
                     c.EpisodeID = episode.AnimeEpisodeID;
@@ -1046,7 +1046,7 @@ public class FileController : BaseController
         {
             RemoveXRefsForFile(file);
 
-            await scheduler.StartJobNow<ManualLinkJob>(c =>
+            scheduler.StartJobNow<ManualLinkJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
                     c.EpisodeID = episode.AnimeEpisodeID;

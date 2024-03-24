@@ -238,7 +238,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     c.TvDBSeriesID = seriesID;
                     c.ForceRefresh = true;
                 }
-            ).GetAwaiter().GetResult();
+            );
         }
         catch (Exception ex)
         {
@@ -372,7 +372,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                     c.TvDBID = link.TvDBID;
                     c.AdditiveLink = link.IsAdditive;
                 }
-            ).GetAwaiter().GetResult();
+            );
 
             return string.Empty;
         }
@@ -969,7 +969,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var scheduler = _schedulerFactory.GetScheduler().Result;
-            scheduler.StartJob<SyncTraktCollectionSeriesJob>(c => c.AnimeSeriesID = ser.AnimeSeriesID).GetAwaiter().GetResult();
+            scheduler.StartJob<SyncTraktCollectionSeriesJob>(c => c.AnimeSeriesID = ser.AnimeSeriesID);
 
             return string.Empty;
         }

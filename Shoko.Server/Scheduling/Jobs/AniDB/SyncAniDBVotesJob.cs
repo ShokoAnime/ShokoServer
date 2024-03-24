@@ -77,7 +77,7 @@ public class SyncAniDBVotesJob : BaseJob
             if (myVote.VoteType is not (AniDBVoteType.Anime or AniDBVoteType.AnimeTemp)) continue;
 
             // download the anime info if the user doesn't already have it
-            await scheduler.StartJob<GetAniDBAnimeJob>(c =>
+            scheduler.StartJob<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = thisVote.EntityID;
                 c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;

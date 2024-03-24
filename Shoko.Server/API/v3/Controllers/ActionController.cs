@@ -65,7 +65,7 @@ public class ActionController : BaseController
     public async Task<ActionResult> RunImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<ImportJob>();
+        scheduler.StartJob<ImportJob>();
         return Ok();
     }
 
@@ -98,7 +98,7 @@ public class ActionController : BaseController
     public async Task<ActionResult> SyncVotes()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBVotesJob>();
+        scheduler.StartJob<SyncAniDBVotesJob>();
         return Ok();
     }
 
@@ -117,7 +117,7 @@ public class ActionController : BaseController
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<SyncTraktCollectionJob>(c => c.ForceRefresh = true);
+        scheduler.StartJobNow<SyncTraktCollectionJob>(c => c.ForceRefresh = true);
 
         return Ok();
     }
@@ -193,7 +193,7 @@ public class ActionController : BaseController
     public async Task<ActionResult> ValidateAllImages()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<ValidateAllImagesJob>();
+        scheduler.StartJobNow<ValidateAllImagesJob>();
         return Ok();
     }
 
@@ -321,7 +321,7 @@ public class ActionController : BaseController
     public async Task<ActionResult> SyncMyList()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBMyListJob>();
+        scheduler.StartJob<SyncAniDBMyListJob>();
         return Ok();
     }
 
@@ -443,7 +443,7 @@ public class ActionController : BaseController
         var files = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
         foreach (var vl in files)
         {
-            await scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = vl.Hash);
+            scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = vl.Hash);
         }
 
         return Ok($"Saved {files.Count} AddToMyList Commands");

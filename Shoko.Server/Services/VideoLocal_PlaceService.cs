@@ -683,7 +683,7 @@ public class VideoLocal_PlaceService
                             var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                             if (ep == null) continue;
 
-                            await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+                            scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                                 {
                                     c.AnimeID = xref.AnimeID;
                                     c.EpisodeType = ep.GetEpisodeTypeEnum();
@@ -694,7 +694,7 @@ public class VideoLocal_PlaceService
                     }
                     else
                     {
-                        await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+                        scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                             {
                                 c.Hash = v.Hash;
                                 c.FileSize = v.FileSize;
@@ -771,7 +771,7 @@ public class VideoLocal_PlaceService
                             continue;
                         }
 
-                        await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+                        scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                         {
                             c.AnimeID = xref.AnimeID;
                             c.EpisodeType = ep.GetEpisodeTypeEnum();
@@ -781,7 +781,7 @@ public class VideoLocal_PlaceService
                 }
                 else
                 {
-                    await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+                    scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                         {
                             c.Hash = v.Hash;
                             c.FileSize = v.FileSize;

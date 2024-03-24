@@ -90,7 +90,7 @@ public class DiscoverFileJob : BaseJob
             }
 
             _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FilePath, vlocal.Hash);
-            await scheduler.StartJobNow<ProcessFileJob>(a => a.VideoLocalID = vlocal.VideoLocalID);
+            scheduler.StartJobNow<ProcessFileJob>(a => a.VideoLocalID = vlocal.VideoLocalID);
             return;
         }
 
@@ -113,7 +113,7 @@ public class DiscoverFileJob : BaseJob
 
         if (shouldHash)
         {
-            await scheduler.StartJobNow<HashFileJob>(a =>
+            scheduler.StartJobNow<HashFileJob>(a =>
             {
                 a.FilePath = FilePath;
                 a.SkipMyList = SkipMyList;
@@ -121,7 +121,7 @@ public class DiscoverFileJob : BaseJob
         } else if (!hasXrefs)
         {
             _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FilePath, vlocal.Hash);
-            await scheduler.StartJobNow<ProcessFileJob>(a => a.VideoLocalID = vlocal.VideoLocalID);
+            scheduler.StartJobNow<ProcessFileJob>(a => a.VideoLocalID = vlocal.VideoLocalID);
         }
     }
 

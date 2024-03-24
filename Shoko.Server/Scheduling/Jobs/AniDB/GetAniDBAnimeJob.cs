@@ -111,7 +111,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 if (!CacheOnly)
                 {
                     // Queue the command to get the data when we're no longer banned if there is no anime record.
-                    await scheduler.StartJob<GetAniDBAnimeJob>(c =>
+                    scheduler.StartJob<GetAniDBAnimeJob>(c =>
                     {
                         c.AnimeID = AnimeID;
                         c.DownloadRelations = DownloadRelations;
@@ -152,11 +152,11 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             .Distinct();
         foreach (var vl in videoLocals)
         {
-            await scheduler.StartJobNow<RenameMoveFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
+            scheduler.StartJobNow<RenameMoveFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
         }
 
         // Request an image download
-        await scheduler.StartJobNow<GetAniDBImagesJob>(c => c.AnimeID = AnimeID);
+        scheduler.StartJobNow<GetAniDBImagesJob>(c => c.AnimeID = AnimeID);
 
         await ProcessRelations(response);
 
@@ -201,7 +201,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             {
                 _logger.LogTrace("Failed to parse the cached AnimeDoc_{AnimeID}.xml file", AnimeID);
                 // Queue the command to get the data when we're no longer banned if there is no anime record.
-                await (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(c =>
+                (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = AnimeID;
                     c.DownloadRelations = DownloadRelations;
@@ -245,7 +245,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         if (!CacheOnly)
         {
             // Queue the command to get the data when we're no longer banned if there is no anime record.
-            await (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(c =>
+            (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = AnimeID;
                 c.DownloadRelations = DownloadRelations;
@@ -278,7 +278,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         {
             if (_settings.TvDB.AutoLink && !series.IsTvDBAutoMatchingDisabled)
             {
-                await scheduler.StartJob<SearchTvDBSeriesJob>(c => c.AnimeID = AnimeID);
+                scheduler.StartJob<SearchTvDBSeriesJob>(c => c.AnimeID = AnimeID);
             }
 
             // check for Trakt associations
@@ -286,12 +286,12 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
                 !string.IsNullOrEmpty(_settings.TraktTv.AuthToken) &&
                 !series.IsTraktAutoMatchingDisabled)
             {
-                await scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = AnimeID);
+                scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = AnimeID);
             }
 
             if (anime.AnimeType == (int)AnimeType.Movie && !series.IsTMDBAutoMatchingDisabled)
             {
-                await scheduler.StartJob<SearchTMDBSeriesJob>(c => c.AnimeID = AnimeID);
+                scheduler.StartJob<SearchTMDBSeriesJob>(c => c.AnimeID = AnimeID);
             }
         }
 
@@ -325,7 +325,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
             }
 
             // Append the command to the queue.
-            await scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
+            scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = relation.RelatedAnimeID;
                 c.DownloadRelations = true;

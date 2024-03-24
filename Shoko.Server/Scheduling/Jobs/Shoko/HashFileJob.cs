@@ -93,7 +93,7 @@ public class HashFileJob : BaseJob
         var duplicate = await ProcessDuplicates(vlocal, vlocalplace);
         if (duplicate)
         {
-            await scheduler.StartJobNow<ProcessFileJob>(
+            scheduler.StartJobNow<ProcessFileJob>(
                 c =>
                 {
                     c.VideoLocalID = vlocal.VideoLocalID;
@@ -116,7 +116,7 @@ public class HashFileJob : BaseJob
         ShokoEventHandler.Instance.OnFileHashed(folder, vlocalplace);
 
         // now add a command to process the file
-        await scheduler.StartJobNow<ProcessFileJob>(c =>
+        scheduler.StartJobNow<ProcessFileJob>(c =>
             {
                 c.VideoLocalID = vlocal.VideoLocalID;
                 c.ForceAniDB = ForceHash;

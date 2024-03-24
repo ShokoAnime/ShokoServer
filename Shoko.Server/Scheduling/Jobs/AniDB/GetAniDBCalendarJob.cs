@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
@@ -91,7 +90,7 @@ public class GetAniDBCalendarJob : BaseJob
             var ts = DateTime.Now - update.UpdatedAt;
             if (ts.TotalDays >= 2)
             {
-                await (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(
+                (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(
                     c =>
                     {
                         c.AnimeID = cal.AnimeID;
@@ -113,7 +112,7 @@ public class GetAniDBCalendarJob : BaseJob
         }
         else
         {
-            await (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(
+            (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(
                 c =>
                 {
                     c.AnimeID = cal.AnimeID;

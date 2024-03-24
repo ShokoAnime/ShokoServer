@@ -245,7 +245,7 @@ public class Core : BaseController
     public async Task<ActionResult> SyncAniDBVotes()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBVotesJob>();
+        scheduler.StartJob<SyncAniDBVotesJob>();
         return APIStatus.OK();
     }
 
@@ -257,7 +257,7 @@ public class Core : BaseController
     public async Task<ActionResult> SyncAniDBList()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBMyListJob>();
+        scheduler.StartJob<SyncAniDBMyListJob>();
         return APIStatus.OK();
     }
 
@@ -298,7 +298,7 @@ public class Core : BaseController
                     continue;
                 }
 
-                await scheduler.StartJob<GetAniDBAnimeJob>(
+                scheduler.StartJob<GetAniDBAnimeJob>(
                     c =>
                     {
                         c.AnimeID = animeID;
@@ -366,7 +366,7 @@ public class Core : BaseController
         if (_settings.TraktTv.Enabled && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken))
         {
             var scheduler = await _schedulerFactory.GetScheduler();
-            await scheduler.StartJob<SyncTraktCollectionJob>(c => c.ForceRefresh = true);
+            scheduler.StartJob<SyncTraktCollectionJob>(c => c.ForceRefresh = true);
             return APIStatus.OK();
         }
 

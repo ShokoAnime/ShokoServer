@@ -278,7 +278,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
                             c.UpdateSeriesStats = false;
                             c.WatchedDateAsSecs = AniDB.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime());
                         }
-                    ).GetAwaiter().GetResult();
+                    );
                 }
         }
 
@@ -338,7 +338,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
                                 c.AnimeEpisodeID = ep.AnimeEpisodeID;
                                 c.Action = TraktSyncAction.Add;
                             }
-                        ).GetAwaiter().GetResult();
+                        );
                     }
                 }
             }
@@ -388,7 +388,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
                                 c.AnimeEpisodeID = ep.AnimeEpisodeID;
                                 c.Action = TraktSyncAction.Remove;
                             }
-                        ).GetAwaiter().GetResult();
+                        );
                     }
                 }
             }

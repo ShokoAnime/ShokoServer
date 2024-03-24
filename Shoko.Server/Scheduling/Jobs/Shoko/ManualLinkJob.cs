@@ -104,7 +104,7 @@ public class ManualLinkJob : BaseJob
         if (_settings.AniDb.MyList_AddFiles)
         {
             var scheduler = await _schedulerFactory.GetScheduler();
-            await scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = _vlocal.Hash);
+            scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = _vlocal.Hash);
         }
     }
 

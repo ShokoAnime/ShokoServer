@@ -65,7 +65,7 @@ public class ActionService
             var p = vl.GetBestVideoLocalPlace(true);
             if (p == null) continue;
 
-            await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);
+            scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);
         }
 
         foreach (var vl in filesToHash)
@@ -78,7 +78,7 @@ public class ActionService
                 var p = vl.GetBestVideoLocalPlace(true);
                 if (p == null) continue;
 
-                await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);
+                scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);
             }
             catch (Exception ex)
             {
@@ -98,7 +98,7 @@ public class ActionService
                     continue;
             }
 
-            await scheduler.StartJob<ProcessFileJob>(
+            scheduler.StartJob<ProcessFileJob>(
                 c =>
                 {
                     c.VideoLocalID = vl.VideoLocalID;
@@ -114,7 +114,7 @@ public class ActionService
             // queue scan for files that are automatically linked but missing AniDB_File data
             var aniFile = RepoFactory.AniDB_File.GetByHash(vl.Hash);
             if (aniFile == null && vl.EpisodeCrossRefs.Any(a => a.CrossRefSource == (int)CrossRefSource.AniDB))
-                await scheduler.StartJob<ProcessFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
+                scheduler.StartJob<ProcessFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
 
             if (aniFile == null) continue;
 
@@ -123,7 +123,7 @@ public class ActionService
             var missingEpisodes = aniFile.EpisodeCrossRefs.Any(a => RepoFactory.AniDB_Episode.GetByEpisodeID(a.EpisodeID) == null);
 
             // this will then download the anime etc
-            if (missingEpisodes) await scheduler.StartJob<ProcessFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
+            if (missingEpisodes) scheduler.StartJob<ProcessFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
         }
     }
 
@@ -178,7 +178,7 @@ public class ActionService
 
                 videosFound++;
 
-                await scheduler.StartJob<DiscoverFileJob>(a =>
+                scheduler.StartJob<DiscoverFileJob>(a =>
                 {
                     a.FilePath = fileName;
                     a.SkipMyList = skipMyList;
@@ -232,7 +232,7 @@ public class ActionService
             if (!FileHashHelper.IsVideo(fileName)) continue;
             videosFound++;
 
-            await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = fileName);
+            scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = fileName);
         }
 
         _logger.LogDebug("Found {Count} files", filesFound);
@@ -317,7 +317,7 @@ public class ActionService
             var tup = VideoLocal_PlaceRepository.GetFromFullPath(fileName);
             ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(fileName));
 
-            await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = fileName);
+            scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = fileName);
         }
 
         _logger.LogDebug("Found {Count} files", filesFound);
@@ -335,7 +335,7 @@ public class ActionService
             var fileExists = File.Exists(anime.PosterPath);
             if (fileExists) continue;
 
-            await scheduler.StartJob<GetAniDBImagesJob>(c => c.AnimeID = anime.AnimeID);
+            scheduler.StartJob<GetAniDBImagesJob>(c => c.AnimeID = anime.AnimeID);
         }
 
         // TvDB Posters
@@ -362,7 +362,7 @@ public class ActionService
 
                 if (fileExists || postersAvailable >= settings.TvDB.AutoPostersAmount) continue;
 
-                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
+                scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
                         c.ImageID = tvPoster.TvDB_ImagePosterID;
                         c.ImageType = ImageEntityType.TvDB_Cover;
@@ -396,7 +396,7 @@ public class ActionService
                 if (fanartCount.TryGetValue(tvFanart.SeriesID, out var value)) fanartAvailable = value;
                 if (fileExists || fanartAvailable >= settings.TvDB.AutoFanartAmount) continue;
 
-                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
+                scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
                         c.ImageID = tvFanart.TvDB_ImageFanartID;
                         c.ImageType = ImageEntityType.TvDB_FanArt;
@@ -430,7 +430,7 @@ public class ActionService
                 if (fanartCount.TryGetValue(tvBanner.SeriesID, out var value)) bannersAvailable = value;
                 if (fileExists || bannersAvailable >= settings.TvDB.AutoWideBannersAmount) continue;
 
-                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
+                scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
                         c.ImageID = tvBanner.TvDB_ImageWideBannerID;
                         c.ImageType = ImageEntityType.TvDB_Banner;
@@ -449,7 +449,7 @@ public class ActionService
             var fileExists = File.Exists(tvEpisode.GetFullImagePath());
             if (fileExists) continue;
 
-            await scheduler.StartJob<DownloadTvDBImageJob>(c =>
+            scheduler.StartJob<DownloadTvDBImageJob>(c =>
                 {
                     c.ImageID = tvEpisode.TvDB_EpisodeID;
                     c.ImageType = ImageEntityType.TvDB_Episode;
@@ -481,7 +481,7 @@ public class ActionService
 
                 if (fileExists || postersAvailable >= settings.MovieDb.AutoPostersAmount) continue;
 
-                await scheduler.StartJob<DownloadTMDBImageJob>(c =>
+                scheduler.StartJob<DownloadTMDBImageJob>(c =>
                     {
                         c.ImageID = moviePoster.MovieDB_PosterID;
                         c.ImageType = ImageEntityType.MovieDB_Poster;
@@ -515,7 +515,7 @@ public class ActionService
                 if (fanartCount.TryGetValue(movieFanart.MovieId, out var value)) fanartAvailable = value;
                 if (fileExists || fanartAvailable >= settings.MovieDb.AutoFanartAmount) continue;
 
-                await scheduler.StartJob<DownloadTMDBImageJob>(c =>
+                scheduler.StartJob<DownloadTMDBImageJob>(c =>
                     {
                         c.ImageID = movieFanart.MovieDB_FanartID;
                         c.ImageType = ImageEntityType.MovieDB_FanArt;
@@ -537,7 +537,7 @@ public class ActionService
                 var AnimeID = RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID)?.FirstOrDefault()?.AnimeID ?? 0;
                 if (AnimeID == 0) continue;
 
-                await scheduler.StartJob<GetAniDBImagesJob>(c => c.AnimeID = AnimeID);
+                scheduler.StartJob<GetAniDBImagesJob>(c => c.AnimeID = AnimeID);
             }
         }
 
@@ -555,7 +555,7 @@ public class ActionService
                 var AnimeID = RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID)?.FirstOrDefault()?.AnimeID ?? 0;
                 if (AnimeID == 0) continue;
 
-                await scheduler.StartJob<GetAniDBImagesJob>(c => c.AnimeID = AnimeID);
+                scheduler.StartJob<GetAniDBImagesJob>(c => c.AnimeID = AnimeID);
             }
         }
     }
@@ -588,7 +588,7 @@ public class ActionService
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
         {
-            await scheduler.StartJob<GetAniDBAnimeJob>(c =>
+            scheduler.StartJob<GetAniDBAnimeJob>(c =>
             {
                 c.AnimeID = anime.AnimeID;
                 c.ForceRefresh = true;
@@ -731,7 +731,7 @@ public class ActionService
                             continue;
                         }
 
-                        await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+                        scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                         {
                             c.AnimeID = xref.AnimeID;
                             c.EpisodeType = ep.GetEpisodeTypeEnum();
@@ -741,7 +741,7 @@ public class ActionService
                 }
                 else
                 {
-                    await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+                    scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                         {
                             c.Hash = v.Hash;
                             c.FileSize = v.FileSize;
@@ -870,7 +870,7 @@ public class ActionService
             _logger.LogInformation("Queuing {Count} GetFile commands", vidsToUpdate.Count);
             foreach (var id in vidsToUpdate)
             {
-                await scheduler.StartJob<GetAniDBFileJob>(c =>
+                scheduler.StartJob<GetAniDBFileJob>(c =>
                 {
                     c.VideoLocalID = id;
                     c.ForceAniDB = true;
@@ -880,7 +880,7 @@ public class ActionService
             _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", groupsToUpdate.Count);
             foreach (var a in groupsToUpdate)
             {
-                await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = a);
+                scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = a);
             }
         }
 
@@ -915,7 +915,7 @@ public class ActionService
             {
                 // download and update series info, episode info and episode images
                 // will also download fanart, posters and wide banners
-                await scheduler.StartJob<GetTvDBSeriesJob>(c =>
+                scheduler.StartJob<GetTvDBSeriesJob>(c =>
                     {
                         c.TvDBSeriesID = tvid;
                         c.ForceRefresh = true;
@@ -952,7 +952,7 @@ public class ActionService
             if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
         }
 
-        await scheduler.StartJob<GetAniDBCalendarJob>(c => c.ForceRefresh = forceRefresh);
+        scheduler.StartJob<GetAniDBCalendarJob>(c => c.ForceRefresh = forceRefresh);
     }
 
     public async Task CheckForAnimeUpdate()
@@ -973,7 +973,7 @@ public class ActionService
             if (tsLastRun.TotalHours < freqHours) return;
         }
 
-        await scheduler.StartJob<GetUpdatedAniDBAnimeJob>(c => c.ForceRefresh = true);
+        scheduler.StartJob<GetUpdatedAniDBAnimeJob>(c => c.ForceRefresh = true);
     }
 
     public async Task CheckForMyListSyncUpdate(bool forceRefresh)
@@ -995,7 +995,7 @@ public class ActionService
             if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
         }
 
-        await scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = forceRefresh);
+        scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = forceRefresh);
     }
 
     public async Task CheckForTraktAllSeriesUpdate(bool forceRefresh)
@@ -1031,7 +1031,7 @@ public class ActionService
         var allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
         foreach (var xref in allCrossRefs)
         {
-            scheduler.StartJob<GetTraktSeriesJob>(c => c.TraktID = xref.TraktID).GetAwaiter().GetResult();
+            scheduler.StartJob<GetTraktSeriesJob>(c => c.TraktID = xref.TraktID);
         }
 
         // scan for new matches
@@ -1106,7 +1106,7 @@ public class ActionService
                     continue;
             }
 
-            await scheduler.StartJob<ProcessFileJob>(c =>
+            scheduler.StartJob<ProcessFileJob>(c =>
                 {
                     c.VideoLocalID = vl.VideoLocalID;
                     c.ForceAniDB = true;

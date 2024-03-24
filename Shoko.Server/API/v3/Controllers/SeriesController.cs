@@ -1388,14 +1388,14 @@ public class SeriesController : BaseController
         foreach (var file in series.GetVideoLocals())
         {
             if (priority)
-                await scheduler.StartJobNow<ProcessFileJob>(c =>
+                scheduler.StartJobNow<ProcessFileJob>(c =>
                     {
                         c.VideoLocalID = file.VideoLocalID;
                         c.ForceAniDB = true;
                     }
                 );
             else
-                await scheduler.StartJob<ProcessFileJob>(c =>
+                scheduler.StartJob<ProcessFileJob>(c =>
                     {
                         c.VideoLocalID = file.VideoLocalID;
                         c.ForceAniDB = true;
@@ -1429,7 +1429,7 @@ public class SeriesController : BaseController
             if (string.IsNullOrEmpty(filePath))
                 continue;
 
-            await scheduler.StartJobNow<HashFileJob>(c =>
+            scheduler.StartJobNow<HashFileJob>(c =>
                 {
                     c.FilePath = filePath;
                     c.ForceHash = true;

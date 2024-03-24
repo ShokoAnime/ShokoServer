@@ -209,7 +209,7 @@ public class TvDBApiHelper
         {
             // download and update series info, episode info and episode images
             // will also download fanart, posters and wide banners
-            await scheduler.StartJob<GetTvDBSeriesJob>(c => c.TvDBSeriesID = tvDBID);
+            scheduler.StartJob<GetTvDBSeriesJob>(c => c.TvDBSeriesID = tvDBID);
         }
         else
         {
@@ -247,7 +247,7 @@ public class TvDBApiHelper
                 }
             }
 
-            await scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = animeID);
+            scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = animeID);
         }
     }
 
@@ -668,7 +668,7 @@ public class TvDBApiHelper
                 var fileExists = File.Exists(img.GetFullImagePath());
                 if (fileExists && !forceDownload) continue;
 
-                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
+                scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
                         c.ImageID = img.TvDB_ImageFanartID;
                         c.ImageType = ImageEntityType.TvDB_FanArt;
@@ -706,7 +706,7 @@ public class TvDBApiHelper
                 var fileExists = File.Exists(img.GetFullImagePath());
                 if (fileExists && !forceDownload) continue;
 
-                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
+                scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
                         c.ImageID = img.TvDB_ImagePosterID;
                         c.ImageType = ImageEntityType.TvDB_Cover;
@@ -743,7 +743,7 @@ public class TvDBApiHelper
             {
                 var fileExists = File.Exists(img.GetFullImagePath());
                 if (fileExists && !forceDownload) continue;
-                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
+                scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
                         c.ImageID = img.TvDB_ImageWideBannerID;
                         c.ImageType = ImageEntityType.TvDB_Banner;
@@ -871,7 +871,7 @@ public class TvDBApiHelper
                     continue;
                 }
 
-                await scheduler.StartJob<DownloadTvDBImageJob>(c =>
+                scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
                         c.ImageID = ep.TvDB_EpisodeID;
                         c.ImageType = ImageEntityType.TvDB_Episode;
@@ -967,7 +967,7 @@ public class TvDBApiHelper
                 continue;
 
             _logger.LogTrace("Found anime without TvDB association: {MaintTitle}", anime.MainTitle);
-            await scheduler.StartJob<SearchTvDBSeriesJob>(c => c.AnimeID = ser.AniDB_ID);
+            scheduler.StartJob<SearchTvDBSeriesJob>(c => c.AnimeID = ser.AniDB_ID);
         }
     }
 
@@ -977,7 +977,7 @@ public class TvDBApiHelper
         var allCrossRefs = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
         foreach (var xref in allCrossRefs)
         {
-            await scheduler.StartJob<GetTvDBSeriesJob>(c =>
+            scheduler.StartJob<GetTvDBSeriesJob>(c =>
                 {
                     c.TvDBSeriesID = xref.TvDBID;
                     c.ForceRefresh = force;

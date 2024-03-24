@@ -213,7 +213,7 @@ public class ValidateAllImagesJob : BaseJob
     private async Task RemoveImageAndQueueRedownload<T>(ImageEntityType entityTypeEnum, int entityID, int animeID = 0) where T : class, IImageDownloadJob
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<T>(
+        scheduler.StartJob<T>(
             c =>
             {
                 c.Anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID)?.PreferredTitle;

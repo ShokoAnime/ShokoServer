@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Quartz;
@@ -18,11 +19,14 @@ public static class QuartzExtensions
     /// <param name="data">Job Data Constructor</param>
     /// <typeparam name="T">Job Type</typeparam>
     /// <returns></returns>
-    public static async Task<DateTimeOffset> StartJob<T>(this IScheduler scheduler, Action<T> data = null) where T : class, IJob
+    public static void StartJob<T>(this IScheduler scheduler, Action<T> data = null) where T : class, IJob
     {
-        if (data == null)
-            return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build());
-        return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build());
+        Task.Factory.StartNew(async () =>
+        {
+            if (data == null)
+                await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build());
+            await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build());
+        }).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -32,11 +36,14 @@ public static class QuartzExtensions
     /// <param name="data">Job Data Constructor</param>
     /// <typeparam name="T">Job Type</typeparam>
     /// <returns></returns>
-    public static async Task<DateTimeOffset> StartJobNow<T>(this IScheduler scheduler, Action<T> data = null) where T : class, IJob
+    public static void StartJobNow<T>(this IScheduler scheduler, Action<T> data = null) where T : class, IJob
     {
-        if (data == null)
-            return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build(), priority:10);
-        return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build(), priority:10);
+        Task.Factory.StartNew(async () =>
+        {
+            if (data == null)
+                await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build(), priority: 10);
+            await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build(), priority: 10);
+        }).ConfigureAwait(false);
     }
     
     /// <summary>
