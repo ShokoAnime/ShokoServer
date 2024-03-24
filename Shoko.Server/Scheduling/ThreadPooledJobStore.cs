@@ -11,6 +11,7 @@ using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Scheduling.DatabaseLocks;
 using Shoko.Server.Scheduling.Delegates;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -91,6 +92,20 @@ public partial class ThreadPooledJobStore : JobStoreTX
     ~ThreadPooledJobStore()
     {
         foreach (var filter in _acquisitionFilters) filter.StateChanged -= FilterOnStateChanged;
+    }
+
+    // These two should be called in equal amounts, so no worry of deadlock
+    protected override ConnectionAndTransactionHolder GetNonManagedTXConnection()
+    {
+        if (LockHandler is SQLiteSemaphore) LockHandler.ObtainLock(Guid.Empty, null, LockTriggerAccess).GetAwaiter().GetResult();
+        return base.GetNonManagedTXConnection();
+    }
+    
+    protected override void CleanupConnection(ConnectionAndTransactionHolder conn)
+    {
+        if (conn == null) return;
+        if (LockHandler is SQLiteSemaphore) LockHandler.ReleaseLock(Guid.Empty, LockTriggerAccess).GetAwaiter().GetResult();
+        CloseConnection(conn);
     }
 
     private void FilterOnStateChanged(object sender, EventArgs e)
