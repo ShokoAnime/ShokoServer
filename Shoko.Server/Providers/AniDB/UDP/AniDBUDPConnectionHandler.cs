@@ -166,9 +166,8 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     /// </summary>
     /// <param name="command">The request to be made (AUTH user=baka&amp;pass....)</param>
     /// <param name="needsUnicode">Only for Login, specify whether to ask for UTF16</param>
-    /// <param name="isPing">is it a ping command</param>
     /// <returns></returns>
-    public async Task<string> Send(string command, bool needsUnicode = true, bool isPing = false)
+    public async Task<string> Send(string command, bool needsUnicode = true)
     {
         // Steps:
         // 1. Check Ban state and throw if Banned
@@ -200,28 +199,23 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
 
         // Actually Call AniDB
-        return await SendDirectly(command, needsUnicode, isPing);
+        return await SendDirectly(command, needsUnicode);
     }
 
-    public Task<string> SendDirectly(string command, bool needsUnicode = true, bool resetTimers = true)
+    public Task<string> SendDirectly(string command, bool needsUnicode = true, bool resetPingTimer = true, bool resetLogoutTimer = true)
     {
         try
         {
-            if (resetTimers)
-            {
-                _pingTimer.Stop();
-                _logoutTimer.Stop();
-            }
+            // we want to reset the logout timer anyway
+            if (resetPingTimer) _pingTimer?.Stop();
+            if (resetLogoutTimer) _logoutTimer?.Stop();
 
             return SendInternal(command, needsUnicode);
         }
         finally
         {
-            if (resetTimers)
-            {
-                _pingTimer.Start();
-                _logoutTimer.Start();
-            }
+            if (resetPingTimer) _pingTimer?.Start();
+            if (resetLogoutTimer) _logoutTimer?.Start();
         }
     }
 
@@ -269,6 +263,7 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     private void StopPinging()
     {
         _pingTimer?.Stop();
+        _logoutTimer?.Stop();
     }
 
     public async Task ForceReconnection()

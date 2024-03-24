@@ -108,8 +108,8 @@ public class DebugController : BaseController
             }
 
             var fullResponse = request.Unsafe ?
-                await _udpHandler.SendDirectly(request.Command, resetTimers: request.IsPing) :
-                await _udpHandler.Send(request.Command, isPing: request.IsPing);
+                await _udpHandler.SendDirectly(request.Command, resetPingTimer: request.IsPing) :
+                await _udpHandler.Send(request.Command);
             var decodedParts = fullResponse.Split('\n');
             var decodedResponse = string.Join('\n',
                 fullResponse.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
