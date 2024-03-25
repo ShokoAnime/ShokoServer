@@ -117,9 +117,6 @@ public class AniDBImageHandler
 
         return await retryPolicy.ExecuteAsync(async () =>
         {
-            // Rate limit anidb image requests.
-            AniDbImageRateLimiter.Instance.EnsureRate();
-
             // Download the image using custom HttpClient factory.
             using var client = _clientFactory.CreateClient("AniDBClient");
             var bytes = await client.GetByteArrayAsync(downloadUrl);

@@ -1,19 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Net;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Polly;
-using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
-using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.Providers;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
@@ -92,7 +83,7 @@ public class DownloadAniDBImageJob : BaseJob, IImageDownloadJob
         try
         {
             // If this has any issues, it will throw an exception, so the catch below will handle it.
-            var result = await DownloadNow(downloadUrl, filePath);
+            var result = await _imageHandler.DownloadImage(downloadUrl, filePath, ForceDownload);
             switch (result)
             {
                 case ImageDownloadResult.Success:
@@ -119,11 +110,6 @@ public class DownloadAniDBImageJob : BaseJob, IImageDownloadJob
             _logger.LogWarning("Error processing {Job} for {Anime}: {Url} ({EntityID}) - {Message}", nameof(DownloadAniDBImageJob), Anime, downloadUrl,
                 ImageID, e.Message);
         }
-    }
-
-    private Task<ImageDownloadResult> DownloadNow(string downloadUrl, string filePath, int maxRetries = 5)
-    {
-        return _imageHandler.DownloadImage(downloadUrl, filePath, ForceDownload, maxRetries);
     }
 
     public DownloadAniDBImageJob(AniDBImageHandler imageHandler)
