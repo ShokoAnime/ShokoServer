@@ -130,7 +130,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
 
             // update the group status
             // this will allow us to determine which anime has missing episodes
-            // so we only get by an anime where we also have an associated series
+            // we only get by an anime where we also have an associated series
             var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
             if (ser == null) continue;
 

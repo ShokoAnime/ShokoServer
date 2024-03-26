@@ -64,11 +64,12 @@ public class GetAniDBCalendarJob : BaseJob
         var response = request.Send();
         RepoFactory.ScheduledUpdate.Save(sched);
 
+        var scheduler = await _schedulerFactory.GetScheduler();
         if (response.Response?.Next25Anime != null)
         {
             foreach (var cal in response.Response.Next25Anime)
             {
-                await GetAnime(cal, settings);
+                GetAnime(scheduler, cal, settings);
             }
         }
 
@@ -76,11 +77,11 @@ public class GetAniDBCalendarJob : BaseJob
 
         foreach (var cal in response.Response.Previous25Anime)
         {
-            await GetAnime(cal, settings);
+            GetAnime(scheduler, cal, settings);
         }
     }
 
-    private async Task GetAnime(ResponseCalendar.CalendarEntry cal, IServerSettings settings)
+    private void GetAnime(IScheduler scheduler, ResponseCalendar.CalendarEntry cal, IServerSettings settings)
     {
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
         var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
@@ -90,7 +91,7 @@ public class GetAniDBCalendarJob : BaseJob
             var ts = DateTime.Now - update.UpdatedAt;
             if (ts.TotalDays >= 2)
             {
-                (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(
+                scheduler.StartJob<GetAniDBAnimeJob>(
                     c =>
                     {
                         c.AnimeID = cal.AnimeID;
@@ -112,7 +113,7 @@ public class GetAniDBCalendarJob : BaseJob
         }
         else
         {
-            (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(
+            scheduler.StartJob<GetAniDBAnimeJob>(
                 c =>
                 {
                     c.AnimeID = cal.AnimeID;
