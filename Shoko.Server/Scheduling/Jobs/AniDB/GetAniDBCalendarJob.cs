@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
@@ -69,7 +70,7 @@ public class GetAniDBCalendarJob : BaseJob
         {
             foreach (var cal in response.Response.Next25Anime)
             {
-                GetAnime(scheduler, cal, settings);
+                await GetAnime(scheduler, cal, settings);
             }
         }
 
@@ -77,11 +78,11 @@ public class GetAniDBCalendarJob : BaseJob
 
         foreach (var cal in response.Response.Previous25Anime)
         {
-            GetAnime(scheduler, cal, settings);
+            await GetAnime(scheduler, cal, settings);
         }
     }
 
-    private void GetAnime(IScheduler scheduler, ResponseCalendar.CalendarEntry cal, IServerSettings settings)
+    private async Task GetAnime(IScheduler scheduler, ResponseCalendar.CalendarEntry cal, IServerSettings settings)
     {
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
         var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
@@ -91,7 +92,7 @@ public class GetAniDBCalendarJob : BaseJob
             var ts = DateTime.Now - update.UpdatedAt;
             if (ts.TotalDays >= 2)
             {
-                scheduler.StartJob<GetAniDBAnimeJob>(
+                await scheduler.StartJob<GetAniDBAnimeJob>(
                     c =>
                     {
                         c.AnimeID = cal.AnimeID;
@@ -113,7 +114,7 @@ public class GetAniDBCalendarJob : BaseJob
         }
         else
         {
-            scheduler.StartJob<GetAniDBAnimeJob>(
+            await scheduler.StartJob<GetAniDBAnimeJob>(
                 c =>
                 {
                     c.AnimeID = cal.AnimeID;

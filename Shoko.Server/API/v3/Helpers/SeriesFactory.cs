@@ -183,7 +183,7 @@ public class SeriesFactory
         }
 
         var scheduler = await schedulerFactory.GetScheduler();
-        scheduler.StartJob<GetAniDBAnimeJob>(c =>
+        await scheduler.StartJob<GetAniDBAnimeJob>(c =>
         {
             c.AnimeID = animeID;
             c.DownloadRelations = downloadRelations;
@@ -214,7 +214,7 @@ public class SeriesFactory
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        scheduler.StartJob<GetTvDBSeriesJob>(c =>
+        await scheduler.StartJob<GetTvDBSeriesJob>(c =>
         {
             c.TvDBSeriesID = tvdbID;
             c.ForceRefresh = force;
@@ -350,7 +350,7 @@ public class SeriesFactory
         RepoFactory.AniDB_Vote.Save(dbVote);
 
         var scheduler = await schedulerFactory.GetScheduler();
-        scheduler.StartJob<VoteAniDBAnimeJob>(c =>
+        await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
             {
                 c.AnimeID = ser.AniDB_ID;
                 c.VoteType = voteType;

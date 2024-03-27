@@ -109,7 +109,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
             var eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(AnimeID, maxEpisode);
             if (eps.Count == 0)
             {
-                scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
+                await scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = AnimeID;
                     c.ForceRefresh = true;
@@ -126,7 +126,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
             // shouldn't need the where, but better safe than sorry.
             foreach(var g in response.Response.DistinctBy(a => a.GroupID).Where(a => a.GroupID != 0))
             {
-                scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = g.GroupID);
+                await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = g.GroupID);
             }
         }
     }

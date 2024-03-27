@@ -37,7 +37,7 @@ public class Image : BaseController
     public async Task<ActionResult> ValidateAll()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        scheduler.StartJobNow<ValidateAllImagesJob>();
+        await scheduler.StartJobNow<ValidateAllImagesJob>();
         return APIStatus.OK();
     }
 

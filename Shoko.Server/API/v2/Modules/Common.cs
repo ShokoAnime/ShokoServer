@@ -170,7 +170,7 @@ public class Common : BaseController
     public async Task<ActionResult> RunImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        scheduler.StartJob<ImportJob>();
+        await scheduler.StartJob<ImportJob>();
         return Ok();
     }
 
@@ -264,7 +264,7 @@ public class Common : BaseController
             }
 
             var scheduler = await _schedulerFactory.GetScheduler();
-            scheduler.StartJobNow<ProcessFileJob>(
+            await scheduler.StartJobNow<ProcessFileJob>(
                 c =>
                 {
                     c.VideoLocalID = vid.VideoLocalID;
@@ -294,7 +294,7 @@ public class Common : BaseController
             var scheduler = await _schedulerFactory.GetScheduler();
             foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
-                scheduler.StartJobNow<ProcessFileJob>(
+                await scheduler.StartJobNow<ProcessFileJob>(
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
@@ -326,7 +326,7 @@ public class Common : BaseController
             var scheduler = await _schedulerFactory.GetScheduler();
             foreach (var vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
             {
-                scheduler.StartJobNow<ProcessFileJob>(
+                await scheduler.StartJobNow<ProcessFileJob>(
                     c =>
                     {
                         c.VideoLocalID = vl.VideoLocalID;
@@ -369,7 +369,7 @@ public class Common : BaseController
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        scheduler.StartJobNow<HashFileJob>(
+        await scheduler.StartJobNow<HashFileJob>(
             c =>
             {
                 c.FilePath = pl.FullServerPath;
@@ -399,7 +399,7 @@ public class Common : BaseController
                     continue;
                 }
 
-                scheduler.StartJobNow<HashFileJob>(
+                await scheduler.StartJobNow<HashFileJob>(
                     c =>
                     {
                         c.FilePath = pl.FullServerPath;
@@ -435,7 +435,7 @@ public class Common : BaseController
                     continue;
                 }
 
-                scheduler.StartJobNow<HashFileJob>(
+                await scheduler.StartJobNow<HashFileJob>(
                     c =>
                     {
                         c.FilePath = pl.FullServerPath;
@@ -2642,7 +2642,7 @@ public class Common : BaseController
         RepoFactory.AniDB_Vote.Save(thisVote);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        scheduler.StartJobNow<VoteAniDBAnimeJob>(
+        await scheduler.StartJobNow<VoteAniDBAnimeJob>(
             c =>
             {
                 c.AnimeID = ser.AniDB_ID;
@@ -2687,7 +2687,7 @@ public class Common : BaseController
     public async Task<ActionResult> RunCloudImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        scheduler.StartJob<ImportJob>();
+        await scheduler.StartJob<ImportJob>();
         return Ok();
     }
 

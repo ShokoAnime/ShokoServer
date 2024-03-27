@@ -926,7 +926,7 @@ public partial class ShokoServiceImplementation
                     c.Hash = vl.Hash;
                     c.FileSize = vl.FileSize;
                 }
-            );
+            ).GetAwaiter().GetResult();
 
             // For deletion of files from Trakt, we will rely on the Daily sync
             // lets also try removing from the users trakt collection
@@ -1046,7 +1046,7 @@ public partial class ShokoServiceImplementation
                         c.VideoLocalID = vl.VideoLocalID;
                         c.ForceAniDB = true;
                     }
-                );
+                ).GetAwaiter().GetResult();
             }
         }
         catch (Exception ex)
@@ -1072,7 +1072,7 @@ public partial class ShokoServiceImplementation
                         c.VideoLocalID = vl.VideoLocalID;
                         c.ForceAniDB = true;
                     }
-                );
+                ).GetAwaiter().GetResult();
             }
         }
         catch (Exception ex)

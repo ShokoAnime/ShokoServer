@@ -383,7 +383,7 @@ public class AnimeCreator
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var video in videosToRefetch)
         {
-            scheduler.StartJobNow<ProcessFileJob>(c =>
+            await scheduler.StartJobNow<ProcessFileJob>(c =>
             {
                 c.VideoLocalID = video.VideoLocalID;
                 c.SkipMyList = true;

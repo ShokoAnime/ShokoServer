@@ -664,7 +664,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     public async void RunImport()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        scheduler.StartJob<ImportJob>();
+        await scheduler.StartJob<ImportJob>();
     }
 
     [HttpPost("File/Hashes/Sync")]
@@ -682,7 +682,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     public void ScanFolder(int importFolderID)
     {
         var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJob<ScanFolderJob>(a => a.ImportFolderID = importFolderID);
+        scheduler.StartJob<ScanFolderJob>(a => a.ImportFolderID = importFolderID).GetAwaiter().GetResult();
     }
 
     [HttpPost("Folder/RemoveMissing")]
@@ -701,14 +701,14 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     public void SyncMyList()
     {
         var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJobNow<SyncAniDBMyListJob>(c => c.ForceRefresh = true);
+        scheduler.StartJobNow<SyncAniDBMyListJob>(c => c.ForceRefresh = true).GetAwaiter().GetResult();
     }
 
     [HttpPost("AniDB/Vote/Sync")]
     public void SyncVotes()
     {
         var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJob<SyncAniDBMyListJob>();
+        scheduler.StartJob<SyncAniDBMyListJob>().GetAwaiter().GetResult();
     }
 
     #endregion

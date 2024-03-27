@@ -85,7 +85,7 @@ public class Serie : BaseDirectory, IComparable
                     c.AnimeID = bookmark.AnimeID;
                     c.ForceRefresh = true;
                 }
-            );
+            ).GetAwaiter().GetResult();
 
             var empty_serie = new Serie { id = -1, name = "GetAnimeInfoHTTP", aid = bookmark.AnimeID };
             return empty_serie;

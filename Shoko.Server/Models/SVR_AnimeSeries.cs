@@ -811,7 +811,7 @@ public class SVR_AnimeSeries : AnimeSeries
         var scheduler = await schedulerFactory.GetScheduler();
         foreach (var id in vlIDsToUpdate)
         {
-            scheduler.StartJob<ProcessFileJob>(a => a.VideoLocalID = id);
+            await scheduler.StartJob<ProcessFileJob>(a => a.VideoLocalID = id);
         }
 
         RepoFactory.AnimeEpisode.Delete(epsToRemove);
@@ -1589,7 +1589,7 @@ public class SVR_AnimeSeries : AnimeSeries
     public void QueueUpdateStats()
     {
         var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
-        scheduler.StartJob<RefreshAnimeStatsJob>(c => c.AnimeID = AniDB_ID);
+        scheduler.StartJob<RefreshAnimeStatsJob>(c => c.AnimeID = AniDB_ID).GetAwaiter().GetResult();
     }
 
     public void UpdateStats(bool watchedStats, bool missingEpsStats)

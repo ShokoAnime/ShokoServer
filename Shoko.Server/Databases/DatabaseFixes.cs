@@ -933,7 +933,7 @@ public class DatabaseFixes
                 c.AnimeID = animeID;
                 c.DownloadRelations = false;
                 c.ForceRefresh = true;
-            });
+            }).GetAwaiter().GetResult();
         }
 
         logger.Info($"Done updating last updated episode timestamps for {anidbAnimeIDs.Count} local anidb anime entries. Updated {updatedCount} episodes, reset {resetCount} episodes and queued anime {animeToUpdateSet.Count} updates for {faultyCount} faulty episodes.");
@@ -1046,7 +1046,7 @@ public class DatabaseFixes
                 c.VideoLocalID = video.VideoLocalID;
                 c.SkipMyList = true;
                 c.ForceAniDB = true;
-            });
+            }).GetAwaiter().GetResult();
         }
 
         logger.Trace($"Deleting {shokoEpisodesToRemove.Count} orphaned shoko episodes.");

@@ -18,14 +18,11 @@ public static class QuartzExtensions
     /// <param name="data">Job Data Constructor</param>
     /// <typeparam name="T">Job Type</typeparam>
     /// <returns></returns>
-    public static void StartJob<T>(this IScheduler scheduler, Action<T> data = null) where T : class, IJob
+    public static async Task<DateTimeOffset> StartJob<T>(this IScheduler scheduler, Action<T> data = null) where T : class, IJob
     {
-        Task.Factory.StartNew(async () =>
-        {
-            if (data == null)
-                await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build());
-            await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build());
-        }).ConfigureAwait(false);
+        if (data == null)
+            return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build());
+        return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build());
     }
 
     /// <summary>
@@ -35,14 +32,11 @@ public static class QuartzExtensions
     /// <param name="data">Job Data Constructor</param>
     /// <typeparam name="T">Job Type</typeparam>
     /// <returns></returns>
-    public static void StartJobNow<T>(this IScheduler scheduler, Action<T> data = null) where T : class, IJob
+    public static async Task<DateTimeOffset> StartJobNow<T>(this IScheduler scheduler, Action<T> data = null) where T : class, IJob
     {
-        Task.Factory.StartNew(async () =>
-        {
-            if (data == null)
-                await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build(), priority: 10);
-            await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build(), priority: 10);
-        }).ConfigureAwait(false);
+        if (data == null)
+            return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build(), priority:10);
+        return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build(), priority:10);
     }
     
     /// <summary>
@@ -55,11 +49,11 @@ public static class QuartzExtensions
     /// <param name="replaceExisting">Replace the queued trigger if it's still waiting to execute. Default false</param>
     /// <param name="token">The cancellation token</param>
     /// <returns></returns>
-    private static async Task StartJob(this IScheduler scheduler, IJobDetail job, IScheduleBuilder scheduleBuilder = null, int priority = 0, bool replaceExisting = false, CancellationToken token = default)
+    private static async Task<DateTimeOffset> StartJob(this IScheduler scheduler, IJobDetail job, IScheduleBuilder scheduleBuilder = null, int priority = 0, bool replaceExisting = false, CancellationToken token = default)
     {
         // if it's running, then ignore
         var currentJobs = await scheduler.GetCurrentlyExecutingJobs(token);
-        if (currentJobs.Any(a => Equals(a.JobDetail.Key, job.Key))) return;
+        if (currentJobs.Any(a => Equals(a.JobDetail.Key, job.Key))) return DateTimeOffset.Now;
 
         var triggerBuilder = TriggerBuilder.Create().StartNow().WithIdentity(job.Key.Name, job.Key.Group);
         if (priority != 0) triggerBuilder = triggerBuilder.WithPriority(priority);
@@ -71,13 +65,13 @@ public static class QuartzExtensions
                 .Where(a => a != null).Select(a => a!.Value).ToList();
 
             // we are not set to replace the job, then return the first scheduled time
-            if (triggers.Any() && !replaceExisting) return;
+            if (triggers.Any() && !replaceExisting) return triggers.Min();
 
             // since we are replacing it, it will remove the triggers, as well
             await scheduler.DeleteJob(job.Key, token);
         }
 
-        await scheduler.ScheduleJob(job,
+        return await scheduler.ScheduleJob(job,
             triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(), token);
     }
 

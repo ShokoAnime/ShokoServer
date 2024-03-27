@@ -251,7 +251,7 @@ public class PlexWebhook : BaseController
     public async Task<ActionResult> Sync()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = HttpContext.GetUser());
+        await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = HttpContext.GetUser());
         return APIStatus.OK();
     }
 
@@ -274,7 +274,7 @@ public class PlexWebhook : BaseController
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = HttpContext.GetUser());
+        await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = HttpContext.GetUser());
         return APIStatus.OK();
     }
 

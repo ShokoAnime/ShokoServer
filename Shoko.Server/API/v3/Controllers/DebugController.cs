@@ -56,7 +56,7 @@ public class DebugController : BaseController
         var scheduler = await _schedulerFactory.GetScheduler();
         for (var i = 0; i < count; i++)
         {
-            scheduler.StartJobNow<TestDelayJob>(t =>
+            await scheduler.StartJobNow<TestDelayJob>(t =>
             {
                 t.DelaySeconds = seconds;
                 t.Offset = i;
@@ -76,7 +76,7 @@ public class DebugController : BaseController
         var scheduler = await _schedulerFactory.GetScheduler();
         for (var i = 0; i < count; i++)
         {
-            scheduler.StartJobNow<TestErrorJob>(t =>
+            await scheduler.StartJobNow<TestErrorJob>(t =>
             {
                 t.Offset = i;
             });

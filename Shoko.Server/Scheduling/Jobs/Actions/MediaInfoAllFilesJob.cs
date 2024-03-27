@@ -25,7 +25,7 @@ internal class MediaInfoAllFilesJob : BaseJob
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var vl in filesAll)
         {
-            scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = vl.VideoLocalID);
+            await scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = vl.VideoLocalID);
         }
     }
 

@@ -166,7 +166,7 @@ public class ProcessFileJob : BaseJob
         // Add this file to the users list
         if (_settings.AniDb.MyList_AddFiles && !SkipMyList && _vlocal.MyListID <= 0)
         {
-            (await _schedulerFactory.GetScheduler()).StartJob<AddFileToMyListJob>(c =>
+            await (await _schedulerFactory.GetScheduler()).StartJob<AddFileToMyListJob>(c =>
             {
                 c.Hash = _vlocal.ED2KHash;
                 c.ReadStates = true;
@@ -281,7 +281,7 @@ public class ProcessFileJob : BaseJob
             {
                 _logger.LogInformation("Queuing immediate GET for AniDB_Anime: {AnimeID}", animeID);
                 // this should detect and handle a ban, which will leave Result null, and defer
-                scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
+                await scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = animeID;
                     c.ForceRefresh = true;
@@ -293,7 +293,7 @@ public class ProcessFileJob : BaseJob
             {
                 _logger.LogInformation("Queuing GET for AniDB_Anime: {AnimeID}", animeID);
                 // this should detect and handle a ban, which will leave Result null, and defer
-                scheduler.StartJob<GetAniDBAnimeJob>(c =>
+                await scheduler.StartJob<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = animeID;
                     c.ForceRefresh = true;
@@ -331,7 +331,7 @@ public class ProcessFileJob : BaseJob
                 // We're banned, so queue it for later
                 _logger.LogError("We are banned. Re-queuing for later: {FileName}", _fileName);
                 
-                (await _schedulerFactory.GetScheduler()).StartJob<ProcessFileJob>(
+                await (await _schedulerFactory.GetScheduler()).StartJob<ProcessFileJob>(
                     c =>
                     {
                         c.VideoLocalID = _vlocal.VideoLocalID;

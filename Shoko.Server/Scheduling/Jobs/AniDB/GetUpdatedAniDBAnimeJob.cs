@@ -102,7 +102,6 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
         }
 
         var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var animeID in animeIDsToUpdate)
         {
             // update the anime from HTTP
@@ -120,7 +119,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
             var ts = DateTime.Now - (update?.UpdatedAt ?? DateTime.UnixEpoch);
             if (ts.TotalHours > 4)
             {
-                scheduler.StartJob<GetAniDBAnimeJob>(c =>
+                await (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = animeID;
                     c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
@@ -134,7 +133,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
             var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
             if (ser == null) continue;
 
-            scheduler.StartJob<GetAniDBReleaseGroupStatusJob>(c =>
+            await (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBReleaseGroupStatusJob>(c =>
             {
                 c.AnimeID = animeID;
                 c.ForceRefresh = true;

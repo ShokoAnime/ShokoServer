@@ -125,7 +125,7 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
             list.ForEach(
                 a =>
                 {
-                    scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = a.VideoLocalID);
+                    scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = a.VideoLocalID).GetAwaiter().GetResult();
                     count++;
                     ServerState.Instance.ServerStartingStatus = string.Format(
                         Resources.Database_Validating, nameof(VideoLocal),
