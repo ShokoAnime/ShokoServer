@@ -61,6 +61,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     // ReSharper disable once InconsistentNaming
     public virtual T GetByID(S id)
     {
+        if (Equals(default(S), id)) throw new ArgumentException($"Trying to lookup a {typeof(T).Name.Replace("SVR_", string.Empty)} by an ID of 0");
         return ReadLock(() => GetByIDUnsafe(id));
     }
 
@@ -349,19 +350,6 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         foreach (var obj in objs)
         {
             WriteLock(() => UpdateCacheUnsafe(obj));
-        }
-    }
-
-    protected void ReadLock(Action action)
-    {
-        _lock.EnterReadLock();
-        try
-        {
-            action.Invoke();
-        }
-        finally
-        {
-            _lock.ExitReadLock();
         }
     }
 

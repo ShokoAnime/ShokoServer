@@ -50,29 +50,13 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
         //Fix null hashes
         foreach (var l in Cache.Values)
         {
-            if (l.MD5 == null || l.SHA1 == null || l.Hash == null || l.FileName == null)
-            {
-                l.MediaVersion = 0;
-                if (l.MD5 == null)
-                {
-                    l.MD5 = string.Empty;
-                }
+            if (l.MD5 != null && l.SHA1 != null && l.Hash != null && l.FileName != null) continue;
 
-                if (l.SHA1 == null)
-                {
-                    l.SHA1 = string.Empty;
-                }
-
-                if (l.Hash == null)
-                {
-                    l.Hash = string.Empty;
-                }
-
-                if (l.FileName == null)
-                {
-                    l.FileName = string.Empty;
-                }
-            }
+            l.MediaVersion = 0;
+            l.MD5 ??= string.Empty;
+            l.SHA1 ??= string.Empty;
+            l.Hash ??= string.Empty;
+            l.FileName ??= string.Empty;
         }
 
         _hashes = new PocoIndex<int, SVR_VideoLocal, string>(Cache, a => a.Hash);
@@ -271,26 +255,32 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     public SVR_VideoLocal GetByHash(string hash)
     {
+        if (string.IsNullOrEmpty(hash)) throw new ArgumentException("Trying to lookup a VideoLocal by an empty Hash");
         return ReadLock(() => _hashes.GetOne(hash));
     }
 
     public SVR_VideoLocal GetByMD5(string hash)
     {
+        if (string.IsNullOrEmpty(hash)) throw new ArgumentException("Trying to lookup a VideoLocal by an empty MD5");
         return ReadLock(() => _md5.GetOne(hash));
     }
 
     public SVR_VideoLocal GetBySHA1(string hash)
     {
+        if (string.IsNullOrEmpty(hash)) throw new ArgumentException("Trying to lookup a VideoLocal by an empty SHA1");
         return ReadLock(() => _sha1.GetOne(hash));
     }
 
     public SVR_VideoLocal GetByHashAndSize(string hash, long fsize)
     {
+        if (string.IsNullOrEmpty(hash)) throw new ArgumentException("Trying to lookup a VideoLocal by an empty Hash");
+        if (fsize <= 0) throw new ArgumentException("Trying to lookup a VideoLocal by a filesize of 0");
         return ReadLock(() => _hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize));
     }
 
     public List<SVR_VideoLocal> GetByName(string fileName)
     {
+        if (string.IsNullOrEmpty(fileName)) throw new ArgumentException("Trying to lookup a VideoLocal by an empty Filename");
         return ReadLock(
             () => Cache.Values.Where(
                     p => p.Places.Any(

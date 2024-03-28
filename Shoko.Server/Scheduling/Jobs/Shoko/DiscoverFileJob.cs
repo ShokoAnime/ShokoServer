@@ -71,8 +71,7 @@ public class DiscoverFileJob : BaseJob
                 _logger.LogTrace("Found Hash in FileNameHash: {Hash}", vlocal.Hash);
             }
 
-            if (string.IsNullOrEmpty(vlocal.Hash) || string.IsNullOrEmpty(vlocal.CRC32) || string.IsNullOrEmpty(vlocal.MD5) ||
-                string.IsNullOrEmpty(vlocal.SHA1))
+            if (vlocal.HasAnyEmptyHashes())
                 shouldSave |= FillHashesAgainstVideoLocalRepo(vlocal);
         }
 
@@ -96,10 +95,10 @@ public class DiscoverFileJob : BaseJob
 
         if (shouldSave)
         {
-            _logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FilePath, vlocal.Hash);
+            _logger.LogTrace("Saving VideoLocal: VideoLocalID: {VideoLocalID},  Filename: {FileName}, Hash: {Hash}", vlocal.VideoLocalID, FilePath, vlocal.Hash);
             RepoFactory.VideoLocal.Save(vlocal, true);
 
-            _logger.LogTrace("Saving VideoLocal_Place: Path: {Path}", FilePath);
+            _logger.LogTrace("Saving VideoLocal_Place: VideoLocal_Place_ID: {PlaceID}, Path: {Path}", vlocalplace.VideoLocal_Place_ID, FilePath);
             vlocalplace.VideoLocalID = vlocal.VideoLocalID;
             RepoFactory.VideoLocalPlace.Save(vlocalplace);
             
@@ -135,7 +134,8 @@ public class DiscoverFileJob : BaseJob
             return default;
         }
 
-        var existing = false;
+        // we assume it's new until it's found. Obviously, we need to save a new record
+        var shouldSave = true;
 
         if (!File.Exists(FilePath))
         {
@@ -155,16 +155,18 @@ public class DiscoverFileJob : BaseJob
             vlocal = vlocalplace.VideoLocal;
             if (vlocal != null)
             {
-                existing = true;
+                shouldSave = false;
                 _logger.LogTrace("VideoLocal record found in database: {Filename}", FilePath);
 
                 // This will only happen with DB corruption, so just clean up the mess.
                 if (vlocalplace.FullServerPath == null)
                 {
+                    _logger.LogTrace("VideoLocal_Place path is non-existent, removing it");
                     if (vlocal.Places.Count == 1)
                     {
                         RepoFactory.VideoLocal.Delete(vlocal);
                         vlocal = null;
+                        shouldSave = true;
                     }
 
                     RepoFactory.VideoLocalPlace.Delete(vlocalplace);
@@ -197,11 +199,12 @@ public class DiscoverFileJob : BaseJob
             {
                 FilePath = filePath, ImportFolderID = nshareID, ImportFolderType = folder.ImportFolderType
             };
+            if (vlocal.VideoLocalID != 0) vlocalplace.VideoLocalID = vlocal.VideoLocalID;
             // Make sure we have an ID
             RepoFactory.VideoLocalPlace.Save(vlocalplace);
         }
         
-        return (existing, vlocal, vlocalplace);
+        return (shouldSave, vlocal, vlocalplace);
     }
     
     private bool TrySetHashFromXrefs(string filename, SVR_VideoLocal vlocal)
@@ -332,14 +335,9 @@ public class DiscoverFileJob : BaseJob
     {
         var hasherSettings = _settingsProvider.GetSettings().Import.Hasher;
         var needEd2k = string.IsNullOrEmpty(vlocal.Hash);
-        var needCRC32 = string.IsNullOrEmpty(vlocal.CRC32) && hasherSettings.CRC || hasherSettings.ForceGeneratesAllHashes;
-        var needMD5 = string.IsNullOrEmpty(vlocal.MD5) && hasherSettings.MD5 || hasherSettings.ForceGeneratesAllHashes;
-        var needSHA1 = string.IsNullOrEmpty(vlocal.SHA1) && hasherSettings.SHA1 || hasherSettings.ForceGeneratesAllHashes;
-        if (needCRC32 || needMD5 || needSHA1) FillHashesAgainstVideoLocalRepo(vlocal);
-
-        needCRC32 = string.IsNullOrEmpty(vlocal.CRC32) && hasherSettings.CRC || hasherSettings.ForceGeneratesAllHashes;
-        needMD5 = string.IsNullOrEmpty(vlocal.MD5) && hasherSettings.MD5 || hasherSettings.ForceGeneratesAllHashes;
-        needSHA1 = string.IsNullOrEmpty(vlocal.SHA1) && hasherSettings.SHA1 || hasherSettings.ForceGeneratesAllHashes;
+        var needCRC32 = string.IsNullOrEmpty(vlocal.CRC32) && (hasherSettings.CRC || hasherSettings.ForceGeneratesAllHashes);
+        var needMD5 = string.IsNullOrEmpty(vlocal.MD5) && (hasherSettings.MD5 || hasherSettings.ForceGeneratesAllHashes);
+        var needSHA1 = string.IsNullOrEmpty(vlocal.SHA1) && (hasherSettings.SHA1 || hasherSettings.ForceGeneratesAllHashes);
         return (needEd2k, needCRC32, needMD5, needSHA1);
     }
 

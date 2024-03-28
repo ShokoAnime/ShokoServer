@@ -58,16 +58,20 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
 
     public List<SVR_VideoLocal_Place> GetByImportFolder(int importFolderID)
     {
+        if (importFolderID == 0) throw new ArgumentException("Trying to lookup a VideoLocal_Place by an ImportFolderID of 0");
         return ReadLock(() => ImportFolders.GetMultiple(importFolderID));
     }
 
-    public SVR_VideoLocal_Place GetByFilePathAndImportFolderID(string filePath, int nshareID)
+    public SVR_VideoLocal_Place GetByFilePathAndImportFolderID(string filePath, int importFolderID)
     {
-        return ReadLock(() => Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID));
+        if (string.IsNullOrEmpty(filePath)) throw new ArgumentException("Trying to lookup a VideoLocal_Place by an empty File Path");
+        if (importFolderID == 0) throw new ArgumentException("Trying to lookup a VideoLocal_Place by an ImportFolderID of 0");
+        return ReadLock(() => Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == importFolderID));
     }
 
     public static (SVR_ImportFolder folder, string relativePath) GetFromFullPath(string fullPath)
     {
+        if (string.IsNullOrEmpty(fullPath)) return default;
         var shares = RepoFactory.ImportFolder.GetAll();
 
         // TODO make sure that import folders are not sub folders of each other
@@ -91,8 +95,9 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
         return default;
     }
 
-    public List<SVR_VideoLocal_Place> GetByVideoLocal(int videolocalid)
+    public List<SVR_VideoLocal_Place> GetByVideoLocal(int videoLocalID)
     {
-        return ReadLock(() => VideoLocals.GetMultiple(videolocalid));
+        if (videoLocalID == 0) throw new ArgumentException("Trying to lookup a VideoLocal_Place by a VideoLocalID of 0");
+        return ReadLock(() => VideoLocals.GetMultiple(videoLocalID));
     }
 }
