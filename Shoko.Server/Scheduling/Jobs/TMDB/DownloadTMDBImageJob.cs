@@ -159,7 +159,7 @@ public class DownloadTMDBImageJob : BaseJob, IImageDownloadJob
             try
             {
                 // Download the image using custom HttpClient factory.
-                using var client = _clientFactory.CreateClient("TMDBClient");
+                var client = _clientFactory.CreateClient("TMDBClient");
                 var bytes = await client.GetByteArrayAsync(downloadUrl);
 
                 // Validate the downloaded image.

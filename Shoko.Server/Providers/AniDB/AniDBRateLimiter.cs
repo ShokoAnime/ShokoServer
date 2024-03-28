@@ -46,7 +46,9 @@ public abstract class AniDBRateLimiter
     {
         try
         {
-            Monitor.Enter(_lock);
+            var entered = false;
+            Monitor.Enter(_lock, ref entered);
+            if (!entered) throw new SynchronizationLockException();
 
             var delay = _requestWatch.ElapsedMilliseconds;
             if (delay > resetPeriod) ResetRate();

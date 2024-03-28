@@ -57,9 +57,9 @@ public static class Program
         queueStateEventHandler.ExecutingJobsChanged += ExecutingJobsStateEventHandlerOnExecutingJobsChanged;
     }
 
-    private static string GetDetails(Dictionary<string, object> map)
+    private static string GetDetails(Dictionary<string, object>? map)
     {
-        return string.Join(", ", map.Select(a => a.Key + ": " + a.Value));
+        return map == null ? string.Intern("No Details") : string.Join(", ", map.Select(a => a.Key + ": " + a.Value));
     }
     
     private static void QueueStateEventHandlerOnQueueItemAdded(object? sender, QueueItemAddedEventArgs e)

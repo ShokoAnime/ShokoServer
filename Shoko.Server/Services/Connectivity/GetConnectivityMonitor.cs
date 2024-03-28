@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Net.Http;
+using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -19,7 +20,13 @@ public abstract class GetConnectivityMonitor : IConnectivityMonitor
     {
         _logger = logger;
         _target = target;
-        _client = new HttpClient
+        _client = new HttpClient(new SocketsHttpHandler
+        {
+            SslOptions = new SslClientAuthenticationOptions
+            {
+                RemoteCertificateValidationCallback = delegate { return true; }
+            }
+        })
         {
             Timeout = TimeSpan.FromSeconds(5)
         };

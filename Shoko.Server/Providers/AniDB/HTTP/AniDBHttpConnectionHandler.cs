@@ -1,7 +1,7 @@
 using System;
-using System.IO;
+using System.Net;
 using System.Net.Http;
-using System.Text;
+using System.Net.Security;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -19,9 +19,13 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
 
     public AniDBHttpConnectionHandler(ILoggerFactory loggerFactory, HttpRateLimiter rateLimiter) : base(loggerFactory, rateLimiter)
     {
-        _httpClient = new HttpClient(new HttpClientHandler
+        _httpClient = new HttpClient(new SocketsHttpHandler
         {
-            AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
+            AutomaticDecompression = DecompressionMethods.All,
+            SslOptions = new SslClientAuthenticationOptions
+            {
+                RemoteCertificateValidationCallback = delegate { return true; }
+            }
         });
         _httpClient.Timeout = TimeSpan.FromSeconds(20);
         _httpClient.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
@@ -51,22 +55,7 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
             using var response = await _httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
 
-            var responseStream = await response.Content.ReadAsStreamAsync();
-            if (responseStream == null)
-            {
-                throw new EndOfStreamException("Response Body was expected, but none returned");
-            }
-
-            var charset = response.Content.Headers.ContentType?.CharSet;
-            Encoding encoding = null;
-            if (!string.IsNullOrEmpty(charset))
-            {
-                encoding = Encoding.GetEncoding(charset);
-            }
-
-            encoding ??= Encoding.UTF8;
-            using var reader = new StreamReader(responseStream, encoding);
-            var output = await reader.ReadToEndAsync();
+            var output = await response.Content.ReadAsStringAsync();
 
             if (CheckForBan(output))
             {

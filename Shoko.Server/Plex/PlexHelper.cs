@@ -27,7 +27,6 @@ namespace Shoko.Server.Plex;
 public class PlexHelper
 {
     private const string ClientIdentifier = "d14f0724-a4e8-498a-bb67-add795b38331";
-    private static readonly HttpClient HttpClient = new();
 
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private static readonly ConcurrentDictionary<int, PlexHelper> Cache = new();
@@ -46,11 +45,6 @@ public class PlexHelper
 
     private MediaDevice _mediaDevice;
     private bool? isAuthenticated;
-
-    static PlexHelper()
-    {
-        SetupHttpClient(HttpClient, TimeSpan.FromSeconds(60));
-    }
 
     private PlexHelper(JMMUser user)
     {
@@ -189,19 +183,6 @@ public class PlexHelper
                                   $"&context%5Bdevice%5D%5Bplatform%5D={WebUtility.UrlEncode(Environment.OSVersion.Platform.ToString())}" +
                                   $"&context%5Bdevice%5D%5BplatformVersion%5D={WebUtility.UrlEncode(Environment.OSVersion.VersionString)}" +
                                   $"&context%5Bdevice%5D%5Bversion%5D={WebUtility.UrlEncode(Assembly.GetEntryAssembly().GetName().Version.ToString())}";*/
-
-    private static void SetupHttpClient(HttpClient client, TimeSpan timeout)
-    {
-        var assemblyName = Assembly.GetEntryAssembly()?.GetName();
-        client.DefaultRequestHeaders.Add("X-Plex-Client-Identifier", ClientIdentifier);
-        client.DefaultRequestHeaders.Add("X-Plex-Platform-Version", ServerState.Instance.ApplicationVersion);
-        client.DefaultRequestHeaders.Add("X-Plex-Platform", "Shoko Server");
-        client.DefaultRequestHeaders.Add("X-Plex-Device-Name", "Shoko Server Sync");
-        client.DefaultRequestHeaders.Add("X-Plex-Product", "Shoko Server Sync");
-        client.DefaultRequestHeaders.Add("X-Plex-Device", "Shoko");
-        client.DefaultRequestHeaders.Add("User-Agent", $"{assemblyName?.Name} v${assemblyName?.Version}");
-        client.Timeout = timeout;
-    }
 
     private PlexKey GetPlexKey()
     {
@@ -378,8 +359,17 @@ public class PlexHelper
 
         configureRequest?.Invoke(req);
 
-        var client = new HttpClient();
-        SetupHttpClient(client, TimeSpan.FromSeconds(10));
+        var assemblyName = Assembly.GetEntryAssembly()?.GetName();
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.Add("X-Plex-Client-Identifier", ClientIdentifier);
+        client.DefaultRequestHeaders.Add("X-Plex-Platform-Version", ServerState.Instance.ApplicationVersion);
+        client.DefaultRequestHeaders.Add("X-Plex-Platform", "Shoko Server");
+        client.DefaultRequestHeaders.Add("X-Plex-Device-Name", "Shoko Server Sync");
+        client.DefaultRequestHeaders.Add("X-Plex-Product", "Shoko Server Sync");
+        client.DefaultRequestHeaders.Add("X-Plex-Device", "Shoko");
+        client.DefaultRequestHeaders.Add("User-Agent", $"{assemblyName?.Name} v${assemblyName?.Version}");
+        client.Timeout = TimeSpan.FromSeconds(10);
+
         var resp = await client.SendAsync(req).ConfigureAwait(false);
         Logger.Trace($"Got response: {resp.StatusCode}");
         return (resp.StatusCode, await resp.Content.ReadAsStringAsync().ConfigureAwait(false));

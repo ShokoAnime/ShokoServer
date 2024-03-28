@@ -118,7 +118,7 @@ public class AniDBImageHandler
         return await retryPolicy.ExecuteAsync(async () =>
         {
             // Download the image using custom HttpClient factory.
-            using var client = _clientFactory.CreateClient("AniDBClient");
+            var client = _clientFactory.CreateClient("AniDBClient");
             var bytes = await client.GetByteArrayAsync(downloadUrl);
 
             // Validate the downloaded image.

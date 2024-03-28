@@ -187,7 +187,7 @@ public class DownloadTvDBImageJob : BaseJob, IImageDownloadJob
             try
             {
                 // Download the image using custom HttpClient factory.
-                using var client = _clientFactory.CreateClient("TvDBClient");
+                var client = _clientFactory.CreateClient("TvDBClient");
                 var bytes = await client.GetByteArrayAsync(downloadUrl);
 
                 // Validate the downloaded image.
