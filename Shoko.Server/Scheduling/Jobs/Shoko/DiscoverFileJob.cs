@@ -166,11 +166,11 @@ public class DiscoverFileJob : BaseJob
                     {
                         RepoFactory.VideoLocal.Delete(vlocal);
                         vlocal = null;
-                        shouldSave = true;
                     }
 
                     RepoFactory.VideoLocalPlace.Delete(vlocalplace);
                     vlocalplace = null;
+                    shouldSave = true;
                 }
             }
         }
@@ -200,8 +200,6 @@ public class DiscoverFileJob : BaseJob
                 FilePath = filePath, ImportFolderID = nshareID, ImportFolderType = folder.ImportFolderType
             };
             if (vlocal.VideoLocalID != 0) vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-            // Make sure we have an ID
-            RepoFactory.VideoLocalPlace.Save(vlocalplace);
         }
         
         return (shouldSave, vlocal, vlocalplace);

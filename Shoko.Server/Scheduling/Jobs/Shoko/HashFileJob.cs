@@ -62,9 +62,9 @@ public class HashFileJob : BaseJob
 
         var scheduler = await _schedulerFactory.GetScheduler();
         if (vlocal.FileSize == 0) vlocal.FileSize = fileSize;
-        var (newFile, needEd2K, needCRC32, needMD5, needSHA1) = ShouldHash(vlocal);
+        var (changed, needEd2K, needCRC32, needMD5, needSHA1) = ShouldHash(vlocal);
         if (!needEd2K && !ForceHash) return;
-        shouldSave |= !newFile;
+        shouldSave |= changed;
         FillMissingHashes(vlocal, needMD5, needSHA1, needCRC32, ForceHash);
 
         // We should have a hash by now
@@ -85,10 +85,10 @@ public class HashFileJob : BaseJob
             vlocal.FileSize = fileSize;
             _logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FilePath, vlocal.Hash);
             RepoFactory.VideoLocal.Save(vlocal, true);
-        }
 
-        vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-        RepoFactory.VideoLocalPlace.Save(vlocalplace);
+            vlocalplace.VideoLocalID = vlocal.VideoLocalID;
+            RepoFactory.VideoLocalPlace.Save(vlocalplace);
+        }
 
         var duplicate = await ProcessDuplicates(vlocal, vlocalplace);
         if (duplicate)
@@ -109,7 +109,7 @@ public class HashFileJob : BaseJob
         {
             if (_vlPlaceService.RefreshMediaInfo(vlocalplace))
             {
-                RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
+                RepoFactory.VideoLocal.Save(vlocal, true);
             }
         }
 
@@ -134,18 +134,17 @@ public class HashFileJob : BaseJob
             return default;
         }
 
-        var existing = false;
-
         if (!File.Exists(FilePath))
         {
             _logger.LogError("File does not exist: {Filename}", FilePath);
             return default;
         }
 
-        var nshareID = folder.ImportFolderID;
+        var shouldSave = true;
+        var importFolderID = folder.ImportFolderID;
 
         // check if we have already processed this file
-        var vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, nshareID);
+        var vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, importFolderID);
         SVR_VideoLocal vlocal = null;
         var filename = Path.GetFileName(filePath);
 
@@ -154,7 +153,7 @@ public class HashFileJob : BaseJob
             vlocal = vlocalplace.VideoLocal;
             if (vlocal != null)
             {
-                existing = true;
+                shouldSave = false;
                 _logger.LogTrace("VideoLocal record found in database: {Filename}", FilePath);
 
                 // This will only happen with DB corruption, so just clean up the mess.
@@ -168,6 +167,7 @@ public class HashFileJob : BaseJob
 
                     RepoFactory.VideoLocalPlace.Delete(vlocalplace);
                     vlocalplace = null;
+                    shouldSave = true;
                 }
 
                 if (vlocal != null && ForceHash)
@@ -199,13 +199,12 @@ public class HashFileJob : BaseJob
             _logger.LogTrace("No existing VideoLocal_Place, creating a new record");
             vlocalplace = new SVR_VideoLocal_Place
             {
-                FilePath = filePath, ImportFolderID = nshareID, ImportFolderType = folder.ImportFolderType
+                FilePath = filePath, ImportFolderID = importFolderID, ImportFolderType = folder.ImportFolderType
             };
-            // Make sure we have an ID
-            RepoFactory.VideoLocalPlace.Save(vlocalplace);
+            if (vlocal.VideoLocalID != 0) vlocalplace.VideoLocalID = vlocal.VideoLocalID;
         }
         
-        return (existing, vlocal, vlocalplace, folder);
+        return (shouldSave, vlocal, vlocalplace, folder);
     }
     
     private long GetFileInfo(SVR_ImportFolder folder, ref Exception e)
