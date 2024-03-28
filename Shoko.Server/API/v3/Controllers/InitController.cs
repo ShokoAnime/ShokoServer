@@ -45,7 +45,7 @@ public class InitController : BaseController
     {
         var versionSet = new ComponentVersionSet()
         {
-            Server = new() { Version = Utils.GetApplicationVersion() },
+            Server = new() { Version = Utils.GetApplicationVersion(), ReleaseChannel = ReleaseChannel.Debug },
             Commons = new() { Version = Utils.GetApplicationVersion(Assembly.GetAssembly(typeof(Shoko.Commons.Culture))) },
             Models = new() { Version = Utils.GetApplicationVersion(Assembly.GetAssembly(typeof(Shoko.Models.Constants))) },
             MediaInfo = new()
@@ -56,11 +56,8 @@ public class InitController : BaseController
             versionSet.Server.Tag = tag;
         if (extraVersionDict.TryGetValue("commit", out var commit))
             versionSet.Server.Commit = commit;
-        if (extraVersionDict.TryGetValue("channel", out var rawChannel))
-            if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var channel))
-                versionSet.Server.ReleaseChannel = channel;
-            else
-                versionSet.Server.ReleaseChannel = ReleaseChannel.Debug;
+        if (extraVersionDict.TryGetValue("channel", out var rawChannel) && Enum.TryParse<ReleaseChannel>(rawChannel, true, out var channel))
+            versionSet.Server.ReleaseChannel = channel;
         if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
             versionSet.Server.ReleaseDate = releaseDate.ToUniversalTime();
 
