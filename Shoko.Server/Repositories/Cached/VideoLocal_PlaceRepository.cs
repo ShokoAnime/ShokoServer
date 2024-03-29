@@ -18,6 +18,15 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
     private PocoIndex<int, SVR_VideoLocal_Place, int> ImportFolders;
     private PocoIndex<int, SVR_VideoLocal_Place, string> Paths;
 
+    public VideoLocal_PlaceRepository()
+    {
+        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
+        BeginSaveCallback = place =>
+        {
+            if (place.VideoLocalID == 0) throw new ArgumentException("Attempting to save a VideoLocal_Place with a VideoLocalID of 0");
+        };
+    }
+
     protected override int SelectKey(SVR_VideoLocal_Place entity)
     {
         return entity.VideoLocal_Place_ID;
