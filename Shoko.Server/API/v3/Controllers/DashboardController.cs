@@ -36,13 +36,13 @@ public class DashboardController : BaseController
     [HttpGet("Stats")]
     public Dashboard.CollectionStats GetStats()
     {
-        var series = RepoFactory.AnimeSeries.GetAll()
+        var allSeries = RepoFactory.AnimeSeries.GetAll()
             .Where(a => User.AllowedSeries(a))
             .ToList();
-        var groupCount = series
+        var groupCount = allSeries
             .DistinctBy(a => a.AnimeGroupID)
             .Count();
-        var episodeDict = series
+        var episodeDict = allSeries
             .ToDictionary(s => s, s => s.GetAnimeEpisodes());
         var episodes = episodeDict.Values
             .SelectMany(episodeList => episodeList)
@@ -57,7 +57,7 @@ public class DashboardController : BaseController
             .Where(a => a.GetUserRecord(User.JMMUserID)?.WatchedDate != null)
             .ToList();
         // Count local watched series in the user's collection.
-        var watchedSeries = series.Count(series =>
+        var watchedSeries = allSeries.Count(series =>
         {
             // If we don't have an anime entry then something is very wrong, but
             // we don't care about that right now, so just skip it.
@@ -82,11 +82,10 @@ public class DashboardController : BaseController
             // Check if we've watched more or equal to the number of watchable
             // normal episodes.
             var totalWatchableNormalEpisodes = anime.EpisodeCountNormal - missingNormalEpisodesTotal;
-            var watchedEpisodes = episodeDict[series]
-                .Where(episode => episode.AniDB_Episode.GetEpisodeTypeEnum() == EpisodeType.Episode &&
-                    episode.GetUserRecord(User.JMMUserID)?.WatchedDate != null)
-                .Count();
-            return watchedEpisodes >= totalWatchableNormalEpisodes;
+            var count = episodeDict[series]
+                .Count(episode => episode.AniDB_Episode.GetEpisodeTypeEnum() == EpisodeType.Episode &&
+                                  episode.GetUserRecord(User.JMMUserID)?.WatchedDate != null);
+            return count >= totalWatchableNormalEpisodes;
         });
         // Calculate watched hours for both local episodes and non-local episodes.
         var hoursWatched = Math.Round(
@@ -104,17 +103,17 @@ public class DashboardController : BaseController
         var percentDuplicates = places.Count == 0
             ? 0
             : Math.Round((decimal)duplicates * 100 / places.Count, 2, MidpointRounding.AwayFromZero);
-        var missingEpisodes = series.Sum(a => a.MissingEpisodeCount);
-        var missingEpisodesCollecting = series.Sum(a => a.MissingEpisodeCountGroups);
+        var missingEpisodes = allSeries.Sum(a => a.MissingEpisodeCount);
+        var missingEpisodesCollecting = allSeries.Sum(a => a.MissingEpisodeCountGroups);
         var multipleEpisodes = episodes.Count(a => a.GetVideoLocals().Count(b => !b.IsVariation) > 1);
         var unrecognizedFiles = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().Count;
         var duplicateFiles = places.GroupBy(a => a.VideoLocalID).Count(a => a.Count() > 1);
-        var seriesWithMissingLinks = series.Count(MissingBothTvDBAndMovieDBLink);
+        var seriesWithMissingLinks = allSeries.Count(MissingBothTvDBAndMovieDBLink);
         return new()
         {
             FileCount = files.Count,
             FileSize = totalFileSize,
-            SeriesCount = series.Count,
+            SeriesCount = allSeries.Count,
             GroupCount = groupCount,
             FinishedSeries = watchedSeries,
             WatchedEpisodes = watchedEpisodes.Count,

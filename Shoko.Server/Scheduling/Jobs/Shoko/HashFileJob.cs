@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Quartz;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
 using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -50,7 +49,9 @@ public class HashFileJob : BaseJob
 
     public override async Task Process()
     {
-        var (shouldSave, vlocal, vlocalplace, folder) = GetVideoLocal();
+        var (vlocal, vlocalplace, folder) = GetVideoLocal();
+        if (vlocal.HasAnyEmptyHashes())
+            FillHashesAgainstVideoLocalRepo(vlocal);
         Exception e = null;
         var filename = vlocalplace.FileName;
         var fileSize = GetFileInfo(folder, ref e);
@@ -62,9 +63,8 @@ public class HashFileJob : BaseJob
 
         var scheduler = await _schedulerFactory.GetScheduler();
         if (vlocal.FileSize == 0) vlocal.FileSize = fileSize;
-        var (changed, needEd2K, needCRC32, needMD5, needSHA1) = ShouldHash(vlocal);
+        var (needEd2K, needCRC32, needMD5, needSHA1) = ShouldHash(vlocal);
         if (!needEd2K && !ForceHash) return;
-        shouldSave |= changed;
         FillMissingHashes(vlocal, needMD5, needSHA1, needCRC32, ForceHash);
 
         // We should have a hash by now
@@ -76,19 +76,17 @@ public class HashFileJob : BaseJob
         {
             _logger.LogTrace("Found existing VideoLocal with hash, merging info from it");
             // Merge hashes and save, regardless of duplicate file
-            shouldSave |= MergeInfoFrom(tlocal, vlocal);
+            MergeInfoFrom(tlocal, vlocal);
             vlocal = tlocal;
         }
 
-        if (shouldSave)
-        {
-            vlocal.FileSize = fileSize;
-            _logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FilePath, vlocal.Hash);
-            RepoFactory.VideoLocal.Save(vlocal, true);
+        vlocal.FileSize = fileSize;
+        vlocal.DateTimeUpdated = DateTime.Now;
+        _logger.LogTrace("Saving VideoLocal: Filename: {FileName}, Hash: {Hash}", FilePath, vlocal.Hash);
+        RepoFactory.VideoLocal.Save(vlocal, true);
 
-            vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-            RepoFactory.VideoLocalPlace.Save(vlocalplace);
-        }
+        vlocalplace.VideoLocalID = vlocal.VideoLocalID;
+        RepoFactory.VideoLocalPlace.Save(vlocalplace);
 
         var duplicate = await ProcessDuplicates(vlocal, vlocalplace);
         if (duplicate)
@@ -124,7 +122,7 @@ public class HashFileJob : BaseJob
             });
     }
     
-    private (bool existing, SVR_VideoLocal, SVR_VideoLocal_Place, SVR_ImportFolder) GetVideoLocal()
+    private (SVR_VideoLocal, SVR_VideoLocal_Place, SVR_ImportFolder) GetVideoLocal()
     {
         // hash and read media info for file
         var (folder, filePath) = VideoLocal_PlaceRepository.GetFromFullPath(FilePath);
@@ -140,7 +138,6 @@ public class HashFileJob : BaseJob
             return default;
         }
 
-        var shouldSave = true;
         var importFolderID = folder.ImportFolderID;
 
         // check if we have already processed this file
@@ -153,7 +150,6 @@ public class HashFileJob : BaseJob
             vlocal = vlocalplace.VideoLocal;
             if (vlocal != null)
             {
-                shouldSave = false;
                 _logger.LogTrace("VideoLocal record found in database: {Filename}", FilePath);
 
                 // This will only happen with DB corruption, so just clean up the mess.
@@ -167,12 +163,6 @@ public class HashFileJob : BaseJob
 
                     RepoFactory.VideoLocalPlace.Delete(vlocalplace);
                     vlocalplace = null;
-                    shouldSave = true;
-                }
-
-                if (vlocal != null && ForceHash)
-                {
-                    vlocal.DateTimeUpdated = DateTime.Now;
                 }
             }
         }
@@ -204,7 +194,7 @@ public class HashFileJob : BaseJob
             if (vlocal.VideoLocalID != 0) vlocalplace.VideoLocalID = vlocal.VideoLocalID;
         }
         
-        return (shouldSave, vlocal, vlocalplace, folder);
+        return (vlocal, vlocalplace, folder);
     }
     
     private long GetFileInfo(SVR_ImportFolder folder, ref Exception e)
@@ -294,20 +284,14 @@ public class HashFileJob : BaseJob
         return false;
     }
 
-    private (bool changed, bool needEd2k, bool needCRC32, bool needMD5, bool needSHA1) ShouldHash(SVR_VideoLocal vlocal)
+    private (bool needEd2k, bool needCRC32, bool needMD5, bool needSHA1) ShouldHash(SVR_VideoLocal vlocal)
     {
-        var changed = false;
         var hasherSettings = _settingsProvider.GetSettings().Import.Hasher;
         var needEd2k = string.IsNullOrEmpty(vlocal.Hash);
-        var needCRC32 = string.IsNullOrEmpty(vlocal.CRC32) && hasherSettings.CRC || hasherSettings.ForceGeneratesAllHashes;
-        var needMD5 = string.IsNullOrEmpty(vlocal.MD5) && hasherSettings.MD5 || hasherSettings.ForceGeneratesAllHashes;
-        var needSHA1 = string.IsNullOrEmpty(vlocal.SHA1) && hasherSettings.SHA1 || hasherSettings.ForceGeneratesAllHashes;
-        if (needCRC32 || needMD5 || needSHA1) changed = FillHashesAgainstVideoLocalRepo(vlocal);
-
-        needCRC32 = string.IsNullOrEmpty(vlocal.CRC32) && hasherSettings.CRC || hasherSettings.ForceGeneratesAllHashes;
-        needMD5 = string.IsNullOrEmpty(vlocal.MD5) && hasherSettings.MD5 || hasherSettings.ForceGeneratesAllHashes;
-        needSHA1 = string.IsNullOrEmpty(vlocal.SHA1) && hasherSettings.SHA1 || hasherSettings.ForceGeneratesAllHashes;
-        return (changed, needEd2k, needCRC32, needMD5, needSHA1);
+        var needCRC32 = string.IsNullOrEmpty(vlocal.CRC32) && (hasherSettings.CRC || hasherSettings.ForceGeneratesAllHashes);
+        var needMD5 = string.IsNullOrEmpty(vlocal.MD5) && (hasherSettings.MD5 || hasherSettings.ForceGeneratesAllHashes);
+        var needSHA1 = string.IsNullOrEmpty(vlocal.SHA1) && (hasherSettings.SHA1 || hasherSettings.ForceGeneratesAllHashes);
+        return (needEd2k, needCRC32, needMD5, needSHA1);
     }
 
     private void FillMissingHashes(SVR_VideoLocal vlocal, bool needMD5, bool needSHA1, bool needCRC32, bool force)
@@ -335,33 +319,18 @@ public class HashFileJob : BaseJob
             vlocal.Hash, vlocal.CRC32, vlocal.SHA1, vlocal.MD5);
     }
 
-    private static bool FillHashesAgainstVideoLocalRepo(SVR_VideoLocal v)
+    private static void FillHashesAgainstVideoLocalRepo(SVR_VideoLocal v)
     {
-        var changed = false;
         if (!string.IsNullOrEmpty(v.ED2KHash))
         {
             var n = RepoFactory.VideoLocal.GetByHash(v.ED2KHash);
             if (n != null)
             {
-                if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32))
-                {
-                    v.CRC32 = n.CRC32.ToUpperInvariant();
-                    changed = true;
-                }
+                if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32)) v.CRC32 = n.CRC32.ToUpperInvariant();
+                if (!string.IsNullOrEmpty(n.MD5) && !n.MD5.Equals(v.MD5)) v.MD5 = n.MD5.ToUpperInvariant();
+                if (!string.IsNullOrEmpty(n.SHA1) && !n.SHA1.Equals(v.SHA1)) v.SHA1 = n.SHA1.ToUpperInvariant();
 
-                if (!string.IsNullOrEmpty(n.MD5) && !n.MD5.Equals(v.MD5))
-                {
-                    v.MD5 = n.MD5.ToUpperInvariant();
-                    changed = true;
-                }
-
-                if (!string.IsNullOrEmpty(n.SHA1) && !n.SHA1.Equals(v.SHA1))
-                {
-                    v.SHA1 = n.SHA1.ToUpperInvariant();
-                    changed = true;
-                }
-
-                return changed;
+                return;
             }
         }
 
@@ -370,25 +339,11 @@ public class HashFileJob : BaseJob
             var n = RepoFactory.VideoLocal.GetBySHA1(v.SHA1);
             if (n != null)
             {
-                if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32))
-                {
-                    v.CRC32 = n.CRC32.ToUpperInvariant();
-                    changed = true;
-                }
+                if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32)) v.CRC32 = n.CRC32.ToUpperInvariant();
+                if (!string.IsNullOrEmpty(n.MD5) && !n.MD5.Equals(v.MD5)) v.MD5 = n.MD5.ToUpperInvariant();
+                if (!string.IsNullOrEmpty(n.SHA1) && !n.SHA1.Equals(v.SHA1)) v.SHA1 = n.SHA1.ToUpperInvariant();
 
-                if (!string.IsNullOrEmpty(n.MD5) && !n.MD5.Equals(v.MD5))
-                {
-                    v.MD5 = n.MD5.ToUpperInvariant();
-                    changed = true;
-                }
-
-                if (!string.IsNullOrEmpty(n.SHA1) && !n.SHA1.Equals(v.SHA1))
-                {
-                    v.SHA1 = n.SHA1.ToUpperInvariant();
-                    changed = true;
-                }
-
-                return changed;
+                return;
             }
         }
 
@@ -397,55 +352,19 @@ public class HashFileJob : BaseJob
             var n = RepoFactory.VideoLocal.GetByMD5(v.MD5);
             if (n != null)
             {
-                if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32))
-                {
-                    v.CRC32 = n.CRC32.ToUpperInvariant();
-                    changed = true;
-                }
-
-                if (!string.IsNullOrEmpty(n.MD5) && !n.MD5.Equals(v.MD5))
-                {
-                    v.MD5 = n.MD5.ToUpperInvariant();
-                    changed = true;
-                }
-
-                if (!string.IsNullOrEmpty(n.SHA1) && !n.SHA1.Equals(v.SHA1))
-                {
-                    v.SHA1 = n.SHA1.ToUpperInvariant();
-                    changed = true;
-                }
-
-                return changed;
+                if (!string.IsNullOrEmpty(n.CRC32) && !n.CRC32.Equals(v.CRC32)) v.CRC32 = n.CRC32.ToUpperInvariant();
+                if (!string.IsNullOrEmpty(n.MD5) && !n.MD5.Equals(v.MD5)) v.MD5 = n.MD5.ToUpperInvariant();
+                if (!string.IsNullOrEmpty(n.SHA1) && !n.SHA1.Equals(v.SHA1)) v.SHA1 = n.SHA1.ToUpperInvariant();
             }
         }
-
-        return false;
     }
 
-    private static bool MergeInfoFrom(SVR_VideoLocal target, SVR_VideoLocal source)
+    private static void MergeInfoFrom(SVR_VideoLocal target, SVR_VideoLocal source)
     {
-        var changed = false;
-        if (string.IsNullOrEmpty(target.Hash) && !string.IsNullOrEmpty(source.Hash))
-        {
-            target.Hash = source.Hash;
-            changed = true;
-        }
-        if (string.IsNullOrEmpty(target.CRC32) && !string.IsNullOrEmpty(source.CRC32))
-        {
-            target.CRC32 = source.CRC32;
-            changed = true;
-        }
-        if (string.IsNullOrEmpty(target.MD5) && !string.IsNullOrEmpty(source.MD5))
-        {
-            target.MD5 = source.MD5;
-            changed = true;
-        }
-        if (string.IsNullOrEmpty(target.SHA1) && !string.IsNullOrEmpty(source.SHA1))
-        {
-            target.SHA1 = source.SHA1;
-            changed = true;
-        }
-        return changed;
+        if (string.IsNullOrEmpty(target.Hash) && !string.IsNullOrEmpty(source.Hash)) target.Hash = source.Hash;
+        if (string.IsNullOrEmpty(target.CRC32) && !string.IsNullOrEmpty(source.CRC32)) target.CRC32 = source.CRC32;
+        if (string.IsNullOrEmpty(target.MD5) && !string.IsNullOrEmpty(source.MD5)) target.MD5 = source.MD5;
+        if (string.IsNullOrEmpty(target.SHA1) && !string.IsNullOrEmpty(source.SHA1)) target.SHA1 = source.SHA1;
     }
 
     private async Task<bool> ProcessDuplicates(SVR_VideoLocal vlocal, SVR_VideoLocal_Place vlocalplace)
@@ -454,18 +373,14 @@ public class HashFileJob : BaseJob
         // If the VideoLocalID == 0, then it's a new file that wasn't merged after hashing, so it can't be a dupe
         if (vlocal.VideoLocalID == 0) return false;
 
+        // remove missing files
         var preps = vlocal.Places.Where(a =>
         {
             if (vlocalplace.FullServerPath.Equals(a.FullServerPath)) return false;
             if (a.FullServerPath == null) return true;
             return !File.Exists(a.FullServerPath);
         }).ToList();
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-        {
-            using var transaction = session.BeginTransaction();
-            await RepoFactory.VideoLocalPlace.DeleteWithOpenTransactionAsync(session, preps);
-            await transaction.CommitAsync();
-        }
+        RepoFactory.VideoLocalPlace.Delete(preps);
 
         var dupPlace = vlocal.Places.FirstOrDefault(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath));
         if (dupPlace == null) return false;

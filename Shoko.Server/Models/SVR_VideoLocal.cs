@@ -114,7 +114,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
     }
 
 
-    public List<SVR_VideoLocal_Place> Places => RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
+    public List<SVR_VideoLocal_Place> Places => VideoLocalID == 0 ? new List<SVR_VideoLocal_Place>() : RepoFactory.VideoLocalPlace.GetByVideoLocal(VideoLocalID);
 
 
     public void CollectContractMemory()

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
@@ -42,8 +41,8 @@ public class DiscoverFileJob : BaseJob
     public override async Task Process()
     {
         // The flow has changed.
-        // Check for previous existence, merge info if needed
-        // If it's a new file or info is missing, queue a hash
+        // Check for previous existence, merge info if needed.
+        // If it's a new file or info is missing, queue a hash.
         // HashFileJob will create the records for a new file, so don't save an empty record.
         _logger.LogInformation("Checking File For Hashes: {Filename}", FilePath);
 
@@ -76,9 +75,13 @@ public class DiscoverFileJob : BaseJob
                 shouldSave |= FillHashesAgainstVideoLocalRepo(vlocal);
         }
 
+        // on a new file, this will always be true
         var (needEd2k, needCRC32, needMD5, needSHA1) = ShouldHash(vlocal);
         var shouldHash = needEd2k || needCRC32 || needMD5 || needSHA1;
+
         var scheduler = await _schedulerFactory.GetScheduler();
+
+        // this can't run on a new file, because shouldHash is true
         if (!shouldHash && !shouldSave)
         {
             // if !shouldHash, then we definitely have a hash
@@ -95,6 +98,11 @@ public class DiscoverFileJob : BaseJob
             return;
         }
 
+        // process duplicate import
+        var duplicateRemoved = await ProcessDuplicates(vlocal, vlocalplace);
+        // it was removed. Don't try to hash or save
+        if (duplicateRemoved) return;
+
         if (shouldSave)
         {
             _logger.LogTrace("Saving VideoLocal: VideoLocalID: {VideoLocalID},  Filename: {FileName}, Hash: {Hash}", vlocal.VideoLocalID, FilePath, vlocal.Hash);
@@ -103,14 +111,7 @@ public class DiscoverFileJob : BaseJob
             _logger.LogTrace("Saving VideoLocal_Place: VideoLocal_Place_ID: {PlaceID}, Path: {Path}", vlocalplace.VideoLocal_Place_ID, FilePath);
             vlocalplace.VideoLocalID = vlocal.VideoLocalID;
             RepoFactory.VideoLocalPlace.Save(vlocalplace);
-            
-            var duplicateRemoved = await ProcessDuplicates(vlocal, vlocalplace);
-            // it was removed. Don't try to hash
-            if (duplicateRemoved) return;
         }
-
-        var hasXrefs = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash).Any(a =>
-            RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.EpisodeID) != null && RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null);
 
         if (shouldHash)
         {
@@ -119,7 +120,13 @@ public class DiscoverFileJob : BaseJob
                 a.FilePath = FilePath;
                 a.SkipMyList = SkipMyList;
             });
-        } else if (!hasXrefs)
+            return;
+
+        }
+
+        var hasXrefs = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash).Any(a =>
+            RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.EpisodeID) != null && RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null);
+        if (!hasXrefs)
         {
             _logger.LogTrace("Hashes were found, but xrefs are missing. Queuing a rescan for: {File}, Hash: {Hash}", FilePath, vlocal.Hash);
             await scheduler.StartJobNow<ProcessFileJob>(a => a.VideoLocalID = vlocal.VideoLocalID);
@@ -235,7 +242,7 @@ public class DiscoverFileJob : BaseJob
 
         _logger.LogTrace("Got hash from LOCAL cache: {Filename} ({Hash})", FilePath, fnhashes[0].Hash);
         vlocal.Hash = fnhashes[0].Hash;
-        vlocal.HashSource = (int)HashSource.WebCacheFileName;
+        vlocal.HashSource = (int)HashSource.FileNameCache;
         return true;
     }
     
@@ -344,22 +351,17 @@ public class DiscoverFileJob : BaseJob
     /// <returns>true if the file was removed</returns>
     private async Task<bool> ProcessDuplicates(SVR_VideoLocal vlocal, SVR_VideoLocal_Place vlocalplace)
     {
-        if (vlocal == null) return false;
         // If the VideoLocalID == 0, then it's a new file that wasn't merged after hashing, so it can't be a dupe
         if (vlocal.VideoLocalID == 0) return false;
 
+        // remove missing files
         var preps = vlocal.Places.Where(a =>
         {
             if (vlocalplace.FullServerPath.Equals(a.FullServerPath)) return false;
             if (a.FullServerPath == null) return true;
             return !File.Exists(a.FullServerPath);
         }).ToList();
-        using (var session = DatabaseFactory.SessionFactory.OpenSession())
-        {
-            using var transaction = session.BeginTransaction();
-            await RepoFactory.VideoLocalPlace.DeleteWithOpenTransactionAsync(session, preps);
-            await transaction.CommitAsync();
-        }
+        RepoFactory.VideoLocalPlace.Delete(preps);
 
         var dupPlace = vlocal.Places.FirstOrDefault(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath));
         if (dupPlace == null) return false;
@@ -371,12 +373,10 @@ public class DiscoverFileJob : BaseJob
         _logger.LogWarning("---------------------------------------------");
 
         var settings = _settingsProvider.GetSettings();
-        if (settings.Import.AutomaticallyDeleteDuplicatesOnImport)
-        {
-            await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(vlocalplace);
-            return true;
-        }
-        return false;
+        if (!settings.Import.AutomaticallyDeleteDuplicatesOnImport) return false;
+
+        await _vlPlaceService.RemoveRecordAndDeletePhysicalFile(vlocalplace);
+        return true;
     }
 
     public DiscoverFileJob(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_PlaceService vlPlaceService)
