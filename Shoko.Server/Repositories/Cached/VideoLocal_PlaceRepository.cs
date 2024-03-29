@@ -7,6 +7,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Exceptions;
 using Shoko.Server.Models;
 using Shoko.Server.Server;
 
@@ -23,7 +24,7 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
         // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         BeginSaveCallback = place =>
         {
-            if (place.VideoLocalID == 0) throw new ArgumentException("Attempting to save a VideoLocal_Place with a VideoLocalID of 0");
+            if (place.VideoLocalID == 0) throw new InvalidStateException("Attempting to save a VideoLocal_Place with a VideoLocalID of 0");
         };
     }
 
@@ -67,14 +68,14 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
 
     public List<SVR_VideoLocal_Place> GetByImportFolder(int importFolderID)
     {
-        if (importFolderID == 0) throw new ArgumentException("Trying to lookup a VideoLocal_Place by an ImportFolderID of 0");
+        if (importFolderID == 0) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by an ImportFolderID of 0");
         return ReadLock(() => ImportFolders.GetMultiple(importFolderID));
     }
 
     public SVR_VideoLocal_Place GetByFilePathAndImportFolderID(string filePath, int importFolderID)
     {
-        if (string.IsNullOrEmpty(filePath)) throw new ArgumentException("Trying to lookup a VideoLocal_Place by an empty File Path");
-        if (importFolderID == 0) throw new ArgumentException("Trying to lookup a VideoLocal_Place by an ImportFolderID of 0");
+        if (string.IsNullOrEmpty(filePath)) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by an empty File Path");
+        if (importFolderID == 0) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by an ImportFolderID of 0");
         return ReadLock(() => Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == importFolderID));
     }
 
@@ -106,7 +107,7 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Pl
 
     public List<SVR_VideoLocal_Place> GetByVideoLocal(int videoLocalID)
     {
-        if (videoLocalID == 0) throw new ArgumentException("Trying to lookup a VideoLocal_Place by a VideoLocalID of 0");
+        if (videoLocalID == 0) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by a VideoLocalID of 0");
         return ReadLock(() => VideoLocals.GetMultiple(videoLocalID));
     }
 }

@@ -13,6 +13,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Exceptions;
 using Shoko.Server.LZ4;
 using Shoko.Server.Models;
 using Shoko.Server.Scheduling;
@@ -255,32 +256,32 @@ public class VideoLocalRepository : BaseCachedRepository<SVR_VideoLocal, int>
 
     public SVR_VideoLocal GetByHash(string hash)
     {
-        if (string.IsNullOrEmpty(hash)) throw new ArgumentException("Trying to lookup a VideoLocal by an empty Hash");
+        if (string.IsNullOrEmpty(hash)) throw new InvalidStateException("Trying to lookup a VideoLocal by an empty Hash");
         return ReadLock(() => _hashes.GetOne(hash));
     }
 
     public SVR_VideoLocal GetByMD5(string hash)
     {
-        if (string.IsNullOrEmpty(hash)) throw new ArgumentException("Trying to lookup a VideoLocal by an empty MD5");
+        if (string.IsNullOrEmpty(hash)) throw new InvalidStateException("Trying to lookup a VideoLocal by an empty MD5");
         return ReadLock(() => _md5.GetOne(hash));
     }
 
     public SVR_VideoLocal GetBySHA1(string hash)
     {
-        if (string.IsNullOrEmpty(hash)) throw new ArgumentException("Trying to lookup a VideoLocal by an empty SHA1");
+        if (string.IsNullOrEmpty(hash)) throw new InvalidStateException("Trying to lookup a VideoLocal by an empty SHA1");
         return ReadLock(() => _sha1.GetOne(hash));
     }
 
     public SVR_VideoLocal GetByHashAndSize(string hash, long fsize)
     {
-        if (string.IsNullOrEmpty(hash)) throw new ArgumentException("Trying to lookup a VideoLocal by an empty Hash");
-        if (fsize <= 0) throw new ArgumentException("Trying to lookup a VideoLocal by a filesize of 0");
+        if (string.IsNullOrEmpty(hash)) throw new InvalidStateException("Trying to lookup a VideoLocal by an empty Hash");
+        if (fsize <= 0) throw new InvalidStateException("Trying to lookup a VideoLocal by a filesize of 0");
         return ReadLock(() => _hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize));
     }
 
     public List<SVR_VideoLocal> GetByName(string fileName)
     {
-        if (string.IsNullOrEmpty(fileName)) throw new ArgumentException("Trying to lookup a VideoLocal by an empty Filename");
+        if (string.IsNullOrEmpty(fileName)) throw new InvalidStateException("Trying to lookup a VideoLocal by an empty Filename");
         return ReadLock(
             () => Cache.Values.Where(
                     p => p.Places.Any(

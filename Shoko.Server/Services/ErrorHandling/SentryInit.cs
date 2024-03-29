@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using NLog;
+using Quartz;
 using Sentry;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -73,21 +73,32 @@ public class SentryInit : IDisposable
 
         LogManager.Configuration.AddSentry(o =>
         {
-            o.MinimumEventLevel = LogLevel.Fatal;
+            o.MinimumEventLevel = LogLevel.Error;
+            o.IgnoreEventsWithNoException = true;
         });
     }
 
-    private readonly List<Type> IgnoredEvents = new List<Type> {
+    private readonly HashSet<Type> _ignoredEvents = new() {
         typeof(FileNotFoundException),
         typeof(DirectoryNotFoundException),
         typeof(UnauthorizedAccessException),
         typeof(HttpRequestException)
     };
+
+    private readonly HashSet<Type> _includedEvents = new()
+    {
+        typeof(JobPersistenceException),
+        typeof(JobExecutionException),
+        typeof(InvalidOperationException)
+    };
     
     private SentryEvent? BeforeSentrySend(SentryEvent arg)
     {
-        if (arg.Exception is not null && IgnoredEvents.Contains(arg.Exception.GetType()))
+        if (arg.Exception is not null && _ignoredEvents.Contains(arg.Exception.GetType()))
             return null;
+
+        if (arg.Exception is not null && _includedEvents.Contains(arg.Exception.GetType()))
+            return arg;
 
         if (arg.Exception is WebException ex)
         {
@@ -100,12 +111,14 @@ public class SentryInit : IDisposable
 
         if (arg.Exception?.GetType().GetCustomAttribute<SentryIgnoreAttribute>() is not null)
             return null;
-        
-        //This should never happen, but this is to be 100% sure
-        if (arg.Logger is not null && arg.Level < SentryLevel.Fatal)
-            return null;
 
-        return arg;
+        if (arg.Exception?.GetType().GetCustomAttribute<SentryIncludeAttribute>() is not null)
+            return arg;
+
+        if (arg.Logger is not null && arg.Level >= SentryLevel.Fatal)
+            return arg;
+
+        return null;
     }
 
     public void Dispose()
