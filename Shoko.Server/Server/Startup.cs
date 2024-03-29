@@ -62,8 +62,8 @@ public class Startup
             services.AddSingleton<IConnectivityMonitor, MozillaConnectivityMonitor>();
             services.AddSingleton<IConnectivityMonitor, WeChatConnectivityMonitor>();
             services.AddSingleton<IConnectivityService, ConnectivityService>();
-            services.AddSingleton<SentryInit>();
 
+            services.AddSentry();
             services.AddQuartz();
 
             services.AddAniDB();
@@ -147,13 +147,10 @@ public class Startup
                 logging.AddFilter("System", LogLevel.Warning);
                 logging.AddFilter("Shoko.Server.API", LogLevel.Warning);
 #endif
-            }).UseNLog();
-        
+            }).UseNLog()
+            .UseSentryConfig();
 
         var result = builder.Build();
-        
-        // Init Sentry
-        result.Services.GetRequiredService<SentryInit>().Init();
         
         Utils.SettingsProvider = result.Services.GetRequiredService<ISettingsProvider>();
         Utils.ServiceContainer = result.Services;

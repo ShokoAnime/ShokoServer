@@ -96,15 +96,15 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="NHibernate" Version="5.3.13" />
     <PackageReference Include="NHibernate.Driver.MySqlConnector" Version="2.0.4" />
-    <PackageReference Include="NLog" Version="5.0.4" />
-    <PackageReference Include="NLog.Web.AspNetCore" Version="5.1.4" />
+    <PackageReference Include="NLog" Version="5.2.8" />
+    <PackageReference Include="NLog.Web.AspNetCore" Version="5.3.8" />
     <PackageReference Include="Polly" Version="8.2.1" />
     <PackageReference Include="Quartz.AspNetCore" Version="3.8.0" />
     <PackageReference Include="Quartz.Serialization.Json" Version="3.8.0" />
-    <PackageReference Include="Sentry" Version="3.29.0" />
-    <PackageReference Include="Sentry.AspNetCore" Version="3.29.0" />
-    <PackageReference Include="Sentry.Extensions.Logging" Version="3.29.0" />
-    <PackageReference Include="Sentry.NLog" Version="3.29.0" />
+    <PackageReference Include="Sentry" Version="4.2.1" />
+    <PackageReference Include="Sentry.AspNetCore" Version="4.2.1" />
+    <PackageReference Include="Sentry.Extensions.Logging" Version="4.2.1" />
+    <PackageReference Include="Sentry.NLog" Version="4.2.1" />
     <PackageReference Include="SharpCompress" Version="0.32.2" />
     <PackageReference Include="SharpZipLib" Version="1.4.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />

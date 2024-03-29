@@ -23,7 +23,6 @@ using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Plex;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
-using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.FileSystemWatcher;
@@ -38,7 +37,6 @@ public class ShokoServer
     private readonly ILogger<ShokoServer> logger;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly SentryInit _sentryInit;
 
     private static DateTime? StartTime;
 
@@ -50,18 +48,16 @@ public class ShokoServer
     private static Timer autoUpdateTimer;
     private static Timer autoUpdateTimerShort;
 
-    private DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12, 0, 0));
     private List<RecoveringFileSystemWatcher> _fileWatchers;
 
     private BackgroundWorker downloadImagesWorker = new();
 
 
-    public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, SentryInit sentryInit)
+    public ShokoServer(ILogger<ShokoServer> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory)
     {
         this.logger = logger;
         _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
-        _sentryInit = sentryInit;
 
         var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);
         CultureInfo.DefaultThreadCurrentCulture = culture;
@@ -81,9 +77,6 @@ public class ShokoServer
 
     public bool StartUpServer()
     {
-        _sentryInit.Init(); 
-
-
         // Check if any of the DLL are blocked, common issue with daily builds
         if (!CheckBlockedFiles())
         {
