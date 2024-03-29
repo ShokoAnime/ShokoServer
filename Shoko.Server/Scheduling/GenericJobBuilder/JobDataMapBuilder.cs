@@ -9,6 +9,7 @@ public static class JobDataMapBuilder
     public static JobDataMap FromType<T>(Action<T> ctor) where T : class, IJob
     {
         var constructor = TypeConstructorCache.Get(typeof(T));
+        if (constructor == null) throw new Exception($"Type \"{typeof(T)}\" does not have a valid constructor");
         var original = constructor.Invoke(null) as T;
         var temp = constructor.Invoke(null) as T;
         ctor.Invoke(temp);
