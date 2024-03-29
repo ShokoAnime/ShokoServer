@@ -8,6 +8,7 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -159,8 +160,16 @@ public class QueueController : BaseController
     }
 
     [HttpGet("DebugStats")]
-    public ActionResult GetDebugState()
+    public ActionResult<DebugStats> GetDebugStats()
     {
-        return new OkObjectResult((Queue: GetQueue(), TypeFilters: _queueHandler.GetTypes(), AcquisitionFilters: _queueHandler.GetAcquisitionFilterResults()));
+        return new DebugStats(Queue: GetQueue(), TypeFilters: _queueHandler.GetTypes(), AcquisitionFilters: _queueHandler.GetAcquisitionFilterResults());
     }
+
+    [HttpGet("AcquisitionFilters")]
+    public ActionResult<Dictionary<string, string[]>> GetAcquisitionFilters()
+    {
+        return _queueHandler.GetAcquisitionFilterResults();
+    }
+
+    public record DebugStats(Queue Queue, JobTypes TypeFilters, Dictionary<string, string[]> AcquisitionFilters);
 }
