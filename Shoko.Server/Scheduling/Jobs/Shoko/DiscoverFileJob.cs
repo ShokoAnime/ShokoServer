@@ -47,7 +47,7 @@ public class DiscoverFileJob : BaseJob
         // HashFileJob will create the records for a new file, so don't save an empty record.
         _logger.LogInformation("Checking File For Hashes: {Filename}", FilePath);
 
-        var (shouldSave, vlocal, vlocalplace) = GetVideoLocal();
+        var (vlocal, vlocalplace) = GetVideoLocal();
         if (vlocal == null || vlocalplace == null)
         {
             _logger.LogWarning("Could not get or create VideoLocal. exiting");
@@ -55,6 +55,7 @@ public class DiscoverFileJob : BaseJob
         }
 
         var filename = vlocalplace.FileName;
+        var shouldSave = false;
 
         if (vlocal.HasAnyEmptyHashes())
         {
@@ -80,6 +81,7 @@ public class DiscoverFileJob : BaseJob
         var scheduler = await _schedulerFactory.GetScheduler();
         if (!shouldHash && !shouldSave)
         {
+            // if !shouldHash, then we definitely have a hash
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash).Where(a =>
                 RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.EpisodeID) != null && RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null).ToList();
             if (xrefs.Count != 0)
@@ -124,7 +126,7 @@ public class DiscoverFileJob : BaseJob
         }
     }
 
-    private (bool existing, SVR_VideoLocal, SVR_VideoLocal_Place) GetVideoLocal()
+    private (SVR_VideoLocal, SVR_VideoLocal_Place) GetVideoLocal()
     {
         // hash and read media info for file
         var (folder, filePath) = VideoLocal_PlaceRepository.GetFromFullPath(FilePath);
@@ -133,9 +135,6 @@ public class DiscoverFileJob : BaseJob
             _logger.LogError("Unable to locate Import Folder for {FileName}", FilePath);
             return default;
         }
-
-        // we assume it's new until it's found. Obviously, we need to save a new record
-        var shouldSave = true;
 
         if (!File.Exists(FilePath))
         {
@@ -155,7 +154,6 @@ public class DiscoverFileJob : BaseJob
             vlocal = vlocalplace.VideoLocal;
             if (vlocal != null)
             {
-                shouldSave = false;
                 _logger.LogTrace("VideoLocal record found in database: {Filename}", FilePath);
 
                 // This will only happen with DB corruption, so just clean up the mess.
@@ -170,7 +168,6 @@ public class DiscoverFileJob : BaseJob
 
                     RepoFactory.VideoLocalPlace.Delete(vlocalplace);
                     vlocalplace = null;
-                    shouldSave = true;
                 }
             }
         }
@@ -202,7 +199,7 @@ public class DiscoverFileJob : BaseJob
             if (vlocal.VideoLocalID != 0) vlocalplace.VideoLocalID = vlocal.VideoLocalID;
         }
         
-        return (shouldSave, vlocal, vlocalplace);
+        return (vlocal, vlocalplace);
     }
     
     private bool TrySetHashFromXrefs(string filename, SVR_VideoLocal vlocal)
