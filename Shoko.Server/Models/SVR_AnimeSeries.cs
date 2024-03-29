@@ -877,9 +877,10 @@ public class SVR_AnimeSeries : AnimeSeries
         {
             var parentGroup = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
 
-            while (parentGroup?.AnimeGroupParentID != null)
+            int parentID;
+            while ((parentID = parentGroup?.AnimeGroupParentID ?? 0) != 0)
             {
-                parentGroup = RepoFactory.AnimeGroup.GetByID(parentGroup.AnimeGroupParentID.Value);
+                parentGroup = RepoFactory.AnimeGroup.GetByID(parentID);
             }
 
             return parentGroup;
@@ -893,18 +894,18 @@ public class SVR_AnimeSeries : AnimeSeries
             var grps = new List<SVR_AnimeGroup>();
             try
             {
-                int? groupID = AnimeGroupID;
-                while (groupID.HasValue)
+                var groupID = AnimeGroupID;
+                while (groupID != 0)
                 {
-                    var grp = RepoFactory.AnimeGroup.GetByID(groupID.Value);
+                    var grp = RepoFactory.AnimeGroup.GetByID(groupID);
                     if (grp != null)
                     {
                         grps.Add(grp);
-                        groupID = grp.AnimeGroupParentID;
+                        groupID = grp.AnimeGroupParentID ?? 0;
                     }
                     else
                     {
-                        groupID = null;
+                        groupID = 0;
                     }
                 }
 
