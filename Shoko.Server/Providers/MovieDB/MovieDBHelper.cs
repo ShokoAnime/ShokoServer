@@ -241,7 +241,7 @@ public class MovieDBHelper
         if (series != null)
         {
             series.IsTMDBAutoMatchingDisabled = true;
-            RepoFactory.AnimeSeries.Save(series, false, true, true);
+            RepoFactory.AnimeSeries.Save(series, false, true);
         }
 
         RepoFactory.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);

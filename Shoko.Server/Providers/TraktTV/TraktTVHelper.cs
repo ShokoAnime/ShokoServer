@@ -510,7 +510,7 @@ public class TraktTVHelper
         if (series != null)
         {
             series.IsTraktAutoMatchingDisabled = true;
-            RepoFactory.AnimeSeries.Save(series, false, true, true);
+            RepoFactory.AnimeSeries.Save(series, false, true);
         }
 
         SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);

@@ -419,7 +419,7 @@ public class SVR_AnimeSeries : AnimeSeries
             if (contract == null)
             {
                 logger.Trace($"Series with ID [{AniDB_ID}] has a null contract on get. Updating");
-                RepoFactory.AnimeSeries.Save(this, false, false, true);
+                RepoFactory.AnimeSeries.Save(this, false, false);
                 contract = (CL_AnimeSeries_User)_contract?.Clone();
             }
 

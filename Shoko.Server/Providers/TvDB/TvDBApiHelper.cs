@@ -942,7 +942,7 @@ public class TvDBApiHelper
         if (series != null)
         {
             series.IsTvDBAutoMatchingDisabled = true;
-            RepoFactory.AnimeSeries.Save(series, false, true, true);
+            RepoFactory.AnimeSeries.Save(series, false, true);
         }
 
         SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);

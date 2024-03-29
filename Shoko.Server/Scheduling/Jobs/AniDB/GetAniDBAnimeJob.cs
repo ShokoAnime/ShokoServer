@@ -266,12 +266,12 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 
         series.Populate(anime);
         // Populate before making a group to ensure IDs and stats are set for group filters.
-        RepoFactory.AnimeSeries.Save(series, false, false, true);
+        RepoFactory.AnimeSeries.Save(series, false, false);
 
         var grp = _animeGroupCreator.GetOrCreateSingleGroupForSeries(series);
         series.AnimeGroupID = grp.AnimeGroupID;
 
-        RepoFactory.AnimeSeries.Save(series, false, false, true);
+        RepoFactory.AnimeSeries.Save(series, false, false);
 
         // check for TvDB associations
         if (anime.Restricted == 0)

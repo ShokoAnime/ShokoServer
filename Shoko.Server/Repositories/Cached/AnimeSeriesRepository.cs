@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -12,6 +13,8 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
+using Shoko.Server.Tasks;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 
@@ -71,7 +74,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
                     .ToList();
             var max = sers.Count;
             ServerState.Instance.ServerStartingStatus = string.Format(
-                Resources.Database_Validating, typeof(AnimeSeries).Name, " DbRegen");
+                Resources.Database_Validating, nameof(AnimeSeries), " DbRegen - Validating Contracts");
             if (max <= 0)
             {
                 return;
@@ -82,7 +85,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
                 var s = sers[i];
                 try
                 {
-                    Save(s, false, false, true);
+                    Save(s, false, false);
                 }
                 catch
                 {
@@ -91,15 +94,53 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
                 if (i % 10 == 0)
                 {
                     ServerState.Instance.ServerStartingStatus = string.Format(
-                        Resources.Database_Validating, typeof(AnimeSeries).Name,
-                        " DbRegen - " + i + "/" + max
+                        Resources.Database_Validating, nameof(AnimeSeries),
+                        " DbRegen - Validating Contracts - " + i + "/" + max
                     );
                 }
             }
 
             ServerState.Instance.ServerStartingStatus = string.Format(
-                Resources.Database_Validating, typeof(AnimeSeries).Name,
-                " DbRegen - " + max + "/" + max);
+                Resources.Database_Validating, nameof(AnimeSeries),
+                " DbRegen - Validating Contracts - " + max + "/" + max);
+            
+            sers =
+                Cache.Values.Where(
+                        a => a.AnimeGroupID == 0 || RepoFactory.AnimeGroup.GetByID(a.AnimeGroupID) == null).ToList();
+            max = sers.Count;
+            ServerState.Instance.ServerStartingStatus = string.Format(
+                Resources.Database_Validating, nameof(AnimeSeries), " DbRegen - Ensuring Groups Exist");
+            if (max <= 0)
+            {
+                return;
+            }
+
+            var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
+            for (var i = 0; i < sers.Count; i++)
+            {
+                var s = sers[i];
+                try
+                {
+                    var group = groupCreator.GetOrCreateSingleGroupForSeries(s);
+                    s.AnimeGroupID = group.AnimeGroupID;
+                    Save(s, false, true);
+                }
+                catch
+                {
+                }
+
+                if (i % 10 == 0)
+                {
+                    ServerState.Instance.ServerStartingStatus = string.Format(
+                        Resources.Database_Validating, nameof(AnimeSeries),
+                        " DbRegen - Ensuring Groups Exist - " + i + "/" + max
+                    );
+                }
+            }
+
+            ServerState.Instance.ServerStartingStatus = string.Format(
+                Resources.Database_Validating, nameof(AnimeSeries),
+                " DbRegen - Ensuring Groups Exist - " + max + "/" + max);
         }
         catch (Exception e)
         {
@@ -123,8 +164,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         Save(obj, true, onlyupdatestats);
     }
 
-    public void Save(SVR_AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool skipgroupfilters = false,
-        bool alsoupdateepisodes = false)
+    public void Save(SVR_AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool alsoupdateepisodes = false)
     {
         var animeID = obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString();
         logger.Trace($"Saving Series {animeID}");
