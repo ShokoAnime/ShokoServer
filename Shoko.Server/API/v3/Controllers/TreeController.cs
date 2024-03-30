@@ -39,7 +39,7 @@ public class TreeController : BaseController
     /// <param name="folderID">Import folder ID</param>
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
-    /// <param name="folderPath">Filter the list to only contain files starting with the given parent folder path.</parma>
+    /// <param name="folderPath">Filter the list to only contain files starting with the given parent folder path.</param>
     /// <param name="include">Include items that are not included by default</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
@@ -51,6 +51,8 @@ public class TreeController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
     {
+        include ??= Array.Empty<FileNonDefaultIncludeType>();
+
         var importFolder = RepoFactory.ImportFolder.GetByID(folderID);
         if (importFolder == null)
             return NotFound("Import folder not found.");
@@ -511,7 +513,7 @@ public class TreeController : BaseController
             .Where(a => user.AllowedSeries(a))
             .Select(series => _seriesFactory.GetSeries(series, randomImages, includeDataFrom))
             .Where(series => series.Size > 0 || includeMissing)
-            .OrderBy(a => a._AniDB?.AirDate ?? a._TvDB?.Min(b => b.AirDate ?? DateTime.MaxValue) ?? DateTime.MaxValue)
+            .OrderBy(a => a._AniDB?.AirDate ?? a._TvDB?.Select(b => b.AirDate ?? DateTime.MaxValue).DefaultIfEmpty(DateTime.MaxValue).Min() ?? DateTime.MaxValue)
             .ToList();
     }
 
