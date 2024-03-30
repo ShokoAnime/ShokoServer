@@ -68,6 +68,7 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 
     public override async Task<SVR_AniDB_Anime> Process()
     {
+        if (AnimeID == 0) return null;
         _logger.LogInformation("Processing CommandRequest_GetAnimeHTTP: {AnimeID}", AnimeID);
         if (ForceRefresh && _handler.IsBanned)
         {

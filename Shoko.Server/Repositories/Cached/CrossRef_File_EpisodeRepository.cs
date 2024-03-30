@@ -36,7 +36,7 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
         };
         EndDeleteCallback = obj =>
         {
-            if (obj == null || obj.AnimeID <= 0)
+            if (obj is not { AnimeID: > 0 })
             {
                 return;
             }

@@ -75,12 +75,8 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             var max = sers.Count;
             ServerState.Instance.ServerStartingStatus = string.Format(
                 Resources.Database_Validating, nameof(AnimeSeries), " DbRegen - Validating Contracts");
-            if (max <= 0)
-            {
-                return;
-            }
 
-            for (var i = 0; i < sers.Count; i++)
+            for (var i = 0; i < max; i++)
             {
                 var s = sers[i];
                 try
@@ -110,13 +106,9 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             max = sers.Count;
             ServerState.Instance.ServerStartingStatus = string.Format(
                 Resources.Database_Validating, nameof(AnimeSeries), " DbRegen - Ensuring Groups Exist");
-            if (max <= 0)
-            {
-                return;
-            }
 
             var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
-            for (var i = 0; i < sers.Count; i++)
+            for (var i = 0; i < max; i++)
             {
                 var s = sers[i];
                 try
