@@ -69,6 +69,7 @@ public class GetAniDBCalendarJob : BaseJob
         {
             foreach (var cal in response.Response.Next25Anime)
             {
+                if (cal.AnimeID == 0) continue;
                 await GetAnime(scheduler, cal, settings);
             }
         }
@@ -77,6 +78,7 @@ public class GetAniDBCalendarJob : BaseJob
 
         foreach (var cal in response.Response.Previous25Anime)
         {
+            if (cal.AnimeID == 0) continue;
             await GetAnime(scheduler, cal, settings);
         }
     }

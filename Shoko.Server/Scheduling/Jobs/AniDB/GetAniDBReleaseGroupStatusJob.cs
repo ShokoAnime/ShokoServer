@@ -56,6 +56,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
     {
         _logger.LogInformation("Processing {Job}: {GroupID}", nameof(GetAniDBReleaseGroupJob), AnimeID);
 
+        if (AnimeID == 0) return;
         // only get group status if we have an associated series
         var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
         if (series == null) return;

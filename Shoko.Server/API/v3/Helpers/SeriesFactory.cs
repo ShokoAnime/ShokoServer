@@ -161,6 +161,7 @@ public class SeriesFactory
         int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
         bool cacheOnly = false)
     {
+        if (animeID == 0) return false;
         if (immediate)
         {
             var command = jobFactory.CreateJob<GetAniDBAnimeJob>(c =>

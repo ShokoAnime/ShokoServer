@@ -254,6 +254,7 @@ public class ProcessFileJob : BaseJob
         foreach (var kV in animeIDs)
         {
             var animeID = kV.Key;
+            if (animeID == 0) continue;
             // get from DB
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
             var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
