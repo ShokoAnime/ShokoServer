@@ -393,6 +393,73 @@ public class AnimeGroupCreator
 
         return animeGroup;
     }
+    
+    /// <summary>
+    /// Gets or creates an <see cref="SVR_AnimeGroup"/> for the specified series.
+    /// </summary>
+    /// <param name="anime">The series for which the group is to be created/retrieved (Must be initialised first).</param>
+    /// <returns>The <see cref="SVR_AnimeGroup"/> to use for the specified series.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="anime"/> is <c>null</c>.</exception>
+    public SVR_AnimeGroup GetOrCreateSingleGroupForAnime(SVR_AniDB_Anime anime)
+    {
+        if (anime == null)
+        {
+            throw new ArgumentNullException(nameof(anime));
+        }
+
+        SVR_AnimeGroup animeGroup;
+
+        if (_autoGroupSeries)
+        {
+            var grpCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
+            var grpAnimeIds = grpCalculator.GetIdsOfAnimeInSameGroup(anime.AnimeID);
+            // Try to find an existing AnimeGroup to add the series to
+            // We basically pick the first group that any of the related series belongs to already
+            animeGroup = grpAnimeIds.Where(id => id != anime.AnimeID)
+                .Select(id => RepoFactory.AnimeSeries.GetByAnimeID(id))
+                .Where(s => s != null)
+                .Select(s => RepoFactory.AnimeGroup.GetByID(s.AnimeGroupID))
+                .FirstOrDefault(s => s != null);
+
+            var mainAnimeId = grpCalculator.GetGroupAnimeId(anime.AnimeID);
+            // No existing group was found, so create a new one.
+            if (animeGroup == null)
+            {
+                // Find the main series for the group.
+                animeGroup = CreateAnimeGroup(null, mainAnimeId, DateTime.Now);
+                RepoFactory.AnimeGroup.Save(animeGroup, true, true);
+            }
+            // Update the group details if we have the main series for the group.
+            else if (mainAnimeId == anime.AnimeID)
+            {
+                // Always update the automatic main id.
+                animeGroup.MainAniDBAnimeID = mainAnimeId;
+                // Update the auto-refreshed details if the main series changed
+                // and no default series is set.
+                if (!animeGroup.DefaultAnimeSeriesID.HasValue)
+                {
+                    // Override the group name if the group is not manually named.
+                    if (animeGroup.IsManuallyNamed == 0)
+                    {
+                        animeGroup.GroupName = anime.PreferredTitle;
+                    }
+                    // Override the group desc. if the group doesn't have an override.
+                    if (animeGroup.OverrideDescription == 0)
+                        animeGroup.Description = anime.Description;
+                }
+                animeGroup.DateTimeUpdated = DateTime.Now;
+                RepoFactory.AnimeGroup.Save(animeGroup, true, true);
+            }
+        }
+        else // We're not auto grouping (e.g. we're doing group per series)
+        {
+            animeGroup = new SVR_AnimeGroup();
+            animeGroup.Populate(anime, DateTime.Now);
+            RepoFactory.AnimeGroup.Save(animeGroup, true, true);
+        }
+
+        return animeGroup;
+    }
 
     /// <summary>
     /// Re-creates all AnimeGroups based on the existing AnimeSeries.

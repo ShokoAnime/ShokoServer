@@ -265,34 +265,22 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         var series = new SVR_AnimeSeries();
 
         series.Populate(anime);
-        // Populate before making a group to ensure IDs and stats are set for group filters.
-        RepoFactory.AnimeSeries.Save(series, false, false);
-
-        var grp = _animeGroupCreator.GetOrCreateSingleGroupForSeries(series);
+        var grp = _animeGroupCreator.GetOrCreateSingleGroupForAnime(anime);
         series.AnimeGroupID = grp.AnimeGroupID;
-
+        // Populate before making a group to ensure IDs and stats are set for group filters.
         RepoFactory.AnimeSeries.Save(series, false, false);
 
         // check for TvDB associations
         if (anime.Restricted == 0)
         {
-            if (_settings.TvDB.AutoLink && !series.IsTvDBAutoMatchingDisabled)
-            {
-                await scheduler.StartJob<SearchTvDBSeriesJob>(c => c.AnimeID = AnimeID);
-            }
+            if (_settings.TvDB.AutoLink && !series.IsTvDBAutoMatchingDisabled) await scheduler.StartJob<SearchTvDBSeriesJob>(c => c.AnimeID = AnimeID);
 
             // check for Trakt associations
-            if (_settings.TraktTv.Enabled &&
-                !string.IsNullOrEmpty(_settings.TraktTv.AuthToken) &&
-                !series.IsTraktAutoMatchingDisabled)
-            {
+            if (_settings.TraktTv.Enabled && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken) && !series.IsTraktAutoMatchingDisabled)
                 await scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = AnimeID);
-            }
 
             if (anime.AnimeType == (int)AnimeType.Movie && !series.IsTMDBAutoMatchingDisabled)
-            {
                 await scheduler.StartJob<SearchTMDBSeriesJob>(c => c.AnimeID = AnimeID);
-            }
         }
 
         return series;
