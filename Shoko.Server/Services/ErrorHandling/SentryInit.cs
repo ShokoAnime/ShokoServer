@@ -68,38 +68,45 @@ public static class SentryInit
     {
         typeof(JobPersistenceException),
         typeof(JobExecutionException),
-        typeof(InvalidOperationException)
+        typeof(InvalidOperationException),
+        typeof(NullReferenceException),
+        typeof(ArgumentException),
+        typeof(ArgumentNullException),
+        typeof(ArgumentOutOfRangeException),
+        typeof(IndexOutOfRangeException)
     };
     
     private static SentryEvent? BeforeSentrySend(SentryEvent arg)
     {
         var ex = arg.Exception;
-        if (ex is not null)
-        {
-            var type = ex.GetType();
-            if (_ignoredEvents.Contains(type))
-                return null;
-            if (type.GetCustomAttribute<SentryIgnoreAttribute>() is not null)
-                return null;
-
-            if (_includedEvents.Contains(type))
-                return arg;
-
-            if (type.GetCustomAttribute<SentryIncludeAttribute>() is not null)
-                return arg;
-
-            if (arg.Exception is WebException webEx)
-            {
-                if (webEx.Response is HttpWebResponse { StatusCode: HttpStatusCode.NotFound })
-                    return null;
-                if (webEx.Status == WebExceptionStatus.ConnectFailure)
-                    return null;
-            }
-        }
-
-        if (arg.Logger is not null && arg.Level >= SentryLevel.Fatal)
-            return arg;
+        if (ExceptionAllowed(ex)) return arg;
+        if (arg.Logger is not null && arg.Level >= SentryLevel.Fatal) return arg;
 
         return null;
+    }
+
+    private static bool ExceptionAllowed(Exception? ex)
+    {
+        while (true)
+        {
+            if (ex is null) return false;
+
+            var type = ex.GetType();
+            if (_ignoredEvents.Contains(type)) return false;
+
+            if (type.GetCustomAttribute<SentryIgnoreAttribute>() is not null) return false;
+
+            if (_includedEvents.Contains(type)) return true;
+            if (type.GetCustomAttribute<SentryIncludeAttribute>() is not null) return true;
+
+            if (ex is WebException webEx)
+            {
+                if (webEx.Response is HttpWebResponse { StatusCode: HttpStatusCode.NotFound or HttpStatusCode.Forbidden }) return false;
+                if (webEx.Status == WebExceptionStatus.ConnectFailure) return false;
+            }
+
+            if (ex is not JobExecutionException jobEx) return false;
+            ex = jobEx.InnerException;
+        }
     }
 }
