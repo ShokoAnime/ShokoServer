@@ -67,7 +67,6 @@ public static class SentryInit
     private static readonly HashSet<Type> _includedEvents = new()
     {
         typeof(JobPersistenceException),
-        typeof(JobExecutionException),
         typeof(InvalidOperationException),
         typeof(NullReferenceException),
         typeof(ArgumentException),

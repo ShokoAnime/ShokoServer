@@ -2076,7 +2076,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         var response = new CL_Response<CL_AnimeSeries_User> { Result = null, ErrorMessage = string.Empty };
         try
         {
-            if (animeGroupID.HasValue && animeGroupID.Value > 0)
+            if (animeGroupID is > 0)
             {
                 var grp = RepoFactory.AnimeGroup.GetByID(animeGroupID.Value);
                 if (grp == null)
