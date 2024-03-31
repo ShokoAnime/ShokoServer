@@ -27,7 +27,7 @@ public class RequestRemoveMyListID : UDPRequest<Void>
                 return new UDPResponse<Void> { Code = code };
         }
 
-        throw new UnexpectedUDPResponseException(code, receivedData);
+        throw new UnexpectedUDPResponseException(code, receivedData, Command);
     }
 
     public RequestRemoveMyListID(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory,

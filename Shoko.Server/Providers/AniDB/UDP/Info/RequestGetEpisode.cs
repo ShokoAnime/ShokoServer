@@ -31,18 +31,18 @@ public class RequestGetEpisode : UDPRequest<ResponseGetEpisode>
                     if (parts.Length < 2)
                     {
                         throw new UnexpectedUDPResponseException("There were the wrong number of data columns", code,
-                            receivedData);
+                            receivedData, Command);
                     }
 
                     // parse out numbers into temp vars
                     if (!int.TryParse(parts[0], out var eid))
                     {
-                        throw new UnexpectedUDPResponseException("Episode ID was not an int", code, receivedData);
+                        throw new UnexpectedUDPResponseException("Episode ID was not an int", code, receivedData, Command);
                     }
 
                     if (!int.TryParse(parts[1], out var aid))
                     {
-                        throw new UnexpectedUDPResponseException("Anime ID was not an int", code, receivedData);
+                        throw new UnexpectedUDPResponseException("Anime ID was not an int", code, receivedData, Command);
                     }
 
                     return new UDPResponse<ResponseGetEpisode>
@@ -52,7 +52,7 @@ public class RequestGetEpisode : UDPRequest<ResponseGetEpisode>
                 }
         }
 
-        throw new UnexpectedUDPResponseException(code, receivedData);
+        throw new UnexpectedUDPResponseException(code, receivedData, Command);
     }
 
     public RequestGetEpisode(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)

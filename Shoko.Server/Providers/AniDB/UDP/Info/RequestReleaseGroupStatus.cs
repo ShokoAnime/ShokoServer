@@ -53,8 +53,7 @@ public class RequestReleaseGroupStatus : UDPRequest<List<ResponseReleaseGroupSta
 
                 if (sDetails.Length < 1)
                 {
-                    throw new UnexpectedUDPResponseException("The number of lines was less than expected", code,
-                        receivedData);
+                    throw new UnexpectedUDPResponseException("The number of lines was less than expected", code, receivedData, Command);
                 }
 
                 // first item will be the status command, and last will be empty
@@ -123,7 +122,7 @@ public class RequestReleaseGroupStatus : UDPRequest<List<ResponseReleaseGroupSta
                 return new UDPResponse<List<ResponseReleaseGroupStatus>> { Code = response.Code, Response = null };
             case UDPReturnCode.NO_GROUPS_FOUND:
                 return new UDPResponse<List<ResponseReleaseGroupStatus>> { Code = response.Code, Response = null };
-            default: throw new UnexpectedUDPResponseException(code, receivedData);
+            default: throw new UnexpectedUDPResponseException(code, receivedData, Command);
         }
     }
 

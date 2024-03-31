@@ -23,7 +23,7 @@ public class RequestLogin : UDPRequest<ResponseLogin>
         var i = receivedData.IndexOf("LOGIN", StringComparison.Ordinal);
         if (i < 0)
         {
-            throw new UnexpectedUDPResponseException(code, receivedData);
+            throw new UnexpectedUDPResponseException(code, receivedData, Command);
         }
 
         // after response code, before "LOGIN"
@@ -31,7 +31,7 @@ public class RequestLogin : UDPRequest<ResponseLogin>
             .FirstOrDefault();
         if (string.IsNullOrWhiteSpace(sessionID))
         {
-            throw new UnexpectedUDPResponseException(code, receivedData);
+            throw new UnexpectedUDPResponseException(code, receivedData, Command);
         }
 
         var imageServer = receivedData.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();

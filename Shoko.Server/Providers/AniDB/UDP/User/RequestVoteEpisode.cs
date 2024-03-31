@@ -35,22 +35,22 @@ public class RequestVoteEpisode : UDPRequest<ResponseVote>
         var parts = receivedData.Split('|');
         if (parts.Length != 4)
         {
-            throw new UnexpectedUDPResponseException("Incorrect Number of Parts Returned", code, receivedData);
+            throw new UnexpectedUDPResponseException("Incorrect Number of Parts Returned", code, receivedData, Command);
         }
 
         if (!int.TryParse(parts[1], out var value))
         {
-            throw new UnexpectedUDPResponseException("Value should be an int, but it's not", code, receivedData);
+            throw new UnexpectedUDPResponseException("Value should be an int, but it's not", code, receivedData, Command);
         }
 
         if (!int.TryParse(parts[2], out var type))
         {
-            throw new UnexpectedUDPResponseException("Vote type should be an int, but it's not", code, receivedData);
+            throw new UnexpectedUDPResponseException("Vote type should be an int, but it's not", code, receivedData, Command);
         }
 
         if (!int.TryParse(parts[3], out var id))
         {
-            throw new UnexpectedUDPResponseException("ID should be an int, but it's not", code, receivedData);
+            throw new UnexpectedUDPResponseException("ID should be an int, but it's not", code, receivedData, Command);
         }
 
         return new UDPResponse<ResponseVote>

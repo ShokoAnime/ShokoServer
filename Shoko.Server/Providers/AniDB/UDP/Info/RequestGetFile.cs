@@ -73,19 +73,18 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                     var parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
                     if (parts.Length != 18)
                     {
-                        throw new UnexpectedUDPResponseException("There were the wrong number of data columns", code,
-                            receivedData);
+                        throw new UnexpectedUDPResponseException("There were the wrong number of data columns", code, receivedData, Command);
                     }
 
                     // parse out numbers into temp vars
                     if (!int.TryParse(parts[0], out var fid))
                     {
-                        throw new UnexpectedUDPResponseException("File ID was not an int", code, receivedData);
+                        throw new UnexpectedUDPResponseException("File ID was not an int", code, receivedData, Command);
                     }
 
                     if (!int.TryParse(parts[1], out var aid))
                     {
-                        throw new UnexpectedUDPResponseException("Anime ID was not an int", code, receivedData);
+                        throw new UnexpectedUDPResponseException("Anime ID was not an int", code, receivedData, Command);
                     }
 
                     // It can be possible that a file is added with an unknown group, though I've never seen it before
@@ -261,7 +260,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
         }
 
         UpdateAccessTime(Size, Hash, false);
-        throw new UnexpectedUDPResponseException(code, receivedData);
+        throw new UnexpectedUDPResponseException(code, receivedData, Command);
     }
 
     private static void UpdateAccessTime(long fileSize, string hash, bool hasResponse)

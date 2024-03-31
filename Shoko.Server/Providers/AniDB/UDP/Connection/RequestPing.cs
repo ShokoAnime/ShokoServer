@@ -15,7 +15,7 @@ public class RequestPing : UDPRequest<Void>
         var receivedData = response.Response;
         if (code != UDPReturnCode.PONG)
         {
-            throw new UnexpectedUDPResponseException(code, receivedData);
+            throw new UnexpectedUDPResponseException(code, receivedData, BaseCommand);
         }
 
         return new UDPResponse<Void> { Code = code };

@@ -64,7 +64,7 @@ public class RequestUpdateEpisode : UDPRequest<Void>
                 return new UDPResponse<Void> { Code = code };
         }
 
-        throw new UnexpectedUDPResponseException(code, receivedData);
+        throw new UnexpectedUDPResponseException(code, receivedData, Command);
     }
 
     public RequestUpdateEpisode(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory,

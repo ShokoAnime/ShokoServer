@@ -5,9 +5,11 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using Microsoft.AspNetCore.Hosting;
+using NHibernate.Exceptions;
 using Quartz;
 using Sentry;
 using Sentry.AspNetCore;
+using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Utilities;
 using Constants = Shoko.Server.Server.Constants;
 
@@ -72,7 +74,9 @@ public static class SentryInit
         typeof(ArgumentException),
         typeof(ArgumentNullException),
         typeof(ArgumentOutOfRangeException),
-        typeof(IndexOutOfRangeException)
+        typeof(IndexOutOfRangeException),
+        typeof(GenericADOException),
+        typeof(UnexpectedUDPResponseException)
     };
     
     private static SentryEvent? BeforeSentrySend(SentryEvent arg)

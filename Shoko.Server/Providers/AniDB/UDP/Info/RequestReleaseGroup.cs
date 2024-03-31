@@ -42,28 +42,28 @@ public class RequestReleaseGroup : UDPRequest<ResponseReleaseGroup>
                     var parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
                     if (!int.TryParse(parts[0], out var gid))
                     {
-                        throw new UnexpectedUDPResponseException("Group ID was not an int", code, receivedData);
+                        throw new UnexpectedUDPResponseException("Group ID was not an int", code, receivedData, Command);
                     }
 
                     if (!int.TryParse(parts[1], out var intRating))
                     {
-                        throw new UnexpectedUDPResponseException("Rating was not an int", code, receivedData);
+                        throw new UnexpectedUDPResponseException("Rating was not an int", code, receivedData, Command);
                     }
 
                     var rating = intRating / 100M;
                     if (!int.TryParse(parts[2], out var votes))
                     {
-                        throw new UnexpectedUDPResponseException("Votes was not an int", code, receivedData);
+                        throw new UnexpectedUDPResponseException("Votes was not an int", code, receivedData, Command);
                     }
 
                     if (!int.TryParse(parts[3], out var aCount))
                     {
-                        throw new UnexpectedUDPResponseException("Anime Count was not an int", code, receivedData);
+                        throw new UnexpectedUDPResponseException("Anime Count was not an int", code, receivedData, Command);
                     }
 
                     if (!int.TryParse(parts[4], out var fCount))
                     {
-                        throw new UnexpectedUDPResponseException("File Count was not an int", code, receivedData);
+                        throw new UnexpectedUDPResponseException("File Count was not an int", code, receivedData, Command);
                     }
 
                     var name = parts[5];
@@ -96,7 +96,7 @@ public class RequestReleaseGroup : UDPRequest<ResponseReleaseGroup>
                 {
                     return new UDPResponse<ResponseReleaseGroup>() { Code = code, Response = null };
                 }
-            default: throw new UnexpectedUDPResponseException(code, receivedData);
+            default: throw new UnexpectedUDPResponseException(code, receivedData, Command);
         }
     }
 

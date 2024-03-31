@@ -22,7 +22,7 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
 
     // Muting the warning, I read up, and it's the intended result here
     // ReSharper disable once StaticMemberInGenericType
-    protected static readonly Regex CommandRegex =
+    private static readonly Regex s_commandRegex =
         new("[A-Za-z0-9]+ +\\S", RegexOptions.Compiled | RegexOptions.Singleline);
 
     protected UDPRequest(ILoggerFactory loggerFactory, IUDPConnectionHandler handler)
@@ -49,7 +49,7 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
 
     protected virtual void PreExecute(string sessionID)
     {
-        if (CommandRegex.IsMatch(Command))
+        if (s_commandRegex.IsMatch(Command))
         {
             Command += $"&s={sessionID}";
         }
@@ -81,7 +81,7 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
         // parts[2] => empty, since we ended with a newline
         if (decodedParts.Length < 2)
         {
-            throw new UnexpectedUDPResponseException(response);
+            throw new UnexpectedUDPResponseException(response, Command);
         }
 
         var firstLineParts = decodedParts[0].Split(' ', 2);
@@ -90,19 +90,18 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
         // Format
         if (firstLineParts.Length != 2)
         {
-            throw new UnexpectedUDPResponseException(response);
+            throw new UnexpectedUDPResponseException(response, Command);
         }
 
         // Can't parse the code
         if (!int.TryParse(firstLineParts[0], out var code))
         {
-            throw new UnexpectedUDPResponseException(response);
+            throw new UnexpectedUDPResponseException(response, Command);
         }
 
         var status = (UDPReturnCode)code;
 
-        // if we get banned pause the command processor for a while
-        // so we don't make the ban worse
+        // if we get banned pause the command processor for a while, so we don't make the ban worse
         Handler.IsBanned = status == UDPReturnCode.BANNED;
 
         // if banned, then throw the ban exception. There will be no data in the response
@@ -138,7 +137,7 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
                     break;
                 }
             case UDPReturnCode.UNKNOWN_COMMAND:
-                throw new UnexpectedUDPResponseException(response: response, code: status);
+                throw new UnexpectedUDPResponseException(response: response, code: status, request: Command);
         }
 
         if (truncated)

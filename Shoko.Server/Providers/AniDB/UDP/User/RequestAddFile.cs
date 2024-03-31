@@ -55,7 +55,7 @@ public class RequestAddFile : UDPRequest<ResponseMyListFile>
                     // parse the MyList ID
                     if (!int.TryParse(receivedData, out var myListID))
                     {
-                        throw new UnexpectedUDPResponseException(code, receivedData);
+                        throw new UnexpectedUDPResponseException(code, receivedData, Command);
                     }
 
                     return new UDPResponse<ResponseMyListFile>
@@ -80,11 +80,8 @@ public class RequestAddFile : UDPRequest<ResponseMyListFile>
                     var arrStatus = receivedData.Split('|');
                     if (!int.TryParse(arrStatus[0], out var myListID))
                     {
-                        throw new UnexpectedUDPResponseException(
-                            "MyListID was not provided. Use AniDBMyList_RequestAddEpisode for generic files.",
-                            response: receivedData,
-                            code: code
-                        );
+                        throw new UnexpectedUDPResponseException("MyListID was not provided. Use AniDBMyList_RequestAddEpisode for generic files.",
+                            response: receivedData, code: code, request: Command);
                     }
 
                     var state = (MyList_State)int.Parse(arrStatus[6]);
@@ -126,7 +123,7 @@ public class RequestAddFile : UDPRequest<ResponseMyListFile>
                 return new UDPResponse<ResponseMyListFile> { Code = code };
         }
 
-        throw new UnexpectedUDPResponseException(code, receivedData);
+        throw new UnexpectedUDPResponseException(code, receivedData, Command);
     }
 
     public RequestAddFile(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)

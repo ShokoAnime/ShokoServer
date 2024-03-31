@@ -113,7 +113,7 @@ public class RequestAddEpisode : UDPRequest<ResponseMyListFile>
                 return new UDPResponse<ResponseMyListFile> { Code = code };
         }
 
-        throw new UnexpectedUDPResponseException(code, receivedData);
+        throw new UnexpectedUDPResponseException(code, receivedData, Command);
     }
 
     public RequestAddEpisode(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)

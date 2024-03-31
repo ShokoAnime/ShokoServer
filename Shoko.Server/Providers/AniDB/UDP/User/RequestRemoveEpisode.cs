@@ -40,7 +40,7 @@ public class RequestRemoveEpisode : UDPRequest<Void>
                 return new UDPResponse<Void> { Code = code };
         }
 
-        throw new UnexpectedUDPResponseException(code, receivedData);
+        throw new UnexpectedUDPResponseException(code, receivedData, Command);
     }
 
     public RequestRemoveEpisode(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory,

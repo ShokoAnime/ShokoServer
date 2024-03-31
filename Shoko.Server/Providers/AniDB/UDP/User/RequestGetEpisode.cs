@@ -84,7 +84,7 @@ public class RequestGetEpisode : UDPRequest<ResponseMyListFile>
                 return new UDPResponse<ResponseMyListFile> { Code = code };
         }
 
-        throw new UnexpectedUDPResponseException(code, receivedData);
+        throw new UnexpectedUDPResponseException(code, receivedData, Command);
     }
 
     public RequestGetEpisode(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
