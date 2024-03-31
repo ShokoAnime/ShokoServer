@@ -203,7 +203,7 @@ public class DownloadTvDBImageJob : BaseJob, IImageDownloadJob
 
                 // Ensure directory structure exists.
                 var dirPath = Path.GetDirectoryName(filePath);
-                if (!string.IsNullOrEmpty(dirPath) && !Directory.Exists(dirPath))
+                if (!string.IsNullOrEmpty(dirPath))
                     Directory.CreateDirectory(dirPath);
 
                 // Delete existing file if re-downloading.
