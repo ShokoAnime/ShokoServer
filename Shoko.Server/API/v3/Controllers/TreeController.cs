@@ -53,8 +53,7 @@ public class TreeController : BaseController
     {
         include ??= Array.Empty<FileNonDefaultIncludeType>();
 
-        if (folderID == 0) return NotFound("Import folder not found: 0");
-        var importFolder = RepoFactory.ImportFolder.GetByID(folderID);
+        var importFolder = folderID > 0 ? RepoFactory.ImportFolder.GetByID(folderID) : null;
         if (importFolder == null)
             return NotFound("Import folder not found: " + folderID);
 
