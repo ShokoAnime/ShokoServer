@@ -105,6 +105,8 @@ public static class SentryInit
                 if (webEx.Status == WebExceptionStatus.ConnectFailure) return false;
             }
 
+            if (ex is HttpRequestException { StatusCode: HttpStatusCode.NotFound or HttpStatusCode.Forbidden }) return false;
+
             if (ex is not JobExecutionException jobEx) return false;
             ex = jobEx.InnerException;
         }

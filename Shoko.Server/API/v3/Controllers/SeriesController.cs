@@ -486,7 +486,7 @@ public class SeriesController : BaseController
         if (endDate.HasValue && !startDate.HasValue)
             ModelState.AddModelError(nameof(startDate), "Missing start date.");
 
-        if (startDate.HasValue && endDate.HasValue)
+        if (startDate.HasValue)
         {
             if (endDate.Value > DateTime.Now)
                 ModelState.AddModelError(nameof(endDate), "End date cannot be set into the future.");
@@ -508,8 +508,8 @@ public class SeriesController : BaseController
                 if (approval.HasValue)
                 {
                     return anime.GetSimilarAnime().Where(similar =>
-                        unwatchedAnimeDict.Keys.Contains(similar.SimilarAnimeID) &&
-                        (double)(similar.Approval / similar.Total) >= approval.Value);
+                        unwatchedAnimeDict.ContainsKey(similar.SimilarAnimeID) &&
+                        (double)similar.Approval / similar.Total >= approval.Value);
                 }
 
                 return anime.GetSimilarAnime()
