@@ -300,13 +300,7 @@ jobs:
       - sentry-upload
 
     steps:
-      - name: Checkout master
-        uses: actions/checkout@master
-        with:
-          ref: "${{ github.sha }}"
-          submodules: recursive
-
-      - name: Generate Changelog for Sentry Release
+      - name: Generate Changelog from Sentry Release
         id: generate_changelog
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
