@@ -327,11 +327,12 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           nodetail: true
-          title: New Daily Server Build!
+          title: "<:Shoko:1223419015209422898> Shoko Server: New Daily Build!"
+          color: 0x28a746
           description: |
             **Version**: `${{ needs.current_info.outputs.version }}-dev-${{ needs.current_info.outputs.sha_short }}`
 
-            Update by grabbing the latest daily from [our site](https://shokoanime.com/downloads/shoko-server) or through Docker!
+            Update by grabbing the latest daily from [our site](https://shokoanime.com/downloads/shoko-server) or through Docker using the `shokoanime/server:daily` tag!
 
             **Changes since last build**:
             ${{ steps.generate_changelog.outputs.CHANGELOG }}
