@@ -30,23 +30,20 @@ public class DownloadTvDBImageJob : BaseJob, IImageDownloadJob
 
     private readonly ImageHttpClientFactory _clientFactory;
     public string Anime { get; set; }
-
-    public int AnimeID { get; set; }
     public int ImageID { get; set; }
     public bool ForceDownload { get; set; }
 
     public ImageEntityType ImageType { get; set; }
 
-    public override void PostInit()
-    {
-        Anime = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle;
-    }
-
     public override string TypeName => "Download TvDB Image";
     public override string Title => "Downloading TvDB Image";
-    public override Dictionary<string, object> Details => new()
+    public override Dictionary<string, object> Details => Anime == null ? new()
     {
-        { "Anime", Anime ?? AnimeID.ToString() },
+        { "Type", ImageType.ToString().Replace("_", " ") },
+        { "ImageID", ImageID }
+    } : new()
+    {
+        { "Anime", Anime },
         { "Type", ImageType.ToString().Replace("_", " ") },
         { "ImageID", ImageID }
     };
@@ -220,7 +217,7 @@ public class DownloadTvDBImageJob : BaseJob, IImageDownloadJob
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException("Image download failed.", ex);
+                throw new AggregateException("Image download failed.", ex);
             }
         });
     }

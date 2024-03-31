@@ -670,6 +670,7 @@ public class TvDBApiHelper
 
                 await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
+                        c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(seriesID)?.SeriesName;
                         c.ImageID = img.TvDB_ImageFanartID;
                         c.ImageType = ImageEntityType.TvDB_FanArt;
                         c.ForceDownload = forceDownload;
@@ -708,6 +709,7 @@ public class TvDBApiHelper
 
                 await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
+                        c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(seriesID)?.SeriesName;
                         c.ImageID = img.TvDB_ImagePosterID;
                         c.ImageType = ImageEntityType.TvDB_Cover;
                         c.ForceDownload = forceDownload;
@@ -745,6 +747,7 @@ public class TvDBApiHelper
                 if (fileExists && !forceDownload) continue;
                 await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
+                        c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(seriesID)?.SeriesName;
                         c.ImageID = img.TvDB_ImageWideBannerID;
                         c.ImageType = ImageEntityType.TvDB_Banner;
                         c.ForceDownload = forceDownload;
@@ -873,6 +876,7 @@ public class TvDBApiHelper
 
                 await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
+                        c.Anime = tvSeries.SeriesName;
                         c.ImageID = ep.TvDB_EpisodeID;
                         c.ImageType = ImageEntityType.TvDB_Episode;
                         c.ForceDownload = forceRefresh;

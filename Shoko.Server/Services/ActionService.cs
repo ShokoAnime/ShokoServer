@@ -364,6 +364,7 @@ public class ActionService
 
                 await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
+                        c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(tvPoster.SeriesID)?.SeriesName;
                         c.ImageID = tvPoster.TvDB_ImagePosterID;
                         c.ImageType = ImageEntityType.TvDB_Cover;
                     }
@@ -398,6 +399,7 @@ public class ActionService
 
                 await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
+                        c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(tvFanart.SeriesID)?.SeriesName;
                         c.ImageID = tvFanart.TvDB_ImageFanartID;
                         c.ImageType = ImageEntityType.TvDB_FanArt;
                     }
@@ -432,6 +434,7 @@ public class ActionService
 
                 await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                     {
+                        c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(tvBanner.SeriesID)?.SeriesName;
                         c.ImageID = tvBanner.TvDB_ImageWideBannerID;
                         c.ImageType = ImageEntityType.TvDB_Banner;
                     }
@@ -451,6 +454,7 @@ public class ActionService
 
             await scheduler.StartJob<DownloadTvDBImageJob>(c =>
                 {
+                    c.Anime = RepoFactory.TvDB_Series.GetByTvDBID(tvEpisode.SeriesID)?.SeriesName;
                     c.ImageID = tvEpisode.TvDB_EpisodeID;
                     c.ImageType = ImageEntityType.TvDB_Episode;
                 }
