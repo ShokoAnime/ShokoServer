@@ -46,6 +46,12 @@ public class VideoLocal_PlaceService
 
     public void RenameAndMoveAsRequired(SVR_VideoLocal_Place place)
     {
+        if (place == null)
+        {
+            _logger.LogError(nameof(place) + " is null");
+            return;
+        }
+
         var settings = _settingsProvider.GetSettings();
         var invert = settings.Import.RenameThenMove;
 
@@ -110,11 +116,28 @@ public class VideoLocal_PlaceService
 
         if (place.ImportFolder == null)
         {
-            _logger.LogError("The renamer can\'t get the import folder for ImportFolderID: {ImportFolderID}, File: \"{FilePath}\"",
+            _logger.LogError("The renamer can't get the import folder for ImportFolderID: {ImportFolderID}, File: \"{FilePath}\"",
                 place.ImportFolderID, place.FilePath);
             return new RenameFileResult { NewFilename = string.Empty, ErrorMessage = "Could not find the file" };
         }
 
+        // actually rename the file
+        var fullFileName = place.FullServerPath;
+
+        // check if the file exists
+        if (string.IsNullOrEmpty(fullFileName))
+        {
+            _logger.LogError("Could not find the original file for renaming, or it is in use: \"{FileName}\"", fullFileName ?? place.FilePath);
+            return new RenameFileResult { CanRetry = true, ErrorMessage = $"Could not access the file: {fullFileName ?? place.FilePath}" };
+        }
+
+        if (!File.Exists(fullFileName))
+        {
+            _logger.LogError("Error could not find the original file for renaming, or it is in use: \"{FileName}\"", fullFileName);
+            return new RenameFileResult { CanRetry = true, ErrorMessage = $"Could not access the file: {fullFileName}" };
+        }
+
+        // run the renamer
         string renamed;
         try
         {
@@ -126,6 +149,7 @@ public class VideoLocal_PlaceService
             return new RenameFileResult { NewFilename = string.Empty, ErrorMessage = e.Message, Exception = e };
         }
 
+        // check the result
         if (string.IsNullOrEmpty(renamed))
         {
             _logger.LogError("The renamer returned a null or empty name for: \"{FullServerPath}\"", place.FullServerPath);
@@ -138,58 +162,46 @@ public class VideoLocal_PlaceService
             return new RenameFileResult { NewFilename = string.Empty, ErrorMessage = renamed[7..] };
         }
 
-        // actually rename the file
-        var fullFileName = place.FullServerPath;
-
-        // check if the file exists
-        if (string.IsNullOrEmpty(fullFileName))
-        {
-            _logger.LogError("Could not find the original file for renaming, or it is in use: \"{FileName}\"", fullFileName);
-            return new RenameFileResult { CanRetry = true, NewFilename = renamed, ErrorMessage = "Could not access the file" };
-        }
-
-        if (!File.Exists(fullFileName))
-        {
-            _logger.LogError("Error could not find the original file for renaming, or it is in use: \"{FileName}\"", fullFileName);
-            return new RenameFileResult { CanRetry = true, NewFilename = renamed, ErrorMessage = "Could not access the file" };
-        }
-
-        // actually rename the file
         var path = Path.GetDirectoryName(fullFileName);
         var newFullName = Path.Combine(path!, renamed);
 
+        if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
+        {
+            _logger.LogInformation("Renaming file SKIPPED! no change From \"{FullFileName}\" to \"{NewFullName}\"", fullFileName, newFullName);
+            return new RenameFileResult
+            {
+                IsSuccess = true, NewFilename = renamed
+            };
+        }
+
+        if (File.Exists(newFullName))
+        {
+            _logger.LogInformation("Renaming file SKIPPED! Destination Exists \"{NewFullName}\"", newFullName);
+            return new RenameFileResult
+            {
+                NewFilename = renamed, ErrorMessage = "The filename already exists"
+            };
+        }
+
+        if (preview) return new RenameFileResult { IsSuccess = true, NewFilename = renamed };
+
         try
         {
-            if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
-            {
-                _logger.LogInformation("Renaming file SKIPPED! no change From \"{FullFileName}\" to \"{NewFullName}\"", fullFileName, newFullName);
-                return new RenameFileResult { IsSuccess = true, NewFilename = renamed };
-            }
-
-            if (File.Exists(newFullName))
-            {
-                _logger.LogInformation("Renaming file SKIPPED! Destination Exists \"{NewFullName}\"", newFullName);
-                return new RenameFileResult { NewFilename = renamed, ErrorMessage = "The filename already exists" };
-            }
-
-            if (preview)
-            {
-                return new RenameFileResult { IsSuccess = true, NewFilename = renamed };
-            }
-
-            Utils.ShokoServer.AddFileWatcherExclusion(newFullName);
-
+            // actually rename the file
             _logger.LogInformation("Renaming file From \"{FullFileName}\" to \"{NewFullName}\"", fullFileName, newFullName);
             try
             {
+                Utils.ShokoServer.AddFileWatcherExclusion(newFullName);
                 var file = new FileInfo(fullFileName);
                 file.MoveTo(newFullName);
             }
             catch (Exception e)
             {
                 _logger.LogInformation(e, "Renaming file FAILED! From \"{FullFileName}\" to \"{NewFullName}\" - {Ex}", fullFileName, newFullName, e);
-                Utils.ShokoServer.RemoveFileWatcherExclusion(newFullName);
-                return new RenameFileResult { CanRetry = true, NewFilename = renamed, ErrorMessage = e.Message, Exception = e };
+                return new RenameFileResult
+                {
+                    CanRetry = true, NewFilename = renamed, ErrorMessage = e.Message, Exception = e
+                };
             }
 
             // Rename external subs!
@@ -200,8 +212,10 @@ public class VideoLocal_PlaceService
             if (folder == null)
             {
                 _logger.LogError("Unable to LOCATE file \"{NewFullName}\" inside the import folders", newFullName);
-                Utils.ShokoServer.RemoveFileWatcherExclusion(newFullName);
-                return new RenameFileResult { NewFilename = renamed, ErrorMessage = "Unable to resolve new path" };
+                return new RenameFileResult
+                {
+                    NewFilename = renamed, ErrorMessage = "Unable to resolve new path"
+                };
             }
 
             // Rename hash xrefs
@@ -210,10 +224,7 @@ public class VideoLocal_PlaceService
             {
                 var fnHash = new FileNameHash
                 {
-                    DateTimeUpdated = DateTime.Now,
-                    FileName = renamed,
-                    FileSize = place.VideoLocal.FileSize,
-                    Hash = place.VideoLocal.Hash
+                    DateTimeUpdated = DateTime.Now, FileName = renamed, FileSize = place.VideoLocal.FileSize, Hash = place.VideoLocal.Hash
                 };
                 RepoFactory.FileNameHash.Save(fnHash);
             }
@@ -225,16 +236,22 @@ public class VideoLocal_PlaceService
             place.VideoLocal.FileName = renamed;
 #pragma warning restore CS0618 // Type or member is obsolete
             RepoFactory.VideoLocal.Save(place.VideoLocal, false);
-            
+
             ShokoEventHandler.Instance.OnFileRenamed(place.ImportFolder, Path.GetFileName(fullFileName), renamed, place);
         }
         catch (Exception ex)
         {
             _logger.LogInformation(ex, "Renaming file FAILED! From \"{FullFileName}\" to \"{NewFullName}\" - {ExMessage}", fullFileName, newFullName, ex);
-            return new RenameFileResult { CanRetry = true, NewFilename = renamed, ErrorMessage = ex.Message, Exception = ex };
+            return new RenameFileResult
+            {
+                CanRetry = true, NewFilename = renamed, ErrorMessage = ex.Message, Exception = ex
+            };
+        }
+        finally
+        {
+            Utils.ShokoServer.RemoveFileWatcherExclusion(newFullName);
         }
 
-        Utils.ShokoServer.RemoveFileWatcherExclusion(newFullName);
         return new RenameFileResult { IsSuccess = true, NewFilename = renamed };
     }
     
@@ -362,9 +379,8 @@ public class VideoLocal_PlaceService
                 return new MoveFileResult { NewFolder = string.Empty, ErrorMessage = "A file already exists at the destination" };
             }
 
-            Utils.ShokoServer.AddFileWatcherExclusion(newFullServerPath);
-
             _logger.LogInformation("Moving file from \"{FullServerPath}\" to \"{NewFullServerPath}\"", videoLocalPlace.FullServerPath, newFullServerPath);
+            Utils.ShokoServer.AddFileWatcherExclusion(newFullServerPath);
             try
             {
                 sourceFile.MoveTo(newFullServerPath);
@@ -373,8 +389,14 @@ public class VideoLocal_PlaceService
             {
                 _logger.LogError(e, "Unable to MOVE file: \"{FullServerPath}\" to \"{NewFullServerPath}\" Error: {Ex}", videoLocalPlace.FullServerPath,
                     newFullServerPath, e);
+                return new MoveFileResult
+                {
+                    CanRetry = true, NewFolder = newFolderPath, ErrorMessage = e.Message, Exception = e
+                };
+            }
+            finally
+            {
                 Utils.ShokoServer.RemoveFileWatcherExclusion(newFullServerPath);
-                return new MoveFileResult { CanRetry = true, NewFolder = newFolderPath, ErrorMessage = e.Message, Exception = e };
             }
 
             var originalFileName = videoLocalPlace.FullServerPath;
@@ -386,13 +408,9 @@ public class VideoLocal_PlaceService
 
             MoveExternalSubtitles(newFullServerPath, originalFileName);
 
-            if (dropFolder.IsDropSource == 1 && deleteEmpty)
-            {
-                RecursiveDeleteEmptyDirectories(dropFolder.ImportFolderLocation, true);
-            }
+            if (dropFolder.IsDropSource == 1 && deleteEmpty) RecursiveDeleteEmptyDirectories(dropFolder.ImportFolderLocation, true);
 
             ShokoEventHandler.Instance.OnFileMoved(dropFolder, destFolder, oldPath, newFilePath, videoLocalPlace);
-            Utils.ShokoServer.RemoveFileWatcherExclusion(newFullServerPath);
 
             return new MoveFileResult { IsSuccess = true, NewFolder = newFolderPath };
         }

@@ -214,7 +214,7 @@ public class RecoveringFileSystemWatcher : IDisposable
 
     public void RemoveExclusion(string path)
     {
-        if (_exclusions.Contains(path)) _exclusions.Remove(path);
+        _exclusions.Remove(path);
         ExclusionsEnabled = _exclusions.Any();
     }
 
