@@ -141,7 +141,7 @@ public class SyncAniDBMyListJob : BaseJob
             totalItems, missingFiles, filesToRemove.Count, watchedItems, modifiedItems);
     }
 
-    private static async Task CreateMyListBackup(HttpResponse<List<ResponseMyList>> response)
+    private async Task CreateMyListBackup(HttpResponse<List<ResponseMyList>> response)
     {
         var serialized = JsonConvert.SerializeObject(response.Response, Formatting.Indented);
         var myListDirectory = new DirectoryInfo(Utils.MyListDirectory);
@@ -151,7 +151,7 @@ public class SyncAniDBMyListJob : BaseJob
         await File.WriteAllTextAsync(currentBackupPath, serialized);
 
         // Create timestamped MyList zip archive
-        // Backup rotation depeonds on filename being universally sortable ("u" format specifier)
+        // Backup rotation depends on filename being universally sortable ("u" format specifier)
         var archivePath = Path.Join(myListDirectory.FullName, DateTimeOffset.UtcNow.ToString("u").Replace(':', '_') + ".zip");
         await using var backupFs = new FileStream(archivePath, FileMode.OpenOrCreate);
         using var archive = new ZipArchive(backupFs, ZipArchiveMode.Create);
@@ -160,8 +160,7 @@ public class SyncAniDBMyListJob : BaseJob
         // Delete oldest backups when more than 30 exist
         // Only gets zip files that start with ISO 8601 date format YYYY-MM-DD
         var backupFiles = myListDirectory.GetFiles("????-??-?? *.zip").OrderByDescending(f => f.Name).ToList();
-        var retainedBackupCount = 30;
-        var backUpFilesToDelete = backupFiles.Skip(retainedBackupCount).ToList();
+        var backUpFilesToDelete = backupFiles.Skip(_settings.AniDb.MyList_RetainedBackupCount).ToList();
         foreach (var file in backUpFilesToDelete)
         {
             try

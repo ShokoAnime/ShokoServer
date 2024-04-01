@@ -43,6 +43,9 @@ public class AniDbSettings
     public bool MyList_SetWatched { get; set; } = true;
 
     public bool MyList_SetUnwatched { get; set; } = true;
+
+    public int MyList_RetainedBackupCount { get; set; } = 30;
+
     public ScheduledUpdateFrequency MyList_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
 
     public ScheduledUpdateFrequency Calendar_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.HoursTwelve;
