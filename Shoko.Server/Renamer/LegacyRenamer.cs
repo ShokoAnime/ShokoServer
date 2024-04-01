@@ -1352,14 +1352,14 @@ public class LegacyRenamer : IRenamer
     {
         // Cheat and just look it up by location to avoid rewriting this whole file.
         var sourceFolder = RepoFactory.ImportFolder.GetAll()
-            .FirstOrDefault(a => args.FileInfo.FilePath.StartsWith(a.ImportFolderLocation));
+            .FirstOrDefault(a => args.FileInfo.Path.StartsWith(a.ImportFolderLocation));
         if (sourceFolder == null)
         {
             throw new Exception("*Unable to get import folder");
         }
 
         var place = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(
-            args.FileInfo.FilePath.Replace(sourceFolder.ImportFolderLocation, ""), sourceFolder.ImportFolderID);
+            args.FileInfo.Path.Replace(sourceFolder.ImportFolderLocation, ""), sourceFolder.ImportFolderID);
         var vid = place?.VideoLocal;
         var lines = script.Split(Environment.NewLine.ToCharArray());
 
@@ -2192,7 +2192,7 @@ public class LegacyRenamer : IRenamer
 
             // Continue if on a separate drive and there's no space
             if (!settings.Import.SkipDiskSpaceChecks &&
-                !args.FileInfo.FilePath.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
+                !args.FileInfo.Path.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
             {
                 var available = 0L;
                 try
@@ -2204,7 +2204,7 @@ public class LegacyRenamer : IRenamer
                     logger.Error(e);
                 }
 
-                if (available < args.FileInfo.FileSize)
+                if (available < args.FileInfo.Size)
                 {
                     continue;
                 }
@@ -2227,7 +2227,7 @@ public class LegacyRenamer : IRenamer
         }
 
         // find the series associated with this episode
-        var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.SeriesID);
         if (series == null)
         {
             return (null, "Series not Found");
@@ -2269,7 +2269,7 @@ public class LegacyRenamer : IRenamer
             foreach (var vid in ep.GetVideoLocals()
                          .Where(a => a.Places.Any(b => b.ImportFolder.IsDropSource == 0)).ToList())
             {
-                if (vid.ED2KHash == args.FileInfo.Hashes.ED2K)
+                if (vid.ED2KHash == args.VideoInfo.Hashes.ED2K)
                 {
                     continue;
                 }
@@ -2290,7 +2290,7 @@ public class LegacyRenamer : IRenamer
                 }
 
                 // check space
-                if (!args.FileInfo.FilePath.StartsWith(Path.GetPathRoot(dstImportFolder.ImportFolderLocation)) &&
+                if (!args.FileInfo.Path.StartsWith(Path.GetPathRoot(dstImportFolder.ImportFolderLocation)) &&
                     !settings.Import.SkipDiskSpaceChecks)
                 {
                     var available = 0L;
@@ -2316,7 +2316,7 @@ public class LegacyRenamer : IRenamer
 
                 // ensure we aren't moving to the current directory
                 if (Path.Combine(place.ImportFolder.ImportFolderLocation, folderName).Equals(
-                        Path.GetDirectoryName(args.FileInfo.FilePath), StringComparison.InvariantCultureIgnoreCase))
+                        Path.GetDirectoryName(args.FileInfo.Path), StringComparison.InvariantCultureIgnoreCase))
                 {
                     continue;
                 }

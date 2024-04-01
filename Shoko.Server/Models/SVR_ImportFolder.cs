@@ -1,11 +1,7 @@
 ﻿using System;
-using System.ComponentModel;
 using System.IO;
-using System.Linq.Expressions;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
-using NLog;
-using Shoko.Commons.Notification;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 
@@ -41,8 +37,7 @@ public class SVR_ImportFolder : ImportFolder, IImportFolder
         }
     }
 
-    [JsonIgnore]
-    [XmlIgnore]
+    [JsonIgnore, XmlIgnore]
     public DirectoryInfo BaseDirectory
     {
         get
@@ -56,16 +51,27 @@ public class SVR_ImportFolder : ImportFolder, IImportFolder
         }
     }
 
-    [JsonIgnore] [XmlIgnore] public bool FolderIsWatched => IsWatched == 1;
+    [JsonIgnore, XmlIgnore]
+    public bool FolderIsWatched => IsWatched == 1;
 
-    [JsonIgnore] [XmlIgnore] public bool FolderIsDropSource => IsDropSource == 1;
+    [JsonIgnore, XmlIgnore]
+    public bool FolderIsDropSource => IsDropSource == 1;
 
-    [JsonIgnore] [XmlIgnore] public bool FolderIsDropDestination => IsDropDestination == 1;
+    [JsonIgnore, XmlIgnore]
+    public bool FolderIsDropDestination => IsDropDestination == 1;
 
     public override string ToString()
     {
         return string.Format("{0} - {1} ({2})", ImportFolderName, ImportFolderLocation, ImportFolderID);
     }
+
+    #region IImportFolder Implementation
+
+    int IImportFolder.ID => ImportFolderID;
+
+    string IImportFolder.Name => ImportFolderName;
+
+    string IImportFolder.Path => ImportFolderLocation;
 
     string IImportFolder.Location => ImportFolderLocation;
 
@@ -73,24 +79,14 @@ public class SVR_ImportFolder : ImportFolder, IImportFolder
     {
         get
         {
-            if (IsDropSource == 1 && IsDropDestination == 1)
-            {
-                return DropFolderType.Destination | DropFolderType.Source;
-            }
-
-            if (IsDropSource != 1 && IsDropDestination != 1)
-            {
-                return DropFolderType.Excluded;
-            }
-
+            var flags = DropFolderType.Excluded;
+            if (IsDropSource == 1)
+                flags |= DropFolderType.Source;
             if (IsDropDestination == 1)
-            {
-                return DropFolderType.Destination;
-            }
-
-            return DropFolderType.Source;
+                flags |= DropFolderType.Destination;
+            return flags;
         }
     }
 
-    string IImportFolder.Name => ImportFolderName;
+    #endregion
 }

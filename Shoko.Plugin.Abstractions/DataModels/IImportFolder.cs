@@ -1,25 +1,37 @@
-namespace Shoko.Plugin.Abstractions.DataModels
+using System;
+
+#nullable enable
+namespace Shoko.Plugin.Abstractions.DataModels;
+
+public interface IImportFolder
 {
-    public interface IImportFolder
-    {
-        /// <summary>
-        /// Import folder ID.
-        /// </summary>
-        int ImportFolderID { get; }
+    /// <summary>
+    /// The id of the import folder.
+    /// </summary>
+    int ID { get; }
 
-        /// <summary>
-        /// The Import Folder's name. This is user specified in WebUI, or NA for legacy
-        /// </summary>
-        string Name { get; }
-        
-        /// <summary>
-        /// The Base Location of the Import Folder in the host, VM, or container filesystem
-        /// </summary>
-        string Location { get; }
+    /// <summary>
+    /// The friendly name of the import folder.
+    /// </summary>
+    string Name { get; }
 
-        /// <summary>
-        /// The rules that this Import Folder should adhere to. A folder that is both a Source and Destination cares not how files are moved in or out of it.
-        /// </summary>
-        DropFolderType DropFolderType { get; }
-    }
+    /// <summary>
+    /// An absolute path leading to the root of the import folder.
+    /// </summary>
+    string Path { get; }
+
+    /// <summary>
+    /// The rules that this Import Folder should adhere to. E.g. a folder that is both a <see cref="DropFolderType.Source"/> and <see cref="DropFolderType.Destination"/> cares not how files are moved in or out of it.
+    /// </summary>
+    DropFolderType DropFolderType { get; }
+
+    #region To-be-removed
+
+    [Obsolete("Use ID instead.")]
+    int ImportFolderID { get; }
+
+    [Obsolete("Use Path instead.")]
+    string Location { get; }
+
+    #endregion
 }

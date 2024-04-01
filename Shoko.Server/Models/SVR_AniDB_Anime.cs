@@ -3,36 +3,30 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Xml.Serialization;
-using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
-using Quartz;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.TMDB;
-using Shoko.Server.Scheduling.Jobs.Trakt;
-using Shoko.Server.Scheduling.Jobs.TvDB;
 using Shoko.Server.Server;
-using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
+
 using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Models;
 
-public class SVR_AniDB_Anime : AniDB_Anime, IAnime
+public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
 {
     #region DB columns
 
@@ -1067,18 +1061,52 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         return update?.UpdatedAt ?? DateTime.MinValue;
     }
 
-    AnimeType IAnime.Type => (AnimeType)AnimeType;
+    #region ISeries Implementation
 
-    IReadOnlyList<AnimeTitle> IAnime.Titles => GetTitles()
+    DataSourceEnum IMetadata.Source => DataSourceEnum.AniDB;
+
+    int IMetadata<int>.ID => AnimeID;
+
+    AnimeType ISeries.Type => (AnimeType)AnimeType;
+
+    string IWithTitles.DefaultTitle => MainTitle;
+
+    string IWithTitles.PreferredTitle => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID)?.GetSeriesName() ?? PreferredTitle;
+
+    IReadOnlyList<AnimeTitle> IWithTitles.Titles => GetTitles()
         .Select(a => new AnimeTitle
-            {
-                LanguageCode = a.LanguageCode, Language = a.Language, Title = a.Title, Type = a.TitleType
-            }
-        )
+        {
+            LanguageCode = a.LanguageCode,
+            Language = a.Language,
+            Title = a.Title,
+            Type = a.TitleType,
+        })
         .Where(a => a.Type != TitleType.None)
         .ToList();
 
-    double IAnime.Rating => Rating / 100D;
+    double ISeries.Rating => Rating / 100D;
+
+    bool ISeries.Restricted => Restricted == 1;
+
+    IReadOnlyList<IEpisode> ISeries.EpisodeList
+    {
+        get
+        {
+            var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+            if (series == null)
+                return Array.Empty<IEpisode>();
+
+            return series.GetAnimeEpisodes(true, true)
+                .Cast<IEpisode>()
+                .ToArray();
+        }
+    }
+
+    #endregion
+
+    #region IAnime Implementation
+
+    IReadOnlyList<IRelatedAnime> IAnime.Relations => RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
 
     EpisodeCounts IAnime.EpisodeCounts => new()
     {
@@ -1090,7 +1118,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime
         Trailers = GetAniDBEpisodes().Count(a => a.EpisodeType == (int)EpisodeType.Trailer)
     };
 
-    string IAnime.PreferredTitle => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID)?.GetSeriesName() ?? PreferredTitle;
-    bool IAnime.Restricted => Restricted == 1;
-    IReadOnlyList<IRelatedAnime> IAnime.Relations => RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
+    int IAnime.AnimeID => AnimeID;
+
+    #endregion
 }

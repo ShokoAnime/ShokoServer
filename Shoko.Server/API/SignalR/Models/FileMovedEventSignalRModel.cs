@@ -2,41 +2,22 @@ using Shoko.Plugin.Abstractions;
 
 namespace Shoko.Server.API.SignalR.Models;
 
-public class FileMovedEventSignalRModel
+public class FileMovedEventSignalRModel : FileEventSignalRModel
 {
-    public FileMovedEventSignalRModel(FileMovedEventArgs eventArgs)
+    public FileMovedEventSignalRModel(FileMovedEventArgs eventArgs) : base(eventArgs)
     {
-        FileID = eventArgs.FileInfo.VideoFileID;
-        NewRelativePath = eventArgs.NewRelativePath;
-        NewImportFolderID = eventArgs.NewImportFolder.ImportFolderID;
-        OldRelativePath = eventArgs.OldRelativePath;
-        OldImportFolderID = eventArgs.OldImportFolder.ImportFolderID;
+        PreviousRelativePath = eventArgs.PreviousRelativePath;
+        PreviousImportFolderID = eventArgs.PreviousImportFolder.ID;
     }
-
-    /// <summary>
-    /// Shoko file id.
-    /// </summary>
-    public int FileID { get; set; }
-
-    /// <summary>
-    /// The relative path of the new file from the import folder base location.
-    /// </summary>
-    public string NewRelativePath { get; set; }
-
-    /// <summary>
-    /// The ID of the new import folder the event was detected in.
-    /// </summary>
-    /// <value></value>
-    public int NewImportFolderID { get; set; }
 
     /// <summary>
     /// The relative path of the old file from the import folder base location.
     /// </summary>
-    public string OldRelativePath { get; set; }
+    public string PreviousRelativePath { get; }
 
     /// <summary>
     /// The ID of the old import folder the event was detected in.
     /// </summary>
     /// <value></value>
-    public int OldImportFolderID { get; set; }
+    public int PreviousImportFolderID { get; }
 }

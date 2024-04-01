@@ -112,7 +112,7 @@ public class HashFileJob : BaseJob
             }
         }
 
-        ShokoEventHandler.Instance.OnFileHashed(folder, vlocalplace);
+        ShokoEventHandler.Instance.OnFileHashed(folder, vlocalplace, vlocal);
 
         // now add a command to process the file
         await scheduler.StartJobNow<ProcessFileJob>(c =>

@@ -1,41 +1,78 @@
-namespace Shoko.Plugin.Abstractions.DataModels
+using System;
+
+#nullable enable
+namespace Shoko.Plugin.Abstractions.DataModels;
+
+public interface IVideoFile
 {
-    public interface IVideoFile
-    {
-        /// <summary>
-        /// Video file ID.
-        /// </summary>
-        /// <value></value>
-        int VideoFileID { get; }
+    /// <summary>
+    /// The video file location id.
+    /// </summary>
+    int ID { get; }
 
-        /// <summary>
-        /// The name of the file being renamed or moved, before any actions are applied
-        /// </summary>
-        string Filename { get; }
+    /// <summary>
+    /// The video id.
+    /// </summary>
+    int VideoID { get; }
 
-        /// <summary>
-        /// The Absolute Path of the file being moved or renamed.
-        /// </summary>
-        string FilePath { get; }
-        
-        /// <summary>
-        /// The size, in bytes, of the file.
-        /// </summary>
-        long FileSize { get; }
+    /// <summary>
+    /// The import folder id.
+    /// </summary>
+    int ImportFolderID { get; }
 
-        /// <summary>
-        /// The AniDB File Info. This will be null for manual links, which can reliably be used to tell if it was manually linked.
-        /// </summary>
-        IAniDBFile AniDBFileInfo { get; }
+    /// <summary>
+    /// The file name.
+    /// </summary>
+    string FileName { get; }
 
-        /// <summary>
-        /// The Relevant Hashes for a file. CRC should be the only thing used here, but clever uses of the API could use the others.
-        /// </summary>
-        IHashes Hashes { get; }
+    /// <summary>
+    /// The absolute path leading to the location of the file. Uses an OS dependent directory seperator.
+    /// </summary>
+    string Path { get; }
 
-        /// <summary>
-        /// The MediaInfo data for the file. This can be null, but it shouldn't be.
-        /// </summary>
-        IMediaContainer MediaInfo { get; }
-    }
+    /// <summary>
+    /// The relative path from the <see cref="ImportFolder"/> to the location of the file. Will always use forward slash as a directory seperator.
+    /// </summary>
+    string RelativePath { get; }
+
+    /// <summary>
+    /// The file size, in bytes.
+    /// </summary>
+    long Size { get; }
+
+    /// <summary>
+    /// Get the video tied to the video file location.
+    /// </summary>
+    /// <value></value>
+    IVideo? VideoInfo { get; }
+
+    /// <summary>
+    /// The import folder tied to the video file location.
+    /// </summary>
+    IImportFolder? ImportFolder { get; }
+
+    #region To-be-removed
+
+    [Obsolete("Use VideoID instead.")]
+    int VideoFileID { get; }
+
+    [Obsolete("Use FileName instead.")]
+    string Filename { get; }
+
+    [Obsolete("Use Path instead.")]
+    string FilePath { get; }
+
+    [Obsolete("Use Size instead.")]
+    long FileSize { get; }
+
+    [Obsolete("Use Video.Hashes instead.")]
+    IHashes? Hashes { get; }
+
+    [Obsolete("Use Video.MediaInfo instead.")]
+    IMediaContainer? MediaInfo { get; }
+
+    [Obsolete("Use Video.AniDB instead.")]
+    IAniDBFile? AniDBFileInfo { get; }
+
+    #endregion
 }

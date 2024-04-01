@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Repositories;
-using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using AnimeTitle = Shoko.Plugin.Abstractions.DataModels.AnimeTitle;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -194,24 +193,6 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
         }
     }
 
-    IReadOnlyList<AnimeTitle> IEpisode.Titles =>
-        RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID)
-            .Select(a => new AnimeTitle
-                {
-                    LanguageCode = a.LanguageCode,
-                    Language = a.Language,
-                    Title = a.Title,
-                }
-            )
-            .ToList();
-    int IEpisode.EpisodeID => AniDB_EpisodeID;
-    int IEpisode.AnimeID => AniDB_Episode?.AnimeID ?? 0;
-    int IEpisode.Duration => AniDB_Episode?.LengthSeconds ?? 0;
-    int IEpisode.Number => AniDB_Episode?.EpisodeNumber ?? 0;
-    Shoko.Plugin.Abstractions.DataModels.EpisodeType IEpisode.Type =>
-        (Shoko.Plugin.Abstractions.DataModels.EpisodeType) (AniDB_Episode?.EpisodeType ?? 0);
-    DateTime? IEpisode.AirDate => AniDB_Episode?.GetAirDateAsDate();
-    
     protected bool Equals(SVR_AnimeEpisode other)
     {
         return AnimeEpisodeID == other.AnimeEpisodeID && AnimeSeriesID == other.AnimeSeriesID &&
@@ -251,4 +232,53 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
             return hashCode;
         }
     }
+
+    #region IEpisode Implementation
+
+    DataSourceEnum IMetadata.Source => DataSourceEnum.AniDB;
+
+    int IMetadata<int>.ID => AniDB_EpisodeID;
+
+    int IEpisode.SeriesID => AniDB_Episode?.AnimeID ?? 0;
+
+    Shoko.Plugin.Abstractions.DataModels.EpisodeType IEpisode.Type =>
+        (Shoko.Plugin.Abstractions.DataModels.EpisodeType)(AniDB_Episode?.EpisodeType ?? 0);
+
+    int IEpisode.EpisodeNumber => AniDB_Episode?.EpisodeNumber ?? 0;
+
+    int? IEpisode.SeasonNumber => EpisodeTypeEnum == EpisodeType.Episode ? 1 : null;
+
+    string IWithTitles.DefaultTitle =>
+        RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.English)
+            .FirstOrDefault()
+            ?.Title ?? $"Episode {AniDB_Episode?.EpisodeNumber ?? 0}";
+
+    string IWithTitles.PreferredTitle => Title;
+
+    IReadOnlyList<AnimeTitle> IWithTitles.Titles =>
+        RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID)
+            .Select(a => new AnimeTitle
+            {
+                LanguageCode = a.LanguageCode,
+                Language = a.Language,
+                Title = a.Title,
+                Type = TitleType.None,
+            })
+            .ToList();
+
+    TimeSpan IEpisode.Runtime => TimeSpan.FromSeconds(AniDB_Episode?.LengthSeconds ?? 0);
+
+    DateTime? IEpisode.AirDate => AniDB_Episode?.GetAirDateAsDate();
+
+    ISeries IEpisode.SeriesInfo => GetAnimeSeries()?.GetAnime();
+
+    int IEpisode.EpisodeID => AniDB_EpisodeID;
+
+    int IEpisode.AnimeID => AniDB_Episode?.AnimeID ?? 0;
+
+    int IEpisode.Number => AniDB_Episode?.EpisodeNumber ?? 0;
+
+    int IEpisode.Duration => AniDB_Episode?.LengthSeconds ?? 0;
+
+    #endregion
 }

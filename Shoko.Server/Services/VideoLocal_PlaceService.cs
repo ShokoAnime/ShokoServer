@@ -705,7 +705,7 @@ public class VideoLocal_PlaceService
 
                 try
                 {
-                    ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place);
+                    ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place, v);
                 }
                 catch
                 {
@@ -727,7 +727,7 @@ public class VideoLocal_PlaceService
             {
                 try
                 {
-                    ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place);
+                    ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place, v);
                 }
                 catch
                 {
@@ -795,7 +795,7 @@ public class VideoLocal_PlaceService
 
             try
             {
-                ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place);
+                ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place, v);
             }
             catch
             {
@@ -814,7 +814,7 @@ public class VideoLocal_PlaceService
         {
             try
             {
-                ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place);
+                ShokoEventHandler.Instance.OnFileDeleted(place.ImportFolder, place, v);
             }
             catch
             {

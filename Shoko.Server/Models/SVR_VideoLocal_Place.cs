@@ -36,26 +36,46 @@ public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
         return new FileInfo(FullServerPath);
     }
 
-    int IVideoFile.VideoFileID => VideoLocalID;
-    string IVideoFile.Filename => Path.GetFileName(FilePath);
-    string IVideoFile.FilePath => FullServerPath;
-    long IVideoFile.FileSize => VideoLocal?.FileSize ?? 0;
-    public IAniDBFile AniDBFileInfo => VideoLocal?.GetAniDBFile();
+    #region IVideoFile Implementation
 
-    public IHashes Hashes => VideoLocal == null
-        ? null
-        : new VideoHashes
+    int IVideoFile.ID => VideoLocal_Place_ID;
+
+    int IVideoFile.ImportFolderID => ImportFolderID;
+
+    int IVideoFile.VideoID => VideoLocalID;
+
+    IVideo IVideoFile.VideoInfo => VideoLocal;
+
+    string IVideoFile.Path => FullServerPath;
+
+    string IVideoFile.RelativePath
+    {
+        get
         {
-            CRC = VideoLocal.CRC32, MD5 = VideoLocal.MD5, ED2K = VideoLocal.Hash, SHA1 = VideoLocal.SHA1
-        };
+            var path = FilePath.Replace('\\', '/');
+            if (path.Length > 0 && path[0] != '/')
+                path = '/' + path;
+            return path;
+        }
+    }
+
+    long IVideoFile.Size => VideoLocal?.FileSize ?? 0;
+
+    IImportFolder IVideoFile.ImportFolder => ImportFolder;
+
+    int IVideoFile.VideoFileID => VideoLocalID;
+
+    string IVideoFile.Filename => Path.GetFileName(FilePath);
+
+    string IVideoFile.FilePath => FullServerPath;
+
+    long IVideoFile.FileSize => VideoLocal?.FileSize ?? 0;
+
+    IAniDBFile IVideoFile.AniDBFileInfo => VideoLocal?.GetAniDBFile();
+
+    public IHashes Hashes => VideoLocal;
 
     public IMediaContainer MediaInfo => VideoLocal?.Media;
 
-    private class VideoHashes : IHashes
-    {
-        public string CRC { get; set; }
-        public string MD5 { get; set; }
-        public string ED2K { get; set; }
-        public string SHA1 { get; set; }
-    }
+    #endregion
 }

@@ -1339,9 +1339,14 @@ public class SVR_AnimeGroup : AnimeGroup, IGroup
     string IGroup.Name => GroupName;
     public IAnime MainSeries => GetMainSeries()?.GetAnime();
 
-    IReadOnlyList<IAnime> IGroup.Series => GetAllSeries().Select(a => a.GetAnime()).Where(a => a != null)
-        .OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue).ThenBy(a => a.MainTitle)
-        .Cast<IAnime>().ToList();
+    IReadOnlyList<IAnime> IGroup.Series => GetAllSeries()
+        .Select(a => a.GetAnime())
+        .Where(a => a != null)
+        .OrderBy(a => a.BeginYear)
+        .ThenBy(a => a.AirDate ?? DateTime.MaxValue)
+        .ThenBy(a => a.MainTitle)
+        .Cast<IAnime>()
+        .ToList();
 }
 
 public class GroupVotes

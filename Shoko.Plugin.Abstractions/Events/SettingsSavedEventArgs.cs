@@ -1,9 +1,8 @@
 using System;
 
-namespace Shoko.Plugin.Abstractions
+#nullable enable
+namespace Shoko.Plugin.Abstractions;
+
+public class SettingsSavedEventArgs : EventArgs
 {
-    public class SettingsSavedEventArgs : EventArgs
-    {
-        
-    }
 }

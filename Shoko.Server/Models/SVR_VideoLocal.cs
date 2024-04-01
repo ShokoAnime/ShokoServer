@@ -12,6 +12,8 @@ using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
@@ -24,7 +26,7 @@ using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 
 namespace Shoko.Server.Models;
 
-public class SVR_VideoLocal : VideoLocal, IHash
+public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -43,7 +45,7 @@ public class SVR_VideoLocal : VideoLocal, IHash
     /// </summary>
     /// <value></value>
     public DateTime? LastAVDumped { get; set; }
-    
+
     /// <summary>
     /// The Version of AVDump from Last time we did a successful AVDump.
     /// </summary>
@@ -550,6 +552,59 @@ public class SVR_VideoLocal : VideoLocal, IHash
         };
         return cl;
     }
+
+    #region IVideo Implementation
+
+    IReadOnlyList<IVideoFile> IVideo.Locations => throw new NotImplementedException();
+
+    IAniDBFile IVideo.AniDB => GetAniDBFile();
+
+    IHashes IVideo.Hashes => this;
+
+    IMediaContainer IVideo.MediaInfo => Media;
+
+    IReadOnlyList<IEpisode> IVideo.EpisodeInfo =>
+        GetAnimeEpisodes()
+            .ToArray();
+
+    IReadOnlyList<ISeries> IVideo.SeriesInfo =>
+        GetAnimeEpisodes()
+            .DistinctBy(e => e.AnimeSeriesID)
+            .Select(e => e.GetAnimeSeries()?.GetAnime())
+            .OfType<SVR_AniDB_Anime>()
+            .OrderBy(a => a.MainTitle)
+            .Cast<IAnime>()
+            .ToArray();
+
+    IReadOnlyList<IGroup> IVideo.GroupInfo =>
+        GetAnimeEpisodes()
+            .DistinctBy(e => e.AnimeSeriesID)
+            .Select(e => e.GetAnimeSeries())
+            .OfType<SVR_AnimeSeries>()
+            .DistinctBy(a => a.AnimeGroupID)
+            .Select(a => a.AnimeGroup)
+            .OfType<SVR_AnimeGroup>()
+            .OrderBy(g => g.GroupName)
+            .Cast<IGroup>()
+            .ToArray();
+
+    int IMetadata<int>.ID => VideoLocalID;
+
+    DataSourceEnum IMetadata.Source => DataSourceEnum.Shoko;
+
+    #endregion
+
+    #region IHashes Implementation
+
+    string IHashes.CRC => CRC32;
+
+    string IHashes.MD5 => MD5;
+
+    string IHashes.ED2K => ED2KHash;
+
+    string IHashes.SHA1 => SHA1;
+
+    #endregion
 }
 
 // This is a comparer used to sort the completeness of a videolocal, more complete first.

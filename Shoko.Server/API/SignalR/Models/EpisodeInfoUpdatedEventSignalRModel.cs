@@ -1,31 +1,68 @@
+using System.Collections.Generic;
+using System.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 public class EpisodeInfoUpdatedEventSignalRModel
 {
     public EpisodeInfoUpdatedEventSignalRModel(EpisodeInfoUpdatedEventArgs eventArgs)
     {
-        var series = RepoFactory.AnimeSeries.GetByAnimeID(eventArgs.AnimeInfo.AnimeID);
-        EpisodeID = ((SVR_AnimeEpisode)eventArgs.EpisodeInfo).AnimeEpisodeID;
-        SeriesID = series.AnimeSeriesID;
-        GroupID = series.AnimeGroupID;
+        Source = eventArgs.EpisodeInfo.Source;
+        EpisodeID = eventArgs.EpisodeInfo.ID;
+        SeriesID = eventArgs.SeriesInfo.ID;
+        // TODO: Add support for more metadata sources when they're hooked up internally.
+        switch (Source)
+        {
+            case DataSourceEnum.AniDB:
+                if (eventArgs.EpisodeInfo is SVR_AnimeEpisode shokoEpisode)
+                {
+                    var series = shokoEpisode.GetAnimeSeries();
+                    ShokoEpisodeIDs = new int[1] { shokoEpisode.AnimeEpisodeID };
+                    ShokoSeriesIDs = new int[1] { shokoEpisode.AnimeSeriesID };
+                    if (series != null)
+                        ShokoGroupIDs = series.AllGroupsAbove.Select(g => g.AnimeGroupID).ToArray();
+                }
+                break;
+        }
     }
 
     /// <summary>
-    /// Shoko episode id.
+    /// The provider metadata source.
     /// </summary>
-    public int EpisodeID { get; set; }
+    [JsonConverter(typeof(StringEnumConverter))]
+    public DataSourceEnum Source { get; }
 
     /// <summary>
-    /// Shoko series id.
+    /// The provided metadata episode id.
     /// </summary>
-    public int SeriesID { get; set; }
+    public int EpisodeID { get; }
 
     /// <summary>
-    /// Shoko group id.
+    /// The provided metadata series id.
     /// </summary>
-    public int GroupID { get; set; }
+    public int SeriesID { get; }
+
+    /// <summary>
+    /// Shoko episode ids affected by this update.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<int>? ShokoEpisodeIDs { get; }
+
+    /// <summary>
+    /// Shoko series ids affected by this update.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<int>? ShokoSeriesIDs { get; }
+
+    /// <summary>
+    /// Shoko group ids affected by this update.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<int>? ShokoGroupIDs { get; }
 }

@@ -1,24 +1,12 @@
 using System.Collections.Generic;
 using Shoko.Plugin.Abstractions.DataModels;
 
-namespace Shoko.Plugin.Abstractions
+#nullable enable
+namespace Shoko.Plugin.Abstractions;
+
+public class FileMatchedEventArgs : FileEventArgs
 {
-
-    public class FileMatchedEventArgs : FileEventArgs
-    {
-        /// <summary>
-        /// Information about the Anime, such as titles
-        /// </summary>
-        public IList<IAnime> AnimeInfo { get; set; }
-
-        /// <summary>
-        /// Information about the group
-        /// </summary>
-        public IList<IGroup> GroupInfo { get; set; }
-
-        /// <summary>
-        /// Information about the episode, such as titles
-        /// </summary>
-        public IList<IEpisode> EpisodeInfo { get; set; }
-    }
+    public FileMatchedEventArgs(string relativePath, IImportFolder importFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IEpisode> episodeInfo, IEnumerable<IAnime> animeInfo, IEnumerable<IGroup> groupInfo)
+        : base(relativePath, importFolder, fileInfo, videoInfo, episodeInfo, animeInfo, groupInfo) { }
 }
+

@@ -49,17 +49,18 @@ public class RenameFileHelper
     {
         var result = Path.GetFileName(place.FilePath);
         var script = _getRenameScript(scriptName);
-        var args = new RenameEventArgs
-        {
-            AnimeInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a?.GetAnimeSeries()?.GetAnime())
-                .Where(a => a != null).DistinctBy(a => a.AnimeID).Cast<IAnime>().ToList(),
-            GroupInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()?.AnimeGroup)
-                .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
-            EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
-            FileInfo = place,
-            Script = script
-        };
-
+        var videoLocal = place.VideoLocal ??
+            throw new NullReferenceException(nameof(place.VideoLocal));
+        var episodes = videoLocal.GetAnimeEpisodes()
+            .ToList();
+        var series = episodes
+            .DistinctBy(e => e.AnimeSeriesID)
+            .Select(e => e.GetAnimeSeries())
+            .ToList();
+        var episodeInfo = episodes.Cast<IEpisode>().ToList();
+        var animeInfo = series.Select(a => a.GetAnime()).Cast<IAnime>().ToList();
+        var groupInfo = series.DistinctBy(a => a.AnimeGroupID).Select(a => a.AnimeGroup).Cast<IGroup>().ToList();
+        var args = new RenameEventArgs(script, place, videoLocal, episodeInfo, animeInfo, groupInfo);
         foreach (var renamer in GetPluginRenamersSorted(script?.Type))
         {
             try
@@ -98,20 +99,22 @@ public class RenameFileHelper
     public static (ImportFolder, string) GetDestination(SVR_VideoLocal_Place place, string scriptName)
     {
         var script = _getRenameScriptWithFallback(scriptName);
-
-        var args = new MoveEventArgs
-        {
-            AnimeInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a?.GetAnimeSeries()?.GetAnime())
-                .Where(a => a != null).DistinctBy(a => a.AnimeID).Cast<IAnime>().ToList(),
-            GroupInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()?.AnimeGroup)
-                .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
-            EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
-            FileInfo = place,
-            AvailableFolders = RepoFactory.ImportFolder.GetAll().Cast<IImportFolder>()
-                .Where(a => a.DropFolderType != DropFolderType.Excluded).ToList(),
-            Script = script
-        };
-
+        var videoLocal = place.VideoLocal ??
+            throw new NullReferenceException(nameof(place.VideoLocal));
+        var episodes = videoLocal.GetAnimeEpisodes()
+            .ToList();
+        var series = episodes
+            .DistinctBy(e => e.AnimeSeriesID)
+            .Select(e => e.GetAnimeSeries())
+            .ToList();
+        var episodeInfo = episodes.Cast<IEpisode>().ToList();
+        var animeInfo = series.Select(a => a.GetAnime()).Cast<IAnime>().ToList();
+        var groupInfo = series.DistinctBy(a => a.AnimeGroupID).Select(a => a.AnimeGroup).Cast<IGroup>().ToList();
+        var availableFolders = RepoFactory.ImportFolder.GetAll()
+            .Cast<IImportFolder>()
+            .Where(a => a.DropFolderType != DropFolderType.Excluded)
+            .ToList();
+        var args = new MoveEventArgs(script, availableFolders, place, videoLocal, episodeInfo, animeInfo, groupInfo);
         foreach (var renamer in GetPluginRenamersSorted(script?.Type))
         {
             try

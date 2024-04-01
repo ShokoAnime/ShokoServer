@@ -1,8 +1,11 @@
-﻿namespace Shoko.Plugin.Abstractions.DataModels;
+﻿
+#nullable enable
+namespace Shoko.Plugin.Abstractions.DataModels;
 
 public interface IRelatedAnime
 {
-    IAnime RelatedAnime { get; }
+    int RelatedAnimeID { get; }
+    IAnime? RelatedAnime { get; }
     RelationType RelationType { get; }
 }
 
@@ -25,7 +28,7 @@ public enum RelationType
     /// The entries use the same base story, but is set in alternate settings.
     /// </summary>
     AlternativeSetting = 2,
-    
+
     /// <summary>
     /// The entries tell the same story in the same settings but are made at different times.
     /// </summary>

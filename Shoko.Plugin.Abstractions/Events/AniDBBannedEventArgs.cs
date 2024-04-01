@@ -1,27 +1,34 @@
 using System;
 
-namespace Shoko.Plugin.Abstractions
+#nullable enable
+namespace Shoko.Plugin.Abstractions;
+
+public class AniDBBannedEventArgs : EventArgs
 {
+    /// <summary>
+    /// Type of ban
+    /// </summary>
+    public AniDBBanType Type { get; }
+    /// <summary>
+    /// The time the ban occurred. It should be basically "now"
+    /// </summary>
+    public DateTime Time { get; }
 
-    public class AniDBBannedEventArgs : EventArgs
-    {
-        /// <summary>
-        /// Type of ban
-        /// </summary>
-        public AniDBBanType Type { get; set; }
-        /// <summary>
-        /// The time the ban occurred. It should be basically "now"
-        /// </summary>
-        public DateTime Time { get; set; }
-        /// <summary>
-        /// The time when Shoko will attempt again. This time is just guessed. We get no data or hint of any kind for this value to prevent additional bans.
-        /// </summary>
-        public DateTime ResumeTime { get; set; }
-    }
+    /// <summary>
+    /// The time when Shoko will attempt again. This time is just guessed. We get no data or hint of any kind for this value to prevent additional bans.
+    /// </summary>
+    public DateTime ResumeTime { get; }
 
-    public enum AniDBBanType
+    public AniDBBannedEventArgs(AniDBBanType type, DateTime time, DateTime resumeTime)
     {
-        UDP,
-        HTTP,
+        Type = type;
+        Time = time;
+        ResumeTime = resumeTime;
     }
+}
+
+public enum AniDBBanType
+{
+    UDP,
+    HTTP,
 }

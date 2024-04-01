@@ -1,5 +1,6 @@
 using Shoko.Plugin.Abstractions;
 
+#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 public class FileDetectedEventSignalRModel
@@ -7,7 +8,7 @@ public class FileDetectedEventSignalRModel
     public FileDetectedEventSignalRModel(FileDetectedEventArgs eventArgs)
     {
         RelativePath = eventArgs.RelativePath;
-        ImportFolderID = eventArgs.ImportFolder.ImportFolderID;
+        ImportFolderID = eventArgs.ImportFolder.ID;
     }
 
     /// <summary>
