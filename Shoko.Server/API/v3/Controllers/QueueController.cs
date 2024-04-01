@@ -127,42 +127,45 @@ public class QueueController : BaseController
             : _queueHandler.WaitingCount + _queueHandler.GetExecutingJobs().Length;
 
         var offset = (page - 1) * pageSize;
+        var executing = _queueHandler.GetExecutingJobs();
         // simplified from (page - 1) * pageSize + pageSize
-        if (page * pageSize <= _settingsProvider.GetSettings().Quartz.WaitingCacheSize && showAll)
+        if (showAll && page * pageSize <= executing.Length + _settingsProvider.GetSettings().Quartz.WaitingCacheSize)
         {
-            var results = _queueHandler.GetExecutingJobs().Skip(offset).Take(pageSize).ToList();
-            if (pageSize - results.Count > 0)
-                results.AddRange(_queueHandler.GetWaitingJobs().Skip(offset - results.Count).Take(pageSize - results.Count));
-            return new ListResult<Queue.QueueItem>(total, results.Select(a =>
-                new Queue.QueueItem
-                {
-                    Key = a.Key,
-                    Type = a.JobType,
-                    Title = a.Title,
-                    Details = a.Details,
-                    IsRunning = a.Running,
-                    IsBlocked = a.Blocked
-                }).ToList());
+            var results = new List<QueueItem>();
+            if (offset < executing.Length)
+            {
+                results.AddRange(executing.Skip(offset).Take(pageSize));
+                offset = 0;
+            }
+            else offset -= executing.Length;
+            if (pageSize - results.Count <= 0) return new ListResult<Queue.QueueItem>(total, results.Select(ToQueueItem).ToList());
+
+            results.AddRange(_queueHandler.GetWaitingJobs().Skip(offset).Take(pageSize - results.Count));
+            return new ListResult<Queue.QueueItem>(total, results.Select(ToQueueItem).ToList());
         }
 
-        var result = (await _queueHandler.GetJobs(pageSize, offset, !showAll))
-            .Select(a => new Queue.QueueItem
+        var result = (await _queueHandler.GetJobs(pageSize, offset, !showAll)).Select(ToQueueItem).ToList();
+        return new ListResult<Queue.QueueItem>(total, result);
+    }
+
+    private static Queue.QueueItem ToQueueItem(QueueItem a)
+    {
+        return new Queue.QueueItem
         {
             Key = a.Key,
             Type = a.JobType,
             Title = a.Title,
             Details = a.Details,
+            StartTime = a.StartTime,
             IsRunning = a.Running,
-            IsBlocked = a.Blocked,
-            StartTime = a.StartTime
-        }).ToList();
-        return new ListResult<Queue.QueueItem>(total, result);
+            IsBlocked = a.Blocked
+        };
     }
 
     [HttpGet("DebugStats")]
     public ActionResult<DebugStats> GetDebugStats()
     {
-        return new DebugStats(Queue: GetQueue(), TypeFilters: _queueHandler.GetTypes(), AcquisitionFilters: _queueHandler.GetAcquisitionFilterResults());
+        return new DebugStats(GetQueue(), _queueHandler.GetTypes(), _queueHandler.GetAcquisitionFilterResults());
     }
 
     [HttpGet("AcquisitionFilters")]

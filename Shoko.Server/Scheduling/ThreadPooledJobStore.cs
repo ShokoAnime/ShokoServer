@@ -514,13 +514,14 @@ public partial class ThreadPooledJobStore : JobStoreTX
                         StartTime = a.StartTime
                     };
                 }).OrderBy(a => a.StartTime));
+                offset = 0;
             }
             else offset -= _executingJobs.Count;
         }
 
         if (maxCount - result.Count <= 0) return result;
 
-        var jobs = await Delegate.SelectJobs(conn, _typeLoadHelper, maxCount - result.Count, Math.Max(offset - result.Count, 0), NoLaterThan, NoEarlierThan, types, excludeBlocked,
+        var jobs = await Delegate.SelectJobs(conn, _typeLoadHelper, maxCount - result.Count, offset, NoLaterThan, NoEarlierThan, types, excludeBlocked,
             cancellationToken);
         result.AddRange(jobs.Select(a =>
         {
