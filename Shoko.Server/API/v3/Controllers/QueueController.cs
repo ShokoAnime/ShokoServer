@@ -51,7 +51,7 @@ public class QueueController : BaseController
                 Title = a.Title,
                 Details = a.Details,
                 IsRunning = true,
-                StartTime = a.StartTime
+                StartTime = a.StartTime?.ToUniversalTime()
             }).OrderBy(a => a.StartTime).ToList()
         };
     }

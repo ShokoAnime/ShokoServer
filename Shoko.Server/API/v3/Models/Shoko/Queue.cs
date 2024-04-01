@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using Newtonsoft.Json.Converters;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -61,8 +63,9 @@ public class Queue
         public bool IsRunning { get; init; }
 
         /// <summary>
-        /// The time that a currently executing job started, in local time
+        /// The time that a currently executing job started, in UTC ±0 timezone.
         /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime? StartTime { get; init; }
 
         /// <summary>

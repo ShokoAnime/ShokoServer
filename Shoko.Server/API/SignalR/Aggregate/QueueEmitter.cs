@@ -39,7 +39,7 @@ public class QueueEmitter : BaseEmitter, IDisposable
                 Title = a.Title,
                 Details = a.Details,
                 IsRunning = true,
-                StartTime = a.StartTime
+                StartTime = a.StartTime?.ToUniversalTime()
             }).OrderBy(a => a.StartTime).ToList()
         };
     }
@@ -86,7 +86,7 @@ public class QueueEmitter : BaseEmitter, IDisposable
                 Title = a.Title,
                 Details = a.Details,
                 IsRunning = true,
-                StartTime = a.StartTime
+                StartTime = a.StartTime?.ToUniversalTime()
             }).OrderBy(a => a.StartTime).ToList()
         };
         if (Equals(_lastQueueState, currentState)) return;
