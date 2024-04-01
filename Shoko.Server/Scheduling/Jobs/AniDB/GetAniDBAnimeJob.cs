@@ -161,6 +161,8 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 
         await ProcessRelations(response);
 
+        ShokoEventHandler.Instance.OnSeriesUpdated(anime);
+
         return anime;
     }
 
