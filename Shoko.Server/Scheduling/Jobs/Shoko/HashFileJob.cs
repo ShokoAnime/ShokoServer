@@ -50,6 +50,7 @@ public class HashFileJob : BaseJob
     public override async Task Process()
     {
         var (vlocal, vlocalplace, folder) = GetVideoLocal();
+        if (vlocal == null || vlocalplace == null) return;
         if (vlocal.HasAnyEmptyHashes())
             FillHashesAgainstVideoLocalRepo(vlocal);
         Exception e = null;
