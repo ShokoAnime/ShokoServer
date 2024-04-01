@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using Iesi.Collections.Generic;
@@ -63,9 +64,7 @@ public class SyncAniDBMyListJob : BaseJob
             return;
         }
 
-        var serialized = JsonConvert.SerializeObject(response.Response, Formatting.Indented);
-        Directory.CreateDirectory(Utils.MyListDirectory);
-        await File.WriteAllTextAsync(Path.Join(Utils.MyListDirectory, "mylist.json"), serialized);
+        await CreateMyListBackup(response);
 
         var totalItems = 0;
         var watchedItems = 0;
@@ -140,6 +139,40 @@ public class SyncAniDBMyListJob : BaseJob
         _logger.LogInformation(
             "Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {WatchedItems} Watched, {ModifiedItems} Modified",
             totalItems, missingFiles, filesToRemove.Count, watchedItems, modifiedItems);
+    }
+
+    private static async Task CreateMyListBackup(HttpResponse<List<ResponseMyList>> response)
+    {
+        var serialized = JsonConvert.SerializeObject(response.Response, Formatting.Indented);
+        var myListDirectory = new DirectoryInfo(Utils.MyListDirectory);
+        myListDirectory.Create();
+
+        var currentBackupPath = Path.Join(myListDirectory.FullName, "mylist.json");
+        await File.WriteAllTextAsync(currentBackupPath, serialized);
+
+        // Create timestamped MyList zip archive
+        // Backup rotation depeonds on filename being universally sortable ("u" format specifier)
+        var archivePath = Path.Join(myListDirectory.FullName, DateTimeOffset.UtcNow.ToString("u").Replace(':', '_') + ".zip");
+        await using var backupFs = new FileStream(archivePath, FileMode.OpenOrCreate);
+        using var archive = new ZipArchive(backupFs, ZipArchiveMode.Create);
+        archive.CreateEntryFromFile(currentBackupPath, Path.GetFileName(currentBackupPath));
+
+        // Delete oldest backups when more than 30 exist
+        // Only gets zip files that start with ISO 8601 date format YYYY-MM-DD
+        var backupFiles = myListDirectory.GetFiles("????-??-?? *.zip").OrderByDescending(f => f.Name).ToList();
+        var retainedBackupCount = 30;
+        var backUpFilesToDelete = backupFiles.Skip(retainedBackupCount).ToList();
+        foreach (var file in backUpFilesToDelete)
+        {
+            try
+            {
+                file.Delete();
+            }
+            catch
+            {
+                // ignored
+            }
+        }
     }
 
     private async Task<int> ProcessStates(List<SVR_JMMUser> aniDBUsers, SVR_VideoLocal vl, ResponseMyList myitem,
@@ -275,7 +308,7 @@ public class SyncAniDBMyListJob : BaseJob
         fileID = file.FileID;
         return true;
     }
-    
+
     public SyncAniDBMyListJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
     {
         _requestFactory = requestFactory;
