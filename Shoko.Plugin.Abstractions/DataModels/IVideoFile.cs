@@ -56,7 +56,7 @@ public interface IVideoFile
     [Obsolete("Use VideoID instead.")]
     int VideoFileID { get; }
 
-    [Obsolete("Use FileName instead.")]
+    [Obsolete("Use FileName instead. Change the 'n' to a 'N' and you're good mate.")]
     string Filename { get; }
 
     [Obsolete("Use Path instead.")]
@@ -65,13 +65,13 @@ public interface IVideoFile
     [Obsolete("Use Size instead.")]
     long FileSize { get; }
 
-    [Obsolete("Use Video.Hashes instead.")]
+    [Obsolete("Use VideoInfo?.Hashes instead.")]
     IHashes? Hashes { get; }
 
-    [Obsolete("Use Video.MediaInfo instead.")]
+    [Obsolete("Use VideoInfo?.MediaInfo instead")]
     IMediaContainer? MediaInfo { get; }
 
-    [Obsolete("Use Video.AniDB instead.")]
+    [Obsolete("Use VideoInfo?.AniDB instead.")]
     IAniDBFile? AniDBFileInfo { get; }
 
     #endregion
