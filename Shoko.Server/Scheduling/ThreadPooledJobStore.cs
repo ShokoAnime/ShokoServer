@@ -615,7 +615,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
             {
                 waitingTriggerCount = await GetWaitingTriggersCount(conn, types, cancellationToken);
                 blockedTriggerCount = await GetBlockedTriggersCount(conn, types, cancellationToken);
-                waiting = (await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, _threadPoolSize, false, cancellationToken)).ToArray();
+                waiting = (await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, executing.Length, false, cancellationToken)).ToArray();
             }
             catch (Exception e)
             {
@@ -659,7 +659,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
             {
                 waitingTriggerCount = await GetWaitingTriggersCount(conn, types, cancellationToken);
                 blockedTriggerCount = await GetBlockedTriggersCount(conn, types, cancellationToken);
-                waiting = (await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, _threadPoolSize, false, cancellationToken)).ToArray();
+                waiting = (await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, executing.Length, false, cancellationToken)).ToArray();
             }
             catch (Exception e)
             {
@@ -703,7 +703,7 @@ public partial class ThreadPooledJobStore : JobStoreTX
             {
                 waitingTriggerCount = await GetWaitingTriggersCount(conn, types, cancellationToken);
                 blockedTriggerCount = await GetBlockedTriggersCount(conn, types, cancellationToken);
-                waiting = (await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, _threadPoolSize, false, cancellationToken)).ToArray();
+                waiting = (await GetJobs(conn, _settingsProvider.GetSettings().Quartz.WaitingCacheSize, executing.Length, false, cancellationToken)).ToArray();
             }
             catch (Exception e)
             {
