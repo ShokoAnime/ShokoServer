@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Newtonsoft.Json;
 using Quartz;
 using Shoko.Server.Scheduling.GenericJobBuilder.Utils;
 using JobKeyGroupAttribute = Shoko.Server.Scheduling.Attributes.JobKeyGroupAttribute;
@@ -188,7 +189,7 @@ public class JobKeyBuilder<T> where T : class, IJob
         {
             var id = attribute?.Id ?? member.Name;
             if (!_jobDataMap.TryGetValue(member.Name, out var value)) continue;
-            builder.Add(id + ":" + value);
+            builder.Add(id + ":" + JsonConvert.SerializeObject(value));
         }
 
         var name = string.Join("_", builder);

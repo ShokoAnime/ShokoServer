@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,10 +15,8 @@ using Shoko.Commons.Utils;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
-#nullable enable
-namespace Shoko.Server;
+namespace Shoko.Server.Utilities;
 
 public static class AVDumpHelper
 {
@@ -87,7 +86,7 @@ public static class AVDumpHelper
             );
 
             // Assumption is the mother of all f*ck ups, but idc. Assuming the position of the
-            // version is faster then actually checking.
+            // version is faster than actually checking.
             return result
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .FirstOrDefault()
@@ -470,7 +469,7 @@ public static class AVDumpHelper
 
     public class AVDumpSession
     {
-        private static int NextSessionID { get; set; } = 0;
+        private static int NextSessionID { get; set; }
 
         public int SessionID { get; }
 

@@ -1,10 +1,15 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Quartz;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
@@ -18,8 +23,10 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class AVDumpController : BaseController
 {
-    public AVDumpController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    private readonly ISchedulerFactory _schedulerFactory;
+    public AVDumpController(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory) : base(settingsProvider)
     {
+        _schedulerFactory = schedulerFactory;
     }
 
     /// <summary>
@@ -64,7 +71,7 @@ public class AVDumpController : BaseController
     /// <param name="body">Body containing the file ids to dump.</param>
     /// <returns></returns>
     [HttpPost("DumpFiles")]
-    public ActionResult MultiDump([FromBody] AVDump.Input.DumpFilesBody body)
+    public async Task<ActionResult> MultiDump([FromBody] AVDump.Input.DumpFilesBody body)
     {
         var settings = SettingsProvider.GetSettings();
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
@@ -96,7 +103,8 @@ public class AVDumpController : BaseController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        AVDumpHelper.DumpFiles(fileDictionary);
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJobNow<AVDumpFilesJob>(a => a.Videos = fileDictionary);
 
         return Ok();
     }

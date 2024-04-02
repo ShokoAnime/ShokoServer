@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.API.SignalR.Models;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 

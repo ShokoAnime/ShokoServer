@@ -20,6 +20,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -614,7 +615,7 @@ public class FileController : BaseController
     /// <param name="immediate">Immediately run the AVDump, without adding the command to the queue.</param>
     /// <returns></returns>
     [HttpPost("{fileID}/AVDump")]
-    public ActionResult<AVDump.Result> AvDumpFile([FromRoute] int fileID, [FromQuery] bool priority = false,
+    public async Task<ActionResult<AVDump.Result>> AvDumpFile([FromRoute] int fileID, [FromQuery] bool priority = false,
         [FromQuery] bool immediate = true)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
@@ -633,7 +634,14 @@ public class FileController : BaseController
             return ValidationProblem(ModelState);
 
         var files = new Dictionary<int, string> { { file.VideoLocalID, filePath } };
-        AVDumpHelper.DumpFiles(files, synchronous: immediate);
+        if (immediate)
+            AVDumpHelper.DumpFiles(files, synchronous: true);
+        else
+        {
+            var scheduler = await _schedulerFactory.GetScheduler();
+            await scheduler.StartJobNow<AVDumpFilesJob>(a => a.Videos = files);
+        }
+
         return Ok();
     }
 
