@@ -2031,6 +2031,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
 
             ser.AnimeGroupID = contract.AnimeGroupID;
+            if (ser.AnimeGroupID == 0) ser.AnimeGroupID = _groupCreator.GetOrCreateSingleGroupForSeries(ser).AnimeGroupID;
             ser.AniDB_ID = contract.AniDB_ID;
             ser.DefaultAudioLanguage = contract.DefaultAudioLanguage;
             ser.DefaultSubtitleLanguage = contract.DefaultSubtitleLanguage;
@@ -2119,7 +2120,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             // if not we will download it now
             if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
             {
-                var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
+                var scheduler = _schedulerFactory.GetScheduler().Result;
                 scheduler.StartJob<GetAniDBReleaseGroupStatusJob>(c => c.AnimeID = anime.AnimeID).GetAwaiter().GetResult();
             }
 

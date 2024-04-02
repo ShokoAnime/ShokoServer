@@ -320,12 +320,11 @@ public class ProcessFileJob : BaseJob
             _logger.LogDebug("Getting AniDB_File record from AniDB....");
             try
             {
-                var fileCommand = _jobFactory.CreateJob<GetAniDBFileJob>(c =>
+                aniFile = await _jobFactory.CreateJob<GetAniDBFileJob>(c =>
                 {
                     c.VideoLocalID = _vlocal.VideoLocalID;
                     c.ForceAniDB = true;
-                });
-                aniFile = await fileCommand.Process();
+                }).Process();
             }
             catch (AniDBBannedException)
             {
