@@ -44,14 +44,14 @@ public class AniDBEmitter : BaseEmitter, IDisposable
                 UpdateType = UpdateType.UDPBan,
                 UpdateTime = UDPHandler.BanTime ?? DateTime.Now,
                 Value = UDPHandler.IsBanned,
-                PauseTimeSecs = TimeSpan.FromHours(UDPHandler.BanTimerResetLength).Seconds
+                PauseTimeSecs = (int)TimeSpan.FromHours(UDPHandler.BanTimerResetLength).TotalSeconds
             },
             new()
             {
                 UpdateType = UpdateType.HTTPBan,
                 UpdateTime = HttpHandler.BanTime ?? DateTime.Now,
                 Value = HttpHandler.IsBanned,
-                PauseTimeSecs = TimeSpan.FromHours(HttpHandler.BanTimerResetLength).Seconds
+                PauseTimeSecs = (int)TimeSpan.FromHours(HttpHandler.BanTimerResetLength).TotalSeconds
             }
         };
     }
