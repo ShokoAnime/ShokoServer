@@ -57,7 +57,7 @@ public abstract class ConnectionHandler
                     Value = true,
                     UpdateType = BanEnum,
                     UpdateTime = DateTime.Now,
-                    PauseTimeSecs = TimeSpan.FromHours(BanTimerResetLength).Seconds
+                    PauseTimeSecs = (int)TimeSpan.FromHours(BanTimerResetLength).TotalSeconds
                 };
             }
             else
