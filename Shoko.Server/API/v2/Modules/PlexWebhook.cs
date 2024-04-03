@@ -47,7 +47,7 @@ public class PlexWebhook : BaseController
         _schedulerFactory = schedulerFactory;
     }
 
-    //The second one is to just make sure 
+    //The second one is to just make sure
     [HttpPost]
     [HttpPost("/plex.json")]
     public ActionResult WebhookPost([FromForm] [ModelBinder(BinderType = typeof(PlexBinder))] PlexEvent payload)
@@ -77,7 +77,7 @@ public class PlexWebhook : BaseController
                 break;
         }
 
-        return Ok(); //doesn't need to be an ApiStatus.OK() since really, all I take is plex.   
+        return Ok(); //doesn't need to be an ApiStatus.OK() since really, all I take is plex.
     }
 
 
@@ -140,7 +140,7 @@ public class PlexWebhook : BaseController
     private (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
     {
         var guid = new Uri(metadata.Guid);
-        if (guid.Scheme != "com.plexapp.agents.shoko")
+        if (guid.Scheme != "com.plexapp.agents.shoko" && guid.Scheme != "com.plexapp.agents.shokorelay")
         {
             return (null, null);
         }
