@@ -27,13 +27,17 @@ if [ $(getent passwd $USER) ]; then
     fi
     [ $(id -g $USER) -ne $PGID ] && usermod -g "$PGID" $USER
 else
+    echo "Adding user $USER and changing ownership of /home/shoko and all it's sub-directories…"
     useradd  -N -o -u "$PUID" -g "$PGID" -d /home/shoko $USER
 
     mkdir -p /home/shoko/.shoko/
     chown -R $USER:$GROUP /home/shoko
 fi
 
-[ $REDO_PERM ] && chown -R $PUID:$PGID /home/shoko/
+if [ $REDO_PERM ]; then
+    echo "Changing ownership of /home/shoko and all it's sub-directories…"
+    chown -R $PUID:$PGID /home/shoko/
+fi
 
 # Set owership of shoko files to shoko user
 chown -R $USER:$GROUP /usr/src/app/build/
