@@ -132,7 +132,7 @@ public class File
         Resolution = FileQualityFilter.GetResolution(file);
         Locations = file.Places.Select(a => new Location
         {
-            ImportFolder = new Location.ImportFolderStub(a.ImportFolder),
+            ImportFolderID = a.ImportFolderID,
             RelativePath = a.FilePath,
             AbsolutePath = includeAbsolutePaths ? a.FullServerPath : null,
             IsAccessible = a.GetFile() != null,
@@ -200,7 +200,7 @@ public class File
         /// <summary>
         /// The Import Folder that this file resides in 
         /// </summary>
-        public ImportFolderStub ImportFolder { get; set; }
+        public int ImportFolderID { get; set; }
 
         /// <summary>
         /// The relative path from the import folder's path on the server. The Filename can be easily extracted from this. Using the ImportFolder, you can get the full server path of the file or map it if the client has remote access to the filesystem. 
@@ -218,62 +218,6 @@ public class File
         /// </summary>
         [JsonRequired]
         public bool IsAccessible { get; set; }
-
-        public class ImportFolderStub
-        {
-            /// <summary>
-            /// Import Folder ID
-            /// </summary>
-            public int ID { get; set; }
-
-            /// <summary>
-            /// The import folder name
-            /// </summary>
-            public string Name { get; set; }
-
-            /// <summary>
-            /// Is the Folder watched by the filesystem watcher
-            /// </summary>
-            /// <returns></returns>
-            public bool WatchForNewFiles { get; set; }
-
-            /// <summary>
-            /// Whether the import folder is a drop folder
-            /// </summary>
-            public DropFolderType DropFolderType { get; set; }
-
-            /// <summary>
-            /// Path on the server where the import folder exists. For docker, it's inside the container, so it'll look excessively simple
-            /// </summary>
-            public string Path { get; set; }
-
-            public ImportFolderStub(SVR_ImportFolder folder)
-            {
-                DropFolderType type;
-                if (folder.FolderIsDropDestination && folder.FolderIsDropSource)
-                {
-                    type = DropFolderType.Both;
-                }
-                else if (folder.FolderIsDropDestination)
-                {
-                    type = DropFolderType.Destination;
-                }
-                else if (folder.FolderIsDropSource)
-                {
-                    type = DropFolderType.Source;
-                }
-                else
-                {
-                    type = DropFolderType.None;
-                }
-
-                ID = folder.ImportFolderID;
-                Name = folder.ImportFolderName;
-                Path = folder.ImportFolderLocation;
-                WatchForNewFiles = folder.FolderIsWatched;
-                DropFolderType = type;
-            }
-        }
     }
 
     /// <summary>
