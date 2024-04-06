@@ -247,8 +247,8 @@ public class Group : BaseModel
 
                 // Get the groups and validate the group ids.
                 var childGroups = GroupIDs == null ? new() : GroupIDs
-                    .Select(groupID => RepoFactory.AnimeGroup.GetByID(groupID))
-                    .Where(childGroup => childGroup != null)
+                    .Select(groupID => groupID > 0 ? RepoFactory.AnimeGroup.GetByID(groupID) : null)
+                    .OfType<SVR_AnimeGroup>()
                     .ToList();
                 if (childGroups.Count != (GroupIDs?.Count ?? 0))
                 {
@@ -260,8 +260,8 @@ public class Group : BaseModel
 
                 // Get the series and validate the series ids.
                 var seriesList = SeriesIDs == null ? new() : SeriesIDs
-                    .Select(id => RepoFactory.AnimeSeries.GetByID(id))
-                    .Where(s => s != null)
+                    .Select(id => id > 0 ? RepoFactory.AnimeSeries.GetByID(id) : null)
+                    .OfType<SVR_AnimeSeries>()
                     .ToList();
                 if (seriesList.Count != (SeriesIDs?.Count ?? 0))
                 {
