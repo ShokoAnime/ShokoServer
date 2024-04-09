@@ -555,6 +555,13 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
 
     #region IVideo Implementation
 
+    string IVideo.EarliestKnownName => RepoFactory.FileNameHash.GetByHash(Hash)
+        .OrderBy(a => a.FileNameHashID)
+        .FirstOrDefault()
+        ?.FileName;
+
+    long IVideo.Size => FileSize;
+
     IReadOnlyList<IVideoFile> IVideo.Locations => throw new NotImplementedException();
 
     IAniDBFile IVideo.AniDB => GetAniDBFile();

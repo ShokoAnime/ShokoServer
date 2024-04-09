@@ -7,6 +7,16 @@ namespace Shoko.Plugin.Abstractions.DataModels;
 public interface IVideo : IMetadata<int>
 {
     /// <summary>
+    /// The earliest known local file name of the video.
+    /// </summary>
+    string? EarliestKnownName { get; }
+
+    /// <summary>
+    /// The file size, in bytes.
+    /// </summary>
+    long Size { get; }
+
+    /// <summary>
     /// All video locations for the file.
     /// </summary>
     IReadOnlyList<IVideoFile> Locations { get; }
