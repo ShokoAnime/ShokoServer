@@ -166,7 +166,7 @@ public class SettingsProvider : ISettingsProvider
                     Server = legacy.Plex_Server
                 },
             AutoGroupSeries = legacy.AutoGroupSeries,
-            AutoGroupSeriesRelationExclusions = legacy.AutoGroupSeriesRelationExclusions.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
+            AutoGroupSeriesRelationExclusions = legacy.AutoGroupSeriesRelationExclusions.Replace("alternate", "alternative", StringComparison.InvariantCultureIgnoreCase).Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
             AutoGroupSeriesUseScoreAlgorithm = legacy.AutoGroupSeriesUseScoreAlgorithm,
             FileQualityFilterEnabled = legacy.FileQualityFilterEnabled,
             FileQualityPreferences = legacy.FileQualityFilterPreferences,

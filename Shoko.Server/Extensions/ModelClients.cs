@@ -77,7 +77,7 @@ public static class ModelClients
             VideoExtensions = string.Join(",", settings.Import.VideoExtensions),
             AutoGroupSeries = settings.AutoGroupSeries,
             AutoGroupSeriesUseScoreAlgorithm = settings.AutoGroupSeriesUseScoreAlgorithm,
-            AutoGroupSeriesRelationExclusions = string.Join("|", settings.AutoGroupSeriesRelationExclusions),
+            AutoGroupSeriesRelationExclusions = string.Join("|", settings.AutoGroupSeriesRelationExclusions).Replace("alternative", "alternate", StringComparison.InvariantCultureIgnoreCase),
             FileQualityFilterEnabled = settings.FileQualityFilterEnabled,
             FileQualityFilterPreferences = SettingsProvider.Serialize(settings.FileQualityPreferences),
             Import_MoveOnImport = settings.Import.MoveOnImport,

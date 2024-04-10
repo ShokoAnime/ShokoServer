@@ -574,7 +574,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 contractIn.Import_UseExistingFileWatchedStatus;
             settings.AutoGroupSeries = contractIn.AutoGroupSeries;
             settings.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
-            settings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+            settings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions.Replace("alternate", "alternative", StringComparison.InvariantCultureIgnoreCase).Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
             settings.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
             if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
             {
@@ -735,7 +735,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            
+
         }
         catch (Exception ex)
         {
@@ -748,7 +748,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            
+
         }
         catch (Exception ex)
         {
@@ -761,7 +761,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            
+
         }
         catch (Exception ex)
         {
