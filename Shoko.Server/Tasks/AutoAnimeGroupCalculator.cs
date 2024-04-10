@@ -162,10 +162,10 @@ public class AutoAnimeGroupCalculator
                         relation.RelationType = AnimeRelationType.Sequel;
                         break;
                     case "alternative setting":
-                        relation.RelationType = AnimeRelationType.AlternateSetting;
+                        relation.RelationType = AnimeRelationType.AlternativeSetting;
                         break;
                     case "alternative version":
-                        relation.RelationType = AnimeRelationType.AlternateVersion;
+                        relation.RelationType = AnimeRelationType.AlternativeVersion;
                         break;
                     case "same setting":
                         relation.RelationType = AnimeRelationType.SameSetting;
@@ -289,9 +289,9 @@ public class AutoAnimeGroupCalculator
             foreach (var edge in edges)
             {
                 if ((edge.AnimeId1 == node.AnimeId || edge.AnimeId2 == node.AnimeId) &&
-                    edge.RelationType1 == AnimeRelationType.AlternateSetting)
+                    edge.RelationType1 == AnimeRelationType.AlternativeSetting)
                 {
-                    stats.AlternateVersions++;
+                    stats.AlternativeVersions++;
                 }
 
                 if (edge.AnimeId2 == node.AnimeId && edge.RelationType1 == AnimeRelationType.FullStory)
@@ -458,7 +458,7 @@ public class AutoAnimeGroupCalculator
     {
         public RelationNode AnimeNode;
         public int Sequels;
-        public int AlternateVersions;
+        public int AlternativeVersions;
         public int FullStory;
         public int ParentStory;
 
@@ -486,7 +486,7 @@ public class AutoAnimeGroupCalculator
                 }
 
                 // Anime that have more sequels or side stories will get the highest priority
-                score += Sequels * 2 + AlternateVersions + FullStory + ParentStory * 2;
+                score += Sequels * 2 + AlternativeVersions + FullStory + ParentStory * 2;
 
                 return score;
             }
@@ -634,12 +634,12 @@ public class AutoAnimeGroupCalculator
         Prequel = 16,
         Sequel = 32,
         Summary = 64,
-        AlternateSetting = 128,
-        AlternateVersion = 256, // Haven't seen this relation in my database. Included for completeness sake
+        AlternativeSetting = 128,
+        AlternativeVersion = 256, // Haven't seen this relation in my database. Included for completeness sake
         SameSetting = 512,
         Character = 1024,
 
-        SecondaryRelations = AlternateSetting | AlternateVersion | SameSetting | Character | Other
+        SecondaryRelations = AlternativeSetting | AlternativeVersion | SameSetting | Character | Other
     }
 }
 
@@ -662,8 +662,8 @@ public enum AutoGroupExclude
     Prequel = AutoAnimeGroupCalculator.AnimeRelationType.Prequel,
     Sequel = AutoAnimeGroupCalculator.AnimeRelationType.Sequel,
     Summary = AutoAnimeGroupCalculator.AnimeRelationType.Summary,
-    AlternateSetting = AutoAnimeGroupCalculator.AnimeRelationType.AlternateSetting,
-    AlternateVersion = AutoAnimeGroupCalculator.AnimeRelationType.AlternateVersion,
+    AlternativeSetting = AutoAnimeGroupCalculator.AnimeRelationType.AlternativeSetting,
+    AlternativeVersion = AutoAnimeGroupCalculator.AnimeRelationType.AlternativeVersion,
     SameSetting = AutoAnimeGroupCalculator.AnimeRelationType.SameSetting,
     Character = AutoAnimeGroupCalculator.AnimeRelationType.Character,
 

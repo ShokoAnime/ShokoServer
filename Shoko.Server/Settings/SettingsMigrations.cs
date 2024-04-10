@@ -7,7 +7,7 @@ namespace Shoko.Server.Settings;
 
 public static class SettingsMigrations
 {
-    public const int Version = 4;
+    public const int Version = 5;
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
@@ -38,6 +38,7 @@ public static class SettingsMigrations
         { 2, MigrateEpisodeLanguagePreference },
         { 3, MigrateAutoGroupRelations },
         { 4, MigrateHostnameToHost },
+        { 5, MigrateAutoGroupRelationsAlternateToAlternative }
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -79,5 +80,11 @@ public static class SettingsMigrations
             var value = match.Groups["value"].Value;
             return $"\"Host\":{spacing}\"{value}\"";
         });
+    }
+
+    private static string MigrateAutoGroupRelationsAlternateToAlternative(string settings)
+    {
+        var regex = new Regex(@"(?<=""AutoGroupSeriesRelationExclusions""\s*:\s*\[)(?<value>[^\]]+)", RegexOptions.Compiled);
+        return regex.Replace(settings, match => match.Groups["value"].Value.Replace("alternate", "alternative", StringComparison.InvariantCultureIgnoreCase));
     }
 }
