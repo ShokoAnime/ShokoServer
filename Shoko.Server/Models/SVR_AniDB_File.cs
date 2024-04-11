@@ -278,7 +278,7 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
 
     string IAniDBFile.Source => File_Source;
     string IAniDBFile.Description => File_Description;
-    string IAniDBFile.OriginalFilename => FileName;
+    string IAniDBFile.FileName => FileName;
     DateTime? IAniDBFile.ReleaseDate => DateTime.UnixEpoch.AddSeconds(File_ReleaseDate);
     int IAniDBFile.Version => FileVersion;
     bool IAniDBFile.Censored => IsCensored ?? false;
