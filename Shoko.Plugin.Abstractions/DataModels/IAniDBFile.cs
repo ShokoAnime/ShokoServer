@@ -17,9 +17,9 @@ namespace Shoko.Plugin.Abstractions.DataModels
         /// </summary>
         string Source { get; }
         /// <summary>
-        /// The Filename as released, according to AniDB. It's usually correct.
+        /// The file name used internally by AniDB. It has a consistant format.
         /// </summary>
-        string OriginalFilename { get; }
+        string FileName { get; }
         /// <summary>
         /// Description of the file on AniDB. This will often be blank, and it's generally not useful
         /// </summary>
