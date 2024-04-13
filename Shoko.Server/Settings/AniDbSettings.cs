@@ -15,9 +15,6 @@ public class AniDbSettings
     [Required(AllowEmptyStrings = false)]
     public string HTTPServerUrl { get; set; } = "http://api.anidb.net:9001";
 
-    [Obsolete("Deprecated in favor of HTTPServerUrl")] // Cannot be removed due to `MigrateAniDBToNet` in DatabaseFixes.cs
-    public string ServerAddress { get; set; } = "api.anidb.net";
-
     public string UDPServerAddress { get; set; } = "api.anidb.net";
 
     public ushort UDPServerPort { get; set; } = 9000;

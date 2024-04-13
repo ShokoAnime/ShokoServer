@@ -105,6 +105,8 @@ public static class SettingsMigrations
         return serverAddressRegex.Replace(newSettings, match =>
         {
             var serverAddress = match.Groups["value"].Value;
+            // This is basically what MigrateAniDBToNet migration did in DatabaseFixes.cs, which is now made blank to remove ServerAddress from settings
+            serverAddress = serverAddress.Replace("api.anidb.info", "api.anidb.net");
             return $"\"HTTPServerUrl\": \"http://{serverAddress}:{serverPort + 1}\",\"UDPServerAddress\": \"{serverAddress}\"";
         });
     }
