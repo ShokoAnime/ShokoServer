@@ -116,6 +116,6 @@ public class RequestVotes : HttpRequest<List<ResponseVote>>
     {
         var settings = settingsProvider.GetSettings().AniDb;
         _aniDBUrl = settings.ServerAddress;
-        _aniDBPort = (ushort)(settings.ServerPort + 1);
+        _aniDBPort = settings.ServerPort;
     }
 }

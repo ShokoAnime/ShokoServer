@@ -14,7 +14,11 @@ public class AniDbSettings
     [Required(AllowEmptyStrings = false)]
     public string ServerAddress { get; set; } = "api.anidb.net";
 
-    public ushort ServerPort { get; set; } = 9000;
+    public string UDPServerAddress { get; set; } = "api.anidb.net";
+
+    public ushort ServerPort { get; set; } = 9001;
+
+    public ushort UDPServerPort { get; set; } = 9000;
 
     public ushort ClientPort { get; set; } = 4556;
 

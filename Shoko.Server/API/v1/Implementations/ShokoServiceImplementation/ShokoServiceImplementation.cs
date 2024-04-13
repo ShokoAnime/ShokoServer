@@ -625,8 +625,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
                 Thread.Sleep(1000);
                 handler.Init(settings.AniDb.Username, settings.AniDb.Password,
-                    settings.AniDb.ServerAddress,
-                    settings.AniDb.ServerPort, settings.AniDb.ClientPort);
+                    settings.AniDb.UDPServerAddress,
+                    settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
             }
         }
         catch (Exception ex)
@@ -785,8 +785,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             log += "Init..." + Environment.NewLine;
             var settings = _settingsProvider.GetSettings();
             handler.Init(settings.AniDb.Username, settings.AniDb.Password,
-                settings.AniDb.ServerAddress,
-                settings.AniDb.ServerPort, settings.AniDb.ClientPort);
+                settings.AniDb.UDPServerAddress,
+                settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
 
             log += "Login..." + Environment.NewLine;
             if (handler.Login().Result)

@@ -7,7 +7,7 @@ namespace Shoko.Server.Settings;
 
 public static class SettingsMigrations
 {
-    public const int Version = 5;
+    public const int Version = 6;
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
@@ -38,7 +38,8 @@ public static class SettingsMigrations
         { 2, MigrateEpisodeLanguagePreference },
         { 3, MigrateAutoGroupRelations },
         { 4, MigrateHostnameToHost },
-        { 5, MigrateAutoGroupRelationsAlternateToAlternative }
+        { 5, MigrateAutoGroupRelationsAlternateToAlternative },
+        { 6, MigrateServerPorts }
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -86,5 +87,15 @@ public static class SettingsMigrations
     {
         var regex = new Regex(@"(?<=""AutoGroupSeriesRelationExclusions""\s*:\s*\[)(?<value>[^\]]+)", RegexOptions.Compiled);
         return regex.Replace(settings, match => match.Groups["value"].Value.Replace("alternate", "alternative", StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    private static string MigrateServerPorts(string settings)
+    {
+        var regex = new Regex(@"(?<=""AniDb""\s*:\s*\{.*""ServerPort""\s*:\s*)\d+", RegexOptions.Compiled | RegexOptions.Singleline);
+        return regex.Replace(settings, match =>
+        {
+            var currentServerPort = int.Parse(match.ToString());
+            return $"{currentServerPort + 1},\"UDPServerPort\": {currentServerPort}";
+        });
     }
 }

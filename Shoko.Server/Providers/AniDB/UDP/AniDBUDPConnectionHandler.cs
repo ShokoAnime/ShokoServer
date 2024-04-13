@@ -94,8 +94,8 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
     public async Task<bool> Init(string username, string password, string serverName, ushort serverPort, ushort clientPort)
     {
         var settings = SettingsProvider.GetSettings();
-        settings.AniDb.ServerAddress = serverName;
-        settings.AniDb.ServerPort = serverPort;
+        settings.AniDb.UDPServerAddress = serverName;
+        settings.AniDb.UDPServerPort = serverPort;
         settings.AniDb.ClientPort = clientPort;
 
         if (!ValidAniDBCredentials(username, password)) return false;
@@ -114,10 +114,10 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
         }
 
         var settings = SettingsProvider.GetSettings();
-        ArgumentNullException.ThrowIfNull(settings.AniDb?.ServerAddress);
-        if (settings.AniDb.ServerPort <= 0) throw new ArgumentException("AniDB Server Port is invalid");
+        ArgumentNullException.ThrowIfNull(settings.AniDb?.UDPServerAddress);
+        if (settings.AniDb.UDPServerPort <= 0) throw new ArgumentException("AniDB Server Port is invalid");
         if (settings.AniDb.ClientPort <= 0) throw new ArgumentException("AniDB Client Port is invalid");
-        _socketHandler = new AniDBSocketHandler(_loggerFactory, settings.AniDb.ServerAddress, settings.AniDb.ServerPort,
+        _socketHandler = new AniDBSocketHandler(_loggerFactory, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort,
             settings.AniDb.ClientPort);
         _isLoggedOn = false;
 
