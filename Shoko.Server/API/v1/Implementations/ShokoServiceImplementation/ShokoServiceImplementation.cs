@@ -479,9 +479,9 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 }
             }
 
-            var serverAddressMatches = Regex.Match(settings.AniDb.HTTPServerUrl, @"(?<=https?://)(?<address>.*):(?<port>\d+)");
-            var oldAniDB_ServerAddress = serverAddressMatches.Groups["address"].Value;
-            var oldAniDB_ServerPort = serverAddressMatches.Groups["port"].Value;
+            var serverAddressGroups = Regex.Match(settings.AniDb.HTTPServerUrl, @"(?<=https?://)(?<address>.*):(?<port>\d+)").Groups;
+            var oldAniDB_ServerAddress = serverAddressGroups["address"].Value;
+            var oldAniDB_ServerPort = serverAddressGroups["port"].Value;
             var newAniDB_HTTPServerUrl = $"{contractIn.AniDB_ServerAddress}:{contractIn.AniDB_ServerPort}";
 
             if (contractIn.AniDB_ServerAddress != oldAniDB_ServerAddress || contractIn.AniDB_ServerPort != oldAniDB_ServerPort)
