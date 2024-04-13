@@ -14,13 +14,14 @@ public class EpisodeInfoUpdatedEventSignalRModel
     public EpisodeInfoUpdatedEventSignalRModel(EpisodeInfoUpdatedEventArgs eventArgs)
     {
         Source = eventArgs.EpisodeInfo.Source;
+        Reason = eventArgs.Reason;
         EpisodeID = eventArgs.EpisodeInfo.ID;
         SeriesID = eventArgs.SeriesInfo.ID;
         // TODO: Add support for more metadata sources when they're hooked up internally.
         switch (Source)
         {
             case DataSourceEnum.AniDB:
-                if (eventArgs.EpisodeInfo is SVR_AnimeEpisode shokoEpisode)
+                if (eventArgs.EpisodeInfo is SVR_AniDB_Episode anidbEpisode && anidbEpisode.GetShokoEpisode() is SVR_AnimeEpisode shokoEpisode)
                 {
                     var series = shokoEpisode.GetAnimeSeries();
                     ShokoEpisodeIDs = new int[1] { shokoEpisode.AnimeEpisodeID };
@@ -37,6 +38,12 @@ public class EpisodeInfoUpdatedEventSignalRModel
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
     public DataSourceEnum Source { get; }
+
+    /// <summary>
+    /// The update reason.
+    /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
+    public UpdateReason Reason { get; }
 
     /// <summary>
     /// The provided metadata episode id.

@@ -27,7 +27,7 @@ public class SVR_AniDB_File : AniDB_File, IAniDBFile
         .Select(crossref => crossref.EpisodeID).ToList();
 
     [XmlIgnore]
-    public List<AniDB_Episode> Episodes => RepoFactory.CrossRef_File_Episode.GetByHash(Hash)
+    public List<SVR_AniDB_Episode> Episodes => RepoFactory.CrossRef_File_Episode.GetByHash(Hash)
         .Select(crossref => crossref.GetEpisode()).Where(ep => ep != null).ToList();
 
     [XmlIgnore]

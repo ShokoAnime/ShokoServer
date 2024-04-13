@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
@@ -128,7 +129,8 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 
         // Create or update the anime record,
         anime ??= new SVR_AniDB_Anime();
-        await _animeCreator.CreateAnime(response, anime, 0);
+        var isNew = anime.AniDB_AnimeID == 0;
+        var updated = await _animeCreator.CreateAnime(response, anime, 0);
 
         // then conditionally create the series record if it doesn't exist,
         var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
@@ -147,6 +149,10 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
 
         SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
 
+        // Emit anidb anime updated event.
+        if (updated)
+            ShokoEventHandler.Instance.OnSeriesUpdated(anime, isNew ? UpdateReason.Added : UpdateReason.Updated);
+
         // update names based on changes
 
         var videoLocals = RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID).Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash)).Where(a => a != null)
@@ -160,8 +166,6 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         await scheduler.StartJobNow<GetAniDBImagesJob>(c => c.AnimeID = AnimeID);
 
         await ProcessRelations(response);
-
-        ShokoEventHandler.Instance.OnSeriesUpdated(anime);
 
         return anime;
     }

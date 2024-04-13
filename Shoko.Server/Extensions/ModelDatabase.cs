@@ -61,7 +61,7 @@ public static class ModelDatabase
         return null;
     }
 
-    public static void CreateAnimeEpisode(this AniDB_Episode episode, int animeSeriesID)
+    public static void CreateAnimeEpisode(this SVR_AniDB_Episode episode, int animeSeriesID)
     {
         // check if there is an existing episode for this EpisodeID
         var existingEp = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID) ??
@@ -70,7 +70,7 @@ public static class ModelDatabase
         var old = existingEp.DeepClone();
         existingEp.Populate(episode);
         existingEp.AnimeSeriesID = animeSeriesID;
-        
+
         if (!old.Equals(existingEp))
             RepoFactory.AnimeEpisode.Save(existingEp);
 
@@ -146,9 +146,19 @@ public static class ModelDatabase
         return RepoFactory.TvDB_Series.GetByTvDBID(cross.TvDBID);
     }
 
-    public static AniDB_Episode GetEpisode(this CrossRef_File_Episode cross)
+    public static SVR_AniDB_Episode GetEpisode(this CrossRef_File_Episode cross)
     {
         return RepoFactory.AniDB_Episode.GetByEpisodeID(cross.EpisodeID);
+    }
+
+    public static SVR_AniDB_Anime GetAnime(this CrossRef_File_Episode cross)
+    {
+        return RepoFactory.AniDB_Anime.GetByAnimeID(cross.AnimeID);
+    }
+
+    public static SVR_AnimeSeries GetAnimeSeries(this CrossRef_File_Episode cross)
+    {
+        return RepoFactory.AnimeSeries.GetByAnimeID(cross.AnimeID);
     }
 
     public static SVR_VideoLocal_User GetVideoLocalUserRecord(this CrossRef_File_Episode cross, int userID)
@@ -184,13 +194,5 @@ public static class ModelDatabase
     {
         return RepoFactory.AniDB_File.GetByHash(
             duplicatefile.Hash);
-    }
-
-    public static string GetEnglishTitle(this AniDB_Episode ep)
-    {
-        return RepoFactory.AniDB_Episode_Title
-            .GetByEpisodeIDAndLanguage(ep.EpisodeID, Shoko.Plugin.Abstractions.DataModels.TitleLanguage.English)
-            .FirstOrDefault()
-            ?.Title;
     }
 }

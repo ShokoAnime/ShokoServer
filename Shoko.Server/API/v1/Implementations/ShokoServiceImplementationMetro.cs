@@ -794,7 +794,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 }
 
                 var aniEpList = RepoFactory.AniDB_Episode.GetByAnimeID(ser.AniDB_ID);
-                var dictAniEps = new Dictionary<int, AniDB_Episode>();
+                var dictAniEps = new Dictionary<int, SVR_AniDB_Episode>();
                 foreach (var aniep in aniEpList)
                 {
                     dictAniEps[aniep.EpisodeID] = aniep;
@@ -936,7 +936,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
     }
 
     [NonAction]
-    public static void SetTvDBInfo(SVR_AniDB_Anime anime, AniDB_Episode ep, ref Metro_Anime_Episode contract)
+    public static void SetTvDBInfo(SVR_AniDB_Anime anime, SVR_AniDB_Episode ep, ref Metro_Anime_Episode contract)
     {
         var tvSummary = new TvDBSummary();
         tvSummary.Populate(anime.AnimeID);
@@ -945,7 +945,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
     }
 
     [NonAction]
-    public static void SetTvDBInfo(int anidbid, AniDB_Episode ep, ref Metro_Anime_Episode contract)
+    public static void SetTvDBInfo(int anidbid, SVR_AniDB_Episode ep, ref Metro_Anime_Episode contract)
     {
         var tvSummary = new TvDBSummary();
         tvSummary.Populate(anidbid);
@@ -954,7 +954,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
     }
 
     [NonAction]
-    public static void SetTvDBInfo(TvDBSummary tvSummary, AniDB_Episode ep, ref Metro_Anime_Episode contract)
+    public static void SetTvDBInfo(TvDBSummary tvSummary, SVR_AniDB_Episode ep, ref Metro_Anime_Episode contract)
     {
         var override_link = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(ep.EpisodeID);
         if (override_link.Any(a => a != null))

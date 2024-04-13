@@ -762,7 +762,6 @@ public class DatabaseFixes
     {
         var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
         var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
-        var animeCreator = Utils.ServiceContainer.GetRequiredService<AnimeCreator>();
         var animeList = RepoFactory.AniDB_Anime.GetAll();
         logger.Info($"Updating anidb tags for {animeList.Count} local anidb anime entries...");
 
@@ -791,7 +790,7 @@ public class DatabaseFixes
                 continue;
             }
 
-            animeCreator.CreateTags(response.Tags, anime);
+            AnimeCreator.CreateTags(response.Tags, anime);
             RepoFactory.AniDB_Anime.Save(anime, false);
         }
 

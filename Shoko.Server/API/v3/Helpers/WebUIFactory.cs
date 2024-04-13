@@ -37,7 +37,7 @@ public class WebUIFactory
         return result;
     }
 
-    private static TimeSpan? GuessCorrectRuntimeLength(IReadOnlyList<AniDB_Episode> episodes)
+    private static TimeSpan? GuessCorrectRuntimeLength(IReadOnlyList<SVR_AniDB_Episode> episodes)
     {
         // Return early if empty.
         if (episodes == null || episodes.Count == 0)

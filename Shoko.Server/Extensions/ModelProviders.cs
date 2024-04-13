@@ -244,7 +244,7 @@ public static class ModelProviders
         agroup.DateTimeCreated = now;
     }
 
-    public static void Populate(this SVR_AnimeEpisode animeep, AniDB_Episode anidbEp)
+    public static void Populate(this SVR_AnimeEpisode animeep, SVR_AniDB_Episode anidbEp)
     {
         animeep.AniDB_EpisodeID = anidbEp.EpisodeID;
         animeep.DateTimeUpdated = DateTime.Now;

@@ -571,22 +571,24 @@ public class SVR_VideoLocal : VideoLocal, IHash, IHashes, IVideo
     IMediaContainer IVideo.MediaInfo => Media;
 
     IReadOnlyList<IEpisode> IVideo.EpisodeInfo =>
-        GetAnimeEpisodes()
+        EpisodeCrossRefs
+            .Select(x => x.GetEpisode())
+            .OfType<SVR_AniDB_Episode>()
             .ToArray();
 
     IReadOnlyList<ISeries> IVideo.SeriesInfo =>
-        GetAnimeEpisodes()
-            .DistinctBy(e => e.AnimeSeriesID)
-            .Select(e => e.GetAnimeSeries()?.GetAnime())
+        EpisodeCrossRefs
+            .DistinctBy(x => x.AnimeID)
+            .Select(x => x.GetAnime())
             .OfType<SVR_AniDB_Anime>()
             .OrderBy(a => a.MainTitle)
             .Cast<IAnime>()
             .ToArray();
 
     IReadOnlyList<IGroup> IVideo.GroupInfo =>
-        GetAnimeEpisodes()
-            .DistinctBy(e => e.AnimeSeriesID)
-            .Select(e => e.GetAnimeSeries())
+        EpisodeCrossRefs
+            .DistinctBy(x => x.AnimeID)
+            .Select(x => x.GetAnimeSeries())
             .OfType<SVR_AnimeSeries>()
             .DistinctBy(a => a.AnimeGroupID)
             .Select(a => a.AnimeGroup)

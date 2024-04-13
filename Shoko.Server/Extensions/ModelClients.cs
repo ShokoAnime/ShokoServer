@@ -441,7 +441,7 @@ public static class ModelClients
         return cl;
     }
 
-    public static CL_AniDB_Episode ToClient(this AniDB_Episode ep)
+    public static CL_AniDB_Episode ToClient(this SVR_AniDB_Episode ep)
     {
         var titles = RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
         return new CL_AniDB_Episode

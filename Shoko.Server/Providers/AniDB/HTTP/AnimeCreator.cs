@@ -7,9 +7,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
@@ -36,7 +36,7 @@ public class AnimeCreator
     }
 
 
-    public async Task CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
+    public async Task<bool> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
     {
         var settings = _settingsProvider.GetSettings();
         _logger.LogTrace("------------------------------------------------");
@@ -50,15 +50,18 @@ public class AnimeCreator
         var taskTimer = Stopwatch.StartNew();
         var totalTimer = Stopwatch.StartNew();
 
-        if (!PopulateAnime(response.Anime, anime))
+        // We need various values to be populated to be considered valid
+        if (string.IsNullOrEmpty(response.Anime?.MainTitle) || response.Anime.AnimeID <= 0)
         {
             _logger.LogError("AniDB_Anime was unable to populate as it received invalid info. " +
                              "This is not an error on our end. It is AniDB's issue, " +
                              "as they did not return either an ID or a title for the anime");
             totalTimer.Stop();
             taskTimer.Stop();
-            return;
+            return false;
         }
+
+        var updated = PopulateAnime(response.Anime, anime);
 
         // save now for FK purposes
         RepoFactory.AniDB_Anime.Save(anime, false);
@@ -67,17 +70,18 @@ public class AnimeCreator
         _logger.LogTrace("PopulateAnime in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
 
-        await CreateEpisodes(response.Episodes, anime);
+        // alternatively these could be written as a if..then statement spanning two lines.
+        updated = await CreateEpisodes(response.Episodes, anime) || updated;
         taskTimer.Stop();
         _logger.LogTrace("CreateEpisodes in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
 
-        CreateTitles(response.Titles, anime);
+        updated = CreateTitles(response.Titles, anime) || updated;
         taskTimer.Stop();
         _logger.LogTrace("CreateTitles in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
 
-        CreateTags(response.Tags, anime);
+        updated = CreateTags(response.Tags, anime) || updated;
         taskTimer.Stop();
         _logger.LogTrace("CreateTags in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
@@ -108,55 +112,174 @@ public class AnimeCreator
         taskTimer.Restart();
 
         RepoFactory.AniDB_Anime.Save(anime);
+
         totalTimer.Stop();
         _logger.LogTrace("TOTAL TIME in : {Time}", totalTimer.Elapsed);
         _logger.LogTrace("------------------------------------------------");
+
+        return updated;
     }
 
     private static bool PopulateAnime(ResponseAnime animeInfo, SVR_AniDB_Anime anime)
     {
-        // We need various values to be populated to be considered valid
-        if (string.IsNullOrEmpty(animeInfo?.MainTitle) || animeInfo.AnimeID <= 0)
+        var isUpdated = false;
+        var isNew = anime.AnimeID == 0;
+        var description = animeInfo.Description ?? string.Empty;
+        var episodeCountSpecial = animeInfo.EpisodeCount - animeInfo.EpisodeCountNormal;
+        if (anime.AirDate != animeInfo.AirDate)
         {
-            return false;
+            anime.AirDate = animeInfo.AirDate;
+            isUpdated = true;
         }
 
-        anime.AirDate = animeInfo.AirDate;
-        anime.AllCinemaID = animeInfo.AllCinemaID;
-        anime.AnimeID = animeInfo.AnimeID;
-        anime.AnimeType = (int)animeInfo.AnimeType;
-        anime.ANNID = animeInfo.ANNID;
-        anime.AvgReviewRating = animeInfo.AvgReviewRating;
-        anime.BeginYear = animeInfo.BeginYear;
+        if (anime.AllCinemaID != animeInfo.AllCinemaID)
+        {
+            anime.AllCinemaID = animeInfo.AllCinemaID;
+            isUpdated = true;
+        }
 
-        anime.DateTimeDescUpdated = DateTime.Now;
-        anime.DateTimeUpdated = DateTime.Now;
+        if (anime.AnimeID != animeInfo.AnimeID)
+        {
+            anime.AnimeID = animeInfo.AnimeID;
+            isUpdated = true;
+        }
 
-        anime.Description = animeInfo.Description ?? string.Empty;
-        anime.EndDate = animeInfo.EndDate;
-        anime.EndYear = animeInfo.EndYear;
-        anime.MainTitle = animeInfo.MainTitle;
-        anime.AllTitles = string.Empty;
-        anime.AllTags = string.Empty;
-        anime.EpisodeCount = animeInfo.EpisodeCount;
-        anime.EpisodeCountNormal = animeInfo.EpisodeCountNormal;
-        anime.EpisodeCountSpecial = animeInfo.EpisodeCount - animeInfo.EpisodeCountNormal;
-        anime.ImageEnabled = 1;
-        anime.Picname = animeInfo.Picname;
-        anime.Rating = animeInfo.Rating;
-        anime.Restricted = animeInfo.Restricted;
-        anime.ReviewCount = animeInfo.ReviewCount;
-        anime.TempRating = animeInfo.TempRating;
-        anime.TempVoteCount = animeInfo.TempVoteCount;
-        anime.URL = animeInfo.URL;
-        anime.VoteCount = animeInfo.VoteCount;
-        return true;
+        if (anime.AnimeType != (int)animeInfo.AnimeType)
+        {
+            anime.AnimeType = (int)animeInfo.AnimeType;
+            isUpdated = true;
+        }
+
+        if (anime.ANNID != animeInfo.ANNID)
+        {
+            anime.ANNID = animeInfo.ANNID;
+            isUpdated = true;
+        }
+
+        if (anime.AvgReviewRating != animeInfo.AvgReviewRating)
+        {
+            anime.AvgReviewRating = animeInfo.AvgReviewRating;
+            isUpdated = true;
+        }
+
+        if (anime.BeginYear != animeInfo.BeginYear)
+        {
+            anime.BeginYear = animeInfo.BeginYear;
+            isUpdated = true;
+        }
+
+        if (anime.Description == description)
+        {
+            anime.Description = description;
+            isUpdated = true;
+        }
+
+        if (anime.EndDate == animeInfo.EndDate)
+        {
+            anime.EndDate = animeInfo.EndDate;
+            isUpdated = true;
+        }
+
+        if (anime.EndYear == animeInfo.EndYear)
+        {
+            anime.EndYear = animeInfo.EndYear;
+            isUpdated = true;
+        }
+
+        if (anime.MainTitle == animeInfo.MainTitle)
+        {
+            anime.MainTitle = animeInfo.MainTitle;
+            isUpdated = true;
+        }
+
+        if (anime.EpisodeCount == animeInfo.EpisodeCount)
+        {
+            anime.EpisodeCount = animeInfo.EpisodeCount;
+            isUpdated = true;
+        }
+
+        if (anime.EpisodeCountNormal == animeInfo.EpisodeCountNormal)
+        {
+            anime.EpisodeCountNormal = animeInfo.EpisodeCountNormal;
+            isUpdated = true;
+        }
+
+        if (anime.EpisodeCountSpecial == episodeCountSpecial)
+        {
+            anime.EpisodeCountSpecial = episodeCountSpecial;
+            isUpdated = true;
+        }
+
+        if (anime.Picname == animeInfo.Picname)
+        {
+            anime.Picname = animeInfo.Picname;
+            isUpdated = true;
+        }
+
+        if (anime.Rating == animeInfo.Rating)
+        {
+            anime.Rating = animeInfo.Rating;
+            isUpdated = true;
+        }
+
+        if (anime.Restricted == animeInfo.Restricted)
+        {
+            anime.Restricted = animeInfo.Restricted;
+            isUpdated = true;
+        }
+
+        if (anime.ReviewCount == animeInfo.ReviewCount)
+        {
+            anime.ReviewCount = animeInfo.ReviewCount;
+            isUpdated = true;
+        }
+
+        if (anime.TempRating == animeInfo.TempRating)
+        {
+            anime.TempRating = animeInfo.TempRating;
+            isUpdated = true;
+        }
+
+        if (anime.TempVoteCount == animeInfo.TempVoteCount)
+        {
+            anime.TempVoteCount = animeInfo.TempVoteCount;
+            isUpdated = true;
+        }
+
+        if (anime.URL == animeInfo.URL)
+        {
+            anime.URL = animeInfo.URL;
+            isUpdated = true;
+        }
+
+        if (anime.VoteCount == animeInfo.VoteCount)
+        {
+            anime.VoteCount = animeInfo.VoteCount;
+            isUpdated = true;
+        }
+
+        if (isNew)
+        {
+            anime.AllTags = string.Empty;
+            anime.AllTitles = string.Empty;
+            anime.ImageEnabled = 1;
+        }
+
+        if (isNew || isUpdated)
+        {
+            anime.DateTimeDescUpdated = DateTime.Now;
+#pragma warning disable CS0618
+            anime.DateTimeUpdated = DateTime.Now;
+#pragma warning restore CS0618
+        }
+
+        return isUpdated;
     }
 
-    private async Task CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
+    private async Task<bool> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
     {
         if (rawEpisodeList == null)
-            return;
+            return false;
 
         var episodeCountSpecial = 0;
         var episodeCountNormal = 0;
@@ -178,9 +301,10 @@ public class AnimeCreator
         var epsToRemove = currentAniDBEpisodes.Values
             .Where(a => !epIDs.Contains(a.EpisodeID))
             .ToList();
-        var epsToSave = new List<AniDB_Episode>();
+        var epsToSave = new List<SVR_AniDB_Episode>();
         var titlesToRemove = new List<SVR_AniDB_Episode_Title>();
         var titlesToSave = new List<SVR_AniDB_Episode_Title>();
+        var episodeEventsToEmit = new Dictionary<SVR_AniDB_Episode, UpdateReason>();
 
         foreach (var rawEpisode in rawEpisodeList)
         {
@@ -219,6 +343,7 @@ public class AnimeCreator
                     episode.Votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture);
                     episode.Description = rawEpisode.Description ?? string.Empty;
                     epsToSave.Add(episode);
+                    episodeEventsToEmit[episode] = UpdateReason.Added;
                 }
             }
             // Create a new record.
@@ -238,6 +363,7 @@ public class AnimeCreator
                     Description = rawEpisode.Description ?? string.Empty
                 };
                 epsToSave.Add(episode);
+                episodeEventsToEmit[episode] = UpdateReason.Updated;
             }
 
             // Convert the raw titles to their equivalent database model.
@@ -250,8 +376,11 @@ public class AnimeCreator
                 })
                 .ToList();
 
+            var deltaTitles = newTitles.Where(a => !currentTitles.Contains(a)).ToList();
             // Mark the new titles to-be saved.
-            titlesToSave.AddRange(newTitles.Where(a => !currentTitles.Contains(a)));
+            titlesToSave.AddRange(deltaTitles);
+            if (deltaTitles.Count > 0 && !episodeEventsToEmit.ContainsKey(episode))
+                episodeEventsToEmit[episode] = UpdateReason.Updated;
 
             // Remove outdated titles.
             if (currentTitles.Count > 0)
@@ -259,7 +388,7 @@ public class AnimeCreator
 
             // Since the HTTP API doesn't return a count of the number of normal
             // episodes and/or specials, then we will calculate it now.
-            count: switch (episode.GetEpisodeTypeEnum())
+            count: switch (episode.EpisodeTypeEnum)
             {
                 case Shoko.Models.Enums.EpisodeType.Episode:
                     episodeCountNormal++;
@@ -395,46 +524,61 @@ public class AnimeCreator
         anime.EpisodeCountNormal = episodeCountNormal;
         anime.EpisodeCountSpecial = episodeCountSpecial;
         anime.EpisodeCount = episodeCount;
+
+        // Emit anidb episode updated events.
+        foreach (var (episode, reason) in episodeEventsToEmit)
+            ShokoEventHandler.Instance.OnEpisodeUpdated(anime, episode, reason);
+        foreach (var episode in epsToRemove)
+            ShokoEventHandler.Instance.OnEpisodeUpdated(anime, episode, UpdateReason.Removed);
+
+        return epsToSave.Count > 0 || epsToRemove.Count > 0 || titlesToSave.Count > 0 || titlesToRemove.Count > 0;
     }
 
-    private void CreateTitles(List<ResponseTitle> titles, SVR_AniDB_Anime anime)
+    private static bool CreateTitles(List<ResponseTitle> titles, SVR_AniDB_Anime anime)
     {
         if (titles == null)
-        {
-            return;
-        }
+            return false;
 
         var allTitles = string.Empty;
-
-        var titlesToDelete = RepoFactory.AniDB_Anime_Title.GetByAnimeID(anime.AnimeID);
+        var existingTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(anime.AnimeID)
+            .ToDictionary(t => $"{t.TitleType},{t.LanguageCode},{t.Title}");
+        var titlesToKeep = new HashSet<int>();
         var titlesToSave = new List<SVR_AniDB_Anime_Title>();
         foreach (var rawtitle in titles)
         {
             if (string.IsNullOrEmpty(rawtitle?.Title))
+                continue;
+
+            var key = $"{rawtitle.TitleType},{rawtitle.Language},{rawtitle.Title}";
+            if (existingTitles.TryGetValue(key, out var title))
             {
+                titlesToKeep.Add(title.AniDB_Anime_TitleID);
                 continue;
             }
-
-            var title = new SVR_AniDB_Anime_Title()
+            else
             {
-                AnimeID = anime.AnimeID,
-                Language = rawtitle.Language,
-                Title = rawtitle.Title,
-                TitleType = rawtitle.TitleType
-            };
-            titlesToSave.Add(title);
-
-            if (allTitles.Length > 0)
-            {
-                allTitles += "|";
+                titlesToSave.Add(new()
+                {
+                    AnimeID = anime.AnimeID,
+                    Language = rawtitle.Language,
+                    Title = rawtitle.Title,
+                    TitleType = rawtitle.TitleType
+                });
             }
 
+            if (allTitles.Length > 0)
+                allTitles += "|";
             allTitles += rawtitle.Title;
         }
+        var titlesToDelete = existingTitles.Values
+            .ExceptBy(titlesToKeep, t => t.AniDB_Anime_TitleID)
+            .ToList();
 
         anime.AllTitles = allTitles;
         RepoFactory.AniDB_Anime_Title.Delete(titlesToDelete);
         RepoFactory.AniDB_Anime_Title.Save(titlesToSave);
+
+        return titlesToSave.Count > 0 || titlesToDelete.Count > 0;
     }
 
     /// <summary>
@@ -444,13 +588,13 @@ public class AnimeCreator
     /// <remarks>
     /// We use the tag name since the id _can_ change sometimes.
     /// </remarks>
-    private static Dictionary<string, string> TagNameOverrideDict = new()
+    private static readonly Dictionary<string, string> TagNameOverrideDict = new()
     {
         {"new", "original work"},
         {"original work", "source material"},
     };
 
-    private AniDB_Tag FindOrCreateTag(ResponseTag rawTag)
+    private static AniDB_Tag FindOrCreateTag(ResponseTag rawTag)
     {
         var tag = RepoFactory.AniDB_Tag.GetByTagID(rawTag.TagID);
 
@@ -512,22 +656,17 @@ public class AnimeCreator
         return tag;
     }
 
-    public void CreateTags(List<ResponseTag> tags, SVR_AniDB_Anime anime)
+    public static bool CreateTags(List<ResponseTag> tags, SVR_AniDB_Anime anime)
     {
         if (tags == null)
-        {
-            return;
-        }
-
-        var allTags = string.Empty;
-
-        var tagsToSave = new List<AniDB_Tag>();
-        var xrefsToSave = new List<AniDB_Anime_Tag>();
+            return false;
 
         // find all the current links, and then later remove the ones that are no longer relevant
+        var allTags = string.Empty;
+        var tagsToSave = new List<AniDB_Tag>();
+        var xrefsToSave = new List<AniDB_Anime_Tag>();
         var currentTags = RepoFactory.AniDB_Anime_Tag.GetByAnimeID(anime.AnimeID);
         var newTagIDs = new HashSet<int>();
-
         foreach (var rawtag in tags)
         {
             if (rawtag.TagID <= 0 || string.IsNullOrEmpty(rawtag.TagName))
@@ -535,7 +674,6 @@ public class AnimeCreator
 
             var tag = FindOrCreateTag(rawtag);
             tagsToSave.Add(tag);
-
             newTagIDs.Add(tag.TagID);
 
             var xref = RepoFactory.AniDB_Anime_Tag.GetByAnimeIDAndTagID(rawtag.AnimeID, tag.TagID) ?? new();
@@ -550,10 +688,7 @@ public class AnimeCreator
             if (tag.Verified)
             {
                 if (allTags.Length > 0)
-                {
                     allTags += "|";
-                }
-
                 allTags += tag.TagName;
             }
         }
@@ -564,6 +699,8 @@ public class AnimeCreator
         RepoFactory.AniDB_Tag.Save(tagsToSave);
         RepoFactory.AniDB_Anime_Tag.Save(xrefsToSave);
         RepoFactory.AniDB_Anime_Tag.Delete(xrefsToDelete);
+
+        return xrefsToSave.Count > 0 || xrefsToDelete.Count > 0;
     }
 
     private void CreateCharacters(List<ResponseCharacter> chars, SVR_AniDB_Anime anime)

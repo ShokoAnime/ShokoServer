@@ -1094,14 +1094,14 @@ public partial class ShokoServiceImplementation
                 var first = groupFiles.First();
                 var vl = first.VideoLocal;
                 SVR_AniDB_Anime anime = null;
-                AniDB_Episode episode = null;
+                SVR_AniDB_Episode episode = null;
                 var xref = RepoFactory.CrossRef_File_Episode.GetByHash(vl.Hash);
                 if (xref.Count > 0)
                 {
                     anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref[0].AnimeID);
                     episode = RepoFactory.AniDB_Episode.GetByEpisodeID(xref[0].EpisodeID);
                 }
-                
+
                 foreach (var other in groupFiles.Skip(1))
                 {
                     dupFiles.Add(new CL_DuplicateFile
@@ -1119,7 +1119,7 @@ public partial class ShokoServiceImplementation
                         AnimeName = anime?.MainTitle,
                         EpisodeType = episode?.EpisodeType,
                         EpisodeNumber = episode?.EpisodeNumber,
-                        EpisodeName = episode?.GetEnglishTitle(),
+                        EpisodeName = episode?.GetDefaultTitle(),
                         DuplicateFileID = vl.VideoLocalID,
                         DateTimeUpdated = DateTime.Now
                     });

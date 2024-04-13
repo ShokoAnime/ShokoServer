@@ -129,7 +129,7 @@ public static class TvDBLinkingHelper
         return result;
     }
 
-    public static List<(AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Rating)> GetTvDBEpisodeMatches(
+    public static List<(SVR_AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Rating)> GetTvDBEpisodeMatches(
         int animeID, int tvdbID)
     {
         /*   These all apply to normal episodes mainly.
@@ -165,7 +165,7 @@ public static class TvDBLinkingHelper
         // Get TvDB first, if we can't get the episodes, then there's no valid link
         if (tvdbID == 0)
         {
-            return new List<(AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Rating)>();
+            return new List<(SVR_AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Rating)>();
         }
 
         var tveps = RepoFactory.TvDB_Episode.GetBySeriesID(tvdbID);
@@ -182,7 +182,7 @@ public static class TvDBLinkingHelper
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
 
         var matches =
-            new List<(AniDB_Episode, TvDB_Episode, MatchRating)>();
+            new List<(SVR_AniDB_Episode, TvDB_Episode, MatchRating)>();
 
         // 5 is arbitrary. Can be adjusted later
         var isOVASeries = anime?.AnimeType is (int)AnimeType.OVA or (int)AnimeType.Web or (int)AnimeType.TVSpecial &&
@@ -242,8 +242,8 @@ public static class TvDBLinkingHelper
 
     #region internal processing
 
-    private static void TryToMatchNormalEpisodesToTvDB(List<AniDB_Episode> aniepsNormal,
-        List<TvDB_Episode> tvepsNormal, bool isAiring, ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+    private static void TryToMatchNormalEpisodesToTvDB(List<SVR_AniDB_Episode> aniepsNormal,
+        List<TvDB_Episode> tvepsNormal, bool isAiring, ref List<(SVR_AniDB_Episode, TvDB_Episode, MatchRating)> matches)
     {
         // determine 1-1
         var one2one = aniepsNormal.Count == tvepsNormal.Count;
@@ -256,7 +256,7 @@ public static class TvDBLinkingHelper
         var hasNumberedTitles = HasNumberedTitles(aniepsNormal) || HasNumberedTitles(tvepsNormal);
 
         // we will declare this in outer scope to avoid calculating it more than once.
-        List<IGrouping<int, AniDB_Episode>> airdategroupings = null;
+        List<IGrouping<int, SVR_AniDB_Episode>> airdategroupings = null;
         var firstgroupingcount = 0;
         var isregular = false;
 
@@ -379,8 +379,8 @@ public static class TvDBLinkingHelper
         }
     }
 
-    private static void TryToMatchSpeicalsToTvDB(List<AniDB_Episode> aniepsSpecial, List<TvDB_Episode> tvepsSpecial,
-        ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+    private static void TryToMatchSpeicalsToTvDB(List<SVR_AniDB_Episode> aniepsSpecial, List<TvDB_Episode> tvepsSpecial,
+        ref List<(SVR_AniDB_Episode, TvDB_Episode, MatchRating)> matches)
     {
         // Specials are almost never going to be one to one. We'll assume they are and let the user fix them
         // Air Dates are less accurate for specials (BD/DVD release makes them all the same). Try Titles first
@@ -433,10 +433,10 @@ public static class TvDBLinkingHelper
         return distSq < 1.0001D;
     }
 
-    public static bool HasNumberedTitles(List<AniDB_Episode> eps)
+    public static bool HasNumberedTitles(List<SVR_AniDB_Episode> eps)
     {
         return eps.Zip(eps.Skip(1), Tuple.Create).All(a =>
-            IsTitleNumberedAndConsecutive(a.Item1.GetEnglishTitle(), a.Item2.GetEnglishTitle()));
+            IsTitleNumberedAndConsecutive(a.Item1.GetDefaultTitle(), a.Item2.GetDefaultTitle()));
     }
 
     public static bool HasNumberedTitles(List<TvDB_Episode> eps)
@@ -445,7 +445,7 @@ public static class TvDBLinkingHelper
             IsTitleNumberedAndConsecutive(a.Item1.EpisodeName, a.Item2.EpisodeName));
     }
 
-    private static void TryToMatchSeasonsByAirDates(List<AniDB_Episode> aniepsNormal,
+    private static void TryToMatchSeasonsByAirDates(List<SVR_AniDB_Episode> aniepsNormal,
         List<IGrouping<int, TvDB_Episode>> seasonLookup, bool isAiring, ref List<TvDB_Episode> temp)
     {
         /*
@@ -702,7 +702,7 @@ public static class TvDBLinkingHelper
         }
     }
 
-    private static void TryToMatchSeasonsByEpisodeTitles(List<AniDB_Episode> aniepsNormal,
+    private static void TryToMatchSeasonsByEpisodeTitles(List<SVR_AniDB_Episode> aniepsNormal,
         List<IGrouping<int, TvDB_Episode>> seasonLookup, ref List<TvDB_Episode> temp)
     {
         // Will try to compare the Titles for the first and last episodes of the series
@@ -710,7 +710,7 @@ public static class TvDBLinkingHelper
 
         // first ep
         var aniepstart = aniepsNormal.FirstOrDefault();
-        var anistart = aniepstart?.GetEnglishTitle();
+        var anistart = aniepstart?.GetDefaultTitle();
         if (string.IsNullOrEmpty(anistart))
         {
             return;
@@ -718,7 +718,7 @@ public static class TvDBLinkingHelper
 
         // last ep
         var aniepend = aniepsNormal.FirstOrDefault();
-        var aniend = aniepend?.GetEnglishTitle();
+        var aniend = aniepend?.GetDefaultTitle();
         if (string.IsNullOrEmpty(aniend))
         {
             return;
@@ -755,9 +755,9 @@ public static class TvDBLinkingHelper
         }
     }
 
-    private static void TryToMatchEpisodes1To1ByAirDate(ref List<AniDB_Episode> aniepsNormal,
+    private static void TryToMatchEpisodes1To1ByAirDate(ref List<SVR_AniDB_Episode> aniepsNormal,
         ref List<TvDB_Episode> tvepsNormal,
-        ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+        ref List<(SVR_AniDB_Episode, TvDB_Episode, MatchRating)> matches)
     {
         foreach (var aniep in aniepsNormal.ToList())
         {
@@ -790,13 +790,13 @@ public static class TvDBLinkingHelper
         }
     }
 
-    private static void TryToMatchEpisodes1To1ByTitle(ref List<AniDB_Episode> aniepsNormal,
+    private static void TryToMatchEpisodes1To1ByTitle(ref List<SVR_AniDB_Episode> aniepsNormal,
         ref List<TvDB_Episode> tvepsNormal,
-        ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches, bool fuzzy)
+        ref List<(SVR_AniDB_Episode, TvDB_Episode, MatchRating)> matches, bool fuzzy)
     {
         foreach (var aniep in aniepsNormal.ToList())
         {
-            var anititle = aniep.GetEnglishTitle();
+            var anititle = aniep.GetDefaultTitle();
             if (string.IsNullOrEmpty(anititle))
             {
                 continue;
@@ -835,7 +835,7 @@ public static class TvDBLinkingHelper
         }
     }
 
-    private static void CorrectMatchRatings(ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+    private static void CorrectMatchRatings(ref List<(SVR_AniDB_Episode, TvDB_Episode, MatchRating)> matches)
     {
         for (var index = 0; index < matches.Count; index++)
         {
@@ -862,7 +862,7 @@ public static class TvDBLinkingHelper
 
             // if the dates match, then they would have filled with Good, so the fuzzy search is only being done once
 
-            var aniTitle = match.Item1.GetEnglishTitle();
+            var aniTitle = match.Item1.GetDefaultTitle();
             var tvTitle = match.Item2.EpisodeName;
             // this method returns false if either is null
             var titlesMatch = aniTitle.FuzzyMatch(tvTitle);
@@ -873,9 +873,9 @@ public static class TvDBLinkingHelper
         }
     }
 
-    private static void FillUnmatchedEpisodes1To1(ref List<AniDB_Episode> aniepsNormal,
+    private static void FillUnmatchedEpisodes1To1(ref List<SVR_AniDB_Episode> aniepsNormal,
         ref List<TvDB_Episode> tvepsNormal,
-        ref List<(AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Match)> matches)
+        ref List<(SVR_AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Match)> matches)
     {
         if (aniepsNormal.Count == 0)
         {
@@ -961,8 +961,8 @@ public static class TvDBLinkingHelper
         }
     }
 
-    private static bool TryToMatchRegularlyDistributedEpisodes(ref List<AniDB_Episode> aniepsNormal,
-        ref List<TvDB_Episode> tvepsNormal, ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches,
+    private static bool TryToMatchRegularlyDistributedEpisodes(ref List<SVR_AniDB_Episode> aniepsNormal,
+        ref List<TvDB_Episode> tvepsNormal, ref List<(SVR_AniDB_Episode, TvDB_Episode, MatchRating)> matches,
         bool isregular, int firstgroupingcount)
     {
         // first use the checks from earlier to see if it's regularly distributed
@@ -1006,13 +1006,13 @@ public static class TvDBLinkingHelper
         return true;
     }
 
-    private static void TryToMatchEpisodesManyTo1ByTitle(ref List<AniDB_Episode> aniepsNormal,
+    private static void TryToMatchEpisodesManyTo1ByTitle(ref List<SVR_AniDB_Episode> aniepsNormal,
         ref List<TvDB_Episode> tvepsNormal,
-        ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+        ref List<(SVR_AniDB_Episode, TvDB_Episode, MatchRating)> matches)
     {
         foreach (var aniep in aniepsNormal.ToList())
         {
-            var anititle = aniep.GetEnglishTitle();
+            var anititle = aniep.GetDefaultTitle();
             if (string.IsNullOrEmpty(anititle))
             {
                 continue;
@@ -1040,8 +1040,8 @@ public static class TvDBLinkingHelper
         }
     }
 
-    private static void TryToMatchEpisodesManyTo1ByAirDate(ref List<AniDB_Episode> aniepsNormal,
-        ref List<TvDB_Episode> tvepsNormal, ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+    private static void TryToMatchEpisodesManyTo1ByAirDate(ref List<SVR_AniDB_Episode> aniepsNormal,
+        ref List<TvDB_Episode> tvepsNormal, ref List<(SVR_AniDB_Episode, TvDB_Episode, MatchRating)> matches)
     {
         foreach (var aniep in aniepsNormal.ToList())
         {
@@ -1196,7 +1196,7 @@ public static class TvDBLinkingHelper
         return output;
     }
 
-    private static void RemoveDefaultLinks(List<AniDB_Episode> episodes,
+    private static void RemoveDefaultLinks(List<SVR_AniDB_Episode> episodes,
         ref List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, int TvDBID, int TvDBSeason, int TvDBStartNumber
             )> xrefs)
     {

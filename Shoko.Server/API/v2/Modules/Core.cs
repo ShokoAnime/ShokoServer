@@ -539,7 +539,7 @@ public class Core : BaseController
                     {
                         AniDBEpisodeType = a.AniDB.EpisodeType,
                         AniDBEpisodeNumber = a.AniDB.EpisodeNumber,
-                        AniDBEpisodeName = a.AniDB.GetEnglishTitle()
+                        AniDBEpisodeName = a.AniDB.GetDefaultTitle()
                     },
                     TvDB: a.TvDB == null
                         ? null
@@ -559,7 +559,7 @@ public class Core : BaseController
                             {
                                 AniDBEpisodeType = AniDB.EpisodeType,
                                 AniDBEpisodeNumber = AniDB.EpisodeNumber,
-                                AniDBEpisodeName = AniDB.GetEnglishTitle()
+                                AniDBEpisodeName = AniDB.GetDefaultTitle()
                             },
                             TvDB: TvDB == null
                                 ? null

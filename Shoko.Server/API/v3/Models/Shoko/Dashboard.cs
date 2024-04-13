@@ -130,7 +130,7 @@ public static class Dashboard
     /// </summary>
     public class EpisodeDetails
     {
-        public EpisodeDetails(AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null,
+        public EpisodeDetails(SVR_AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null,
             SVR_VideoLocal file = null, SVR_VideoLocal_User userRecord = null)
         {
             IDs = new EpisodeDetailsIDs()

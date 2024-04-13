@@ -638,10 +638,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
     private string _cachedTitle;
     public string PreferredTitle => _cachedTitle == null ? (_cachedTitle = GetFormattedTitle()) : _cachedTitle;
 
-
-    [XmlIgnore] public List<AniDB_Episode> AniDBEpisodes => RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID);
-
-    public List<AniDB_Episode> GetAniDBEpisodes()
+    public List<SVR_AniDB_Episode> GetAniDBEpisodes()
     {
         return RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID);
     }
@@ -1088,19 +1085,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, IAnime, ISeries
 
     bool ISeries.Restricted => Restricted == 1;
 
-    IReadOnlyList<IEpisode> ISeries.EpisodeList
-    {
-        get
-        {
-            var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
-            if (series == null)
-                return Array.Empty<IEpisode>();
-
-            return series.GetAnimeEpisodes(true, true)
-                .Cast<IEpisode>()
-                .ToArray();
-        }
-    }
+    IReadOnlyList<IEpisode> ISeries.EpisodeList => GetAniDBEpisodes();
 
     #endregion
 

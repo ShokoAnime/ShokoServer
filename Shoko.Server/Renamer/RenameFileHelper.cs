@@ -13,6 +13,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Plugin.Abstractions.Attributes;
 using Shoko.Server.Utilities;
+using Shoko.Server.Extensions;
 
 namespace Shoko.Server;
 
@@ -51,15 +52,25 @@ public class RenameFileHelper
         var script = _getRenameScript(scriptName);
         var videoLocal = place.VideoLocal ??
             throw new NullReferenceException(nameof(place.VideoLocal));
-        var episodes = videoLocal.GetAnimeEpisodes()
+        var xrefs = videoLocal.EpisodeCrossRefs;
+        var episodes = xrefs
+            .Select(x => x.GetEpisode())
+            .OfType<SVR_AniDB_Episode>()
             .ToList();
-        var series = episodes
-            .DistinctBy(e => e.AnimeSeriesID)
-            .Select(e => e.GetAnimeSeries())
+        var series = xrefs
+            .DistinctBy(x => x.AnimeID)
+            .Select(x => x.GetAnime())
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
-        var animeInfo = series.Select(a => a.GetAnime()).Cast<IAnime>().ToList();
-        var groupInfo = series.DistinctBy(a => a.AnimeGroupID).Select(a => a.AnimeGroup).Cast<IGroup>().ToList();
+        var animeInfo = series.Cast<IAnime>().ToList();
+        var groupInfo = xrefs
+            .DistinctBy(x => x.AnimeID)
+            .Select(x => x.GetAnimeSeries())
+            .OfType<SVR_AnimeSeries>()
+            .DistinctBy(a => a.AnimeGroupID)
+            .Select(a => a.AnimeGroup)
+            .Cast<IGroup>()
+            .ToList();
         var args = new RenameEventArgs(script, place, videoLocal, episodeInfo, animeInfo, groupInfo);
         foreach (var renamer in GetPluginRenamersSorted(script?.Type))
         {
@@ -101,15 +112,25 @@ public class RenameFileHelper
         var script = _getRenameScriptWithFallback(scriptName);
         var videoLocal = place.VideoLocal ??
             throw new NullReferenceException(nameof(place.VideoLocal));
-        var episodes = videoLocal.GetAnimeEpisodes()
+        var xrefs = videoLocal.EpisodeCrossRefs;
+        var episodes = xrefs
+            .Select(x => x.GetEpisode())
+            .OfType<SVR_AniDB_Episode>()
             .ToList();
-        var series = episodes
-            .DistinctBy(e => e.AnimeSeriesID)
-            .Select(e => e.GetAnimeSeries())
+        var series = xrefs
+            .DistinctBy(x => x.AnimeID)
+            .Select(x => x.GetAnime())
             .ToList();
         var episodeInfo = episodes.Cast<IEpisode>().ToList();
-        var animeInfo = series.Select(a => a.GetAnime()).Cast<IAnime>().ToList();
-        var groupInfo = series.DistinctBy(a => a.AnimeGroupID).Select(a => a.AnimeGroup).Cast<IGroup>().ToList();
+        var animeInfo = series.Cast<IAnime>().ToList();
+        var groupInfo = xrefs
+            .DistinctBy(x => x.AnimeID)
+            .Select(x => x.GetAnimeSeries())
+            .OfType<SVR_AnimeSeries>()
+            .DistinctBy(a => a.AnimeGroupID)
+            .Select(a => a.AnimeGroup)
+            .Cast<IGroup>()
+            .ToList();
         var availableFolders = RepoFactory.ImportFolder.GetAll()
             .Cast<IImportFolder>()
             .Where(a => a.DropFolderType != DropFolderType.Excluded)

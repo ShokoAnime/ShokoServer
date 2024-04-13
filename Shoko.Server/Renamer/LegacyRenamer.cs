@@ -98,7 +98,7 @@ public class LegacyRenamer : IRenamer
     /// <param name="test"></param>
     /// <param name="episodes"></param>
     /// <returns></returns>
-    private static bool EvaluateTestA(string test, List<AniDB_Episode> episodes)
+    private static bool EvaluateTestA(string test, List<SVR_AniDB_Episode> episodes)
     {
         try
         {
@@ -178,7 +178,7 @@ public class LegacyRenamer : IRenamer
     /// <param name="aniFile"></param>
     /// <param name="episodes"></param>
     /// <returns></returns>
-    private static bool EvaluateTestM(string test, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes)
+    private static bool EvaluateTestM(string test, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes)
     {
         try
         {
@@ -217,7 +217,7 @@ public class LegacyRenamer : IRenamer
     /// <param name="aniFile"></param>
     /// <param name="episodes"></param>
     /// <returns></returns>
-    private static bool EvaluateTestN(string test, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes)
+    private static bool EvaluateTestN(string test, SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes)
     {
         try
         {
@@ -669,7 +669,7 @@ public class LegacyRenamer : IRenamer
         }
     }
 
-    private static bool EvaluateTestE(string test, List<AniDB_Episode> episodes)
+    private static bool EvaluateTestE(string test, List<SVR_AniDB_Episode> episodes)
     {
         try
         {
@@ -717,7 +717,7 @@ public class LegacyRenamer : IRenamer
         }
     }
 
-    private static bool EvaluateTestH(string test, List<AniDB_Episode> episodes)
+    private static bool EvaluateTestH(string test, List<SVR_AniDB_Episode> episodes)
     {
         try
         {
@@ -877,7 +877,7 @@ public class LegacyRenamer : IRenamer
     /// <param name="anime"></param>
     /// <returns></returns>
     private static bool EvaluateTestI(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
-        List<AniDB_Episode> episodes,
+        List<SVR_AniDB_Episode> episodes,
         SVR_AniDB_Anime anime)
     {
         try
@@ -1366,7 +1366,7 @@ public class LegacyRenamer : IRenamer
         var newFileName = string.Empty;
 
 
-        var episodes = new List<AniDB_Episode>();
+        var episodes = new List<SVR_AniDB_Episode>();
         SVR_AniDB_Anime anime;
 
         if (vid == null)
@@ -1473,7 +1473,7 @@ public class LegacyRenamer : IRenamer
     }
 
     private static void PerformActionOnFileName(ref string newFileName, string action, SVR_VideoLocal vid,
-        SVR_AniDB_File aniFile, List<AniDB_Episode> episodes, SVR_AniDB_Anime anime)
+        SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
     {
         // find the first test
         var posStart = action.IndexOf(" ", StringComparison.Ordinal);
@@ -1543,7 +1543,7 @@ public class LegacyRenamer : IRenamer
     }
 
     private static void PerformActionOnFileNameADD(ref string newFileName, string action, SVR_VideoLocal vid,
-        SVR_AniDB_File aniFile, List<AniDB_Episode> episodes, SVR_AniDB_Anime anime)
+        SVR_AniDB_File aniFile, List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
     {
         newFileName += action;
         newFileName = newFileName.Replace("'", string.Empty);
@@ -2025,7 +2025,7 @@ public class LegacyRenamer : IRenamer
     }
 
     private static bool EvaluateTest(string line, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
-        List<AniDB_Episode> episodes,
+        List<SVR_AniDB_Episode> episodes,
         SVR_AniDB_Anime anime)
     {
         line = line.Trim();
@@ -2120,7 +2120,7 @@ public class LegacyRenamer : IRenamer
 
     private static bool EvaluateTest(char testChar, string testCondition, SVR_VideoLocal vid,
         SVR_AniDB_File aniFile,
-        List<AniDB_Episode> episodes, SVR_AniDB_Anime anime)
+        List<SVR_AniDB_Episode> episodes, SVR_AniDB_Anime anime)
     {
         testCondition = testCondition.Trim();
 

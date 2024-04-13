@@ -178,7 +178,7 @@ public class Episode : BaseModel
     /// </summary>
     public class AniDB
     {
-        public AniDB(AniDB_Episode ep)
+        public AniDB(SVR_AniDB_Episode ep)
         {
             if (!decimal.TryParse(ep.Rating, out var rating))
             {
@@ -190,32 +190,9 @@ public class Episode : BaseModel
                 votes = 0;
             }
 
-            var titles = RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
-
-            // This logic will be moved into the anidb episode model after the
-            // refactor… in fact… it's already in there. But the refactor is not
-            // done yet, so this will do for now.
-            var mainTitle = string.Empty;
-            // Try finding one of the preferred languages.
-            foreach (var language in Languages.PreferredEpisodeNamingLanguages)
-            {
-                var title = titles
-                    .Where(a => a.Language == language.Language).ToList()
-                    .FirstOrDefault()
-                    ?.Title;
-                if (!string.IsNullOrEmpty(title))
-                {
-                    mainTitle = title;
-                    break;
-                }
-            }
-            // Fallback to English if available.
-            if (string.IsNullOrEmpty(mainTitle)) {
-                mainTitle = titles.Where(a => a.Language == TitleLanguage.English)
-                    .FirstOrDefault()
-                    ?.Title;
-            }
-
+            var defaultTitle = ep.GetDefaultTitle();
+            var mainTitle = ep.GetPreferredTitle();
+            var titles = ep.GetTitles();
             ID = ep.EpisodeID;
             Type = MapAniDBEpisodeType(ep.GetEpisodeTypeEnum());
             EpisodeNumber = ep.EpisodeNumber;
@@ -223,11 +200,15 @@ public class Episode : BaseModel
             Description = ep.Description;
             Rating = new Rating { MaxValue = 10, Value = rating, Votes = votes, Source = "AniDB" };
             Title = mainTitle;
-            Titles = titles.Select(a => new Title
+            Titles = titles
+                .Select(a => new Title
                 {
-                    Name = a.Title, Language = a.LanguageCode, Default = false, Source = "AniDB"
-                }
-            ).ToList();
+                    Name = a.Title,
+                    Language = a.LanguageCode,
+                    Default = string.Equals(a.Title, defaultTitle),
+                    Source = "AniDB",
+                })
+                .ToList();
         }
 
         /// <summary>

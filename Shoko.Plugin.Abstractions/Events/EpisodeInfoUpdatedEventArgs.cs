@@ -1,5 +1,6 @@
 using System;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
 
 #nullable enable
 namespace Shoko.Plugin.Abstractions;
@@ -10,18 +11,24 @@ namespace Shoko.Plugin.Abstractions;
 public class EpisodeInfoUpdatedEventArgs : EventArgs
 {
     /// <summary>
-    /// This is the full data. A diff was not performed for this.
-    /// This is provided for convenience, use <see cref="IShokoEventHandler.SeriesUpdate"/>
+    /// The reason this updated event was dispatched.
     /// </summary>
-    public ISeries SeriesInfo { get; }
+    public UpdateReason Reason { get; }
 
     /// <summary>
     /// This is the full data. A diff was not performed for this.
     /// </summary>
     public IEpisode EpisodeInfo { get; }
 
-    public EpisodeInfoUpdatedEventArgs(ISeries seriesInfo, IEpisode episodeInfo)
+    /// <summary>
+    /// This is the full data. A diff was not performed for this.
+    /// This is provided for convenience, use <see cref="IShokoEventHandler.SeriesUpdate"/>
+    /// </summary>
+    public ISeries SeriesInfo { get; }
+
+    public EpisodeInfoUpdatedEventArgs(ISeries seriesInfo, IEpisode episodeInfo, UpdateReason reason)
     {
+        Reason = reason;
         SeriesInfo = seriesInfo;
         EpisodeInfo = episodeInfo;
     }

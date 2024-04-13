@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Models.Server;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -21,7 +21,7 @@ public class SyncTraktCollectionEpisodeJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
-    private AniDB_Episode _episode;
+    private SVR_AniDB_Episode _episode;
     public int AnimeEpisodeID { get; set; }
     public TraktSyncAction Action { get; set; }
 

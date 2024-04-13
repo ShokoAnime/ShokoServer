@@ -566,7 +566,7 @@ public class TraktTVHelper
         return GetTraktEpisodeIdV2(anime, aniep, ref traktID, ref season, ref epNumber);
     }
 
-    private int? GetTraktEpisodeIdV2(SVR_AniDB_Anime anime, AniDB_Episode ep, ref string traktID,
+    private int? GetTraktEpisodeIdV2(SVR_AniDB_Anime anime, SVR_AniDB_Episode ep, ref string traktID,
         ref int season,
         ref int epNumber)
     {
@@ -583,7 +583,7 @@ public class TraktTVHelper
     }
 
     private int? GetTraktEpisodeIdV2(TraktSummaryContainer traktSummary,
-        AniDB_Episode ep,
+        SVR_AniDB_Episode ep,
         ref string traktID, ref int season, ref int epNumber)
     {
         try

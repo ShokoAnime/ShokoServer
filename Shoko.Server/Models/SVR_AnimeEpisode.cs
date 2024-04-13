@@ -14,11 +14,11 @@ using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Models;
 
-public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
+public class SVR_AnimeEpisode : AnimeEpisode
 {
-    public EpisodeType EpisodeTypeEnum => (EpisodeType) AniDB_Episode.EpisodeType;
+    public EpisodeType EpisodeTypeEnum => (EpisodeType)AniDB_Episode.EpisodeType;
 
-    public AniDB_Episode AniDB_Episode => RepoFactory.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
+    public SVR_AniDB_Episode AniDB_Episode => RepoFactory.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
     public SVR_AnimeEpisode_User GetUserRecord(int userID)
     {
@@ -232,53 +232,4 @@ public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
             return hashCode;
         }
     }
-
-    #region IEpisode Implementation
-
-    DataSourceEnum IMetadata.Source => DataSourceEnum.AniDB;
-
-    int IMetadata<int>.ID => AniDB_EpisodeID;
-
-    int IEpisode.SeriesID => AniDB_Episode?.AnimeID ?? 0;
-
-    Shoko.Plugin.Abstractions.DataModels.EpisodeType IEpisode.Type =>
-        (Shoko.Plugin.Abstractions.DataModels.EpisodeType)(AniDB_Episode?.EpisodeType ?? 0);
-
-    int IEpisode.EpisodeNumber => AniDB_Episode?.EpisodeNumber ?? 0;
-
-    int? IEpisode.SeasonNumber => EpisodeTypeEnum == EpisodeType.Episode ? 1 : null;
-
-    string IWithTitles.DefaultTitle =>
-        RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.English)
-            .FirstOrDefault()
-            ?.Title ?? $"Episode {AniDB_Episode?.EpisodeNumber ?? 0}";
-
-    string IWithTitles.PreferredTitle => Title;
-
-    IReadOnlyList<AnimeTitle> IWithTitles.Titles =>
-        RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID)
-            .Select(a => new AnimeTitle
-            {
-                LanguageCode = a.LanguageCode,
-                Language = a.Language,
-                Title = a.Title,
-                Type = TitleType.None,
-            })
-            .ToList();
-
-    TimeSpan IEpisode.Runtime => TimeSpan.FromSeconds(AniDB_Episode?.LengthSeconds ?? 0);
-
-    DateTime? IEpisode.AirDate => AniDB_Episode?.GetAirDateAsDate();
-
-    ISeries IEpisode.SeriesInfo => GetAnimeSeries()?.GetAnime();
-
-    int IEpisode.EpisodeID => AniDB_EpisodeID;
-
-    int IEpisode.AnimeID => AniDB_Episode?.AnimeID ?? 0;
-
-    int IEpisode.Number => AniDB_Episode?.EpisodeNumber ?? 0;
-
-    int IEpisode.Duration => AniDB_Episode?.LengthSeconds ?? 0;
-
-    #endregion
 }

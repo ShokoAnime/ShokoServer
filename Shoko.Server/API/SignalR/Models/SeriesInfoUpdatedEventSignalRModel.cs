@@ -15,6 +15,7 @@ public class SeriesInfoUpdatedEventSignalRModel
     public SeriesInfoUpdatedEventSignalRModel(SeriesInfoUpdatedEventArgs eventArgs)
     {
         Source = eventArgs.SeriesInfo.Source;
+        Reason = eventArgs.Reason;
         SeriesID = eventArgs.SeriesInfo.ID;
         // TODO: Add support for more metadata sources when they're hooked up internally.
         switch (Source)
@@ -37,6 +38,12 @@ public class SeriesInfoUpdatedEventSignalRModel
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
     public DataSourceEnum Source { get; }
+
+    /// <summary>
+    /// The update reason.
+    /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
+    public UpdateReason Reason { get; }
 
     /// <summary>
     /// The provided metadata series id.
