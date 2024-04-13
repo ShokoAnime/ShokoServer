@@ -15,7 +15,10 @@ public class FileEventSignalRModel
         FileLocationID = eventArgs.FileInfo.ID;
         ImportFolderID = eventArgs.ImportFolder.ID;
         var episodes = eventArgs.EpisodeInfo
-            .Cast<SVR_AnimeEpisode>();
+            .Cast<SVR_AniDB_Episode>()
+            .Select(e => e.GetShokoEpisode())
+            .OfType<SVR_AnimeEpisode>()
+            .ToList();
         var seriesToGroupDict = episodes
             .GroupBy(e => e.AnimeSeriesID)
             .Select(e => e.First().GetAnimeSeries())
