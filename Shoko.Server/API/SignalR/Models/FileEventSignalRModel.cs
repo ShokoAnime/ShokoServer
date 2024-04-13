@@ -20,8 +20,8 @@ public class FileEventSignalRModel
             .OfType<SVR_AnimeEpisode>()
             .ToList();
         var seriesToGroupDict = episodes
-            .GroupBy(e => e.AnimeSeriesID)
-            .Select(e => e.First().GetAnimeSeries())
+            .DistinctBy(e => e.AnimeSeriesID)
+            .Select(e => e.GetAnimeSeries())
             .ToDictionary(s => s.AnimeSeriesID, s => s.AnimeGroupID);
         CrossReferences = episodes
             .Select(e => new FileCrossReferenceSignalRModel()
