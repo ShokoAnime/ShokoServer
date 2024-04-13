@@ -210,8 +210,8 @@ public class Core : BaseController
         await handler.CloseConnections();
 
         await handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
-            _settings.AniDb.ServerAddress,
-            _settings.AniDb.ServerPort, _settings.AniDb.ClientPort);
+            _settings.AniDb.UDPServerAddress,
+            _settings.AniDb.UDPServerPort, _settings.AniDb.ClientPort);
 
         if (await handler.Login())
         {

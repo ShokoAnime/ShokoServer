@@ -7,7 +7,7 @@ namespace Shoko.Server.Settings;
 
 public static class SettingsMigrations
 {
-    public const int Version = 5;
+    public const int Version = 6;
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
@@ -38,7 +38,8 @@ public static class SettingsMigrations
         { 2, MigrateEpisodeLanguagePreference },
         { 3, MigrateAutoGroupRelations },
         { 4, MigrateHostnameToHost },
-        { 5, MigrateAutoGroupRelationsAlternateToAlternative }
+        { 5, MigrateAutoGroupRelationsAlternateToAlternative },
+        { 6, MigrateAniDBServerAddresses }
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -86,5 +87,25 @@ public static class SettingsMigrations
     {
         var regex = new Regex(@"(?<=""AutoGroupSeriesRelationExclusions""\s*:\s*\[)(?<value>[^\]]+)", RegexOptions.Compiled);
         return regex.Replace(settings, match => match.Groups["value"].Value.Replace("alternate", "alternative", StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    private static string MigrateAniDBServerAddresses(string settings)
+    {
+        ushort serverPort = 9001;
+
+        var serverPortRegex = new Regex(@"(?<=""AniDb""\s*:\s*\{.*)""ServerPort""\s*:\s*(?<value>\d+)", RegexOptions.Compiled | RegexOptions.Singleline);
+        var serverAddressRegex = new Regex(@"(?<=""AniDb""\s*:\s*\{.*)""ServerAddress""\s*:\s*""(?<value>\S+)""", RegexOptions.Compiled | RegexOptions.Singleline);
+
+        var newSettings = serverPortRegex.Replace(settings, match =>
+        {
+            serverPort = ushort.Parse(match.Groups["value"].Value);
+            return $"\"UDPServerPort\": {serverPort}";
+        });
+
+        return serverAddressRegex.Replace(newSettings, match =>
+        {
+            var serverAddress = match.Groups["value"].Value;
+            return $"\"HTTPServerUrl\": \"http://{serverAddress}:{serverPort + 1}\",\"UDPServerAddress\": \"{serverAddress}\"";
+        });
     }
 }

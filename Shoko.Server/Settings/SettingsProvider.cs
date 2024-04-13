@@ -88,8 +88,7 @@ public class SettingsProvider : ISettingsProvider
             {
                 Username = legacy.AniDB_Username,
                 Password = legacy.AniDB_Password,
-                ServerAddress = legacy.AniDB_ServerAddress,
-                ServerPort = ushort.Parse(legacy.AniDB_ServerPort),
+                HTTPServerUrl = $"http://${legacy.AniDB_ServerAddress}:{ushort.Parse(legacy.AniDB_ServerPort)}",
                 ClientPort = ushort.Parse(legacy.AniDB_ClientPort),
                 AVDumpKey = legacy.AniDB_AVDumpKey,
                 AVDumpClientPort = ushort.Parse(legacy.AniDB_AVDumpClientPort),

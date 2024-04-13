@@ -87,7 +87,7 @@ public class SettingsController : BaseController
         var alive = handler.IsAlive;
         var settings = SettingsProvider.GetSettings();
         if (!alive)
-            await handler.Init(credentials.Username, credentials.Password, settings.AniDb.ServerAddress, settings.AniDb.ServerPort, settings.AniDb.ClientPort);
+            await handler.Init(credentials.Username, credentials.Password, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
         else handler.ForceLogout();
 
         if (!await handler.TestLogin(credentials.Username, credentials.Password))

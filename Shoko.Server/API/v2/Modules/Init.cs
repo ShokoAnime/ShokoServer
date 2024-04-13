@@ -283,8 +283,8 @@ public class Init : BaseController
         Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(_settings.Culture);
 
         await handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
-            _settings.AniDb.ServerAddress,
-            _settings.AniDb.ServerPort, _settings.AniDb.ClientPort);
+            _settings.AniDb.UDPServerAddress,
+            _settings.AniDb.UDPServerPort, _settings.AniDb.ClientPort);
 
         if (!await handler.Login()) return APIStatus.BadRequest("Failed to log in");
         handler.ForceLogout();
