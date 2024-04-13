@@ -39,7 +39,7 @@ public static class SettingsMigrations
         { 3, MigrateAutoGroupRelations },
         { 4, MigrateHostnameToHost },
         { 5, MigrateAutoGroupRelationsAlternateToAlternative },
-        { 6, MigrateServerPorts }
+        { 6, MigrateAniDBServerPorts }
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -89,7 +89,7 @@ public static class SettingsMigrations
         return regex.Replace(settings, match => match.Groups["value"].Value.Replace("alternate", "alternative", StringComparison.InvariantCultureIgnoreCase));
     }
 
-    private static string MigrateServerPorts(string settings)
+    private static string MigrateAniDBServerPorts(string settings)
     {
         var regex = new Regex(@"(?<=""AniDb""\s*:\s*\{.*""ServerPort""\s*:\s*)\d+", RegexOptions.Compiled | RegexOptions.Singleline);
         return regex.Replace(settings, match =>
