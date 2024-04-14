@@ -501,7 +501,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                                              Environment.NewLine;
                 }
 
-                if (!Regex.IsMatch(newAniDB_HTTPServerUrl, @"https?://.*"))
+                // This can be a single condition with StartsWith("http"), but there's an edge case of someone having "http.example.org"
+                if (!newAniDB_HTTPServerUrl.StartsWith("http://") && !newAniDB_HTTPServerUrl.StartsWith("https://"))
                 {
                     newAniDB_HTTPServerUrl = $"http://{newAniDB_HTTPServerUrl}";
                 }
