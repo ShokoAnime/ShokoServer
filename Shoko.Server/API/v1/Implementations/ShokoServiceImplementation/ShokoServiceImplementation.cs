@@ -51,6 +51,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ActionService _actionService;
 
+    private readonly Regex _urlRegex = new Regex(@"(?<=https?://)(?<address>.*):(?<port>\d+)", RegexOptions.Compiled);
+
     public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, ILogger<ShokoServiceImplementation> logger, ActionService actionService, AnimeGroupCreator groupCreator, JobFactory jobFactory)
     {
         _tvdbHelper = tvdbHelper;
@@ -479,7 +481,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 }
             }
 
-            var serverAddressGroups = Regex.Match(settings.AniDb.HTTPServerUrl, @"(?<=https?://)(?<address>.*):(?<port>\d+)").Groups;
+            var serverAddressGroups = _urlRegex.Match(settings.AniDb.HTTPServerUrl).Groups;
             var oldAniDB_ServerAddress = serverAddressGroups["address"].Value;
             var oldAniDB_ServerPort = serverAddressGroups["port"].Value;
             var newAniDB_HTTPServerUrl = $"{contractIn.AniDB_ServerAddress}:{contractIn.AniDB_ServerPort}";
