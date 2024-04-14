@@ -13,10 +13,8 @@ namespace Shoko.Server.Providers.AniDB.HTTP;
 
 public class RequestVotes : HttpRequest<List<ResponseVote>>
 {
-    private readonly string _aniDBUrl;
-
     protected override string BaseCommand =>
-        $"{_aniDBUrl}/httpapi?client=animeplugin&clientver=1&protover=1&request=votes&user={Username}&pass={Password}";
+        $"httpapi?client=animeplugin&clientver=1&protover=1&request=votes&user={Username}&pass={Password}";
 
     public string Username { private get; set; }
     public string Password { private get; set; }
@@ -111,9 +109,5 @@ public class RequestVotes : HttpRequest<List<ResponseVote>>
         return new ResponseVote { EntityID = entityID, VoteType = AniDBVoteType.Episode, VoteValue = val };
     }
 
-    public RequestVotes(IHttpConnectionHandler handler, ILoggerFactory loggerFactory, ISettingsProvider settingsProvider) : base(handler, loggerFactory)
-    {
-        var settings = settingsProvider.GetSettings().AniDb;
-        _aniDBUrl = settings.HTTPServerUrl;
-    }
+    public RequestVotes(IHttpConnectionHandler handler, ILoggerFactory loggerFactory, ISettingsProvider settingsProvider) : base(handler, loggerFactory) { }
 }

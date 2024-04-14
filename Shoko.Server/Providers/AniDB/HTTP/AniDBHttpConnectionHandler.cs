@@ -5,6 +5,7 @@ using System.Net.Security;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
 
@@ -31,6 +32,7 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
         _httpClient.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
         _httpClient.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("deflate"));
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1");
+        _httpClient.BaseAddress = new Uri(Utils.SettingsProvider.GetSettings().AniDb.HTTPServerUrl);
     }
 
     public async Task<HttpResponse<string>> GetHttp(string url)
