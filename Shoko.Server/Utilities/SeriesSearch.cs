@@ -200,7 +200,7 @@ public static class SeriesSearch
         if (int.TryParse(query, out var animeID))
         {
             var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-            var anime = series.GetAnime();
+            var anime = series?.GetAnime();
             var tags = anime?.GetAllTags();
             if (anime != null && !tags.FindInEnumerable(forbiddenTags))
                 return new List<SearchResult<SVR_AnimeSeries>>
