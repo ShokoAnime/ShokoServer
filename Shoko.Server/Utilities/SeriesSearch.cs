@@ -184,11 +184,12 @@ public static class SeriesSearch
     /// <param name="flags">The SearchFlags to determine the type of search</param>
     /// <param name="tagFilter">Tag filter to use if <paramref name="flags"/>
     /// includes <see cref="SearchFlags.Tags"/>.</param>
+    /// <param name="searchById">Enable search by anidb anime id.</param>
     /// <returns>
     ///     <see cref="List{SearchResult}" />
     /// </returns>
     public static List<SearchResult<SVR_AnimeSeries>> SearchSeries(SVR_JMMUser user, string query, int limit, SearchFlags flags,
-            TagFilter.Filter tagFilter = TagFilter.Filter.None)
+            TagFilter.Filter tagFilter = TagFilter.Filter.None, bool searchById = false)
     {
         if (string.IsNullOrWhiteSpace(query) || user == null || limit <= 0)
             return new List<SearchResult<SVR_AnimeSeries>>();
@@ -197,7 +198,7 @@ public static class SeriesSearch
         var forbiddenTags = user.GetHideCategories();
 
         //search by anime id
-        if (int.TryParse(query, out var animeID))
+        if (searchById && int.TryParse(query, out var animeID))
         {
             var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
             var anime = series?.GetAnime();

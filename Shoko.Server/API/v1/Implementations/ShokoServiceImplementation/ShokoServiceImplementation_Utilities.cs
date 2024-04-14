@@ -40,7 +40,7 @@ public partial class ShokoServiceImplementation
             return new();
 
         var series = SeriesSearch.SearchSeries(user, query, 200,
-            SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Fuzzy);
+            SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Fuzzy, searchById: true);
 
         return series.Select(a => a.Result).Select(ser => ser.GetUserContract(uid)).ToList();
     }

@@ -1859,21 +1859,22 @@ public class SeriesController : BaseController
     /// <param name="query">target string</param>
     /// <param name="fuzzy">whether or not to use fuzzy search</param>
     /// <param name="limit">number of return items</param>
+    /// <param name="searchById">Enable search by anidb anime id.</param>
     /// <returns>List<see cref="SeriesSearchResult"/></returns>
     [Obsolete("Use the other endpoint instead.")]
     [HttpGet("Search/{query}")]
     public ActionResult<IEnumerable<SeriesSearchResult>> SearchPath([FromRoute] string query, [FromQuery] bool fuzzy = true,
-        [FromQuery, Range(0, 1000)] int limit = 50)
-        => SearchInternal(HttpUtility.UrlDecode(query), fuzzy, limit);
+        [FromQuery, Range(0, 1000)] int limit = 50, [FromQuery] bool searchById = false)
+        => SearchInternal(HttpUtility.UrlDecode(query), fuzzy, limit, searchById);
 
     [NonAction]
-    internal ActionResult<IEnumerable<SeriesSearchResult>> SearchInternal(string query, bool fuzzy = true, int limit = 50)
+    internal ActionResult<IEnumerable<SeriesSearchResult>> SearchInternal(string query, bool fuzzy = true, int limit = 50, bool searchById = false)
     {
         var flags = SeriesSearch.SearchFlags.Titles;
         if (fuzzy)
             flags |= SeriesSearch.SearchFlags.Fuzzy;
 
-        return SeriesSearch.SearchSeries(User, query, limit, flags)
+        return SeriesSearch.SearchSeries(User, query, limit, flags, searchById: searchById)
             .Select(result => _seriesFactory.GetSeriesSearchResult(result))
             .ToList();
     }

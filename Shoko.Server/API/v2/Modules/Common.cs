@@ -2481,7 +2481,7 @@ public class Common : BaseController
 
         var series_list = new List<Serie>();
 
-        var series = SeriesSearch.SearchSeries(user, query, offset + limit + limit_tag, GetFlags(tagSearch, fuzzy), tagfilter);
+        var series = SeriesSearch.SearchSeries(user, query, offset + limit + limit_tag, GetFlags(tagSearch, fuzzy), tagfilter, true);
         foreach (var ser in series)
         {
             if (offset == 0)
