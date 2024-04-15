@@ -111,6 +111,15 @@ public class AnimeCreator
         _logger.LogTrace("CreateSimilarAnime in: {Time}", taskTimer.Elapsed);
         taskTimer.Restart();
 
+#pragma warning disable CS0618
+        // Track when we last tried to update the metadata.
+        anime.DateTimeUpdated = DateTime.Now;
+
+        // Track when we last updated the metadata.
+        if (updated)
+            anime.DateTimeDescUpdated = anime.DateTimeUpdated;
+#pragma warning restore CS0618
+
         RepoFactory.AniDB_Anime.Save(anime);
 
         totalTimer.Stop();
@@ -264,11 +273,6 @@ public class AnimeCreator
             anime.AllTitles = string.Empty;
             anime.ImageEnabled = 1;
         }
-
-        anime.DateTimeDescUpdated = DateTime.Now;
-#pragma warning disable CS0618
-        anime.DateTimeUpdated = DateTime.Now;
-#pragma warning restore CS0618
 
         return isUpdated;
     }
