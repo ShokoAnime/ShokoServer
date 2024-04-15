@@ -47,23 +47,19 @@ public class AnimeCreator
         );
         _logger.LogTrace("------------------------------------------------");
 
-        var taskTimer = Stopwatch.StartNew();
-        var totalTimer = Stopwatch.StartNew();
-
         // We need various values to be populated to be considered valid
         if (string.IsNullOrEmpty(response.Anime?.MainTitle) || response.Anime.AnimeID <= 0)
         {
             _logger.LogError("AniDB_Anime was unable to populate as it received invalid info. " +
                              "This is not an error on our end. It is AniDB's issue, " +
                              "as they did not return either an ID or a title for the anime");
-            totalTimer.Stop();
-            taskTimer.Stop();
             return false;
         }
 
+        var taskTimer = Stopwatch.StartNew();
+        var totalTimer = Stopwatch.StartNew();
         var updated = PopulateAnime(response.Anime, anime);
 
-        // save now for FK purposes
         RepoFactory.AniDB_Anime.Save(anime, false);
 
         taskTimer.Stop();
@@ -177,91 +173,91 @@ public class AnimeCreator
             isUpdated = true;
         }
 
-        if (anime.Description == description)
+        if (anime.Description != description)
         {
             anime.Description = description;
             isUpdated = true;
         }
 
-        if (anime.EndDate == animeInfo.EndDate)
+        if (anime.EndDate != animeInfo.EndDate)
         {
             anime.EndDate = animeInfo.EndDate;
             isUpdated = true;
         }
 
-        if (anime.EndYear == animeInfo.EndYear)
+        if (anime.EndYear != animeInfo.EndYear)
         {
             anime.EndYear = animeInfo.EndYear;
             isUpdated = true;
         }
 
-        if (anime.MainTitle == animeInfo.MainTitle)
+        if (anime.MainTitle != animeInfo.MainTitle)
         {
             anime.MainTitle = animeInfo.MainTitle;
             isUpdated = true;
         }
 
-        if (anime.EpisodeCount == animeInfo.EpisodeCount)
+        if (anime.EpisodeCount != animeInfo.EpisodeCount)
         {
             anime.EpisodeCount = animeInfo.EpisodeCount;
             isUpdated = true;
         }
 
-        if (anime.EpisodeCountNormal == animeInfo.EpisodeCountNormal)
+        if (anime.EpisodeCountNormal != animeInfo.EpisodeCountNormal)
         {
             anime.EpisodeCountNormal = animeInfo.EpisodeCountNormal;
             isUpdated = true;
         }
 
-        if (anime.EpisodeCountSpecial == episodeCountSpecial)
+        if (anime.EpisodeCountSpecial != episodeCountSpecial)
         {
             anime.EpisodeCountSpecial = episodeCountSpecial;
             isUpdated = true;
         }
 
-        if (anime.Picname == animeInfo.Picname)
+        if (anime.Picname != animeInfo.Picname)
         {
             anime.Picname = animeInfo.Picname;
             isUpdated = true;
         }
 
-        if (anime.Rating == animeInfo.Rating)
+        if (anime.Rating != animeInfo.Rating)
         {
             anime.Rating = animeInfo.Rating;
             isUpdated = true;
         }
 
-        if (anime.Restricted == animeInfo.Restricted)
+        if (anime.Restricted != animeInfo.Restricted)
         {
             anime.Restricted = animeInfo.Restricted;
             isUpdated = true;
         }
 
-        if (anime.ReviewCount == animeInfo.ReviewCount)
+        if (anime.ReviewCount != animeInfo.ReviewCount)
         {
             anime.ReviewCount = animeInfo.ReviewCount;
             isUpdated = true;
         }
 
-        if (anime.TempRating == animeInfo.TempRating)
+        if (anime.TempRating != animeInfo.TempRating)
         {
             anime.TempRating = animeInfo.TempRating;
             isUpdated = true;
         }
 
-        if (anime.TempVoteCount == animeInfo.TempVoteCount)
+        if (anime.TempVoteCount != animeInfo.TempVoteCount)
         {
             anime.TempVoteCount = animeInfo.TempVoteCount;
             isUpdated = true;
         }
 
-        if (anime.URL == animeInfo.URL)
+        if (anime.URL != animeInfo.URL)
         {
             anime.URL = animeInfo.URL;
             isUpdated = true;
         }
 
-        if (anime.VoteCount == animeInfo.VoteCount)
+        if (anime.VoteCount != animeInfo.VoteCount)
         {
             anime.VoteCount = animeInfo.VoteCount;
             isUpdated = true;
