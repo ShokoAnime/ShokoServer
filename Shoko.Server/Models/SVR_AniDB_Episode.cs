@@ -41,8 +41,8 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
     }
 
     public IReadOnlyList<SVR_AniDB_Episode_Title> GetTitles(TitleLanguage? language = null) => language.HasValue
-        ? RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, language.Value)
-        : RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID);
+        ? RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(EpisodeID, language.Value)
+        : RepoFactory.AniDB_Episode_Title.GetByEpisodeID(EpisodeID);
 
     public SVR_AniDB_Anime? GetAnime() =>
         RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
@@ -57,7 +57,7 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
 
     DataSourceEnum IMetadata.Source => DataSourceEnum.AniDB;
 
-    int IMetadata<int>.ID => AniDB_EpisodeID;
+    int IMetadata<int>.ID => EpisodeID;
 
     int IEpisode.SeriesID => AnimeID;
 
@@ -85,7 +85,7 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
 
     ISeries? IEpisode.SeriesInfo => GetAnime();
 
-    int IEpisode.EpisodeID => AniDB_EpisodeID;
+    int IEpisode.EpisodeID => EpisodeID;
 
     int IEpisode.AnimeID => AnimeID;
 
