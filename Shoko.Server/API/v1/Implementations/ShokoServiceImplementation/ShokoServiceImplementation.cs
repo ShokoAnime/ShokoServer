@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,6 +50,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly ActionService _actionService;
+
+    private readonly Regex _urlRegex = new Regex(@"(?<=https?://)(?<address>.*):(?<port>\d+)", RegexOptions.Compiled);
 
     public ShokoServiceImplementation(TvDBApiHelper tvdbHelper, TraktTVHelper traktHelper, MovieDBHelper movieDBHelper, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, ILogger<ShokoServiceImplementation> logger, ActionService actionService, AnimeGroupCreator groupCreator, JobFactory jobFactory)
     {
@@ -460,14 +463,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                                          Environment.NewLine;
             }
 
-            if (ushort.TryParse(contractIn.AniDB_ServerPort, out var newAniDB_ServerPort) &&
-                newAniDB_ServerPort != settings.AniDb.ServerPort)
-            {
-                anidbSettingsChanged = true;
-                contract.ErrorMessage += "AniDB Server Port must be numeric and greater than 0" +
-                                         Environment.NewLine;
-            }
-
             if (contractIn.AniDB_Username != settings.AniDb.Username)
             {
                 anidbSettingsChanged = true;
@@ -486,12 +481,30 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 }
             }
 
-            if (contractIn.AniDB_ServerAddress != settings.AniDb.ServerAddress)
+            var serverAddressGroups = _urlRegex.Match(settings.AniDb.HTTPServerUrl).Groups;
+            var oldAniDB_ServerAddress = serverAddressGroups["address"].Value;
+            var oldAniDB_ServerPort = serverAddressGroups["port"].Value;
+            var newAniDB_HTTPServerUrl = $"{contractIn.AniDB_ServerAddress}:{contractIn.AniDB_ServerPort}";
+
+            if (contractIn.AniDB_ServerAddress != oldAniDB_ServerAddress || contractIn.AniDB_ServerPort != oldAniDB_ServerPort)
             {
                 anidbSettingsChanged = true;
+
                 if (string.IsNullOrEmpty(contractIn.AniDB_ServerAddress))
                 {
                     contract.ErrorMessage += "AniDB Server Address must have a value" + Environment.NewLine;
+                }
+
+                if (!(ushort.TryParse(contractIn.AniDB_ServerPort, out var newAniDB_ServerPort) && newAniDB_ServerPort > 0))
+                {
+                    contract.ErrorMessage += "AniDB Server Port must be numeric and greater than 0" +
+                                             Environment.NewLine;
+                }
+
+                // This can be a single condition with StartsWith("http"), but there's an edge case of someone having "http.example.org"
+                if (!newAniDB_HTTPServerUrl.StartsWith("http://") && !newAniDB_HTTPServerUrl.StartsWith("https://"))
+                {
+                    newAniDB_HTTPServerUrl = $"http://{newAniDB_HTTPServerUrl}";
                 }
             }
 
@@ -508,8 +521,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
             settings.AniDb.ClientPort = newAniDB_ClientPort;
             settings.AniDb.Password = contractIn.AniDB_Password;
-            settings.AniDb.ServerAddress = contractIn.AniDB_ServerAddress;
-            settings.AniDb.ServerPort = newAniDB_ServerPort;
+            settings.AniDb.HTTPServerUrl = newAniDB_HTTPServerUrl;
             settings.AniDb.Username = contractIn.AniDB_Username;
             settings.AniDb.AVDumpClientPort = newAniDB_AVDumpClientPort;
             settings.AniDb.AVDumpKey = contractIn.AniDB_AVDumpKey;
@@ -625,8 +637,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
                 Thread.Sleep(1000);
                 handler.Init(settings.AniDb.Username, settings.AniDb.Password,
-                    settings.AniDb.ServerAddress,
-                    settings.AniDb.ServerPort, settings.AniDb.ClientPort);
+                    settings.AniDb.UDPServerAddress,
+                    settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
             }
         }
         catch (Exception ex)
@@ -785,8 +797,8 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             log += "Init..." + Environment.NewLine;
             var settings = _settingsProvider.GetSettings();
             handler.Init(settings.AniDb.Username, settings.AniDb.Password,
-                settings.AniDb.ServerAddress,
-                settings.AniDb.ServerPort, settings.AniDb.ClientPort);
+                settings.AniDb.UDPServerAddress,
+                settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
 
             log += "Login..." + Environment.NewLine;
             if (handler.Login().Result)

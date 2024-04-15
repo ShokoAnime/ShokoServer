@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Models.Enums;
 
@@ -12,9 +13,11 @@ public class AniDbSettings
     public string Password { get; set; }
 
     [Required(AllowEmptyStrings = false)]
-    public string ServerAddress { get; set; } = "api.anidb.net";
+    public string HTTPServerUrl { get; set; } = "http://api.anidb.net:9001";
 
-    public ushort ServerPort { get; set; } = 9000;
+    public string UDPServerAddress { get; set; } = "api.anidb.net";
+
+    public ushort UDPServerPort { get; set; } = 9000;
 
     public ushort ClientPort { get; set; } = 4556;
 

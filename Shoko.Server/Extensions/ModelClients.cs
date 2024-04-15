@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
@@ -16,14 +17,18 @@ public static class ModelClients
 {
     private static Logger logger = LogManager.GetCurrentClassLogger();
 
+    private static readonly Regex _urlRegex = new Regex(@"(?<=https?://)(?<address>.*):(?<port>\d+)", RegexOptions.Compiled);
+
     public static CL_ServerSettings ToContract(this IServerSettings settings)
     {
+        var serverAddressGroups = _urlRegex.Match(settings.AniDb.HTTPServerUrl).Groups;
+
         return new CL_ServerSettings
         {
             AniDB_Username = settings.AniDb.Username,
             AniDB_Password = settings.AniDb.Password,
-            AniDB_ServerAddress = settings.AniDb.ServerAddress,
-            AniDB_ServerPort = settings.AniDb.ServerPort.ToString(),
+            AniDB_ServerAddress = serverAddressGroups["address"].Value,
+            AniDB_ServerPort = serverAddressGroups["port"].Value,
             AniDB_ClientPort = settings.AniDb.ClientPort.ToString(),
             AniDB_AVDumpClientPort = settings.AniDb.AVDumpClientPort.ToString(),
             AniDB_AVDumpKey = settings.AniDb.AVDumpKey,

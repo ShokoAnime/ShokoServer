@@ -119,18 +119,7 @@ public class DatabaseFixes
         session.CreateSQLQuery("DROP TABLE GroupFilter; DROP TABLE GroupFilterCondition").ExecuteUpdate();
     }
     
-    public static void MigrateAniDBToNet()
-    {
-        var settings = Utils.SettingsProvider.GetSettings();
-        var anidb = settings.AniDb.ServerAddress;
-        if (!anidb.EndsWith(".info", StringComparison.InvariantCultureIgnoreCase))
-        {
-            return;
-        }
-
-        settings.AniDb.ServerAddress = anidb.Substring(0, anidb.Length - 5) + ".net";
-        Utils.SettingsProvider.SaveSettings();
-    }
+    public static void MigrateAniDBToNet() { }
 
     public static void DeleteSerieUsersWithoutSeries()
     {

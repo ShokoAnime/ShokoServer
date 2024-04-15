@@ -12,22 +12,17 @@ public class RequestGetAnime : HttpRequest<ResponseGetAnime>
 {
     private readonly HttpXmlUtils _xmlUtils;
     private readonly HttpAnimeParser _parser;
-    private readonly string _aniDBUrl;
-    private readonly ushort _aniDBPort;
 
     public int AnimeID { get; set; }
 
     protected override string BaseCommand =>
-        $"http://{_aniDBUrl}:{_aniDBPort}/httpapi?client=animeplugin&clientver=1&protover=1&request=anime&aid={AnimeID}";
+        $"httpapi?client=animeplugin&clientver=1&protover=1&request=anime&aid={AnimeID}";
 
     public RequestGetAnime(IHttpConnectionHandler handler, ILoggerFactory loggerFactory, HttpXmlUtils xmlUtils,
         HttpAnimeParser parser, ISettingsProvider settingsProvider) : base(handler, loggerFactory)
     {
         _xmlUtils = xmlUtils;
         _parser = parser;
-        var settings = settingsProvider.GetSettings().AniDb;
-        _aniDBUrl = settings.ServerAddress;
-        _aniDBPort = (ushort)(settings.ServerPort + 1);
     }
 
     /// <summary>
