@@ -127,9 +127,9 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("RemoveMissingFiles/{removeFromMyList:bool?}")]
-    public ActionResult RemoveMissingFiles(bool removeFromMyList = true)
+    public async Task<ActionResult> RemoveMissingFiles(bool removeFromMyList = true)
     {
-        Utils.ShokoServer.RemoveMissingFiles(removeFromMyList);
+        await _actionService.RemoveRecordsWithoutPhysicalFiles(removeFromMyList);
         return Ok();
     }
 

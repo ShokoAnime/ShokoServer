@@ -700,7 +700,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     [HttpPost("Folder/RemoveMissing")]
     public void RemoveMissingFiles()
     {
-        Utils.ShokoServer.RemoveMissingFiles();
+        _actionService.RemoveRecordsWithoutPhysicalFiles().GetAwaiter().GetResult();
     }
 
     [HttpPost("Folder/RefreshMediaInfo")]

@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using NLog;
 using Quartz;
@@ -196,9 +195,9 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("remove_missing_files")]
-    public ActionResult RemoveMissingFiles()
+    public async Task<ActionResult> RemoveMissingFiles()
     {
-        Utils.ShokoServer.RemoveMissingFiles();
+        await _actionService.RemoveRecordsWithoutPhysicalFiles();
         return Ok();
     }
 

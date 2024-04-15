@@ -442,12 +442,6 @@ public class ShokoServer
         _fileWatchers.Clear();
     }
 
-    public void RemoveMissingFiles(bool removeMyList = true)
-    {
-        var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob<RemoveMissingFilesJob>(a => a.RemoveMyList = removeMyList).GetAwaiter().GetResult();
-    }
-
     private static void AniDBDispose()
     {
         var handler = Utils.ServiceContainer.GetRequiredService<IUDPConnectionHandler>();

@@ -620,7 +620,7 @@ public class ActionService
 
             // delete video local record
             _logger.LogInformation("Removing Missing File: {ID}", vl.VideoLocalID);
-            await _placeService.RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate);
+            await _placeService.RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate, removeMyList);
         }
 
         var videoLocalsAll = RepoFactory.VideoLocal.GetAll().ToList();
