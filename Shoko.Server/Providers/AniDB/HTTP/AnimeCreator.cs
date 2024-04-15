@@ -265,13 +265,10 @@ public class AnimeCreator
             anime.ImageEnabled = 1;
         }
 
-        if (isNew || isUpdated)
-        {
-            anime.DateTimeDescUpdated = DateTime.Now;
+        anime.DateTimeDescUpdated = DateTime.Now;
 #pragma warning disable CS0618
-            anime.DateTimeUpdated = DateTime.Now;
+        anime.DateTimeUpdated = DateTime.Now;
 #pragma warning restore CS0618
-        }
 
         return isUpdated;
     }
