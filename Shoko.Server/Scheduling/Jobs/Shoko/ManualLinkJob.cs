@@ -80,7 +80,6 @@ public class ManualLinkJob : BaseJob
 
         await ProcessFileQualityFilter();
 
-        _vlocal.Places.ForEach(a => { _vlPlaceService.RenameAndMoveAsRequired(a); });
 
         // Set the import date.
         _vlocal.DateTimeImported = DateTime.Now;
@@ -99,6 +98,7 @@ public class ManualLinkJob : BaseJob
             RepoFactory.AnimeGroup.Save(grp, false, false);
         }
 
+        // Dispatch the on file matched event.
         ShokoEventHandler.Instance.OnFileMatched(_vlocal.GetBestVideoLocalPlace(), _vlocal);
 
         if (_settings.AniDb.MyList_AddFiles)
@@ -106,6 +106,9 @@ public class ManualLinkJob : BaseJob
             var scheduler = await _schedulerFactory.GetScheduler();
             await scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = _vlocal.Hash);
         }
+
+        // Rename and/or move the physical file(s) if needed.
+        _vlocal.Places.ForEach(a => { _vlPlaceService.RenameAndMoveAsRequired(a); });
     }
 
     private async Task ProcessFileQualityFilter()
